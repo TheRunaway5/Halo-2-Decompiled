@@ -5,13 +5,15 @@
 
 namespace halo2 {
 SourceParticleRenderStateTu15 source_particle_render_state_tu15(
-    const Cache &cache,const SourceRuntimeMemory &memory,std::uint32_t system,
+    const Cache &cache,const SourcePhysicsContactMemory &memory,std::uint32_t system,
     std::uint32_t location,const SourceParticleRenderCameraTu15 &camera) {
-    const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+    const auto word=[&](std::uint32_t p){std::array<std::byte,4> bytes;memory.read(p,bytes);return Bytes(bytes).u32(0);};
     const auto scalar=[&](std::uint32_t p){return std::bit_cast<float>(word(p));};
-    const auto short_word=[&](std::uint32_t p){return Bytes(memory.view(p,2)).u16(0);};
+    const auto short_word=[&](std::uint32_t p){std::array<std::byte,2> bytes;memory.read(p,bytes);return Bytes(bytes).u16(0);};
+    const auto byte=[&](std::uint32_t p){std::array<std::byte,1> bytes;memory.read(p,bytes);return std::to_integer<std::uint8_t>(bytes[0]);};
     const auto vector=[&](std::uint32_t p){return Vec3{scalar(p),scalar(p+4),scalar(p+8)};};
-    const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+    std::array<std::byte,4> datum_bytes;
+    const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n)->std::span<const std::byte>{if(n>datum_bytes.size())throw FormatError("Particle datum read exceeds its native scalar operand");auto bytes=std::span(datum_bytes).first(n);memory.read(p,bytes);return bytes;}};
     const auto record=[&](std::uint32_t global,std::uint32_t datum,unsigned stride) {
         const auto pool=word(global),capacity=word(pool+0x20),high=word(pool+0x38);
         if(!capacity || capacity>65536 || high>capacity || word(pool+0x24)!=stride ||
@@ -20,7 +22,7 @@ SourceParticleRenderStateTu15 source_particle_render_state_tu15(
         const auto p=source_raw_datum_lookup(pool,datum,storage),index=datum&65535u;
         if(!p || !(word(word(pool+0x48)+index/32u*4u)&(1u<<(index%32u))))
             throw FormatError("Particle render readback lost its full allocation identity");
-        memory.view(p,stride);return p;
+        std::array<std::byte,400> record_bytes;memory.read(p,std::span(record_bytes).first(stride));return p;
     };
     const auto s=record(0x51df74u,system,84),l=record(0x52d71cu,location,52);
     // A location must occur in this system's actual full-identity chain.
@@ -40,11 +42,11 @@ SourceParticleRenderStateTu15 source_particle_render_state_tu15(
         sources.system->effect_scales=std::array{scalar(effect+0x6c),scalar(effect+0x70)};
     }
     sources.location=ParticleLocationValueState{
-        std::to_integer<std::uint8_t>(memory.view(l+3,1)[0]),scalar(l+0x1c)};
+        byte(l+3),scalar(l+0x1c)};
     const auto clock=word(0x51df54u);
     sources.game_tick=std::bit_cast<std::int32_t>(word(clock+8));sources.game_rate=scalar(clock+4);
     sources.camera_position=camera.position;sources.camera_forward=camera.forward;sources.camera_up=camera.up;
-    state.first_person=std::to_integer<unsigned>(memory.view(l+2,1)[0])!=0;
+    state.first_person=byte(l+2)!=0;
     state.uses_camera_scale=(out.definition.flags&0x400u)!=0;state.camera_scale=camera.scale;
     if(state.uses_camera_scale && !state.camera_scale)
         throw FormatError("Original particle renderer requires its actual camera-scale owner");
@@ -70,5 +72,10 @@ SourceParticleRenderStateTu15 source_particle_render_state_tu15(
         id=word(e+8);
     }
     return out;
+}
+SourceParticleRenderStateTu15 source_particle_render_state_tu15(
+    const Cache &cache,const SourceRuntimeMemory &memory,std::uint32_t system,
+    std::uint32_t location,const SourceParticleRenderCameraTu15 &camera) {
+    return source_particle_render_state_tu15(cache,static_cast<const SourcePhysicsContactMemory&>(memory),system,location,camera);
 }
 }

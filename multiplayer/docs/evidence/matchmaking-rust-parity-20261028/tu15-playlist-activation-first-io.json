@@ -1,0 +1,121 @@
+{
+  "schema": "H2_TU15_PLAYLIST_ACTIVATION_FIRST_IO_V1",
+  "passed": true,
+  "completed_utc": "2026-11-03T02:45:40.879032+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "chooser_callback": "0x2bbe4b",
+  "activation_entry": "0x2bbe83",
+  "hopper_read": "0x196d70",
+  "descriptor_validator": "0x196920",
+  "first_io_boundaries": {
+    "dialog": "0x195da9",
+    "open_file": "0x2dc640"
+  },
+  "all_controls": 6000,
+  "branches": {
+    "dialog_empty_header": 1500,
+    "dialog_unready_header": 1800,
+    "opens_hopper": 810,
+    "dialog_invalid_descriptor": 1890
+  },
+  "sample_by_branch": {
+    "dialog_empty_header": [
+      0,
+      0,
+      0,
+      0,
+      "accepted_type_1",
+      "dialog_empty_header",
+      [
+        "dialog",
+        [
+          2866969,
+          1,
+          123,
+          4,
+          1,
+          2867217,
+          0,
+          0
+        ]
+      ]
+    ],
+    "dialog_unready_header": [
+      1,
+      0,
+      0,
+      0,
+      "accepted_type_1",
+      "dialog_unready_header",
+      [
+        "dialog",
+        [
+          2866969,
+          1,
+          123,
+          4,
+          1,
+          2867217,
+          0,
+          0
+        ]
+      ]
+    ],
+    "opens_hopper": [
+      1,
+      2,
+      0,
+      0,
+      "accepted_type_1",
+      "opens_hopper",
+      [
+        "open_file",
+        [
+          1283346,
+          "n:\\multiplayer_hopper.dat",
+          2147483648,
+          1,
+          0,
+          3,
+          128,
+          0
+        ]
+      ]
+    ],
+    "dialog_invalid_descriptor": [
+      1,
+      2,
+      0,
+      0,
+      "unknown_type_low",
+      "dialog_invalid_descriptor",
+      [
+        "dialog",
+        [
+          2866969,
+          1,
+          123,
+          4,
+          1,
+          2867217,
+          0,
+          0
+        ]
+      ]
+    ]
+  },
+  "controls_sha256": "8bd7e6dcb1707fb62ddc9abd81fa43d0f40b494dece81c840c90f8145dcd1519",
+  "verified_executed_addresses": 488,
+  "verified_instruction_invocations": 4210605,
+  "code_sha256": "c8293e48f468bcc43291c058602edb9cc6580a1f03fbe33cad84036d5edd2b75",
+  "all_instruction_bytes_verified": true,
+  "emulated_writes_stack_only": true,
+  "synthetic_catalog_inputs": true,
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "first_io_owners_executed": false,
+  "original_hopper_file_supplied": false,
+  "host_and_close_body_executed": false,
+  "tool_sha256": "53e1eab9653525d739f94cca9034871758744760963835421e542e9195563fa9",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-playlist-body-oracle-20261102/halo2-test-a_liz9_r"
+}

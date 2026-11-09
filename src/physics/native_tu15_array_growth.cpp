@@ -5,16 +5,21 @@ void native_tu15_copy_array_bytes(NativeTu15ArrayCopyStorage&s,std::uint32_t des
   std::uint32_t source,std::uint32_t bytes,NativeTu15ArrayGrowthActivity*activity){
   auto words=bytes>>2u;
   while(words){const auto value=s.copy_word(source);s.copy_word(destination,value);
-    source+=4u;destination+=4u;--words;if(activity)++activity->copied_words;}
+    const auto step=std::uint32_t(s.copy_direction())*4u;
+    source+=step;destination+=step;--words;if(activity)++activity->copied_words;}
+  s.copy_words_complete(bytes);
   auto tail=bytes&3u;
   while(tail){const auto value=s.copy_byte(source);s.copy_byte(destination,value);
-    ++source;++destination;--tail;if(activity)++activity->copied_bytes;}
+    const auto step=std::uint32_t(s.copy_direction());
+    source+=step;destination+=step;--tail;if(activity)++activity->copied_bytes;}
+  s.copy_complete();
 }
-void native_tu15_grow_array(NativeTu15ArrayGrowthStorage&s,std::uint32_t stride,
+void native_tu15_grow_array_delayed_stride(NativeTu15ArrayGrowthStorage&s,const std::function<std::uint32_t()>&acquire_stride,
   NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayGrowthServices&services,
   NativeTu15ArrayGrowthActivity*activity){
   const auto initial_count=s.count(NativeTu15ArrayCountRead::initial);
   const auto next_capacity=initial_count?initial_count+initial_count:1u;
+  const auto stride=acquire_stride();
   const auto allocator=s.allocator(false);const auto allocation_bytes=next_capacity*stride;
   const NativeTu15ArrayAllocationRequest request{allocator.receiver,s.allocate_owner(allocator),allocation_bytes,0x12};
   if(!services.allocate)throw std::runtime_error("Native TU1.5 array requires its actual allocation owner");
@@ -31,6 +36,10 @@ void native_tu15_grow_array(NativeTu15ArrayGrowthStorage&s,std::uint32_t stride,
     services.release(release,fp);if(activity)++activity->releases;
   }
   s.publish_data(replacement);s.publish_capacity(next_capacity);if(activity)++activity->completed_growths;
+}
+void native_tu15_grow_array(NativeTu15ArrayGrowthStorage&s,std::uint32_t stride,
+  NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayGrowthServices&services,NativeTu15ArrayGrowthActivity*activity){
+  native_tu15_grow_array_delayed_stride(s,[stride]{return stride;},fp,services,activity);
 }
 NativeTu15ArrayGrowthMemory::NativeTu15ArrayGrowthMemory(SourcePhysicsContactMemory&m,
   NativeTu15ArrayHeader header,const SourcePhysicsContactRecordObserver&observer):memory_(m),header_(header),observer_(observer){}
@@ -56,4 +65,6 @@ void NativeTu15ArrayGrowthMemory::copy_word(std::uint32_t p,std::uint32_t v){wri
 void NativeTu15ArrayGrowthMemory::copy_byte(std::uint32_t p,std::uint8_t v){write(0x2e2e4au,p,v,1);}
 void NativeTu15ArrayGrowthMemory::publish_data(std::uint32_t p){write(0x2e32b3u,header_.identity,p);}
 void NativeTu15ArrayGrowthMemory::publish_capacity(std::uint32_t capacity){write(0x2e32b6u,header_.identity+8u,capacity);}
+void NativeTu15ArrayGrowthMemory::publish_data_at(std::uint32_t site,std::uint32_t data){write(site,header_.identity,data);}
+void NativeTu15ArrayGrowthMemory::publish_capacity_at(std::uint32_t site,std::uint32_t capacity){write(site,header_.identity+8u,capacity);}
 } // namespace halo2

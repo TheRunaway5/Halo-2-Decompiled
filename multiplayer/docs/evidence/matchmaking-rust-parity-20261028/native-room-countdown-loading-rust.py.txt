@@ -1,0 +1,54 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+root=Path.cwd()
+scratch=Path(os.environ["HALO2_TEST_SCRATCH"])
+source=scratch/"source"
+out=Path(sys.argv[1]).resolve()
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+for crate in ("online_protocol","matchmaking_service"):
+    shutil.copytree(root/"rust"/crate,source/"rust"/crate,ignore=shutil.ignore_patterns("target","__pycache__"))
+external=set()
+for p in (source/"rust").rglob("*.rs"):
+    external.update(re.findall(r'"\.\./\.\./\.\./([^"\n]+)"',p.read_text()))
+for relative in external:
+    path=source/relative
+    path.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(root/relative,path)
+crate=source/"rust/online_protocol"
+live=root/"rust/online_protocol"
+env=os.environ|{"CARGO_TARGET_DIR":str(scratch/"cargo"),"CARGO_BUILD_JOBS":"2","RUSTUP_AUTO_INSTALL":"0"}
+def cargo(work,argv):
+    cmd=["cargo",*argv,"--locked","--offline"]
+    proc=subprocess.run(cmd,cwd=work,env=env,capture_output=True,text=True)
+    lines=[l for l in proc.stdout.splitlines() if l.startswith("test result:")]
+    counts=sum(int(re.search(r' (\d+) passed;',l)[1]) for l in lines)
+    result=dict(command=cmd,exit_code=proc.returncode,passed_count=counts,test_result_lines=lines,
+                stdout_sha256=hashlib.sha256(proc.stdout.encode()).hexdigest(),
+                stderr_sha256=hashlib.sha256(proc.stderr.encode()).hexdigest())
+    if proc.returncode:
+        result["failure_tail"]=(proc.stdout[-3400:]+"\n"+proc.stderr[-1000:]).strip()
+    print(json.dumps({"command":cmd,"exit_code":proc.returncode,"passed":counts}),flush=True)
+    return result
+
+candidate=json.loads((out.parent/"validation.green-request.json").read_text())
+assert all(sha(live/p)==pin==sha(crate/p) for p,pin in candidate.items())
+manifest={str(p.relative_to(source)):sha(p) for p in source.rglob("*") if p.is_file()}
+report=dict(schema="H2_RUST_ROOM_COUNTDOWN_LOADING_ADMISSION_V1",scratch=str(scratch),
+    master_sha256=sha(root/"multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf"),
+    candidate_pins=candidate,retained_generated_large_artifacts=[],
+    frozen_source_count=len(manifest),
+    frozen_source_sha256=hashlib.sha256(json.dumps(manifest,sort_keys=True).encode()).hexdigest())
+report["focused"]=cargo(crate,["test","--test","matchmaking_queue_api","loading_room_keeps_full_match_and_clock"])
+if report["focused"]["exit_code"]==0:
+    report["green"]=[cargo(crate,["test"]),cargo(source/"rust/matchmaking_service",["test"])]
+report["frozen_sources_unchanged"]=all(sha(source/path)==h for path,h in manifest.items())
+report["passed"]=report["frozen_sources_unchanged"] and len(report.get("green",[]))==2 and all(row["exit_code"]==0 for row in report["green"])
+out.write_text(json.dumps(report,indent=2)+"\n")
+assert report["passed"]

@@ -84,10 +84,10 @@ def observer_transform(text):
         if(!actions.empty()){composing_unwind=true;start_action();continue;}}
       break;
     }''')
-    old='request(PTRACE_SINGLESTEP,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array instruction fault");'
+    old='request(PTRACE_SINGLESTEP,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array instruction fault at PC="+std::to_string(pc)+" status="+std::to_string(status));'
     assert text.count(old)==1
     text=text.replace(old,old+'++physical_steps;')
-    old='check(declared_fault||std::uint32_t(regs.rip)==stop,"Original array stop not reached");'
+    old='check(declared_fault||required_owner||std::uint32_t(regs.rip)==stop,"Original array stop not reached");'
     assert text.count(old)==1
     text=text.replace(old,old+'check(!composing_unwind||(action_cursor==actions.size()&&std::uint32_t(regs.rip)==stop),"Source cleanup actions did not return");')
     old='{"original_instructions",count}'
@@ -107,7 +107,7 @@ def original(image,banks,rows,scratch):
         authority[str(handler)]=[dict(next=int.from_bytes(image.read(table+n*8,4),'little',signed=True),
                                     entry=word(table+n*8+4))for n in range(count)]
     def source_transform(text):
-        old="m,source=metadata(image,{**banks,UI:bytes(0x10000)});"
+        old="m,source=metadata(image,{**banks,UI:bytes(0x10000)},any(c.get('full_abi')for c in all_cases));"
         assert text.count(old)==1
         text=text.replace(old,old+"m['sites']=list({r['instruction']:r for r in m['sites']}.values());m['unwind_authority']="+repr(authority)+';')
         old="('fault','mutations') if k in case"

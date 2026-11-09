@@ -1,0 +1,71 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_executable",
+      "file": "cmake/MultiplayerEnginesTu15.cmake",
+      "line": 670,
+      "target": "multiplayer_engines_tu15_tests"
+    },
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1186,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "3c7d4e687abbbce3079f536b9188b2df22784944857fabde4b578cd867ce2732",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "3c7d4e687abbbce3079f536b9188b2df22784944857fabde4b578cd867ce2732",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "f3d42db66655b85afccbee79dce987ad3c4d535611cda5ab658c4cdeca37ad78",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1a8f10",
+      "instruction_callback_sites": 77,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1a8f10",
+        "tu15": "1a8f10"
+      },
+      "line": 351,
+      "literal_dispatch_required_targets": [
+        "16ea60"
+      ],
+      "observed_entry": "1a8f10",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1a8f10",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1a8f10",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/multiplayer/source_ctf_player_iterator_tu15_generated.cpp",
+  "source_bytes": 26693,
+  "source_filename_scope": "generated",
+  "source_sha256": "7b3beb6b4583402c0ec69d0d772509ae3940b3291a89884efc77530b551cca37"
+}

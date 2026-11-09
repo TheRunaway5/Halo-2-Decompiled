@@ -221,9 +221,7 @@ impl Registry {
                 // new Start binds a fresh row to the selected profile and
                 // current roster. It must not inherit the previous hopper.
                 let old = self.rows.get(pid).filter(|r| !r.consumed);
-                let seconds = original::press(
-                    old.map(|r| r.parameter.seconds).unwrap_or(-1),
-                );
+                let seconds = original::press(old.map(|r| r.parameter.seconds).unwrap_or(-1));
                 let mut row = if let Some(old) = old {
                     old.clone()
                 } else {

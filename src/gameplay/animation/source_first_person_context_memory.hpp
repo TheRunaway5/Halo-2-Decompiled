@@ -18,10 +18,12 @@ class ContextMemory final:public SourcePhysicsContactMemory {
     struct Page {
         std::array<std::byte,page_bytes> bytes;
         std::array<std::uint64_t,page_bytes/word_bits> written{};
+        bool occupied{};
     };
     const SourcePhysicsContactMemory *source_{};
     std::map<std::uint32_t,Page> pages_;
     bool reference_{};
+    bool reference_pinning_{};
     std::function<void(std::uint32_t,std::span<const std::byte>)> read_observer_;
     static void extent(std::uint32_t at,std::size_t bytes) {
         if(bytes>std::uint64_t(std::numeric_limits<std::uint32_t>::max())+1u-at)
@@ -54,13 +56,27 @@ class ContextMemory final:public SourcePhysicsContactMemory {
         }();
         return reference;
     }
+    static bool reference_pinning_selected() {
+        static const bool value=[]{const auto *p=std::getenv("HALO2_REFERENCE_FP_CONTEXT_PIN");return p&&*p;}();
+        return value;
+    }
 public:
-    explicit ContextMemory(bool reference=reference_selected()):reference_(reference) {}
+    explicit ContextMemory(bool reference=reference_selected(),bool reference_pinning=reference_pinning_selected()):
+        reference_(reference),reference_pinning_(reference||reference_pinning) {}
     void observe_reads(std::function<void(std::uint32_t,std::span<const std::byte>)> observer) {
         read_observer_=std::move(observer);
     }
     void borrow(const SourcePhysicsContactMemory *source) {source_=source;}
-    void clear() {pages_.clear();}
+    void clear() {
+        if(reference_pinning_){pages_.clear();return;}
+        // adopt_local pins the same native pools again on the next tick. Keep
+        // their storage, never their ownership. Retire pages unused for a whole
+        // adoption so changing resource addresses cannot accumulate forever.
+        for(auto page=pages_.begin();page!=pages_.end();) {
+            if(!page->second.occupied)page=pages_.erase(page);
+            else {page->second.written.fill(0);page->second.occupied=false;++page;}
+        }
+    }
     void read(std::uint32_t at,std::span<std::byte> bytes)const override {
         extent(at,bytes.size());
         if(!source_)throw FormatError("Native FP context has no borrowed input owner");
@@ -70,7 +86,7 @@ public:
             const auto offset=address%page_bytes;
             const auto count=std::min<std::size_t>(bytes.size()-n,page_bytes-offset);
             const auto found=pages_.find(page);
-            if(found==pages_.end()) {
+            if(found==pages_.end()||!found->second.occupied) {
                 source_->read(address,bytes.subspan(n,count));n+=count;continue;
             }
             const auto &owned=found->second;
@@ -115,6 +131,7 @@ public:
                     owned.written[cursor/word_bits]|=low_mask(length)<<shift;cursor+=length;
                 }
             }
+            owned.occupied=true;
             n+=count;
         }
     }
@@ -130,7 +147,7 @@ public:
             const auto address=at+std::uint32_t(n),offset=address%page_bytes;
             const auto count=std::min<std::size_t>(bytes-n,page_bytes-offset);
             const auto found=pages_.find(address/page_bytes);
-            if(found==pages_.end())return false;
+            if(found==pages_.end()||!found->second.occupied)return false;
             unsigned cursor=offset;const auto end=offset+unsigned(count);
             while(cursor<end) {
                 const auto shift=cursor%word_bits,length=std::min(end-cursor,word_bits-shift);
@@ -145,7 +162,43 @@ public:
     void pin_range(std::uint32_t at,std::uint32_t bytes,bool force_copy=false) {
         if(!at||!bytes)throw FormatError("Native FP cache owner has an empty native extent");
         if(!reference_&&!force_copy&&fully_owned(at,bytes))return;
-        std::vector<std::byte> copy(bytes);read(at,copy);write(at,copy);
+        // Observers require one contiguous completed read; preserve that path,
+        // including its exception boundary. Forced copies are diagnostic too.
+        if(reference_pinning_||force_copy||read_observer_) {
+            std::vector<std::byte> copy(bytes);read(at,copy);write(at,copy);return;
+        }
+        // Read only unowned runs, with the identical page-clipped callbacks as
+        // read(). Unowned page bytes are scratch until *all* reads succeed:
+        // a partial or throwing read cannot publish private state.
+        std::size_t n{};
+        while(n<bytes) {
+            const auto address=at+std::uint32_t(n),offset=address%page_bytes;
+            const auto count=unsigned(std::min<std::size_t>(bytes-n,page_bytes-offset));
+            auto &page=pages_[address/page_bytes];
+            unsigned cursor=offset;const auto end=offset+count;
+            if(!page.occupied)source_->read(address,std::span(page.bytes).subspan(offset,count));
+            else while(cursor<end) {
+                const bool owned=marked(page,cursor);
+                const auto next=change(page,cursor,end,owned);
+                if(!owned)source_->read(address+cursor-offset,std::span(page.bytes).subspan(cursor,next-cursor));
+                cursor=next;
+            }
+            n+=count;
+        }
+        n=0;
+        while(n<bytes) {
+            const auto address=at+std::uint32_t(n),offset=address%page_bytes;
+            const auto count=unsigned(std::min<std::size_t>(bytes-n,page_bytes-offset));
+            auto &page=pages_.find(address/page_bytes)->second;
+            unsigned cursor=offset;const auto end=offset+count;
+            if(offset==0&&count==page_bytes)page.written.fill(~std::uint64_t{});
+            else while(cursor<end) {
+                const auto shift=cursor%word_bits,length=std::min(end-cursor,word_bits-shift);
+                page.written[cursor/word_bits]|=low_mask(length)<<shift;cursor+=length;
+            }
+            page.occupied=true;
+            n+=count;
+        }
     }
     void relinquish(std::uint32_t at) {
         const auto page=pages_.find(at/page_bytes);if(page==pages_.end())return;
@@ -154,7 +207,7 @@ public:
     }
     std::vector<SourceFirstPersonContextTu15::PrivateRange> ranges()const {
         std::vector<SourceFirstPersonContextTu15::PrivateRange> result;
-        for(const auto &[page,owned]:pages_)for(std::uint32_t n=0;n<page_bytes;) {
+        for(const auto &[page,owned]:pages_)if(owned.occupied)for(std::uint32_t n=0;n<page_bytes;) {
             if(reference_) {
                 if(!marked(owned,n)){++n;continue;}
             } else {

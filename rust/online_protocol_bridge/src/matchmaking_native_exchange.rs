@@ -67,6 +67,7 @@ fn capability(v: ffi::NativeExchangeCapability) -> Option<core::Capability> {
         F::HostContinuation => C::HostContinuation,
         F::AdmittedCamera => C::AdmittedCamera,
         F::SourceConfirmed => C::SourceConfirmed,
+        F::CompleteHostArchive => C::CompleteHostArchive,
         _ => return None,
     })
 }

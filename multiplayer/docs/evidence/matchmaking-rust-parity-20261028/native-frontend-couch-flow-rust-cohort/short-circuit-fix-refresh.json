@@ -1,0 +1,20 @@
+{
+  "reason": "Preserve the actual controller caller short-circuit before the primary host-input rebind; the exact old C++ empty-frame case remains defined.",
+  "red_runs": [
+    "short-circuit-before-1.json",
+    "short-circuit-before-2.json"
+  ],
+  "scope_unchanged": true,
+  "refresh": [
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_couch.rs",
+      "before": "88c9e63b9c973f053bf4468fd639cf19554575db6be0d766527d588ebdc52fe4",
+      "after": "883d6ea5eea984647e96ea344c1a2a675f723d5bdce585a2bb0400b11f7bc598"
+    },
+    {
+      "path": "rust/online_protocol/tests/matchmaking_frontend_couch.rs",
+      "before": "257db7ab9814de550cdc5da3aaebf05bbb96b1b46e29df5b81fda40345e35510",
+      "after": "f3f86a36824980467c6417bb88cf19c75ee94bf4b67d1c73a6f27e3366881a7f"
+    }
+  ]
+}

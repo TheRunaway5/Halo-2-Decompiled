@@ -1,0 +1,66 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1104,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "ac636b624329db6566bbe1b7d4c34ab15f02a29ca9c103f0c07b131ff874d662",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "ac636b624329db6566bbe1b7d4c34ab15f02a29ca9c103f0c07b131ff874d662",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "1c1ada54b28218d7161ac0fdacbdaf2ef7e387afaddd648202ab3e7a3f9f205e",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_44c80",
+      "instruction_callback_sites": 153,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "44c80",
+        "tu15": "44c80"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [
+        "41030",
+        "45cd0"
+      ],
+      "observed_entry": "44c80",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "44c80",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "44c80",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/rendering/source_transparent_collection_tu15_generated.cpp",
+  "source_bytes": 35295,
+  "source_filename_scope": "generated",
+  "source_sha256": "729eaa2be64b94d46b2133e3db94cdf7a31eba64aa3d232ebe27117ef1a41715"
+}

@@ -1,0 +1,105 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsPhysicalStorage.cmake",
+      "line": 2,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 4,
+  "routines": [
+    {
+      "body_sha256": "2480da9c220c372a424cbe532171763723f6e4d489d08896991358f6b696b6cb",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "2d79aa"
+      ],
+      "function_name": "run_12cb70",
+      "instruction_callback_sites": 20,
+      "line": 10,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "12cb70",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "12cb70",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "12cb70",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "19bfa7420055c233022e9fe104213a28a651692e91179ebd37dd0189c5c061ce",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "2d7a1a"
+      ],
+      "function_name": "run_217020",
+      "instruction_callback_sites": 35,
+      "line": 32,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "217020",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "217020",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "217020",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "42b69cc2f16adbc67c189a8004deef30398a9b1514f85d2935e5d02823e34ba5",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_2d79aa",
+      "instruction_callback_sites": 28,
+      "line": 70,
+      "literal_dispatch_required_targets": [
+        "2dbc56"
+      ],
+      "observed_entry": "2d79aa",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2d79aa",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2d79aa",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "9ba36b265e43694aebace19bac2a4cd4a2d7f3f48793b445bb0e3e6496f98707",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_2d7a1a",
+      "instruction_callback_sites": 4,
+      "line": 101,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2d7a1a",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2d7a1a",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2d7a1a",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/physics_physical_storage_runtime_generated.cpp",
+  "source_bytes": 11212,
+  "source_filename_scope": "generated",
+  "source_sha256": "f9727f83e0ca6f7b90a8cc98d75d4a7a65d8b2d9d7e5c0478053aba2737f51b9"
+}

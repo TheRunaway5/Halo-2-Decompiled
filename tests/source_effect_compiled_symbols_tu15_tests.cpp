@@ -33,6 +33,8 @@ int main()try {
     {
         SourceEffectCompiledSymbolsTu15 original(a,false,{});
         need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
+        SourceEffectCompiledSymbolsTu15 borrowed(b,a);
+        need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400054f);
     }
     for(const auto bad:{0x030000d9u,0x0700055au,0x0400055bu,0x07000558u,0x0800055cu,
         0x1a000729u,0x110005a7u,0x0600056cu,0x0a00069fu}) {
@@ -43,6 +45,16 @@ int main()try {
     rejects([&]{SourceEffectCompiledSymbolsTu15 missing(a,true,[](auto)->std::string{throw std::runtime_error("Missing owned table");});});
     {
         SourceEffectCompiledSymbolsTu15 first(a,true,names);
+        {
+            SourceEffectCompiledSymbolsTu15 borrowed(b,a);
+            need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400055b);
+            need(source_object_function_compiled_symbol_tu15(b,0xc91b9u,0x513u)==0x51fu);
+            rejects([&]{SourceEffectCompiledSymbolsTu15 duplicate(b,a);});
+            Memory nested;
+            SourceEffectCompiledSymbolsTu15 inherited(nested,b);
+            need(source_effect_compiled_symbol_tu15(nested,0x0700054e)==0x0700055a);
+        }
+        need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400054f);
         // Folded arithmetic operands are not StringIDs. Their target names
         // validate independently; only the exact instruction/operand pair
         // may acquire the adapted distance.
@@ -94,6 +106,15 @@ int main()try {
         need(source_effect_compiled_symbol_tu15(b,0x0700054e)==0x0700055a);
     }
     need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
+    need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400054f);
+    {
+        // Retiring the producer cannot erase an independent scoped borrower.
+        auto first=std::make_unique<SourceEffectCompiledSymbolsTu15>(a,true,names);
+        SourceEffectCompiledSymbolsTu15 borrowed(b,a);
+        first.reset();
+        need(source_effect_compiled_symbol_tu15(a,0x0400054f)==0x0400054f);
+        need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400055b);
+    }
     need(source_effect_compiled_symbol_tu15(b,0x0400054f)==0x0400054f);
     need(source_projectile_explosion_location_symbol_tu15(a,0x101cad,0x0700054c)==0x0700054c);
     {

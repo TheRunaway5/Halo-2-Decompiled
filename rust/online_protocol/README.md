@@ -411,3 +411,32 @@ separately controlled in Rust. This adds no original Live/TU1.5 provider claim.
 Remaining native account/voice/clan/team/postgame owners, full original recovery,
 natural played-world scope, genuine providers and installed G01-G12 delivery
 remain open.
+
+`matchmaking_frontend_clans` owns the complete modern clan caller, account/voice
+binding order and push-to-talk gates. Clan target, kind, page and confirmation
+state live in the existing Rust party controller; their C++ fields are removed.
+The exact auxiliary clan-page branch also reaches Rust. Typed native code
+supplies lifetimes and provider/device/frame/resource IO.
+[Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-clans-flow-rust-validation.json) records 749 Rust passes, 6,876 modern caller
+comparisons, 5,071 callback observations/reentries, 88 native exception controls,
+12 focused CMake checks and actual compilation/import checks for all four
+affected production C++ units. The separate 36-check native HTTP/SDL/Vulkan/
+lobby cohort was interrupted without a completed result and remains pending.
+Undefined C++ lookup/page inputs are excluded from equivalence; safe Rust
+controls are separate. Defined unknown scoped-enum values remain covered.
+Original Xbox/Live/historical recovery, remaining native policy owners, genuine
+providers, natural played worlds and installed G01-G12 delivery stay open.
+
+`matchmaking_frontend_couch` owns the complete modern couch caller, controller
+slot/join/finish/leave and primary identity callers, exact couch/join Back
+branches and profile-list predicates. Six former native state fields now live
+in the existing Rust party controller; search reads its actual couch revision.
+Native code supplies actual provider lifetimes and device/profile/frame IO.
+[Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-couch-flow-rust-validation.json) records 787 Rust passes, 2,638 captured caller
+comparisons, 4,507 callback observations/reentries, 108 native exception
+controls, 13 focused CMake checks and five production object/import checks.
+A reproduced early-frame-read mismatch is fixed; the minimal C++/Rust probe
+fails before and passes after. Undefined C++ producer/index cases have separate
+safe Rust controls. Whole native runtime (37 checks), original Xbox/Live/historical
+recovery, remaining non-Rust owners, natural played worlds and installed
+G01-G12 delivery remain open. No selected runtime or service changed.

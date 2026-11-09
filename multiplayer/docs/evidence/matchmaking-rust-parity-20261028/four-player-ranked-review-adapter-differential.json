@@ -1,0 +1,104 @@
+{
+  "schema": "H2_FOUR_PLAYER_RANKED_REVIEW_ADAPTER_DIFFERENTIAL_V1",
+  "passed": true,
+  "source_fixture_sha256": "34575be8b7675bfe39dd6a823ff7d4be2adc3986089f11bca7dc298be375dbeb",
+  "same_team_results_and_rank_deltas": true,
+  "same_room_and_requeue_assertions": true,
+  "scope": "Declared v12 test catalog and private Steam grants. Real accepted-party, HTTP, signal, result, history and storage paths. Synthetic game load signatures and report. Actual played ending and installed release remain open.",
+  "standalone_rust": {
+    "schema": "H2_RUST_FOUR_PHYSICAL_PARTY_REVIEW_V1",
+    "passed": true,
+    "source_pin_sha256": "ef1a60766c79923401680992e3d04135941b785c71ad7f502cfb5c6cd58d7cfe",
+    "source_count": 209,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-four-player-review-restart-20261103/halo2-test-jfq_iamp",
+    "build": [
+      "cargo",
+      "build",
+      "--locked",
+      "--offline"
+    ],
+    "retained_generated_large_artifacts": [],
+    "checks": [
+      "Two accepted parties require member consent and are admitted whole into different teams.",
+      "Four signal streams pass complete physical peer reports and the shared ten-second Loading gate.",
+      "Every physical owner receives the report; duplicate confirmation cannot stand in for the fourth owner or add a second ranked result.",
+      "Public history preserves four results and both team standings while both retained parties requeue into a fresh room."
+    ],
+    "scope": "Standalone Rust service with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+    "binary_sha256": "9e5a81878029270c5577a35a7db7a4b74196f6ef766357f1b15aa5405514eb4e",
+    "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+    "result": {
+      "physical_owners": 4,
+      "team_placements": [
+        0,
+        1
+      ],
+      "team_scores": [
+        10,
+        9
+      ],
+      "ranked_deltas": [
+        0,
+        0,
+        100,
+        100
+      ],
+      "rows": 1,
+      "complete_publications": 4,
+      "loopback_probe_exchanges": 12
+    },
+    "history": {
+      "path": "/v1/history/matches/78c8167d-badd-4a84-ac3e-ec3421da7de7",
+      "projection_sha256": "46826113ab78bf18328efc622ba9b7b07ab4ac0bc7fbe4c6b032728a7a73ee3f",
+      "verified_after_process_restart": true
+    }
+  },
+  "legacy_production_rust_abi": {
+    "schema": "H2_RUST_FOUR_PHYSICAL_PARTY_REVIEW_V1",
+    "passed": true,
+    "source_pin_sha256": "41273a7c89934d47f274335582848b92373ffab6a47bf081575164ce868558ec",
+    "source_count": 351,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-four-player-review-legacy-final-20261103/halo2-test-qeas38tn",
+    "build": [
+      "cargo",
+      "build",
+      "--locked",
+      "--offline"
+    ],
+    "retained_generated_large_artifacts": [],
+    "checks": [
+      "Two accepted parties require member consent and are admitted whole into different teams.",
+      "Four signal streams pass complete physical peer reports and the shared ten-second Loading gate.",
+      "Every physical owner receives the report; duplicate confirmation cannot stand in for the fourth owner or add a second ranked result.",
+      "Public history preserves four results and both team standings while both retained parties requeue into a fresh room."
+    ],
+    "scope": "Legacy HTTP adapter with production Rust ABI with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+    "binary_sha256": "3dba292f831cec87f8af7fd8d50e82bdcda893271983fd45b00a4a4731a6e306",
+    "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+    "result": {
+      "physical_owners": 4,
+      "team_placements": [
+        0,
+        1
+      ],
+      "team_scores": [
+        10,
+        9
+      ],
+      "ranked_deltas": [
+        0,
+        0,
+        100,
+        100
+      ],
+      "rows": 1,
+      "complete_publications": 4,
+      "loopback_probe_exchanges": 12
+    },
+    "history": {
+      "path": "/v1/history/matches/05822999-242e-488f-914d-dc508c45a9b6",
+      "projection_sha256": "0e0b77125821778d2c2aa2d69b4df2a44b951cdce26293c04e8f34997a4634aa"
+    }
+  },
+  "retained_generated_large_artifacts": []
+}

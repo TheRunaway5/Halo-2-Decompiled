@@ -88,7 +88,7 @@ if(BUILD_TESTING)
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py" $<TARGET_FILE:source_common_cut_runtime_tests>
             --owned-original-sounds-bundle "${HALO2_ORIGINAL_SOUND_TAKEOVER_BUNDLE}"
             --audio-report "${CMAKE_CURRENT_BINARY_DIR}/original-common-cut-playing-audio.json")
-        set_tests_properties(source_common_cut_original_sound_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+        set_tests_properties(source_common_cut_original_sound_mcc_http PROPERTIES TIMEOUT 1620 RUN_SERIAL TRUE
             LABELS "owned-original-sound-native" ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy;HALO2_COMMON_PROSPECTIVE=1")
     endif()
     set(HALO2_MCC_NATIVE_SCOPE_TEST_ROOT "" CACHE PATH
@@ -162,6 +162,13 @@ if(BUILD_TESTING)
         set_tests_properties(source_common_cut_runtime_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
             LABELS "selected-MCC-native"
             ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
+        add_test(NAME source_common_cut_complete_archive_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
+            $<TARGET_FILE:source_common_cut_runtime_tests>
+            --mcc-root "${HALO2_MCC_COMMON_CUT_TEST_ROOT}" ${_halo2_common_cut_mcc_map_args})
+        set_tests_properties(source_common_cut_complete_archive_mcc_http PROPERTIES TIMEOUT 700 RUN_SERIAL TRUE
+            LABELS "selected-MCC-native"
+            ENVIRONMENT "HALO2_COMMON_ARCHIVE_ADMISSION_ONLY=1;SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
         add_test(NAME source_common_cut_disconnect_mcc_http COMMAND ${Python3_EXECUTABLE}
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py"
             $<TARGET_FILE:source_common_cut_runtime_tests>

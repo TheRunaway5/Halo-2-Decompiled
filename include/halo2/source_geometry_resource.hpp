@@ -23,4 +23,16 @@ struct SourceGeometryResourceMemory {
 // tokens and packed relative addresses, never host vector pointers.
 void source_geometry_resource_publish(std::uint32_t header,std::uint32_t allocation,
     const SourceGeometryResourceMemory&);
+// Optional live retained-frame driver. Descriptor fixup DATA stays in the
+// same owner; callers provide only delayed allocation and iteration storage
+// when those cells can alias the published resource/descriptor banks.
+struct SourceGeometryResourcePublishDriver {
+    std::function<std::uint32_t(std::uint32_t root)> initial_allocation;
+    std::function<bool(std::int32_t count)> begin;
+    std::function<std::uint32_t(std::uint32_t descriptor_base)> descriptor;
+    std::function<std::uint32_t()> current_allocation;
+    std::function<bool()> advance;
+};
+void source_geometry_resource_publish_driven(std::uint32_t header,std::uint32_t allocation,
+    const SourceGeometryResourceMemory&,const SourceGeometryResourcePublishDriver&);
 }

@@ -1,0 +1,54 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+source = root / "rust/online_protocol"
+cohort = scratch / "online_protocol"
+shutil.copytree(source, cohort, ignore=shutil.ignore_patterns("target"))
+changed = ["src/matchmaking_client.rs", "tests/matchmaking_client_controller.rs"]
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+pins = {path: sha(cohort / path) for path in changed}
+assert pins == {path: sha(source / path) for path in changed}
+dest = Path(sys.argv[1]).resolve()
+env = os.environ | {"CARGO_TARGET_DIR": str(scratch / "target"), "CARGO_BUILD_JOBS":"2", "RUSTUP_AUTO_INSTALL":"0"}
+cargo = ["cargo", "test", "--locked", "--offline"]
+def run(command):
+    result = subprocess.run(command, cwd=cohort, env=env, capture_output=True, text=True)
+    print((result.stdout + result.stderr)[-7000:],flush=True)
+    return dict(command=command, exit_code=result.returncode,
+                stdout_sha256=hashlib.sha256(result.stdout.encode()).hexdigest(),
+                stderr_sha256=hashlib.sha256(result.stderr.encode()).hexdigest(),
+                details=[line for line in result.stdout.splitlines() if line.startswith(("test result:", "test countdown_for_changed_match", "test transport_refuses_a_changed"))],
+                failure_tail=result.stdout[-1400:] if result.returncode else None)
+checks = [("matchmaking_client_controller", name) for name in (
+    "countdown_for_changed_match_cannot_transfer_installed_connection",
+    "transport_refuses_a_changed_catalog_revision_or_team_mode")]
+report = dict(schema="H2_RUST_NATIVE_HANDOFF_IDENTITY_DIFFERENTIAL_V1", scratch=str(scratch),
+              baseline_pins=pins, master_sha256=sha(root/"multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf"),
+              red=[run(cargo+["--test",module,test,"--","--exact"]) for module,test in checks],
+              retained_generated_large_artifacts=[])
+dest.with_suffix(".red.json").write_text(json.dumps(report,indent=2)+"\n")
+assert all(row["exit_code"]==101 and "FAILED" in "\n".join(row["details"]) for row in report["red"])
+request=dest.with_suffix(".green-request.json")
+deadline=time.monotonic()+480
+while not request.is_file():
+    if time.monotonic()>deadline: raise TimeoutError("Candidate source pin was not submitted")
+    time.sleep(1)
+candidate=json.loads(request.read_text())
+assert set(candidate)==set(changed) and candidate=={path:sha(source/path) for path in changed}
+for path in changed:
+    if candidate[path]!=pins[path]:
+        shutil.copyfile(source/path,cohort/path)
+assert candidate=={path:sha(cohort/path) for path in changed}
+report["candidate_pins"]=candidate
+report["green"]=run(cargo+["--test","matchmaking_client_controller"])
+report["passed"]=report["green"]["exit_code"]==0
+dest.write_text(json.dumps(report,indent=2)+"\n")
+assert report["passed"]

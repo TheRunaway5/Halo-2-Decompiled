@@ -1,0 +1,116 @@
+{
+  "schema": "H2_TU15_GAME_SETUP_INPUT_V1",
+  "passed": true,
+  "completed_utc": "2026-11-03T03:22:38.337985+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "click": "0x2c536e",
+  "auxiliary": "0x2c5a6b",
+  "session_enum": "0x19409f",
+  "playlist_loader_helper": "0x2c5aa1",
+  "original_screen_parameter_builder": "0x14ca86",
+  "original_game_setup_row9_loader": "0x237729",
+  "original_game_setup_row9_screen": 237,
+  "direct_playlist_loader": "0x237729",
+  "direct_playlist_screens": [
+    219,
+    237
+  ],
+  "original_privacy_loader": "0x239026",
+  "original_privacy_screen": 25,
+  "row_constructor_entry_after_widget_and_pool_init": "0x2c50c9",
+  "original_datum_allocator": "0x16e6a0",
+  "produced_rows": {
+    "0": [
+      2,
+      3,
+      7
+    ],
+    "1": [
+      0,
+      1,
+      4,
+      6
+    ],
+    "2": [
+      2,
+      3,
+      7
+    ],
+    "3": [
+      0,
+      1,
+      4,
+      6
+    ],
+    "4": [
+      2,
+      3,
+      7,
+      8
+    ],
+    "5": [
+      0,
+      1,
+      4,
+      6,
+      8
+    ],
+    "6": [
+      9,
+      6,
+      7
+    ]
+  },
+  "pregame_start": "0x2572c1",
+  "pregame_start_handler": "0x25737a",
+  "original_countdown_request": "0x65980",
+  "original_error_sound": "0x23cc7e",
+  "declared_start_bank_one_host_and_one_seat": true,
+  "active_network_countdown_body_executed": false,
+  "saved_file_loader": "0x237807",
+  "saved_file_screen": 220,
+  "static_loader_instructions": {
+    "0x237731": "837d0403560f95c0576880e902004883e01205db000000",
+    "0x23777a": "c6865ce8020001889e5de80200889e5ee80200",
+    "0x237838": "bfdc000000",
+    "0x237841": "c6865ce8020000c6865de8020001c6865ee8020000",
+    "0x239049": "e816000000",
+    "0x23907a": "6a19"
+  },
+  "counts": {
+    "setup_row_0": 72,
+    "setup_row_1": 72,
+    "setup_row_2": 72,
+    "setup_row_3": 72,
+    "setup_row_4": 72,
+    "setup_row_6": 72,
+    "setup_row_7": 72,
+    "setup_row_8": 72,
+    "setup_row_9": 72,
+    "missing_datum": 8,
+    "saved_loader": 16,
+    "direct_loader": 16,
+    "base_input": 528,
+    "privacy_loader": 48,
+    "constructed_rows": 33,
+    "start_ignored_before_status": 448,
+    "status_12": 32,
+    "status_24": 16,
+    "error_sound": 4,
+    "countdown_request": 4,
+    "status_10": 8
+  },
+  "all_controls": 1809,
+  "controls_sha256": "5fb930e4830b1f5fd9d7b5c7d884b8f16c793977f47ba908fc2106c56c6a167f",
+  "verified_executed_addresses": 1269,
+  "verified_instruction_invocations": 198092,
+  "code_sha256": "f902649a597d29b04efc4c825ee5a1d2055d85b5692c20de1321619779d4d942",
+  "all_executed_instruction_bytes_verified": true,
+  "writes_limited_to_stack_and_declared_constructor_pool": true,
+  "synthetic_input_facts": true,
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "loader_bodies_executed": false,
+  "tool_sha256": "7cbffdeddd2d608791d81f1b9ade65ab9914f2adc671b8562197ac56fd4b4405",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-oracle-20261102/halo2-test-2ev33_ww"
+}

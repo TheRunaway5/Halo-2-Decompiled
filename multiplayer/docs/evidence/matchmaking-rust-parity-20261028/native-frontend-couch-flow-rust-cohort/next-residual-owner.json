@@ -1,0 +1,38 @@
+{
+  "observed_at_utc": "2026-11-02T23:39:03.612992+00:00",
+  "read_only": true,
+  "source_pins": {
+    "src/ui/frontend_state.cpp": "7d33edeea19f5dec15dbef8013dad7f49faf7b25e1fd5d3579e119ff24a3c95d",
+    "include/halo2/frontend.hpp": "23b1a77e0cbfc6b51a4397ce62a9cb15bb1be32df29e2dc5d0dbc730b434bc02"
+  },
+  "remaining_cpp_callers": [
+    {
+      "file": "src/ui/frontend_state.cpp",
+      "methods": [
+        "profile_login_key",
+        "bind_primary_login",
+        "update_online_login"
+      ],
+      "scope": "Saved sign-in namespace/binding, retained login state and matching-related account/queue/voice reset/navigation coordination."
+    },
+    {
+      "file": "src/ui/frontend_state.cpp",
+      "methods": [
+        "return_online",
+        "return_online_lobby",
+        "online_postgame_host",
+        "update_online_postgame",
+        "review_online_postgame",
+        "commit_text"
+      ],
+      "scope": "Matching-related return/postgame/PCR and party/friend/clan keyboard branches; actual retained world/session owners must remain genuine native IO."
+    }
+  ],
+  "native_owners_to_preserve": [
+    "Actual provider/device/profile/preferences and secure randomness IO",
+    "Actual postgame/world/session callbacks and opaque report/settings identity",
+    "Rendering, generic input/gameplay and authentic frame/resource producers"
+  ],
+  "not_yet_migrated_or_qualified": true,
+  "full_goal_scope_unchanged": true
+}

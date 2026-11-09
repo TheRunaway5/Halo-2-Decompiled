@@ -20,6 +20,7 @@ struct ClosureLibrary {std::string_view name,sha256;};
 #include "runtime/mcc_native_pc_world_closure.inc"
 #include "runtime/mcc_native_pc_world_programs.inc"
 #include "runtime/mcc_native_vehicle_restoration.inc"
+#include "runtime/mcc_native_pc_camouflage.inc"
 std::string digest(std::span<const std::byte> bytes) {
     std::array<unsigned char,32> hash{};unsigned size{};
     if(EVP_Digest(bytes.data(),bytes.size(),hash.data(),&size,EVP_sha256(),nullptr)!=1 || size!=hash.size())
@@ -431,6 +432,97 @@ std::map<std::string,std::filesystem::path> supplement_mcc_native_pc_world_progr
     }
     auto staged=library;
     for(const auto& record:additions)staged.at("shader_tags").push_back(record);
+    library.swap(staged);return result;
+}
+
+std::map<std::string,std::filesystem::path> supplement_mcc_native_pc_camouflage(
+    Json& library,const std::filesystem::path& source_map,std::span<const Tag> directory,
+    TagHandle globals,const MccShaderRead& read_source,const MccShaderBitmapFrame& owns_frame,
+    const std::filesystem::path& root,std::uint64_t admitted_bytes,std::string_view admitted_sha256,
+    const MccNativeLibraryRead& read_library) {
+    static const auto policy=Json::parse(native_pc_camouflage_policy);
+    const auto name=source_map.stem().string();
+    const auto map=std::ranges::find_if(policy.at("maps"),[&](const Json& row) {
+        return row.at("map")==name && row.at("bytes")==admitted_bytes &&
+            row.at("sha256").get_ref<const std::string&>()==admitted_sha256;
+    });
+    if(map==policy.at("maps").end())return {};
+    const auto require=[](bool condition,const char* why) {
+        if(!condition)throw FormatError(std::string("PC global camouflage: ")+why);
+    };
+    require(read_source && owns_frame && read_library && library.at("map")==name,
+        "missing exact bootstrap or admitted sources");
+    const auto lookup=[&](TagHandle handle,const Key& expected)->const Tag& {
+        require(!handle.is_null() && handle.index()<directory.size(),"missing typed destination tag");
+        const auto& t=directory[handle.index()];
+        require(t.handle()==handle && Key{t.group,t.name}==expected && t.address && t.size,
+            "typed destination tag changed");
+        return t;
+    };
+    const auto check_bytes=[&](std::uint32_t address,std::size_t count,const Json& expected) {
+        const auto bytes=read_source(address,count);
+        require(bytes.size()==count && digest(bytes)==expected.get<std::string>(),"destination bytes changed");
+    };
+    const Key shader{"shad","rasterizer\\render_layer_disabled"};
+    const auto& matg=lookup(globals,{"matg","globals\\globals"});
+    require(globals.value==map->at("globals") && matg.size>=0x110,"actual globals owner changed");
+    const Bytes global(read_source(matg.address,0x110));
+    require(global.u32(0x108)==1,"actual rasterizer row is missing");
+    const Bytes raster(read_source(global.u32(0x10c),0xd4));
+    const TagHandle shader_handle{raster.u32(0xd0)};
+    require(raster.u32(0xcc)==0x73686164u && shader_handle.value==map->at("shader"),
+        "actual global material reference changed");
+    const auto& material=lookup(shader_handle,shader);
+    require(material.size==map->at("shader_bytes"),"global material extent changed");
+    check_bytes(material.address,material.size,map->at("shader_sha256"));
+    for(const auto& region:map->at("shared_regions"))
+        check_bytes(region.at("address").get<std::uint32_t>(),region.at("bytes").get<std::size_t>(),region.at("sha256"));
+    std::set<Key> bitmaps;
+    for(const auto& expected:map->at("bitmaps")) {
+        const Key identity{"bitm",expected.at("name").get<std::string>()};
+        const auto& image=lookup({expected.at("datum").get<std::uint32_t>()},identity);
+        require(image.size==expected.at("bytes") && owns_frame(image.datum,0) &&
+            bitmaps.insert(identity).second,"actual bitmap owner changed");
+        check_bytes(image.address,image.size,expected.at("sha256"));
+    }
+    const auto source_path=root/policy.at("source_map").get<std::string>();
+    const auto source=Json::parse(read_library(source_path/"library.json"));
+    require(digest(source)==policy.at("source_canonical_sha256").get_ref<const std::string&>(),
+        "original library changed");
+    const auto& stencil=policy.at("stencil");
+    const Key stencil_key{"vrtx",stencil.at("name").get<std::string>()};
+    std::set<Key> occupied;
+    for(const auto& record:library.at("shader_tags")) {
+        require(occupied.insert(key(record)).second,"duplicate preceding program owner");
+        if(key(record)==stencil_key)
+            require(record.at("payload")==stencil.at("payload"),"retained stencil program changed");
+    }
+    require(occupied.contains(stencil_key),"missing equivalent existing stencil program");
+    std::set<Key> wanted;
+    for(const auto& record:policy.at("records")) {
+        const auto identity=key(record);
+        require(!occupied.contains(identity) && wanted.insert(identity).second,
+            "original record would replace an admitted native owner");
+    }
+    require(wanted.contains(shader),"missing original global material record");
+    auto staged=library;
+    std::map<std::string,std::filesystem::path> result;
+    for(const auto& expected:policy.at("records")) {
+        const auto& records=source.at("shader_tags");
+        const auto at=std::ranges::find_if(records,[&](const auto& row){return key(row)==key(expected);});
+        require(at!=records.end() && *at==expected,"original complete record changed");
+        for(const auto& ref:expected.at("references")) {
+            const Key target{ref.at(1).at(0).get<std::string>(),ref.at(1).at(1).get<std::string>()};
+            require(wanted.contains(target) || bitmaps.contains(target) || target==stencil_key,
+                "original dependency escapes the finite closure");
+        }
+        const auto filename=expected.at("payload").get<std::string>();
+        const auto path=source_path/"payloads"/filename;
+        const auto data=read_payload(path,expected.at("bytes").get<std::size_t>());
+        require(digest(std::span<const std::byte>(data))+".bin"==filename,"original payload changed");
+        result.emplace(filename,path);
+        staged.at("shader_tags").push_back(expected);
+    }
     library.swap(staged);return result;
 }
 

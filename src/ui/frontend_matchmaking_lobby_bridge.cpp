@@ -1,8 +1,46 @@
 #include "halo2/frontend_matchmaking_lobby.hpp"
+#include "halo2/frontend_lobby_setup.hpp"
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <stdexcept>
 namespace halo2 {
 namespace bridge = online_protocol_bridge;
+namespace {
+FrontendLobbySetupRow setup_row(const bridge::FrontendSetupRow &row) {
+  using Route = bridge::FrontendSetupRoute;
+  using Action = FrontendLobbySetupAction;
+  switch (row.route) {
+  case Route::Open: return {row.semantic, row.label, row.destination, Action::Open};
+  case Route::SwitchCoop: return {row.semantic, row.label, row.destination, Action::SwitchCoop};
+  case Route::SwitchCustom: return {row.semantic, row.label, row.destination, Action::SwitchCustom};
+  case Route::AlternateSession: return {row.semantic, row.label, row.destination, Action::AlternateSession};
+  case Route::OpenPlaylist: return {row.semantic, row.label, row.destination, Action::OpenPlaylist};
+  }
+  throw std::logic_error("Invalid Rust Game Setup route");
+}
+}
+std::uint32_t frontend_lobby_setup_label(int semantic) {
+  return bridge::frontend_setup_label(semantic);
+}
+std::vector<FrontendLobbySetupRow> frontend_lobby_setup_rows(int session_enum) {
+  const auto rows = bridge::frontend_setup_rows(session_enum);
+  std::vector<FrontendLobbySetupRow> out;
+  out.reserve(rows.size());
+  for (const auto &row : rows) out.push_back(setup_row(row));
+  return out;
+}
+int frontend_lobby_setup_focused_semantic(int session_enum, int row) {
+  return bridge::frontend_setup_focus(session_enum, row);
+}
+FrontendLobbySetupSelection frontend_lobby_setup_accept(int session_enum, unsigned selected, bool online, bool leader) {
+  const auto effect = bridge::frontend_setup_accept(session_enum, selected, online, leader);
+  return {effect.selected ? std::optional(setup_row(effect.row)) : std::nullopt, std::string(effect.error)};
+}
+FrontendLobbySetupPrivacy frontend_lobby_setup_privacy(bool online, std::optional<int> session_enum,
+    bool privacy_present, bool leader, bool busy) {
+  const auto effect = bridge::frontend_setup_privacy(online, session_enum.has_value(), session_enum.value_or(0),
+      privacy_present, leader, busy);
+  return {effect.open, std::string(effect.error)};
+}
 struct FrontendMatchmakingLobby::Impl {
   rust::Box<bridge::FrontendLobby> state;
   Impl() : state(bridge::new_frontend_lobby()) {}

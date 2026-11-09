@@ -1,0 +1,180 @@
+{
+  "schema": "H2_NATIVE_PARTY_RATE_DIAGNOSTIC_V1",
+  "profile": "baseline",
+  "exit_code": 1,
+  "failure": "AssertionError: Native match process failed",
+  "observed_utc": "2026-11-03T02:56:02.432937+00:00",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-party-rate-20261102/halo2-test-2eqsymdp",
+  "frozen_source_pins": {
+    "tests/online_match_launch_http_test.py": "18896870c480698df263a593bb39ebf457e3a3c74bdef8b4870198418a44e4b1",
+    "tests/online_match_launch_tests.cpp": "ac0e500bd0a6b025f7634192c46df92ca0bd1176a2fc8c5a7a30637357e5aab9",
+    "multiplayer/master_server/service.py": "231e3d0a49e461f3600cf712433c9e620946f33db0e850b9756a1b601f3cd78f",
+    "multiplayer/master_server/request_admission.py": "86c29230d1be01ce6bca34857a24c8ed683dbffe16209ad493b2678870ce22c2"
+  },
+  "source_pin_parts": [
+    "iteration-3-source-pins-0.json",
+    "iteration-3-source-pins-1.json",
+    "iteration-3-source-pins-2.json",
+    "iteration-3-source-pins-3.json",
+    "iteration-3-source-pins-4.json",
+    "iteration-3-source-pins-5.json",
+    "iteration-3-source-pins-6.json",
+    "iteration-3-source-pins-7.json",
+    "iteration-3-source-pins-8.json",
+    "iteration-3-source-pins-9.json",
+    "iteration-3-source-pins-10.json",
+    "iteration-3-source-pins-11.json",
+    "iteration-3-source-pins-12.json",
+    "iteration-3-source-pins-13.json",
+    "iteration-3-source-pins-14.json",
+    "iteration-3-source-pins-15.json",
+    "iteration-3-source-pins-16.json",
+    "iteration-3-source-pins-17.json",
+    "iteration-3-source-pins-18.json",
+    "iteration-3-source-pins-19.json",
+    "iteration-3-source-pins-20.json",
+    "iteration-3-source-pins-21.json",
+    "iteration-3-source-pins-22.json",
+    "iteration-3-source-pins-23.json",
+    "iteration-3-source-pins-24.json",
+    "iteration-3-source-pins-25.json",
+    "iteration-3-source-pins-26.json",
+    "iteration-3-source-pins-27.json",
+    "iteration-3-source-pins-28.json",
+    "iteration-3-source-pins-29.json",
+    "iteration-3-source-pins-30.json",
+    "iteration-3-source-pins-31.json",
+    "iteration-3-source-pins-32.json",
+    "iteration-3-source-pins-33.json",
+    "iteration-3-source-pins-34.json",
+    "iteration-3-source-pins-35.json",
+    "iteration-3-source-pins-36.json",
+    "iteration-3-source-pins-37.json",
+    "iteration-3-source-pins-38.json",
+    "iteration-3-source-pins-39.json",
+    "iteration-3-source-pins-40.json",
+    "iteration-3-source-pins-41.json",
+    "iteration-3-source-pins-42.json",
+    "iteration-3-source-pins-43.json",
+    "iteration-3-source-pins-44.json",
+    "iteration-3-source-pins-45.json",
+    "iteration-3-source-pins-46.json",
+    "iteration-3-source-pins-47.json",
+    "iteration-3-source-pins-48.json",
+    "iteration-3-source-pins-49.json",
+    "iteration-3-source-pins-50.json",
+    "iteration-3-source-pins-51.json"
+  ],
+  "native_binary_sha256": "9a2d83a66e7e19baea7a58836d99676dc49cafb0c6859dbd711581d96792504b",
+  "native_binary_unchanged": true,
+  "private_display": true,
+  "fixture_only": true,
+  "request_charges": {
+    "prefix": 5262,
+    "global": 1282,
+    "ip": 1282,
+    "owner": 12,
+    "owner-id": 12
+  },
+  "refusal_counts": {
+    "prefix GET /v1/matchmaking/ticket": 3793,
+    "prefix GET /v1/party/countdown": 179,
+    "prefix GET /v1/matchmaking/playlists": 2,
+    "prefix DELETE /v1/account/session": 3,
+    "prefix DELETE /v1/matchmaking/session": 3
+  },
+  "first_refusals": [
+    {
+      "seconds": 28.99,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 28.992,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 28.992,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.012,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.012,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.015,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.015,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.036,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.038,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.038,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.058,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    },
+    {
+      "seconds": 29.059,
+      "kind": "prefix GET /v1/matchmaking/ticket"
+    }
+  ],
+  "bucket_parameters": {
+    "prefix": [
+      [
+        1200,
+        512,
+        60,
+        1
+      ]
+    ],
+    "global": [
+      [
+        6000,
+        2048,
+        60,
+        1
+      ]
+    ],
+    "ip": [
+      [
+        100000,
+        100000,
+        60,
+        1
+      ]
+    ],
+    "owner": [
+      [
+        20,
+        20,
+        60,
+        1
+      ]
+    ],
+    "owner-id": [
+      [
+        20,
+        20,
+        60,
+        1
+      ]
+    ]
+  },
+  "only_prefix_override": false,
+  "large_artifacts_retained": []
+}

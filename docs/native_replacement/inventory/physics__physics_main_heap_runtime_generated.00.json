@@ -1,0 +1,54 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsMainHeap.cmake",
+      "line": 2,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "producer"
+      ],
+      "body_sha256": "0d9ff20bc39ab68d9466bc65127f43e4b6f294d27ad66c030201471900dd352f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "producer",
+      "instruction_callback_sites": 22,
+      "line": 7,
+      "literal_dispatch_required_targets": [
+        "2dbc2e",
+        "33b3ac"
+      ],
+      "observed_entry": "1482a0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1482a0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "producer",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/physics_main_heap_runtime_generated.cpp",
+  "source_bytes": 3613,
+  "source_filename_scope": "generated",
+  "source_sha256": "781cb7a935ae78e73347caa0a674dae48ba217b46efd31bf23bfb38e4d6e086f"
+}

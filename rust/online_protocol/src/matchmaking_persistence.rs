@@ -514,6 +514,17 @@ impl Database {
     fn admission(&self) -> &Value {
         &self.commit_data()["admission"]
     }
+    fn finalization_envelope(&self, room: &Value) -> Value {
+        let data = self.commit_data();
+        json!({
+            "admission_sha256": data["admission_sha256"],
+            "digest": data["digest"],
+            "confirmations": data["confirmations"],
+            "departed_slots": room["departed_slots"],
+            "authority_epoch": room["authority_epoch"],
+            "namespace": self.admission()["namespace"],
+        })
+    }
     fn players(&self) -> &[Value] {
         array(self.admission(), "players")
     }
@@ -620,8 +631,7 @@ impl Database {
                 "native-unanimous-v1"
             ]
         );
-        let envelope = json!({"admission_sha256":data["admission_sha256"],"digest":data["digest"],"confirmations":data["confirmations"],
-            "departed_slots":data["departed_slots"],"authority_epoch":data["authority_epoch"],"namespace":a["namespace"]});
+        let envelope = self.finalization_envelope(data);
         let envelope_pin = pin(&envelope);
         let metadata = json!({"admission":a,"finalization":envelope});
         write!(
@@ -979,12 +989,27 @@ impl Database {
             Stage::ExistingResult=>{
                 let records=rows(response,1)?;
                 if let Some(row)=records.first(){need(cells(row,1)?[0]==self.commit_data()["digest"],409,"Completed result is immutable")?;
-                    return self.query("SELECT admission_sha256,envelope_sha256,namespace FROM match_result_admission WHERE match=? LIMIT 1",json!([self.admission()["proposal"]["id"]]),Stage::ExistingBinding);}
+                    return self.query("SELECT admission_sha256,envelope_sha256,namespace,metadata FROM match_result_admission WHERE match=? LIMIT 1",json!([self.admission()["proposal"]["id"]]),Stage::ExistingBinding);}
                 self.load_player_skills()
             },
             Stage::ExistingBinding=>{
-                let records=rows(response,1)?;need(records.len()==1,409,"Existing result has no bound admission")?;let c=cells(&records[0],3)?;
+                let records=rows(response,1)?;need(records.len()==1,409,"Existing result has no bound admission")?;let c=cells(&records[0],4)?;
                 need(c[0]==self.commit_data()["admission_sha256"]&&c[2]==self.admission()["namespace"],409,"Completed result admission is immutable")?;
+                let metadata = c[3].as_str().ok_or(Error(409, "Existing result metadata is invalid"))?;
+                let stored: Value = serde_json::from_str(metadata)
+                    .map_err(|_| Error(409, "Existing result metadata is invalid"))?;
+                let room = &stored["finalization"];
+                // The stored room facts describe the instant SQL committed.
+                // A later departure must not rewrite the durable envelope.
+                let envelope = self.finalization_envelope(room);
+                need(
+                    m::integer(&room["departed_slots"], 0, u16::MAX as i64).is_ok()
+                        && m::integer(&room["authority_epoch"], 0, u32::MAX as i64).is_ok()
+                        && c[1] == pin(&envelope)
+                        && metadata == json!({"admission":self.admission(),"finalization":envelope}).to_string(),
+                    409,
+                    "Existing result finalization binding differs",
+                )?;
                 self.result=json!({"already_committed":true,"digest":self.commit_data()["digest"],"admission_sha256":c[0],"envelope_sha256":c[1]});
                 self.query("SELECT public_id FROM carnage_reports WHERE match=? LIMIT 1",json!([self.admission()["proposal"]["id"]]),Stage::ExistingPublic)
             },

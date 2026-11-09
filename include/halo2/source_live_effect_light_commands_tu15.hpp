@@ -66,7 +66,12 @@ SourceLiveEffectLightCommandsTu15 source_live_effect_light_private_commands_tu15
     const SourceRuntimeMemory&);
 using SourceLiveEffectLightCommandObserverTu15=std::function<void(bool,
     const SourcePhysicsWorldRuntimeAbi&,const SourceRuntimeMemory&)>;
-// Execute the complete actual producer once with EAX0. This does not install
+// Execute the native complete40E80 command frame once with selector0;
+// ordinary 45CD0 and 41030 parts run natively. HALO2_REFERENCE_LIGHT_COMMANDS
+// selects the unchanged complete original producer for finite comparisons.
+// Native completion publishes exact FP in the diagnostic ABI; its GP fields
+// retain the caller frame and do not claim an emulated register return.
+// This does not install
 // a light/shadow definition or feature overlay, sort/submit GPU work, or join
 // the later cached402A0 owner. It retains the actual31172 caller globals.
 SourceLiveEffectLightCommandsTu15 source_live_effect_light_commands_tu15(

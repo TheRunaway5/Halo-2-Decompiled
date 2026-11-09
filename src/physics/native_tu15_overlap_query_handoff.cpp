@@ -8,16 +8,19 @@ bool native_tu15_handoff_overlap_query(SourcePhysicsContactMemory&memory,
     const std::function<std::uint64_t()>&clock,
     const SourcePhysicsContactRecordObserver&observe,
     NativeTu15OverlapQueryHandoffActivity*activity){
-    if(call.target!=0x2f73c0u)return false;
+    if(call.target!=0x2f73c0u&&call.target!=0x2f9ca0u&&call.target!=0x2fab70u)return false;
     NativeTu15OverlapQueryHandoffActivity local;auto&stats=activity?*activity:local;
     ++stats.attempts;
     try{
         const auto word=[&](std::uint32_t p){std::array<std::byte,4>b{};memory.read(p,b);
             std::uint32_t n{};for(unsigned k=0;k<4;++k)n|=std::to_integer<unsigned>(b[k])<<(k*8u);return n;};
         const auto sp=abi.gp[4];
-        if(call.instruction!=0x2f4d3cu||call.tail||sp<policy.stack_first||
-            std::uint64_t(sp)+20u>policy.stack_end||word(sp)!=0x2f4d3fu)
-            throw std::runtime_error("Native overlap query requires its actual2F4D3C caller");
+        const bool cdecl=call.target==0x2fab70u;
+        const auto site=cdecl?0x2f1806u:call.target==0x2f9ca0u?0x2f6fabu:0x2f4d3cu;
+        const auto continuation=site+(cdecl?7u:3u);
+        if(call.instruction!=site||call.tail||sp<policy.stack_first||
+            std::uint64_t(sp)+20u>policy.stack_end||word(sp)!=continuation)
+            throw std::runtime_error("Native overlap query requires its actual qualified caller");
         if(!policy.observers_read_only||
             (policy.first_trace_active&&*policy.first_trace_active)||
             (policy.second_trace_active&&*policy.second_trace_active))
@@ -42,9 +45,10 @@ bool native_tu15_handoff_overlap_query(SourcePhysicsContactMemory&memory,
             {p+0x800u,p+0x810u,&child}};
         NativeTu15ConvexOverlapQueryServices services;
         services.geometry=native_tu15_make_bound_convex_contact_services(guarded,solver,0,clock,&stats.simplex);
-        const SourcePhysicsContactRecordObserver retained=[&](const auto&event){
+        SourcePhysicsContactRecordObserver retained;
+        if(observe)retained=[&](const auto&event){
             if(policy.instruction)policy.instruction(event.instruction);
-            if(observe)observe(event);
+            observe(event);
         };
         NativeTu15OverlapQueryBinding query(guarded,{policy.data_first,0x1000u},
             std::move(services),retained,&stats.queries);
@@ -52,7 +56,9 @@ bool native_tu15_handoff_overlap_query(SourcePhysicsContactMemory&memory,
             if(policy.instruction)policy.instruction(call.target);
             query.query({abi.gp[1]},{call.target},{first},{second},{configuration},{collector},fp);
         }catch(...){publish_fp();throw;}
-        publish_fp();abi.gp[4]=sp+20u;++stats.completed;return true;
+        // Actual2FAB70 RET removes only its return address; the real2F1790
+        // caller owns the four argument words and removes them at2F1818.
+        publish_fp();abi.gp[4]=sp+(cdecl?4u:20u);++stats.completed;return true;
     }catch(...){++stats.refusals;throw;}
 }
 } // namespace halo2

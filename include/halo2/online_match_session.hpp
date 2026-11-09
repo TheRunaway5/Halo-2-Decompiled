@@ -139,6 +139,7 @@ public:
   bool authority_replay_supported(unsigned physical_peer) const;
   bool authority_pipeline_supported(unsigned physical_peer) const;
   bool authority_host_continuation_supported(unsigned physical_peer) const;
+  bool authority_complete_host_archive_supported(unsigned physical_peer) const;
   bool authority_admitted_camera_supported(unsigned physical_peer) const;
   std::optional<std::uint64_t> loaded_fingerprint()const;
   bool authority_delivered(unsigned physical_peer,const AuthorityTransferContext &,const AuthorityCutSeal &)const;
@@ -199,6 +200,7 @@ public:
       std::uint64_t tick,std::vector<std::byte>,unsigned physical_target);
   std::optional<ReceivedAuthorityCut> received_authority();
   bool acknowledge_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
+  bool begin_authority_preparation(const AuthorityTransferContext &,const AuthorityCutSeal &);
   bool reject_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
   std::vector<ValidatedAuthorityCut> validated_authority();
   // Negotiated metadata-only association barrier for the full physical group.

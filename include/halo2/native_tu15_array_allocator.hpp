@@ -14,6 +14,9 @@ public:
   virtual std::uint32_t counter(NativeTu15PoolCounter,std::uint32_t index=0)const=0;
   virtual std::uint32_t small(NativeTu15PoolSmallField)const=0;
   virtual std::uint32_t link(std::uint32_t data)const=0;
+  // Ordinary DATA owners keep the saved count. Retained callers re-acquire
+  // their published scratch word at this real accounting boundary.
+  virtual std::uint32_t restore_in_use_count(std::uint32_t,std::uint32_t saved)const{return saved;}
   virtual void free_head(std::uint32_t index,std::uint32_t,std::uint32_t publication)=0;
   virtual void counter(NativeTu15PoolCounter,std::uint32_t index,std::uint32_t,std::uint32_t publication)=0;
   virtual void small(NativeTu15PoolSmallField,std::uint32_t,std::uint32_t publication)=0;
@@ -26,13 +29,23 @@ std::uint32_t native_tu15_pool_allocate(NativeTu15PoolStorage&,std::uint32_t byt
 // Actual233420's <=2000 source branch. Its >2000 imported free owner remains
 // explicitly required; no platform free or allocator result is guessed.
 bool native_tu15_pool_release(NativeTu15PoolStorage&,std::uint32_t data,std::uint32_t bytes);
+// Retained ABI owners acquire the block argument after class accounting, as
+// the source does. Ordinary value callers use the same algorithm below.
+bool native_tu15_pool_release_delayed_data(NativeTu15PoolStorage&,
+  const std::function<std::uint32_t()> &acquire_data,std::uint32_t bytes);
 enum class NativeTu15ArrayHeap {fixed,primary,secondary};
+struct NativeTu15ArrayOwnerInputs {std::function<void()> before_table,after_table;};
 class NativeTu15ArrayAllocatorStorage {
 public:
   virtual ~NativeTu15ArrayAllocatorStorage()=default;
   virtual std::uint32_t mode()const=0;
   virtual std::uint32_t heap(NativeTu15ArrayHeap)const=0;
   virtual std::uint32_t owner(std::uint32_t receiver,bool releasing)const=0;
+  // Value owners have no work between metadata reads. Retained ABI owners
+  // acquire their actual argument cells around the real vtable lookup.
+  virtual std::uint32_t owner_with_inputs(std::uint32_t receiver,bool releasing,const NativeTu15ArrayOwnerInputs &inputs)const {
+    if(inputs.before_table)inputs.before_table();if(inputs.after_table)inputs.after_table();return owner(receiver,releasing);
+  }
   virtual std::uint32_t secondary_start(std::uint32_t receiver)const=0;
   virtual std::uint32_t secondary_size(std::uint32_t receiver)const=0;
 };
@@ -42,7 +55,15 @@ struct NativeTu15ArrayAllocatorServices {
   // Actual149930 remains a distinct owner, including any required lazy heap
   // construction. An initialized pointer may not be supplied as its result.
   std::function<std::uint32_t(NativeTu15PhysicsFrameFp&)> default_heap;
+  // The fixed route is a true tail entry: its callee acquires the original
+  // arguments and owns the original return/cleanup ABI.
+  std::function<std::uint32_t(std::uint32_t receiver,std::uint32_t owner,NativeTu15PhysicsFrameFp&)> allocate_tail_owner;
 };
+struct NativeTu15ArrayAllocatorArguments {std::function<std::uint32_t()> memory_class,bytes;};
+std::uint32_t native_tu15_route_array_allocation_delayed(NativeTu15ArrayAllocatorStorage&,
+  const NativeTu15ArrayAllocatorArguments&,NativeTu15PhysicsFrameFp&,const NativeTu15ArrayAllocatorServices&);
+void native_tu15_route_array_release_delayed(NativeTu15ArrayAllocatorStorage&,std::uint32_t data,
+  const NativeTu15ArrayAllocatorArguments&,NativeTu15PhysicsFrameFp&,const NativeTu15ArrayAllocatorServices&);
 std::uint32_t native_tu15_route_array_allocation(NativeTu15ArrayAllocatorStorage&,
   std::uint32_t bytes,std::uint32_t memory_class,NativeTu15PhysicsFrameFp&,
   const NativeTu15ArrayAllocatorServices&);

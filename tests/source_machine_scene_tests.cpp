@@ -137,6 +137,9 @@ void solved_machine_pose_reuse(){
  auto prepared=machines.prepare_restore(checkpoint);
  if(!machines.commit_restore(prepared))throw FormatError("Machine reuse checkpoint restore rejected");
  std::vector<Vertex> restored;std::vector<ObjectLightingBinding> bindings;machines.append(restored,bindings);same(original,restored);
+ // The cache still contains the later pose. Restoring presentation must retire
+ // its publication marker, even when the next WORLD sample hits that cache.
+ same(changed,vertices(false));same(changed,vertices(false));
  fresh(false);std::cout<<"Machine solved WORLD reuse: exact unchanged/changed/restored complete vertex bytes\n";
 }
 void triplicate_lifetimes(){

@@ -35,6 +35,20 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME native_loop_combined_routing_tu15 COMMAND native_loop_combined_routing_tu15_tests
         "${PROJECT_SOURCE_DIR}/tests/fixtures/loop_combined_routing_tu15.json")
+    add_executable(source_loop_combined_driver_tu15_tests
+        tests/source_loop_combined_driver_tu15_tests.cpp
+        src/audio/source_sound_gain_envelope_tu15.cpp src/audio/sound_spatial.cpp)
+    target_include_directories(source_loop_combined_driver_tu15_tests PRIVATE include)
+    target_compile_features(source_loop_combined_driver_tu15_tests PRIVATE cxx_std_20)
+    target_link_libraries(source_loop_combined_driver_tu15_tests PRIVATE nlohmann_json::nlohmann_json halo2_glm)
+    if(NOT MSVC)
+        target_compile_options(source_loop_combined_driver_tu15_tests PRIVATE
+            -fno-fast-math -ffp-contract=off -frounding-math)
+    endif()
+    add_test(NAME original_loop_combined_driver_tu15 COMMAND source_loop_combined_driver_tu15_tests
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/loop_combined_driver_tu15.json"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/sound_gain_envelope_tu15.json")
+    set_tests_properties(original_loop_combined_driver_tu15 PROPERTIES SKIP_RETURN_CODE 77)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8
         AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$"
         AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")

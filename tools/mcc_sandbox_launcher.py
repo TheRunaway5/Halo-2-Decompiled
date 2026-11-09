@@ -15,6 +15,7 @@ import sys
 import mcc_onboarding
 from native_gameplay_test import native_gameplay_test_available
 from frontend_runtime_selection import selected_frontend_runtime
+from gameplay_runtime_selection import selected_gameplay_runtime, validate_arguments
 
 SCHEMA = "HALO2_MCC_SANDBOX_CHECK_V1"
 POLICY = "MCC imported cache only; Xbox ISO only validates converted tags offline; no Xbox/XBE or Vista runtime assets."
@@ -87,6 +88,18 @@ def inspect(root, launcher, info, help_text):
         raise RuntimeError("The regular launcher has no selected native runtime owner")
     runtime = runtime.resolve(strict=True)
     native = native_gameplay_test_available(root, runtime, cache)
+    qualified = selected_gameplay_runtime(root)
+    qualified_arguments = []
+    if qualified is not None:
+        if ((root / qualified['runtime']).resolve(strict=True) != runtime or
+                (root / qualified['cache']).resolve(strict=True) != cache or
+                field('Qualified MCC multiplayer') != 'available'):
+            raise RuntimeError('The regular launcher differs from its qualified MCC gameplay selection')
+        if 'lockout.map' not in qualified['maps']:
+            raise RuntimeError('The selected gameplay qualification does not cover the Sandbox Lockout map')
+        qualified_arguments = ['--map', str(maps / 'lockout.map'), '--shared-maps', str(maps),
+                               '--local-players', '1']
+        validate_arguments(root, qualified, qualified_arguments)
     frontend_runtime = selected_frontend_runtime(root, runtime, cache)
     frontend = frontend_runtime is not None
     if frontend and frontend_runtime != runtime:
@@ -95,16 +108,18 @@ def inspect(root, launcher, info, help_text):
     # Older installed launchers expose their qualified Lockout action through
     # Play. That fallback is admissible only when actual selection is exact
     # and no independently admitted frontend could change its meaning.
-    native_flag = "--native-test" if native and explicit_native else None
-    if native and not explicit_native and not frontend and field("Play") == "native Lockout gameplay test":
+    native_flag = "--native-test" if (native or qualified is not None) and explicit_native else None
+    if native and qualified is None and not explicit_native and not frontend and field("Play") == "native Lockout gameplay test":
         native_flag = "--launch-game"
     menu_flag = "--launch-game" if (explicit_native and frontend and
         field("Native MCC frontend") == "available") else None
     return dict(schema=SCHEMA, root=str(root), launcher=str(launcher), runtime=str(runtime),
         cache=str(cache), maps=str(maps), cache_version=13, checked_maps=list(MAP_NAMES),
         native_test_available=native, frontend_available=frontend, asset_policy=POLICY,
+        qualified_multiplayer_available=qualified is not None,
         frontend_runtime=str(frontend_runtime) if frontend_runtime is not None else None,
         explicit_native_test_supported=explicit_native, selected_flag=native_flag,
+        selected_arguments=qualified_arguments,
         menu_launch_flag=menu_flag,
         scope=SCOPE, full_game_parity=False, runtime_launched=False)
 
@@ -136,6 +151,7 @@ def main(root, argv=None):
         report = inspect(root, launcher, info, help_text)
         if args.launcher_info:
             print("Sandbox native test: " + ("available" if report["native_test_available"] else "unavailable"))
+            print("Sandbox qualified multiplayer: " + ("available" if report["qualified_multiplayer_available"] else "unavailable"))
             print("Sandbox MCC menus: " + ("available" if report["frontend_available"] else "unavailable"))
             print("Sandbox native action: " + (report["selected_flag"] or "unavailable"))
             return 0
@@ -150,6 +166,8 @@ def main(root, argv=None):
         command = [str(launcher), report["menu_launch_flag"] if args.menu else report["selected_flag"]]
         if args.menu:
             command.append("--menu")
+        else:
+            command.extend(report['selected_arguments'])
         for option in ("hidden", "mute", "validation"):
             if getattr(args, option):
                 command.append("--" + option)

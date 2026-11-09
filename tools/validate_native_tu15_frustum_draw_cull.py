@@ -20,7 +20,8 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--xbe',type=Path,required=True)
-    parser.add_argument('--native',type=Path,required=True);parser.add_argument('--report',type=Path,required=True);a=parser.parse_args()
+    parser.add_argument('--native',type=Path,required=True);parser.add_argument('--report',type=Path,required=True)
+    parser.add_argument('--genuine-zanzibar',action='store_true');a=parser.parse_args()
     if not a.xbe.is_file():return 77
     if hashlib.sha256(a.xbe.read_bytes()).hexdigest()!=base.PIN:raise ValueError('Wrong original TU1.5 executable')
     sys.path.insert(0,str(ROOT/'tools/reference/halo2-decompiled/tools'));from xbe import Xbe
@@ -36,7 +37,11 @@ def main():
     base.ROOT=observer_root
     metadata=base.prepare(image,scratch,(0x44710,0x44680,0x44e80,0x145560,0x167ef0,0x184690,0x32a660))
     metadata['trace_calls']=[dict(entry=0x44e80,arguments=2),dict(entry=0x167ef0,arguments=2,xmm=True,indirect=[dict(argument=0,words=3)])]
-    (scratch/'metadata.json').write_text(json.dumps(metadata));rows=cases(image)
+    genuine=[]
+    if a.genuine_zanzibar:
+        from native_tu15_zanzibar_frustum_inputs import inputs
+        genuine=inputs()
+    (scratch/'metadata.json').write_text(json.dumps(metadata));rows=cases(image,genuine)
     summary=[];instructions=0;digest=hashlib.sha256();original_patches=[]
     with (scratch/'native.log').open('w+')as errors:
         native=subprocess.Popen([str(a.native.resolve())],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=errors,text=True)
@@ -58,6 +63,10 @@ def main():
                         raise ValueError(hex(at))
                     units=[list(struct.unpack('<8I',read(0x4c6958+32*i,32)))for i in range(len(row['spec']['units']))]
                     arena=list(struct.unpack('<512I',read(MASK,2048)))
+                    if 'genuine_expected'in row:
+                        witness=row['genuine_expected']
+                        if [u[0]for u in units]!=witness['flags']or arena!=witness['arena']:
+                            raise ValueError(row['name']+' physical TU1.5 differs from genuine captured flags/masks')
                     calls=[c['arguments']for c in gold['calls']if c['entry']==0x44e80]
                     points=[[*c['indirect'],c['xmm'][7][0]]for c in gold['calls']if c['entry']==0x167ef0]
                     for observe in (False,True):
@@ -88,6 +97,7 @@ def main():
             if native.poll()is None:native.terminate();native.wait(timeout=10)
     report=dict(passed=True,physical_cases=len(rows),whole_completed_cases=sum(not r.get('native_rejection',False)for r in rows),fault_prefix_cases=sum(r.get('native_rejection',False)for r in rows),comparisons=2*len(rows),original_instructions=instructions,
         original_xbe_sha256=base.PIN,owners=metadata['owners'],comparison_sha256=digest.hexdigest(),cases=summary,
+        genuine_content_cases=len(genuine),genuine_content_witnesses=[r['expected']for r in genuine],
         instruction_patches=original_patches,supplied_original_outcomes=False,retained_large_artifacts=[],
         helper_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),owned_scratch=str(scratch),
         scope='Whole unchanged TU1.5 44E80 linear/model and44710/44680 walk on declared source banks. Compare every unit word, all512 shared mask words, ordered entry calls, exact transformed point/radius words in leaf calls and full x87/MXCSR. Positive BSP accelerators, live World binding, actual model scheduling and rendered frames remain separate.')

@@ -1,12 +1,34 @@
 # Live Zanzibar computer and gate checkpoint
 
-The native computer/gate path passed a visible SDL/Vulkan acceptance sequence
-on 2026-10-12, in one-player and four-player local sessions. This verifies the
-current native input adapter, shared device owner, ordinary machine controller
-and native collision backend. Complete original player-action and Havok parity
-remain separate requirements.
+The native multiplayer computer and gate passed a visible SDL/Vulkan
+acceptance sequence on 2026-11-02 using the prepared MCC Zanzibar cache.
+The older one-player and four-player checkpoint below covers the earlier
+typed adapter. Complete original player-action and Havok parity remain
+separate requirements.
 
 ## Actual gameplay sequence
+
+The 2026-11-02 [missing-computer visual repair](../build/test-results/terminal-display-20261102/report.md)
+restores the authored keypad and screen through the shared type8 device render
+owner. Both normal Linux launchers select the qualified repaired runtime.
+Its packaged fixed-camera image confirms the restored model, and 103 package
+checks plus 14 multiplayer startup cases and four frontend screens passed.
+
+The [native activation repair](../build/test-results/zanzibar-gate-20261102/report.md)
+uses the completed original `153BA0` action target for the multiplayer
+control prompt. The earlier prompt selected a control using the raw input
+angles, which could disagree with the native player look initialized from
+the authored spawn facing. The control then appeared usable while the
+original command contained action zero and no target.
+
+The corrected replay aims using the completed player look and sends ordinary
+SDL mouse movement and a hold of the configured pickup key. It requires an
+actual action-3 command for the computer and observes the original device
+group reach 1, the gate move through 148 intermediate positions and settle
+fully open, and the computer switch from its gate icon to its blue error
+screen. The replay supplies no control result or device state.
+
+### Recorded 2026-10-12 interaction checkpoint
 
 `tests/source_control_runtime_tests.cpp` loads the supplied Zanzibar cache and
 derives its diagnostic placement points from the computer's authored model

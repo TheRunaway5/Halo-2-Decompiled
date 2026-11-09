@@ -1,0 +1,61 @@
+## Native clan caller and account/voice binding in Rust (2026-11-02)
+
+`matchmaking_frontend_clans` now owns the complete modern native clan caller,
+including clan roles, invitations, member targeting, commands and confirmation
+state, menu/text/column choices, message pagination, account/voice binding order
+and push-to-talk gating. The existing Rust party controller owns the target,
+kind, message-page counter and pending confirmation; their C++ fields are
+removed. The native caller supplies typed provider/device/navigation/resource
+IO and preserves shared-pointer lifetimes and opaque cached snapshots.
+
+Only the exact clan-page branch of `MenuState::auxiliary()` is replaced. Its
+preceding PCR/lobby routing and following login dispatch stay in their existing
+order. The regression generator authenticates the old full clan caller and
+that branch, checks the surrounding dispatcher prefix, and compares exact
+production native IO against the captured implementation. No original Xbox
+whole-caller or Live-provider equivalence follows from this modern comparison.
+
+The complete Rust cohort passes **749 tests**, including **27 new clan-flow
+controls**, with four existing ignores. The before/after native comparison
+matches **6,876 cases**, **5,071 callback-boundary observations and Rust-state
+reentries**, and **88 native exception controls**. It covers account/voice
+replacement and teardown, same-account renderer recovery, social-bind and local
+sign-out reentry, state changes before failure, confirmation default/cancel/take,
+voice switching, raw identity bytes, role/presence/mute precedence, resource
+lookup order, retained/detached frames and UTF-8 page boundaries. Former C++
+out-of-bounds command/role accesses, empty-message modulo zero and nonprogressing
+malformed page loops are excluded from equivalence; separate Rust controls
+require safe errors. Full-width page rollover is separately tested in Rust. Unknown scoped-enum
+presence values remain in the comparison: their fixed underlying `int` makes
+these defined C++ inputs. An initial plan to exclude them was corrected after
+checking the C++ draft, and the original corpus is restored byte for byte.
+
+All **12 focused CMake caller-comparison checks** pass with Debug C++ and Rust release defaults, without skips.
+Seven Rust bridge-staging checks pass. All four affected production C++ units
+also compile against the staged bridge; object and ABI imports reach the Rust
+clan owner. These are controlled component checks. The broader **36-check**
+native HTTP/SDL/Vulkan/lobby/Start/countdown run was interrupted during
+compilation without a completed test result; its owner and scratch are absent.
+Its old running status is stale and is not acceptance. The full native runtime
+cohort remains required. The prior friends migration's runtime checks are
+recorded in their own receipt and do not certify this new clan migration.
+
+The first full-cohort freeze aborted before validation because another owner
+kept editing an unrelated qualification helper; its scratch was removed. The
+focused cohort freezes the complete source tree, authenticates all declared
+matchmaking scope, records unrelated live drift and refreshes only declared
+inputs in its private tree. Original assets, references, shared-root work and
+selected runtimes are preserved. Owned builds are removed and only bounded
+reports/source pins are retained.
+
+[The receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-clans-flow-rust-validation.json)
+records exact sources, native linkage, comparisons and cleanup. A read-only
+`--launcher-info` observation timed out; direct selection JSON/executable/source-
+manifest inspection is recorded separately and does not qualify launcher
+resolution or installed execution. This change does not replace the selected
+runtime or activate the Rust service. All twelve GAP records, 53 algorithm IDs,
+G01-G12 gates and full exit criteria remain unchanged; the goal stays active.
+Remaining native signed-local/guest/team/postgame/login/keyboard/voice policy and every other
+matching-related non-Rust owner, complete original/historical/service recovery,
+natural played-world coverage and full delivery qualification remain open.
+

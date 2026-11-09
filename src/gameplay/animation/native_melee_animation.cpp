@@ -80,6 +80,10 @@ NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,co
     :NativeMeleeAnimation(cache,content,c,cache&&!cache->is_vista()?
         std::make_shared<const SourceRuntimeResources>(*cache):nullptr) {}
 NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,const LevelContent &content,
+    NativeMeleeConstants c,const SourceRuntimeResources &source)
+    :NativeMeleeAnimation(cache,content,c,cache?source.share_inputs(*cache):
+        throw FormatError("Native melee resource inputs require their immutable Cache owner")) {}
+NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,const LevelContent &content,
     NativeMeleeConstants c,std::shared_ptr<const SourceRuntimeResources> resources)
     :cache_(std::move(cache)),resources_(std::move(resources)),constants_(c),movement_forward_(content.movement.forward) {
   for(unsigned i=2;i<content.player_representations.size();++i)

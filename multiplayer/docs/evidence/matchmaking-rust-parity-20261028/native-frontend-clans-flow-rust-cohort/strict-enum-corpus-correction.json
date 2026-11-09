@@ -1,0 +1,22 @@
+{
+  "initial_assumption": {
+    "reason": "The first comparison constructed invalid non-fixed C++ enum values -1 and99. Those results do not qualify equivalence outside the defined enum domain.",
+    "removed_only_undefined_cpp_inputs": true,
+    "production_cpp_rust_unchanged": true,
+    "before_cases": 6876,
+    "after_expected_cases": 6300,
+    "accepted_native_recheck_required": true
+  },
+  "initial_assumption_incorrect": true,
+  "reason": "OnlineClanPresence is a scoped enum with fixed underlying int. All representable int values, including -1 and99, are defined enumeration values; the original default-branch cases are valid.",
+  "primary_sources": [
+    "https://eel.is/c++draft/dcl.enum#5",
+    "https://eel.is/c++draft/dcl.enum#8",
+    "https://eel.is/c++draft/expr.static.cast#8"
+  ],
+  "original_corpus_restored_exactly": true,
+  "restored_source_sha256": "d2590f135e70ad6bc11dc3638730de2f315d5e7ab592578d3bc7af77f7326a7f",
+  "accepted_cases": 6876,
+  "production_cpp_rust_unchanged": true,
+  "original_defined_domain_not_narrowed": true
+}

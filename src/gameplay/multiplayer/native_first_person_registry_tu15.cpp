@@ -75,8 +75,8 @@ struct NativeFirstPersonRegistryTu15::Impl {
     std::shared_ptr<const Cache> cache;
     std::shared_ptr<const SourceRuntimeResources> resources;
     std::array<Entry,16> players;
-    explicit Impl(std::shared_ptr<const Cache> value):cache(std::move(value)),
-        resources(std::make_shared<SourceRuntimeResources>(*cache)){}
+    explicit Impl(std::shared_ptr<const Cache> value,std::shared_ptr<const SourceRuntimeResources> inputs={}):
+        cache(std::move(value)),resources(inputs?std::move(inputs):std::make_shared<SourceRuntimeResources>(*cache)){}
     Entry &bind(unsigned slot,const SourceFirstPersonContextInputTu15 &in,
         const SourcePhysicsWorldRuntimeServices &cpu) {
         auto &entry=players.at(slot);
@@ -96,6 +96,11 @@ struct NativeFirstPersonRegistryTu15::Impl {
 NativeFirstPersonRegistryTu15::NativeFirstPersonRegistryTu15(std::shared_ptr<const Cache> cache) {
     if(!cache)throw FormatError("Native FP registry requires its real immutable Cache owner");
     impl_=std::make_unique<Impl>(std::move(cache));
+}
+NativeFirstPersonRegistryTu15::NativeFirstPersonRegistryTu15(std::shared_ptr<const Cache> cache,const SourceRuntimeResources &source) {
+    if(!cache)throw FormatError("Native FP registry requires its real immutable Cache owner");
+    auto inputs=source.share_inputs(*cache);
+    impl_=std::make_unique<Impl>(std::move(cache),std::move(inputs));
 }
 NativeFirstPersonRegistryTu15::~NativeFirstPersonRegistryTu15()=default;
 void NativeFirstPersonRegistryTu15::action(const SourcePhysicsContactMemory &memory,
@@ -243,7 +248,7 @@ std::unique_ptr<NativeFirstPersonRegistryTu15> NativeFirstPersonRegistryTu15::pr
     const NativeFirstPersonRegistryCheckpointTu15 &saved,
     const Bindings &bindings,std::uint32_t completed_tick)const {
     if(saved.resources!=impl_->resources->identity())throw FormatError("Native FP registry continuation Cache identity differs");
-    auto result=std::make_unique<NativeFirstPersonRegistryTu15>(impl_->cache);
+    auto result=std::make_unique<NativeFirstPersonRegistryTu15>(impl_->cache,*impl_->resources);
     std::set<unsigned> views;std::uint64_t total{};
     for(unsigned slot=0;slot<saved.players.size();++slot) {
         const auto &source=saved.players[slot];auto &target=result->impl_->players[slot];

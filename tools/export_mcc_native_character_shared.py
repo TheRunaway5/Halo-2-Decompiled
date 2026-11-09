@@ -50,7 +50,24 @@ def require(value, message):
 def tag_json(tag):
     return {key: tag[key] for key in ("group", "name", "datum", "address", "size")}
 
-def generate(cache):
+def resolve_shared_source(cache, supplied=None):
+    if supplied is not None:
+        return Path(supplied)
+    cache = Path(cache)
+    provenance = cache / "provenance.json"
+    if provenance.is_file():
+        original = json.loads(provenance.read_bytes()).get("source")
+        require(isinstance(original, str) and Path(original).is_absolute(),
+                "prepared cache requires its declared original MCC source directory")
+        return Path(original) / "h2_maps_win64_dx11/shared.map"
+    return cache / "halo2/h2_maps_win64_dx11/shared.map"
+
+def authenticated_shared_source(cache, supplied=None):
+    shared = resolve_shared_source(cache, supplied)
+    require(digest(shared.read_bytes()) == SOURCE_SHARED, "complete actual shared source changed")
+    return shared
+
+def generate(cache, shared_source=None):
     cache = Path(cache)
     native = cache / "native-shaders/coagulation"
     library = json.loads((native / "library.json").read_bytes())
@@ -61,8 +78,7 @@ def generate(cache):
     require(digest(canonical(resident_library)) == RESIDENT_LIBRARY,
             "complete already-admitted resident library changed")
     resident_records = {(r["group"], r["name"]): r for r in resident_library["shader_tags"]}
-    shared = cache / "halo2/h2_maps_win64_dx11/shared.map"
-    require(digest(shared.read_bytes()) == SOURCE_SHARED, "complete actual shared source changed")
+    shared = authenticated_shared_source(cache, shared_source)
     source = MccCache(shared)
     profiles, cases = [], []
     for name in MATERIALS:
@@ -271,11 +287,13 @@ def generate(cache):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
+    parser.add_argument("--shared-source", type=Path,
+                        help="Original MCC shared.map; defaults to the prepared cache's declared donor")
     parser.add_argument("--fixture", type=Path)
     parser.add_argument("--policy", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    policy, fixture = generate(args.cache)
+    policy, fixture = generate(args.cache, args.shared_source)
     if args.policy:
         text = json.dumps(policy, indent=2) + "\n"
         if args.check:

@@ -1,0 +1,98 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 467,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 637,
+      "target": "source_sound_scalar_tu15_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 652,
+      "target": "native_tu15_sound_manager_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "d82d2e44ecb3872b94b11b252bb3a5e3793ce86b40ebc86058e4c75d9b9611da",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "d82d2e44ecb3872b94b11b252bb3a5e3793ce86b40ebc86058e4c75d9b9611da",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "c4e159580a4bb1823a8fa0f6612403e59ef28f325e726da0aa35c6131ef49685",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "228220"
+      ],
+      "function_name": "run_127b20",
+      "instruction_callback_sites": 23,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "127b20",
+        "tu15": "127b20"
+      },
+      "line": 352,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "127b20",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "127b20",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "127b20",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "cce65006c7e25e5053b2b9c7a66c354547ac670cfc16d57a660977aca5976aef",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_228220",
+      "instruction_callback_sites": 17,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "228220",
+        "tu15": "228220"
+      },
+      "line": 379,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "228220",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "228220",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "228220",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_scalar_tu15_generated.cpp",
+  "source_bytes": 22857,
+  "source_filename_scope": "generated",
+  "source_sha256": "0205257433ea3a6ee655dadd0f5e4efb85be54fbde66d3f55aeadeab8bd3eb11"
+}

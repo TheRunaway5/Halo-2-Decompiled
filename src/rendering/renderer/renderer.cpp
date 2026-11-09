@@ -9,6 +9,7 @@
 #include "halo2/source_shadow_native_prefix_tu15.hpp"
 #include "halo2/macos/bundle.hpp"
 #include "halo2/macos/vulkan_math.hpp"
+#include <numeric>
 #include <functional>
 #include <string_view>
 #include <ranges>
@@ -687,6 +688,9 @@ struct Renderer::Impl {
     std::vector<GpuTexture> auxiliary_textures;
     std::vector<std::array<std::vector<GpuTexture>,4>> animated_textures;
     std::vector<std::array<std::uint32_t,4>> wanted_frames, bound_frames;
+    // Materials whose wanted animated frames changed since the last bind; the
+    // per-frame rebinding visits only these instead of every material.
+    std::vector<std::uint32_t> frame_dirty_materials;std::vector<std::uint8_t> frame_dirty;
     std::vector<std::array<VkSampler,4>> stage_samplers;
     std::vector<std::array<ShaderTextureState,4>> stage_sampler_states;
     std::vector<bool> scope_materials;
@@ -2174,6 +2178,7 @@ struct Renderer::Impl {
         textures.resize(count); detail_textures.resize(count); bump_textures.resize(count);
         auxiliary_textures.resize(count);after_fog.reserve(count);
         animated_textures.resize(count);wanted_frames.resize(count);bound_frames.resize(count);
+        frame_dirty.assign(count,0);frame_dirty_materials.clear();
         stage_samplers.resize(count);stage_sampler_states.resize(count);
         scope_materials.resize(count);scope_descriptors.resize(count);
         texture_camera_materials.resize(count);
@@ -3929,7 +3934,10 @@ struct Renderer::Impl {
                     mark_vertex_bank_changed(i);
                 }
             }
-            wanted_frames[i]=m.texture_frames;
+            if(wanted_frames[i]!=m.texture_frames) {
+                wanted_frames[i]=m.texture_frames;
+                if(!frame_dirty[i]){frame_dirty[i]=1;frame_dirty_materials.push_back(std::uint32_t(i));}
+            }
             material_fragment_offsets[i]=m.forward_program.fragment_offsets;
             auto &u=material_uniforms[i];
             if(native_world_kernel_indices[i]!=~0u && u.vertex_declaration!=pack_source_vertex_declaration(m.vertex_declaration,m.world_vertex_input_transform))
@@ -5815,7 +5823,15 @@ struct Renderer::Impl {
             for(const auto &[index,pass]:view_direction_materials)
                 update_view_direction(index,*pass);
         }
-        for(std::size_t i=0;i<animated_textures.size();++i) for(unsigned stage=0;stage<4;++stage) {
+        // Only materials whose wanted frames changed can differ from the bound
+        // ones (the two start equal and wanted is written only by
+        // update_material_constants). HALO2_REFERENCE_ANIMATED_FRAME_SCAN=1
+        // restores the scan over every material (~105k x 4 stages per frame).
+        static const bool reference_frame_scan=[]{const auto *p=std::getenv("HALO2_REFERENCE_ANIMATED_FRAME_SCAN");return p && *p;}();
+        std::sort(frame_dirty_materials.begin(),frame_dirty_materials.end());
+        std::vector<std::uint32_t> every_material;
+        if(reference_frame_scan){every_material.resize(animated_textures.size());std::iota(every_material.begin(),every_material.end(),0u);}
+        for(const auto i:reference_frame_scan?every_material:frame_dirty_materials) for(unsigned stage=0;stage<4;++stage) {
             if(wanted_frames[i][stage]==bound_frames[i][stage]) continue;
             const auto &frames=animated_textures[i][stage];
             if(wanted_frames[i][stage]>=frames.size()) throw FormatError("animated texture frame outside GPU images");
@@ -5845,6 +5861,8 @@ struct Renderer::Impl {
             }
             bound_frames[i][stage]=wanted_frames[i][stage];
         }
+        for(const auto i:frame_dirty_materials)frame_dirty[i]=0;
+        frame_dirty_materials.clear();
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
         const bool source_title_first=!menu_world_reported;
         const auto source_title_draws=prepare_menu_world(mainmenu_world,camera,viewport,title_scene,views);

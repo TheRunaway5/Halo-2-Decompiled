@@ -96,3 +96,80 @@ add_test(NAME original_workshop_camera_shared COMMAND ${Python3_EXECUTABLE} -B
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/workshop_unit_controls_tests.py
     --fixture ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/workshop_camera_start_tu15.json.zlib
     --test-executable $<TARGET_FILE:workshop_camera_shared_tests>)
+
+# Complete original looping-prediction/cache effects. Actual native HS and
+# MCC streaming consumers must pass before the script declaration is admitted.
+add_executable(workshop_looping_prediction_tests
+    tests/workshop_looping_prediction_tests.cpp
+    src/campaign/scripting/source_workshop_script_builtins_tu15_generated.cpp
+    src/audio/native_tu15_sound_kernels_resources.cpp
+    src/core/native_tu15_data_array_allocate_specific.cpp
+    src/core/native_tu15_data_array_allocate.cpp
+    src/core/native_tu15_data_array_delete.cpp
+    src/core/native_tu15_page_allocator.cpp)
+target_include_directories(workshop_looping_prediction_tests PRIVATE include src)
+target_compile_features(workshop_looping_prediction_tests PRIVATE cxx_std_20)
+target_link_libraries(workshop_looping_prediction_tests PRIVATE nlohmann_json::nlohmann_json)
+if(NOT MSVC)
+    target_compile_options(workshop_looping_prediction_tests PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+endif()
+add_test(NAME original_workshop_looping_prediction COMMAND ${Python3_EXECUTABLE} -B
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/workshop_unit_controls_tests.py
+    --fixture ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/workshop_looping_prediction.json.zlib
+    --test-executable $<TARGET_FILE:workshop_looping_prediction_tests>)
+set_tests_properties(original_workshop_looping_prediction PROPERTIES TIMEOUT 60)
+
+# Closed raw resource storage does not extend the CPU pixel-sampling domain.
+add_executable(workshop_prediction_raw_bitmap_tests
+    tests/workshop_prediction_raw_bitmap_tests.cpp
+    src/rendering/mcc_cpu_bitmap_owner.cpp
+    src/rendering/effects/mcc_lens_bitmap_layout.cpp)
+target_include_directories(workshop_prediction_raw_bitmap_tests PRIVATE include src)
+target_compile_features(workshop_prediction_raw_bitmap_tests PRIVATE cxx_std_20)
+target_link_libraries(workshop_prediction_raw_bitmap_tests PRIVATE halo2_cache)
+if(NOT MSVC)
+    target_compile_options(workshop_prediction_raw_bitmap_tests PRIVATE
+        -ffunction-sections -fdata-sections -fno-fast-math -ffp-contract=off -frounding-math)
+    target_link_options(workshop_prediction_raw_bitmap_tests PRIVATE -Wl,--gc-sections)
+endif()
+add_test(NAME workshop_prediction_raw_bitmap_storage COMMAND workshop_prediction_raw_bitmap_tests)
+set_tests_properties(workshop_prediction_raw_bitmap_storage PROPERTIES TIMEOUT 60)
+
+# Actual installed sound metadata and retained encoded resource owners. This
+# Cache-only test does not admit the HS builtin or replace native cache I/O.
+add_executable(workshop_prediction_delivery_tests tests/native_workshop_prediction_delivery_tests.cpp)
+target_compile_features(workshop_prediction_delivery_tests PRIVATE cxx_std_20)
+target_link_libraries(workshop_prediction_delivery_tests PRIVATE halo2_cache)
+add_test(NAME workshop_prediction_sound_resources COMMAND ${Python3_EXECUTABLE} -B
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_workshop_prediction_content.py
+    --test-executable $<TARGET_FILE:workshop_prediction_delivery_tests>
+    --base-cache "${HALO2_WORKSHOP_TEST_CACHE}"
+    --output "${CMAKE_CURRENT_BINARY_DIR}/workshop-prediction-sound-resources.json")
+set_tests_properties(workshop_prediction_sound_resources PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+# Complete native prediction/allocation/read over the actual two E3 music
+# tracks, followed by resident replay and real resource-identity refusals.
+add_executable(workshop_prediction_cold_tests
+    tests/native_workshop_prediction_delivery_tests.cpp
+    src/campaign/scripting/source_workshop_script_builtins_tu15_generated.cpp
+    src/audio/native_tu15_sound_kernels_resources.cpp
+    src/audio/source_sound_cache_io_tu15.cpp
+    src/core/native_tu15_data_array_allocate_specific.cpp
+    src/core/native_tu15_data_array_allocate.cpp
+    src/core/native_tu15_data_array_delete.cpp
+    src/core/native_tu15_page_allocator.cpp)
+target_include_directories(workshop_prediction_cold_tests PRIVATE include src tests)
+target_compile_features(workshop_prediction_cold_tests PRIVATE cxx_std_20)
+target_compile_definitions(workshop_prediction_cold_tests PRIVATE HALO2_WORKSHOP_PREDICTION_COLD_CACHE=1)
+target_link_libraries(workshop_prediction_cold_tests PRIVATE halo2_cache)
+if(NOT MSVC)
+    target_compile_options(workshop_prediction_cold_tests PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+endif()
+add_test(NAME native_workshop_prediction_cold_resources COMMAND ${Python3_EXECUTABLE} -B
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_workshop_prediction_content.py
+    --test-executable $<TARGET_FILE:workshop_prediction_cold_tests>
+    --base-cache "${HALO2_WORKSHOP_TEST_CACHE}"
+    --output "${CMAKE_CURRENT_BINARY_DIR}/workshop-prediction-cold-resources.json")
+set_tests_properties(native_workshop_prediction_cold_resources PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)

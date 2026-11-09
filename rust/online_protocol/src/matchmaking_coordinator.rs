@@ -17,10 +17,10 @@ mod parties;
 mod queue_api;
 #[path = "matchmaking_results.rs"]
 mod results;
-#[path = "matchmaking_room_setup.rs"]
-mod room_setup;
 #[path = "matchmaking_room_service.rs"]
 mod room_service;
+#[path = "matchmaking_room_setup.rs"]
+mod room_setup;
 #[path = "matchmaking_search_qos.rs"]
 mod search_qos;
 #[path = "matchmaking_sessions.rs"]
@@ -716,11 +716,7 @@ impl Coordinator {
         if let Some(catalog) = &self.catalog {
             let entry = catalog.entry(pid)?;
             reject(
-                entry["required_compatibility"]
-                    .as_str()
-                    .is_none_or(|required| {
-                        crate::matchmaking_catalog::supports(compatibility, required)
-                    }),
+                crate::matchmaking_catalog::admits_client(entry, compatibility),
                 409,
                 "Update Halo 2 for this playlist",
             )?;

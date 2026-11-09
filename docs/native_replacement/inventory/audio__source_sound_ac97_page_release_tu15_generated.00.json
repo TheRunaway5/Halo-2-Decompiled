@@ -1,0 +1,75 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15SoundAc97PageRelease.cmake",
+      "line": 3,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundAc97PageRelease.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_ac97_page_release_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundCodecEvents.cmake",
+      "line": 9,
+      "target": "native_tu15_sound_codec_events_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "98c1dedfdde8438d66f12f8fc45025540999c70bb8583584c92ff7d255b66733",
+      "selected_resolver_sha256": "be0b188063626e35e61ea054893fbc184bb99d582b0ba3f9dcfc00e323cd2a65"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "98c1dedfdde8438d66f12f8fc45025540999c70bb8583584c92ff7d255b66733",
+      "selected_resolver_sha256": "be0b188063626e35e61ea054893fbc184bb99d582b0ba3f9dcfc00e323cd2a65"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "17bbcd55150b3f3918f647a2f8d6ea3d5dcea065477539bf5b09c5b7d88173a5",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_387a1a",
+      "instruction_callback_sites": 5,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "387a1a",
+        "tu15": "387a1a"
+      },
+      "line": 349,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "387a1a",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "387a1a",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "387a1a",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_ac97_page_release_tu15_generated.cpp",
+  "source_bytes": 18718,
+  "source_filename_scope": "generated",
+  "source_sha256": "ece869a12ae3deedfc30c05d8eab022b01350395c6778b76504678ab059e8821"
+}

@@ -1,5 +1,114 @@
 # Player, vehicle and object physics: 1:1 port goal
 
+November2 active1481 update: the moving-contact runtime links and passes eight
+official regressions. Its first live driving attempt refuses accepted-contact
+owner281710; a subsequent guarded capture confirms its actual event flag is0.
+The initial Frame matches89,729,945 bytes and FP, but the
+requested driving450 final frame and vehicle-camera acceptance are not reached.
+Grenade/rocket expose conflicting blast/phantom read-only diagnostic observers
+before Frame. Both blockers remain open; admission and event flags stay strict.
+The two read-only diagnostic repairs pass both compilers/full contexts and
+independent review. The combined Host cohort passes eight regressions and
+captures the actual flag0 event in multiplayer, with89,795,481 retained bank
+bytes and34 Source-defined event bytes. The12,006,395-byte required reference
+archive is roundtrip-verified; duplicate raw banks are removed. The unchanged
+281710 refusal still ends the diagnostic run; final-frame/camera acceptance
+remains open. [Protected genuine contact input](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-moving-shape-original-v1481-20261102/iteration-01-readonly-created-body-contact-driving-vehicle-camera/required-native-created-body-contact-before/).
+
+The corrected native accepted-contact listener and its production helper now
+match all89,795,481 retained bytes,244 ordered reads,30 attributed stores and
+FP on the captured topology under both compilers and four rounding modes.
+Asymmetric material controls catch a reversed product order hidden by the
+capture's equal products. The two compilers pass24 declared scalar controls
+and11 fault prefixes each; independent review verified the frozen proof.
+The native mass-scaling continuation through31F460/3200B0 now also passes the
+full parent comparison on declared unequal masses. The guarded World route
+now passes both compilers on the captured event through the production event
+dispatcher, with strict retained DATA/FP/order, and the new archive links pass.
+The frozen1482 cold build and all eight regressions pass. All three imported-MCC
+cases stop at the same unlabelled retained contact store after passing the old
+accepted-contact blocker. Driving compares89,729,945 startup bytes against
+TU1.5. The requested final frames and seated-camera gates remain open. The
+retained property write is TU1.5 FST at322F19. Both compilers pass the full
+physical FST checks. The incremental 1482/01 build passes eight regressions.
+Driving, grenade and rocket advance past the FST to the same 30E930 projection
+refusal, before the requested final frames or seated vehicle cameras. The
+selected native projection code passes three source-derived 304350 queries
+and is present in the protected producer rebase. The 1482/02 diagnostic
+captures the current moving-contact input at the unchanged refusal. The same
+kernel matches the original in eight compiler and FP profiles, comparing
+89,795,481 retained bytes, 68 ordered reads, five stores and FP each. The
+1482/03 cohort applies that solver with the ordinary multiplayer harness.
+All three cases advance to the cached initial-count guard. The 1482/04
+capture confirms 1×2. Both compilers match the native two-row initialization
+and complete original return. All three 1482/05 cases clear that guard and
+stop later at the 3×1 simplex in support iteration three. Seated-camera
+and final-frame qualification remain open for these builds.
+[Frozen source checks](../analysis/physics/native-accepted-body-contact-world-cohort1482-v4-test-closure-20261103/qualification.json),
+[1482 live results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-accepted-contact-original-v1482-20261103/matrix.json).
+
+The v1483/00 imported-MCC build includes the native 3×1 continuation. GCC
+and Clang each match 40 complete original returns for the selected triangle
+path. All eight linked regressions pass. Driving, grenade and rocket runs
+reach seat 0 and stop at a wider initial simplex before the final camera
+or original-frame checks. The exact failing initial counts remain open.
+The next combined solver matches 184 complete original returns per
+compiler, including 2×2 initialization, the triangle–edge paths and the
+tetrahedron face selection. All three v1483/02 runs clear the wider simplex
+guard and reach BC200. The v1483/03 native BC200 binding advances all three
+to 31F840 in contact-point removal. All three reach the actual Warthog
+seat before that refusal. After the native point binding and cached triangle
+starts, v1483/08 driving and frag pass the actual Warthog camera and strict
+World frame. Driving records 403 exact seated frames and 458 exact LAN
+snapshots. Frag records 450 exact seated frames and 2,298 exact LAN snapshots,
+one grenade impulse and two original debris objects. Deferred delete/update,
+island step listener coverage and lifted 304350 keep the overall cases open.
+Rockets reaches the separate 31F840 registration call during contact creation.
+[v1483 source review](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/root-technical-review.json),
+[v1483 live results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/matrix.json),
+[Warthog driving clip](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-driving-vehicle-camera/requested-video/window.mp4),
+[Frag clip](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-range6-frag-vehicle-camera/requested-video/window.mp4),
+[Combined solver proof](../analysis/physics/native-convex-simplex-combined-stage-20261103/source-pins.json).
+
+The full native lift parent is bound through all three authenticated gameplay
+callers in the private source layer. Both official models pass. In visible
+v1483/01 Midship, an earlier complete World frame matches all 89,746,329
+original bytes and FP. The run reaches the 2F1CC0 factory lifetime guard
+before a completed lift call changes both motion fields. The diagnostic
+records two active parents and 64 KiB of caller storage. The exact native
+nested arena clears that guard in v1483/07 and advances to 2F0DA0. v1483/09
+wires that cleanup and reaches its nested 2F7790 child during startup.
+v1483/11 wires that child, repeats the exact 89,746,329-byte earlier frame
+and advances to 2F75F0. Visible force and wake acceptance remains pending.
+Cyclotron's imported cache passes its pointer, resource and schema checks.
+The native producer and pooled growth build in v1483/12, and v1483/13 routes
+the support collector through its retained-store observer. All five live
+cases then reach the 307E30 centered bounds guard before recording.
+v1483/15 binds centered bounds and advances all five cases to the 313790
+triangle-basis guard. The same guarded source must still pass full visible
+support and strict World replay.
+Three historical strict replays still differ in freed contact records.
+The original raw bytes remain part of the comparison.
+[Lift integration ledger](../analysis/physics/native-lift-live-binding-stage-20261103/prepared-source-pins.json),
+[Midship lifetime capture](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-04-midship-2f1cc0-factory-lifetime-diagnostic/required-factory-before/retention.json),
+[Cyclotron audit](../analysis/physics/native-cyclotron-import-world-blocker-audit-20261103/report.json),
+[Current Cyclotron outcome](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-15-outcome.json).
+
+The required general20D8B0 request and22E0D0 visibility kernels are now canonical:
+both compilers pass419 physical profiles/all128 sites and the existing positive
+caller regression, with independent review and no duplicated algorithms.
+
+The native BSP/object setup graph2190C0/219150/2191D0/2190F0/BCEE0 now passes
+83 physical profiles/all222 sites under both compilers,12 faults, exact retained
+DATA/FP/read/store order and three semantic mutants per compiler. Its same
+production32-byte native sidecar passes seven ownership/padding controls and
+leaves underlying RAM unchanged. The canonical BSP constructor now selects this
+native graph, with12 counters/two JSON outputs and a real-iterator positive gate.
+Both compilers pass17 linked models, nine negative gates and full Host/Live
+contexts. Concurrent Gauss camera/steering edits are preserved by a narrow,
+reverse-verified patch. Visible delivery and wider observer capability remain
+open; original private stack/control bytes are never supplied.
+
 November2 live update: frozen1480/00 delivers native broad-phase2EA380,
 Host look/controller/context/camera/query/reorientation and a positive native
 31D930 Warthog joint in imported-MCC multiplayer. All three driving450,
@@ -42,9 +151,15 @@ initially unavailable scratch backings. Eighteen numeric mutant runs reject
 actual DATA/FP changes, and independent review passes. The full selected304350
 provider graph also returns under both compilers/four FP modes/two backings,
 matching all89,795,481 retained bytes and FP with three native queries/record
-appends/distance publications and zero original execution services. Its typed
-production-helper, ordered observer, World and visible multiplayer delivery
-remain in progress. The source-authenticated constructor/query/candidate
+appends/distance publications and zero original execution services. The same typed production helper now also passes both compilers/four FP
+modes,1,229 ordered semantic reads,239 exact typed retained events and all
+banks/FP, with observer FP math,11 admission controls, numeric/PC/scope mutants
+and public pair/query/convex defaults. The shared source union now passes both
+full moving and producer proofs and independent review. The producer World
+route passes both compilers through216 source units and the actual transitive
+library links, native sidecar/resource controls, exact relocated genuine-input
+proof and final peer reviews. Visible delivery remains pending the1481 blockers.
+The source-authenticated constructor/query/candidate
 aliases preserve actual writers; unknown fields are never invented.
 
 Native contact publication now reaches real native point creation and cache
@@ -73,8 +188,9 @@ rollover/use-action8, schedulers, internal look callers and wider exceptional
 FP/lifetime/query domains. Native-only1:1 TU1.5 parity remains incomplete and
 the goal remains active.
 
-The cumulative cleanup ledger verifies1,101 completed scratch owners absent and
-270,440,116,224 allocated file bytes removed (251.9 GiB). This excludes active
+The cumulative cleanup ledger verifies1,283 completed scratch owners absent and
+313,256,599,552 allocated file bytes removed (291.7 GiB). The latest check adds
+26 owners and8,739,778,560 bytes. This excludes active
 work and unmeasured build storage; it is not a global free-space delta. Required
 reference archives, requested videos and source checkpoints remain protected.
 

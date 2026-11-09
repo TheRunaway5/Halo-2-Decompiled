@@ -1,4 +1,6 @@
 #include "halo2/source_runtime_resources.hpp"
+#include "halo2/source_runtime_mcc_preparation.hpp"
+#include "halo2/source_runtime_resource_preparation.hpp"
 #include "halo2/cache.hpp"
 #include <algorithm>
 #include <chrono>
@@ -66,6 +68,9 @@ int main(int argc,char** argv)try {
         "Compressed resource fixture does not distinguish stored and logical offsets");
     Cache cache(directory.path/"fixture.map");SourceRuntimeResources resources(cache);
     const auto identity=resources.identity();
+    auto retained=[&]{SourceRuntimeResources parent(cache);return parent.share_inputs(cache);}();
+    Cache foreign(directory.path/"fixture.map");
+    rejects([&]{(void)retained->share_inputs(foreign);});
     for(unsigned n=0;n<4;++n) {
         const auto result=resources.load((n<<30)|4096u,32);
         const auto& expected=n?shared[n-1]:local;
@@ -77,14 +82,18 @@ int main(int argc,char** argv)try {
         std::filesystem::rename(directory.path/"replacement",directory.path/names[n]);
         check(std::ranges::equal(resources.load(((n+1)<<30)|4096u,32),std::span(shared[n]).subspan(4096,32)),
             "Bound MCC resource reopened a replaced shared path");
+        check(std::ranges::equal(retained->load(((n+1)<<30)|4096u,32),std::span(shared[n]).subspan(4096,32)),
+            "Shared MCC input lost its pinned bytes after producer retirement");
     }
     check(resources.identity()==identity,"Bound resource identity changed with external filenames");
+    check(retained->identity()==identity,"Shared resource input changed its authenticated identity");
     rejects([&]{SourceRuntimeResources malformed(cache);});
     for(const auto request:std::array<std::pair<std::uint32_t,std::uint32_t>,5>{{
         {4096,0},{4096,128u*1024*1024+1},{8190,4},{0x80001ffeu,4},{8192,1}}})
         rejects([&]{(void)resources.load(request.first,request.second);});
     if(argc==2) {
-        Cache actual(argv[1]);
+        const auto owner=std::make_shared<const Cache>(argv[1]);
+        const auto &actual=*owner;
         const Tag* selected{};std::uint32_t descriptor{};
         for(const auto& tag:actual.select_tags({.group=tag_groups::model_animation_graph,.require_address=true})) {
             const Bytes root(actual.read_tag_bytes(tag.address,0xb4));
@@ -100,6 +109,41 @@ int main(int argc,char** argv)try {
         const auto image=translated.animation(runtime_descriptor);
         check(calls==1&&image.descriptor==expected.descriptor&&image.bytes==expected.bytes,
             "Canonical animation descriptor did not retain exact source resource ownership");
+        const auto cache_reader=translated.share_inputs(actual);
+        const auto raw=cache_reader->animation(descriptor);
+        check(calls==1&&raw.descriptor==image.descriptor&&raw.bytes==image.bytes,
+            "Shared reader inherited the World descriptor translator or changed animation bytes");
+        constexpr std::uint32_t base=0x90000000u,budget=0x60000000u;
+        rejects([&]{SourceRuntimeResourcePreparation denied(owner,*cache_reader);});
+        const auto stage_world=[&]{
+            SourceRuntimeResourcePreparation preparation(owner,translated);
+            rejects([&]{SourceRuntimeResourcePreparation duplicate(owner,translated);});
+            SourceRuntimeResources world(actual);
+            check(world.identity()==translated.identity()&&world.sound_dat_owner()==translated.sound_dat_owner()&&
+                world.animation(descriptor).bytes==image.bytes,"Private World changed its actual resource inputs");
+            check(!world.take_mcc_world_metadata(base,budget),"Prepared World unexpectedly owns a direct plan");
+            auto plan=take_prepared_mcc_world_metadata(actual,base,budget);
+            check(bool(plan),"Prepared World lost its separate metadata handoff");
+            world.require_sound_plan(plan->sound);
+            rejects([&]{SourceRuntimeResources duplicate(actual);});
+            rejects([&]{(void)take_prepared_mcc_world_metadata(actual,base,budget);});
+            return plan;
+        };
+        auto first=stage_world();
+        auto second=stage_world();
+        auto original=translated.take_mcc_world_metadata(base,budget);
+        check(bool(original),"Sharing immutable inputs consumed the producer's World metadata");
+        const auto canonical=original->delivery.tag_image();
+        for(const auto* plan:{first.get(),second.get()}) {
+            const auto candidate=plan->delivery.tag_image();
+            check(candidate.reservation_bytes==canonical.reservation_bytes&&candidate.index==canonical.index&&
+                std::ranges::equal(candidate.regions,canonical.regions,[](const auto& a,const auto& b){
+                    return a.address==b.address&&a.bytes==b.bytes;
+                })&&plan->sound.bytes==original->sound.bytes&&plan->sound.original==original->sound.original,
+                "Private World staged different canonical metadata or sound ownership");
+        }
+        rejects([&]{(void)translated.take_mcc_world_metadata(base,budget);});
+        rejects([&]{SourceRuntimeResourcePreparation denied(owner,translated);});
         const Bytes fields(image.descriptor);const auto size=fields.u32(4),offset=fields.u32(8);
         if(size) {
             const auto padded=(size+511u)&~511u;

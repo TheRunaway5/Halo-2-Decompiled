@@ -1,0 +1,177 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_POSTGAME_LEAVE_RUST_VALIDATION_V1",
+  "recorded_utc": "2026-11-03T02:44:25.669323+00:00",
+  "component_passed": true,
+  "commands": [
+    {
+      "name": "extract",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "tests/generate_frontend_postgame_reference.py",
+        "--reference",
+        "tests/reference/frontend_postgame_before_rust_20261102",
+        "--root",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/source",
+        "--before",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/frontend_postgame_before.inc",
+        "--after",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/frontend_postgame_after.inc",
+        "--helpers",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/frontend_postgame_helpers.inc"
+      ],
+      "exit_code": 0,
+      "log": "extract.log"
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "rust/online_protocol_bridge/Cargo.toml",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "log": "bridge.log"
+    },
+    {
+      "name": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "rust/online_protocol/Cargo.toml",
+        "--test",
+        "matchmaking_frontend_postgame"
+      ],
+      "exit_code": 0,
+      "log": "rust.log"
+    },
+    {
+      "name": "syntax",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-Iinclude",
+        "-Isrc",
+        "-Itests",
+        "-Irust/online_protocol_bridge",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+        "-I/usr/include/SDL2",
+        "-D_GNU_SOURCE=1",
+        "-D_REENTRANT",
+        "-fsyntax-only",
+        "src/ui/frontend_matchmaking_postgame.cpp",
+        "src/ui/frontend_state.cpp"
+      ],
+      "exit_code": 0,
+      "log": "syntax.log"
+    },
+    {
+      "name": "link",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-Iinclude",
+        "-Isrc",
+        "-Itests",
+        "-Irust/online_protocol_bridge",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+        "tests/native_frontend_postgame_rust_tests.cpp",
+        "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+        "src/ui/frontend_matchmaking_party_bridge.cpp",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/target/debug/libhalo2_online_protocol_bridge.a",
+        "-lcurl",
+        "-lssl",
+        "-lcrypto",
+        "-ldl",
+        "-lpthread",
+        "-lm",
+        "-lrt",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/postgame"
+      ],
+      "exit_code": 0,
+      "log": "link.log"
+    },
+    {
+      "name": "compare",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "tests/test_native_frontend_postgame_rust.py",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-rust-20261102/halo2-test-zqsvhcg9/postgame",
+        "--report",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-postgame-leave-rust-20261102/differential.json"
+      ],
+      "exit_code": 0,
+      "log": "compare.log"
+    }
+  ],
+  "rust_passed": 23,
+  "differential": {
+    "passed": true,
+    "cases": 2560,
+    "native_io_observations": 1381,
+    "rust_state_reentries": 1381,
+    "fault_controls": 28,
+    "preserved_native_exception_identity": 28,
+    "differences": [],
+    "undefined_cpp_inputs_excluded": true,
+    "actual_native_report_objects": true,
+    "native_report_identity_and_lifetime_observed": true,
+    "first_online_report_preserved": true,
+    "fresh_prior_after_selection_preserved": true,
+    "native_sha256": "6d64412e2e3da52e2f93f078010b1bccfb2e9393c27ecc33bdf61527e4dbec99",
+    "scope": "Captured modern postgame callers, leave action and prior/navigation hooks.\n\nUses real native report/result objects and captured account helper definitions\nwhich call their existing Rust leaves. Compares callback ordering, actual shared\nowner identities/lifetimes, first-report selection, replacement during select,\nleave acceptance, refusal, failure prefixes and reentry. Native rendering and the PCR\nfactory remain outside the differential; their source is authenticated unchanged\nafter the two declared substitutions. Not original Xbox/Live service replay.\nUndefined empty-stack dereferences and null report dereferences in the captured\nbranches are excluded; separate Rust owner-error controls cover those boundaries.\n",
+    "leave_cases": 519
+  },
+  "frozen_input_count": 2560,
+  "frozen_input_sha256": "cae6feec89540218308ece69dd494bdeafffd9dbb24edf13d497c29c0bf63779",
+  "applied_pins": {
+    "rust/online_protocol/src/matchmaking_frontend_postgame.rs": "410bc57c1130664aa36fb877ea71a27cecbf72988b21bf4adb5a6194de44ccbb",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_postgame.rs": "5b06ec6c157912e8502bac2ac9e93d161d146b27cf35d9af29bfce6486c9c81d",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_postgame.hpp": "566ddafba97c4018e585bfad791a106de7f16918e167dafa4fa28f62d4a15ead",
+    "rust/online_protocol_bridge/src/lib.rs": "2eda7acd230f48eeefcf8cf889006831c8362f28ed121624145901e4dcb29c2d",
+    "src/ui/frontend_matchmaking_postgame.cpp": "94e29a4b5d0aea6554b0c6489f4f972610400f1b634da8262eea965c0f19c009",
+    "src/ui/frontend_state.cpp": "5efffc5f4d1f1f0c934f3e657e1d167038a42b1213d95d56948cc73594d9ddb5",
+    "tests/generate_frontend_postgame_reference.py": "7149d7ae64882a5f0e1228953868fa907466bd92e85ba8c19b166f892fd10caf",
+    "tests/native_frontend_postgame_rust_tests.cpp": "ce3b81fcf4f8f33aace768c1fffd98af63338d9c9b7bcecbc32981645b8a30c4",
+    "tests/test_native_frontend_postgame_rust.py": "7a9e92e715b5ac0090b6ce1e96694dd7a31c0ad26c7ba80b878d6cbaaeba666e"
+  },
+  "applied_pins_match": true,
+  "preceding_search_cancellation_pins_reconstructed": true,
+  "captured_leave_branch_sha256": "ebc9683d3b53a6a82022efc550c3a54c4616dbc787f0f02e23a8114997646b29",
+  "original_action_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/tu15-postgame-leave-action.json",
+  "original_action_receipt_sha256": "0def8032322963477f3d9662d2ffa7b81b8b28ac4ae1c933aa6dcabcca2e49d5",
+  "native_followup_expected_tests": [
+    "frontend_search_cpp_rust",
+    "frontend_online_lobby_buttons",
+    "frontend_online_lobby_buttons_gpu",
+    "rust_frontend_lobby_blocked",
+    "rust_frontend_lobby_complete",
+    "rust_frontend_lobby_rendered",
+    "frontend_matchmaking_http",
+    "frontend_postgame_cpp_rust",
+    "online_match_launch",
+    "online_match_party_launch",
+    "online_multiteam_native_flow"
+  ],
+  "native_followup_refresh_count": 15,
+  "full_native_after_change": false,
+  "installed_client_verified": false,
+  "production_activated": false,
+  "full_goal_complete": false,
+  "component_scratch_removed": true,
+  "original_scratch_removed": true,
+  "retained_generated_large_artifacts": []
+}

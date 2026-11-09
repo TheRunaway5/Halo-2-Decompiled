@@ -1,0 +1,150 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "advance_effect_frame",
+        "bool",
+        "call",
+        "compare",
+        "effect_frame_increment",
+        "effect_frame_shift_left",
+        "effect_frame_signed_right_five",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "less",
+        "pop",
+        "push",
+        "read",
+        "required_owner",
+        "signed_word",
+        "state_product",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::runtime_error",
+        "std::uint16_t",
+        "std::uint32_t"
+      ],
+      "body_sha256": "9938d543f6c1f3f611d6814e61700ba3bb10216b589722b7bff7c1bfe8935756",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "advance_effect_frame",
+      "instruction_callback_sites": 75,
+      "line": 19,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "179df0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "179df0",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "advance_effect_frame",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "bool",
+        "effect_frame_increment",
+        "effect_frame_shift_left",
+        "effect_frame_signed_right_five",
+        "find_effect_slot",
+        "halo2::native_effect_slot_scan_detail::try_native",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "less",
+        "pop",
+        "push",
+        "read"
+      ],
+      "body_sha256": "d57df4bb03eeba2d032b96d2a41aa3556e374e75703f0e7ac403b17fbbccd45f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "find_effect_slot",
+      "instruction_callback_sites": 30,
+      "line": 129,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_slot_scan_detail::try_native"
+      ],
+      "observed_entry": "16ea60",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "16ea60",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "find_effect_slot",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "advance_particle_frame",
+        "bool",
+        "call",
+        "compare",
+        "effect_frame_increment",
+        "effect_frame_shift_left",
+        "effect_frame_signed_right_five",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "less",
+        "pop",
+        "push",
+        "read",
+        "state_product",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::uint16_t",
+        "std::uint32_t",
+        "store"
+      ],
+      "body_sha256": "773ad034ac41325b36d71339196f2253c38e7ef59c660fd54bb2ac68c879adcb",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "advance_particle_frame",
+      "instruction_callback_sites": 56,
+      "line": 178,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "177830",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "177830",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "advance_particle_frame",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_effect_frame_tu15_internal.hpp",
+  "source_bytes": 13691,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1636,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "8e0ed3176dcd6927ccbc16c53391e75eb0f786d5eb76ace0955448a04ae22a6e"
+}

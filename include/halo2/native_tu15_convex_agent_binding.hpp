@@ -58,10 +58,11 @@ inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
         services.cache.vertex_encoding=[&](auto,auto owner,auto&){
             if(activity)++activity->encodings;
             if(owner.identity==0x1cb030u)return native_tu15_contact_shape_vertex_encoding();
-            if(owner.identity==0xad740u){
+            // Actual31D520 returns encoding2 for the authored lift shape.
+            if(owner.identity==0xad740u || owner.identity==0x31d520u){
                 if(const auto encoding=native_tu15_activation_type(owner.identity))return *encoding;
             }
-            throw std::runtime_error("Native TU1.5 convex factory requires qualified encoding owner");
+            throw std::runtime_error("Native TU1.5 convex factory requires qualified encoding owner="+std::to_string(owner.identity));
         };
         const auto agent=native_tu15_create_convex_contact_agent(memory,arguments,{scratch.relative_transform,{scratch.cache}},fp,services,observe);
         if(activity)++activity->completed;return agent;

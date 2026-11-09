@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/NativeTu15ClockStartup.cmake",
+      "line": 1,
+      "target": "halo2_clock_startup_tu15"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_clock_startup_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "395bef88ba37edcd3536f7ec619b3bd8525983694964691fc006c9af4ee1d832",
+      "selected_resolver_sha256": "0066c1b23844973764b1fe2ac906b619b1031152fb464278450abafa02266c33"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "395bef88ba37edcd3536f7ec619b3bd8525983694964691fc006c9af4ee1d832",
+      "selected_resolver_sha256": "0066c1b23844973764b1fe2ac906b619b1031152fb464278450abafa02266c33"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_clock_startup_tu15"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "883e2ea2db27aad04db730a51bb96e394b54150b16bcd38abf8172a7a107d492",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_22c100",
+      "instruction_callback_sites": 7,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "22c100",
+        "tu15": "22c100"
+      },
+      "line": 330,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "22c100",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "22c100",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "22c100",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_startup_state_tu15_generated.cpp",
+  "source_bytes": 18027,
+  "source_filename_scope": "generated",
+  "source_sha256": "52d35141129191054cae8c9430f445b78830610b63a24500d072677df4290c0e"
+}

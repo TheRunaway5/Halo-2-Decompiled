@@ -1,0 +1,120 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import select
+import shutil
+import subprocess
+import sys
+import time
+
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+warm = Path(sys.argv[1]).resolve(strict=True)
+native_report = Path(sys.argv[2]).resolve()
+comparison = json.loads(Path(sys.argv[3]).read_text())
+destination = Path(sys.argv[4])
+wait_for = Path(sys.argv[5]) if len(sys.argv) > 5 else None
+case = comparison["cases"]["qualified_v7_cache"]
+ui = Path(comparison["cases"]["prior_cmake_cache"]["map"]).parents[2]
+gameplay = Path(case["map"]).parent
+binary = warm / "build/online_multiteam_launch_tests"
+security_library = warm / "build/online-protocol/Debug/libhalo2_online_security_ffi.so"
+fixture = warm / "native-source/tests/online_multiteam_launch_http_test.py"
+
+def digest(path):
+    with path.open("rb") as file:
+        return hashlib.file_digest(file, "sha256").hexdigest()
+
+deadline = time.monotonic() + 1200
+while wait_for is not None and not wait_for.is_file():
+    if time.monotonic() > deadline:
+        raise TimeoutError("Serial native test did not publish its terminal receipt")
+    time.sleep(3)
+while not native_report.is_file() or native_report.with_name("iteration-6-running.json").exists():
+    if time.monotonic() > deadline:
+        raise TimeoutError("Prior validation failed to publish terminal receipt")
+    time.sleep(3)
+cohort = json.loads(native_report.read_text())
+assert cohort["frozen_inputs_intact"]
+assert cohort["binaries"][binary.name]["sha256"] == digest(binary)
+assert any(pin["path"] == "tests/online_multiteam_launch_http_test.py" and pin["after"] == digest(fixture)
+           for pin in cohort["refreshed"])
+assert case["original_geometry_exact"] and case["original_complete_materials_exact"]
+assert digest(gameplay / "lockout.map") == case["map_sha256"]
+assert comparison["cases"]["prior_cmake_cache"]["online_ui_import_admitted"]
+security_library_sha256 = digest(security_library)
+stage_report = scratch / "native-flow.json"
+runtime_log = scratch / "native-flow.log"
+command = [sys.executable, "-B", str(fixture), str(binary), str(ui)]
+with (scratch / "xvfb.log").open("wb") as xlog:
+    read_fd, write_fd = os.pipe()
+    display = subprocess.Popen(
+        [shutil.which("Xvfb"), "-displayfd", str(write_fd), "-screen", "0", "1280x1024x24", "-nolisten", "tcp"],
+        stdout=xlog, stderr=xlog, pass_fds=(write_fd,))
+    os.close(write_fd)
+    try:
+        ready, _, _ = select.select([read_fd], [], [], 15)
+        if not ready:
+            raise TimeoutError("Xvfb did not allocate a unique display")
+        display_number = os.read(read_fd, 64).decode().strip()
+        if not display_number.isdecimal():
+            raise RuntimeError("Xvfb exited before allocating a display")
+        sys.path.insert(0, str(root / "tools"))
+        from run_tests import validation_environment
+        env, _ = validation_environment(root)
+        env.update(DISPLAY=":" + display_number, HALO2_ONLINE_FLOW_GAMEPLAY_MAPS=str(gameplay),
+                   HALO2_MULTITEAM_REPORT=str(stage_report), H2_NET_PROFILE="unlimited",
+                   H2_SECURITY_LIBRARY=str(security_library))
+        env.pop("HALO2_MULTITEAM_RETIREMENT_ONLY", None)
+        env.pop("HALO2_ONLINE_FLOW_EVIDENCE", None)
+        with runtime_log.open("wb") as log:
+            try:
+                exit_code = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                           timeout=520).returncode
+            except subprocess.TimeoutExpired:
+                exit_code = 124
+                log.write(b"Corrected cache replay exceeded its 520-second budget.\n")
+    finally:
+        os.close(read_fd)
+        display.terminate()
+        display.wait(timeout=10)
+assert cohort["binaries"][binary.name]["sha256"] == digest(binary)
+assert digest(gameplay / "lockout.map") == case["map_sha256"]
+assert digest(security_library) == security_library_sha256
+raw = runtime_log.read_bytes()
+report = dict(
+    schema="H2_MATCHMAKING_LOCKOUT_CORRECTED_CACHE_MULTITEAM_REPLAY_V1",
+    passed=exit_code == 0,
+    command=command,
+    exit_code=exit_code,
+    previous_native_cohort=cohort["source_pin_sha256"],
+    binary_sha256=digest(binary),
+    fixture_sha256=digest(fixture),
+    security_library_sha256=security_library_sha256,
+    network_fixture_profile="unlimited",
+    runtime_log_sha256=digest(runtime_log),
+    runtime_log_bytes=len(raw),
+    ui_cache=str(ui),
+    gameplay_cache=str(gameplay),
+    lockout_sha256=case["map_sha256"],
+    retained_generated_large_artifacts=[],
+)
+if stage_report.is_file():
+    stages = json.loads(stage_report.read_text())
+    keys = ["persistent_counts", "verified_owners", "phase_observations", "limits",
+            "catalog_sha256", "physical_native_owners", "local_players_per_owner", "admitted_players"]
+    report["fixture"] = {key: stages[key] for key in keys if key in stages}
+    report["captured_frame_count"] = len(stages["captures"])
+lines = raw.decode(errors="replace").splitlines()
+report["terminal_observations"] = [
+    line for line in lines if line.startswith("PASS ") or "native twelve-seat rounds:" in line
+    or "native opposing couch retirement:" in line or "Actual native owner" in line
+    or "Traceback" in line or "HTTP failure" in line
+][-40:]
+if exit_code:
+    report["failure_tail"] = "\n".join(lines[-28:])[-8192:]
+destination.write_text(json.dumps(report, indent=2) + "\n")
+print(report.get("failure_tail") or json.dumps(report["terminal_observations"], indent=2), flush=True)
+print("Match replay exit status", exit_code, flush=True)
+sys.exit(exit_code)

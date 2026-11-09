@@ -45,6 +45,8 @@ def custom_ui_prepare_fixture(root, cache, *, progress=print):
 
 
 def empty_custom_map_fixture(root):
+    from custom_asset_contract_test_support import contract_fixture
+    contract_fixture(root, [])
     path = Path(root) / 'resources/custom-maps.json'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(schema='H2_BUNDLED_CUSTOM_MAPS_V1', maps=[])))

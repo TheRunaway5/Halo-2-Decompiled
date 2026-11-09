@@ -1,0 +1,51 @@
+{
+  "schema": "H2_TU15_PLAYLIST_ROW_PRODUCER_PREFLIGHT_V1",
+  "passed": true,
+  "completed_utc": "2026-11-03T02:48:34.836411+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "producer": "0x2bbd00",
+  "header_and_descriptor_gate": "0x198dc0",
+  "bypass_reader": "0x196fe0",
+  "local_slot_value": "0x192b91",
+  "descriptor_floor": "0x196f90",
+  "first_file_open": "0x2dc640",
+  "static_screen_link": {
+    "0x2c5aaf": "b829772300",
+    "0x237731": "837d0403560f95c0576880e902004883e01205db000000",
+    "0x23777a": "c6865ce8020001889e5de80200889e5ee80200",
+    "0x23786e": "8db714060000",
+    "0x237890": "e87f420800",
+    "0x2bbb33": "c70650764600",
+    "0x2bbb95": "c747144bbe2b00",
+    "0x467654": "e1bb2b00",
+    "0x2bbbe5": "e816010000"
+  },
+  "enabled_playlist_screens": [
+    219,
+    237
+  ],
+  "screen_loader_body_executed": false,
+  "all_controls": 1800,
+  "branches": {
+    "off": 360,
+    "empty": 360,
+    "unready": 360,
+    "invalid": 360,
+    "below_floor": 90,
+    "open_floor": 90,
+    "open_bypass": 180
+  },
+  "controls_sha256": "7c63825570894be8b7728c350c9c4491a797ef4c6e81af72f2bbd17b52d5f5d1",
+  "verified_executed_addresses": 518,
+  "verified_instruction_invocations": 4823496,
+  "code_sha256": "4995a5d9fe56391f3777e972942f07dae2b51bac1b5241c27a8c18d6d4367468",
+  "verified_scan_order": true,
+  "stale_datum_pool_cleared": true,
+  "synthetic_catalog_inputs": true,
+  "original_file_supplied": false,
+  "allocation_after_read_executed": false,
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "tool_sha256": "1ede4e580db6eee370a59b744f06e25fd01e7b3a0d6654ed22fb64b4fdee144e",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-playlist-body-oracle-20261102/halo2-test-yx8k_90r"
+}

@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/native_campaign_transition_participants_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/campaign/native_campaign_bsp_player_reset_tu15.cpp)
 if(BUILD_TESTING)
     add_executable(native_campaign_transition_participants_tu15_tests
         tests/native_campaign_transition_participants_tu15_tests.cpp

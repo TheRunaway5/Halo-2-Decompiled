@@ -50,6 +50,7 @@ pub enum Capability {
     HostContinuation,
     AdmittedCamera,
     SourceConfirmed,
+    CompleteHostArchive,
 }
 pub trait Io {
     fn session(&self) -> Session;
@@ -131,6 +132,7 @@ pub fn capability(io: &impl Io, kind: Capability, peer: u32) -> Result<bool> {
         Capability::Replay => 1 | 2 | 4 | 8 | 16 | 32 | 64 | 8192,
         Capability::Pipeline => 128,
         Capability::HostContinuation => 256,
+        Capability::CompleteHostArchive => crate::peer_authority_transfer::COMPLETE_HOST_ARCHIVE,
         Capability::AdmittedCamera => 4096,
         Capability::SourceConfirmed => unreachable!(),
     };
@@ -425,6 +427,7 @@ mod tests {
             (Capability::Replay, 8319),
             (Capability::Pipeline, 128),
             (Capability::HostContinuation, 256),
+            (Capability::CompleteHostArchive, 16384),
             (Capability::AdmittedCamera, 4096),
         ] {
             let io = Fixture::new();

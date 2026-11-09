@@ -102,6 +102,11 @@ public:
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,bool light_parts_owned);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,
       bool light_parts_owned,bool source_gameplay_parts_owned);
+  // Resolve17E460 colors only for a new flags0x18 instance after successful
+  // allocation. Refresh retains the instance's colors and never queries again.
+  std::uint32_t request_with_lighting(const WeaponEffectInput &,std::uint32_t tick,
+      const std::function<SourceEffectColors()> &,
+      Vec3 inherited_velocity={},bool light_parts_owned=false,bool source_gameplay_parts_owned=false);
   // Preserve every native journal request until advance reaches its source
   // tick. Several receipts may arrive before one frame. Supply current poses
   // before advance; allocation, refresh, event/RNG and sound kernels then run
@@ -139,7 +144,10 @@ public:
       const MuzzleEffectView &,std::uint32_t tick,float fraction,float tick_seconds);
   std::size_t particle_count() const;
   std::size_t location_count() const;
+  std::optional<SourceEffectColors> lighting_colors(std::uint32_t instance) const;
 private:
+  std::uint32_t request_owned(const WeaponEffectInput &,std::uint32_t,
+      SourceEffectColors,const std::function<SourceEffectColors()> *,Vec3,bool,bool);
   std::unique_ptr<Impl> impl_;
   std::shared_ptr<const int> owner_=std::make_shared<const int>(0);
 };

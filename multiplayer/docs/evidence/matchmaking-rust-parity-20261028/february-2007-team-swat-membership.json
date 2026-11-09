@@ -1,0 +1,187 @@
+{
+  "schema": "H2_2007_SWAT_DATED_MEMBERSHIP_V1",
+  "february_bungie_forum": {
+    "post_id": 9997598,
+    "author_display_name": "Jeremiah",
+    "author_role_as_displayed": "Bungie Online Team",
+    "post_date_as_displayed": "2/9/2007 10:29 AM",
+    "test_phase_as_published": true,
+    "raw_capture_url": "https://web.archive.org/web/20070212051255id_/http://www.bungie.net:80/Forums/posts.aspx?postID=9997598",
+    "raw_capture_sha256": "9a01d785bf34157639a8eed6f87046dfb0507d8c5a32bcb53cdbc1e2d7e7cf71",
+    "raw_capture_bytes": 133628,
+    "first_post_html_id": "ctl00_mainContent_postRepeater1_ctl01_ctl00_postControl_skin_PostBlock",
+    "first_post_span_bytes": 4772,
+    "first_post_span_sha256": "2e38004a47838f34d3f5eefc32168afed7abe701228f84baa0e496ebc338d4d6"
+  },
+  "weekly_update_mirror": "https://halo.bungie.org/bwu/index.html?item=113",
+  "weekly_update_mirror_sha256": "5ebab8d60f2b8a01c496fc459b12f90cf639a5deb2ea12d5ca647bec1914ed83",
+  "rollout_confirmation": {
+    "source": "https://bnetarchive.haloman30.com/news/Blog7d2b-2.html?dfilter=&mode=tags&page=1&tag=22",
+    "direct_archived_permalink": "https://bnetarchive.haloman30.com/news/content9fcf.html?link=yayyyyswat&type=news",
+    "source_entry": "Halo 2 Playlist Changes Live",
+    "source_entry_date_as_displayed": "2/13/2007 10:49 AM PST",
+    "team_swat_return_confirmed": true,
+    "exact_binary_payload_supplied": false
+  },
+  "announced_rows_in_document_order": [
+    {
+      "variant": "SWAT Carbines",
+      "map_name": "Ascension"
+    },
+    {
+      "variant": "SWAT Carbines",
+      "map_name": "Midship"
+    },
+    {
+      "variant": "SWAT Carbines",
+      "map_name": "Warlock"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Beaver Creek"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Elongation"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Ivory Tower"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Lockout"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Sanctuary"
+    },
+    {
+      "variant": "SWAT Classic",
+      "map_name": "Turf"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Ascension"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Beaver Creek"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Elongation"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Ivory Tower"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Lockout"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Midship"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Sanctuary"
+    },
+    {
+      "variant": "SWAT Magnums",
+      "map_name": "Turf"
+    },
+    {
+      "variant": "SWAT CTF Classic",
+      "map_name": "Elongation"
+    },
+    {
+      "variant": "SWAT CTF Classic",
+      "map_name": "Midship"
+    },
+    {
+      "variant": "SWAT CTF Classic",
+      "map_name": "Warlock"
+    },
+    {
+      "variant": "SWAT Multi-Flag",
+      "map_name": "Beaver Creek"
+    },
+    {
+      "variant": "SWAT Multi-Flag",
+      "map_name": "Sanctuary"
+    }
+  ],
+  "announced_variant_counts": {
+    "SWAT Carbines": 3,
+    "SWAT Classic": 6,
+    "SWAT Magnums": 8,
+    "SWAT CTF Classic": 3,
+    "SWAT Multi-Flag": 2
+  },
+  "announced_map_count": 9,
+  "announced_numeric_weights_supplied": false,
+  "announced_304_byte_variant_settings_supplied": false,
+  "august2007_original_service_observations": {
+    "source": "https://bnetarchive.haloman30.com/Stats/playerstatshalo2a5c3.html?player=Xerosus",
+    "observed_date_as_displayed": "8/30/2007",
+    "played_swat_map_variant_pairs": [
+      [
+        "Desolation",
+        "SWAT Classic"
+      ],
+      [
+        "Midship",
+        "SWAT Carbines"
+      ],
+      [
+        "Sanctuary",
+        "SWAT Magnums"
+      ]
+    ],
+    "played_team_snipers_maps": [
+      "Tombstone",
+      "Relic",
+      "Terminal"
+    ],
+    "observation_scope": "Individual recorded games. Rows establish observed map/variant presence on that date."
+  },
+  "canonical_team_swat_comparison": {
+    "path": "multiplayer/master_server/examples/matchmaking-online.json",
+    "catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "revision": "h2f-final-era-v1",
+    "rows": 6,
+    "map_and_variant": [
+      [
+        "elongation",
+        "Team SWAT"
+      ],
+      [
+        "cyclotron",
+        "Team SWAT"
+      ],
+      [
+        "lockout",
+        "Team SWAT"
+      ],
+      [
+        "turf",
+        "Team SWAT"
+      ],
+      [
+        "highplains",
+        "Team SWAT"
+      ],
+      [
+        "derelict",
+        "Team SWAT"
+      ]
+    ],
+    "contains_february_named_ctf_rows": false
+  },
+  "production_profile_changed": false,
+  "final_2010_payload_recovered": false,
+  "retained_html": false,
+  "retained_generated_large_artifacts": []
+}

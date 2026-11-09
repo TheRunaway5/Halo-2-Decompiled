@@ -1,0 +1,486 @@
+{
+  "schema": "H2_APRIL_2006_KING_WORKBOOK_REPLAY_V1",
+  "passed": true,
+  "scope": "Literal workbook options, original defaults as diagnostic buffers",
+  "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "source_pins": {
+    "multiplayer/docs/reference/halo2-gamevariants-20060428.xls": "a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998",
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/option-parameters.json": "8066146324728a296f3eb40ca75d5635ac6bb3c65a29415a3a3369eeffbf4b18",
+    "rust/online_protocol/src/matchmaking_variant.rs": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b",
+    "tools/oracle_game_variants.py": "2d54af7da610281922ae008977bc2d34a46b94ee3847ae17de393deafb6a497e",
+    "tools/oracle_multiplayer_engines_tu15.py": "7d2d24a5a4b199d4af434a196cc68ebae169b5b7e05a26e01f4eaec3df07147e"
+  },
+  "tool_sha256": "ce64916b4613a00e007843f13c5fbe6cce73192c52c76e96ced4903c48827161",
+  "sheet": "Variants",
+  "reader": "xlrd 2.0.2 static BIFF8",
+  "definitions": [
+    {
+      "variant": "Pit Of Joy",
+      "header": "DF2",
+      "initializer": 3,
+      "original_engine_type": 4,
+      "settings": [
+        {
+          "parameter": 4,
+          "option_cell": "B44",
+          "option_label": "Score to Win Round (King)",
+          "choice_cell": "C50",
+          "choice": "5 Minutes",
+          "cell": "DF50",
+          "value": 300,
+          "diagnostic_alternate": 120,
+          "descriptor": {
+            "address": "0x23d4fd",
+            "kind": 5,
+            "offset": 80,
+            "operand": 1065353216
+          },
+          "changed_byte_xor": {
+            "0x50": 84,
+            "0x51": 1
+          }
+        },
+        {
+          "parameter": 10,
+          "option_cell": "B74",
+          "option_label": "Round Time Limit",
+          "choice_cell": "C85",
+          "choice": "10 Minutes",
+          "cell": "DF85",
+          "value": 600,
+          "diagnostic_alternate": 300,
+          "descriptor": {
+            "address": "0x23d524",
+            "kind": 5,
+            "offset": 84,
+            "operand": 1065353216
+          },
+          "changed_byte_xor": {
+            "0x54": 116,
+            "0x55": 3
+          }
+        },
+        {
+          "parameter": 91,
+          "option_cell": "B145",
+          "option_label": "Team Play",
+          "choice_cell": "C146",
+          "choice": "On",
+          "cell": "DF146",
+          "value": 1,
+          "diagnostic_alternate": 0,
+          "descriptor": {
+            "address": "0x23dd69",
+            "kind": 1,
+            "offset": 72,
+            "operand": 0
+          },
+          "changed_byte_xor": {
+            "0x48": 1
+          }
+        },
+        {
+          "parameter": 38,
+          "option_cell": "B293",
+          "option_label": "Uncontested Hill (King)",
+          "choice_cell": "C295",
+          "choice": "Off",
+          "cell": "DF295",
+          "value": 0,
+          "diagnostic_alternate": 1,
+          "descriptor": {
+            "address": "0x23d816",
+            "kind": 1,
+            "offset": 240,
+            "operand": 0
+          },
+          "changed_byte_xor": {
+            "0xf0": 1
+          }
+        },
+        {
+          "parameter": 40,
+          "option_cell": "B296",
+          "option_label": "Moving Hill (King)",
+          "choice_cell": "C297",
+          "choice": "Off",
+          "cell": "DF297",
+          "value": 0,
+          "diagnostic_alternate": 60,
+          "descriptor": {
+            "address": "0x23daea",
+            "kind": 4,
+            "offset": 244,
+            "operand": 1065353216
+          },
+          "changed_byte_xor": {
+            "0xf4": 60
+          }
+        },
+        {
+          "parameter": 39,
+          "option_cell": "B303",
+          "option_label": "Team Time Multiplier (King)",
+          "choice_cell": "C304",
+          "choice": "On",
+          "cell": "DF304",
+          "value": 1,
+          "diagnostic_alternate": 0,
+          "descriptor": {
+            "address": "0x23da80",
+            "kind": 1,
+            "offset": 240,
+            "operand": 1
+          },
+          "changed_byte_xor": {
+            "0xf0": 2
+          }
+        },
+        {
+          "parameter": 41,
+          "option_cell": "B306",
+          "option_label": "Extra Damage (King)",
+          "choice_cell": "C307",
+          "choice": "Off",
+          "cell": "DF307",
+          "value": 0,
+          "diagnostic_alternate": 1,
+          "descriptor": {
+            "address": "0x23d834",
+            "kind": 1,
+            "offset": 240,
+            "operand": 2
+          },
+          "changed_byte_xor": {
+            "0xf0": 4
+          }
+        },
+        {
+          "parameter": 42,
+          "option_cell": "B309",
+          "option_label": "Damage Resistance (King)",
+          "choice_cell": "C311",
+          "choice": "On",
+          "cell": "DF311",
+          "value": 1,
+          "diagnostic_alternate": 0,
+          "descriptor": {
+            "address": "0x23d87c",
+            "kind": 1,
+            "offset": 240,
+            "operand": 3
+          },
+          "changed_byte_xor": {
+            "0xf0": 8
+          }
+        },
+        {
+          "parameter": 101,
+          "option_cell": "B312",
+          "option_label": "Active Camo On Hill (King)",
+          "choice_cell": "C313",
+          "choice": "Off",
+          "cell": "DF313",
+          "value": 0,
+          "diagnostic_alternate": 1,
+          "descriptor": {
+            "address": "0x23d912",
+            "kind": 1,
+            "offset": 240,
+            "operand": 4
+          },
+          "changed_byte_xor": {
+            "0xf0": 16
+          }
+        }
+      ]
+    },
+    {
+      "variant": "Team Brutality",
+      "header": "R2",
+      "initializer": 0,
+      "original_engine_type": 2,
+      "settings": [
+        {
+          "parameter": 105,
+          "option_cell": "B141",
+          "option_label": "Damage Resistance",
+          "choice_cell": "C143",
+          "choice": "Off",
+          "cell": "R143",
+          "value": 0,
+          "diagnostic_alternate": 1,
+          "descriptor": {
+            "address": "0x23d7d4",
+            "kind": 1,
+            "offset": 72,
+            "operand": 13
+          },
+          "changed_byte_xor": {
+            "0x49": 32
+          }
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "label": "Pit Of Joy/alternates",
+      "values": {
+        "4": 120,
+        "10": 300,
+        "91": 0,
+        "38": 1,
+        "40": 60,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "bdb4dd792e5cf2c752d535dfcb077c55485468a49ecd01ab595ffa5c0f5595ad",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF50",
+      "values": {
+        "4": 300,
+        "10": 300,
+        "91": 0,
+        "38": 1,
+        "40": 60,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "8b3b485ebb246d4b46bad310610f4ead510b1680f523ce5b9500fd43700594ef",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF85",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 0,
+        "38": 1,
+        "40": 60,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "b13e612e2471e55c7df2224bd681a79ac415c86e38c748bf55c56066c3c991ce",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF146",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 1,
+        "40": 60,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "968aaee8ecbb3e28f6b80b15fe73b9ec8c8c1a6738b470c4ccd79abe2a85c1d2",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF295",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 60,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "91348c47a8f4cf453add342245eb7e747de086ceb34c7a6521b4600e844b588c",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF297",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 0,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "e4cc01d2112a672ddb6c948ce9e924873ae3a4d308305eb5f5f35d89dff4a3a3",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF304",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 1,
+        "41": 1,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "e649e003e072e7a30f0497db92dbb591ac835b705f2365900596db0a292547db",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF307",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 1,
+        "41": 0,
+        "42": 0,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "248916935a06b7a54926f5a16a4a0fee0d0e2bf6d69d77bc54428e425953714b",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF311",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 1,
+        "41": 0,
+        "42": 1,
+        "101": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "d77e8f6b6823646c2bee580b1cac002e9aad3d414e78c7b1455bb5040de1dc35",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/DF313",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 1,
+        "41": 0,
+        "42": 1,
+        "101": 0
+      },
+      "original_valid": true,
+      "buffer_sha256": "68776003690d0ad14cde3b5a5119921d840ea158107eb25743c9be769cc1041c",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/reverse-order",
+      "values": {
+        "4": 300,
+        "10": 600,
+        "91": 1,
+        "38": 0,
+        "40": 0,
+        "39": 1,
+        "41": 0,
+        "42": 1,
+        "101": 0
+      },
+      "original_valid": true,
+      "buffer_sha256": "68776003690d0ad14cde3b5a5119921d840ea158107eb25743c9be769cc1041c",
+      "rust_valid": true
+    },
+    {
+      "label": "Pit Of Joy/invalid-f4--1",
+      "values": {},
+      "original_valid": false,
+      "buffer_sha256": "73efcad95dc3dbf43df5d5bd931842db04d0f53806017151bf85bd506fca7b37",
+      "rust_valid": false
+    },
+    {
+      "label": "Pit Of Joy/invalid-f4--32768",
+      "values": {},
+      "original_valid": false,
+      "buffer_sha256": "78e11a91200e827dbeeafbf22fa583e7585ff6bcb408f2b0d163ddd9c75215c1",
+      "rust_valid": false
+    },
+    {
+      "label": "Pit Of Joy/invalid-50-32768",
+      "values": {},
+      "original_valid": false,
+      "buffer_sha256": "3d95943db9160af3d01307293faad9f0ffc94eb8e64c6f48549ce32de5a048ab",
+      "rust_valid": false
+    },
+    {
+      "label": "Pit Of Joy/invalid-54--1",
+      "values": {},
+      "original_valid": false,
+      "buffer_sha256": "b83ee4348662bcf0d16179a5fd48105274afd60b10272b4f3bbf0fba538464b0",
+      "rust_valid": false
+    },
+    {
+      "label": "Team Brutality/alternates",
+      "values": {
+        "105": 1
+      },
+      "original_valid": true,
+      "buffer_sha256": "01cf9644a40437fa4c1f6beeb117db6e9e3170f4cf15d4dedfb3041b59049026",
+      "rust_valid": true
+    },
+    {
+      "label": "Team Brutality/R143",
+      "values": {
+        "105": 0
+      },
+      "original_valid": true,
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "rust_valid": true
+    },
+    {
+      "label": "Team Brutality/reverse-order",
+      "values": {
+        "105": 0
+      },
+      "original_valid": true,
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "rust_valid": true
+    }
+  ],
+  "all_executed_instruction_bytes_verified": true,
+  "unique_instruction_addresses": 658,
+  "executed_instruction_invocations": 17094,
+  "instruction_pin": "716a541f8e86f2319dd2823cbfb0775cff35a01f2dd28d2720bbface485519f5",
+  "descriptor_table": "0x47cf40",
+  "original_validator": "0x1a7140",
+  "original_entries": {
+    "init": "0x1a6d40",
+    "getter": "0x23dee0",
+    "setter": "0x23ddae"
+  },
+  "historic_serialized_variant_recovered": false,
+  "weights_recovered": false,
+  "production_catalog_changed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-pit-of-joy-oracle-20261103/halo2-test-lnyvp_tr",
+  "retained_generated_large_artifacts": []
+}

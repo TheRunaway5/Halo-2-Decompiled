@@ -43,6 +43,12 @@ std::int32_t linear_pitch(const SourceBitmapPendingHeaderMetadata &metadata) {
 }
 } // namespace
 
+std::uint16_t source_bitmap_format_bits(std::uint32_t format) {
+    if(format>=format_bits.size())
+        throw std::invalid_argument("source bitmap format table needs format0..23");
+    return std::uint16_t(format_bits[format]);
+}
+
 std::array<std::uint32_t,5> source_bitmap_pending_header(
     const SourceBitmapPendingHeaderMetadata &metadata,std::uint32_t partition,
     std::uint32_t source_level_address) {

@@ -1,0 +1,109 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/NativeTu15BinkMemoryStartup.cmake",
+      "line": 1,
+      "target": "halo2_bink_memory_startup_tu15"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_bink_memory_startup_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "3b480f2c7f0fb3ead04be75b4ce83bc95fb8d54874663bea653db9b908ec68c1",
+      "selected_resolver_sha256": "85b4e883445efca5d55177476d1316aab29cb9e6ed4bbd1bff3063626ccd61e9"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "3b480f2c7f0fb3ead04be75b4ce83bc95fb8d54874663bea653db9b908ec68c1",
+      "selected_resolver_sha256": "85b4e883445efca5d55177476d1316aab29cb9e6ed4bbd1bff3063626ccd61e9"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_bink_memory_startup_tu15"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "a014f97631f9cdb0fe6a37d566913aa515f017e645accb09365a9f07ffc61ed7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "3ec900"
+      ],
+      "function_name": "run_1589d0",
+      "instruction_callback_sites": 12,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1589d0",
+        "tu15": "1589d0"
+      },
+      "line": 332,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1589d0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1589d0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1589d0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "9c3559ada13bdcfa527cd6d2277b4b0fc695418315dfd42d3c9867856215efda",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_377460",
+      "instruction_callback_sites": 5,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "377460",
+        "tu15": "377460"
+      },
+      "line": 347,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "377460",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "377460",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "377460",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "f7031f4e795b4f66e518047990aa1c71c3011de869aba4af11df87c300ab6586",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "377460"
+      ],
+      "function_name": "run_3ec900",
+      "instruction_callback_sites": 1,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "3ec900",
+        "tu15": "3ec900"
+      },
+      "line": 356,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "3ec900",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "3ec900",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "3ec900",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/media/source_bink_memory_startup_tu15_generated.cpp",
+  "source_bytes": 19901,
+  "source_filename_scope": "generated",
+  "source_sha256": "848758049af52f25b49fff001171e0cd12ca5e09a53ed9b9af27a781bb8561b0"
+}

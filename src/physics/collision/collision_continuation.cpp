@@ -5,7 +5,7 @@
 namespace halo2 {
 CollisionWorld::AuthorityCheckpoint CollisionWorld::authority_checkpoint()const {
     AuthorityCheckpoint saved;saved.triangles.assign(triangles().begin(),triangles().end());
-    saved.order=acceleration_->order;saved.nodes=acceleration_->nodes;return saved;
+    const auto &tree=acceleration();saved.order=tree.order;saved.nodes=tree.nodes;return saved;
 }
 std::shared_ptr<const CollisionWorld> CollisionWorld::restore_authority(const AuthorityCheckpoint &saved) {
     const auto count=saved.triangles.size();

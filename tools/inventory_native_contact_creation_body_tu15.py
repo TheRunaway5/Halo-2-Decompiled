@@ -7,8 +7,8 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import complete_body
 OWNERS=(0x281890,0x186c30,0x184d30,0x184d80,0x31f460,0x282fd0,0x1d7fc0,0x1e10f0,0x316510)
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False);H=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert H(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);c=_Code(image,'.text');rows=[]
- for owner in OWNERS:
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);p.add_argument('--owners',nargs='+',type=lambda s:int(s,0));a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False);H=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert H(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);c=_Code(image,'.text');rows=[]
+ for owner in a.owners or OWNERS:
   b=complete_body(c,owner);lines=[];calls=[]
   for pc in sorted(b.code):
    i=c.at(pc);lines.append(f'{pc:x} {i.bytes.hex()} {i.mnemonic} {i.op_str}\n')

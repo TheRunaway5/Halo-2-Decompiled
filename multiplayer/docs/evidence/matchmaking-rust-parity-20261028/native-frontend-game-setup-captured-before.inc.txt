@@ -1,0 +1,74 @@
+void MenuState::accept(const Frame &f) {
+  if (f.screen == 23) {
+    const auto lobby = lobby_view();
+    if (!lobby) return;
+    const auto rows = frontend_lobby_setup_rows(lobby->input.session_enum);
+    if (f.selected >= rows.size()) return;
+    const auto row = rows[f.selected];
+    if(mode_==3) {
+      if(!account_.party || !account_.party->leader){unavailable("Only the party leader can change Game Setup.");return;}
+      if(row.semantic==9) {
+        //250FB3 ->2BBACB builds23; enum6 row9 ->2BBF06(true) opens
+        // the original237 playlist listing on lobby channel3.
+        stack_.pop_back();open(237);return;
+      }
+      if(row.semantic==6 || row.semantic==7) {
+        // Original switches retain the ONLINE protocol. Switching mode_ to
+        // native local co-op/custom here would falsely discard that owner.
+        unavailable(row.semantic==6?"ONLINE cooperative sessions are not available from this service.":
+            "ONLINE custom-game hosting is not available from this service.");return;
+      }
+    }
+    if (row.action == FrontendLobbySetupAction::AlternateSession) {
+      unavailable("This network session mode is not implemented by the native runtime.");
+      return;
+    }
+    // Setup and its children occupy original channel3/window4. This channel
+    // replaces its current screen; closing a child reveals retained lobby14.
+    const auto previous_setup = row.destination == 206
+        ? std::make_shared<const MenuFrame>(f) : nullptr;
+    stack_.pop_back();
+    if (row.action == FrontendLobbySetupAction::SwitchCoop) {
+      lobby_protocol_ = lobby->protocol;
+      mode_ = 4;
+      // Original199A03(0)->1910D9 clamps an absent campaign save to map105.
+      // Native profiles currently have no campaign progress bank.
+      for (unsigned i = 0; i < campaign_files.size(); ++i)
+        for (const auto &map : content_.campaign_maps)
+          if (map.map_id == 105 && map.scenario_path.ends_with(campaign_files[i])) level_ = i;
+      stack_.back() = build(14, 0);
+      ++revision;
+    } else if (row.action == FrontendLobbySetupAction::SwitchCustom) {
+      mode_ = lobby->protocol == 1 ? 2 : 1;
+      stack_.back() = build(14, 0);
+      ++revision;
+    } else {
+      if (row.semantic == 1) category_ = 0;
+      open(unsigned(row.destination), row.destination == 11 || row.destination == 12 ? 1 : 0);
+      // 234F8C sums outgoing23 and incoming206's equal 250ms tracks.
+      // The shared channel's backdrop stays at full strength on replacement.
+      stack_.back().retained_lobby_backdrop = row.destination == 206;
+      stack_.back().previous_lobby_setup = previous_setup;
+    }
+    return;
+  }
+}
+void MenuState::auxiliary() {
+  if (frame().screen == 23) {
+    if(mode_==3) {
+      if(!account_.party || !account_.party->privacy){unavailable("This ONLINE service does not support party privacy settings.");return;}
+      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
+      if(account_.busy){unavailable("Wait for the current ONLINE operation to finish.");return;}
+      // TU1.5 2C5A6B only suppresses X for session enums0/1; enum6
+      // replaces channel3's Setup with source25. Privacy changes preserve
+      // the actual party countdown and every member's hopper consent.
+      stack_.pop_back();open(25);return;
+    }
+    const auto lobby = lobby_view();
+    if (lobby && lobby->input.session_enum != 0 && lobby->input.session_enum != 1) {
+      // Original2BBED0 X/param2 opens privacy on non-local-only sessions.
+      stack_.pop_back();
+      open(25);
+    }
+  }
+}

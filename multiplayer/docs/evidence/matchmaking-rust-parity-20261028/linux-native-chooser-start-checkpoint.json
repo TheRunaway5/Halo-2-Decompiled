@@ -1,0 +1,78 @@
+{
+  "schema": "H2_LINUX_NATIVE_CHOOSER_START_CHECKPOINT_V1",
+  "observed_utc": "2026-11-03T03:06:20.030147+00:00",
+  "iteration": 3,
+  "frozen_source_pin_sha256": "1968902ce61d44828c5d1712042c286047a2b805fd1df2e725c4d0d7c4977275",
+  "ctest_log_prefix_sha256": "948bdbad0977b8480eb58c0e5c41941cd5b70416ebc62e42f286b83aa246e0bd",
+  "tests": {
+    "rust_frontend_lobby_blocked": {
+      "passed": true,
+      "duration_seconds": 121.35,
+      "native_pass_lines": []
+    },
+    "rust_frontend_lobby_complete": {
+      "passed": true,
+      "duration_seconds": 118.36,
+      "native_pass_lines": []
+    },
+    "rust_frontend_lobby_rendered": {
+      "passed": true,
+      "duration_seconds": 185.36,
+      "native_pass_lines": []
+    },
+    "frontend_online_lobby_buttons": {
+      "passed": true,
+      "duration_seconds": 9.82,
+      "native_pass_lines": [
+        "PASS actual authenticated source Game Setup -> playlist -> retained lobby Start -> authoritative shared countdown -> queue -> cancel",
+        "PASS bounded native account reads: {\"countdown\": 28, \"social\": 46, \"elapsed\": 8.86}",
+        "PASS authenticated native source Game Setup and shared-clock Start"
+      ]
+    },
+    "frontend_online_lobby_buttons_gpu": {
+      "passed": true,
+      "duration_seconds": 63.96,
+      "native_pass_lines": [
+        "PASS actual SDL/Vulkan source Setup23 -> privacy25 actual/same-mode acknowledged setters -> mouse Choose Playlist/listing237/Start -> retained lobby X/restart/3/2/1 -> search -> B/cancel -> retained lobby",
+        "PASS bounded native account reads: {\"countdown\": 74, \"social\": 38, \"elapsed\": 62.84}",
+        "PASS authenticated native source Game Setup and shared-clock Start"
+      ]
+    },
+    "frontend_matchmaking_http": {
+      "passed": true,
+      "duration_seconds": 65.89,
+      "native_pass_lines": [
+        "PASS real room failure -> original AB -> fresh pregame retry; actual cache-admission rejection -> original AC -> fresh pregame retry/cancel",
+        "PASS left/abandoned ONLINE match -> original pregame lobby14 pane2 with retained party, playlist and profile",
+        "PASS native Quickmatch/Optimatch/playlists when configured, ONLINE discovery/details/refresh/scroll/expiry/failure/recovery, private Discord identity, chosen name, unobstructed panels, cancellation, sign-out and offline access using selected MCC-only assets and native MCC font prompts",
+        "PASS real native menus, Discord playlists, Quickmatch, casual roster, measured relay, authenticated gameplay launch, cancel/rejoin/sign-out and MCC-only imported UI inputs"
+      ]
+    },
+    "frontend_signin_cpp_rust": {
+      "passed": true,
+      "duration_seconds": 19.86,
+      "native_pass_lines": []
+    },
+    "frontend_postgame_cpp_rust": {
+      "passed": true,
+      "duration_seconds": 2.41,
+      "native_pass_lines": []
+    }
+  },
+  "native_binary_pins": {
+    "frontend_online_tests": "417fa993bdd362b272a126d37e247db5740f61a4fff0c173cf8a210608407644",
+    "frontend_online_lobby_buttons_tests": "bc63e6f40333ab05ba71d458df6afde3836a21b4254666ec0efb0a48685cbd3f",
+    "native_frontend_postgame_rust_tests": "ec2cbfa07fb6c57089ad8c2c7c86cadce37eb44bc508692dd80c6c9eaccf6c86"
+  },
+  "observed_failed_launch_tests": [
+    "online_match_launch",
+    "online_match_party_launch",
+    "online_multiteam_native_flow"
+  ],
+  "full_native_suite_final": false,
+  "predates_current_search_and_postgame_confirmations": true,
+  "isolated_service": true,
+  "installed_client_verified": false,
+  "production_activated": false,
+  "retained_generated_large_artifacts": []
+}

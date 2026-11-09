@@ -1,0 +1,96 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15SoundPioResources.cmake",
+      "line": 7,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundPioResources.cmake",
+      "line": 10,
+      "target": "native_tu15_sound_pio_native_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundPioResources.cmake",
+      "line": 20,
+      "target": "native_tu15_sound_pio_resources_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "2d5ae4faa73d1c8a3bf277845fa8faeadfa05fd240f52ccd9fb38dae3e8f21c5",
+      "selected_resolver_sha256": "0a3f03652bcf7fc5110c278e520124a9a787e2415c8ec8a7040ea983925c2390"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "2d5ae4faa73d1c8a3bf277845fa8faeadfa05fd240f52ccd9fb38dae3e8f21c5",
+      "selected_resolver_sha256": "0a3f03652bcf7fc5110c278e520124a9a787e2415c8ec8a7040ea983925c2390"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "a3830a3b841fcb21d466e59d663dd16b50ebc7ad5c343b894cd588f315ff5c6d",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_38e0ce",
+      "instruction_callback_sites": 57,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "38e0ce",
+        "tu15": "38e0ce"
+      },
+      "line": 358,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "38e0ce",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "38e0ce",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "38e0ce",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "bf0ede83363fc333f2a929b3ab66bd95fa417861a205c59d0729df5cd9e6df24",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_38e159",
+      "instruction_callback_sites": 24,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "38e159",
+        "tu15": "38e159"
+      },
+      "line": 419,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "38e159",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "38e159",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "38e159",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_pio_storage_tu15_generated.cpp",
+  "source_bytes": 29549,
+  "source_filename_scope": "generated",
+  "source_sha256": "7734ee453b42ea24785cd0d956eb03cd6cd7d1601db8e2fcb0afdde3d922f969"
+}

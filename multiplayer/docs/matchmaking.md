@@ -363,9 +363,15 @@ declared reconstruction, not a differential comparison with live original servic
 ## Native menus and configuration
 
 - Quickmatch uses the last selected playlist in this menu session, otherwise the
-  catalog's explicit `quickmatch` default. It never silently chooses an arbitrary
-  playlist. Optimatch loads Playlists; selecting a playlist shows details and
-  **Find Match**. The ONLINE lobby's Start action opens that same catalog.
+  catalog's explicit `quickmatch` default. Optimatch opens the playlist chooser.
+  From the ONLINE pregame lobby, use **Game Setup → Choose Matchmaking
+  Playlist**. Selecting an eligible playlist returns to the lobby and records
+  consent for that playlist. Selecting a blocked playlist shows a reason and
+  keeps the chooser available.
+- The party leader presses **Start Game** after all members have selected the
+  same eligible playlist. The service publishes the shared lobby countdown.
+  Search starts when the countdown finishes. A service that lacks the shared
+  countdown produces an error in the lobby.
 - The client presents joining, searching, players found and connection/admission
   status in original screen210's waiting pane. Back cancels the ticket; leaving
   matchmaking, sign-out, identity expiration and frontend teardown revoke the
@@ -420,11 +426,13 @@ Optional `clan_match: "minor-retail-launch-2004"` or
 visibility and the recovered XP configuration. Public gathering queues use
 recovered retail raw-rank candidate windows; the optional later personal-rank
 and legacy stage policies are not silently substituted into that selector.
-The new complete-option catalog requires `halo2-native-queue-v15`, the current
-EOS account-mode source default. The service retains older compatibility routes
-for separate catalogs; an older client cannot enter these new hoppers. Native
-game datagrams use protocol119 to preserve full options between peers. All
-party members and match tickets must use the same compatibility version.
+The canonical complete-option catalog requires `halo2-native-queue-v16`.
+The current native client advertises v16 with EOS transport enabled and v12
+with direct transport. A client advertising v12 or v15 cannot enter the
+canonical catalog. The service retains older compatibility routes for separate
+catalogs. Native game datagrams and queue compatibility have separate versions;
+the current source datagram version is 124. All party members and match tickets
+must use a compatible version for the same queue.
 `candidate_selection: "retail-candidates-native-relay-v1"` requires v8 from
 all party members and an explicit `gathering` configuration. Use
 `{"retail_hopper":0..6}` only with that launch hopper's exact min/max dimensions,

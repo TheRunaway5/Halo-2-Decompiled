@@ -144,6 +144,15 @@ class CombatCode:
 
 def combat_instructions(*,get,put,addr,**unused):
     def emit(i):
+        if i.address==0xd5610:
+            assert i.mnemonic=='sub' and bytes(i.bytes).hex()=='83ec7c'
+            return ('const auto d5610_bitmap=s.gp[0];'
+                    's.set(4,s.flags.minus(s.reg(4,4,0),selected(0x7cu,s.image),4),4,0);')
+        if i.address==0xd563b:
+            assert i.mnemonic=='mov' and bytes(i.bytes).hex()=='8b7048'
+            dest, operand=i.operands
+            return put(i,dest,('NativeD5610BitmapRowBindingTu15::read(s.memory,'
+                               f'd5610_bitmap,s.gp[0],{get(i,operand)},s.gp[4])'))
         if i.address==0xd1fbf:
             assert i.mnemonic=='call' and i.operands[0].imm==0xd13d0
             # Observe the actual contact at this full ABI boundary, then run
@@ -196,6 +205,9 @@ def main():
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,
         additional_entries=Path(__file__)),paired,extra_instruction_factory=combat_instructions,code_override=code)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_combat_action_tu15.py')
+    # extra_preamble lives inside the generated namespace; this header owns
+    # its own halo2 namespace and must be included at translation-unit scope.
+    source='#include "halo2/native_d5610_bitmap_row_tu15.hpp"\n'+source
     source=source.replace('halo2/physics_live_support_tu15.hpp','halo2/source_combat_action_tu15.hpp')
     source=source.replace('source_run_physics_live_support_tu15','source_run_combat_action_tu15')
     source=source.replace('source_physics_live_support_tu15_owns_entry','source_combat_action_tu15_owns_entry')

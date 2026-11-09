@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Statically lower the complete owned TU1.5 phantom force and velocity-delivery graph."""
 import argparse,csv,json,struct
+from native_lift_handoff_template_tu15 import apply_native_lift_handoffs
 from pathlib import Path
 from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
@@ -185,6 +186,7 @@ void source_run_physics_phantom_force_tu15_runtime(M &m,std::uint32_t entry,
  assert text.count(target)==1
  text=text.replace(target,replacement).replace('#include "halo2/physics_phantom_force_tu15.hpp"',
   '#include "halo2/physics_phantom_force_tu15.hpp"\n#include "halo2/physics_velocity_observation.hpp"')
+ text=apply_native_lift_handoffs(text)
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(text)
  manifest=dict(schema=1,parity_target='English TU1.5 only',generator_sha256=sha(__file__),research_sha256=sha(a.research),
   original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),native_entries={f'{p:08x}':q for p,q in entries.items()},

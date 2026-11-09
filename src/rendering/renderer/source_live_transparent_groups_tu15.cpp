@@ -1,4 +1,5 @@
 #include "halo2/source_live_transparent_groups_tu15.hpp"
+#include "halo2/native_tu15_command_walk.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <cstring>
 #include <cmath>
@@ -23,7 +24,7 @@ std::vector<std::array<std::uint32_t,6>> ordered_group_layer(PhysicsLiveWorldTu1
     caller.gp[0]=output;caller.gp[3]=layer;caller.gp[5]=0;caller.gp[7]=0x4ce268u;caller.gp[4]=callee;
     put(callee,returned);const std::array args{0x4ce268u,0u,layer,output};
     for(unsigned n=0;n<args.size();++n)put(callee+4u+n*4u,args[n]);
-    world.run_actual(0x3baa0u,caller);
+    world.run_command_selection_tu15(caller);
     const auto count=caller.gp[0];
     if(caller.gp[4]!=stack-0xf008u||count>2560u||count>end-first)
         throw FormatError("TU1.5 group sort escaped its source frame/command range");
@@ -89,7 +90,7 @@ std::vector<SourceLiveTransparentGroupTu15> source_live_transparent_groups_tu15(
         put(0x4ce278u,before[2]);put(0x4ce270u,0);put(0x4ce274u,before[1]);
         const std::array arguments{0u,g.flags|0xffffffcfu,g.section,0xffffffffu,0u,0xffffffffu,0u,1u};
         auto caller=world.prepare_source_call(arguments);const auto stack=caller.gp[4];
-        world.run_actual(0x44c80u,caller);
+        source_native_transparent_collection_tu15(world,caller);
         if(caller.gp[4]!=stack+36u || word(0x4ce268u)!=before[0] || word(0x4ce27cu)!=before[5] ||
            word(0x4ce274u)!=before[1] || word(0x4ce278u)!=before[2])
             throw FormatError("TU1.5 group collection changed its actual caller/bank identity");

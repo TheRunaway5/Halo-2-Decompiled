@@ -1119,6 +1119,27 @@ not rerun here. The
 records private catalog/build/source removal and preservation of the required
 original reference. No new large artifact or selected-runtime promotion is added.
 
+## Native playing Audio through sealed factory phases, 2026-11-02
+
+The current owned producer authenticates 31 banks across 908 bindings in 38
+map contexts. The twelve-player Lockout route transfers the complete paired
+checkpoint under the negotiated archive profile. Both sealed playing Audio
+phases pass with 26 local catalog cues each. The fixture drives actual manual
+SDL queues from an independent native timing World using the exact resident
+Cache, then checks position, parameters, fresh receipts and bit-exact PCM
+and selection replay through the genuine target binding. [Playing Audio report](../build/test-results/vehicle-destruction-native-archive-fields-20261102/owned-original-playing-audio-native-onset/evidence/original-common-cut-playing-audio.json)
+
+The initial fixture used a foreground replica as its native audio source and
+faulted. The corrected source World exposed a separate Banshee windup test
+window that ended inside its decoded silent lead-in. The PCM probe measures
+122,131 leading silent frames and nonzero output in the extended window. The
+fixture now renders through that onset at the saved rate and compares the
+entire replay window. [PCM probe](../build/test-results/vehicle-destruction-native-archive-fields-20261102/original-playing-suffix-probe-fixed/evidence/original-playing-suffix-probe.json)
+
+Live destruction cue scheduling, source voice allocation, aggregate World
+and Audio adoption, physical device output, Xbox waveform and both wet feedback
+profiles remain open.
+
 ## Native cache datum dependencies, 2026-11-02
 
 The [core allocation qualification](../build/test-results/vehicle-destruction-native-cache-datum-20261102/qualification.json)
@@ -1197,3 +1218,34 @@ The prior factory archive-budget refusal is not rerun or bypassed. The
 [closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
 records private source/build/bank removal and preservation of the required
 original reference, with no new large artifact or selected-runtime promotion.
+
+
+## Cold playback through original binding callers, 2026-11-02
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-request-20261102/qualification.json)
+moves the cold-cache test from direct allocation to native `128970` binding
+readiness, including real `1293F0` lock acquisition and `129470` release. Actual
+cache locks, ready publication, repeated readiness without extra reads/locks,
+authenticated physical bytes and downstream PCM/lifecycle accounting are checked
+for all 273 distinct permutations and 1,147 scenarios. The 908 contexts, 9,450
+routes, 31 names, 375 chunks, 1,657 reads and 53,057,536 sector bytes are unchanged.
+
+A reproduced private-frame mismatch is fixed in the complete native binding/
+request callers. All 3,402 unchanged-XBE cases pass, including 28 faults and
+1,078 exact I/O/wait boundary stops with no supplied platform result. Seven
+request sites after those returns remain unexercised by the reference oracle.
+The old implementation plus seven other compiled negative controls are rejected.
+All thirteen restored suites pass; the earlier two 180-second timeouts and the
+declared private 600-second loaded-host repeat budget remain in the evidence.
+The prior loaded payload report and constructor/service/format hashes are
+unchanged, including the separate C1 oracle and 295 raw Unicorn C1 differences.
+
+Raw binding/pool/driver/reservation inputs and native synchronous I/O/manual SDL
+policy still bound this result. Actual World/cache/voice/device admission,
+production handoff, original timing/selection/gain/pitch/spatial behavior, local/
+split/LAN delivery, both four-bin profiles and Xbox waveform/wet feedback remain
+open. No complete destruction gate is closed. The interrupted preceding World
+census executed no case and did not resolve the archive budget. The
+[closure receipt](../build/test-results/vehicle-destruction-native-cache-request-20261102/owner-closure.json)
+records removal of private source/build/banks and preservation of the required
+original reference. No new large artifact or selected-runtime promotion is added.

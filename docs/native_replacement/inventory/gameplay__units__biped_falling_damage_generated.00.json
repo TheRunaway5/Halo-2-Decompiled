@@ -1,0 +1,193 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/BipedFallingDamage.cmake",
+      "line": 2,
+      "target": "halo2_biped_falling_damage"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_biped_falling_damage::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "76ac772b54cd7774dd1f5923cb269c9d66387ae90a619c6f6f001f6be25f6b3e",
+      "selected_resolver_sha256": "61ca577a965602cc4d69d44ba681f80f98d41b2410bb885fcff45d57134aa153"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "76ac772b54cd7774dd1f5923cb269c9d66387ae90a619c6f6f001f6be25f6b3e",
+      "selected_resolver_sha256": "61ca577a965602cc4d69d44ba681f80f98d41b2410bb885fcff45d57134aa153"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_biped_falling_damage"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 6,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "save"
+      ],
+      "body_sha256": "d41dc38641d9c0abacdb274793d39f48efaf1b2e7b4838c9f233e3f769ba041b",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_bacc0",
+      "instruction_callback_sites": 76,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "bacc0",
+        "tu15": "bbe00"
+      },
+      "line": 42,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_weapon_effect_dispatch_tu15_run"
+      ],
+      "observed_entry": "bacc0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "bacc0",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "WorldState",
+      "symbol": "bacc0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "6991f2022cc8b703f3c355bcacba7d4f14e5ec1af2dd3e7abe010ddd3ee1b079",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_d7c60",
+      "instruction_callback_sites": 28,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "d7c60",
+        "tu15": "d8bb0"
+      },
+      "line": 140,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "d7c60",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "d7c60",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "d7c60",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "50d06264ab2fbb607bc719ae01171edcf5b1444136c21677488718eec9946168",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_d7cd0",
+      "instruction_callback_sites": 52,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "d7cd0",
+        "tu15": "d8c20"
+      },
+      "line": 171,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "d7cd0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "d7cd0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "d7cd0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "8e7ac2b37208d047c084f5fc1626ab45fd07c80e86f91e389c8e119c1a81551d",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "10df90",
+        "d7c60",
+        "d7cd0"
+      ],
+      "function_name": "run_e4d30",
+      "instruction_callback_sites": 149,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "e4d30",
+        "tu15": "e5c50"
+      },
+      "line": 227,
+      "literal_dispatch_required_targets": [
+        "b1870",
+        "ba570",
+        "bc200",
+        "da0d0",
+        "dfe30",
+        "158690"
+      ],
+      "observed_entry": "e4d30",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "e4d30",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "e4d30",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "2c44ac7afa6c43ed19885b9606ffc8b38422c8a2200e4c945a3398d6416feb44",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "e4d30"
+      ],
+      "function_name": "run_e5700",
+      "instruction_callback_sites": 133,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "e5700",
+        "tu15": "e6620"
+      },
+      "line": 380,
+      "literal_dispatch_required_targets": [
+        "30bd0",
+        "e5e60",
+        "111fd0"
+      ],
+      "observed_entry": "e5700",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "e5700",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "e5700",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "4b9c436b8cec2b0b09c067fdbcffeb4926c31348d2dd6106fa9502765fa4bf39",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "bacc0"
+      ],
+      "function_name": "run_10df90",
+      "instruction_callback_sites": 120,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "10df90",
+        "tu15": "10eeb0"
+      },
+      "line": 517,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "10df90",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "10df90",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "10df90",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/units/biped_falling_damage_generated.cpp",
+  "source_bytes": 69470,
+  "source_filename_scope": "generated",
+  "source_sha256": "76471074183d72db0c0b8f294032fb23b91d8448532407ae1e56474bf7dd6d64"
+}

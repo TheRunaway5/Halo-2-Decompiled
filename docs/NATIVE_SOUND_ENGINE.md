@@ -672,3 +672,51 @@ The prior factory archive-budget rejection is not rerun or bypassed. The
 [closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
 records removal of private source/build/banks and preservation of the required
 original reference. No new large artifact or selected-runtime promotion is added.
+
+
+## Full binding/request frames and authenticated cold playback, 2026-11-02
+
+Native `128970`, `1293F0` and `21F260` now materialize the original saved-register
+frames, caller argument bytes and nested call/return slots. The old semantic
+helpers retained some of those values only in C++ locals: a freshly compiled
+baseline fails original case 1536 at `128970` on mapped private-frame bytes.
+The new implementation passes 3,402 unchanged-XBE comparisons, including 2,296
+returns, 28 matching faults and 1,078 required-boundary stops. There are 24,300
+semantic stores, 62,598 original stack writes, 578 actual original `21F420`
+calls and 1,701 DF-set cases. All final mapped bytes, semantic store preimages,
+return GPRs, reached callee frames and preserved caller FP/SIMD/FS/DF are checked.
+Private-stack writes are real but unpublished to the native semantic observer;
+this is final-frame comparison, not ordered native private-stack event proof.
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-request-20261102/qualification.json)
+pins an independent identical original fixture. Binding static coverage is
+43/43 and 34/34; request coverage is 85/92. The seven unexercised sites follow
+I/O/wait returns. Original execution stops at 566 actual `1A3B70` I/O boundaries
+and 512 `2DBF74` wait boundaries without supplying results. Original resumed
+I/O/scheduler return ABI and arithmetic EFLAGS remain unqualified. Actual native
+synchronous I/O continuation is checked separately against authenticated bytes.
+
+The cold-cache lane now starts at actual binding readiness rather than direct
+allocation. It requires exactly one source cache lock after readiness, no extra
+read/lock on repeated readiness and actual `129470` release, before decoding
+physical cache bytes and executing native format/construction/stock queue/SDL
+lifecycle. All 273 permutations and 1,147 scenarios pass with unchanged PCM and
+accounting, 1,657 real reads and 53,057,536 authenticated sector bytes. The
+loaded-cache payload report remains identical. All thirteen restored suites
+pass, and the old implementation plus seven other private compiled negative
+controls are rejected. Constructor/service/format input and trace hashes remain
+unchanged; the independently supplied C1 profile and 295 raw Unicorn differences
+are retained. The first full run's two 180-second timeouts remain recorded; the
+complete repeat uses a private 600-second limit for the three reference suites
+under measured host contention. Cases and production timeouts are unchanged.
+
+Raw binding/pool/driver/physical-reservation inputs, manual SDL producer timing
+and native synchronous I/O still limit admission. Source World/cache/voice/
+device admission, production handoff, event schedule/selection/gain/pitch/
+spatial behavior, local/split/LAN sound delivery, both combined four-bin profiles
+and Xbox waveform/wet feedback remain open. All 37 complete-definition gates
+and D01-D13 remain open. The preceding full-World census was interrupted before
+any case ran; its report is corrected and the archive-budget refusal is not
+bypassed. The [closure receipt](../build/test-results/vehicle-destruction-native-cache-request-20261102/owner-closure.json)
+records private build/source/bank removal and preservation of the required
+original reference. No new large artifact or selected-runtime promotion is added.

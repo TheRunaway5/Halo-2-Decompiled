@@ -1,0 +1,130 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "_mm_castsi128_ps",
+        "_mm_cvtsi32_si128",
+        "_mm_getcsr",
+        "_mm_sub_ss",
+        "call",
+        "emplace",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "marker_matrix_locations",
+        "pop",
+        "push",
+        "read",
+        "right",
+        "scalar",
+        "signed_word",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::uint16_t",
+        "std::uint32_t",
+        "std::uint64_t",
+        "store",
+        "vector"
+      ],
+      "body_sha256": "50ad98bf80b037fd34b3ece67188772857d3e4eaccf8be4d7a5f879984627d9f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_matrix_locations",
+      "instruction_callback_sites": 102,
+      "line": 3,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "bad60",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "bad60",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_matrix_locations",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "call",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "marker_parent_unit",
+        "pop",
+        "push",
+        "read",
+        "shift_left",
+        "store"
+      ],
+      "body_sha256": "45017299ec0141aef9c752416f59969b435967a21c5d8274f0f477e6cb90fb1c",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_parent_unit",
+      "instruction_callback_sites": 43,
+      "line": 120,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "bacd0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "bacd0",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_parent_unit",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "instruction",
+        "iterator_logic_flags",
+        "marker_parent_mode",
+        "pop",
+        "read"
+      ],
+      "body_sha256": "e9ca702eba386bd27186d9925a1b01781203b2cc5e2b0ad7a6757a5c22f5a9f4",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_parent_mode",
+      "instruction_callback_sites": 15,
+      "line": 176,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "fc510",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "fc510",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_parent_mode",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_marker_matrix_tu15_internal.hpp",
+  "source_bytes": 12116,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1628,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "379b355c62b4078004c73e229ba72c51a2c26318576c159144d63398204fcd05"
+}

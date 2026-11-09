@@ -14,6 +14,8 @@ from audit_rendering import FormatError
 
 
 def custom_map_fixture(root, *, populated=False):
+    from custom_asset_contract_test_support import contract_fixture
+    contract_fixture(root, ['fixture'] if populated else [])
     root = Path(root)
     manifest = dict(schema=assets.SCHEMA, maps=[])
     if populated:

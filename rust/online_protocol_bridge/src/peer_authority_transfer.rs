@@ -148,6 +148,13 @@ pub fn peer_authority_transfer_preparing(
 ) -> Result<bool, String> {
     protect(|| s.0.note_native_preparation(context(c), cut(seal)?, p, now))
 }
+pub fn peer_authority_transfer_begin_preparation(
+    s: &PeerAuthorityTransfer,
+    c: &ffi::SourceAdmissionsContext,
+    seal: &ffi::MigrationPreparationCut,
+) -> Result<bool, String> {
+    protect(|| s.0.begin_delivered_preparation(context(c), cut(seal)?))
+}
 pub fn peer_authority_transfer_poll(
     s: &PeerAuthorityTransfer,
     now: u64,

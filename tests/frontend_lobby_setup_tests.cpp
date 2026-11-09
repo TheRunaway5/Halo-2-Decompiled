@@ -67,8 +67,41 @@ void original(const char *path) {
         "co-op setup routes differ from original alternate loaders");
   std::cout << constructors + labels + focus + subtitles + details + quick << " original lobby setup cases matched\n";
 }
+void online_setup() {
+  const auto choose = frontend_lobby_setup_accept(6, 0, true, true);
+  check(choose.row && choose.row->action == FrontendLobbySetupAction::OpenPlaylist &&
+            choose.row->destination == 237 && choose.error.empty(),
+        "leader's Choose Playlist did not dispatch to the retained ONLINE chooser");
+  const auto denied = frontend_lobby_setup_accept(6, 0, true, false);
+  check(!denied.row && denied.error == "Only the party leader can change Game Setup.",
+        "follower could replace the ONLINE chooser or lost its error");
+  const auto coop = frontend_lobby_setup_accept(6, 1, true, true);
+  const auto custom = frontend_lobby_setup_accept(6, 2, true, true);
+  check(!coop.row && coop.error == "ONLINE cooperative sessions are not available from this service." &&
+            !custom.row && custom.error == "ONLINE custom-game hosting is not available from this service.",
+        "unavailable ONLINE setup changed a session locally");
+  const auto stale = frontend_lobby_setup_accept(6, 3, true, false);
+  check(!stale.row && stale.error.empty(), "stale setup focus should be ignored before role checks");
+  const auto unbound = frontend_lobby_setup_accept(6, 0, false, true);
+  check(!unbound.row && !unbound.error.empty(), "non-ONLINE Setup could open the ONLINE picker");
+
+  const auto privacy = frontend_lobby_setup_privacy(true, std::nullopt, true, true, false);
+  const auto unsupported = frontend_lobby_setup_privacy(true, std::nullopt, false, false, true);
+  const auto follower = frontend_lobby_setup_privacy(true, std::nullopt, true, false, true);
+  const auto busy = frontend_lobby_setup_privacy(true, std::nullopt, true, true, true);
+  check(privacy.open && privacy.error.empty() && !unsupported.open && !follower.open && !busy.open &&
+            unsupported.error == "This ONLINE service does not support party privacy settings." &&
+            follower.error == "Only the party leader can change party privacy." &&
+            busy.error == "Wait for the current ONLINE operation to finish.",
+        "ONLINE privacy support, role and busy precedence changed");
+  check(!frontend_lobby_setup_privacy(false, std::nullopt, false, false, true).open &&
+            !frontend_lobby_setup_privacy(false, 0, false, false, true).open &&
+            !frontend_lobby_setup_privacy(false, 1, false, false, true).open &&
+            frontend_lobby_setup_privacy(false, 2, false, false, true).open,
+        "original offline privacy gating changed");
+}
 } // namespace
 int main(int argc, char **argv) {
-  try { if (argc != 2) throw std::runtime_error("original setup fixture argument required"); original(argv[1]); return 0; }
+  try { if (argc != 2) throw std::runtime_error("original setup fixture argument required"); original(argv[1]); online_setup(); return 0; }
   catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }
 }

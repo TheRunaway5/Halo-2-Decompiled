@@ -1,0 +1,32 @@
+import hashlib,json,os,re,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-couch-flow-rust-20261102';info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source']);scratch=Path(os.environ['HALO2_TEST_SCRATCH']);generated=build/'online-protocol/Debug/include';assert (generated/'halo2-online-protocol-bridge/src/lib.rs.h').is_file()
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+report=dict(passed=False,scratch=str(scratch),source=str(source),build=str(build),steps=[],objects=[],retained_large_artifacts=[],whole_native_runtime_checks_pending=True)
+def save():(work/'production-objects.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,argv):
+ p=subprocess.run(argv,cwd=source,capture_output=True,text=True);(work/(name+'.log')).write_text((p.stdout+p.stderr)[-1048576:]);report['steps'].append(dict(name=name,command=argv,exit_code=p.returncode));save();print(json.dumps(dict(step=name,exit_code=p.returncode,diagnostic_tail=(p.stdout+p.stderr)[-1200:])),flush=True);assert p.returncode==0
+try:
+ units=['src/ui/frontend_couch.cpp','src/ui/frontend_matchmaking_couch.cpp','src/ui/frontend_matchmaking_party_flow_bridge.cpp','src/ui/frontend_state.cpp','src/ui/frontend_matchmaking_search.cpp'];objects=[]
+ for n in units:
+  p=source/n;assert sha(p)==sha(root/n);obj=scratch/(p.stem+'.o');rows=[u for u in json.loads((build/'compile_commands.json').read_text())if u['file']==str(p)];assert len(rows)==1;cmd=shlex.split(rows[0]['command']);cmd[cmd.index('-o')+1]=str(obj);run(p.stem+'-object',cmd);objects.append(obj);report['objects'].append(dict(path=n,source_sha256=sha(p),object_sha256=sha(obj),object_bytes=obj.stat().st_size,command=cmd));save()
+ def symbols(path):
+  p=subprocess.run(['nm','-C',str(path)],capture_output=True,text=True);assert p.returncode==0;return p.stdout.splitlines()
+ thin,adapter,flow,state,search=map(symbols,objects)
+ def count(lines,kind,token):return sum(' '+kind+' 'in row and token in row for row in lines)
+ for name in ['couch_flow_drive(','couch_identity(','couch_players(']:assert count(adapter,'T','halo2::MenuState::'+name)==1,name
+ assert count(adapter,'U','halo2::FrontendMatchmakingPartyFlow::couch(')==1
+ for name in ['couch_flow_drive(','couch_players(']:assert count(thin,'U','halo2::MenuState::'+name)==1,name
+ for name in ['couch_flow_drive(','couch_identity(','couch_back(','couch_profile_entry(']:assert count(state,'U','halo2::MenuState::'+name)==1,name
+ assert count(search,'U','halo2::FrontendMatchmakingPartyFlow::couch_revision(')==1
+ thin_entries=['set_local_discord_login_factory','online_couch_screen','online_couch_mutable','open_online_local_player','populate_online_couch','online_couch_text','accept_online_couch','update_online_couch','clear_online_couch','online_local_players','couch_back','couch_profile_entry'];state_entries=['controller_slot','finish_local_signin','leave_local_controller','online_identity']
+ for lines,names in[(thin,thin_entries),(state,state_entries)]:
+  for name in names:
+   pattern=r' T halo2::MenuState::'+name+r'(?:\[abi:[^\]]+\])?\(';assert sum(bool(re.search(pattern,row))for row in lines)==1,name
+ imports=['frontend_couch_flow','frontend_couch_state','frontend_couch_changed','frontend_couch_selected_controller','frontend_couch_guest_entry','frontend_couch_screen']
+ for name in imports:assert count(flow,'U','halo2::online_protocol_bridge::'+name+'(')==1,name
+ for p in[source/'include/halo2/frontend.hpp',*(source/'src/ui').glob('*.cpp')]:assert not re.search(r'\b(?:local_discord_subjects_|online_local_options_|joining_online_|joining_controller_|host_profile_|couch_revision_)\b',p.read_text()),str(p)
+ archive=build/'libhalo2_frontend_party_flow.a';lines=symbols(archive)
+ for name in imports:assert count(lines,'U','halo2::online_protocol_bridge::'+name+'(')==1,name
+ report.update(passed=True,all_five_actual_production_cpp_units_compile=True,compiled_thin_entry_points=len(thin_entries),compiled_controller_and_identity_entry_points=len(state_entries),both_back_branch_positions_checked_by_reference_generator=True,search_reads_actual_rust_couch_revision=True,actual_cmake_abi_archive_imports_rust=True,cmake_abi_archive=dict(path=str(archive.relative_to(build)),sha256=sha(archive),bytes=archive.stat().st_size),former_six_native_state_fields_removed=True,installed_runtime_qualified=False)
+finally:save()

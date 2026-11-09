@@ -58,6 +58,10 @@ def observer_source():
  return base+text
 def main():
  global PRODUCTION_BINDING,OVERLAP_INPUTS
+ direction_header=ROOT/'include/halo2/native_tu15_simplex_direction_kernel.hpp';direction_pin=hashlib.sha256(direction_header.read_bytes()).hexdigest()
+ candidate_header=ROOT/'include/halo2/native_tu15_simplex_candidate_kernel.hpp';candidate_pin=hashlib.sha256(candidate_header.read_bytes()).hexdigest()
+ finalize_header=ROOT/'include/halo2/native_tu15_simplex_finalize_kernel.hpp';finalize_pin=hashlib.sha256(finalize_header.read_bytes()).hexdigest()
+ feature_headers={ROOT/'include/halo2'/name:hashlib.sha256((ROOT/'include/halo2'/name).read_bytes()).hexdigest()for name in ('native_tu15_polygon_features_kernel.hpp','native_tu15_polygon_features_value.hpp','native_tu15_polygon_support_kernel.hpp','native_tu15_polygon_support_value.hpp')}
  original_argv=list(sys.argv);PRODUCTION_BINDING='--production-binding'in sys.argv
  if PRODUCTION_BINDING:sys.argv.remove('--production-binding')
  OVERLAP_INPUTS='--overlap-inputs'in sys.argv
@@ -65,18 +69,24 @@ def main():
  original_run=subprocess.run;compiled={};mutants=[];kernel=ROOT/'src/physics/native_tu15_convex_simplex_solver.cpp'
  mutations={
   'wrong_candidate':('subtract(opposite,first)','add(opposite,first)'),
-  'wrong_normal_coefficient':('0x3f000000u','0x3f800000u'),
   'early_second_owner':('const auto current_second=m.word(input.work+4u),current_first=m.word(input.work);\n        const auto second_owner=m.word(second_table+0x34u);','const auto second_owner=m.word(second_table+0x34u);\n        const auto current_second=m.word(input.work+4u),current_first=m.word(input.work);'),
  }
+ header_mutations={'wrong_normal_coefficient':(finalize_header,'0x3f000000u','0x3f800000u')}
  if OVERLAP_INPUTS:mutations['wrong_overlap_result']=('result=3u;','result=2u;')
  def checked_run(command,*args,**kwargs):
   r=original_run(command,*args,**kwargs)
   if isinstance(command,list)and str(kernel)in command and r.returncode==0:compiled[command[command.index('-o')+1]]=list(command)
   if isinstance(command,list)and command and command[0]in compiled and r.returncode==0:
    build=compiled[command[0]];compiler=build[0];scratch=Path(command[0]).parent;output=Path(command[4]).parent
-   for name,(old,new)in mutations.items():
-    source=kernel.read_text();assert source.count(old)==1;(scratch/f'{name}.cpp').write_text(source.replace(old,new));target=scratch/(name+'-'+compiler)
-    mutant=[str(scratch/f'{name}.cpp')if c==str(kernel)else str(target)if c==command[0]else c for c in build];mutant.insert(1,'-I'+str(ROOT/'src/physics'))
+   for name,(source_path,old,new)in {**{name:(kernel,*pair)for name,pair in mutations.items()},**header_mutations}.items():
+    source=source_path.read_text();assert source.count(old)==1;target=scratch/(name+'-'+compiler)
+    if source_path==kernel:
+     changed_source=scratch/f'{name}.cpp';changed_source.write_text(source.replace(old,new))
+     mutant=[str(changed_source)if c==str(kernel)else str(target)if c==command[0]else c for c in build]
+    else:
+     directory=scratch/(name+'-include');(directory/'halo2').mkdir(parents=True,exist_ok=True);(directory/'halo2'/source_path.name).write_text(source.replace(old,new))
+     mutant=[str(target)if c==command[0]else c for c in build];mutant.insert(1,'-I'+str(directory))
+    mutant.insert(1,'-I'+str(ROOT/'src/physics'))
     b=original_run(mutant,capture_output=True,text=True);(output/f'{compiler}-{name}-build.log').write_text(b.stdout+b.stderr);assert b.returncode==0,b.stderr[-4000:]
     result=output/f'{compiler}-{name}.json';run=original_run([str(target),*command[1:4],str(result)],capture_output=True,text=True);(output/f'{compiler}-{name}.log').write_text(run.stdout+run.stderr);assert run.returncode!=0 and result.exists()and not json.loads(result.read_text())['passed'],name+' survived'
     mutants.append(dict(compiler=compiler,mutant=name,rejected=True,result=str(result),result_sha256=hashlib.sha256(result.read_bytes()).hexdigest()))
@@ -106,6 +116,15 @@ def main():
  if PRODUCTION_BINDING:
   for f in ['include/halo2/native_tu15_convex_simplex_solver_binding.hpp','include/halo2/native_tu15_convex_contact_query.hpp','include/halo2/native_tu15_contact_features.hpp']:r['source_hashes'][f]=hashlib.sha256((ROOT/f).read_bytes()).hexdigest()
  r['declared_overlap_input_profiles']=OVERLAP_INPUTS
+ assert hashlib.sha256(direction_header.read_bytes()).hexdigest()==direction_pin,'Shared simplex direction changed during proof'
+ r['source_hashes'][str(direction_header.relative_to(ROOT))]=direction_pin
+ assert hashlib.sha256(candidate_header.read_bytes()).hexdigest()==candidate_pin,'Shared simplex candidate changed during proof'
+ r['source_hashes'][str(candidate_header.relative_to(ROOT))]=candidate_pin
+ assert hashlib.sha256(finalize_header.read_bytes()).hexdigest()==finalize_pin,'Shared simplex finalization changed during proof'
+ r['source_hashes'][str(finalize_header.relative_to(ROOT))]=finalize_pin
+ for header,pin in feature_headers.items():
+  assert hashlib.sha256(header.read_bytes()).hexdigest()==pin,'Shared polygon feature/support changed during proof'
+  r['source_hashes'][str(header.relative_to(ROOT))]=pin
  if OVERLAP_INPUTS:
   r['profiles_per_compiler']=len(json.loads((p.parent/'g++-actual.json').read_text())['profiles'])
   r['other_profiles']='Four rounding controls for each of the source-derived flag0 and separately declared ordinary overlap flag1 inputs; no live overlap invocation claimed'

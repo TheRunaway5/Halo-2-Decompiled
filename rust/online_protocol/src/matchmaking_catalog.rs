@@ -32,6 +32,25 @@ pub fn supports(actual: &str, required: &str) -> bool {
         || (required == OPTIONS[0] && actual == OPTIONS[1])
         || (required == "halo2-native-queue-v10" && EXCLUSIVE.contains(&actual))
 }
+pub(crate) fn named_modern_extension(variant: &str) -> bool {
+    matches!(variant, "Fiesta Slayer" | "Infection Slayer")
+}
+
+pub(crate) fn requires_variant_settings(compatibility: &str, variant: &str) -> bool {
+    OPTIONS.contains(&compatibility) && !named_modern_extension(variant)
+}
+
+pub(crate) fn admits_client(entry: &Value, compatibility: &str) -> bool {
+    // Reject an incompatible playlist as a whole so its ordered draw is intact.
+    entry["required_compatibility"]
+        .as_str()
+        .is_none_or(|required| supports(compatibility, required))
+        && array(&entry["policy"], "games").iter().all(|game| {
+            !game["settings"].is_null()
+                || !requires_variant_settings(compatibility, s(game, "variant"))
+        })
+}
+
 pub fn same_continuity(versions: &[&str]) -> bool {
     EXCLUSIVE
         .iter()
@@ -239,11 +258,9 @@ impl Catalog {
                 "Complete hopper options require an updated native client",
             )?;
             m::check(
-                !required.is_some_and(|r| OPTIONS.contains(&r))
-                    || games.iter().all(|g| {
-                        !g["settings"].is_null()
-                            || matches!(s(g, "variant"), "Fiesta Slayer" | "Infection Slayer")
-                    }),
+                required
+                    .filter(|r| OPTIONS.contains(r))
+                    .is_none_or(|r| admits_client(e, r)),
                 "A complete hopper cannot infer original options from a variant name",
             )?;
             let conf = optional_text(&e["rank_configuration"], 64)?;
@@ -417,16 +434,18 @@ pub fn eligible(entry: &Value, compatibility: &str, connections: &Value) -> Resu
         active.push(connection.clone());
     }
     let required = entry["required_compatibility"].as_str();
-    if required.is_some_and(|r| !supports(compatibility, r))
+    if !admits_client(entry, compatibility)
         || (!p["candidate_selection"].is_null() && !GATHERING.contains(&compatibility))
         || !same_continuity(&versions)
     {
         return Ok(false);
     }
-    if required.is_some_and(|r| {
-        connections
-            .iter()
-            .any(|c| c.is_null() || !supports(s(c, "compatibility"), r))
+    if connections.iter().any(|c| {
+        if c.is_null() {
+            required.is_some()
+        } else {
+            !admits_client(entry, s(c, "compatibility"))
+        }
     }) {
         return Ok(false);
     }

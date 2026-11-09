@@ -1,0 +1,157 @@
+"""Replay the original TU1.5 row builder up to the first hopper file IO."""
+
+from collections import Counter
+from datetime import datetime, timezone
+from hashlib import sha256
+from itertools import product
+import json
+import os
+from pathlib import Path
+import struct
+import sys
+
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import (
+    UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDI, UC_X86_REG_EFLAGS,
+    UC_X86_REG_EIP, UC_X86_REG_ESP,
+)
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+
+
+FILL, VALID, BYPASS, CURRENT, FLOOR, READ, OPEN = (
+    0x2BBD00, 0x198DC0, 0x196FE0, 0x192B91, 0x196F90, 0x196D70, 0x2DC640,
+)
+WIDGET, POOL, BANK, BITMAP = 0x1100000, 0x1140000, 0x1141000, 0x1142000
+META, COUNT, FLAGS = 0x560988, 0x48A0C8, 0x48A0C4
+SLOTS, OVERRIDE = 0x55D974, 0x51D2C8
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+# The native playlist loader chooses screen 219 or 237 and enables the same
+# list owner in both. Its list vtable binds the initializer and chooser callback.
+screen_link = {
+    0x2C5AAF: "b829772300",  # mode-zero loader address
+    0x237731: "837d0403560f95c0576880e902004883e01205db000000",
+    0x23777A: "c6865ce8020001889e5de80200889e5ee80200",  # three list-mode bytes
+    0x23786E: "8db714060000",  # embedded list offset
+    0x237890: "e87f420800",  # list constructor call
+    0x2BBB33: "c70650764600",  # list vtable
+    0x2BBB95: "c747144bbe2b00",  # chooser callback
+    0x467654: "e1bb2b00",  # list initializer slot
+    0x2BBBE5: "e816010000",  # fill call
+}
+for address, encoded in screen_link.items():
+    expected = bytes.fromhex(encoded)
+    assert source.image.read(address, len(expected)) == expected, hex(address)
+memory = source.g
+memory.mem_map(WIDGET, 0x50000)
+memory.mem_map(0x1FF0000, 0x10000)
+
+
+def put(address, *values):
+    memory.mem_write(address, struct.pack("<" + "I" * len(values), *(v & 0xFFFFFFFF for v in values)))
+
+
+def u(address):
+    return struct.unpack("<I", memory.mem_read(address, 4))[0]
+
+
+def observe(g, at, size, _):
+    raw = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == raw, hex(at)
+    if at == OPEN:
+        assert u(g.reg_read(UC_X86_REG_ESP)) == 0x139512
+        g.emu_stop()
+        return
+    seen[at] = raw
+    visits[at] += 1
+    if at == VALID:
+        searched.append(g.reg_read(UC_X86_REG_ECX))
+    elif at == CURRENT:
+        assert g.reg_read(UC_X86_REG_EAX) == controller
+    elif at == READ:
+        sp = g.reg_read(UC_X86_REG_ESP)
+        assert (u(sp), u(sp + 4), u(sp + 8)) == (0x2BBDAB, slot, STACK - 4 - 0x19CBC)
+
+
+def guard_write(g, kind, at, size, value, _):
+    allowed = (
+        (STACK - 0x1A000, STACK + 16), (POOL + 0x34, POOL + 0x44),
+        (BANK, BANK + 16 * 8), (BITMAP, BITMAP + 4),
+    ) + tuple((address, address + 4) for address in indices)
+    assert any(begin <= at and at + size <= end for begin, end in allowed), (hex(at), size)
+
+
+memory.hook_add(UC_HOOK_CODE, observe)
+memory.hook_add(UC_HOOK_MEM_WRITE, guard_write)
+put(WIDGET + 0x70, POOL)
+put(POOL + 0x20, 16, 8)
+put(POOL + 0x44, BANK, BITMAP)
+indices = [WIDGET + 0x88C + 0x2D9C * slot for slot in range(16)]
+seen, visits, cases = {}, Counter(), Counter()
+controls = sha256()
+
+for mask, slot, gate, bypass, current, floor, override in product(
+        (1, 2, 4, 8, 15), (0, 15), ("off", "empty", "unready", "invalid", "valid"),
+        (0, 0xFF), (-1, 3, 4), (3, 4, 5), (0, 1)):
+    controller = (mask & -mask).bit_length() - 1
+    memory.mem_write(WIDGET + 8, struct.pack("<H", mask))
+    memory.mem_write(WIDGET + 0x2E248, bytes([gate != "off", 0, 0]))
+    memory.mem_write(COUNT, struct.pack("<H", 0 if gate == "empty" else 1))
+    memory.mem_write(FLAGS, bytes([0 if gate == "unready" else 2]))
+    memory.mem_write(META, bytes(16 * 0x614))
+    row = META + slot * 0x614
+    put(row, 0 if gate == "invalid" else 1, 0, 1)
+    memory.mem_write(row + 0x51C, bytes(range(0x80)))
+    put(row + 0x5E4, floor)
+    memory.mem_write(row + 0x5E8, bytes([bypass]))
+    put(row + 0x5EC, 1, 16)
+    memory.mem_write(OVERRIDE, bytes([override]))
+    for index in range(4):
+        put(SLOTS + index * 0xC74, current if index == controller else 0x12345678)
+    put(POOL, 0x1111)
+    put(POOL + 0x34, 5, 7, 11)
+    memory.mem_write(BANK, b"\x55" * (16 * 8))
+    put(BITMAP, 0xFFFF)
+    for address in indices:
+        put(address, 0x43434343)
+    put(STACK, STOP)
+    memory.reg_write(UC_X86_REG_ESP, STACK)
+    memory.reg_write(UC_X86_REG_EDI, WIDGET)
+    memory.reg_write(UC_X86_REG_EFLAGS, 0x202)
+    searched = []
+    prior = [visits[address] for address in (BYPASS, CURRENT, FLOOR, READ)]
+    memory.emu_start(FILL, STOP, count=12000)
+    approved = gate == "valid" and (bypass != 0 or (4 if override else current) >= floor)
+    uses_floor = gate == "valid" and bypass == 0
+    assert memory.reg_read(UC_X86_REG_EIP) == (OPEN if approved else STOP)
+    assert searched == list(range(0 if gate == "off" else slot + 1 if approved else 16))
+    expected = (gate == "valid", uses_floor, uses_floor, approved)
+    assert [visits[address] - prior[i] for i, address in enumerate((BYPASS, CURRENT, FLOOR, READ))] == list(expected)
+    assert all(u(address) == 0xFFFFFFFF for address in indices)
+    assert [u(POOL + offset) for offset in (0x34, 0x38, 0x3C)] == [0, 0, 0]
+    assert all(memory.mem_read(BANK + i * 8, 2) == b"\0\0" for i in range(16)) and u(BITMAP) == 0
+    outcome = ("open_bypass" if bypass else "open_floor") if approved else (gate if gate != "valid" else "below_floor")
+    cases[outcome] += 1
+    controls.update(json.dumps([mask, slot, gate, bypass, current, floor, override, searched, outcome]).encode() + b"\n")
+
+proof = dict(
+    schema="H2_TU15_PLAYLIST_ROW_PRODUCER_PREFLIGHT_V1", passed=True,
+    completed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+    producer=hex(FILL), header_and_descriptor_gate=hex(VALID), bypass_reader=hex(BYPASS),
+    local_slot_value=hex(CURRENT), descriptor_floor=hex(FLOOR), first_file_open=hex(OPEN),
+    static_screen_link={hex(address): encoded for address, encoded in screen_link.items()},
+    enabled_playlist_screens=[219, 237], screen_loader_body_executed=False,
+    all_controls=sum(cases.values()), branches=dict(cases), controls_sha256=controls.hexdigest(),
+    verified_executed_addresses=len(seen), verified_instruction_invocations=sum(visits.values()),
+    code_sha256=sha256(b"".join(struct.pack("<IH", a, len(raw)) + raw for a, raw in sorted(seen.items()))).hexdigest(),
+    verified_scan_order=True, stale_datum_pool_cleared=True, synthetic_catalog_inputs=True,
+    original_file_supplied=False, allocation_after_read_executed=False, patched_instructions=[], replaced_callees=[],
+    tool_sha256=sha256(Path(__file__).read_bytes()).hexdigest(), scratch=str(scratch),
+)
+out = root / "build/test-results/frontend-postgame-leave-rust-20261102/tu15-playlist-row-preflight.json"
+out.write_text(json.dumps(proof, indent=2) + "\n")
+print(json.dumps(dict(passed=True, controls=sum(cases.values()), branches=cases, instructions=len(seen))))

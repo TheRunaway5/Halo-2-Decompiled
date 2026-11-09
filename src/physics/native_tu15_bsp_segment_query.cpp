@@ -1,4 +1,6 @@
 #include "halo2/native_tu15_bsp_segment_query.hpp"
+#include "halo2/native_tu15_bsp_segment_kernel.hpp"
+#include "halo2/native_tu15_bsp_segment_setup_kernel.hpp"
 #include "halo2/native_tu15_bsp_surface_query.hpp"
 #include <bit>
 #include <cstring>
@@ -42,52 +44,10 @@ bool traverse(SourcePhysicsContactMemory&memory,Memory&m,Environment&environment
     std::uint32_t context,std::uint32_t node,std::uint32_t minimum,std::uint32_t maximum,
     NativeTu15PhysicsFrameFp&fp,unsigned depth,const SourcePhysicsContactRecordObserver&observe,
     NativeTu15BspSegmentQueryStats*stats){
-    const auto zero=F{};
-    while(!(node&0x800000u)){
-        if(stats)++stats->nodes;
-        const auto descriptor=m.word(context+4u),nodes=m.word(descriptor+4u),record=nodes+(node&0x7fffffu)*8u;
-        const auto plane_index=sign16(m.word(record,2)),planes=m.word(descriptor+12u),origin=m.word(context+16u),plane=planes+plane_index*16u;
-        auto distance=scalar(m.word(origin+8u));auto y=scalar(m.word(origin+4u));
-        y=mul(y,scalar(m.word(plane+4u)));distance=mul(distance,scalar(m.word(plane+8u)));distance=add(distance,y);
-        auto x=scalar(m.word(plane));x=mul(x,scalar(m.word(origin)));
-        const auto displacement=m.word(context+20u);auto dy=scalar(m.word(displacement+4u));dy=mul(dy,scalar(m.word(plane+4u)));distance=add(distance,x);
-        auto slope=scalar(m.word(displacement+8u));slope=mul(slope,scalar(m.word(plane+8u)));distance=sub(distance,scalar(m.word(plane+12u)));slope=add(slope,dy);
-        auto dx=scalar(m.word(displacement));dx=mul(dx,scalar(m.word(plane)));slope=add(slope,dx);
-        auto at_max=mul(slope,scalar(maximum));auto at_min=mul(slope,scalar(minimum));at_min=add(at_min,distance);at_max=add(at_max,distance);
-        const bool min_side=!compare(at_min,zero).below,max_side=!compare(at_max,zero).below;
-        if(min_side==max_side){node=std::uint32_t(std::int32_t(m.word(record+1u+unsigned(min_side)*3u))>>8);continue;}
-        const bool slope_positive=compare(slope,zero).above();const auto cross=crossing(bits(distance),bits(slope));
-        const auto near_node=std::uint32_t(std::int32_t(m.word(record+1u+unsigned(!slope_positive)*3u))>>8);
-        if(traverse(memory,m,environment,context,near_node,minimum,cross,fp,depth,observe,stats))return true;
-        const auto output=m.word(context+24u);if(!compare(scalar(cross),scalar(m.word(output))).below)return false;
-        const auto current_plane=sign16(m.word(record,2));m.word(0x1e6ab0u,context+36u,current_plane);
-        node=std::uint32_t(std::int32_t(m.word(record+1u+unsigned(slope_positive)*3u))>>8);minimum=cross;
-    }
-    if(stats)++stats->leaves;
-    std::uint32_t leaf=0xffffffffu;std::uint8_t kind=3;
-    if(node!=0xffffffffu){const auto descriptor=m.word(context+4u),leaves=m.word(descriptor+20u);leaf=node&0x7fffffu;kind=std::uint8_t((m.word(leaves+leaf*4u,1)&1u)+1u);}
-    const auto flags=m.word(context);const auto first=flags&1u;std::uint32_t candidate=0xffffffffu;bool check_surface{},verify{};
-    if(first){const auto previous=m.word(context+32u,1);if((previous==1u||previous==2u)&&kind==3u){candidate=m.word(context+28u);check_surface=true;}}
-    if(!check_surface&&(flags&2u)){if(m.word(context+32u,1)==3u&&(kind==1u||kind==2u)){candidate=leaf;check_surface=true;}}
-    if(!check_surface&&!(flags&4u)&&m.word(context+32u,1)==2u&&kind==2u){candidate=first?m.word(context+28u):leaf;verify=true;check_surface=true;}
-    if(check_surface&&candidate!=0xffffffffu){
-        const auto descriptor=m.word(context+4u),displacement=m.word(context+20u),origin=m.word(context+16u),plane_index=m.word(context+36u),bitmap=m.word(context+12u);const auto limit=std::uint16_t(m.word(context+8u,2));
-        if(stats)++stats->surface_queries;
-        const auto surface=environment.dependency([&]{return native_tu15_query_bsp_leaf_surface(memory,{descriptor,candidate,origin,displacement,limit,bitmap,plane_index,minimum,verify},fp,depth);});
-        if(surface!=0xffffffffu){const auto surfaces=m.word(descriptor+44u);const auto surface_flags=m.word(surfaces+surface*8u+4u,1),row=surfaces+surface*8u;
-            if(!((surface_flags&2u)&&(flags&8u))&&!((surface_flags&8u)&&(flags&16u))){
-                auto output=m.word(context+24u);m.word(0x1e6c05u,output,minimum);
-                const auto current_descriptor=m.word(context+4u),planes=m.word(current_descriptor+12u),plane=m.word(context+36u);output=m.word(context+24u);m.word(0x1e6c1au,output+4u,planes+plane*16u);
-                output=m.word(context+24u);m.word(0x1e6c24u,output+8u,candidate);output=m.word(context+24u);m.word(0x1e6c2au,output+12u,surface);
-                const auto material=sign16(m.word(row,2));output=m.word(context+24u);m.word(0x1e6c33u,output+16u,material);
-                output=m.word(context+24u);const auto flags_byte=m.word(row+4u,1);m.word(0x1e6c3cu,output+20u,flags_byte,1);
-                output=m.word(context+24u);const auto brush=m.word(row+5u,1);m.word(0x1e6c46u,output+21u,brush,1);
-                output=m.word(context+24u);const auto partition=m.word(row+6u,2);m.word(0x1e6c52u,output+22u,partition,2);if(stats)++stats->hits;return true;
-            }
-        }
-    }
-    if(leaf!=0xffffffffu){const auto output=m.word(context+24u),count=m.word(output+24u);if(std::int32_t(count)<0x100){m.word(0x1e6c7au,output+28u+count*4u,leaf);const auto current_output=m.word(context+24u),current_count=m.word(current_output+24u);m.word(0x1e6c81u,current_output+24u,current_count+1u);m.word(0x1e6c85u,context+28u,leaf);m.word(0x1e6c89u,context+32u,kind,1);return false;}m.word(0x1e6c96u,output+0x418u,leaf);}
-    m.word(0x1e6c9du,context+28u,leaf);m.word(0x1e6ca1u,context+32u,kind,1);return false;
+    auto surface=[&](const native_bsp_segment_detail::Progress&data){
+        return environment.dependency([&]{return native_tu15_query_bsp_leaf_surface(memory,{data.descriptor,data.candidate,data.origin,data.displacement,std::uint16_t(data.bitmap_limit),data.bitmap,data.plane_index,data.minimum,(data.verify&255u)!=0},fp,depth);});
+    };
+    return native_bsp_segment_detail::traverse_values(m,context,node,minimum,maximum,surface,stats);
 }
 #endif
 }
@@ -101,11 +61,39 @@ bool native_tu15_traverse_bsp_segment(SourcePhysicsContactMemory&memory,std::uin
 bool native_tu15_query_bsp_segment(SourcePhysicsContactMemory&memory,const NativeTu15BspSegmentQuery&q,std::uint32_t context,NativeTu15PhysicsFrameFp&fp,unsigned depth,const SourcePhysicsContactRecordObserver&observe,NativeTu15BspSegmentQueryStats*stats){
     if(stats)++stats->calls;
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    Environment environment(fp,depth);Memory m(memory,observe);const auto epsilon=scalar(q.epsilon_bits),zero=F{};const auto negative=compare(zero,epsilon).above();
-    m.word(0x1e68e9u,context,q.flags);m.word(0x1e68f1u,context+4u,q.descriptor);m.word(0x1e68f9u,context+8u,q.bitmap_limit,2);m.word(0x1e6902u,context+12u,q.bitmap);m.word(0x1e690au,context+16u,q.origin);m.word(0x1e690eu,context+20u,q.displacement);m.word(0x1e6912u,context+24u,q.output);
-    m.word(0x1e6920u,q.output,negative?0u:q.epsilon_bits);m.word(0x1e6924u,q.output+24u,0u);const auto negative_again=compare(zero,epsilon).above();m.word(0x1e692du,context+28u,0xffffffffu);m.word(0x1e6931u,context+32u,0u,1);m.word(0x1e6935u,context+36u,0xffffffffu);
-    std::uint32_t maximum{};if(!negative_again){const auto one=m.word(0x46a0d0u);maximum=compare(epsilon,scalar(one)).above()?one:q.epsilon_bits;}
-    const auto result=traverse(memory,m,environment,context,0,0,maximum,fp,depth,observe,stats);if(stats)++stats->completed;return result;
+    Environment environment(fp,depth);Memory m(memory,observe);
+    const auto walk=[&](const native_bsp_segment_setup_detail::Progress&d){return traverse(memory,m,environment,context,0,0,d.maximum,fp,depth,observe,stats);};
+    struct Values {
+        const NativeTu15BspSegmentQuery&q;std::uint32_t address;Memory&m;const decltype(walk)&continue_walk;
+        std::uint32_t context()const{return address;}
+        std::uint32_t flags()const{return q.flags;}
+        std::uint32_t descriptor()const{return q.descriptor;}
+        std::uint32_t output()const{return q.output;}
+        auto epsilon()const{return native_bsp_segment_setup_detail::scalar(q.epsilon_bits);}
+        std::uint32_t limit()const{return q.bitmap_limit;}
+        std::uint32_t bitmap()const{return q.bitmap;}
+        std::uint32_t origin()const{return q.origin;}
+        std::uint32_t displacement()const{return q.displacement;}
+        std::uint32_t maximum(std::uint32_t value)const{return value;}
+        bool traverse(const native_bsp_segment_setup_detail::Progress&d){return continue_walk(d);}
+        void store(native_bsp_segment_setup_detail::Write kind,std::uint32_t at,std::uint32_t value,unsigned width){
+            using W=native_bsp_segment_setup_detail::Write;std::uint32_t pc{};
+            // The public value API has no exposed caller argument slot. Its
+            // observable DATA stores retain their original field acquisition
+            // points, including observers that hold another reference to q.
+            switch(kind){
+            case W::flags:pc=0x1e68e9u;value=q.flags;break;case W::descriptor:pc=0x1e68f1u;value=q.descriptor;break;
+            case W::limit:pc=0x1e68f9u;value=q.bitmap_limit;break;case W::bitmap:pc=0x1e6902u;value=q.bitmap;break;
+            case W::origin:pc=0x1e690au;value=q.origin;break;case W::displacement:pc=0x1e690eu;value=q.displacement;break;
+            case W::output:pc=0x1e6912u;value=q.output;break;case W::fraction:pc=0x1e6920u;at=q.output;break;
+            case W::count:pc=0x1e6924u;at=q.output+24u;break;case W::previous_leaf:pc=0x1e692du;break;
+            case W::previous_kind:pc=0x1e6931u;break;case W::partition:pc=0x1e6935u;break;
+            case W::maximum_zero:case W::maximum_one:case W::maximum_epsilon:return;
+            }
+            m.word(pc,at,value,width);
+        }
+    }input{q,context,m,walk};
+    const auto result=native_bsp_segment_setup_detail::setup(m,input,[](auto,const auto&){});if(stats)++stats->completed;return result;
 #else
     (void)memory;(void)q;(void)context;(void)fp;(void)depth;(void)observe;throw std::runtime_error("Native BSP segment backend unavailable");
 #endif

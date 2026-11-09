@@ -17,6 +17,11 @@ public:
     using Name = std::function<std::string(std::uint32_t)>;
     SourceEffectCompiledSymbolsTu15(const SourcePhysicsContactMemory &, bool mcc,
                                    const Name &);
+    // A private executor borrows the already authenticated namespace of its
+    // input bank. This copies no bytes and admits no Cache or resource. The
+    // independent lease lasts only for the target bank's execution scope.
+    SourceEffectCompiledSymbolsTu15(const SourcePhysicsContactMemory &target,
+                                   const SourcePhysicsContactMemory &source);
     ~SourceEffectCompiledSymbolsTu15();
     SourceEffectCompiledSymbolsTu15(const SourceEffectCompiledSymbolsTu15 &) = delete;
     SourceEffectCompiledSymbolsTu15 &operator=(const SourceEffectCompiledSymbolsTu15 &) = delete;

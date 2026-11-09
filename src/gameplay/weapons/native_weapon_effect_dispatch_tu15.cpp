@@ -1,3 +1,6 @@
+#include "native_tu15_effect_transform_product.hpp"
+#include "native_tu15_effect_datum_allocate.hpp"
+#include "native_tu15_effect_slot_scan.hpp"
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include <bit>
 #include <cfloat>
@@ -333,8 +336,10 @@ void iterator_logic_flags(IteratorRegisters &a,std::uint32_t result,unsigned wid
 }
 // 16E6A0 allocates the original datum pool through its complete raw ABI.
 // Header/bitmap/record reads remain ordered even when they alias. The separate
-// typed physics allocator is unchanged.
+// scalar DATA allocator shares the typed kernel; the legacy scratch-flags
+// adapter remains separate.
 void allocate_effect_datum(Memory &m,IteratorRegisters &a,const Observer &o,const Services &s) {
+    if(halo2::native_effect_datum_allocate_detail::try_native(m,a.gp,a.eflags,s,o))return;
     const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};auto &r=a;
     const auto compare=[&](auto lhs,auto rhs,unsigned width=4){iterator_flags(r,lhs,rhs,width,true);};
     const auto signed_less=[&]{return bool(a.eflags&128u)!=bool(a.eflags&2048u);};

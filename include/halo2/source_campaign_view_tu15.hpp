@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_live_model_draws_tu15.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_main_frustum_cull_tu15.hpp"
 #include "halo2/source_bsp_draw_collector.hpp"
 #include "halo2/source_world_particle_draws_tu15.hpp"
 #include "halo2/source_campaign_environment_frame_tu15.hpp"
@@ -87,6 +88,7 @@ private:
     SourceBspAdmissionBsp geometry_;
     SourceWorldParticleDrawsTu15 particles_;
     SourceTransparentGroupPartBindings group_parts_;
+    SourceMainFrustumCullTu15 main_cull_;
     std::vector<SourceBspDrawGeometry> clusters_,definitions_;
     std::vector<SourceBspDrawInstance> instances_;
     std::vector<Transform> transforms_;

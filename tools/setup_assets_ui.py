@@ -36,7 +36,7 @@ class SetupProcess:
         self.root, self.events = Path(root).resolve(), events
         self.popen = popen or subprocess.Popen
         self.cleanup_timeout = cleanup_timeout
-        if tool not in ('setup_assets.py', 'repair_launcher.py'):
+        if tool not in ('setup_assets.py', 'repair_launcher.py', 'rebuild_asset_cache.py'):
             raise ValueError('Unsupported owned launcher operation')
         self.tool, self.extra_arguments = tool, tuple(extra_arguments)
         self.process = self.reader = None

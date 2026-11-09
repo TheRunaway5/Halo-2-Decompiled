@@ -1,3 +1,4 @@
+#include "halo2/model_section_index.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_prt.hpp"
@@ -26,13 +27,9 @@ std::vector<Vertex> source_live_model_selected_vertices_tu15(std::uint32_t owner
     if(posed.size()!=model.mesh.vertices.size())
         throw FormatError("Selected WORLD pose provider lost its complete model vertex bank");
     std::vector<Vertex> vertices;
-    for(auto section:sections) {
-        bool resident=false;
-        for(const auto& vertex:posed)if(vertex.source_section==section) {
-            resident=true;vertices.push_back(vertex);
-        }
-        if(!resident)throw FormatError("Third-person collector selected an unprepared original section");
-    }
+    for(auto section:sections)
+        if(!model_section_select(model,posed,section,vertices))
+            throw FormatError("Third-person collector selected an unprepared original section");
     return vertices;
 }
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
@@ -91,10 +88,7 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
         const auto section=draw.unit.words[3]>>9&511u;
         std::vector<Vertex> vertices;
         std::vector<std::uint32_t> ordinals;
-        for(std::size_t n=0;n<posed.size();++n)if(posed[n].source_section==section) {
-            vertices.push_back(posed[n]);
-            if(gpu || source_ordinals)ordinals.push_back(std::uint32_t(n));
-        }
+        model_section_select(model,posed,section,vertices,gpu || source_ordinals?&ordinals:nullptr);
         if(vertices.empty())return std::nullopt;
         if(gpu || source_ordinals)shaders.select_indexed(vertices,ordinals,SourceModelShaderCollector{0,draw.coverage},view);
         else shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
@@ -354,7 +348,31 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceBspRangeGeometry& ranges) {
     const Reader r{world.memory()};SourceCullDrawBanks out;out.geometry_resolved=true;
     const auto model=r.model(unit),section=r.section(model,unit);
-    if(!r.word(section+0x34u))return out;
+    const auto geometry=r.word(section+0x34u);
+    if(!geometry)return out;
+    // Bind the immutable cache inputs to the current resident resource,
+    // including MCC shared-cache owners and restored World allocations.
+    // A matching model identity alone does not prove these resource bytes.
+    if(r.get<std::int32_t>(geometry+0x30u)!=ranges.accelerator_count ||
+       r.get<std::int32_t>(geometry+8u)!=ranges.subpart_count)
+        throw FormatError("live model cull resource counts differ from its cache owner");
+    if(ranges.accelerator_count<=0) {
+        if(ranges.subpart_count<0 || std::size_t(ranges.subpart_count)!=ranges.subparts.size() ||
+           r.word(geometry+0x10u)!=ranges.bounds.size())
+            throw FormatError("live model cull literal resource shape differs from its cache owner");
+        const auto subparts=r.word(geometry+0xcu),bounds=r.word(geometry+0x14u);
+        for(unsigned n=0;n<ranges.subparts.size();++n)
+            if(r.get<std::uint16_t>(subparts+n*8u+4u)!=Bytes(ranges.subparts[n]).u16(4))
+                throw FormatError("live model cull literal bound index differs from its cache owner");
+        for(unsigned n=0;n<ranges.bounds.size();++n) {
+            const auto& bound=ranges.bounds[n];const auto at=bounds+n*20u;
+            if(std::memcmp(r.memory.view(at,12).data(),&bound.center,12) ||
+               r.word(at+12u)!=std::bit_cast<std::uint32_t>(bound.radius) ||
+               r.get<std::uint8_t>(at+16u)!=bound.node)
+                throw FormatError("live model cull bound fields differ from its cache owner");
+            // The source never reads the final three padding bytes.
+        }
+    }
     out.geometry=source_bsp_sphere_cull_geometry(ranges);
     if(unit.words[7])out.transform=r.get<Transform>(unit.words[7]);
     if(ranges.accelerator_count>0)return out;

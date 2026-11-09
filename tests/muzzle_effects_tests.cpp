@@ -120,6 +120,49 @@ int main(int argc,char **argv) {
     check(sequence_rows==372 && camera_rows==36,"Independent sequence/camera cases omitted");
     const auto &weapon=content.weapons.at(cache.slayer_starting_weapon(5));
     const auto effect=weapon.firing_effects.at(0).effects[0];
+    // Real flags0x18 content exercises deferred color ownership, allocation
+    // refusal and refresh. Source light/gameplay services are explicit model
+    // owners here; this test does not claim a live world effect was submitted.
+    const auto*lit_tag=cache.query_tag({.group=tag_groups::effect,
+        .name="effects\\objects\\weapons\\rifle\\battle_rifle\\fire_bullet"});
+    check(lit_tag&&(cache.load_muzzle_effect(lit_tag->datum).flags&0x18u),"Missing authored colored BR effect");
+    {
+      std::uint32_t lit_primary=0x78a8u,lit_auxiliary=0x12345678u;
+      auto control_primary=lit_primary,control_auxiliary=lit_auxiliary;
+      NativeMuzzleEffects lit(cache,SourceEffectRandom{lit_primary,lit_auxiliary});
+      NativeMuzzleEffects explicit_colors(cache,SourceEffectRandom{control_primary,control_auxiliary});
+      unsigned produced{};const SourceEffectColors expected{0x01234567u,0xfedcba98u};
+      const WeaponEffectInput request{lit_tag->datum,0x420001u,0xffffffffu,0x3f800000u,0x3f800000u};
+      const std::array initial_random{lit_primary,lit_auxiliary};
+      const auto handle=lit.request_with_lighting(request,0,[&] {
+        check(std::array{lit_primary,lit_auxiliary}==initial_random,"Color selection ran after event RNG");++produced;return expected;
+      },{},true,true);
+      const auto control=explicit_colors.request(request,0,expected,{},true,true);
+      check(handle==control&&lit_primary==control_primary&&lit_auxiliary==control_auxiliary&&
+          lit.lighting_colors(handle)&&lit.lighting_colors(handle)->a==expected.a&&lit.lighting_colors(handle)->b==expected.b&&produced==1,
+          "Lazy colors changed packed words, allocation or event RNG");
+      auto refresh=request;refresh.previous_handle=handle;
+      check(lit.request_with_lighting(refresh,1,{}, {},true,true)==handle&&produced==1&&lit.lighting_colors(handle)->a==expected.a,
+          "Refresh re-queried lighting or rewrote retained colors");
+      check(!lit.lighting_colors(handle^0x10000u),"Color lookup admitted a stale full datum");
+      NativeMuzzleEffects full(cache,0x12345678);unsigned full_queries{};
+      for(unsigned i=0;i<256;++i)
+        check(full.request_with_lighting(request,0,[&]{++full_queries;return expected;},{},true,true)!=0xffffffffu,
+            "Declared effect capacity could not be filled");
+      check(full.request_with_lighting(request,0,[]{throw FormatError("Full effect pool called color producer");return SourceEffectColors{};},{},true,true)==0xffffffffu&&full_queries==256,
+          "Allocation NONE queried colors or fabricated an instance");
+      NativeMuzzleEffects refused(cache,0x12345678);bool missing_owner{};
+      try{refused.request_with_lighting(request,0,{}, {},true,true);}catch(const FormatError&){missing_owner=true;}
+      check(missing_owner,"Missing color owner was admitted");
+      for(unsigned i=0;i<256;++i)
+        check(refused.request_with_lighting(request,0,[&]{return expected;},{},true,true)!=0xffffffffu,
+            "Failed color production leaked an effect slot");
+      NativeMuzzleEffects uncolored(cache,0x12345678);
+      check(!(cache.load_muzzle_effect(effect).flags&0x18u),"SMG control unexpectedly requires lighting");
+      check(uncolored.request_with_lighting({effect,0x420002u,0xffffffffu,0x3f800000u,0x3f800000u},0,
+          []()->SourceEffectColors{throw FormatError("Uncolored effect called lighting producer");})!=0xffffffffu,
+          "Uncolored creator did not retain its original default colors");
+    }
     NativeMuzzleEffects owner(cache,0x12345678);
     std::uint32_t primary=0x78a8,auxiliary=0x12345678;
     NativeMuzzleEffects shared_owner(cache,SourceEffectRandom{primary,auxiliary});

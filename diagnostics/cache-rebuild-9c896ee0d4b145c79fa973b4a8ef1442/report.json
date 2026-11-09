@@ -1,0 +1,193 @@
+{
+  "passed": true,
+  "runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+  "runtime_sha256": "7a3ee8d20aadf15caac6ad797ad2f83042fe3f19d0a5e87018ab7359e70c9e98",
+  "cases": [
+    {
+      "name": "title",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 21.764363957045134,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-x09ojeq6/title.ppm",
+        "--menu-screen",
+        "9",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 19378,
+        "last_clear_ui_clock_ms": 19486,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4011,
+        "warmup_frames": 85
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            2,
+            255
+          ],
+          [
+            2,
+            255
+          ],
+          [
+            4,
+            255
+          ]
+        ]
+      },
+      "capture_sha256": "e427e1809e131949563c241f627a58764f86a230e8ebccc59499aec57cd0993e",
+      "capture_bytes": 2073615
+    },
+    {
+      "name": "main-menu",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 15.899765748006757,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-x09ojeq6/main-menu.ppm",
+        "--menu-screen",
+        "6",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 13955,
+        "last_clear_ui_clock_ms": 14066,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4002,
+        "warmup_frames": 103
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "capture_sha256": "f22fae3f3e9224b32c94eee0b0bcf8f4e901a827324016cc0d33f5d3e3588cce",
+      "capture_bytes": 2073615
+    },
+    {
+      "name": "online-sign-in",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 14.318979610980023,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-e1982e3c66ee48448c60f5d28dbd75ff/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-x09ojeq6/online-sign-in.ppm",
+        "--menu-screen",
+        "20",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 12315,
+        "last_clear_ui_clock_ms": 12412,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4061,
+        "warmup_frames": 126
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            0,
+            240
+          ],
+          [
+            0,
+            246
+          ],
+          [
+            0,
+            254
+          ]
+        ]
+      },
+      "capture_sha256": "26b833274b605b66354c675effddfe49e7e6b596686937930b2c6e7c68f37871",
+      "capture_bytes": 2073615
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-x09ojeq6",
+  "optional_intro_movie": "not-packaged",
+  "limits": "Four rendered menu frames per screen after the actual source map intro clears; optional intro movie is not packaged and was not checked. Real account sign-in and completed online gameplay remain unverified."
+}

@@ -1,0 +1,87 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundEventPort.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_event_port_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundFrontendDpc.cmake",
+      "line": 4,
+      "target": "native_tu15_sound_frontend_dpc_tests"
+    },
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15SoundFrontendEvents.cmake",
+      "line": 1,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundFrontendEvents.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_frontend_events_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundInterruptPolicy.cmake",
+      "line": 5,
+      "target": "native_tu15_sound_interrupt_policy_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundTimedNotifications.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_timed_notifications_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "catch",
+        "instruction",
+        "load",
+        "save",
+        "scope",
+        "source_construct_sound_pcm_metadata_header_tu15",
+        "w"
+      ],
+      "body_sha256": "9942c8b35dd68e061c2ebae68b89e3e7e27a3ecd31b5191b1f99eeecdee043cb",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "source_construct_sound_pcm_metadata_header_tu15",
+      "instruction_callback_sites": 3,
+      "line": 6,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "387073",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "387073",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "local-state",
+      "symbol": "source_construct_sound_pcm_metadata_header_tu15",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_pending_aggregate_tu15.cpp",
+  "source_bytes": 3588,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "5775b0f566300b5dedda12212434fb2302ac7de03b7515a3b11cc337f4fa0fbe"
+}

@@ -1,7 +1,11 @@
 #include "halo2/native_tu15_convex_simplex_solver.hpp"
 #include "halo2/native_tu15_convex_simplex_input_observer.hpp"
+#include "halo2/native_tu15_simplex_direction_kernel.hpp"
+#include "halo2/native_tu15_simplex_candidate_kernel.hpp"
+#include "halo2/native_tu15_simplex_finalize_kernel.hpp"
 #include "native_tu15_joint_constraint_numeric_internal.hpp"
 #include <bit>
+#include <optional>
 #include <stdexcept>
 namespace halo2 {
 namespace {
@@ -11,8 +15,67 @@ void narrow_store(SourcePhysicsContactMemory&m,std::uint32_t p,std::uint32_t bit
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 using namespace joint_constraint_numeric;
 Vector subtract(Vector a,Vector b){asm volatile("subps %1,%0":"+x"(a):"x"(b):"memory");return a;}
-Vector multiply_low(Vector a,Vector b){asm volatile("mulss %1,%0":"+x"(a):"x"(b):"memory");return a;}
-Vector scalar(std::uint32_t bits){Vector v{};std::memcpy(&v,&bits,4);return v;}
+// The semantic facade keeps its established provided-row domain. The shared
+// candidate algorithm owns the actual score/read/comparison ordering; this
+// adapter refuses wider rows at the same post-primary-comparison boundary.
+struct CandidateAccess {
+    Memory&m;NativeTu15ConvexSimplexSolverScratch scratch;
+    NativeTu15ConvexSimplexSolverStats&stats;
+    using Data=NativeTu15SimplexCandidate;
+    using P=NativeTu15SimplexCandidatePhase;
+    bool early(const Data&d)const{return d.side==NativeTu15SimplexCandidateSide::first_early;}
+    std::uint32_t word_read(P,const Data&,std::uint32_t address){return m.word(address);}
+    Vector vector_read(P,const Data&,std::uint32_t address){return m.vector(address);}
+    void score_write(const Data&d,std::uint32_t bits){m.word(early(d)?0x30eeeau:0x30f4cau,scratch.constant+8u,bits);}
+    std::uint16_t compare_score(const Data&){
+        push(m.word(scratch.constant+8u));asm volatile("fabs":::"memory","st");
+        multiply_scalar(m.word(scratch.constant+8u));const auto threshold=m.word(scratch.constant+4u);
+        std::uint16_t relation;asm volatile("fcomps %1;fnstsw %0":"=a"(relation):"m"(threshold):"memory","st");return relation;
+    }
+    void prepare(P,const Data&d){
+        if(d.count!=1u){++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its multi-edge candidate checks");}
+    }
+    void word_write(P,const Data&d,std::uint32_t address,std::uint32_t value){m.word(early(d)?0x30ef9eu:0x30f57au,address,value);}
+    void complete(const Data&){}
+};
+struct FinalizeAccess {
+    Memory&m;SourcePhysicsContactMemory&storage;
+    NativeTu15ConvexSimplexSolverInput input;NativeTu15ConvexSimplexSolverScratch scratch;
+    std::uint32_t computed_result;std::optional<Environment>phase;
+    using Data=NativeTu15SimplexFinalize;using P=NativeTu15SimplexFinalizePhase;using F=NativeTu15SimplexFinalizeFrame;
+    FinalizeAccess(Memory&m,SourcePhysicsContactMemory&storage,NativeTu15ConvexSimplexSolverInput input,
+        NativeTu15ConvexSimplexSolverScratch scratch,NativeTu15PhysicsFrameFp&fp,unsigned depth,std::uint32_t result)
+        :m(m),storage(storage),input(input),scratch(scratch),computed_result(result){phase.emplace(fp,depth);}
+    std::uint32_t argument(P p,const Data&)const{return p==P::plane_argument?input.plane:input.support_cache;}
+    std::uint32_t frame_address(F f,const Data&)const{return f==F::normalization?scratch.normalization:scratch.constant;}
+    Vector vector_read(P,const Data&,std::uint32_t address){return m.vector(address);}
+    void vector_write(P p,const Data&,std::uint32_t address,Vector value){m.vector(p==P::length?0x30f60du:0x30f65eu,address,value);}
+    std::uint32_t estimate(const Data&d,std::uint32_t){
+        // This existing DATA API owns an explicit direct-host estimate policy;
+        // the separate raw facade retains its actual input-journal callback.
+        auto value=d.xy;asm volatile("rsqrtss %1,%0":"+x"(value):"x"(d.length):"memory");return scalar_bits(value);
+    }
+    std::uint32_t word_read(P,const Data&,std::uint32_t address,unsigned width){return m.word(address,width);}
+    void word_write(P p,const Data&,std::uint32_t address,std::uint32_t value,unsigned width){
+        if(width!=4u){narrow_store(storage,address,value,width);return;}
+        std::uint32_t pc;
+        switch(p){
+        case P::estimate_store:pc=0x30f616u;break;
+        case P::three:pc=0x30f629u;break;
+        case P::half:pc=0x30f63bu;break;
+        case P::distance:pc=0x30f67fu;break;
+        case P::plane_distance:pc=0x30f68au;break;
+        default:throw std::runtime_error("Invalid semantic simplex finalization store");
+        }
+        m.word(pc,address,value);
+        // Preserve the established facade boundary: its source numerical FP
+        // environment ends before the byte/key copies, even on memory faults.
+        if(p==P::plane_distance)phase.reset();
+    }
+    void prepare(P,const Data&){}
+    std::uint32_t result(const Data&)const{return computed_result;}
+    void complete(const Data&){}
+};
 #endif
 }
 std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMemory&memory,
@@ -77,18 +140,12 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
                 // Exact edge/vertex30F175..30F23C, with source sign-bit tests
                 // and shuffle/multiply/subtract order for the triple cross.
                 const auto endpoint=m.vector(input.work+0x30u),first=m.vector(input.work+0x20u),other=m.vector(input.work+0xa0u);
-                const auto edge=subtract(endpoint,first),from_first=subtract(first,other),from_endpoint=subtract(endpoint,other);
-                const auto endpoint_dot=sum_three(multiply(from_endpoint,edge));
-                const auto first_dot=sum_three(multiply(from_first,edge));
-                if((endpoint_dot>>31u)==(first_dot>>31u)){
+                auto projection=native_simplex_direction_numeric::project(endpoint,first,other);
+                if(projection.endpoint_sign==projection.first_sign){
                     ++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its edge endpoint reduction");
                 }
-                const auto term_a=multiply(lane<0xd2u>(from_endpoint),lane<0xc9u>(from_first));
-                const auto term_b=multiply(lane<0xd2u>(from_first),lane<0xc9u>(from_endpoint));
-                const auto cross=subtract(term_b,term_a);
-                const auto outer_b=multiply(lane<0xd2u>(edge),lane<0xc9u>(cross));
-                const auto outer_a=multiply(lane<0xc9u>(edge),lane<0xd2u>(cross));
-                m.vector(0x30f22eu,input.work+0x120u,subtract(outer_a,outer_b));
+                native_simplex_direction_numeric::interior(projection,true);
+                m.vector(0x30f22eu,input.work+0x120u,projection.direction);
                 m.word(0x30f237u,input.work+8u,m.word(input.work+4u));
             }else{
                 ++stats.initial_count_refusals;throw std::runtime_error("Native simplex solver requires its simplex switch continuation");
@@ -117,17 +174,10 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
               if(!services.single.support)throw std::runtime_error("Native simplex solver requires its actual first support owner");
               services.single.support(memory,input.first,{owner},input.work+0x120u,input.work+(count+2u)*16u,fp);
               Environment phase(fp,depth);
-              const auto current=m.word(input.work);
-              const auto first=m.vector(input.work+0x20u),axis=m.vector(input.work+0x120u);
-              const auto candidate=m.vector(input.work+(current+2u)*16u);
-              const auto dot=sum_three(multiply(subtract(candidate,first),axis));
-              m.word(early?0x30eeeau:0x30f4cau,scratch.constant+8u,dot);
-              push(m.word(scratch.constant+8u));asm volatile("fabs":::"memory","st");multiply_scalar(m.word(scratch.constant+8u));
-              const auto threshold=m.word(scratch.constant+4u);std::uint16_t relation;
-              asm volatile("fcomps %1;fnstsw %0":"=a"(relation):"m"(threshold):"memory","st");
-              if(relation&0x4100u)return false;
-              if(current!=1u){++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its multi-edge candidate checks");}
-              m.word(early?0x30ef9eu:0x30f57au,input.work,current+1u);return true;
+              CandidateAccess access{m,scratch,stats};NativeTu15SimplexCandidate candidate;
+              candidate.side=early?NativeTu15SimplexCandidateSide::first_early:NativeTu15SimplexCandidateSide::first_late;
+              candidate.work=input.work;candidate.count_address=input.work;candidate.direction_address=input.work+0x120u;
+              return native_tu15_test_simplex_candidate(access,candidate);
           };
           if((iteration&1u)&&first_trial(true))continue;
           const auto second_limit=std::uint32_t(std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(m.word(input.support_cache+11u,1)))));
@@ -156,32 +206,9 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
                 {input.work,input.first,input.second,input.relative_transform},scratch.single,
                 fp,depth,services.single,clock,&stats.single);
         }
-        {
-            Environment phase(fp,depth);
-            const auto first=m.vector(input.work+0x20u),second=m.vector(input.work+0xa0u),axis=m.vector(input.work+0x120u);
-            const auto difference=subtract(second,first),axis_now=m.vector(input.work+0x120u),squared=multiply(axis_now,axis_now);
-            const auto xy=add_scalar(lane<0x55u>(squared),squared),length=add_scalar(lane<0xaau>(squared),xy);
-            m.vector(0x30f60du,scratch.normalization,length);
-            auto inverse=xy;asm volatile("rsqrtss %1,%0":"+x"(inverse):"x"(length):"memory");
-            m.word(0x30f616u,scratch.normalization,scalar_bits(inverse));inverse=m.vector(scratch.normalization);
-            auto correction=multiply_low(multiply_low(length,inverse),inverse);
-            m.word(0x30f629u,scratch.constant,0x40400000u);
-            auto three=scalar(m.word(scratch.constant));asm volatile("subss %1,%0":"+x"(three):"x"(correction):"memory");
-            m.word(0x30f63bu,scratch.constant,0x3f000000u);
-            auto reciprocal=multiply_low(scalar(m.word(scratch.constant)),inverse);
-            const auto projection=multiply(difference,axis);reciprocal=multiply_low(reciprocal,three);
-            m.vector(0x30f65eu,input.plane,multiply(lane<0u>(reciprocal),axis));
-            const auto distance=multiply_low(scalar(sum_three(projection)),reciprocal);
-            m.word(0x30f67fu,scratch.constant,scalar_bits(distance));
-            m.word(0x30f68au,input.plane+0xcu,m.word(scratch.constant));
-        }
-        narrow_store(memory,input.support_cache+8u,m.word(input.work,1u),1u);
-        narrow_store(memory,input.support_cache+9u,m.word(input.work+4u,1u),1u);
-        unsigned written{};do{narrow_store(memory,input.support_cache+written*2u,m.word(input.work+0x2cu+written*16u,2u),2u);++written;}
-            while(std::int32_t(written)<std::bit_cast<std::int32_t>(m.word(input.work)));
-        unsigned second_written{};auto target=input.support_cache+written*2u;
-        do{narrow_store(memory,target,m.word(input.work+0xecu+second_written*16u,2u),2u);target+=2u;++second_written;}
-            while(std::int32_t(second_written)<std::bit_cast<std::int32_t>(m.word(input.work+4u)));
+        FinalizeAccess finish{m,memory,input,scratch,fp,depth,result};NativeTu15SimplexFinalize final;
+        final.work=input.work;final.second_count_address=input.work+4u;final.axis_address=input.work+0x120u;
+        result=native_tu15_finalize_simplex_contact(finish,final);
         ++stats.completed;return result;
 #else
         (void)memory;(void)input;(void)scratch;(void)fp;(void)depth;(void)services;(void)clock;

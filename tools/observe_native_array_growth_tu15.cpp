@@ -8,6 +8,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <array>
+#include <algorithm>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -17,15 +18,17 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <vector>
 namespace {
 using J=nlohmann::json;
-void check(bool b,const char*s){if(!b)throw std::runtime_error(s);}
+void check(bool b,const std::string &s){if(!b)throw std::runtime_error(s);}
 long request(__ptrace_request op,pid_t child,void*a=nullptr,void*b=nullptr){errno=0;auto n=ptrace(op,child,a,b);if(n==-1&&errno)throw std::runtime_error(strerror(errno));return n;}
 struct Child{pid_t pid=-1;~Child(){if(pid>0){kill(pid,SIGKILL);int status{};waitpid(pid,&status,0);}}};
 std::string hex(const std::vector<std::byte>&b){const char*d="0123456789abcdef";std::string s;for(auto v:b){auto n=std::to_integer<unsigned>(v);s+=d[n>>4];s+=d[n&15];}return s;}
 std::vector<std::byte> memory(pid_t child,std::uint32_t p,std::size_t n){std::vector<std::byte>b(n);iovec local{b.data(),n},remote{reinterpret_cast<void*>(std::uintptr_t(p)),n};check(process_vm_readv(child,&local,1,&remote,1,0)==std::ptrdiff_t(n),"Cannot read original operand storage");return b;}
 std::array<std::uint32_t,8> gp(const user_regs_struct&r){return{std::uint32_t(r.rax),std::uint32_t(r.rcx),std::uint32_t(r.rdx),std::uint32_t(r.rbx),std::uint32_t(r.rsp),std::uint32_t(r.rbp),std::uint32_t(r.rsi),std::uint32_t(r.rdi)};}
+J abi(pid_t child,const user_regs_struct&r){user_fpregs_struct f{};request(PTRACE_GETFPREGS,child,nullptr,&f);std::vector<std::byte>xmm(128);std::memcpy(xmm.data(),f.xmm_space,128);return J{{"gp",gp(r)},{"eflags",std::uint32_t(r.eflags)},{"xmm",hex(xmm)},{"fp",J::array({f.cwd,f.swd,f.mxcsr})}};}
 std::uint32_t operand(const J&a,const std::array<std::uint32_t,8>&r){auto p=a.at("displacement").get<std::uint32_t>();const auto base=a.at("base").get<int>(),index=a.at("index").get<int>();if(base>=0)p+=r.at(base);if(index>=0)p+=r.at(index)*a.at("scale").get<std::uint32_t>();return p;}
 }
 int main(int argc,char**argv){try{
@@ -36,16 +39,25 @@ int main(int argc,char**argv){try{
   int status{};auto wait=[&]{check(waitpid(child.pid,&status,0)==child.pid,"Original array wait failed");};wait();check(WIFSTOPPED(status),"Missing original exec stop");request(PTRACE_SETOPTIONS,child.pid,nullptr,reinterpret_cast<void*>(PTRACE_O_EXITKILL));request(PTRACE_CONT,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array input setup failed");
   J before=J::array();for(const auto&r:m.at("regions"))before.push_back(J{{"address",r.at("address")},{"before",hex(memory(child.pid,r.at("address"),r.at("bytes")))}});
   request(PTRACE_SINGLESTEP,child.pid);wait();
-  J writes=J::array(),reads=J::array(),estimates=J::array(),allocator_calls=J::array();user_regs_struct regs{};unsigned count=0,fault_count=0;bool declared_fault=false;std::set<unsigned> applied;std::set<std::uint32_t> executed;
+  J writes=J::array(),reads=J::array(),estimates=J::array(),allocator_calls=J::array(),entry_abis=J::array(),clock_inputs=J::array(),before_abi;user_regs_struct regs{};unsigned count=0,fault_count=0;std::uint32_t last_instruction{};bool declared_fault=false,required_owner=false;std::set<unsigned> applied;std::set<std::uint32_t> executed;
   for(;count<100000;++count){
     check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array execution fault");request(PTRACE_GETREGS,child.pid,nullptr,&regs);const auto pc=std::uint32_t(regs.rip);if(pc==stop)break;
-    const auto site=sites.find(pc);check(site!=sites.end(),"Original array escaped authenticated complete bodies");executed.insert(pc);const auto registers=gp(regs);J pending=J::array();
+    if(count==0)before_abi=abi(child.pid,regs);
+    for(const auto &entry:m.value("abi_entries",J::array()))if(pc==entry)entry_abis.push_back(J{{"entry",pc},{"abi",abi(child.pid,regs)}});
+    const auto before_sites=m.value("stop_before_sites",std::vector<std::uint32_t>{});
+    if(std::find(before_sites.begin(),before_sites.end(),pc)!=before_sites.end()){required_owner=true;last_instruction=pc;break;}
+    const auto site=sites.find(pc);
+    for(const auto &entry:m.value("required_entries",J::array()))if(pc==entry){required_owner=true;break;}
+    if(required_owner)break;
+    check(site!=sites.end(),"Original array escaped authenticated complete bodies");executed.insert(pc);const auto registers=gp(regs);J pending=J::array();last_instruction=pc;
+    if(m.value("record_full_abi",false)&&(pc==0x2e10a0u||pc==0x2e1110u||pc==0x232c80u||pc==0x232d20u||pc==0x232ad0u||pc==0x232d00u||pc==0x232d30u||pc==0x149bf0u||pc==0x149c40u||pc==0x233160u||pc==0x2331a0u||pc==0x232aa0u||pc==0x232ac0u||pc==0x2e1030u))entry_abis.push_back(J{{"entry",pc},{"abi",abi(child.pid,regs)}});
     if(pc==0x149da0u||pc==0x233250u||pc==0x149e00u||pc==0x233420u){
+      if(m.value("record_full_abi",false))entry_abis.push_back(J{{"entry",pc},{"abi",abi(child.pid,regs)}});
       const bool releasing=pc==0x149e00u||pc==0x233420u;
       const auto argument=[&](unsigned n){const auto raw=memory(child.pid,registers[4]+4u+n*4u,4);std::uint32_t value{};for(unsigned i=0;i<4;++i)value|=std::to_integer<unsigned>(raw[i])<<(i*8u);return value;};
       J call{{"owner",pc},{"receiver",registers[1]},{"bytes",argument(releasing?1:0)},{"memory_class",argument(releasing?2:1)}};if(releasing)call["data"]=argument(0);allocator_calls.push_back(std::move(call));
     }
-    const bool repeated_empty=(pc==0x2e2e43u||pc==0x2e2e4au)&&registers[1]==0;
+    const bool repeated_empty=((pc==0x2e2e43u||pc==0x2e2e4au)||site->second.value("counted_repeat",false))&&registers[1]==0;
     if(m.contains("fault")&&!repeated_empty){for(const auto&a:site->second.at("operands")){
       const auto&f=m.at("fault");const auto p=operand(a,registers),n=a.at("bytes").get<std::uint32_t>();
       if(p==f.at("address")&&n==f.at("bytes")&&a.at(f.value("write",false)?"write":"read").get<bool>()&&++fault_count==f.at("occurrence")){declared_fault=true;break;}
@@ -56,7 +68,11 @@ int main(int argc,char**argv){try{
       if(a.at("read").get<bool>())reads.push_back(J{{"instruction",pc},{"address",p},{"bytes",n}});
       if(a.at("write").get<bool>())pending.push_back(J{{"instruction",pc},{"address",p},{"before",hex(memory(child.pid,p,n))},{"bytes",n}});
     }
-    request(PTRACE_SINGLESTEP,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array instruction fault");
+    request(PTRACE_SINGLESTEP,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original array instruction fault at PC="+std::to_string(pc)+" status="+std::to_string(status));
+    if(m.value("record_timestamp_inputs",false)&&site->second.value("timestamp_input",false)) {
+      user_regs_struct sampled{};request(PTRACE_GETREGS,child.pid,nullptr,&sampled);
+      clock_inputs.push_back(J{{"instruction",pc},{"low",std::uint32_t(sampled.rax)},{"high",std::uint32_t(sampled.rdx)}});
+    }
     for(auto&a:pending){a["written"]=hex(memory(child.pid,a.at("address"),a.at("bytes")));a.erase("bytes");writes.push_back(a);}
 
     unsigned mutation_index=0;for(const auto&mutation:m.value("mutations",J::array())){
@@ -71,7 +87,7 @@ int main(int argc,char**argv){try{
     }
 
   }
-  check(declared_fault||std::uint32_t(regs.rip)==stop,"Original array stop not reached");user_fpregs_struct fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);
+  check(declared_fault||required_owner||std::uint32_t(regs.rip)==stop,"Original array stop not reached");user_fpregs_struct fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);
   J banks=J::array();for(const auto&r:m.at("regions"))banks.push_back(J{{"address",r.at("address")},{"after",hex(memory(child.pid,r.at("address"),r.at("bytes")))}});
-  std::ofstream output(argv[3]);output<<J{{"initial_banks",before},{"declared_fault",declared_fault},{"return_word",std::uint32_t(regs.rax)},{"mutations_applied",applied.size()},{"executed_sites",executed},{"original_instructions",count},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"writes",writes},{"reads",reads},{"allocator_calls",allocator_calls},{"banks",banks}}.dump()<<'\n';check(bool(output),"Original array observation output failed");return 0;
+  std::ofstream output(argv[3]);output<<J{{"initial_banks",before},{"declared_fault",declared_fault},{"required_owner",required_owner},{"required_entry",required_owner?std::uint32_t(regs.rip):0u},{"return_word",std::uint32_t(regs.rax)},{"mutations_applied",applied.size()},{"executed_sites",executed},{"original_instructions",count},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"writes",writes},{"reads",reads},{"allocator_calls",allocator_calls},{"entry_abis",entry_abis},{"clock_inputs",clock_inputs},{"banks",banks},{"before_abi",before_abi},{"after_abi",abi(child.pid,regs)},{"last_instruction",last_instruction}}.dump()<<'\n';check(bool(output),"Original array observation output failed");return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

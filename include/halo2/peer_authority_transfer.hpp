@@ -104,6 +104,10 @@ public:
     // Only the owning executor may call this, after decoding and complete world
     // preparation. Byte receipt/checksum completion never acknowledges a world.
     bool acknowledge_validated(const AuthorityTransferContext &,const AuthorityCutSeal &);
+    // Register actual construction of a delivered complete paired archive.
+    // Negotiated liveness stops on ACK/rejection/reset, grants no validation,
+    // and never extends the sender's absolute transfer lifetime.
+    bool begin_delivered_preparation(const AuthorityTransferContext &,const AuthorityCutSeal &);
     // Discard a delivered cut which failed native preflight/execution. This
     // frees its bounded receive slot and never acknowledges a world.
     bool reject_delivered(const AuthorityTransferContext &,const AuthorityCutSeal &);

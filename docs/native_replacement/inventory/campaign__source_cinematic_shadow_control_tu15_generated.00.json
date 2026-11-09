@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1117,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "71106ecb8b57e5663af5c84e18f073acc105f11bbabf758809b7803eee0db174",
+      "selected_resolver_sha256": "214f3c2f43971935ce8f2bc74308669235609da009ec82404a246dffbbdb10e8"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "71106ecb8b57e5663af5c84e18f073acc105f11bbabf758809b7803eee0db174",
+      "selected_resolver_sha256": "214f3c2f43971935ce8f2bc74308669235609da009ec82404a246dffbbdb10e8"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "3477084b409089a93610195a28dd7534d6ea75048691fa65f4bcc7fc21fde254",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_30e10",
+      "instruction_callback_sites": 49,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "30e10",
+        "tu15": "30e10"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "30e10",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "30e10",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "30e10",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/source_cinematic_shadow_control_tu15_generated.cpp",
+  "source_bytes": 23842,
+  "source_filename_scope": "generated",
+  "source_sha256": "5aa0aa7dfb446669e00f8f9cfd00934384454160524f9c1c37c1fcb9ff9165e9"
+}

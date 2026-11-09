@@ -35,7 +35,7 @@ struct FrontendSearchNativeIo final:bridge::NativeFrontendSearchIo {
  explicit FrontendSearchNativeIo(MenuState&state):m(state){}
  template<class F>decltype(auto) capture(F&&f)const{try{return f();}catch(...){exception=std::current_exception();throw std::runtime_error("Native frontend search IO failed");}}
  template<class F>decltype(auto) invoke(F&&f)const{try{return f();}catch(const std::exception&e){if(exception)std::rethrow_exception(exception);throw FormatError(e.what());}}
- bridge::SearchContext search_context()const override{return capture([&]{bridge::SearchContext c{};c.mode=std::int32_t(m.mode_);c.clock=m.ui_clock_;c.couch_revision=m.couch_revision_;c.queue=bool(m.online_matchmaking_);c.account=bool(m.online_account_);
+ bridge::SearchContext search_context()const override{return capture([&]{bridge::SearchContext c{};c.mode=std::int32_t(m.mode_);c.clock=m.ui_clock_;c.couch_revision=m.party_flow_.couch_revision();c.queue=bool(m.online_matchmaking_);c.account=bool(m.online_account_);
   for(const auto&f:m.stack_)c.frames.push_back({f.screen,f.context,m.online_party_screen(f),!f.entries.empty(),f.entries.empty()?0:f.entries.front().destination});
   c.party_present=m.account_.party.has_value();if(m.account_.party){c.leader=m.account_.party->leader;c.members=members(*m.account_.party);}return c;});}
  bridge::SearchSnapshot search_view()const override{return capture([&]{return snapshot(m.matchmaking_);});}
@@ -65,7 +65,7 @@ struct FrontendSearchNativeIo final:bridge::NativeFrontendSearchIo {
  void search_ui(const bridge::SearchUi&e)const override{capture([&]{using K=bridge::SearchUiKind;
   switch(e.kind){
   case K::ClearSnapshot:m.matchmaking_={};break;
-  case K::NoService:m.matchmaking_.message="No matchmaking service configured.";break;
+  case K::NoService:m.matchmaking_.message=string(e.text);break;
   case K::Failure:m.matchmaking_.status=OnlineMatchmakingStatus::Failed;m.matchmaking_.message=string(e.text);break;
   case K::ClearFailure:m.matchmaking_.failure_state.reset();break;
   case K::ModeOnline:m.mode_=3;break;
@@ -81,7 +81,7 @@ struct FrontendSearchNativeIo final:bridge::NativeFrontendSearchIo {
   case K::Sound:if(m.pending_ui_sounds_.size()<16)m.pending_ui_sounds_.push_back(static_cast<FrontendUiSound>(e.number));break;
   case K::Render:render(e.number);break;
   case K::Unavailable:m.unavailable(string(e.text));break;
-  case K::PlaylistError:m.pending_ui_sounds_.push_back(FrontendUiSound::Error);m.unavailable("This playlist is unavailable for your ONLINE client, party, or installed maps. Use an updated ONLINE build and check the playlist's party and map requirements.");break;
+  case K::PlaylistError:m.pending_ui_sounds_.push_back(FrontendUiSound::Error);m.unavailable(string(e.text));break;
   default:throw std::logic_error("Invalid native frontend UI effect");
   }
  });}

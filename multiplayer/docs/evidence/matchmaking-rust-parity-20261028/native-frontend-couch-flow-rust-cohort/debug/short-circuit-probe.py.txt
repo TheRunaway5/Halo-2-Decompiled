@@ -1,0 +1,9 @@
+import argparse,hashlib,json,subprocess
+from pathlib import Path
+p=argparse.ArgumentParser();p.add_argument('--native',type=Path,required=True);p.add_argument('--report',type=Path,required=True);a=p.parse_args()
+minimal=dict(op='controller',authenticated=False,frames=[],inputs=[-1,-1,-1,-1]);cases=[minimal,minimal|dict(frames=[dict(screen=9,context=0)]),minimal|dict(inputs=[9,-1,-1,-1]),minimal|dict(input=-1)]
+r=subprocess.run([str(a.native.resolve())],input=''.join(json.dumps(c)+'\n'for c in cases),capture_output=True,text=True);assert r.returncode==0,r.stderr;rows=[json.loads(s)for s in r.stdout.splitlines()];assert len(rows)==4
+assert rows[0]['before']['value']==0 and rows[0]['before']['storage']['inputs'][0]==9
+assert all(v['before']==v['rust']for v in rows[1:])
+report=dict(parity_passed=rows[0]['before']==rows[0]['rust'],minimal_defined_original_case=minimal,comparisons=rows,one_frame_control_equal=True,known_input_control_equal=True,negative_input_control_equal=True,native_sha256=hashlib.sha256(a.native.read_bytes()).hexdigest(),hypotheses=[dict(rank=1,prediction='If Rust reads the absent frame before the host rebind, adding one frame makes the difference disappear; the unassigned empty-frame case differs.'),dict(rank=2,prediction='If account identity differs, the provider/cached account observations differ even with one frame.'),dict(rank=3,prediction='If input-slot mapping differs, the already-bound input case differs too.')])
+a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(parity_passed=report['parity_passed'],before_value=rows[0]['before'].get('value'),rust_value=rows[0]['rust'].get('value'),rust_error=rows[0]['rust'].get('error'),three_neighbor_controls_equal=True)));raise SystemExit(0 if report['parity_passed']else 1)

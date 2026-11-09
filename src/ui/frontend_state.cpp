@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include <openssl/rand.h>
 namespace halo2 {
 namespace {
 // A painter may render several disposable MenuState objects. Its screen
@@ -119,18 +118,7 @@ void keep_list_selection_visible(const FrontendContent &content, MenuFrame &fram
   else if (frame.selected - frame.first_visible >= visible)
     frame.first_visible = frame.selected - visible + 1;
 }
-bool online_screen(unsigned screen) {
-  // Actual mainmenu.map tag names: dialog_live_*, online_y_menu and
-  // game_shell/xbox_live. Generic progress/error and Extras screens also
-  // serve offline routes and must not acquire a Discord requirement.
-  switch (screen) {
-  case 21: case 26: case 27: case 31: case 34: case 35: case 36:
-  case 182: case 186: case 210: case 211:
-  case 215: case 216: case 217: case 219: case 236: case 237:
-    return true;
-  default: return false;
-  }
-}
+
 } // namespace
 MenuState::MenuState(const FrontendContent &content,
                      const std::filesystem::path &preferences)
@@ -185,8 +173,7 @@ MenuState::MenuState(const FrontendContent &content,
             profile_service_tags_[name]=tag;
         } else if(kind=="login_key" && file>>std::quoted(name)) {
           std::string id;
-          if(file>>std::quoted(id) && id.size()==32 && id.find_first_not_of("0123456789abcdef")==std::string::npos)
-            profile_login_keys_[name]=id;
+          if(file>>std::quoted(id))party_flow_.signin_load_key(name,id);
         } else if (kind == "option" &&
                    file >> std::quoted(name) >> key >> value) {
           if (key < 65536 && value >= 0 && value <= 1000)
@@ -265,114 +252,21 @@ void MenuState::set_multiplayer_map_validator(std::function<void(const FrontendL
 void MenuState::set_discord_login(std::shared_ptr<DiscordLogin> login) {
   discord_login_ = std::move(login);
 }
-std::string MenuState::profile_login_key(const std::string &name) {
-  if(name.empty())return {};
-  if(const auto it=profile_login_keys_.find(name);it!=profile_login_keys_.end())return it->second;
-  std::array<unsigned char,16> bytes{};
-  if(RAND_bytes(bytes.data(),int(bytes.size()))!=1)throw FormatError("Could not prepare the profile's saved sign-in slot");
-  constexpr char hex[]="0123456789abcdef";std::string id;
-  for(const auto value:bytes){id+=hex[value>>4];id+=hex[value&15];}
-  profile_login_keys_[name]=id;save();return id;
-}
-void MenuState::bind_primary_login() {
-  if(!discord_login_ || !discord_login_->uses_steam())return;
-  const auto key=profile_login_key(signed_in_);
-  if(login_profile_==key)return;
-  discord_login_->bind_profile(preferences_.empty()?std::string{}:std::filesystem::absolute(preferences_).lexically_normal().string(),key);
-  login_profile_=key;saved_login_suppressed_=false;
-  online_prior_report_.reset();
-  if(online_account_)online_account_->sign_out();account_={};
-  if(online_matchmaking_)online_matchmaking_->sign_out();
-  matchmaking_search_.stop();
-  if(online_voice_)online_voice_->leave();
-  if(discord_social_)discord_social_->disconnect();
-  party_flow_.clear_dismissed();
-}
-void MenuState::return_online(std::string message) {
-  // Allocate fresh ONLINE navigation after world teardown or local PCR Done.
-  stack_.clear();launch.reset();quit=false;mode_=3;
-  // An authenticated party/postgame return has already completed sign-in.
-  // A stale pending flag would redirect the next Account action into Quickmatch.
-  open(6);awaiting_discord_login_=!online_identity();open(186);
-  if(!message.empty())unavailable(std::move(message));
-}
-void MenuState::return_online_lobby(std::string message) {
-  // TU1.5: leaving game session B (PCR Done 0x233792, a dropped or abandoned
-  // match) returns party A to pre-game, and 0x19B1C9 opens pregame lobby14;
-  // a Live matchmaking party selects pane2 (0x24FF0A) with its hopper kept.
-  // take_launch transfers the match transport and pauses that queue worker.
-  // End its completed/abandoned intent explicitly; renderer teardown keeps
-  // the retained service alive, and a later Start needs a fresh queue intent.
-  if(online_matchmaking_)online_matchmaking_->cancel_queue();
-  matchmaking_search_.quick(false);
-  reset_online_matchmaking_progress();
-  return_online();
-  if(frame().screen==20){pending_online_screen_=14;pending_online_context_=0;}
-  else open(14);
-  enter_online_matchmaking_lobby();
-  if(!message.empty())unavailable(std::move(message));
-}
-bool MenuState::online_postgame_host() const {
-  return !account_.authenticated || !account_.party || !online_party_follower(*account_.party);
-}
+std::string MenuState::profile_login_key(const std::string &name) { return signin_flow_drive(0,0,0,name).text; }
+void MenuState::bind_primary_login() { signin_flow_drive(1); }
+void MenuState::return_online(std::string message) { signin_flow_drive(6,0,0,std::move(message)); }
+void MenuState::return_online_lobby(std::string message) { signin_flow_drive(7,0,0,std::move(message)); }
+bool MenuState::online_postgame_host() const { return postgame_flow_drive(0); }
 void MenuState::vista_pcr_dialog(const std::array<std::uint32_t, 8> &request) {
   // 40C01A requests {3,0x98,4,controller mask,40C00D}; 40C00D is Leave Party.
   dialog(request[1], -18);
 }
-void MenuState::update_online_postgame() {
-  if(online_postgame_host() || !online_party_leader_left_postgame(*account_.party))return;
-  const auto pcr=std::find_if(stack_.begin(),stack_.end(),[](const auto &f){return f.vista_pcr && f.vista_pcr->online;});
-  if(pcr==stack_.end())return;
-  // The leader's Done moved the party back to pre-game; this report follows.
-  const auto owner=pcr->vista_pcr;
-  if(owner->input.continue_session)owner->input.continue_session();
-}
+void MenuState::update_online_postgame() { postgame_flow_drive(1); }
 
 
 
-std::optional<DiscordIdentity> MenuState::online_identity() const {
-  if (online_account_ && !account_.authenticated) return std::nullopt;
-  return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
-}
-void MenuState::update_online_login() {
-  bind_primary_login();
-  update_online_couch();
-  update_online_friends();
-  update_online_account();
-  update_online_privacy();
-  update_online_lobby_leave();
-  update_online_postgame();
-  if (!discord_login_) return;
-  const auto status = discord_login_->snapshot();
-  if (frame().screen == 20) {
-    if (awaiting_discord_login_ && online_identity()) {
-      awaiting_discord_login_ = false;
-      const auto screen = pending_online_screen_, context = pending_online_context_;
-      stack_.pop_back();
-      open(screen, context);
-      return;
-    }
-    if (status.status == DiscordLoginStatus::Failed) awaiting_discord_login_ = false;
-  } else if (!status.identity && std::any_of(stack_.begin(), stack_.end(), [](const auto &f) { return online_screen(f.screen); })) {
-    if (online_matchmaking_) online_matchmaking_->sign_out();
-    matchmaking_search_.stop();
-    while (stack_.size() > 1 && frame().screen != 6) stack_.pop_back();
-    open(20);
-  }
-  // The account remains service-verified while its local screen name changes.
-  // Refresh retained panels too, so Back never reveals the previous name.
-  for (auto &retained : stack_) {
-    if (retained.screen != 20 && retained.screen != 186) continue;
-    auto updated = build(retained.screen, retained.context);
-    if (retained.description == updated.description &&
-        retained.entries.front().label == updated.entries.front().label) continue;
-    updated.instance = retained.instance;
-    updated.pane_created_clock = retained.pane_created_clock;
-    updated.selected = std::min(retained.selected, unsigned(updated.entries.size() - 1));
-    retained = std::move(updated);
-    ++revision;
-  }
-}
+std::optional<DiscordIdentity> MenuState::online_identity()const{return couch_identity();}
+void MenuState::update_online_login() { signin_flow_drive(2); }
 int MenuState::profile_option(unsigned key, int fallback) const {
   // 148ADA keeps one edited settings copy; child-page focus producers update
   // that copy, while the saved profile changes only at 148B8C/148BFF.
@@ -441,7 +335,7 @@ void MenuState::commit_appearance_edit() {
   appearance_profile_.clear();
   appearance_snapshots_.clear();
   save();
-  ++couch_revision_;
+  party_flow_.couch_changed();
 }
 void MenuState::preview_appearance_selection() {
   if (!appearance_edit_ || frame().selected >= frame().entries.size())
@@ -536,11 +430,10 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     break;
   case 10:
   case 193:
-    if(id==10 && joining_online_)f.entries.push_back({"Guest",-80,0});
+    if(party_flow_.couch_guest_entry(id))f.entries.push_back({"Guest",-80,0});
     add(0x195, 167, -1);
     for (unsigned i = 0; i < profiles_.size(); ++i) {
-      if(id==10 && joining_controller_ &&
-          (profiles_[i]==signed_in_ || std::find(local_profiles_.begin(),local_profiles_.end(),profiles_[i])!=local_profiles_.end()))continue;
+      if(!couch_profile_entry(id,profiles_[i]))continue;
       f.entries.push_back({profiles_[i], -3, int(i)});
     }
     break;
@@ -1010,21 +903,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
 void MenuState::open(unsigned screen, unsigned context) {
   if(screen==vista_menu(16) || screen==vista_menu(185))
     throw FormatError("Vista PCR requires its retained source owner factory");
-  if (screen == 21) screen = 20; // Legacy Xbox password entry is replaced by browser OAuth.
-  if(discord_login_ && discord_login_->uses_steam() &&
-     (screen==20 || online_screen(screen) || (mode_==3 && screen==14))) {
-    bind_primary_login();
-    if(!saved_login_suppressed_ && !discord_login_->authorization()) {
-      discord_login_->restore();awaiting_discord_login_=true;
-    }
-  }
-  if ((online_screen(screen) || (mode_ == 3 && (screen == 14 || screen == 204 || screen == 231))) && !online_identity()) {
-    pending_online_screen_ = screen;
-    pending_online_context_ = context;
-    screen = 20; context = 0;
-  } else if (screen == 20) {
-    pending_online_screen_ = 186; pending_online_context_ = 0;
-  }
+  const auto route=signin_flow_drive(3,screen,context);screen=route.screen;context=route.context;
   if (stack_.size() >= 64)
     throw FormatError("menu navigation stack limit");
   const bool appearance_child = screen == 50 || screen == 52 || screen == 49 || screen == 233;
@@ -1108,7 +987,7 @@ void MenuState::open_vista_pcr(unsigned id,std::shared_ptr<const VistaPcrScreenO
   f.instance=next_menu_instance.fetch_add(1,std::memory_order_relaxed);
   f.pane_created_clock=ui_clock_;f.screen=vista_menu(id);f.context=owner->pane;
   f.vista_pcr=std::move(owner);
-  if(id==16 && f.vista_pcr->online)online_prior_report_=f.vista_pcr->lobby_review;
+  postgame_flow_drive(5,&f,id);
   const auto count=f.context?f.vista_pcr->results->player_count:f.vista_pcr->results->team_count;
   if(f.vista_pcr->selected_row!=0xffffffffu && f.vista_pcr->selected_row>=count)
     throw FormatError("Vista PCR initial focus is outside actual retained rows");
@@ -1119,7 +998,7 @@ void MenuState::open_vista_pcr(unsigned id,std::shared_ptr<const VistaPcrScreenO
   // an old match's lobby as Back history can accidentally resume that match.
   // 2510AA's lobby-review factory opens another channel over the existing
   // lobby. Only the completed-match PCR16 replaces old navigation.
-  if(id!=185 || !f.vista_pcr->online)stack_.clear();
+  postgame_flow_drive(6,&f,id);
   launch.reset();quit=false;
   //233423/239E08 stamps the monotonic clock after all six tab children
   // initialize. Report allocation and any preceding resource load do not
@@ -1134,22 +1013,9 @@ bool MenuState::switch_pcr_tab(int direction) {
   if(direction && pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Tab);
   return true;
 }
-bool MenuState::has_online_prior_stats() const {
-  return online_prior_report_ && online_prior_report_->results && online_prior_report_->results->player_count>0;
-}
-bool MenuState::review_online_postgame() {
-  // 250B1E param5 ->2510AA: only actual retained, populated statistics open.
-  if(mode_!=3 || frame().screen!=14 || !has_online_prior_stats())return false;
-  // Each review factory recreates the initial tab/list focus. The result
-  // rows share a copied bank with PCR16, whose previous selection may differ.
-  if(online_prior_report_->select_row)online_prior_report_->select_row(online_prior_report_->selected_row);
-  open_vista_pcr(185,online_prior_report_);return true;
-}
-void MenuState::close_online_prior_stats() {
-  if(frame().screen!=vista_menu(185) || !frame().vista_pcr || !frame().vista_pcr->online)return;
-  if(stack_.size()<2)return;
-  stack_.pop_back();++revision;
-}
+bool MenuState::has_online_prior_stats() const { return postgame_flow_drive(2); }
+bool MenuState::review_online_postgame() { return postgame_flow_drive(3); }
+void MenuState::close_online_prior_stats() { postgame_flow_drive(4); }
 void MenuState::vista_pcr_pane(unsigned pane) {
   auto& f=stack_.back();
   if(!f.vista_pcr || pane>=6)throw FormatError("Vista PCR pane requires its retained source owner");
@@ -1266,47 +1132,9 @@ std::vector<FrontendLocalPlayer> MenuState::local_players() const {
     players.push_back({i,local_profiles_[i],appearance_for_profile(local_profiles_[i]),local_teams_[i],local_inputs_[i]});
   return players;
 }
-std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool join) {
-  if(instance<0)return {};
-  for(unsigned i=0;i<local_inputs_.size();++i)if(local_inputs_[i]==instance)return i;
-  if(joining_controller_ || online_local_options_)return {};
-  const bool online_join=online_couch_mutable() && (frame().screen==186 ||
-      (frame().screen==14 && mode_==3) || (frame().screen==26 && frame().context==2));
-  // Title sign-out clears every input slot. Rebind the selected host before
-  // interpreting a new controller as an additional Split Screen player.
-  if(join && local_inputs_[0]==-1 && !online_join) {local_inputs_[0]=instance;return 0;}
-  const bool local_join=(frame().screen==30 || frame().screen==14) &&
-      (mode_==1 || (mode_==2 && !system_link_host_.has_value()));
-  if((local_join || online_join) && join && !signed_in_.empty()) {
-    for(unsigned i=1;i<local_profiles_.size();++i)if(local_profiles_[i].empty()) {
-      local_inputs_[i]=instance;joining_controller_=i;host_profile_=profile_;
-      joining_online_=online_join;
-      // A roster change cancels the existing countdown through its real owner.
-      if(session_countdown_ && *session_countdown_>=0)back();
-      open(10);return i;
-    }
-    return {};
-  }
-  return {};
-}
-void MenuState::finish_local_signin() {
-  if(!joining_controller_)return;
-  const auto controller=*joining_controller_;const bool online=joining_online_;
-  local_profiles_[controller]=profile_name();local_teams_[controller]=0;local_team_edits_[controller]={};
-  joining_controller_.reset();profile_=host_profile_;++revision;
-  joining_online_=false;
-  if(online){++couch_revision_;open_online_local_player(controller);}
-}
-void MenuState::leave_local_controller(unsigned controller) {
-  if(controller==0 || controller>=4 || joining_controller_)return;
-  if(mode_==3 && !online_couch_mutable())return;
-  if(session_countdown_ && *session_countdown_>=0)back();
-  local_profiles_[controller].clear();local_inputs_[controller]=-1;local_teams_[controller]=0;local_team_edits_[controller]={};++revision;
-  if(local_discord_logins_[controller])local_discord_logins_[controller]->cancel();
-  local_discord_logins_[controller].reset();local_discord_subjects_[controller].clear();++couch_revision_;
-  if(local_profile_accounts_[controller])local_profile_accounts_[controller]->sign_out();
-  local_profile_accounts_[controller].reset();
-}
+std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool join){return couch_flow_drive(8,nullptr,0,instance,join).index;}
+void MenuState::finish_local_signin(){couch_flow_drive(9);}
+void MenuState::leave_local_controller(unsigned controller){couch_flow_drive(10,nullptr,controller);}
 UiVariant MenuState::current_variant() const {
   return {variant_name_,engine_,variant_values_,variant_source_settings_};
 }
@@ -1587,44 +1415,7 @@ void MenuState::accept() {
     return;
   }
   if (f.screen == 237) { if (f.entries.size() == 1) back(); return; }
-  if (f.screen == 20) {
-    if (online_identity()) {
-      if (f.selected == 0) open(186);
-      else if (f.selected == 1) {
-        keyboard_text = profile_name();
-        open(167, keyboard_text.empty() ? 0 : 1);
-      }
-      else if(f.entries[f.selected].destination==167 && f.entries[f.selected].value==10) {
-        keyboard_text=profile_service_tag();open(167,10);
-      }
-      else {
-        if (online_matchmaking_) online_matchmaking_->sign_out();
-        matchmaking_search_.stop();
-        if (online_account_) online_account_->sign_out();
-        if (online_voice_) online_voice_->leave();
-        party_flow_.voice_wanted(false);
-        if(discord_social_)discord_social_->disconnect();
-        saved_login_suppressed_=true;discord_login_->sign_out();
-        online_prior_report_.reset();
-        clear_online_couch();
-        if (online_directory_) online_directory_->cancel();
-        online_directory_active_ = false;
-        online_servers_ = {};
-        online_detail_id_.clear();
-        while (stack_.size() > 1 && frame().screen != 6) stack_.pop_back();
-        open(20);
-      }
-    } else if (discord_login_) {
-      if (discord_login_->snapshot().identity && online_account_) { online_account_->connect(profile_name()); awaiting_discord_login_ = true; update_online_login(); return; }
-      const auto status = discord_login_->snapshot().status;
-      if (status != DiscordLoginStatus::Waiting && status != DiscordLoginStatus::Verifying) {
-        discord_login_->start();
-        awaiting_discord_login_ = true;
-        update_online_login();
-      }
-    } else unavailable("Account sign-in is unavailable in this preview. Start the game normally to sign in.");
-    return;
-  }
+  if(signin_flow_drive(4).handled)return;
   if (f.screen == 186 && f.selected == 3) { open(20); return; }
   if (f.screen == 186 && f.selected == 0) {
     // 230F92 Quickmatch creates party A mode3/49A4=2 with its saved hopper;
@@ -1730,25 +1521,17 @@ void MenuState::accept() {
   if (f.screen == 23) {
     const auto lobby = lobby_view();
     if (!lobby) return;
-    const auto rows = frontend_lobby_setup_rows(lobby->input.session_enum);
-    if (f.selected >= rows.size()) return;
-    const auto row = rows[f.selected];
-    if(mode_==3) {
-      if(!account_.party || !account_.party->leader){unavailable("Only the party leader can change Game Setup.");return;}
-      if(row.semantic==9) {
-        //250FB3 ->2BBACB builds23; enum6 row9 ->2BBF06(true) opens
-        // the original237 playlist listing on lobby channel3.
-        stack_.pop_back();open(237);return;
-      }
-      if(row.semantic==6 || row.semantic==7) {
-        // Original switches retain the ONLINE protocol. Switching mode_ to
-        // native local co-op/custom here would falsely discard that owner.
-        unavailable(row.semantic==6?"ONLINE cooperative sessions are not available from this service.":
-            "ONLINE custom-game hosting is not available from this service.");return;
-      }
+    const auto selection = frontend_lobby_setup_accept(lobby->input.session_enum, f.selected, mode_ == 3,
+        account_.party && account_.party->leader);
+    if (!selection.error.empty()) {
+      unavailable(selection.error);
+      return;
     }
-    if (row.action == FrontendLobbySetupAction::AlternateSession) {
-      unavailable("This network session mode is not implemented by the native runtime.");
+    if (!selection.row) return;
+    const auto &row = *selection.row;
+    if (row.action == FrontendLobbySetupAction::OpenPlaylist) {
+      stack_.pop_back();
+      open(unsigned(row.destination));
       return;
     }
     // Setup and its children occupy original channel3/window4. This channel
@@ -1827,7 +1610,7 @@ void MenuState::accept() {
     if (f.screen == 193)
       open(194, 0);
     else {
-      if(joining_controller_) {
+      if(party_flow_.joining_controller()) {
         stack_.pop_back();finish_local_signin();save();return;
       }
       signed_in_ = profile_name();
@@ -1843,25 +1626,10 @@ void MenuState::accept() {
     signed_in_.clear();local_profiles_={};local_inputs_={-1,-1,-1,-1};
     open_local_title();
   } else if (entry.destination == -16) {
-    // 0x252150 "Leave Matchmaking": cancel the search; party A returns to
-    // pre-game, which 0x19B1C9 presents as pregame lobby14 pane2.
-    matchmaking_search_.quick(false);
-    if (online_matchmaking_) online_matchmaking_->cancel_queue();
-    reset_online_matchmaking_progress();
-    while (stack_.size() > 1 && frame().screen != 186) stack_.pop_back();
-    if (mode_ == 3) { open(14); enter_online_matchmaking_lobby(); }
-    else ++revision; // A direct preview of the service menu has no party lobby.
+    search_drive(FrontendSearchAction::CancelAndReturn);
   } else if (entry.destination == -18) {
     if(system_link_leave_){const auto leave=system_link_leave_;leave();return;}
-    // PCR16 dialog98 Leave Party (40C00D): leave the report's session
-    // (6151E2(0) -> 5AD6AF) and the party.
-    const auto pcr=std::find_if(stack_.begin(),stack_.end(),[](const auto &f){return f.vista_pcr && f.vista_pcr->online;});
-    const auto owner=pcr==stack_.end()?nullptr:pcr->vista_pcr;
-    if(account_.party && (!online_account_ || !online_account_->party_command({"leave"}))) {
-      back();unavailable("Wait for the current ONLINE operation to finish.");return;
-    }
-    if(owner && owner->leave_session)owner->leave_session();
-    update_online_account();return_online();
+    if (!postgame_flow_drive(7)) return;
   } else if (entry.destination == -11) {
     if(online_lobby_input(3))return;
     while (stack_.size() > 1 && frame().screen != 6)
@@ -1974,7 +1742,7 @@ void MenuState::accept() {
     }
     profile_values_.erase(profile_name());
     profile_service_tags_.erase(profile_name());
-    profile_login_keys_.erase(profile_name());
+    party_flow_.signin_take_key(profile_name());
     profiles_.erase(profiles_.begin() + profile_);
     profile_ = 0;
     save();
@@ -2008,22 +1776,13 @@ void MenuState::accept() {
 void MenuState::back() {
   if (workshop_preparing_) return;
   if(online_lobby_.leave_pending())return; //199E3C's leave task owns completion.
-  if(online_couch_screen(frame())) {
-    if(online_local_options_) {
-      const auto login=local_discord_logins_[*online_local_options_];
-      if(login && !login->authorization()){login->cancel();local_discord_logins_[*online_local_options_].reset();}
-    }
-    online_local_options_.reset();stack_.pop_back();++couch_revision_;++revision;return;
-  }
+  if(couch_back())return;
   if(content_.gameplay_overlay && stack_.size()==1 && game_pause_action_) {
     const auto error=game_pause_action_(GamePauseAction::Resume);
     if(!error.empty())unavailable(error);
     return;
   }
-  if(joining_controller_ && frame().screen==10) {
-    local_inputs_[*joining_controller_]=-1;joining_controller_.reset();profile_=host_profile_;joining_online_=false;
-    stack_.pop_back();++revision;return;
-  }
+  if(couch_back(true))return;
   if(frame().vista_leave_task)return;
   if(frame().vista_pcr){vista_pcr_event(1);return;} // Actual PC component1/B.
   if (frame().screen == 210) {
@@ -2039,10 +1798,7 @@ void MenuState::back() {
     dialog(matchmaking_progress_leave_dialog(online_party_members().size(),local_players().size()), -16);
     return;
   }
-  if (frame().screen == 20 && awaiting_discord_login_) {
-    if (discord_login_) discord_login_->cancel();
-    awaiting_discord_login_ = false;
-  }
+  signin_flow_drive(5);
   if (binding_action_) { binding_action_.reset(); binding_slot_=0; ++revision; return; }
   if (frame().screen == vista_menu(293)) { revert_pc_video(); return; }
   if (frame().screen == 14 && lobby_team_edit_.valid && lobby_team_event(5, 1))
@@ -2081,7 +1837,7 @@ void MenuState::back() {
     const auto parent = frame().context;
     stack_.pop_back();
     if (parent == 10) {
-      if(joining_controller_) {
+      if(party_flow_.joining_controller()) {
         while(stack_.size()>1 && frame().screen!=10)stack_.pop_back();
         if(frame().screen==10)stack_.pop_back();
         finish_local_signin();save();return;
@@ -2133,18 +1889,15 @@ void MenuState::auxiliary() {
     appearance_edit_->flags ^= 1;
     ++revision;
   } else if (frame().screen == 23) {
-    if(mode_==3) {
-      if(!account_.party || !account_.party->privacy){unavailable("This ONLINE service does not support party privacy settings.");return;}
-      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
-      if(account_.busy){unavailable("Wait for the current ONLINE operation to finish.");return;}
-      // TU1.5 2C5A6B only suppresses X for session enums0/1; enum6
-      // replaces channel3's Setup with source25. Privacy changes preserve
-      // the actual party countdown and every member's hopper consent.
-      stack_.pop_back();open(25);return;
+    const bool online = mode_ == 3;
+    std::optional<int> session;
+    if (!online) {
+      if (const auto lobby = lobby_view()) session = lobby->input.session_enum;
     }
-    const auto lobby = lobby_view();
-    if (lobby && lobby->input.session_enum != 0 && lobby->input.session_enum != 1) {
-      // Original2BBED0 X/param2 opens privacy on non-local-only sessions.
+    const auto privacy = frontend_lobby_setup_privacy(online, session,
+        account_.party && account_.party->privacy.has_value(), account_.party && account_.party->leader, account_.busy);
+    if (!privacy.error.empty()) unavailable(privacy.error);
+    if (privacy.open) {
       stack_.pop_back();
       open(25);
     }
@@ -2280,13 +2033,13 @@ void MenuState::commit_text() {
       // host preference map to that new name.
       commit_appearance_edit();
       const auto previous_name = profile_name();
-      const auto saved_login_key=profile_login_keys_.extract(previous_name);
+      const auto saved_login_key=party_flow_.signin_take_key(previous_name);
       const auto tag=profile_service_tag();
       profile_service_tags_.erase(previous_name);
       auto values = profile_values_[profile_name()];
       profile_values_.erase(profile_name());
       profiles_[profile_] = keyboard_text;
-      if(!saved_login_key.empty())profile_login_keys_[profile_name()]=saved_login_key.mapped();
+      signin_restore_key(saved_login_key);
       profile_values_[profile_name()] = std::move(values);
       profile_service_tags_[profile_name()]=tag;
       if (signed_in_ == previous_name) signed_in_ = profile_name();
@@ -2516,7 +2269,7 @@ void MenuState::save() const {
     file << "profile " << std::quoted(name) << '\n';
   for(const auto &[name,tag]:profile_service_tags_)
     file<<"service_tag "<<std::quoted(name)<<' '<<std::quoted(tag)<<'\n';
-  for(const auto &[name,key]:profile_login_keys_)
+  for(const auto &[name,key]:party_flow_.signin_keys())
     file<<"login_key "<<std::quoted(name)<<' '<<std::quoted(key)<<'\n';
   for (const auto &[name, values] : profile_values_)
     for (const auto &[key, value] : values)

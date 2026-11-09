@@ -1,5 +1,6 @@
 #include "halo2/native_campaign_ai_resource_retirement_tu15.hpp"
 #include "halo2/native_tu15_data_array_delete.hpp"
+#include "halo2/native_tu15_page_retire_kernel.hpp"
 #include <array>
 
 namespace halo2 {
@@ -41,36 +42,24 @@ void native_campaign_ai_unassociated_resource_retire_tu15(SourcePhysicsContactMe
 void native_campaign_ai_resource_metadata_retire_tu15(SourcePhysicsContactMemory &memory,
     std::uint32_t container, std::uint32_t datum,
     const SourcePhysicsContactRecordObserver &observe) {
-    const auto initial_pool = read(memory, container + 0x64u);
-    const auto record = read(memory, initial_pool + 0x44u) + (datum & 0xffffu) * 0x18u;
-    const auto callback = read(memory, container + 0x20u);
-    if (callback) {
-        if (callback != 0x12fd10u)
-            throw NativeCampaignAiResourceRetirementRequiredOwnerTu15(callback, datum);
-        native_campaign_ai_unassociated_resource_retire_tu15(memory, datum, observe);
-    }
-    const auto previous = read(memory, record + 0x10u);
-    if (previous != 0xffffffffu) {
-        const auto pool = read(memory, container + 0x64u);
-        const auto rows = read(memory, pool + 0x44u);
-        const auto next = read(memory, record + 0xcu);
-        publish(memory, observe, 0x140347u, rows + (previous & 0xffffu) * 0x18u + 0xcu, next);
-    } else {
-        const auto next = read(memory, record + 0xcu);
-        publish(memory, observe, 0x140350u, container + 0x3cu, next);
-    }
-    const auto next = read(memory, record + 0xcu);
-    if (next != 0xffffffffu) {
-        const auto pool = read(memory, container + 0x64u);
-        const auto rows = read(memory, pool + 0x44u);
-        const auto fresh_previous = read(memory, record + 0x10u);
-        publish(memory, observe, 0x14036cu, rows + (next & 0xffffu) * 0x18u + 0x10u, fresh_previous);
-    } else {
-        const auto fresh_previous = read(memory, record + 0x10u);
-        publish(memory, observe, 0x14037eu, container + 0x40u, fresh_previous);
-    }
-    const auto pool = read(memory, container + 0x64u);
-    native_tu15_data_array_delete(memory, pool, datum);
+    struct Access {
+        SourcePhysicsContactMemory &memory;const SourcePhysicsContactRecordObserver &observe;using P=NativeTu15PageRetirePhase;
+        std::uint32_t read(P,const NativeTu15PageRetirement&,std::uint32_t at){return halo2::read(memory,at);}
+        void write(P phase,const NativeTu15PageRetirement&,std::uint32_t at,std::uint32_t value){
+            const auto site=phase==P::previous_store?0x140347u:phase==P::head_store?0x140350u:phase==P::next_store?0x14036cu:0x14037eu;
+            publish(memory,observe,site,at,value);
+        }
+        void prepare(P,const NativeTu15PageRetirement&){}
+    }access{memory,observe};
+    struct Services {
+        SourcePhysicsContactMemory &memory;const SourcePhysicsContactRecordObserver &observe;
+        NativeTu15PageRetireResume callback(std::uint32_t owner,std::uint32_t datum,const NativeTu15PageRetirement &state){
+            if(owner!=0x12fd10u)throw NativeCampaignAiResourceRetirementRequiredOwnerTu15(owner,datum);
+            native_campaign_ai_unassociated_resource_retire_tu15(memory,datum,observe);return{state.owner,datum,state.record};
+        }
+        void erase(std::uint32_t pool,std::uint32_t datum,const NativeTu15PageRetirement&){native_tu15_data_array_delete(memory,pool,datum);}
+    }services{memory,observe};
+    NativeTu15PageRetirement state;state.owner=container;state.datum=datum;native_tu15_retire_page(access,state,services);
 }
 void native_campaign_ai_resource_backing_retire_tu15(SourcePhysicsContactMemory &memory,
     std::uint32_t user, const NativeCampaignAiResourceProtectionTu15 &protection,

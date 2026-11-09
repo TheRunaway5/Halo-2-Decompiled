@@ -19,6 +19,13 @@
 namespace halo2::path_tracing {
 namespace {
 constexpr std::size_t maximum_triangles=2'000'000,maximum_texels=16'777'216;
+// Source vertex IDs and GPU triangle material slots are uint32. Preserve that
+// identity namespace, including preloaded slots activated by later geometry.
+// VkPhysicalDeviceLimits::maxStorageBufferRange is a uint32 byte limit; the
+// upload owner additionally checks the selected device's actual lower limit
+// before replacing any buffer. A 16-bit slot cap has no corresponding owner.
+constexpr std::size_t maximum_materials=
+    std::numeric_limits<std::uint32_t>::max()/sizeof(GpuMaterial);
 // An emission.w pointer is stored as uintBitsToFloat(offset+1), so zero still
 // represents the legacy constant-only material interface. Record offsets are
 // relative to their own record, allowing a complete material allocation to move.
@@ -472,7 +479,7 @@ bool traces_material(const Material &material) {
         material.forward_vertex!=11;
 }
 Scene build_scene(std::span<const Vertex> vertices,std::span<const Material> materials,std::span<const Light> lights) {
-    if(vertices.size()%3 || vertices.size()/3>maximum_triangles || materials.size()>65536 || lights.size()>65536)
+    if(vertices.size()%3 || vertices.size()/3>maximum_triangles || materials.size()>maximum_materials || lights.size()>65536)
         throw FormatError("Path Tracing scene exceeds finite geometry/material/light limits");
     Scene scene;scene.materials.reserve(materials.size());
     // Unreferenced slots share one white placeholder. In particular, the

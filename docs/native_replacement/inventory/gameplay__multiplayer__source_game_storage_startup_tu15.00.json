@@ -1,0 +1,55 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15GameStartup.cmake",
+      "line": 1,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "run"
+      ],
+      "body_sha256": "9d5149cda7f4cfd039211229f4afb663659a9cc259714b0bdbfa3dfa5e60fe73",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run",
+      "instruction_callback_sites": 34,
+      "line": 10,
+      "literal_dispatch_required_targets": [
+        "126640",
+        "166a80",
+        "32b3d6"
+      ],
+      "observed_entry": "13a700",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "13a700",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "run",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/multiplayer/source_game_storage_startup_tu15.cpp",
+  "source_bytes": 3224,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "ef02e545697bb5067154e7457fa0c8904bff15d9305408cf54f0ba9b66364934"
+}

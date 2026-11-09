@@ -3,6 +3,8 @@
 #include "halo2/native_tu15_convex_agent_factory.hpp"
 #include "halo2/native_tu15_contact_shape.hpp"
 #include "halo2/native_tu15_activation_services.hpp"
+#include "halo2/native_tu15_phantom_callback_agent.hpp"
+#include "halo2/native_tu15_gameplay_phantom_enter.hpp"
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -26,6 +28,7 @@ inline NativeTu15ContactAgent native_tu15_create_bound_wrapped_contact_factory(
     NativeTu15WrappedFactoryBindingActivity local;auto&stats=activity?*activity:local;
     const auto shape_class=[&](auto,auto method,auto&)->std::uint32_t{
         ++stats.class_queries;
+        if(method.identity==0x308540u)return native_tu15_phantom_shape_class_22();
         if(method.identity==0xa9520u)return native_tu15_contact_child_class_23();
         if(method.identity==0xab4b0u)return native_tu15_contact_child_class_24();
         if(const auto kind=native_tu15_activation_type(method.identity))return *kind;
@@ -53,8 +56,24 @@ inline NativeTu15ContactAgent native_tu15_create_bound_wrapped_contact_factory(
                 if(target.identity==0x2f0eb0u){++stats.wrapped_calls;result=native_tu15_create_bv_contact_agent(memory,input,{slot},fp,services,observe);}
                 else if(target.identity==0x2f1cc0u){++stats.wrapped_calls;result=native_tu15_create_wrapped_contact_agent(memory,input,{slot},fp,services,observe);}
                 else{++stats.transformed_calls;result=native_tu15_create_transformed_contact_agent(memory,input,{slot,slot+16u},fp,services,observe);}
-            }else if(target.identity==0x2f9990u){
-                result=native_tu15_create_contact_agent(memory,NativeTu15ContactAgentFactory::owner_2f9990,
+            }else if(target.identity==0x2f78c0u){
+                NativeTu15PhantomCallbackAgentServices services;services.allocation=allocation;
+                services.classify_shape=shape_class;
+                services.enter=[&](auto shape,auto method,auto self,auto other,auto context,auto&state){
+                    if(method.identity!=0x1f34d0u){
+                        ++stats.unqualified_owners;
+                        throw std::runtime_error("Native wrapped factory requires qualified enter owner="+std::to_string(method.identity));
+                    }
+                    native_tu15_enter_gameplay_phantom(memory,shape.identity,self.identity,other.identity,
+                        context.identity,state,allocation,observe);
+                };
+                const NativeTu15PhantomCallbackAgentArguments next{input.first,input.second,input.context,input.user_data};
+                result=native_tu15_create_phantom_callback_agent(memory,next,fp,services,observe);
+            }else if(target.identity==0x2f9990u||target.identity==0x303c10u||target.identity==0x3040d0u){
+                const auto kind=target.identity==0x303c10u?NativeTu15ContactAgentFactory::owner_303c10:
+                    target.identity==0x3040d0u?NativeTu15ContactAgentFactory::owner_3040d0:
+                    NativeTu15ContactAgentFactory::owner_2f9990;
+                result=native_tu15_create_contact_agent(memory,kind,
                     NativeTu15ContactAgentFactoryArguments{input.user_data},fp,allocation,observe);
             }else if(target.identity==0x2e4eb0u){
                 ++stats.convex_calls;NativeTu15ConvexAgentServices services;services.allocation=allocation;services.shape_class=shape_class;

@@ -1,0 +1,34 @@
+{
+  "schema": "H2_TU15_CONFIRMED_SEARCH_CANCEL_CALLBACK_V1",
+  "passed": true,
+  "observed_utc": "2026-11-03T02:32:41.225298+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "callback": "0x25847e",
+  "cancellation_flag": "0x52d729",
+  "manager_request_gate": "0x5a280",
+  "session_request_gate": "0x195135",
+  "confirmed_dialog_callback_pointer_push": "0x258502",
+  "original_cases": 512,
+  "original_endpoints": {
+    "returned_success": 408,
+    "session_request": 40,
+    "manager_request": 32,
+    "first_manager_call": 32
+  },
+  "original_addresses": 65,
+  "original_code_digest": "e6708994dc4446e2d2c0109a465982b9915fbd1e62889cc1e824c941c7f67309",
+  "controls_sha256": "14af7954edd63cc23f9be190389205eda5ee1bc4f1fcdf934868b4b8244408da",
+  "flag_set_before_both_request_gates": true,
+  "manager_or_session_boundaries": [
+    "0x77ab0",
+    "0x5b390",
+    "0x5bea0"
+  ],
+  "network_owner_bodies_executed": false,
+  "all_executed_instruction_bytes_verified": true,
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "declared_synthetic_session_banks": true,
+  "tool_sha256": "d88f43c09ee02b3d994d03610fb44c232fa5ae3cc4be9fbd891202624f8f6c80",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-oracle-20261102/halo2-test-zxrcfdlz"
+}

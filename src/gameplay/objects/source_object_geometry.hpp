@@ -61,6 +61,7 @@ public:
         out.selections=view_selection;out.previous_lod=previous_lod;return out;
     }
     void exchange_presentation(PresentationState &state)noexcept {
+        pose_publications.fill({});
         static_assert(std::is_nothrow_swappable_v<PresentationState>);
         for(unsigned n=0;n<6;++n){lods[n].vertices.swap(state.vertices[n]);lods[n].palette.swap(state.palettes[n]);std::swap(lods[n].deferred,state.deferred[n]);}
         active_sections.swap(state.active_sections);views.swap(state.views);
@@ -101,6 +102,15 @@ public:
     // return-vector copy. Geometry retains its own material-remapped bank;
     // no borrowed span survives the callback or enters a checkpoint.
     void pose_world_lod_view(unsigned lod,const std::function<ModelSkinWorldPoseView(const RenderModel &)> &);
+    struct CachedWorldPose {
+        ModelSkinWorldPoseView pose;
+        const void *owner{};
+        std::uint64_t publication{};
+    };
+    // The producer still samples WORLD and runs its native FP-effects gate.
+    // Only a bank already published from that exact result may skip its copy.
+    void pose_world_lod_cached_view(unsigned lod,
+        const std::function<CachedWorldPose(const RenderModel &)> &,bool verify=false);
     // The renderer-deformed geometry of a view whose selected LOD bank is
     // deferred; null when that bank holds WORLD records.
     std::shared_ptr<ModelSkinGeometry> view_skin(unsigned view_index,std::uint32_t owner,
@@ -136,6 +146,11 @@ public:
     void rebase_materials(unsigned before,unsigned after);
     unsigned first_material{},material_count{};
 private:
+    struct PosePublication {
+        const void *owner{};std::uint64_t publication{};
+        friend bool operator==(const PosePublication &,const PosePublication &)=default;
+    };
+    std::array<PosePublication,6> pose_publications{};
     struct LodChoice {SourceObjectLodInput input;SourceGeometryLodChoice choice;unsigned lod{};};
     LodChoice lod_choice(std::size_t,std::uint32_t,Vec3,float,const SourceObjectViewLod &,
                          const std::array<std::int8_t,4> &)const;

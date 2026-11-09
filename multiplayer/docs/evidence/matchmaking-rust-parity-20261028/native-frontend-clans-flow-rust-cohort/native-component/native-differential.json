@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "cases": 6876,
+  "native_io_observations": 5071,
+  "rust_state_reentries": 5071,
+  "fault_controls": 88,
+  "preserved_native_exception_identity": 88,
+  "differences": [],
+  "undefined_cpp_inputs_excluded": true,
+  "native_sha256": "270622a944da64c980370aeb924782ad15f666c4ec97846120dfc8d10f9f6568",
+  "scope": "Complete captured modern clan caller vs actual production Rust/CXX IO.\n\nProviders, resources and navigation are controlled; cached unrelated data,\ncallback-boundary state, exception identity and reentry are compared. Only the\nclan-page branch of auxiliary is wrapped, with void return mapped to handled.\nOriginal Xbox callers/Live providers and installed-client delivery stay open.\nC++ out-of-bounds command/role lookups, empty-body i=1 modulo zero and malformed\nnonprogressing page loops are excluded; separate Rust controls require errors.\n"
+}

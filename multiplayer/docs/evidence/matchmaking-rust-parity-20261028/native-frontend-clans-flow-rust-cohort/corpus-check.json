@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "cases": 6876,
+  "scoped_presence_enum_fixed_int_domain_preserved": true,
+  "source_sha256": "d2590f135e70ad6bc11dc3638730de2f315d5e7ab592578d3bc7af77f7326a7f",
+  "runtime_validation_not_run": true
+}

@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_contact_shape.hpp"
+#include "halo2/native_tu15_polygon_support_value.hpp"
 #include <bit>
 #include <cstring>
 #include <stdexcept>
@@ -118,15 +119,8 @@ void native_tu15_contact_shape_support(SourcePhysicsContactMemory&memory,
         m.vector(0x3067bfu,output,value);m.word(0x3067c2u,output+0xcu,feature|0x3f000000u);return;
     }
     if(owner.identity==0x1f6610u){
-        const auto count=m.word(shape.identity+0x14u);auto best=scalar(m.word(0x44aac8u));std::uint32_t selected{};
-        if(signed_positive(count)){
-            const auto input=m.vector(direction);for(std::uint32_t n=0;n<count;++n){
-                const auto vertex=m.vector(shape.identity+0x20u+n*16u),product=multiply(vertex,input);
-                const auto xy=add_scalar(_mm_shuffle_ps(product,product,0x55),product),dot=add_scalar(_mm_shuffle_ps(product,product,0xaa),xy);m.word(0x1f6656u,scratch.scalar,low(dot));
-                const auto candidate=scalar(m.word(scratch.scalar));if(simd_greater(candidate,best)){best=candidate;selected=n;}
-            }
-        }
-        m.vector(0x1f6681u,output,m.vector(shape.identity+(selected+2u)*16u));return;
+        native_polygon_support_detail::ValueFrame frame{m,environment,shape.identity,direction,output,scratch.scalar};
+        native_polygon_support_detail::Progress data;native_polygon_support_detail::support(frame,data);return;
     }
     if(owner.identity==0x3077f0u){
         const auto coordinates=m.word(shape.identity+0x30u),count=m.word(shape.identity+0x34u)<<2u;

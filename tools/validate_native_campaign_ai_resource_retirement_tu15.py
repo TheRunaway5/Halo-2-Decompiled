@@ -10,9 +10,17 @@ def main():
  for name in names:
   dest=project/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,dest)
  core=(project/names[3]).read_text();variants={}
- pairs=[('skip_real_protection','protection.protect_pages(protected_address, protected_bytes, 0x404u);','(void)protection;'),('skip_delete_callback','native_campaign_ai_unassociated_resource_retire_tu15(memory, datum, observe);','(void)datum;'),('cache_deleted_container_pool','const auto pool = read(memory, container + 0x64u);\n    native_tu15_data_array_delete(memory, pool, datum);','native_tu15_data_array_delete(memory, initial_pool, datum);'),('late_container_read','container = read(memory, 0x4f2d34u);\n        publish(memory, observe, 0x13007du, next + 0x20u, previous);','publish(memory, observe, 0x13007du, next + 0x20u, previous);\n        container = read(memory, 0x4f2d34u);'),('invent_gpu_completion','if (read(memory, record + 0x10u))','if (read(memory, record + 0x10u) && false)'),('wrong_terminal_neighbor','0x130094u, 0x4f2d2cu, previous','0x130094u, 0x4f2d2cu, next')]
+ pairs=[('skip_real_protection','protection.protect_pages(protected_address, protected_bytes, 0x404u);','(void)protection;'),('skip_delete_callback','native_campaign_ai_unassociated_resource_retire_tu15(memory,datum,observe);','(void)datum;'),('late_container_read','container = read(memory, 0x4f2d34u);\n        publish(memory, observe, 0x13007du, next + 0x20u, previous);','publish(memory, observe, 0x13007du, next + 0x20u, previous);\n        container = read(memory, 0x4f2d34u);'),('invent_gpu_completion','if (read(memory, record + 0x10u))','if (read(memory, record + 0x10u) && false)'),('wrong_terminal_neighbor','0x130094u, 0x4f2d2cu, previous','0x130094u, 0x4f2d2cu, next')]
  for name,needle,replacement in pairs:
   assert core.count(needle)==1,(name,core.count(needle));variants[name]=core.replace(needle,replacement)
+ # This control belongs to the shared DATA owner after extraction. Give
+ # only its owned mutant translation unit a distinct header, preserving all
+ # original sources and the production kernel used by every other case.
+ kernel='include/halo2/native_tu15_page_retire_kernel.hpp';kernel_text=(project/kernel).read_text()
+ needle='s.erase_pool=memory.read(P::delete_pool,s,s.owner+0x64u);';assert kernel_text.count(needle)==1
+ mutant_header=project/'include/halo2/native_tu15_page_retire_cached_pool_mutant.hpp'
+ mutant_header.write_text(kernel_text.replace(needle,'s.erase_pool=s.pool;',1))
+ variants['cache_deleted_container_pool']=core.replace('"halo2/native_tu15_page_retire_kernel.hpp"','"halo2/native_tu15_page_retire_cached_pool_mutant.hpp"',1)
  for name,text in variants.items():(project/f'src/campaign/ai/{name}.cpp').write_text(text)
  (project/'negative.py').write_text('''import subprocess,sys
 r=subprocess.run([sys.executable,sys.argv[1],'--probe',sys.argv[2],'--fixture',sys.argv[3]],text=True,capture_output=True)
@@ -37,7 +45,7 @@ target_compile_features(resource_{name} PRIVATE cxx_std_20)
 target_link_libraries(resource_{name} PRIVATE halo2_native_tu15_data_array_delete halo2_snapshot_storage nlohmann_json::nlohmann_json)
 add_test(NAME resource_{name} COMMAND "${{Python3_EXECUTABLE}}" "${{CMAKE_CURRENT_SOURCE_DIR}}/negative.py" "${{CMAKE_CURRENT_SOURCE_DIR}}/tools/test_native_campaign_screen_lifecycle_tu15.py" "$<TARGET_FILE:resource_{name}>" "${{CMAKE_CURRENT_SOURCE_DIR}}/tests/fixtures/native_campaign_ai_resource_retirement_tu15.json.gz")
 '''
- (project/'CMakeLists.txt').write_text(cmake);results=[];pins={name:sha(ROOT/name)for name in names};pins.update({str(path.relative_to(ROOT)):sha(path)for path in(ROOT/'include/halo2/native_campaign_ai_resource_retirement_tu15.hpp',ROOT/'include/halo2/physics_contact_record.hpp',ROOT/'include/halo2/source_runtime_memory.hpp',ROOT/'include/halo2/source_runtime_host_physical_memory.hpp',Path(__file__))})
+ (project/'CMakeLists.txt').write_text(cmake);results=[];pins={name:sha(ROOT/name)for name in names};pins.update({str(path.relative_to(ROOT)):sha(path)for path in(ROOT/'include/halo2/native_campaign_ai_resource_retirement_tu15.hpp',ROOT/'include/halo2/native_tu15_page_retire_kernel.hpp',ROOT/'include/halo2/native_tu15_datum_delete_kernel.hpp',ROOT/'include/halo2/physics_contact_record.hpp',ROOT/'include/halo2/source_runtime_memory.hpp',ROOT/'include/halo2/source_runtime_host_physical_memory.hpp',Path(__file__))})
  for kind,compiler,sanitizers in [('normal','g++',False),('sanitizers','g++',True),('clang-controls','clang++',False)]:
   command=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/kind),'--target','native_campaign_ai_resource_retirement_tu15_tests','--filter','^(native_campaign_ai_resource_retirement_tu15|resource_)'if kind=='clang-controls'else'^native_campaign_ai_resource_retirement_tu15$','--jobs','2','--test-jobs','1','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,'--retain-report','Testing/Temporary/LastTest.log']
   if kind=='clang-controls':

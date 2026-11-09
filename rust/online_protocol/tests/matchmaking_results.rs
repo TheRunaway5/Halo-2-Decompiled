@@ -159,6 +159,9 @@ fn membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate
         snapshot(&mut c, &id)["quarantined"],
         "conflicting-confirmation"
     );
+    let quarantined = snapshot(&mut c, &id);
+    assert_eq!(confirm(&mut c, &id, "p0", &digest).unwrap(), quarantined);
+    assert_eq!(snapshot(&mut c, &id), quarantined);
     assert!(confirm(&mut c, &id, "p1", &digest).is_err());
     assert!(c.result_commit_context(id.as_str().unwrap()).is_err());
 }

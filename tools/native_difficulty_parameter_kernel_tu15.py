@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 
 from weapon_test_cache import sha
+from native_selected_operand_binding import require_selected_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 INCLUDE = '// BEGIN native difficulty parameter include\n#include "gameplay/objects/source_difficulty_parameter_native_tu15_internal.hpp"\n// END native difficulty parameter include\n'
@@ -20,6 +21,14 @@ PINS = {
     'delivery': {0x1ed030: '66215c67167e49cb6f8349ccc14c9bb0baf153a93195e9771a6b5e478db49a99',
                  0x1ed090: 'd4a7ecac1bdcaaa14dde77ca022cb89fee8a96b0fe3323f54991da35e4b6bef7'},
 }
+# Exact literal TU1.5 operands emitted by the current shared generator. These
+# whole-body pins replace only already-authenticated selected(identity) calls;
+# canonical/delivery relocations retain their separately qualified bodies.
+LITERAL_ACTUAL_PINS = {
+    0x1f1950: 'bbb9dd9658aad1052fa584d722a3b22f4ab37bcd0ae86600198e3130b202fec5',
+    0x1f19b0: '3640ee34e3213d23f41a5a9e7cd9adf0f204c714195683a8af1d9a8a40fcf3ec',
+}
+ACTUAL_RESOLVER_PINS = {'5eab69b03c4be4556290b5ba3e7765897c12d0064ea5b20267317b365ea4a657'}
 
 
 def route(entry, kind):
@@ -53,8 +62,12 @@ def install_native_difficulty_routes(source, kind):
         if anchor not in source: continue
         if source.count(anchor) != 1: raise ValueError('Duplicate difficulty owner')
         start = source.index(anchor); end = source.index('\n}', start) + 2
-        if hashlib.sha256(source[start:end].encode()).hexdigest() != pin:
+        original=source[start:end]
+        allowed={pin}
+        if kind=='actual':allowed.add(LITERAL_ACTUAL_PINS[entry])
+        if hashlib.sha256(original.encode()).hexdigest() not in allowed:
             raise ValueError('Complete qualified difficulty literal body changed: ' + hex(entry))
+        if kind=='actual':require_selected_identity(source,original,ACTUAL_RESOLVER_PINS)
         source = source.replace(anchor, anchor + route(entry, kind), 1); found += 1
     if found not in (1, 2): raise ValueError('No qualified difficulty owner in composition')
     return INCLUDE + source

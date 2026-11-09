@@ -1,0 +1,393 @@
+{
+  "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/PhysicsVehicleMotionMath.cmake",
+      "line": 2,
+      "target": "halo2_physics_vehicle_motion_math"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_vehicle_motion_math::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f7b4304c3f1a4fa5df8ac4daf872137f732225bfd6fa1d8c73315138f54a7b02",
+      "selected_resolver_sha256": "e619fa5505d32593b7c76e8c653ce60b5b044a75ed979d996344a806483f41c2"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f7b4304c3f1a4fa5df8ac4daf872137f732225bfd6fa1d8c73315138f54a7b02",
+      "selected_resolver_sha256": "e619fa5505d32593b7c76e8c653ce60b5b044a75ed979d996344a806483f41c2"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_vehicle_motion_math"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 16,
+  "routines": [
+    {
+      "body_sha256": "440f191049022e65938a272ff5484dd59f649cf855dc3b181edc34f8de01fbe2",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "327855",
+        "327866"
+      ],
+      "function_name": "run_183c50",
+      "instruction_callback_sites": 76,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "183c50",
+        "tu15": "185070"
+      },
+      "line": 37,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "185070",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "185070",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "183c50",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "5dd1572a1d0e5499850d41a2dfd284b4728419df94f3fe33db68bc658d96af28",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_3276fc",
+      "instruction_callback_sites": 55,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "3276fc",
+        "tu15": "32b26c"
+      },
+      "line": 117,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32b26c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32b26c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "3276fc",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "46b687437a8c77eac8f06209b0e1fea13de9687dd59cbe7ae4ada026ec0fff06",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32778e",
+      "instruction_callback_sites": 49,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32778e",
+        "tu15": "32b2fe"
+      },
+      "line": 176,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32b2fe",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32b2fe",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32778e",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b48b6c5a6473ca9e927500f4c250c94ec0e3d04d504f6fe897ec358cb429d398",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32781c",
+      "instruction_callback_sites": 22,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32781c",
+        "tu15": "32b38c"
+      },
+      "line": 229,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32b38c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32b38c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32781c",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "0a1e4a5db35b48f03a47929953af989a8dfb6f6ff036d2579d02bc68eaca387c",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "32781c"
+      ],
+      "function_name": "run_327855",
+      "instruction_callback_sites": 8,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "327855",
+        "tu15": "32b3c5"
+      },
+      "line": 255,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32b3c5",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32b3c5",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "327855",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "0718598fc255f15e7027c256b305e5ec7bc2fe7e2a1455d6665ba6b8efd5c5d7",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "3276fc",
+        "32778e"
+      ],
+      "function_name": "run_327866",
+      "instruction_callback_sites": 22,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "327866",
+        "tu15": "32b3d6"
+      },
+      "line": 267,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32b3d6",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32b3d6",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "327866",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "3d84e39704685bef35ebd357a761bf957c57b01a8849122dc4a97465a60bba7c",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e35b",
+      "instruction_callback_sites": 45,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e35b",
+        "tu15": "331ecb"
+      },
+      "line": 293,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "331ecb",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "331ecb",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e35b",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "7102241ec83feadafa143001ac47af8a9649869367ef751c84cff6e500c4f19b",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e3f8",
+      "instruction_callback_sites": 4,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e3f8",
+        "tu15": "331f68"
+      },
+      "line": 342,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "331f68",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "331f68",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e3f8",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "92bc65bc550e9cc67cbfe9f342ea902c1c426b4abb72be8f71dcdec22bf1db94",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e431",
+      "instruction_callback_sites": 10,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e431",
+        "tu15": "331fa1"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "331fa1",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "331fa1",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e431",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b57d8ccdbb053584f25ba41f1d89dd9ed541adf492aa01232287fde0aaf49107",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e433",
+      "instruction_callback_sites": 9,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e433",
+        "tu15": "331fa3"
+      },
+      "line": 364,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "331fa3",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "331fa3",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e433",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "8f023168ef13b6e4592c28f4b63b00b861cb67fa26ee7d9c31d052b6bdec7a1a",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e45b",
+      "instruction_callback_sites": 14,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e45b",
+        "tu15": "331fcb"
+      },
+      "line": 377,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "331fcb",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "331fcb",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e45b",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "6571b69e41e28e5c03396227e0171e5b720549e8be94fa0b9f8c00ab0f618acb",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_32e49a",
+      "instruction_callback_sites": 8,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32e49a",
+        "tu15": "33200a"
+      },
+      "line": 395,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "33200a",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "33200a",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "32e49a",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "946d2027e20302934800563c7ab3f3ef11e4482a5ffd01fe100046a8140bbfb9",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "32e35b",
+        "379a86"
+      ],
+      "function_name": "run_3799bc",
+      "instruction_callback_sites": 20,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "3799bc",
+        "tu15": "37d46c"
+      },
+      "line": 407,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "37d46c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37d46c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "3799bc",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "4fc94b55c7d09e804fbca80a2e02c82c8529a312667bb69cdbaa21b526828463",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_379a86",
+      "instruction_callback_sites": 99,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "379a86",
+        "tu15": "37d536"
+      },
+      "line": 431,
+      "literal_dispatch_required_targets": [
+        "3334f0"
+      ],
+      "observed_entry": "37d536",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37d536",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "379a86",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "67a8cafda3ab855431e666f41023e969069d1067bfe7e0923fcd2191ef52af4a",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "3799bc"
+      ],
+      "function_name": "run_37a15a",
+      "instruction_callback_sites": 2,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "37a15a",
+        "tu15": "37dc0a"
+      },
+      "line": 534,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "37dc0a",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37dc0a",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "37a15a",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "39a20f7cd3d4cbf668d192b7a2f4718626c49736fe497ad916e3dba0306673ea",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_37a164",
+      "instruction_callback_sites": 9,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "37a164",
+        "tu15": "37dc14"
+      },
+      "line": 540,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "37dc14",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37dc14",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "37a164",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/vehicles/physics_vehicle_motion_math_generated.cpp",
+  "source_bytes": 91637,
+  "source_filename_scope": "generated",
+  "source_sha256": "bb316371a85546394319c3eefef2a6713f72416bd04c5ccd8869ab15decd5bb0"
+}

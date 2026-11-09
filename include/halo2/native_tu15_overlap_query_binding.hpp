@@ -7,8 +7,8 @@
 namespace halo2 {
 struct NativeTu15OverlapQueryBindingScratch {std::uint32_t first{},bytes{};};
 struct NativeTu15OverlapQueryBindingStats {
-    std::uint64_t calls{},completed{},refusals{},wrapped{},reversed{},convex{},empty{},
-        pair_callbacks{},reversed_pair_callbacks{},marked_pairs{};
+    std::uint64_t calls{},completed{},refusals{},wrapped{},reversed{},convex{},sphere{},sphere_capsule{},reversed_sphere_capsule{},empty{},
+        pair_callbacks{},reversed_pair_callbacks{},object_pair_callbacks{},marked_pairs{};
 };
 // Typed query composition only. Its caller owns the same guarded memory for
 // every parent, solver and result consumer, and supplies the genuine native
@@ -35,7 +35,8 @@ public:
          observe_(observe),pair_observe_(std::move(pair_observe)),stats_(stats){}
     static bool owns(NativeTu15PhysicsVirtualOwner owner){
         return owner.identity==0x2f73c0u||owner.identity==0x2f6f40u||
-            owner.identity==0x2f8410u||owner.identity==0x8eb50u;
+            owner.identity==0x2f8410u||owner.identity==0x2f9ca0u||
+            owner.identity==0x2fa9a0u||owner.identity==0x2fab70u||owner.identity==0x8eb50u;
     }
     void collect(NativeTu15ContactQueryCollector receiver,
         NativeTu15PhysicsVirtualOwner owner,NativeTu15PhysicsBody first,
@@ -45,6 +46,10 @@ public:
         if(owner.identity==0x30ba80u){
             native_tu15_mark_contact_pair(memory_,receiver,observe_);
             if(stats_)++stats_->marked_pairs;return;
+        }
+        if(owner.identity==0x1cdfa0u){
+            native_tu15_collect_object_overlap_pair(memory_,receiver,second,observe_);
+            if(stats_)++stats_->object_pair_callbacks;return;
         }
         if(owner.identity!=0x30b960u)
             throw std::runtime_error("Native overlap query requires its current pair collector owner="+
@@ -76,12 +81,28 @@ public:
                     std::numeric_limits<std::uint32_t>::max())
                 throw std::runtime_error("Native overlap query exhausted caller-owned DATA");
             const auto slot=scratch_.first+std::uint32_t(offset);Depth depth(depth_);
-            if(owner.identity==0x2f8410u){
-                if(stats_)++stats_->convex;
+            if(owner.identity==0x2f8410u||owner.identity==0x2f9ca0u||
+                owner.identity==0x2fa9a0u||owner.identity==0x2fab70u){
                 auto services=services_;
                 services.collect=[&](auto target,auto method,auto a,auto b,auto&context){collect(target,method,a,b,context);};
-                native_tu15_query_convex_overlap(memory_,receiver,first,second,configuration,
-                    collector,{slot+16u},fp,0,services,observe_);
+                if(owner.identity==0x2fa9a0u||owner.identity==0x2fab70u){
+                    const NativeTu15SphereCapsuleOverlapQueryScratch data{slot+0x40u,slot+0x10u,slot+0x98u};
+                    if(stats_)++stats_->sphere_capsule;
+                    if(owner.identity==0x2fab70u){
+                        if(stats_)++stats_->reversed_sphere_capsule;
+                        native_tu15_query_reversed_sphere_capsule_overlap(memory_,first,second,
+                            collector,data,fp,0,services,observe_);
+                    }else native_tu15_query_sphere_capsule_overlap(memory_,first,second,
+                        collector,data,fp,0,services,observe_);
+                }else if(owner.identity==0x2f9ca0u){
+                    if(stats_)++stats_->sphere;
+                    native_tu15_query_sphere_overlap(memory_,first,second,collector,
+                        {slot+16u},fp,0,services,observe_);
+                }else{
+                    if(stats_)++stats_->convex;
+                    native_tu15_query_convex_overlap(memory_,receiver,first,second,configuration,
+                        collector,{slot+16u},fp,0,services,observe_);
+                }
             } else {
                 NativeTu15ConditionalContactServices children;
                 children.query=[&](auto child,auto method,auto a,auto b,auto settings,auto output,auto&context){

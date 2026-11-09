@@ -138,7 +138,7 @@ impl Default for Controller {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ui {
     ClearSnapshot,
-    NoService,
+    NoService(Vec<u8>),
     Failure(Vec<u8>),
     ClearFailure,
     ModeOnline,
@@ -154,7 +154,7 @@ pub enum Ui {
     Sound(u32),
     Render(u32),
     Unavailable(Vec<u8>),
-    PlaylistError,
+    PlaylistError(Vec<u8>),
 }
 pub trait Io {
     fn context(&self) -> Result<Context>;
@@ -440,11 +440,39 @@ impl Controller {
         }
         self.update(io)
     }
+    pub fn cancel_and_return(&self, io: &impl Io) -> Result<()> {
+        self.quick(false);
+        if io.context()?.queue {
+            io.cancel()?;
+        }
+        let mut context = io.context()?;
+        self.reset_progress(context.clock);
+        // TU1.5's confirm callback (0x25847E) marks cancellation before the
+        // network requests. Trim to ONLINE or keep the root in a preview.
+        while context.frames.len() > 1 && context.top() != 186 {
+            io.ui(Ui::PopTop)?;
+            context = io.context()?;
+        }
+        if context.mode == 3 {
+            io.ui(Ui::OpenLobby)?;
+            io.ui(Ui::EnterLobby)
+        } else {
+            io.ui(Ui::Revision)
+        }
+    }
+
     pub fn select(&self, index: u32, io: &impl Io) -> Result<()> {
         let view = io.view()?;
         if let Some(p) = view.playlists.get(index as usize) {
             if !p.eligible {
-                io.ui(Ui::PlaylistError)?;
+                io.ui(Ui::PlaylistError(
+                    concat!(
+                        "This playlist is unavailable for your ONLINE client, party, or installed maps. ",
+                        "Use an updated ONLINE build and check the playlist's party and map requirements."
+                    )
+                    .as_bytes()
+                    .to_vec(),
+                ))?;
                 return Ok(());
             }
             self.edit(|s| s.selected = p.id.clone());
@@ -576,7 +604,9 @@ impl Controller {
             let revision = io.view()?.revision;
             changed = io.pull_after(revision)?
         } else if io.view()?.message_empty {
-            io.ui(Ui::NoService)?;
+            io.ui(Ui::NoService(
+                b"No matchmaking service configured.".to_vec(),
+            ))?;
             changed = true
         }
         let v = io.view()?;

@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "exit_code": 0,
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "236e294b42fe02ef9d4ca88ce79679e38074d2fe8a08834da825fc0a75b6ac0f",
+    "tools/build_online_protocol_rust.py": "26d793ab61a0bd173321eb324ba6ca0241a176fd05916648bd5286d8f7e3e88c"
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-stager-20261102/halo2-test-1yc_fjsh",
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "H2_MATCHMAKING_NATIVE_TWO_PLAYER_REQUEUE_LINUX_V1",
+  "scope": "Frozen native Linux Debug clients and isolated loopback Rust policy through the existing HTTP test adapter. Two ranked physical owners, an eight-second validation rule, fixture Discord grants, synthetic audio devices. Production service, original Xbox wire, installed client and broader parity are open.",
+  "passed": true,
+  "source_pin_sha256": "5f432af4fe68a7b96eaf497d9b622506d3c5d886d508bf81fdd5653c5fc64141",
+  "refreshed": [
+    {
+      "path": "tests/online_match_launch_http_test.py",
+      "before": "fb8c9cb4a8df30fb334b08123da526358dc0893acef92ac81c4ed8044e82acc9",
+      "after": "0db46e8d325873bdb58f15d304c3362f59af800557b0617ec862c4204cae4da6"
+    }
+  ],
+  "binaries": {
+    "online_match_launch_tests": {
+      "sha256": "a772ecfa3483a5b4c534bda39a98ad10b3b395a3d6d01cbe5d1f51e3fa283e82",
+      "bytes": 1397827688
+    }
+  },
+  "ctest_output_sha256": "531e64a9e0d3137cdbb4a212d9860f0ba60b0a92cb36e08e3cdb839265c2d1bb",
+  "full_log_sha256": "decc4635ee435841d200625ef4ec9cf3ba8d853cdf647291f3024c5e08d75a1a",
+  "full_log_bytes": 6225,
+  "ctest_results": [
+    "1/1 Test #817: online_match_launch ..............   Passed  132.29 sec"
+  ],
+  "native_observations": [
+    "Observed native host roster=2 tick=210 moved=1 minimum_loaded=0 audible=227 before_unmute=142 captures=321",
+    "PASS passive postgame voice across teams without world positions; mutual mute/unmute and actual talking state",
+    "PASS abandoned transferred queue -> Ready -> retained lobby Start -> fresh authenticated matched handoff",
+    "PASS completed match -> actual Vista PCR16 -> Done -> prior stats -> same lobby Start -> retained hopper -> fresh matched room",
+    "PASS disconnect before native world handoff -> clean return without postgame fabrication",
+    "PASS matched native host players=2 tick=210 moved=1 minimum_loaded=0 audible_frames=534; opt-in, radio, direct UDP, mute/unmute, speaker labels and queue teardown",
+    "Observed native client roster=2 tick=210 moved=1 minimum_loaded=0 audible=227 before_unmute=143 captures=323",
+    "PASS passive postgame voice across teams without world positions; mutual mute/unmute and actual talking state",
+    "PASS abandoned transferred queue -> Ready -> retained lobby Start -> fresh authenticated matched handoff",
+    "PASS completed match -> actual Vista PCR16 -> Done -> prior stats -> same lobby Start -> retained hopper -> fresh matched room",
+    "PASS matched native client players=2 tick=210 moved=1 minimum_loaded=0 audible_frames=533; opt-in, radio, direct UDP, mute/unmute, speaker labels and queue teardown",
+    "PASS native matched-room countdown recovery after one failed service poll per player",
+    "PASS 2-process Discord-authorized matchmaking -> measured preflight -> direct peer UDP native match/voice -> unanimous persisted result -> cleanup"
+  ],
+  "source_accuracy": [
+    {
+      "authority": true,
+      "mode": "core",
+      "native_hits": 0,
+      "native_shots": 120,
+      "native_source_engine": true,
+      "original_bank_equal": true,
+      "owner": "one",
+      "recording_enabled": 1,
+      "recording_frozen": 1,
+      "terminal_accuracy_equal": true,
+      "tick": 450
+    }
+  ],
+  "exactly_one_persisted_ranked_result_assertion_passed": true,
+  "fixture_rate_per_minute": {
+    "identity": 100000,
+    "prefix": 100000,
+    "global_requests": 100000
+  },
+  "retained_generated_large_artifacts": []
+}

@@ -289,6 +289,34 @@ def _check(root, runtime, cache, *, frontend=False, owner=None):
         owner = _runtime_owner(root, runtime, frontend=frontend)
     if owner['runtime'] != Path(runtime).resolve(strict=True):
         raise ValueError('Native-test resource admission changed its runtime owner')
+    adjacent_capability_pin = owner['capability_sha256']
+    # A rebuilt cache proof belongs to one executable. Other qualified
+    # runtimes sharing the cache must prove these assets with their own proof.
+    cache_capability = cache / 'frontend-runtime-capability.json'
+    cache_capability_pin = None
+    if frontend and (cache_capability.exists() or cache_capability.is_symlink()):
+        if cache_capability.is_symlink() or not cache_capability.is_file() or cache_capability.stat().st_size > 65536:
+            raise ValueError('Rebuilt cache lost its bounded frontend proof')
+        cache_capability_pin = _file_digest(cache_capability)
+        rebuilt = json.loads(cache_capability.read_bytes())
+        if (rebuilt.get('schema') != FRONTEND_SCHEMA or rebuilt.get('capability') != FRONTEND_CAPABILITY or
+                rebuilt['validation'].get('passed') is not True or
+                rebuilt['validation'].get('scope') != FRONTEND_SCOPE or
+                not isinstance(rebuilt['runtime'].get('path'), str) or not rebuilt['runtime']['path']):
+            raise ValueError('Rebuilt cache lost its validated frontend owner')
+        _digest(rebuilt['validation']['report_sha256'])
+        _digest(rebuilt['runtime']['sha256'])
+        if rebuilt['runtime']['path'] == owner['report']['runtime']['path']:
+            if any(rebuilt.get(key) != owner['report'].get(key) for key in
+                   ('runtime', 'shaders', 'eos_worker', 'runtime_adjacent_data', 'packaging')):
+                raise ValueError('Rebuilt cache cannot change its validated executable/shader owner')
+            owner = {**owner, 'report': rebuilt, 'capability_sha256': cache_capability_pin}
+            from custom_asset_cache import MANIFEST, SCHEMA as CUSTOM_SCHEMA, verify as verify_bundle
+            validation = owner['report']['validation']
+            if (validation.get('custom_asset_cache_profile') != CUSTOM_SCHEMA or
+                    _file_digest(cache / MANIFEST) != validation.get('custom_asset_cache_sha256')):
+                raise ValueError('Rebuilt cache lost its qualified custom asset bundle')
+            verify_bundle(root, cache, json.loads((cache / 'provenance.json').read_bytes()))
     report = owner['report']
     bitmap = report["map"]
     expected_map = FRONTEND_MAP if frontend else MAP
@@ -337,6 +365,13 @@ def _check(root, runtime, cache, *, frontend=False, owner=None):
             path = cache / name
             if not path.resolve(strict=True).is_relative_to(cache) or _file_digest(path) != _digest(expected):
                 raise ValueError("Frontend MCC resource changed")
+        if ((cache_capability.exists() or cache_capability.is_symlink()) != (cache_capability_pin is not None) or
+                (cache_capability_pin is not None and _file_digest(cache_capability) != cache_capability_pin)):
+            raise ValueError('Rebuilt cache capability changed during admission')
+        adjacent = owner['runtime'].with_name(owner['runtime'].name + '.frontend-test.json')
+        if _file_digest(adjacent) != adjacent_capability_pin:
+            raise ValueError('Executable frontend capability changed during admission')
+    return owner
 
 
 def native_gameplay_test_available(root, runtime, cache):

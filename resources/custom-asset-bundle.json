@@ -1,0 +1,18 @@
+{
+  "schema": "H2_PORT_CUSTOM_ASSET_BUNDLE_V1",
+  "version": "2026-11-02.1",
+  "maps": ["dire_valley", "deserted"],
+  "game_modes": ["fiesta-slayer-v1", "infection-slayer-v1", "bomb-defusal-v1"],
+  "controller_families": ["xbox", "playstation"],
+  "celestial_slots": [43, 44, 45, 46, 47, 48, 49],
+  "policy": {
+    "button_pixels": "port-authored-only",
+    "mcc_button_fallback": false,
+    "celestial_ranks": "port-authored-only",
+    "numeric_ranks": "MCC-original"
+  },
+  "notes": {
+    "dire_valley": "Danger Canyon remake; compiled content and native map card.",
+    "deserted": "User-approved v9 compiled preview; replace the complete source cohort after final polish."
+  }
+}

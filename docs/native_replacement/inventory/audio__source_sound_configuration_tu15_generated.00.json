@@ -1,0 +1,114 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/NativeTu15SoundConfigurationCpu.cmake",
+      "line": 3,
+      "target": "halo2_sound_configuration_cpu_tu15"
+    }
+  ],
+  "configured_production_scope": "excluded",
+  "configured_production_target_ids": [],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "da2516aaa8aa2c9de20e52450d2c2ef3d31fe4d4bebcb67088accc2505fa2bf0",
+      "selected_resolver_sha256": "70b0cefb9db4b87ce45847c1ad3fd915be876c3cc46f13f9978fce27b942d334"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "da2516aaa8aa2c9de20e52450d2c2ef3d31fe4d4bebcb67088accc2505fa2bf0",
+      "selected_resolver_sha256": "70b0cefb9db4b87ce45847c1ad3fd915be876c3cc46f13f9978fce27b942d334"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [],
+  "production_scope": "registered_outside_static_production_closure",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "2a0a15a8db21bf1a04c2f17f95dcb99e6a0b55b571312fd20d754b7b06a97077",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "38e75b"
+      ],
+      "function_name": "run_388a1d",
+      "instruction_callback_sites": 37,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "388a1d",
+        "tu15": "388a1d"
+      },
+      "line": 339,
+      "literal_dispatch_required_targets": [
+        "38e2e0",
+        "38e606",
+        "38efea",
+        "38f0aa"
+      ],
+      "observed_entry": "388a1d",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "388a1d",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "388a1d",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "5c6bd030a81a28ea202db9c444d38da55ec3011d72a6f4a4e4f7f499754c5823",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_38e75b",
+      "instruction_callback_sites": 24,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "38e75b",
+        "tu15": "38e75b"
+      },
+      "line": 380,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "38e75b",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "38e75b",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "38e75b",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "22c240d4b6612106b5e1da9c00b47999a738279f2b20caf35126de1bfbf38e3c",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "38e75b"
+      ],
+      "function_name": "run_38e8c9",
+      "instruction_callback_sites": 39,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "38e8c9",
+        "tu15": "38e8c9"
+      },
+      "line": 408,
+      "literal_dispatch_required_targets": [
+        "38e574",
+        "38e5ab",
+        "38e606"
+      ],
+      "observed_entry": "38e8c9",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "38e8c9",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "38e8c9",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_configuration_tu15_generated.cpp",
+  "source_bytes": 33193,
+  "source_filename_scope": "generated",
+  "source_sha256": "f8b07326fb2856ed5c456eb2d7c852438596dfc0efacb5d277902799106c2500"
+}

@@ -127,6 +127,7 @@ void advance_effect_frame(Memory &m,Abi &a,const Observer &o,const Services &s) 
 // 16EA60: first occupied slot at or after signed EDX. Keep the original
 // descriptor/bitmap read order, all defined flags and faulting PUSH boundary.
 void find_effect_slot(Memory &m,IteratorRegisters &a,const Observer &o,const Services &s) {
+    if(halo2::native_effect_slot_scan_detail::try_native(m,a.gp,a.eflags,s,o))return;
     const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};
     const auto less=[&]{return bool(a.eflags&128u)!=bool(a.eflags&2048u);};
     instruction(0x16ea60);a.gp[0]=none;iterator_logic_flags(a,none,4);

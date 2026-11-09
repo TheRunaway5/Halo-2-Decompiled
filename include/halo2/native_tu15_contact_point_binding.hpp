@@ -1,5 +1,7 @@
 #pragma once
 #include "halo2/native_tu15_constraint_reference_input_observer.hpp"
+#include "halo2/native_tu15_constraint_info_input_observer.hpp"
+#include "halo2/native_tu15_extended_constraint_info.hpp"
 #include "halo2/native_tu15_contact_point_removal.hpp"
 #include "halo2/native_tu15_contact_world_update.hpp"
 #include "halo2/native_tu15_gameplay_contact_removal.hpp"
@@ -71,7 +73,12 @@ inline void native_tu15_remove_bound_contact_point(SourcePhysicsContactMemory& m
                 part_scratch,state,incoming_x87_depth,allocation,observe,&result.part);
         };
         NativeTu15IslandConstraintDetachServices detach;
-        detach.get_info=[&](auto,auto owner,auto,auto&){unqualified("constraint info",owner.identity);};
+        detach.get_info=[&](auto constraint,auto owner,auto info,auto& state){
+            if(owner.identity!=0x31f840u)unqualified("constraint info",owner.identity);
+            native_tu15_observe_constraint_info_input(memory,{constraint,owner.identity,info.identity,state});
+            (void)native_tu15_get_extended_constraint_info(memory,constraint,info,observe);
+            ++result.detach.native_info_queries;
+        };
         detach.remove_info=[&](auto,auto owner,auto,auto,auto&){unqualified("island metadata",owner.identity);};
         detach.destroy_constraint=[&](auto,auto owner,auto,auto&){unqualified("zero-reference destruction",owner.identity);};
         NativeTu15ContactWorldUpdateServices world;

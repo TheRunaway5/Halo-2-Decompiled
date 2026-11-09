@@ -4,6 +4,15 @@
 #include <algorithm>
 #include <bit>
 namespace halo2::private_cpu_bitmap {
+bool raw_resource_format(unsigned format) noexcept {
+ switch(format){
+ case 0:case 1:case 2:case 3:case 6:case 8:case 9:case 10:case 11:case 22:case 23:return true;
+ default:return false;
+ }
+}
+bool cpu_sampling_format(unsigned format) noexcept {
+ return format==10||format==11||(format>=14&&format<=16);
+}
 Owner project(const Tag&tag,unsigned frame,std::span<const std::byte> root,unsigned first,
  std::span<const std::byte> rows,const BitmapResource&resource,const Texture&texture,bool resource_only){
  if(tag.group!="bitm"||tag.name.empty()||tag.handle().is_null()||!tag.address||tag.size<0x4c||root.size()!=tag.size||std::uint64_t(tag.address)+tag.size>0x100000000ull)
@@ -47,14 +56,19 @@ Owner project(const Tag&tag,unsigned frame,std::span<const std::byte> root,unsig
   if(texture.format!=resource.format||!(d.u16(14)&2u)||(!cube&&
       (resource.levels[0].size()<texture.pixels.size()||!std::equal(texture.pixels.begin(),texture.pixels.end(),resource.levels[0].begin()))))
    throw FormatError("CPU bitmap requires the same retained encoded DXT1/DXT3/DXT5 resource/image");
- }else if(resource.format==10 || resource.format==11){
+ }else if(resource.format==10 || resource.format==11 || (resource_only&&raw_resource_format(resource.format))){
+  // Retain the complete original raw storage. Its stride comes from the
+  // unchanged TU1.5 format table; Cache RGBA is an independently validated
+  // decoded view, never replacement bytes in the native resource header.
+  const auto bits=source_bitmap_format_bits(resource.format);
+  if(!bits||bits%8)throw FormatError("Raw bitmap resource lacks a complete original byte stride");
   std::size_t expected{};auto width=resource.width,height=resource.height;
-  for(unsigned level=0;level<=d.u16(20);++level){expected+=std::size_t(width)*height*4;width=std::max(1u,width/2u);height=std::max(1u,height/2u);}
+  for(unsigned level=0;level<=d.u16(20);++level){expected+=std::size_t(width)*height*(bits/8u);width=std::max(1u,width/2u);height=std::max(1u,height/2u);}
   if(texture.format!=11||d.u16(14)!=0x201u||resource.levels[0].size()!=expected)
-   throw FormatError("CPU bitmap requires proved complete raw XRGB/ARGB format10/11 mip storage");
+   throw FormatError("Raw bitmap resource requires complete non-linear non-swizzled mip storage");
   const auto prepared=prepare_texture(Bytes(resource.levels[0]),resource.width,resource.height,resource.format,false,d.u16(20));
   if(prepared.pixels!=texture.pixels||prepared.mips.size()!=texture.mips.size()||!std::equal(prepared.mips.begin(),prepared.mips.end(),texture.mips.begin(),[](const auto&a,const auto&b){return a.width==b.width&&a.height==b.height&&a.offset==b.offset&&a.size==b.size&&a.depth==b.depth;}))
-   throw FormatError("CPU bitmap raw BGRA owner differs from existing Cache RGBA preparation");
+   throw FormatError("Raw bitmap resource differs from existing Cache RGBA preparation");
  }else throw FormatError("CPU bitmap format is outside proved DXT1/DXT3/DXT5/format10/11 domain");
  Owner result{tag,frame,count,first,{root.begin(),root.end()},{rows.begin(),rows.end()},std::move(encoded),common,
   {std::bit_cast<std::int16_t>(d.u16(4)),std::bit_cast<std::int16_t>(d.u16(6)),std::bit_cast<std::int16_t>(d.u16(12)),std::bit_cast<std::int16_t>(d.u16(20)),std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(row[8])),d.u16(10),d.u16(14)}};
@@ -69,6 +83,156 @@ Owner load(const Cache&cache,TagHandle bitmap,unsigned frame,bool resource_only)
  const auto rows=cache.read_tag_bytes(first,std::size_t(count)*168);const auto resource=cache.load_bitmap_resource(bitmap.value,frame);const auto texture=cache.load_bitmap(bitmap.value,frame);
  return project(tag,frame,root,first,rows,resource,texture,resource_only);
 }
+
+PredictionPartitions PredictionPartitions::load(const Cache& cache, TagHandle bitmap, unsigned frame) {
+    const auto* tag = cache.query_tag({.handle=bitmap, .group=tag_groups::bitmap, .require_address=true});
+    if (!cache.is_mcc() || !tag || tag->handle() != bitmap || tag->size < 0x4c)
+        throw FormatError("Bitmap prediction requires an owned MCC bitmap tag");
+
+    const Bytes root(cache.read_tag_bytes(tag->address, tag->size));
+    const auto count = root.u32(0x44);
+    if (frame >= count || count != cache.bitmap_count(bitmap.value))
+        throw FormatError("Bitmap prediction frame escapes its MCC bitmap bank");
+    constexpr std::size_t row_size = 168;
+    const auto rows = cache.read_tag_bytes(root.u32(0x48), std::size_t(count) * row_size);
+    const auto row_bytes = rows.subspan(std::size_t(frame) * row_size, row_size);
+    const Bytes row(row_bytes);
+    if (row.u32(0) != tag_groups::bitmap.value)
+        throw FormatError("Bitmap prediction frame lacks its authored bitmap signature");
+    auto resource = cache.load_bitmap_resource(bitmap.value, frame);
+    if (resource.width != row.u16(4) || resource.height != row.u16(6) ||
+        resource.depth != std::to_integer<unsigned>(row_bytes[8]) ||
+        resource.type != row.u16(10) || resource.format != row.u16(12))
+        throw FormatError("Bitmap prediction payload metadata differs from its authored row");
+
+    PredictionPartitions result;
+    result.bitmap_ = bitmap;
+    std::ranges::copy(row_bytes.first(result.common_.size()), result.common_.begin());
+    for (unsigned level = 0; level < result.descriptors_.size(); ++level) {
+        const auto stored = row.u32(80 + level * 4);
+        const auto decoded = resource.levels[level].size();
+        if ((!stored && decoded) || (stored && (stored < 8 || !decoded || decoded > 128u * 1024u * 1024u)))
+            throw FormatError("Bitmap prediction partition differs from its declared texture extent");
+        result.descriptors_[level] = {row.u32(56 + level * 4), stored, static_cast<std::uint32_t>(decoded)};
+    }
+    result.payloads_ = std::move(resource.levels);
+    return result;
+}
+
+std::optional<PredictionPartitions::Descriptor> PredictionPartitions::descriptor(unsigned partition) const {
+    if (partition >= descriptors_.size())
+        throw FormatError("Bitmap prediction partition is outside the original cache descriptor");
+    const auto descriptor = descriptors_[partition];
+    if (!descriptor.stored_bytes) return std::nullopt;
+    return descriptor;
+}
+
+std::array<std::byte, 116> PredictionPartitions::cold_source_row() const {
+    if (!descriptor(0) || !(std::to_integer<unsigned>(common_[15]) & 2u) ||
+        !source_bitmap_format_bits(Bytes(common_).u16(12)))
+        throw FormatError("Bitmap prediction frame lacks an admitted hardware cache descriptor");
+    std::array<std::byte, 116> row{};
+    std::ranges::copy(common_, row.begin());
+    constexpr std::uint32_t absent = 0xffffffffu;
+    const auto put = [&](unsigned offset, std::uint32_t word) {
+        for (unsigned byte = 0; byte < 4; ++byte) row[offset + byte] = std::byte(word >> (byte * 8));
+    };
+    for (unsigned level = 0; level < descriptors_.size(); ++level) {
+        const auto entry = descriptor(level);
+        put(0x1c + level * 4, entry ? entry->encoded_offset : absent);
+        put(0x28 + level * 4, absent);
+        put(0x34 + level * 4, entry ? entry->payload_bytes : 0);
+    }
+    put(0x4c, bitmap_.value);
+    return row;
+}
+
+std::vector<std::byte> PredictionPartitions::read_sectors(unsigned partition, std::uint32_t encoded_offset,
+                                                         std::uint32_t transfer_bytes) const {
+    const auto input = descriptor(partition);
+    // Original 130183..130194 rounds the declared image extent to a sector.
+    if (!input || input->encoded_offset != encoded_offset ||
+        transfer_bytes != ((input->payload_bytes + 511u) & ~511u))
+        throw FormatError("Bitmap prediction read differs from its owned partition and sector extent");
+    std::vector<std::byte> bytes(transfer_bytes);
+    std::ranges::copy(payloads_[partition], bytes.begin());
+    return bytes;
+}
+
+namespace {
+constexpr std::uint32_t prediction_first = 0xb1000000u, prediction_end = 0xb2000000u;
+constexpr unsigned prediction_row_bytes = 116, prediction_binding_bytes = prediction_row_bytes + 4;
+constexpr std::string_view prediction_owner = "MCC authored bitmap prediction row";
+
+bool prediction_address(std::uint32_t row) {
+    return row >= prediction_first && row < prediction_end;
+}
+
+void validate_prediction_row(std::span<const std::byte> bytes, const PredictionPartitions& partitions) {
+    const auto initial = partitions.cold_source_row();
+    // The explicit partition-0 worker writes the handle and backing pointer.
+    // The native release path can change those words. All other descriptor
+    // bytes, including the full-salt tag at +0x4c, belong to the map.
+    for (const auto [first, last] : {std::pair{0u, 0x28u}, {0x2cu, 0x40u}, {0x44u, 0x54u}, {0x58u, prediction_row_bytes}})
+        if (!std::equal(initial.begin() + first, initial.begin() + last, bytes.begin() + first))
+            throw FormatError("Bitmap prediction row changed its authored descriptor");
+}
+}
+
+std::uint32_t PredictionRows::bind(SourceRuntimeMemory& memory, const Cache& cache, TagHandle bitmap, unsigned frame) {
+    const Key key{bitmap.value, frame};
+    if (const auto found = rows_.find(key); found != rows_.end()) return found->second;
+    const auto initial = PredictionPartitions::load(cache, bitmap, frame).cold_source_row();
+    const auto address = memory.find_unowned_range(prediction_first, prediction_end, prediction_binding_bytes, 4);
+    if (!address) throw FormatError("World exhausted its bitmap prediction row space");
+    std::array<std::byte, prediction_binding_bytes> bytes{};
+    std::ranges::copy(initial, bytes.begin());
+    for (unsigned i = 0; i < 4; ++i) bytes[prediction_row_bytes + i] = std::byte(frame >> (8 * i));
+    const auto index = rows_.emplace(key, *address).first;
+    try {
+        memory.mount(*address, bytes, SourceRuntimeMemory::Access::ReadWrite, std::string(prediction_owner));
+    } catch (...) {
+        rows_.erase(index);
+        throw;
+    }
+    return *address;
+}
+
+std::optional<std::vector<std::byte>> PredictionRows::read(const SourceRuntimeMemory& memory, const Cache& cache,
+    std::uint32_t row, unsigned partition, std::uint32_t offset, std::uint32_t size) const {
+    if (!prediction_address(row)) return std::nullopt;
+    const auto bytes = memory.view(row, prediction_binding_bytes);
+    const Bytes binding(bytes);
+    const Key key{binding.u32(0x4c), binding.u32(prediction_row_bytes)};
+    const auto found = rows_.find(key);
+    if (found == rows_.end() || found->second != row || partition != 0)
+        throw FormatError("Bitmap prediction read has no retained map row and partition");
+    const auto partitions = PredictionPartitions::load(cache, {key.first}, key.second);
+    validate_prediction_row(bytes, partitions);
+    return partitions.read_sectors(partition, offset, size);
+}
+
+PredictionRows PredictionRows::restore(const SourceRuntimeMemory& memory, const Cache& cache) {
+    PredictionRows result;
+    memory.visit_region_metadata([&](const auto& region) {
+        const bool overlaps = region.address < prediction_end &&
+            std::uint64_t(region.address) + region.bytes > prediction_first;
+        if (!overlaps && region.owner != prediction_owner) return;
+        if (!prediction_address(region.address) || region.address % 4 ||
+            region.address > prediction_end - prediction_binding_bytes || region.owner != prediction_owner ||
+            region.bytes != prediction_binding_bytes || region.page_bytes ||
+            region.access != SourceRuntimeMemory::Access::ReadWrite)
+            throw FormatError("World authority has an invalid bitmap prediction row owner");
+        const auto bytes = memory.view(region.address, prediction_binding_bytes);
+        const Bytes binding(bytes);
+        const Key key{binding.u32(0x4c), binding.u32(prediction_row_bytes)};
+        validate_prediction_row(bytes, PredictionPartitions::load(cache, {key.first}, key.second));
+        if (!result.rows_.emplace(key, region.address).second)
+            throw FormatError("World authority repeats a bitmap prediction frame");
+    });
+    return result;
+}
+
 std::array<unsigned,5> Owner::header(unsigned address)const{
  if(address<0x80000000u||std::uint64_t(address)+encoded.size()>0x90000000ull||encoded.empty())throw FormatError("CPU bitmap needs an actual represented original physical alias");
  return source_bitmap_pending_header(metadata,0,address);

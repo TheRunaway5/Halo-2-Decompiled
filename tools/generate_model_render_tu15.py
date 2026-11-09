@@ -2,7 +2,19 @@
 """Compile authenticated TU1.5 model resource/render callbacks to native C++."""
 import argparse,json,struct
 from renderer_native_replacements import replace_model_view_slot_reset
+from model_prt_native_replacements import replace_prt_helpers
+from model_prt_sample_native_replacements import replace_prt_sample
+from model_prt_cache_native_replacements import replace_prt_cache
+from model_prt_cache_build_native_replacements import replace_prt_cache_build
+from model_lighting_leaves_native_replacements import replace_model_lighting_leaves
+from model_color_native_replacements import replace_model_color
+from model_direction_native_replacements import replace_model_direction
+from model_color_step_native_replacements import replace_model_color_step
+from model_prt_update_native_replacements import replace_prt_update
 from pathlib import Path
+from model_light_source_native_replacements import replace_model_light_source
+from model_light_cache_native_replacements import replace_model_light_cache
+from model_vector_length_native_replacements import replace_model_vector_length
 from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
@@ -97,7 +109,7 @@ def main():
     assert source.count(boundary)==1
     source=source.replace(boundary,boundary+
         'presented.publish(presented_owner,presented_model,s.gp[0],r(s.memory,s.gp[3]+0x48u,4),presented_first_person); ')
-    a.output.write_text(replace_model_view_slot_reset(source))
+    a.output.write_text(replace_model_light_cache(replace_model_vector_length(replace_model_light_source(replace_model_color_step(replace_model_direction(replace_model_color(replace_model_lighting_leaves(replace_prt_cache_build(replace_prt_cache(replace_prt_sample(replace_prt_helpers(replace_prt_update(source)))))))))))))
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

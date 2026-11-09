@@ -1,0 +1,44 @@
+{
+  "observed_at_utc": "2026-11-02T22:39:09.378147+00:00",
+  "read_only": true,
+  "source_pins": {
+    "src/ui/frontend_couch.cpp": "4db846a86976a8a8ef0e0b9d2520060663348c029a2c377309bdb34d96c28736",
+    "src/ui/frontend_state.cpp": "2ce6989366d405cef139e49b21ed9c82b4d2b6c5470d8fd0ac24b8815e5dfae4"
+  },
+  "remaining_cpp_policy": [
+    {
+      "path": "src/ui/frontend_couch.cpp",
+      "methods": [
+        "online_couch_mutable",
+        "open_online_local_player",
+        "populate_online_couch",
+        "online_couch_text",
+        "accept_online_couch",
+        "update_online_couch",
+        "clear_online_couch",
+        "online_local_players"
+      ],
+      "decisions": "Matching status gates, signed-local versus guest actions, concurrent sign-in gates, canonical subject duplicate exclusion, local profile worker admission and retained menu refresh."
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "methods": [
+        "bind_primary_login",
+        "online_identity",
+        "update_online_login",
+        "return_online_lobby",
+        "update_online_postgame",
+        "commit_text"
+      ],
+      "decisions": "Primary account rebinding, matching identity/login/return/postgame transitions and matching-related clan/party/friend keyboard submission branches."
+    }
+  ],
+  "native_io_to_preserve": [
+    "Actual login/account shared-pointer lifetimes and provider calls",
+    "Profile/preferences/filesystem/RNG IO and rendering/frame primitives",
+    "Real postgame owner callbacks and retained world/session identity"
+  ],
+  "not_yet_migrated_or_qualified": true,
+  "original_live_parity_not_claimed": true,
+  "next_required_work": "Port complete matching-related callers and their state to existing Rust controllers, preserving callback order, failure prefixes and reentry; authenticate captures and compare before/after. Keep whole native and installed delivery gates open."
+}

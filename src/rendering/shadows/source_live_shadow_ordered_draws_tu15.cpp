@@ -52,7 +52,8 @@ SourceLiveShadowOrderedDrawsTu15 source_live_shadow_ordered_draws_tu15(
     const std::array arguments{bank,category,layer,output};
     for(unsigned n=0;n<arguments.size();++n)put(callee_stack+4u+n*4u,arguments[n]);
     if(observe)observe(true,entry,owner,abi,memory);
-    world.run_actual(entry,abi);
+    if(observe)world.run_actual(entry,abi);
+    else world.run_command_selection_tu15(abi);
     if(observe)observe(false,entry,owner,abi,memory);
     const auto count=abi.gp[0];
     if(abi.gp[4]!=caller_stack-0xf008u || count>capacity || count>header[1]-header[3])

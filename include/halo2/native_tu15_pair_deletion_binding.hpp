@@ -30,7 +30,9 @@ inline void native_tu15_delete_bound_pair(SourcePhysicsContactMemory&memory,
     children.destroy_agent=[&](auto agent,auto owner,auto&state){
         ++result.agent_cleanups;++result.cleanup_owners[owner.identity];
         if(owner.identity!=0x31d400u&&owner.identity!=0x2f3100u&&owner.identity!=0x2f7a20u&&
-           owner.identity!=0x323220u&&owner.identity!=0x2f82d0u&&owner.identity!=0x2f6c80u)missing(owner.identity);
+           owner.identity!=0x323220u&&owner.identity!=0x2f82d0u&&owner.identity!=0x2f6c80u&&
+           owner.identity!=0x2f0da0u&&owner.identity!=0x2fbb10u&&owner.identity!=0x2f9960u&&
+           owner.identity!=0x2f7790u)missing(owner.identity);
         if(!services.cleanup_agent)missing(owner.identity);
         services.cleanup_agent(agent,owner,state);
     };

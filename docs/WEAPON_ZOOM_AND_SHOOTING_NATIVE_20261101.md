@@ -4,6 +4,305 @@ The requested completion condition is every authored weapon zoom sound and
 shooting effect matching TU1.5, with native kernels. This checkpoint does not
 certify that complete condition.
 
+## Private native particle state and readonly readback
+
+`SourcePrivateParticlePhaseTu15` now retains genuine effect/part, effect,
+system, location, emitter and particle pools, both RNG words, tag-accessor
+selectors and the collision-query scratch reached by the native phase. It
+borrows coherent resources, actors, views and physics from the same admitted
+layout/gameplay tick. No gameplay admission, missing lower result or source
+clock increment is supplied. Unsupported owners/storage retire the partial
+phase; a stopped phase cannot execute again or expose render inputs.
+
+The initial constant-delta prototype missed stale caller scratch. Actual caller
+stack and FS exception-head bytes are now refreshed separately for each call,
+while persistent particle state remains private. Variable accepted intervals
+include zero,1/60,1/30 and1/120. Exact original World dispatch precedence matters
+for overlapping complete owners. The reached sniper material/event selector
+18B017 ->18B1D0 and material-sound request18B0AB ->18C1F0 now use the same complete
+Phantom and map-support compositions as the actual World. No sound outcome is
+substituted. The earlier red cases and completed actual World returns remain
+in the reports.
+
+`source_particle_render_state_tu15` accepts generic readonly storage as well as
+its existing runtime-memory interface. A bounded private-state borrow exposes
+persistent bytes over current inputs; native caller-stack/SEH copies remain
+execution scratch. The generic consumer preserves full-salt and location-chain
+checks. This removes a World requirement from readback; native queue production
+and current-client input admission remain separate work.
+
+`private-particle-current-matrix-v3` passes32 CTests on the unchanged14,232-file
+source cohort, with unchanged prepared-MCC inputs. Its31 actual native phase
+cases cover the14 distinct selectable Lockout firearm definitions for Human
+and Elite, both full-charge plasma-pistol releases, and the default SMG
+regression. Their744 native render phases match all six pools, both RNG words,
+GP/defined flags and live FP/XMM/MMX state, leaving borrowed World bytes
+unchanged. The readonly consumer produces25,002 matching FP render-value
+callbacks across1,303 states. It samples private values before the actual World
+advances;405 samples distinguish the unadvanced World. This is phase/readback
+proof at one genuine gameplay tick per case, not full lifecycle or framebuffer
+acceptance. Sword melee and other non-firearm roles are outside this matrix.
+The independent original Backwash fixture also passes its14 render-input
+callbacks through each storage interface, including stale/foreign rejection.
+
+`private-particle-current-compiled-validation-v3.json` passes Clang, GCC and
+ASAN/UBSAN for the new phase wrapper, generic readback consumer and comparison
+test; linked World/native libraries retain their frozen Release bytes. Six
+private defects are rejected: stale caller arguments, ignored tick, omitted
+occupancy, changed returned GP, reusing a partially written owner, and reading
+the borrowed World instead of private state. The restored baseline passes.
+Three readonly input refusals, consumer interruption, nested-borrow refusal and
+retirement after a real changed native store are also checked. The preceding
+v2 helper expected the stale-argument defect to fail at pool bytes; an earlier
+FP/MMX mismatch rejected it instead. That failed expectation is preserved,
+without relabeling it as production acceptance.
+
+A subsequent creation probe found that generic private memory lost the
+World's authenticated MCC compiled-symbol namespace. Original17B35D then
+compared the wrong `root` literal and skipped real location work. A scoped
+lease now inherits only an already authenticated input binding, including the
+readonly adapter; the seed also rejects a changed namespace. The registered
+symbol test passes lease nesting, isolation, duplicate rejection, teardown and
+producer retirement. A standalone private-copy probe with the new symbol
+implementation matches actual charged-shot requests for Human/Elite and an
+SMG baseline, including returned ABI and owned bytes. Both charged requests
+legitimately return NONE after their initial update. The SMG instruction trace
+also matches; the charged internal trace counts differ, so those cases are not
+instruction-order proof. Root phase integration and the new namespace-refusal
+control pass in the v4 test run described below.
+
+The broader creation matrix reached model-cache, geometry-cache and light
+cluster storage beyond the phase owner. In the frozen v4 probe, retaining the
+two actual light link pools and their cluster heads closes the Brute Shot
+refusal for Human and Elite. Both authored firing requests allocate the same
+effect and match the actual World ABI and all privately owned bytes. Their
+retained trace tails and total counts match; the full traces were not retained.
+The SMG control also passes. Geometry resource I/O is still open. The
+experimental creation route supplies no missing resource/I/O result and is not
+enabled in production or for clients. A follow-up reaches actual
+130F68 ->1A3B70 on the Human Battle Rifle and validates the allocation and
+sector request against the real World I/O ABI. The World completes and retains
+job f800000c for its 731,136-byte read; the private request stops at that owner.
+The final World destination differs from the raw pinned sector bytes, so a
+post-return buffer is not evidence of the bytes at the I/O boundary. The
+unchanged-input v12 probe uses the real pinned sector and a private job
+namespace seeded from the completed pre-fire World. It independently retains
+the same job ID and request, then stops at the next actual 22A691 geometry
+header store. The World completes and the borrowed bank is unchanged. That
+is I/O and job evidence for this request. Both v15 Battle Rifle cases match
+the World through the call at D5506. The actual 13A030 lookup consumes frame
+9 of bitmap f7b40088 through the row alias at 80000000. The first private
+projection stages that row and its header correctly, but its 2 MiB encoded
+allocation overlaps the World heap starting at 80061000. The v18 projection
+selects the first aligned extent free in both banks and stages the encoded
+payload at 83145000. All six committed bitmap ranges match the World, and
+both instruction streams reach the texture usage store at 12F5FC.
+
+V19 admits the exact four-byte usage word at 12F5FC after checking the actual
+texture allocator and source timestamp. Both Battle Rifle creation requests
+return with matching GP, defined flags, live FP/MMX state, private bytes, and
+the complete 71,102 and 71,103 instruction traces. Their borrowed World banks
+are unchanged. The bitmap allocator and creation extensions run in scoped
+probe objects. The v20 creation sweep on frozen v6 compares 30 actual
+Lockout requests across both representations. Twenty-four match the complete
+instruction trace, returned ABI and owned bytes. Both charged plasma pistol
+releases match returned ABI and owned bytes with differing instruction
+traces. The Carbine and Beam Rifle requests in both representations reach
+17F8E9 calling 37DC0A. Each private prefix matches the complete World up to
+that call, and the borrowed World is unchanged. The World dispatch table
+routes 37DC0A through its existing native Phantom owner. The v21 scoped
+rerun matches all four complete traces through that owner. The v20 charged
+traces differed by two 51-instruction datum delete bodies at 16E8A0. The
+World takes the native datum delete before the lifted owner. V22 uses that
+native entry and matches both complete traces, 4,137 and 4,136 instructions,
+with matching ABI and owned bytes and the actual NONE returns.
+
+Across these frozen probes all 30 selected Lockout creation cases have
+matching complete traces and privately owned outputs. They cover 15 authored
+effect paths. The original catalog still has 21 other normal effect paths
+outside this sweep, as well as the distinct sound, misfire, empty and charge
+roles. `private-firing-creation-catalog-coverage-v1.json` maps those references
+to their authored weapons and maps. The three completed creation sweeps have
+unchanged source and inputs, with their temporary owners removed.
+
+The v8 multi-tick probe measures twelve actual released gameplay ticks and
+twelve native effect frames after a genuine shot for each of Battle Rifle
+and SMG. Ordinary gameplay changes the retained private ranges on every
+observed tick, including the contiguous pool allocation bank. The changes
+total 5,821 bytes for Battle Rifle and 530 for SMG across the observed
+gameplay intervals. The effect frames separately change 12,700 and 1,022
+bytes. `private-particle-multitick-owner-v2.json` records the per-phase
+addresses and store PCs. An effect-frame-only carry into the next tick
+would omit genuine gameplay mutations.
+
+The earlier charging fixture stopped at its first
+charging request and incorrectly required nonNONE; those failed reports remain
+unchanged. The corrected charged probe selects the actual authored charged
+firing definition. Reports and cleanup are pinned by
+`private-particle-namespace-validation-v1.json` and the creation retirement
+receipts.
+
+All94 actual inputs of the preceding native component proof remain byte-equal
+to the v3 cohort. This is an input-identity audit, not a repeated component run;
+the36 native entries and6,024 original component cases retain their preceding
+scope. The earlier main owner is gone and its interrupted broad run has no
+accepted final result. Completed standalone probe/compile owners and superseded
+helpers have been removed. The new supervised source/build are temporary for
+this active goal, recorded by `private-particle-current-retention-v1.json`.
+The broad195-check v3 qualification finishes185/195, with unchanged code and
+all86 pinned asset/runner inputs. Two cases, Human w10 and Elite w4, refuse
+16C06F ->144090. The earlier32-test matrix remains a completed bounded result;
+it did not reach that branch. Source ownership identifies map support before
+the overlapping World-table alias. Eight presentation/joined dual/firing cases
+report LAN disconnects. This broad run is not accepted.
+
+The unchanged-build two-case replay also fails, with source, assets and three
+selected binary inputs unchanged. Its actual host2 cold adoption takes94.561s,
+including40.248s recipient and37.052s workspace construction. It completes
+adoption and then exceeds the existing90s test deadline; the real native cut
+is abandoned during preparation. Human joined dual again reports a LAN
+disconnect. These measurements identify a construction/liveness boundary, not
+a CPU owner or permission to extend a lease, deadline or supply readiness.
+`private-particle-current-lan-diagnosis-v1.json` preserves the measurements.
+
+The six owned phase/namespace files are now staged, with fresh timestamps,
+in the14,232-file v4 cohort. Its manifest SHA is
+`904fb59ea1ff3c9998ec613bab82ede741c173f1f071541feaaadc1cf6d2d515`.
+All 33 phase/readback/symbol CTests pass, including the two earlier collision
+refusals. The 14,232-file source manifest is unchanged. The broad pin receipt
+still records failure because the monitored launcher map selector changed
+during the run. These tests were given absolute prepared map and shared paths.
+The separate file-call audit repeats the Human w10 case with the same binary:
+the prepared files are opened, the launcher selector is never accessed,
+and all 94 checked data and runner inputs stay unchanged.
+The 31 phase reports cover 744 phases, 1,298 first-person states and 24,965
+matching render values; 404 distinguish the still-unadvanced World.
+All reports named here are under
+`build/test-results/weapon-effects-native-20261101`.
+
+A main-thread profile of the unchanged v3 host2 transport binary found three
+separate preparations of the same map resources per native world. Of 2,335
+samples inside the actual constructor window, 94.35% included
+`SourceRuntimeResources` and 56.06% included MCC sound DAT preparation. The
+World, melee animation and first-person registry each account for about a
+third of that constructor window. The profiled transport run still failed.
+`private-native-constructor-profile-v1.json` contains the caller attribution
+and actual adoption timings; the raw samples and copied binaries were removed.
+
+The native World now lends its authenticated immutable inputs to melee
+animation and the first-person registry for the exact same Cache. The
+registry's restore creates fresh animation state from those retained inputs.
+Descriptor translation, one-shot metadata publication and mutable World
+state stay with their respective owners. On the frozen v4 candidate, the
+resource ownership checks and the 24-frame SMG phase/readback pass. The paired
+host2 probe observed first adoption in 54.2s for the baseline and 24.9s for
+the candidate, with 30.6s and 9.9s respectively as the longest unpumped
+interval. These are diagnostic observations under concurrent validation.
+Both runs still abandon the cut and later disconnect. No transport
+acceptance or measured speedup is claimed. The probe and pin checks are
+in `private-native-resource-sharing-probe-v1.json`.
+
+A second candidate stages a separate one-shot metadata/resource handoff for
+each private World from the joining replica's already authenticated Cache.
+Each World allocates and publishes its own tag bank and timing lease. It passes
+the paired resource check, SMG phase/readback, host2 transport and the
+expiry/retry test on the scoped frozen objects. The host2 cold adoption is 9.0s,
+with a 1.5s longest unpumped interval; the retry ignores the expired cut's late
+acknowledgement and accepts a fresh full cut. The exact input and object
+pins are in `private-native-resource-sharing-probe-v2.json`. The scoped
+11-file update is staged in v5, manifest
+`96bc7dc9bf379f17c32874fbc8c514e1561dad138565ecd4d3d69ecf50effdb3`.
+Its build and 16 of 20 checks pass with the source and asset pins unchanged.
+The authored catalog, zoom, host2, retry and both joined dual tests pass.
+Four Human/Elite joined firing tests reach `Damage audio clock reversed`.
+They process both the current accepted body and an older closed native render
+snapshot. The render pass now advances only its own effects. Damage voice
+and HUD audio remain on the live gameplay pass. The one-hunk v6 rebuild
+passes, with nine of ten registered tests passing and zero damage clock
+refusals. Both shared-timeline tests and Elite joined firing pass. Human
+joined firing reaches `Native FP foreground record has an unbound or
+duplicate owner/model` after bootstrap adoption, before its first normal
+view-binding publication. Startup now binds the accepted snapshot's native
+pose packet to its local view before drawing. The unmodified diagnostic
+rerun passes and captures no error tuple. The scoped bootstrap candidate
+publishes its packet at tick 1108 before the ordinary receive binding. It
+passes the same Human joined firing test with 47 rounds, 47 native PCM
+submissions and 250 particle draws covering both weapon owners. Both scoped
+test owners are retired. Five of six registered v7 checks pass, including
+both joined firing and both shared-timeline cases. There are zero clock and
+first-person binding refusals. The Human dual case exposes another startup
+boundary, `Prop replica has no
+completed source model regions`. Bootstrap now applies the accepted scene
+and its prop banks through the same projection as ordinary receipt handling
+before capturing interpolation. The scoped Human dual rerun passes, including
+both authored hand poses, firing and reload. Its actual bootstrap body at
+tick 1032 has 19 scene roots and 14 prop-region records. The projection
+reduces props missing native model regions from 15 to zero before the first
+draw. The scoped owner is retired. Registered v8 qualification with the
+scene change passes five of six with zero clock, binding or prop-region
+refusals. The Elite shared-timeline fixture requests quit after receiving
+28 rounds and 28 PCM submissions. It then receives two more rounds in the
+next firing update. The authority's trace shows a neutral interval before
+held input resumed. The fixture now waits for the actual consumed input
+sequence that acknowledges physical trigger release. The scoped Elite
+shared-timeline rerun consumes sequence 993 after release sequence 992,
+at tick 1615. It exits at tick 1640 with 57 rounds, 57 native PCM
+submissions, 341 particle draws and no later firing. Both source and input
+pins hold. The scoped vehicle and release test owners have been removed.
+
+A separate prepared Coagulation probe observes actual armed-seat firing. Banshee and
+Ghost primary fire create 34 and 40 projectile generations with source
+sound requests. The authored Banshee secondary input is suppressed in this
+multiplayer mode, with zero projectile generations and no cannon fire
+sound request. The initial observer covers 108A70 and sees neither primary
+effect there. The source scheduler also has 108A1F calling 179800 directly.
+The scoped entry-and-return observer records both authored primary effect
+paths through that direct call, with complete mounted weapon and vehicle
+datums and returned effect instances. Banshee secondary remains suppressed.
+The native journal now handles the direct call's completed 178E30 request
+through the same birth and location capture as 108A70. The scoped World
+rebuild compares that publication with the direct call's actual return and
+matches all 34 Banshee and 40 Ghost instances, with no publication for the
+mode-suppressed secondary input.
+
+The v9 armed-seat sweep extends the source and journal checks to Scorpion,
+Wraith, both Warthog turrets, Spectre and both fixed turrets. Ten applicable
+cases complete. The Warthog chaingun observes 48 authored effect journal
+entries and then fails the projectile-lifetime assertion. Original
+Coagulation gives that bullet a zero flag word, so the missing projectile
+evidence cannot be attributed to the instantaneous flag. The targeted native
+postpass probe records the actual calls and constructor inputs. The Wraith
+secondary fixture is inapplicable to this original variant. Its sole trigger
+selects input 0 and barrel 0. The matrix, original trigger reads and the red
+cases remain recorded separately from rendered or Xbox output.
+
+The Cairo v4 Battle Rifle probe prepares the actual campaign actor and
+equipment and reaches `Native memory pressure requires actual1CD130 trim
+owner` on the first ordinary match step. The pinned original owner reports
+Havok statistics. The v5 component probe uses the same prepared actor and
+equipment, with the actual native 14FEC0 command and C7DD0 selector. It mixes
+both authored zoom clips at selectors 0 and -1, with two nonzero PCM
+submissions. Both probes preserve the source and input pins and remove their
+scratch directories. Their receipts are `campaign-weapon-zoom-cairo-v4.json`
+and `campaign-weapon-zoom-cairo-v5.json`. Full Cairo match playback remains
+open at the native physics owner.
+
+The v9 campaign role probe uses the same declared source command and selector
+boundary on the prepared Gas Giant and Sentinel Walls actors. Flak Cannon
+commits both selector transitions and mixes the two authored Beam Rifle zoom
+clips. The Sentinel Enforcer rocket commits both transitions with authored
+NONE and no sound request. Delta Control stops before the actor's birth at
+the native `1D2EA -> 407C00` bitmap view while constructing the scene. A
+separate cache-only check authenticates the nonplayer Beam Rifle's two levels
+and exact authored references. Its two real dependencies decode to 25,440
+and 16,320 finite nonzero PCM frames. The actor's command path remains open.
+
+The ordinary client guard remains unchanged. Current admitted client inputs,
+creation/tick/RNG ownership across snapshots, native render queues, remaining
+beam/light/contrail/decal owners and authored roles/lifecycles, independent
+original waveform/framebuffer comparison and launcher delivery remain open.
+The full user goal is active.
+
 ## Native system owner179ED0
 
 The reached effect-system walker now has a complete native owner in its actual

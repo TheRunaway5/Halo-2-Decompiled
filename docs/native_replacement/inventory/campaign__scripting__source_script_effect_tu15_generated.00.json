@@ -1,0 +1,123 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1205,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "836f64879f5b3d44138819504630786dde4ebca7c2828c1d3162a7f27743154a",
+      "selected_resolver_sha256": "27fa944d370df70a1f03bcd5ebed37ddeee0378eaddd0dd0d6ffb8c4316f8fdf"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "836f64879f5b3d44138819504630786dde4ebca7c2828c1d3162a7f27743154a",
+      "selected_resolver_sha256": "27fa944d370df70a1f03bcd5ebed37ddeee0378eaddd0dd0d6ffb8c4316f8fdf"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "catch",
+        "load",
+        "native_weapon_effect_dispatch_tu15_run",
+        "save"
+      ],
+      "body_sha256": "4a8772df80fb2915a01b89a505470d2acbf5bfdaf1aa640863319709b129bbe7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1791c0",
+      "instruction_callback_sites": 38,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1791c0",
+        "tu15": "1791c0"
+      },
+      "line": 352,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_weapon_effect_dispatch_tu15_run"
+      ],
+      "observed_entry": "1791c0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1791c0",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "WorldState",
+      "symbol": "1791c0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b2cf4623abb5c5442adacacf2bddb8183ea0a2f4f53ccb28d2dc1310f26cff51",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1791c0"
+      ],
+      "function_name": "run_179700",
+      "instruction_callback_sites": 62,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "179700",
+        "tu15": "179700"
+      },
+      "line": 402,
+      "literal_dispatch_required_targets": [
+        "bad60",
+        "178e30"
+      ],
+      "observed_entry": "179700",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "179700",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "179700",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "d92dc4807502230cb8db7b777c699d62270a8199c39066d8ee4143af1eacc157",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "179700"
+      ],
+      "function_name": "run_2aa360",
+      "instruction_callback_sites": 32,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2aa360",
+        "tu15": "2aa360"
+      },
+      "line": 467,
+      "literal_dispatch_required_targets": [
+        "bad60"
+      ],
+      "observed_entry": "2aa360",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2aa360",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2aa360",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/scripting/source_script_effect_tu15_generated.cpp",
+  "source_bytes": 36122,
+  "source_filename_scope": "generated",
+  "source_sha256": "d3bc449acf88cbf576ecef79d4f292d8ffe5161184cee740d73f0792be24c3b6"
+}

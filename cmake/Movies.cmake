@@ -1,11 +1,12 @@
-# Optional reference assets are local inputs, outside the MCC-only runtime path.
+# Optional standalone movie staging and decoder tests. MCC builds stage the
+# approved source files through RuntimeTagData.cmake with the custom assets.
 set(HALO2_MOVIE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/movies" CACHE PATH
     "Directory containing the supplied intro_60.mp4 and credits_60.mp4")
-option(HALO2_BUNDLE_MOVIES "Bundle optional reference upscaled intro and credits" OFF)
+option(HALO2_BUNDLE_MOVIES "Enable standalone upscaled movie staging and decoder tests" OFF)
 if(HALO2_BUNDLE_MOVIES)
     foreach(_movie intro_60.mp4 credits_60.mp4)
         if(NOT EXISTS "${HALO2_MOVIE_SOURCE_DIR}/${_movie}")
-            message(FATAL_ERROR "Missing release movie ${_movie}. Run tools/bundle_movies.py --source /path/to/movies, set HALO2_MOVIE_SOURCE_DIR, or explicitly disable HALO2_BUNDLE_MOVIES for a build without upscaled movies.")
+            message(FATAL_ERROR "Missing release movie ${_movie}. Run tools/bundle_movies.py --source /path/to/movies, set HALO2_MOVIE_SOURCE_DIR, or disable standalone staging with HALO2_BUNDLE_MOVIES=OFF.")
         endif()
     endforeach()
     set(_halo2_movies_output "${CMAKE_CURRENT_BINARY_DIR}/resources/movies")

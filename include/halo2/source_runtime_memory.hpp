@@ -2,6 +2,7 @@
 #include "halo2/physics_contact_record.hpp"
 #include "halo2/native_runtime_address.hpp"
 #include "halo2/source_runtime_snapshot_bytes.hpp"
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include <array>
 #include <map>
 #include <string>
@@ -35,7 +36,7 @@ private:
 // never host pointers. The allocation/constructor owners choose every region
 // and its initial bytes; mounting does not construct an object, initialize a
 // pool, admit physics or produce an animation pose.
-class SourceRuntimeMemory final : public SourcePhysicsContactMemory {
+class SourceRuntimeMemory final : public SourcePhysicsContactMemory, public NativeTu15RetainedCounterStorage {
 public:
   enum class Access { ReadOnly, ReadWrite };
   struct CheckpointRegion;
@@ -83,6 +84,7 @@ public:
       std::uint64_t limit, std::size_t bytes, std::uint32_t alignment) const;
   void read(std::uint32_t, std::span<std::byte>) const override;
   void write(std::uint32_t, std::span<const std::byte>) override;
+  NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t, unsigned, std::uint32_t) override;
   void read_vector(std::uint32_t,std::span<std::byte,16>) const override;
   std::optional<std::span<const std::byte>> try_read_view(
       std::uint32_t,std::size_t) const noexcept override;

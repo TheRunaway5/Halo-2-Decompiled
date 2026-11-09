@@ -1,0 +1,46 @@
+{
+  "schema": "H2_PENDING_RANKED_REVIEW_SIGKILL_V1",
+  "passed": true,
+  "source_pin_sha256": "aa5847b764d3064fef39419c33fcba45587199e3eb8f481725db5140f9f10a51",
+  "source_count": 209,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-pending-review-crash-final-20261103/halo2-test-293lqhza",
+  "build": [
+    "cargo",
+    "build",
+    "--locked",
+    "--offline"
+  ],
+  "retained_generated_large_artifacts": [],
+  "checks": [
+    "Two accepted parties require member consent and are admitted whole into different teams.",
+    "Four signal streams pass complete physical peer reports and the shared ten-second Loading gate.",
+    "Three votes were fenced by actual signaling before SIGKILL. The fourth owner had not voted.",
+    "The new process denies the four old account, queue and private room grants.",
+    "Durable party membership survives; fresh member consent is required for a fresh room."
+  ],
+  "scope": "Actual isolated Rust service crash after three of four votes on a constructed ranked report, followed by process restart and fresh party consent. Original arbitration and played matches are separate.",
+  "binary_sha256": "a211f21504aba04fe050daa8cb5d7d64b106125813f8c06a9bcd51ce78dcf04b",
+  "runtime_source_sha256": "57026c91827b2832f328165b4b8f03cf397266074d246055f71f5167cbe47947",
+  "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+  "restart": {
+    "old_grants_rejected": 12,
+    "new_room": true,
+    "sqlite_integrity": "ok",
+    "persisted": {
+      "match_results": 0,
+      "match_result_skill": 0,
+      "carnage_reports": 0,
+      "eos_profile_outbox": 0
+    },
+    "xp": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "consented_before_crash": 3
+  },
+  "runner_sha256": "f054d14026a4e842b36a54e2ea06635d4466ee7db36b70f95fbb39a85de09211",
+  "repeated_on_same_catalog_and_matching_logic": true,
+  "interrupted_room_restored": false
+}

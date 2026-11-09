@@ -17,6 +17,8 @@ pub fn frontend_party_flow_state(c: &FrontendPartyFlow) -> ffi::PartyFlowState {
     let p = s.pending;
     let confirmation = s.clan_confirmation;
     ffi::PartyFlowState {
+        signin: super::matchmaking_frontend_signin::encoded_state(s.signin),
+        couch: super::matchmaking_frontend_couch::encoded_state(s.couch),
         target: s.target,
         clan_target: s.clan_target,
         clan_target_kind: s.clan_target_kind,

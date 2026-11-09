@@ -1,0 +1,75 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "bool",
+        "effect_fp",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "low",
+        "next_effect_event",
+        "pop",
+        "push",
+        "read",
+        "scalar",
+        "shift",
+        "state_product",
+        "state_scalar_compare",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::uint16_t",
+        "std::uint32_t",
+        "step",
+        "store",
+        "vector"
+      ],
+      "body_sha256": "c15301630b2922b2e518ebc5a7bb2406ccbedd9920d9a682426644c660f15e73",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "next_effect_event",
+      "instruction_callback_sites": 89,
+      "line": 3,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "17c020",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "17c020",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "next_effect_event",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_effect_next_event_tu15_internal.hpp",
+  "source_bytes": 6692,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1634,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "f79b933a81831f94ce24f84726c74490bad6299b4c9ef15acc3ba0fc4a022604"
+}

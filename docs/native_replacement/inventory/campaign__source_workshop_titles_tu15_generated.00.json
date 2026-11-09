@@ -1,0 +1,106 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/WorkshopTitles.cmake",
+      "line": 3,
+      "target": "halo2_workshop_titles_tu15"
+    }
+  ],
+  "configured_production_scope": "excluded",
+  "configured_production_target_ids": [],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f44d7e4f23adf3954270f2ccf00a28a95601d7fdc9e9e0cf09ac25b06c75fd4d",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f44d7e4f23adf3954270f2ccf00a28a95601d7fdc9e9e0cf09ac25b06c75fd4d",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [],
+  "production_scope": "registered_outside_static_production_closure",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "fcee88d83249ae753da4b677f583bb0bdf4fc4a85333eeae375ab292dc144c18",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_13ecc0",
+      "instruction_callback_sites": 30,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "13ecc0",
+        "tu15": "13ecc0"
+      },
+      "line": 352,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "13ecc0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "13ecc0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "13ecc0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "89ca19b696d93835118818da1dde51e58890bfe0563ec8080ccd6d58cfaf1f03",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_13f160",
+      "instruction_callback_sites": 80,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "13f160",
+        "tu15": "13f160"
+      },
+      "line": 386,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "13f160",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "13f160",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "13f160",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "eb2189358b10217f2241da0edb0d0f1fb214c553c87fccc699ccfc64bd56abe7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "13ecc0"
+      ],
+      "function_name": "run_2b3620",
+      "instruction_callback_sites": 25,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2b3620",
+        "tu15": "2b3620"
+      },
+      "line": 470,
+      "literal_dispatch_required_targets": [
+        "211da0",
+        "212010"
+      ],
+      "observed_entry": "2b3620",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2b3620",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2b3620",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/source_workshop_titles_tu15_generated.cpp",
+  "source_bytes": 33899,
+  "source_filename_scope": "generated",
+  "source_sha256": "589d19d27508244fb19e83baa778e529ecbaa1e4b48dd23bb2d797ad82b53f1f"
+}

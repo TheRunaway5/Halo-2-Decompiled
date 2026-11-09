@@ -1,8 +1,7 @@
 """Copy the explicitly assigned bundled intro/credits into an MCC cache.
 
-This bank is a user-authorized presentation exception, not an MCC asset or an
-attract-movie assignment. Full payload hashes are checked during import/repair;
-the runtime checks the pinned small manifest and file extents, then decodes.
+The port assigns the bundled 4K60 sources to intro and credits. Packaging,
+import, and runtime playback authenticate their exact encoded bytes.
 """
 import contextlib
 import ctypes
@@ -26,6 +25,7 @@ from file_lock import file_lock
 SCHEMA = "H2_PORT_BUNDLED_MOVIES_V1"
 SOURCE_SCHEMA = "halo2-upscaled-movies-v1"
 SOURCE_MANIFEST = "resources/movie-manifest.json"
+SOURCE_DIRECTORY = "resources/movies"
 BANK = "presentation/movies"
 MANIFEST = BANK + "/manifest.json"
 ROLES = {"intro": "intro_60.mp4", "credits": "credits_60.mp4"}
@@ -58,8 +58,7 @@ def _read(path, root):
         raise FormatError("Invalid bundled movie manifest") from error
 
 
-def source_manifest(root):
-    root = resource_root(root)
+def _source_manifests(root):
     raw, metadata = _read(root / SOURCE_MANIFEST, root)
     if not isinstance(metadata, dict) or metadata.get("schema") != SOURCE_SCHEMA:
         raise FormatError("Unsupported bundled movie source manifest")
@@ -72,14 +71,38 @@ def source_manifest(root):
                 not isinstance(row.get("sha256"), str) or
                 re.fullmatch("[0-9a-f]{64}", row["sha256"]) is None):
             raise FormatError("Invalid bundled movie size or SHA-256")
-    _, bundled = _read(root / "resources/movies/manifest.json", root)
+    bundled_raw, bundled = _read(root / SOURCE_DIRECTORY / "manifest.json", root)
     if bundled != metadata:
         raise FormatError("Bundled movie source manifests disagree")
-    return hashlib.sha256(raw).hexdigest(), files
+    return {SOURCE_MANIFEST: raw, SOURCE_DIRECTORY + "/manifest.json": bundled_raw}, files
+
+
+def source_manifest(root):
+    manifests, files = _source_manifests(resource_root(root))
+    return hashlib.sha256(manifests[SOURCE_MANIFEST]).hexdigest(), files
 
 
 def required_bytes(root):
-    return sum(row["bytes"] for row in source_manifest(root)[1].values())
+    root = resource_root(root)
+    _, files = source_manifest(root)
+    for name, row in files.items():
+        _check_extent(root / SOURCE_DIRECTORY / name, row, root)
+    return sum(row["bytes"] for row in files.values())
+
+
+def inventory(root):
+    """Authenticate the original MP4s and both source manifests for delivery."""
+    root = resource_root(root)
+    manifests, files = _source_manifests(root)
+    records = {name: dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+               for name, raw in manifests.items()}
+    for name, row in files.items():
+        relative = SOURCE_DIRECTORY + "/" + name
+        _verify(root / relative, row, root)
+        records[relative] = row
+    if _source_manifests(root) != (manifests, files):
+        raise FormatError("Bundled movie source manifests changed during verification")
+    return records
 
 
 def _metadata(root):
@@ -102,10 +125,15 @@ def _stamp(path):
     return value.st_size, value.st_mtime_ns
 
 
-def _verify(path, row, root):
+def _check_extent(path, row, root):
     path = _owned(path, root)
     if not path.is_file() or path.stat().st_size != row["bytes"]:
         raise FormatError("Bundled movie extent differs; existing files were retained: " + str(path))
+    return path
+
+
+def _verify(path, row, root):
+    path = _check_extent(path, row, root)
     before = _stamp(path)
     with path.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -183,7 +211,7 @@ def _prepare(root, cache, progress, previous=None):
     # Validate both originals before copying either; a partial matching bank is
     # intentionally resumable after cancellation. Never overwrite custom data.
     progress("Verifying the bundled intro and credits movies…")
-    stamps = {name: _verify(root / "resources/movies" / name, row, root)
+    stamps = {name: _verify(root / SOURCE_DIRECTORY / name, row, root)
               for name, row in files.items()}
     missing = []
     for name, row in files.items():
@@ -201,7 +229,7 @@ def _prepare(root, cache, progress, previous=None):
         progress("Copying bundled " + name + " into the private presentation cache…")
         pending = destination / (".movie-copy-" + uuid.uuid4().hex)
         try:
-            with (root / "resources/movies" / name).open("rb") as source, pending.open("xb") as output:
+            with (root / SOURCE_DIRECTORY / name).open("rb") as source, pending.open("xb") as output:
                 shutil.copyfileobj(source, output, 1024 * 1024)
                 output.flush()
                 os.fsync(output.fileno())
@@ -209,7 +237,7 @@ def _prepare(root, cache, progress, previous=None):
             _publish_new(pending, destination / name)
         finally:
             pending.unlink(missing_ok=True)
-    if any(_stamp(root / "resources/movies" / name) != stamp for name, stamp in stamps.items()):
+    if any(_stamp(root / SOURCE_DIRECTORY / name) != stamp for name, stamp in stamps.items()):
         raise FormatError("Bundled movie sources changed during import; retry setup")
     if _metadata(root)[1] != manifest:
         raise FormatError("Bundled movie source manifests changed during import; retry setup")

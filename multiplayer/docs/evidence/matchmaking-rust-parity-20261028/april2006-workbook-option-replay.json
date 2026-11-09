@@ -1,0 +1,247 @@
+{
+  "schema": "H2_APRIL_2006_WORKBOOK_OPTION_REPLAY_V1",
+  "passed": true,
+  "completed_utc": "2026-11-03T01:55:44.016012+00:00",
+  "source_pins": {
+    "multiplayer/docs/reference/halo2-gamevariants-20060428.xls": "a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998",
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/option-parameters.json": "8066146324728a296f3eb40ca75d5635ac6bb3c65a29415a3a3369eeffbf4b18",
+    "rust/online_protocol/src/matchmaking_variant.rs": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b",
+    "tools/oracle_game_variants.py": "2d54af7da610281922ae008977bc2d34a46b94ee3847ae17de393deafb6a497e",
+    "tools/oracle_multiplayer_engines_tu15.py": "7d2d24a5a4b199d4af434a196cc68ebae169b5b7e05a26e01f4eaec3df07147e"
+  },
+  "tool_sha256": "3769849269f003a210f6aea52ed12972061f478cab0c9d3abc587ccf23ddbd3f",
+  "reader": "xlrd 2.0.2, static BIFF8",
+  "workbook_sheet": "Variants",
+  "workbook_family_cell": "D1",
+  "workbook_variant_cell": "AP2",
+  "source_family": "Slayer",
+  "workbook_variant": "Team SWAT",
+  "option_cells": [
+    {
+      "parameter": 19,
+      "option_cell": "B128",
+      "option_label": "Shield Type",
+      "choice_cell": "C130",
+      "choice_label": "No Shields (1)",
+      "variant_cell": "AP130",
+      "value": 1,
+      "group_cells": {
+        "AP129": {
+          "type": 6,
+          "value": ""
+        },
+        "AP130": {
+          "type": 2,
+          "value": 1.0
+        },
+        "AP131": {
+          "type": 6,
+          "value": ""
+        }
+      },
+      "descriptor": {
+        "address": "0x23d698",
+        "kind": 5,
+        "offset": 136,
+        "operand": 1065353216
+      },
+      "combined_changed_bytes": [
+        {
+          "offset": "0x88",
+          "before": 0,
+          "after": 1,
+          "xor": 1
+        }
+      ]
+    },
+    {
+      "parameter": 20,
+      "option_cell": "B132",
+      "option_label": "Motion Sensor",
+      "choice_cell": "C134",
+      "choice_label": "Off",
+      "variant_cell": "AP134",
+      "value": 0,
+      "group_cells": {
+        "AP133": {
+          "type": 6,
+          "value": ""
+        },
+        "AP134": {
+          "type": 2,
+          "value": 0.0
+        }
+      },
+      "descriptor": {
+        "address": "0x23d6bf",
+        "kind": 1,
+        "offset": 72,
+        "operand": 1
+      },
+      "combined_changed_bytes": [
+        {
+          "offset": "0x48",
+          "before": 154,
+          "after": 152,
+          "xor": 2
+        }
+      ]
+    },
+    {
+      "parameter": 91,
+      "option_cell": "B145",
+      "option_label": "Team Play",
+      "choice_cell": "C146",
+      "choice_label": "On",
+      "variant_cell": "AP146",
+      "value": 1,
+      "group_cells": {
+        "AP146": {
+          "type": 2,
+          "value": 1.0
+        },
+        "AP147": {
+          "type": 0,
+          "value": ""
+        }
+      },
+      "descriptor": {
+        "address": "0x23dd69",
+        "kind": 1,
+        "offset": 72,
+        "operand": 0
+      },
+      "combined_changed_bytes": [
+        {
+          "offset": "0x48",
+          "before": 152,
+          "after": 153,
+          "xor": 1
+        }
+      ]
+    }
+  ],
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "original_entries": {
+    "globals": "0x4ecc1c",
+    "init": "0x1a6d40",
+    "setter": "0x23ddae",
+    "getter": "0x23dee0"
+  },
+  "original_descriptor_table": "0x47cf40",
+  "original_validator": "0x1a7140",
+  "all_executed_instruction_bytes_verified": true,
+  "instruction_count": 500,
+  "instruction_invocations": 7288,
+  "executed_instruction_sha256": "0751cdb68d34e3c5089d725c06aa30c1d1d79c8df54a2cb7a922a28b7208754c",
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "getters_and_validator_leave_buffers_unchanged": true,
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+  "controls": [
+    {
+      "label": "individual-19-opposite",
+      "values": {
+        "19": 0
+      },
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "individual-19-selected",
+      "values": {
+        "19": 1
+      },
+      "buffer_sha256": "fa82a89902f18a46c9a5f2b95824da75e3a00cfe050787e2d205c33709c28cdc",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "individual-20-opposite",
+      "values": {
+        "20": 1
+      },
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "individual-20-selected",
+      "values": {
+        "20": 0
+      },
+      "buffer_sha256": "eee028177325836516cf6bf91ba53a006bab84b29cafb5f4a9f998b544485b59",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "individual-91-opposite",
+      "values": {
+        "91": 0
+      },
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "individual-91-selected",
+      "values": {
+        "91": 1
+      },
+      "buffer_sha256": "a32358efed46814ca0246b374ddc79b115027a9744c7be357f23b5de745e9060",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "combined-opposite",
+      "values": {
+        "19": 0,
+        "20": 1,
+        "91": 0
+      },
+      "buffer_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "combined-after-19",
+      "values": {
+        "19": 1,
+        "20": 1,
+        "91": 0
+      },
+      "buffer_sha256": "fa82a89902f18a46c9a5f2b95824da75e3a00cfe050787e2d205c33709c28cdc",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "combined-after-20",
+      "values": {
+        "19": 1,
+        "20": 0,
+        "91": 0
+      },
+      "buffer_sha256": "7bd6f902d06d2a4d0bd1be561ec300eab42b7af832e48b24caa6339737b3cfa8",
+      "original_valid": true,
+      "rust_valid": true
+    },
+    {
+      "label": "combined-after-91",
+      "values": {
+        "19": 1,
+        "20": 0,
+        "91": 1
+      },
+      "buffer_sha256": "4dce2944f5f08ad130b2a610f60e0923867959595948552d2bbfcb82053777a5",
+      "original_valid": true,
+      "rust_valid": true
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-xls-reader-20261102/halo2-test-a5z5yrw3",
+  "diagnostic_only": true,
+  "historic_304_byte_payload_recovered": false,
+  "historical_membership_or_weights_recovered": false,
+  "production_catalog_changed": false,
+  "retained_generated_large_artifacts": []
+}

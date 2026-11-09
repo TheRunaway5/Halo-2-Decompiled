@@ -110,6 +110,96 @@ mod tests {
             assert_eq!(runtime.room_sockets.peers(id), json!([]));
         }
     }
+
+    #[test]
+    fn committed_result_retry_verifies_durable_data_before_room_acknowledgement() {
+        let (mut runtime, headers) = pair();
+        let first = runtime.room_descriptor(&headers[0]).unwrap();
+        let second = runtime.room_descriptor(&headers[1]).unwrap();
+        let id = first["id"].as_str().unwrap();
+        assert_eq!(first["id"], second["id"]);
+        let owners = headers
+            .iter()
+            .map(|header| runtime.matchmaking_auth(header).unwrap()["player"].clone())
+            .collect::<Vec<_>>();
+        let mut raw = vec![0; halo2_online_protocol::security_policy::PCR_SIZE];
+        raw[0..2].copy_from_slice(&[1, 1]);
+        raw[0x10..0x12].copy_from_slice(&[1, 1]);
+        raw[0x64] = 2;
+        for (slot, row) in m::array(&first, "players").iter().enumerate() {
+            let at = 0x370 + slot * 0x94;
+            raw[at] = 1;
+            raw[at + 2..at + 10].copy_from_slice(&m::hex(&row["identity"], 8).unwrap());
+            for (i, code) in row["name"].as_str().unwrap().encode_utf16().enumerate() {
+                raw[at + 12 + 2 * i..at + 14 + 2 * i].copy_from_slice(&code.to_le_bytes());
+            }
+            raw[at + 0x88] = 255;
+            raw[at + 0x90] = slot as u8;
+        }
+        let report = raw
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let digest = runtime
+            .room_request(json!({"op":"result_submit","id":id,"actor":owners[0],"report":report}))
+            .unwrap();
+        for actor in &owners {
+            runtime
+                .room_request(json!({"op":"result_confirm","id":id,"actor":actor,"digest":digest}))
+                .unwrap();
+        }
+
+        // Finish the SQL transaction without delivering its acknowledgement to the room.
+        let source = runtime.queue_source().unwrap();
+        let clock = runtime.clock().unwrap();
+        let observations = runtime.room_sockets.observations(runtime.started);
+        let sources = runtime.sources(&observations);
+        let committed = database::transaction(&mut runtime.owners, &mut runtime.db, Some(source), |owners, db| {
+            let (handle, receipt) = database::drive(owners, db,
+                json!({"database":{"mode":"result_commit","source":source,"match":id,"completed":clock.wall}}),
+                &clock, sources)?;
+            owners.retire(handle);
+            Ok(receipt)
+        }).unwrap();
+        assert_eq!(committed["already_committed"], false);
+        runtime
+            .db
+            .execute(
+                "UPDATE match_result_admission SET envelope_sha256=?",
+                ["0".repeat(64)],
+            )
+            .unwrap();
+        let error = runtime
+            .room_commit(id)
+            .expect_err("Invalid durable result was acknowledged");
+        assert_eq!(error.0, 409);
+        let snapshot = json!({"op":"result_snapshot","id":id});
+        assert_eq!(
+            runtime.room_request(snapshot.clone()).unwrap()["committed"],
+            false
+        );
+
+        runtime
+            .db
+            .execute(
+                "UPDATE match_result_admission SET envelope_sha256=?",
+                [committed["envelope_sha256"].as_str().unwrap()],
+            )
+            .unwrap();
+        runtime.room_commit(id).unwrap();
+        assert_eq!(runtime.room_request(snapshot).unwrap()["committed"], true);
+        let rows: (i64, i64, String) = runtime
+            .db
+            .query_row(
+                "SELECT (SELECT count(*) FROM match_results),
+                    (SELECT sum(xp) FROM playlist_skill),public_id FROM carnage_reports",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!((rows.0, rows.1), (1, 100));
+        assert_eq!(rows.2, committed["public"].as_str().unwrap());
+    }
 }
 pub(super) fn request(
     owners: &mut Owners,

@@ -27,6 +27,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--native',type=Path);p.add_argument('--report',type=Path,required=True)
     p.add_argument('--generate-only',action='store_true')
+    p.add_argument('--native-banks',action='store_true',help='Feed literal retained BSP inputs to the standalone component probe')
     a=p.parse_args();scratch=Path(os.environ['HALO2_TEST_SCRATCH'])
     if not a.native and not a.generate_only:p.error('--native is required for comparison')
     snapshot=ROOT/'analysis/multiplayer-shading/world-effects-goal-20261011/original-session/frag-light-draw'
@@ -71,6 +72,20 @@ def main():
         call(fg,0x16e210,((R.UC_X86_REG_ECX,i),(R.UC_X86_REG_EDI,datum)));fog.append(fg.reg_read(R.UC_X86_REG_EAX)&255)
     frame=(snapshot/'bindings-entry/light-frame.bin').read_bytes()
     shape=(snapshot/'bindings-entry/shape.bin').read_bytes()
+    bank_input=None
+    if a.native_banks:
+        def ws(at,n):return list(struct.unpack('<'+'I'*n,s.read(at,n*4)))
+        def h(at):return struct.unpack('<H',s.read(at,2))[0]
+        def block(at,stride):
+            n,start=ws(at,2);return [start+i*stride for i in range(n)]
+        collision=u(s.read(bsp+0x18,4));planes=[ws(p,4)for p in block(collision+8,16)]
+        portals=[dict(back=h(p),front=h(p+2),plane=u(s.read(p+4,4)),flags=u(s.read(p+24,4)),
+            vertices=[ws(v,3)for v in block(p+28,12)])for p in block(bsp+0x5c,36)]
+        cluster_rows=block(bsp+0x9c,176)
+        bank_input=dict(planes=planes,portals=portals,cluster_portals=[[h(q)for q in block(p+0x8c,2)]for p in cluster_rows],
+            clusters=[dict(geometry=h(p+0x24),bounds=ws(p+0x54,6),instances=[h(q)for q in block(p+0x98,2)])for p in cluster_rows],
+            instances=[dict(definition=struct.unpack('<h',s.read(p+0x34,2))[0],sphere=ws(p+0x3c,4))for p in block(bsp+0x140,88)],
+            definitions=[h(p+0x24)for p in block(bsp+0x138,200)])
     def cube(guest,r):
         saved=guest.context_save();base=0x70080000;sh=bytearray(shape)
         struct.pack_into('<3f',sh,0x2c,*struct.unpack('<3f',center));struct.pack_into('<f',sh,0x44,r)
@@ -125,10 +140,14 @@ def main():
             fixture_sha256=hashlib.sha256(data).hexdigest(),intercepted_instructions=0,supplied_original_outcomes=False,
             retained_large_artifacts=[]),indent=2)+'\n')
         print('Generated',len(cases),'unchanged original BSP prefixes; native comparison not run',flush=True);return 0
-    result=subprocess.run([str(a.native.resolve()),str(ROOT/'assets/disc/maps/lockout.map'),str(fixture)],capture_output=True,text=True)
+    native_bank_path=scratch/'literal-bsp-input.json'
+    if bank_input is not None:native_bank_path.write_text(json.dumps(bank_input,separators=(',',':')))
+    native_input=native_bank_path if a.native_banks else(ROOT/'assets/disc/maps/lockout.map').resolve(strict=True)
+    result=subprocess.run([str(a.native.resolve()),str(native_input),str(fixture)],capture_output=True,text=True)
     report=dict(passed=result.returncode==0,scope=__doc__,snapshot_sha256=PIN,cases=len(cases),compared_words=word_count,
         results=results,original_calls=calls,intercepted_instructions=0,supplied_original_outcomes=False,
         fixture_sha256=hashlib.sha256(data).hexdigest(),native_binary_sha256=hashlib.sha256(a.native.read_bytes()).hexdigest(),
+        literal_bsp_inputs=a.native_banks,literal_bsp_sha256=hashlib.sha256(native_bank_path.read_bytes()).hexdigest()if a.native_banks else None,
         native_exit_code=result.returncode,native_stdout=result.stdout[-4000:],native_stderr=result.stderr[-4000:],retained_large_artifacts=[])
     a.report.write_text(json.dumps(report,indent=2)+'\n');print(result.stdout,result.stderr,flush=True);return result.returncode
 

@@ -1046,7 +1046,13 @@ impl State {
         Ok(())
     }
     pub fn confirm(&mut self) -> Result<()> {
-        need(self.phase == Phase::Reviewing && self.report.len() == REPORT_BYTES)?;
+        // The socket worker may accept completion after a caller observes
+        // Reviewing. Its repeat must acknowledge the same report locally.
+        let already_confirmed = self.phase == Phase::Postgame && !self.confirmation.is_empty();
+        need(
+            (self.phase == Phase::Reviewing || already_confirmed)
+                && self.report.len() == REPORT_BYTES,
+        )?;
         if self.confirmation.is_empty() {
             self.confirmation = json!({"confirm_result":digest(&self.report)}).to_string();
         }

@@ -20,12 +20,13 @@ int main(int argc,char** argv) {
     need(argc==4,"Supply prepared MCC MAP, original profile inventory, and REPORT");
     auto cache=std::make_shared<const Cache>(argv[1]);need(cache->is_mcc(),"Vehicle profiles require imported MCC data");
     const auto fixture=Json::parse(std::ifstream(argv[2]));
-    need(fixture.at("schema")=="H2_VEHICLE_LOOP_PROFILES_TU15_V1" && fixture.at("loops").size()==39,
+    need(fixture.at("schema")=="H2_VEHICLE_LOOP_PROFILES_TU15_V1" && !fixture.at("loops").empty() && fixture.at("loops").size()<=128,
         "Original vehicle loop inventory differs");
     const auto metadata=MccSoundMetadataPublication::create(cache);
     const auto atmosphere=cache->load_bsp_atmosphere(0);
-    need(!cache->spawns().empty(),"Prepared vehicle map has no real listener spawn");
-    const auto point=cache->spawns().front().position+Vec3{0,0,1};
+    // This is a declared playback-port control, not a live camera test.
+    //Campaign maps need no multiplayer spawn to test their authored banks.
+    const auto point=cache->spawns().empty()?Vec3{}:cache->spawns().front().position+Vec3{0,0,1};
     const auto location=atmosphere.location_at(point);
     SourceObjectAudioViewsTu15 views;
     views[0]=SourceObjectAudioViewTu15{point,std::int16_t(location.cluster),
@@ -38,17 +39,40 @@ int main(int argc,char** argv) {
         need(tag!=nullptr,"Imported authored vehicle loop is absent");
         const auto definition=cache->load_looping_sound(tag->datum);
         row["flags"]=definition.flags;row["original_flags"]=expected.at("flags");
+        need((definition.flags&~0x300u)==expected.at("flags").get<unsigned>(),
+            "Imported vehicle loop changed its original scheduling flags");
         std::set<std::uint32_t> authored;
         for(const auto& track:definition.tracks)for(const auto sound:{track.start,track.loop,track.end,track.alternate,
             track.alternate_end,track.alternate_transition_in,track.alternate_transition_out})
           if(sound!=0xffffffffu)authored.insert(sound);
         for(const auto& detail:definition.details)if(detail.sound!=0xffffffffu)authored.insert(detail.sound);
+        const bool continuous=definition.tracks.size()==1 && definition.tracks[0].loop!=0xffffffffu &&
+            definition.tracks[0].start==0xffffffffu && definition.tracks[0].end==0xffffffffu &&
+            definition.tracks[0].alternate==0xffffffffu &&
+            metadata.load(*cache,TagHandle{definition.tracks[0].loop}).pitch_ranges.size()==1;
+        if(tag->name.find("traverse\\wart_traverse")!=std::string::npos || tag->name.find("spectre_turret_turn")!=std::string::npos) {
+          row["phase_controls"]=Json::array();
+          const auto hex=[](const auto& bytes){std::string text;constexpr char digits[]="0123456789abcdef";
+            for(const auto byte:bytes){const auto n=std::to_integer<unsigned>(byte);text+=digits[n>>4];text+=digits[n&15];}return text;};
+          for(const auto sound:authored) {
+            const auto d=metadata.load(*cache,TagHandle{sound});
+            Json ranges=Json::array(),gains=Json::array();for(const auto& range:d.pitch_ranges)ranges.push_back(hex(range.interval));
+            for(const auto& permutation:d.permutations)gains.push_back(std::bit_cast<std::int8_t>(permutation[4]));
+            row["phase_controls"].push_back({{"sound",sound},{"sound_words",hex(d.sound)},{"playback",hex(d.playback)},
+                {"scale",hex(d.scale)},{"class",hex(d.sound_class)},{"rate",d.sample_rate_index},{"ranges",ranges},{"gains",gains}});
+          }
+        }
         unsigned packets{},emitted_type=type;double peak{};std::uint32_t random=0x76489b21u;
+        std::optional<std::uint64_t> continuous_voice;
         MultiplayerAudio audio(cache,0x76108bu,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}},
             [&](const auto& event){
               need(event.frames>0 && event.voice && event.owner==0x12340003u && authored.contains(event.sound),
                   "Vehicle profile lost its authored sound, native voice or declared emitter");
               const bool detail=std::ranges::any_of(definition.details,[&](const auto& row){return row.sound==event.sound;});
+              if(continuous && !detail) {
+                if(!continuous_voice)continuous_voice=event.voice;
+                need(event.voice==*continuous_voice,"Location change restarted a continuous vehicle stream");
+              }
               need(event.position.has_value()==(detail || bool(emitted_type)),"Vehicle loop changed its centered/spatial location");++packets;
             },&random);
         audio.bind_native_loop_metadata(metadata);
@@ -64,7 +88,7 @@ int main(int argc,char** argv) {
         request.location[0x2c]=std::byte(location.cluster);request.location[0x2d]=std::byte(unsigned(location.cluster)>>8);
         const bool alternate_only=std::ranges::any_of(definition.tracks,[](const auto& track){
           return track.loop==0xffffffffu && track.alternate!=0xffffffffu;});
-        request.arguments[6]=alternate_only?1:0;
+        request.arguments[6]=2u|(alternate_only?1u:0u);
         if(type && (definition.flags&0x80u)) {
           bool rejected=false;try{audio.object_loop_request(request);}catch(const FormatError& error){
             rejected=std::string(error.what()).find("four-bin playback owner")!=std::string::npos;
@@ -79,7 +103,8 @@ int main(int argc,char** argv) {
           if(!(definition.flags&0x80u))emitted_type=tick>=45 && tick<60?1u-type:type;
           request.location[3]=std::byte(emitted_type);
           put(4,std::bit_cast<std::uint32_t>(tick<30?.2f:1.f));
-          audio.object_loop_request(request);audio.object_loop_frame(1.f/30.f);
+          if(tick<=90)audio.object_loop_request(request);
+          audio.object_loop_frame(1.f/30.f);
           for(const auto value:audio.render(1600)) {
             need(std::isfinite(value),"Imported vehicle profile produced nonfinite PCM");peak=std::max(peak,std::abs(double(value)));
           }

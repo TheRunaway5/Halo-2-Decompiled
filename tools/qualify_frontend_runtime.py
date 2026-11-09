@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the supplied intro and MCC menus before selecting a local frontend."""
+"""Exercise cache-owned intro playback and MCC menus before selecting a frontend."""
 import argparse
 import hashlib
 import json
@@ -8,6 +8,7 @@ import mmap
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,15 +131,43 @@ def _readmit_frontend_owner(root, runtime, cache, sidecar, receipt, capability):
             return
 
 
+def _cache_declares_movie(cache):
+    """Match the MCC player's private movie bank; source references are inert."""
+    from mcc_movies import BANK
+    bank = cache/BANK
+    if bank.exists() or bank.is_symlink():
+        return True
+    path = cache/'provenance.json'
+    if not path.exists() and not path.is_symlink():
+        return False
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 16*1024**2:
+        raise ValueError('Invalid private cache provenance for movie startup validation')
+    report = json.loads(path.read_bytes())
+    if not isinstance(report, dict):
+        raise ValueError('Invalid private cache provenance for movie startup validation')
+    return 'port_bundled_movies' in report
+
+
 def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=print,
-            include_optional_movie=True):
+            include_optional_movie=None, cache_scoped=False, executable_owner=None):
     from native_gameplay_test import (FRONTEND_CAPABILITY, FRONTEND_MAP, FRONTEND_SCHEMA,
                                      FRONTEND_SCOPE)
     from native_renderer_shaders import shader_capability
     root, runtime, cache = root.resolve(), runtime.resolve(strict=True), cache.resolve(strict=True)
-    if not runtime.is_relative_to(root):
+    retained = None
+    if executable_owner is not None:
+        if not cache_scoped:
+            raise ValueError('Retained executable ownership is only valid for cache rebuilding')
+        from native_gameplay_test import _runtime_owner
+        retained = _runtime_owner(root, runtime, frontend=True)
+        if any(retained[key] != executable_owner[key] for key in
+               ('runtime', 'runtime_sha256', 'capability_sha256', 'report')):
+            raise ValueError('Selected executable owner changed before cache qualification')
+    from installation_paths import resource_root
+    if not runtime.is_relative_to(root) and not (retained and runtime.is_relative_to(resource_root(root))):
         raise ValueError('The frontend runtime must belong to this installation')
-    sidecar = runtime.with_name(runtime.name + '.frontend-test.json')
+    sidecar = (cache/'frontend-runtime-capability.json' if cache_scoped else
+               runtime.with_name(runtime.name + '.frontend-test.json'))
     if sidecar.exists() or sidecar.is_symlink():
         raise RuntimeError('Preserving existing frontend capability; select an unqualified candidate')
     maps = cache/'halo2/h2_maps_win64_dx11'
@@ -167,18 +196,15 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=
     if layout.is_file(): resources.append(layout)
     pins = {p.relative_to(cache).as_posix(): digest(p) for p in resources}
     shaders = runtime.parent/'shaders'
-    shader_proof = shader_capability(shaders,runtime)
+    shader_proof = shader_capability(shaders,runtime) if retained is None else {}
     windows = runtime.suffix.lower() == '.exe'
     if windows and (os.name != 'nt' or runtime != root/'halo2_native.exe'):
         raise ValueError('Qualify the Windows package using its native bundled Python')
-    if not include_optional_movie:
-        from installation_paths import resource_root
-        # A missing optional bank is valid for an MCC-only package. An existing
-        # or declared bank must still pass the original movie capture check.
-        optional_owners = (cache/'presentation/movies', resource_root(root)/'resources/movies',
-                           resource_root(root)/'resources/movie-manifest.json')
-        if any(path.exists() or path.is_symlink() for path in optional_owners):
-            raise ValueError('Optional movie files are present or declared; their intro check remains required')
+    movie_declared = _cache_declares_movie(cache)
+    if include_optional_movie is None:
+        include_optional_movie = movie_declared
+    elif not include_optional_movie and movie_declared:
+        raise ValueError('Optional movie files are present or declared; their intro check remains required')
     report = dict(passed=False, runtime=str(runtime), runtime_sha256=pin, cases=[], scratch=str(scratch))
     cases = [('intro',['--menu-screen','9','--movie-frame','100']),
              ('title',['--menu-screen','9','--skip-intro']),
@@ -197,7 +223,7 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=
         started = time.monotonic()
         failure = None
         try:
-            environment = dict(os.environ,SDL_VIDEODRIVER='windows' if windows else 'x11',SDL_AUDIODRIVER='dummy',
+            environment = dict(os.environ,SDL_VIDEODRIVER=('windows' if windows else 'cocoa' if sys.platform=='darwin' else 'x11'),SDL_AUDIODRIVER='dummy',
                                 XDG_DATA_HOME=str(scratch/'data'),XDG_CONFIG_HOME=str(scratch/'config'),
                                 XDG_CACHE_HOME=str(scratch/'cache'))
             if windows:
@@ -234,7 +260,10 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=
                                (' — '+failure if failure else ' (exit '+str(exit_code)+')'))
     if digest(runtime)!=pin or any(digest(cache/name)!=value for name,value in pins.items()):
         raise RuntimeError('Frontend owner changed during validation')
-    if shader_capability(shaders,runtime)!=shader_proof:
+    if retained is not None:
+        if _runtime_owner(root, runtime, frontend=True) != retained:
+            raise RuntimeError('Retained executable/shader owner changed during cache qualification')
+    elif shader_capability(shaders,runtime)!=shader_proof:
         raise RuntimeError('Frontend shader package changed during validation')
     if eos_worker is not None:
         validate_eos_worker(runtime, eos_worker)
@@ -259,6 +288,17 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=
             frontend_capture_policy='source-map-intro-clear-v1',
             optional_intro_movie=report['optional_intro_movie'],
             full_game_parity=False,limits=report['limits']))
+    if retained is not None:
+        # Preserve portable loader/payload bindings and optional runtime banks;
+        # the new proof changes only cache resources and capture validation.
+        for key in ('runtime', 'shaders', 'eos_worker', 'runtime_adjacent_data', 'packaging'):
+            if key in retained['report']:
+                capability[key] = retained['report'][key]
+    if cache_scoped:
+        from custom_asset_cache import MANIFEST, SCHEMA as CUSTOM_SCHEMA, verify as verify_bundle
+        verify_bundle(root, cache, json.loads((cache/'provenance.json').read_bytes()))
+        capability['validation'].update(custom_asset_cache_profile=CUSTOM_SCHEMA,
+            custom_asset_cache_sha256=digest(cache/MANIFEST))
     if eos_worker is not None:
         capability['eos_worker'] = eos_worker
     # The readmission pin is canonical UTF-8/LF on both platforms. Text mode
@@ -269,7 +309,8 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=
     except BaseException:
         sidecar.unlink()
         raise
-    return dict(schema='H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1',runtime=runtime.relative_to(root).as_posix(),
+    return dict(schema='H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1',runtime=(runtime.relative_to(root).as_posix()
+                if runtime.is_relative_to(root) else str(runtime)),
                 runtime_sha256=pin,capability_sha256=digest(sidecar))
 
 

@@ -25,6 +25,11 @@ def route(family):
 
 
 def strip_native_vehicle_choice(source):
+    if '// typed vehicle choice DATA admission\n'in source:
+        # The newer DATA attempt is independently pinned. Legacy reference
+        # extraction must reverse that exact overlay before its old routes.
+        from native_vehicle_choice_data_replacements import remove_vehicle_choice_data
+        source=remove_vehicle_choice_data(source)
     source=source.replace(INCLUDE,'')
     for family,_ in PINS.values():source=source.replace(route(family),'')
     if 'BEGIN native vehicle choice' in source or 'END native vehicle choice' in source:

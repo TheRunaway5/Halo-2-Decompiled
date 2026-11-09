@@ -14,7 +14,7 @@ import uuid
 
 from audit_rendering import FormatError
 from installation_paths import resource_root
-from mcc_movies import _cancellation, _lock, _owned, _publish_new
+from mcc_movies import ROLES, SOURCE_DIRECTORY, _cancellation, _lock, _owned, _publish_new
 
 SCHEMA = 'H2_CUSTOM_ASSET_SOURCES_V1'
 MANIFEST = 'custom-assets.json'
@@ -32,17 +32,22 @@ def _record(path):
 
 
 def _groups(root):
+    from custom_asset_cache import CONTRACT, contract, _pin
+    contract(root)
     from controller_prompt_assets import inventory as prompt_inventory
     from custom_map_assets import source_bundle as map_inventory
     from custom_loading_assets import inventory as loading_inventory
     from h2ek_loading_ambience import inventory as source_policy_inventory
     from custom_ui_assets import inventory as ui_inventory
+    from mcc_movies import inventory as movie_inventory
     from native_variant_assets import source_bundle as variant_sources
     variants = {name: dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
                 for name, raw in variant_sources(root).items()}
+    maps = map_inventory(root)
+    maps[CONTRACT] = _pin(_owned(resource_root(root)/CONTRACT, resource_root(root)))
     return dict(native_variants=variants, controller_prompts=prompt_inventory(root),
-                custom_ui=ui_inventory(root), custom_maps=map_inventory(root),
-                custom_loading=loading_inventory(root),
+                custom_ui=ui_inventory(root), custom_maps=maps,
+                custom_loading=loading_inventory(root), bundled_movies=movie_inventory(root),
                 permitted_source_policies=source_policy_inventory(root))
 
 
@@ -72,10 +77,13 @@ def required_bytes(root):
 
 
 def _receipt(groups, files):
+    from custom_asset_cache import POLICY
     summaries = {name: dict(files=rows, bytes=sum(row['bytes'] for row in rows.values()))
                  for name, rows in groups.items()}
     summaries['controller_prompts']['families'] = ['xbox', 'playstation']
-    return dict(schema=SCHEMA, files=files, groups=summaries,
+    summaries['bundled_movies']['roles'] = {
+        role: SOURCE_DIRECTORY + '/' + name for role, name in ROLES.items()}
+    return dict(schema=SCHEMA, files=files, groups=summaries, runtime_policy=POLICY,
                 bytes=sum(row['bytes'] for row in files.values()),
                 scope='Custom source delivery; runtime admission remains separate')
 
@@ -115,7 +123,7 @@ def install(root, destination, *, progress=lambda _: None):
                     raise FormatError('Customized custom asset retained: ' + name)
             pending_files[name] = row
         if pending_files:
-            progress('Staging custom textures, controller buttons, maps and game modes…')
+            progress('Staging custom artwork, maps, game modes and 4K60 movies…')
         for name, row in pending_files.items():
             path = _owned(destination / name, destination)
             path.parent.mkdir(parents=True, exist_ok=True)

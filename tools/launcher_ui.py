@@ -84,8 +84,10 @@ class LauncherHome(LauncherSurface):
         self.tracked_text(61, 248, 'LAUNCHER', 12, 5, MUTED)
         self.play_button = self.button("Play", self.play, 58, 358, 344, 60, primary=True)
         self.play_button.configure(state="disabled", background='#18344b')
+        self.rebuild_button = self.button('Rebuild Cache', self.rebuild_cache, 418, 358, 192, 60)
         self.repair_button = self.button('Repair', self.repair, 58, 514, 160, 40)
         self.repair_button.place_forget()
+        self.rebuild_button.configure(state='disabled')
         self.status_dot = self.canvas.create_oval(60, 450, 65, 455, fill=BLUE,
                                                  outline='', tags='art')
         self.status = self.text(78, 445, "Checking game files…", 12, MUTED, width=350)
@@ -102,6 +104,7 @@ class LauncherHome(LauncherSurface):
         window = self.window
         self.frontend = False
         self.play_button.configure(state='disabled', background='#18344b')
+        self.rebuild_button.configure(state='disabled')
         self.repair_button.place_forget()
         self.canvas.itemconfigure(self.status, text='Checking game files…', fill=MUTED)
         # Keep Tk responsive while the independent shader/resource admission
@@ -129,13 +132,14 @@ class LauncherHome(LauncherSurface):
                                                        if self.frontend else getattr(result, 'message', UNAVAILABLE_MESSAGE)),
                                       fill=MUTED if self.frontend else '#e7ba8f')
             self.canvas.itemconfigure(self.status_dot, fill=BLUE if self.frontend else '#e7ba8f')
-            self.play_button.configure(state="normal" if self.frontend else "disabled",
+            self.play_button.configure(state="normal" if self.frontend and self.repair_dialog is None else "disabled",
                                        background='#b8e2f7' if self.frontend else '#18344b')
             if self.frontend:
                 self.play_button.focus_set()
             else:
                 self.place(self.repair_button, 58, 514, 160, 40)
                 self.repair_button.focus_set()
+            self.rebuild_button.configure(state='normal' if self.repair_dialog is None else 'disabled')
 
         self.readiness = threading.Thread(target=validate, name="halo2-launcher-readiness", daemon=True)
         self.readiness.start()
@@ -146,6 +150,14 @@ class LauncherHome(LauncherSurface):
             return
         from launcher_repair_ui import LauncherRepairWindow
         self.repair_dialog = LauncherRepairWindow(self)
+
+    def rebuild_cache(self):
+        if self.closed or self.repair_dialog is not None:
+            return
+        from launcher_repair_ui import LauncherRepairWindow
+        self.play_button.configure(state='disabled', background='#18344b')
+        self.rebuild_button.configure(state='disabled')
+        self.repair_dialog = LauncherRepairWindow(self, rebuild=True)
 
     def play(self):
         if not self.closed and str(self.play_button.cget("state")) != "disabled":

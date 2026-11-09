@@ -28,6 +28,7 @@ def bundle_fixture(root):
     controller_prompt_fixture(root)
     custom_ui_fixture(root)
     empty_custom_map_fixture(root)
+    movie_fixture(root)
 
 
 class MccOnboardingTests(unittest.TestCase):
@@ -382,9 +383,10 @@ class MccOnboardingTests(unittest.TestCase):
         receipt = json.loads((cache / MANIFEST).read_bytes())
         self.assertEqual(receipt['files'][LAYOUTS]['sha256'], file_sha(self.root / LAYOUTS))
         self.assertEqual(onboarding.selected(self.root)[0], self.cache)
-        self.assertFalse((self.root / 'resources/movies').exists())
-        self.assertFalse((self.cache / 'presentation/movies').exists())
-        self.assertNotIn('port_bundled_movies', onboarding.selected(self.root)[1])
+        self.assertTrue(onboarding.selected(self.root)[1]['port_bundled_movies']['complete'])
+        for role in ('intro', 'credits'):
+            self.assertEqual((self.cache / f'presentation/movies/{role}_60.mp4').read_bytes(),
+                             (self.root / f'resources/movies/{role}_60.mp4').read_bytes())
         self.assertNotIn('port_authored_prompts', onboarding.selected(self.root)[1])
         self.assertFalse((self.root / 'resources/presentation/prompts').exists())
         self.assertFalse((self.cache / 'presentation/prompts').exists())
@@ -446,8 +448,7 @@ class MccOnboardingTests(unittest.TestCase):
                 finally:
                     source.write_bytes(raw)
 
-    def test_explicit_reference_movie_repair_does_not_reverify_or_reimport_mcc(self):
-        movie_fixture(self.root)
+    def test_explicit_movie_repair_does_not_reverify_or_reimport_mcc(self):
         self.select()
         before = {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()}
         with patch.object(onboarding, 'prepare', side_effect=AssertionError('MCC reimport')), \
@@ -477,32 +478,22 @@ class MccOnboardingTests(unittest.TestCase):
         self.assertEqual(before, {p.relative_to(bank): (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns)
                                  for p in bank.rglob('*') if p.is_file()})
 
-    def test_normal_reuse_ignores_preserved_movie_bank_and_missing_or_invalid_source(self):
-        movie_fixture(self.root)
+    def test_normal_reuse_recovers_missing_movie_and_preserves_a_modified_bank(self):
         self.select()
-        _, historical = onboarding.repair_movies(self.root, progress=lambda _: None)
-        entry = historical['port_bundled_movies']
         bank = self.cache / 'presentation/movies'
-        shutil.rmtree(self.root / 'resources/movies')
-        (self.root / 'resources/movie-manifest.json').unlink()
-        for invalid_source in (False, True):
-            with self.subTest(invalid_source=invalid_source):
-                if invalid_source:
-                    source = self.root / 'resources/movies'
-                    source.mkdir()
-                    (source / 'manifest.json').write_bytes(b'invalid preserved source metadata')
-                    (source / 'intro_60.mp4').write_bytes(b'invalid preserved source payload')
-                    (bank / 'manifest.json').write_bytes(b'invalid historical bank; not an MCC role')
-                paths = [p for base in (bank, self.root / 'resources/movies')
-                         for p in base.rglob('*') if p.is_file()]
-                before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in paths}
-                with patch.object(onboarding, 'prepare', side_effect=AssertionError('MCC reimport')), \
-                     patch.object(onboarding, 'repair_movies', side_effect=AssertionError('Reference movie repair selected')), \
-                     patch('mcc_movies.repair', side_effect=AssertionError('Reference movie owner selected')):
-                    cache, report = onboarding.setup(self.root, self.source, progress=self.messages.append)
-                self.assertEqual(cache, self.cache)
-                self.assertEqual(report['port_bundled_movies'], entry)
-                self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in paths})
+        credits = bank / 'credits_60.mp4'
+        credits.unlink()
+        with patch.object(onboarding, 'prepare', side_effect=AssertionError('MCC reimport')):
+            cache, report = onboarding.setup(self.root, self.source, progress=self.messages.append)
+            self.assertEqual(cache, self.cache)
+            self.assertTrue(report['port_bundled_movies']['complete'])
+            self.assertEqual(credits.read_bytes(), (self.root / 'resources/movies/credits_60.mp4').read_bytes())
+            credits.write_bytes(b'modified movie')
+            provenance = (cache / 'provenance.json').read_bytes()
+            with self.assertRaisesRegex(FormatError, 'Bundled movie extent differs'):
+                onboarding.setup(self.root, self.source, progress=self.messages.append)
+        self.assertEqual(credits.read_bytes(), b'modified movie')
+        self.assertEqual((cache / 'provenance.json').read_bytes(), provenance)
 
     def test_explicit_reference_prompt_repair_does_not_reverify_or_reimport_mcc(self):
         prompt_fixture(self.root)

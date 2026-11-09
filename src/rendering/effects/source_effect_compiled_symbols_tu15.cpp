@@ -54,6 +54,19 @@ SourceEffectCompiledSymbolsTu15::SourceEffectCompiledSymbolsTu15(
         throw std::invalid_argument("Source bank already owns its effect symbol namespace");
     registry[&memory]=binding;binding_=std::move(binding);
 }
+SourceEffectCompiledSymbolsTu15::SourceEffectCompiledSymbolsTu15(
+    const SourcePhysicsContactMemory &target,
+    const SourcePhysicsContactMemory &source) {
+    std::lock_guard lock(registry_mutex);
+    const auto previous=registry.find(&target);
+    if(previous!=registry.end() && !previous->second.expired())
+        throw std::invalid_argument("Source bank already owns its effect symbol namespace");
+    const auto input=registry.find(&source);
+    if(input==registry.end() || input->second.expired())return;
+    auto binding=std::make_shared<const SourceEffectCompiledSymbolBindingTu15>(
+        SourceEffectCompiledSymbolBindingTu15{&target});
+    registry[&target]=binding;binding_=std::move(binding);
+}
 SourceEffectCompiledSymbolsTu15::~SourceEffectCompiledSymbolsTu15() {
     if(!binding_)return;
     std::lock_guard lock(registry_mutex);

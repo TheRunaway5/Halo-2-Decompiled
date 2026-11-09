@@ -945,6 +945,9 @@ bool OnlineMatchSession::authority_delivered(unsigned peer,const AuthorityTransf
 bool OnlineMatchSession::authority_host_continuation_supported(unsigned peer)const{
   return impl_->capability(bridge::NativeExchangeCapability::HostContinuation,peer);
 }
+bool OnlineMatchSession::authority_complete_host_archive_supported(unsigned peer)const{
+  return impl_->capability(bridge::NativeExchangeCapability::CompleteHostArchive,peer);
+}
 bool OnlineMatchSession::authority_admitted_camera_supported(unsigned peer)const{
   return impl_->capability(bridge::NativeExchangeCapability::AdmittedCamera,peer);
 }
@@ -1040,6 +1043,10 @@ AuthorityCutSeal OnlineMatchSession::publish_authority_ahead(const AuthorityTran
 bool OnlineMatchSession::acknowledge_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return transfer&&transfer->acknowledge_validated(context,seal);
+}
+bool OnlineMatchSession::begin_authority_preparation(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->begin_delivered_preparation(context,seal);
 }
 bool OnlineMatchSession::reject_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}

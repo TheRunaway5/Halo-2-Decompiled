@@ -44,7 +44,7 @@ pub(super) fn legacy_variant(name: &str) -> Result<Option<(u32, bool)>> {
     // custom_slayer.cpp, not original presets or an unknown-name fallback.
     // Legacy clients load these named assets locally; full extension settings
     // and executable attestation remain an explicit unclosed delivery boundary.
-    if matches!(name, "Fiesta Slayer" | "Infection Slayer") {
+    if crate::matchmaking_catalog::named_modern_extension(name) {
         return Ok(Some((2, false)));
     }
     known_variant(name)
@@ -597,8 +597,10 @@ impl Registry {
                         "Match results disagree; no competitive result was recorded",
                     ));
                 }
+                // A previously accepted vote can recover its completion
+                // receipt after reconnecting, even if the result is disputed.
                 reject(
-                    value.quarantined.is_none(),
+                    value.quarantined.is_none() || value.confirmations.contains(actor),
                     409,
                     "Conflicting result is quarantined",
                 )?;

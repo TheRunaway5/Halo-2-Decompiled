@@ -506,6 +506,8 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
         final_work.advance()
         custom_map_assets.prepare(root, stage, progress=progress)
         report = json.loads((stage / "provenance.json").read_text())
+        from custom_asset_cache import publish as publish_custom_bundle
+        publish_custom_bundle(root, stage, report)
         mcc_presentation.recheck(presentation)
         final_work.advance()
         stage.rename(final)

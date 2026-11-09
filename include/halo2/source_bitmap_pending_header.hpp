@@ -13,6 +13,10 @@ struct SourceBitmapPendingHeaderMetadata {
     std::uint16_t flags{};
 };
 
+// Literal original format-bit table used by the complete header constructor.
+// Zero entries remain reserved/unimplemented formats, never empty resources.
+std::uint16_t source_bitmap_format_bits(std::uint32_t format);
+
 // Complete pure12D6D0 with its actual359E0/1365A0/13E3A0 arithmetic paths.
 // Admit format0..23 and partition0..2. Preserve signed narrow dimensions,
 // wrapped maximum levels, zero reductions and literal format-table values.

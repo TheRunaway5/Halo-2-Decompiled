@@ -1,0 +1,105 @@
+{
+  "owned_scratch_removed": true,
+  "parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-core-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-component-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-component-worker-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-rust-full-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-rust-final-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-stager-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-native-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-probe-before-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-probe-after-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-delivery-initial-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-delivery-final-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-scope-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-scope-final-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-production-objects-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-finish-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-helper-syntax-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-cleanup-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-evidence-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-report-recovery-20261102",
+      "empty": true,
+      "children": []
+    }
+  ],
+  "completed_native_removed_regular_bytes": 4463040272,
+  "completed_component_removed_regular_bytes": 5561798992,
+  "retained_large_artifacts": [],
+  "original_assets_existing_references_other_owners_and_selected_runtimes_preserved": true,
+  "final_metadata_runner_parents_empty": true
+}

@@ -19,13 +19,23 @@
 namespace halo2 {
 void select_multiplayer_mode_authority(MultiplayerOptions &options) {
   if(custom_slayer(options.variant)!=CustomSlayer::none || bomb_defusal_variant(options.variant))
-    options.source_object_world=false;
+    options.source_object_world=true;
 }
 namespace {
 TagSystem world_tags(std::shared_ptr<const Cache> cache, std::size_t bsp) {
   TagSystem tags(std::move(cache));
   tags.load_bsp(bsp);
   return tags;
+}
+std::shared_ptr<const Cache> admitted_world_cache(std::shared_ptr<const Cache> cache,
+    const MultiplayerOptions &options) {
+  if(cache->is_mcc()) {
+    if(!cache->original_data() || cache->original_data()->image!=OriginalData::Image::TitleUpdate15)
+      throw FormatError("MCC gameplay requires its genuine TU1.5 source owner");
+    if(cache->load_source_geometry_scenario_type()!=(options.campaign_difficulty?0:1))
+      throw FormatError("MCC gameplay session kind differs from its authored scenario type");
+  }
+  return cache;
 }
 LevelContent world_content(const Cache &cache,const MultiplayerOptions &options,
     std::optional<ScriptProgram> &script_input) {
@@ -44,7 +54,7 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options,con
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   const bool source_variant=cache.original_data() && cache.original_data()->image==OriginalData::Image::TitleUpdate15 &&
       !options.campaign_difficulty && custom_slayer(variant)==CustomSlayer::none && !bomb_defusal_variant(variant) &&
-      options.native_spawn_inputs.empty() && !options.replay && !options.capture_root && options.reference_player.empty();
+      options.native_spawn_inputs.empty() && (!options.replay || cache.is_mcc()) && !options.capture_root && options.reference_player.empty();
   auto rules=source_variant?multiplayer_source_rules(variant,true):slayer_rules(variant,true);
   if(!options.selected_profiles.empty() && options.selected_profiles.size()!=options.local_players)
     throw FormatError("Selected profiles must provide one complete record per local player");
@@ -62,7 +72,6 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options,con
   if(rules.custom!=CustomSlayer::none || rules.defusal) {
     rules.weapon_choices=cache.multiplayer_weapon_choices();
     if(rules.custom==CustomSlayer::infection && options.local_players<2 && !options.host_port && options.join.empty() && !options.online_match && !options.dedicated)throw FormatError("Infection requires at least two players");
-    if(options.source_object_world)throw FormatError("Custom Slayer rulesets require the native authoritative match");
   }
   if(options.session_random_seed)rules.random_seed=*options.session_random_seed;
   if(rules.defusal && std::ranges::none_of(variant.values,[](const auto &value){
@@ -78,8 +87,8 @@ std::shared_ptr<const std::filesystem::path> source_storage(
   if(!shadow&&(!options.join.empty() || (options.online_match &&
       options.online_match->host()!=options.online_match->self())))return {};
   const bool automatic=cache.original_data() &&
-      cache.original_data()->image==OriginalData::Image::TitleUpdate15 && rules.custom==CustomSlayer::none && !rules.defusal &&
-      !options.replay && !options.capture_root && options.reference_player.empty();
+      cache.original_data()->image==OriginalData::Image::TitleUpdate15 &&
+      (!options.replay || cache.is_mcc()) && !options.capture_root && options.reference_player.empty();
   if(!shadow&&!automatic && !options.source_object_world)return {};
   if(options.gameplay_xbe.empty() && !cache.is_mcc())
     throw FormatError("Source reference world requires its authenticated executable");
@@ -128,7 +137,47 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
   if(options.campaign_difficulty) {
     world->tu15_world().initialize_map();
     world->tu15_world().configure_campaign_session(*options.campaign_difficulty,1,30,rules.random_seed);
-  } else world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
+  } else {
+    const auto advertised=source_game_variant(variant);
+    auto physical_variant=advertised;
+    if(rules.defusal) {
+      // Defusal supplies the objective/round extension. Its physical player
+      // and item owners use genuine Team Slayer, rather than advancing the
+      // stock Assault objective alongside the custom one. Replay original
+      // common-field inputs through their codecs, including values retained
+      // only in an imported source-settings buffer. Mode-specific unions
+      // begin at F0 and retain the genuine mechanical Slayer defaults.
+      physical_variant=source_game_variant_default(0,source_game_variant_title(advertised));
+      const auto descriptors=source_game_variant_descriptors();
+      for(unsigned parameter=0;parameter<descriptors.size();++parameter)
+        if(descriptors[parameter].kind>=0 && descriptors[parameter].offset<0xf0u)
+          source_game_variant_set(physical_variant,int(parameter),source_game_variant_get(advertised,int(parameter)));
+      source_game_variant_set(physical_variant,91,1);
+      source_game_variant_set(physical_variant,16,1);
+    }
+    if(rules.custom!=CustomSlayer::none || rules.defusal) {
+      // Native15E070 can end a round directly from a death/score callback.
+      // Zero is its genuine unlimited score input; custom rules retain the
+      // advertised score goal and own their separate completion policy.
+      source_game_variant_set(physical_variant,2,0);
+    }
+    if(rules.defusal) {
+      // The custom fixed-loadout contract keeps map weapons/vehicles off.
+      // Actual15D060 and the four native vehicle selectors own these NONE
+      // values; all advertised custom settings remain the caller's inputs.
+      source_game_variant_set(physical_variant,83,1);
+      for(const auto [parameter,none]:std::array<std::pair<int,int>,7>{{
+          {76,7},{77,7},{78,4},{79,4},{80,4},{81,6},{82,6}}})
+        source_game_variant_set(physical_variant,parameter,none);
+    }
+    if(rules.custom==CustomSlayer::infection) {
+      // The custom scoreboard remains FFA. Its physical factions are ordinary
+      // source teams, consumed by the original damage membership policy.
+      source_game_variant_set(physical_variant,91,1);
+      source_game_variant_set(physical_variant,24,0);
+    }
+    world->configure_session(physical_variant,1,30,rules.random_seed);
+  }
   if(options.reference_auxiliary_seed) {
     if(options.input_script.empty() || !options.capture_tick || options.frames || options.ticks ||
         options.screenshot.empty() || options.host_port || !options.join.empty() ||
@@ -316,6 +365,7 @@ std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::shadow_prese
   // These private native births establish constructor/service owners only.
   // The presentation owner must import and validate the independently
   // accepted full native cut before any renderer can borrow this world.
+  const auto resources=resident.match.prepare_replica_world_resources(cache);
   return std::unique_ptr<MultiplayerPreparedWorld>(new MultiplayerPreparedWorld(options,std::nullopt,&setup,{}, {},std::move(cache)));
 }
 std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::source_shadow(
@@ -357,9 +407,9 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     std::optional<ScriptProgram> script_input,const SourceShadowSetup *shadow,std::shared_ptr<PhysicsLiveClockSource> clock,
     std::shared_ptr<MultiplayerMapAssets> assets,std::shared_ptr<const Cache> incoming_cache,
     std::shared_ptr<SourceExecutionInputs> inputs)
-  :constructor_cache_(incoming_cache?std::move(incoming_cache):assets?assets->cache_for(options):std::make_shared<const Cache>(options.map,options.shared_maps,
+  :constructor_cache_(admitted_world_cache(incoming_cache?std::move(incoming_cache):assets?assets->cache_for(options):std::make_shared<const Cache>(options.map,options.shared_maps,
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
-           OriginalData::load_xbe(options.gameplay_xbe))),
+           OriginalData::load_xbe(options.gameplay_xbe)),options)),
    cache(constructor_cache_),
    tags(world_tags(cache,options.bsp)),
    content(assets?assets->take_content(options,script_input):world_content(*cache,options,script_input)),rules(world_rules(*cache,options,content)),
@@ -420,14 +470,17 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
           native_player_configuration_name(options.selected_profiles[i]),
           options.selected_teams.empty()?-1:options.selected_teams[i],
           options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[i])));
-  if(!shadow && !local_slots.empty() && match.source_engine_owned_) {
+  const bool custom_mechanics=source_objects && source_objects->owns_physics() &&
+      (rules.custom!=CustomSlayer::none || rules.defusal);
+  if(!shadow && !local_slots.empty() && (match.source_engine_owned_ || custom_mechanics)) {
     //14F620's genuine birth continuation requires the selected local/input
     // user before it constructs18A0C0 and16B16A. Deferred views already admit
     // current_unit=NONE; keep this identity in place for the first engine tick.
     const auto locals=local_slots;bind_source_local_views(locals);
     if(!options.defer_initial_player_spawn)match.step({});
+    if(custom_mechanics)match.update_first_person_views();
   }
-  if(match.source_engine_owned_) {
+  if(match.source_engine_owned_ || custom_mechanics) {
     match.first_person_setup_tick_=match.simulation_.ticks();
     // Existing presentation templates need a weapon reference. Observe one
     // genuinely born unit after startup; this never chooses a loadout or

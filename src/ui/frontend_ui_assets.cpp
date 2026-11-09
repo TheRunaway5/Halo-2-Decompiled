@@ -316,7 +316,12 @@ void custom_rank_assets(const FrontendContent &content,FrontendUiAssetPack &resu
   if(content.source_fonts.filename()!="h2_fonts")return;
   const auto directory=content.source_fonts.parent_path().parent_path()/"presentation/custom-ranks";
   const auto manifest=directory/"manifest.json";
-  if(!std::filesystem::exists(manifest))return;
+  if(!std::filesystem::exists(manifest)) {
+    for(const auto &[datum,image]:content.images)
+      if(image.name=="ui\\global_bitmaps\\rank_icons" || image.name=="ui\\global_bitmaps\\rank_icons_sm")
+        throw FormatError("Port-owned celestial rank artwork is unavailable; select Rebuild Cache");
+    return;
+  }
   const auto raw=read_file(manifest,64*1024);
   const auto metadata=nlohmann::json::parse(reinterpret_cast<const char*>(raw.data()),
                                           reinterpret_cast<const char*>(raw.data()+raw.size()));

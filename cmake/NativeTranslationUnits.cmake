@@ -1,4 +1,5 @@
 include_guard(GLOBAL)
+include("${CMAKE_CURRENT_LIST_DIR}/NativeExecutionAccounting.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeOperandSpecialization.cmake")
 
 # Generated source remains the authenticated review/provenance input. Build
@@ -6,6 +7,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/NativeOperandSpecialization.cmake")
 function(halo2_partition_native_translation target source count)
     get_filename_component(stem "${source}" NAME_WE)
     halo2_native_operand_source(partition_source "${source}")
+    halo2_native_accounting_source(partition_source "${partition_source}" "${source}")
     set(directory "${CMAKE_CURRENT_BINARY_DIR}/native-translations/${stem}")
     set(outputs "${directory}/router.cpp")
     math(EXPR last "${count} - 1")

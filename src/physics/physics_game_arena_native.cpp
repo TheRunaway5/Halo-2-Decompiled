@@ -138,7 +138,7 @@ void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheck
 }
 }
 struct SourcePhysicsGameArenaNative::Impl {
-  struct SharedMemory final : SourcePhysicsContactMemory {
+  struct SharedMemory final : SourcePhysicsContactMemory, NativeTu15RetainedCounterStorage {
     SourceRuntimeMemory &bank;
     mutable std::recursive_mutex mutex;
     explicit SharedMemory(SourceRuntimeMemory &m):bank(m){}
@@ -147,6 +147,9 @@ struct SourcePhysicsGameArenaNative::Impl {
     }
     void write(std::uint32_t p, std::span<const std::byte> b) override {
       std::lock_guard lock(mutex); bank.write(p,b);
+    }
+    NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t p, unsigned width, std::uint32_t delta) override {
+      std::lock_guard lock(mutex); return bank.adjust_counter(p,width,delta);
     }
   } shared;
   SourcePhysicsGameArenaConfiguration config;

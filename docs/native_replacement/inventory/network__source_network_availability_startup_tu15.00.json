@@ -1,0 +1,79 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15NetworkLink.cmake",
+      "line": 12,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "run"
+      ],
+      "body_sha256": "02704c1103ce24bba107941849c65e4915edf5a5b7153d41c7ea1d80db678e73",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run",
+      "instruction_callback_sites": 52,
+      "line": 8,
+      "literal_dispatch_required_targets": [
+        "3d725d"
+      ],
+      "observed_entry": "708b6",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "708b6",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "run",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "catch",
+        "instruction",
+        "load",
+        "pop",
+        "save",
+        "scope",
+        "source_run_startup_noop_tu15"
+      ],
+      "body_sha256": "beacc2332a80affdc5203f76c42c33e6422b39e480556715f302d6d760fd5f3e",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "source_run_startup_noop_tu15",
+      "instruction_callback_sites": 1,
+      "line": 84,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "31d400",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "31d400",
+      "route_status": "literal_observer_boundary_requires_semantic_review",
+      "state_type": "local-state",
+      "symbol": "source_run_startup_noop_tu15",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/network/source_network_availability_startup_tu15.cpp",
+  "source_bytes": 5310,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "ac6a31e7b7b0cdc3bbef74b8b880521e34fb248b71f166e7d96f224392ee9fc1"
+}

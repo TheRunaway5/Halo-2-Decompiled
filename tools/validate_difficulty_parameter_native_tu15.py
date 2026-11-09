@@ -43,6 +43,8 @@ def main():
     parser.add_argument('--negative-control', action='store_true')
     parser.add_argument('--installed-routes', action='store_true',
         help='Execute the installed owner bodies, requiring their native activity counters')
+    parser.add_argument('--literal-actual',action='store_true',
+        help='Also qualify the current generator identity-literal shape of the actual TU1.5 owner')
     args = parser.parse_args()
     owner = Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     args.output = args.output.resolve(); args.output.mkdir(parents=True, exist_ok=False)
@@ -103,6 +105,14 @@ def main():
         records = []
         for entry in entries:
             raw, state_type = body(text, entry)
+            if args.literal_actual and not canonical:
+                if args.installed_routes:raise ValueError('Literal-shape proof requires the retained actual body')
+                from native_difficulty_parameter_kernel_tu15 import PINS,LITERAL_ACTUAL_PINS
+                if hashlib.sha256(raw.encode()).hexdigest()!=PINS['actual'][entry]:
+                    raise ValueError('Selected actual difficulty baseline changed')
+                raw=re.sub(r'selected\((0x[0-9a-f]+u),s.image\)',r'\1',raw)
+                if hashlib.sha256(raw.encode()).hexdigest()!=LITERAL_ACTUAL_PINS[entry]:
+                    raise ValueError('Actual difficulty identity-literal body changed')
             records.append(dict(entry=entry, sha256=hashlib.sha256(raw.encode()).hexdigest()))
             literal.append(raw.replace('(' + state_type + ' &s)', '(WorldState &s)', 1) + '\n')
         literal.append('}\n'); literal_pins[str(path.relative_to(ROOT))] = dict(sha256=sha(path), bodies=records)
@@ -229,6 +239,7 @@ target_link_libraries(source_difficulty_parameter_native_tu15_tests PRIVATE nloh
         negative_control=mutation, comparison_rejected_mutation=rejected if args.negative_control else None,
         validation_returncode=result, owned_scratch=str(owner), retained_large_artifacts=[],
         production_route_installed=args.installed_routes, full_vehicle_parity=False, tool_sha256=sha(Path(__file__)))
+    report['actual_identity_literal_shape_qualified']=args.literal_actual
     (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(dict(passed=passed, cases=len(cases), report=str(args.output / 'report.json'))), flush=True)
     return 0 if passed else 1

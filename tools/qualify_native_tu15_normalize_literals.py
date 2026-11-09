@@ -21,8 +21,11 @@ from native_normalize_vector_bridge_tu15 import literal_body,prefix
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def generate_literals(project):
+def generate_literals(project,fresh_primary=None):
     cohort=json.loads((ROOT/'analysis/renderer-native-normalizer-20261101/body-cohort.json').read_text())['bodies']
+    if fresh_primary:
+        cohort.append(dict(path=str(fresh_primary),literal_body_sha256=
+            '91940d101dc7a0bdb88bf74512b76902b09458abb7abd5dae0f1e2998912de6c'))
     header='#pragma once\n#include "physics/vehicles/physics_vehicle_motion_internal.hpp"\n#include "halo2/unit_animation_selection_runtime.hpp"\nnamespace normalize_literals {\n'
     pins={};variants=[]
     for n,item in enumerate(cohort):
@@ -54,7 +57,7 @@ def generate_literals(project):
     header+='''template<class S>void run(int index,S&s,bool bound){
 if constexpr(std::is_same_v<S,animation::State>){if(index!=0)throw std::runtime_error("Wrong animation variant");if(bound)animation::run_bound_30bd0(s);else animation::run_30bd0(s);}
 else if constexpr(std::is_same_v<S,halo2::physics_vehicle_motion_detail::MotionState>){if(index!=2)throw std::runtime_error("Wrong motion variant");if(bound)body2::run_bound_30bd0(s);else body2::run_30bd0(s);}
-else {switch(index){'''+''.join(f'case {n}:if(bound)body{n}::run_bound_30bd0(s);else body{n}::run_30bd0(s);break;'for n in range(1,8)if n!=2)+'''default:throw std::runtime_error("Wrong world variant");}}}
+else {switch(index){'''+''.join(f'case {n}:if(bound)body{n}::run_bound_30bd0(s);else body{n}::run_30bd0(s);break;'for n in range(1,len(cohort))if n!=2)+'''default:throw std::runtime_error("Wrong world variant");}}}
 }
 '''
     (project/'normalize_literal_variants.hpp').write_text(header)
@@ -141,7 +144,8 @@ def check(fixture,native,report):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path);p.add_argument('--check',type=Path)
-    p.add_argument('--native',type=Path);p.add_argument('--report',type=Path);a=p.parse_args()
+    p.add_argument('--native',type=Path);p.add_argument('--report',type=Path)
+    p.add_argument('--fresh-primary',action='store_true');p.add_argument('--sanitizers',action='store_true');a=p.parse_args()
     if a.check:return check(a.check,a.native,a.report)
     assert a.output;a.output.mkdir(parents=True,exist_ok=True);scratch=Path(os.environ['HALO2_TEST_SCRATCH']);project=scratch/'source';project.mkdir()
     shutil.copytree(ROOT/'include',project/'include')
@@ -151,7 +155,12 @@ def main():
         target=project/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
     shutil.copyfile(ROOT/'tests/native_tu15_normalize_vector_tests.cpp',project/'probe.cpp')
     shutil.copyfile(ROOT/'src/campaign/ai/native_campaign_ai_vector_math_tu15.cpp',project/'math.cpp')
-    variants,pins=generate_literals(project)
+    fresh=None
+    if a.fresh_primary:
+        fresh=scratch/'fresh-primary.cpp'
+        subprocess.run([sys.executable,'-B',str(ROOT/'tools/generate_physics_live_support_tu15.py'),
+            '--output',str(fresh),'--manifest',str(scratch/'fresh-primary-generation.json')],cwd=ROOT,check=True)
+    variants,pins=generate_literals(project,fresh)
     from oracle_smg_firing_1_1 import Xbe
     paths={'tu15':Path('/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe'),
         'mp11':ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03'}
@@ -171,6 +180,10 @@ target_include_directories(normalize_literals PRIVATE include src "${{CMAKE_CURR
 target_compile_features(normalize_literals PRIVATE cxx_std_20)
 target_compile_definitions(normalize_literals PRIVATE HALO2_NORMALIZE_LITERAL_VARIANTS=1)
 target_compile_options(normalize_literals PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+if(HALO2_SANITIZERS)
+    target_compile_options(normalize_literals PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(normalize_literals PRIVATE -fsanitize=address,undefined)
+endif()
 target_link_libraries(normalize_literals PRIVATE nlohmann_json::nlohmann_json)
 add_test(NAME normalize_literals COMMAND "{ROOT}/.tools/python/bin/python" "{Path(__file__).resolve()}" --check "{fixture}" --native $<TARGET_FILE:normalize_literals> --report "${{CMAKE_CURRENT_BINARY_DIR}}/literals.json")
 ''')
@@ -180,6 +193,7 @@ add_test(NAME normalize_literals COMMAND "{ROOT}/.tools/python/bin/python" "{Pat
         cmd=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/kind),
             '--target','normalize_literals','--filter','^normalize_literals$','--jobs','2','--test-jobs','1','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,
             '--retain-report','literals.json','--retain-report','Testing/Temporary/LastTest.log']
+        if a.sanitizers:cmd.append('--sanitizers')
         run=subprocess.run(cmd);results.append(dict(kind=kind,returncode=run.returncode,command=cmd))
         if run.returncode:break
     for name in headers+['tests/native_tu15_normalize_vector_tests.cpp','src/campaign/ai/native_campaign_ai_vector_math_tu15.cpp',str(Path(__file__).relative_to(ROOT))]:

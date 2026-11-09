@@ -1,0 +1,23 @@
+{
+  "schema": "H2_FRONTEND_SIGNIN_BEFORE_RUST_V1",
+  "captured_at_utc": "2026-11-03T00:11:52.792785+00:00",
+  "modern_native_caller": true,
+  "not_original_xbox_live_provider": true,
+  "source_pins": {
+    "src/ui/frontend_state.cpp": "7d33edeea19f5dec15dbef8013dad7f49faf7b25e1fd5d3579e119ff24a3c95d",
+    "include/halo2/frontend.hpp": "23b1a77e0cbfc6b51a4397ce62a9cb15bb1be32df29e2dc5d0dbc730b434bc02",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "cccaaef61c9e050f409a41962a212c5f8cf955cbf245dca2c68feb3a992c373f",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "97e46504260ac4db5ad6c3ba5015361dd4c2f2ff8c723c579a786e6b5c41d65d",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "eeba0c7aad1588efff01cd6fe99581e7ee1a1b4efcc3298da03b4e4167cbe342",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "099a69fa9d27ecf721a200561c59a17b35a1547eccfc3921a9bab9629708b677"
+  },
+  "capture_names": {
+    "src/ui/frontend_state.cpp": "src__ui__frontend_state.cpp.reference",
+    "include/halo2/frontend.hpp": "include__halo2__frontend.hpp.reference",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "include__halo2__frontend_matchmaking_party_flow.hpp.reference",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "src__ui__frontend_matchmaking_party_flow_bridge.cpp.reference",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol__src__matchmaking_frontend_party_flow.rs.reference",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol_bridge__src__matchmaking_frontend_party_flow.rs.reference"
+  },
+  "authenticated_against_prior_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-couch-flow-rust-validation.json"
+}

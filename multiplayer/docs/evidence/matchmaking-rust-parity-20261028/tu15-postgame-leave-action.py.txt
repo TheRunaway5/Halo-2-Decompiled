@@ -1,0 +1,143 @@
+"""Replay the original Xbox PCR input handler and dialog 0x98 confirmation."""
+from collections import Counter
+from datetime import datetime, timezone
+from hashlib import sha256
+from itertools import product
+from pathlib import Path
+import json
+import os
+import struct
+import sys
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import (
+    UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDI,
+    UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP,
+)
+
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+mem = source.g
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+HANDLER, CONFIRM = 0x23A177, 0x23A16B
+REVIEW, CONTINUE, DIALOG = 0x235374, 0x195135, 0x195DA9
+CLOSE_BOTH, CLOSE_PRIMARY, CLOSE_SECONDARY, CLOSE_ACTIVE = 0x19462D, 0x5A000, 0x5A040, 0x5A590
+PRIMARY, SECONDARY, VIEW, EVENT = 0x1100000, 0x1110000, 0x1120000, 0x1127000
+INITIALIZED, PRIMARY_PTR, SECONDARY_PTR = 0x535F00, 0x535F34, 0x535F3C
+boundaries = {REVIEW:"review_close", CONTINUE:"host_continue", DIALOG:"leave_dialog",
+              CLOSE_ACTIVE:"active_close"}
+mem.mem_map(PRIMARY, 0x30000)
+instructions = {}
+trace = []
+stopped = None
+cases = sha256()
+handler_outcomes, confirm_outcomes = Counter(), Counter()
+
+def put(address, *values):
+    mem.mem_write(address, struct.pack("<" + "I" * len(values), *(v & 0xFFFFFFFF for v in values)))
+
+def words(address, count):
+    return struct.unpack("<" + "I" * count, mem.mem_read(address, count * 4))
+
+def observe(g, at, size, unused):
+    global stopped
+    raw = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == raw, hex(at)
+    if at == CLOSE_BOTH:
+        assert words(g.reg_read(UC_X86_REG_ESP) + 4, 1) == (0,)
+    if at in (CLOSE_BOTH, CLOSE_PRIMARY, CLOSE_SECONDARY):
+        trace.append(at)
+    if at in boundaries:
+        stopped = at
+        g.emu_stop()
+    else:
+        instructions[at] = raw
+
+def guard(g, access, at, size, value, unused):
+    assert STACK - 0x100 <= at and at + size <= STACK + 8
+
+mem.hook_add(UC_HOOK_CODE, observe)
+mem.hook_add(UC_HOOK_MEM_WRITE, guard)
+put(PRIMARY_PTR, PRIMARY)
+put(SECONDARY_PTR, SECONDARY)
+
+def run(address, arg):
+    global stopped
+    stopped = None
+    trace.clear()
+    put(STACK, STOP, arg)
+    mem.reg_write(UC_X86_REG_ESP, STACK)
+    mem.reg_write(UC_X86_REG_EAX, 0xFC0DE00)
+    mem.reg_write(UC_X86_REG_EBX, 0x11223344)
+    mem.reg_write(UC_X86_REG_ESI, EVENT)
+    mem.reg_write(UC_X86_REG_EDI, VIEW)
+    mem.emu_start(address, STOP, count=300)
+    return mem.reg_read(UC_X86_REG_ESP)
+
+for event, controller, review, initialized, phase, local_equal in product(
+    (0, 1, 2, 12, 13, 14, 0xFFFFFFFF), (0, 1, 3, 31, 32, 255),
+    (0, 1, 255), (False, True), (0, 2, 3, 8, 9), (False, True),
+):
+    mem.mem_write(INITIALIZED, bytes([initialized]))
+    mem.mem_write(VIEW + 0x5EF0, bytes([review]))
+    put(EVENT + 4, controller, event)
+    put(PRIMARY + 0x741C, phase)
+    put(PRIMARY + 0x72D8, 3)
+    put(PRIMARY + 0x50, 3 if local_equal else 2)
+    sp = run(HANDLER, 0)
+    eligible = initialized and 3 <= phase <= 8 and local_equal
+    expected = None if event not in (1, 13) else REVIEW if review else CONTINUE if eligible else DIALOG
+    assert stopped == expected, (event, controller, review, initialized, phase, local_equal, stopped)
+    assert not trace
+    if stopped == DIALOG:
+        assert words(sp, 8) == (0x23A1CA, 3, 0x98, 4, 1 << (controller & 31), CONFIRM, 0, 0)
+    elif stopped == REVIEW:
+        assert words(sp, 2) == (0x23A1A0, 3) and mem.reg_read(UC_X86_REG_ECX) == VIEW
+    elif stopped == CONTINUE:
+        assert words(sp, 1) == (0x23A1AB,)
+    else:
+        assert mem.reg_read(UC_X86_REG_EIP) == STOP and sp == STACK + 4
+        assert mem.reg_read(UC_X86_REG_EAX) & 255 == 0
+        assert mem.reg_read(UC_X86_REG_EBX) == 0x11223344
+    name = boundaries[stopped] if stopped else "unhandled"
+    handler_outcomes[name] += 1
+    cases.update(json.dumps([event, controller, review, initialized, phase, local_equal, name]).encode() + b"\n")
+
+for phase_a, phase_b, controller in product((0, 1, 3, 8), (0, 1, 3, 8), (0, 1, 0xFFFFFFFF)):
+    put(PRIMARY + 0x741C, phase_a)
+    put(SECONDARY + 0x741C, phase_b)
+    sp = run(CONFIRM, controller)
+    if phase_a or phase_b:
+        assert stopped == CLOSE_ACTIVE
+        session = PRIMARY if phase_a else SECONDARY
+        assert mem.reg_read(UC_X86_REG_ESI) == session
+        assert trace == [CLOSE_BOTH, CLOSE_PRIMARY] + ([] if phase_a else [CLOSE_SECONDARY])
+        name = "first_active_primary" if phase_a else "first_active_secondary"
+    else:
+        assert stopped is None and mem.reg_read(UC_X86_REG_EIP) == STOP
+        assert sp == STACK + 8 and mem.reg_read(UC_X86_REG_EAX) & 255 == 1
+        assert trace == [CLOSE_BOTH, CLOSE_PRIMARY, CLOSE_SECONDARY]
+        name = "both_inactive_return"
+    confirm_outcomes[name] += 1
+    cases.update(json.dumps([phase_a, phase_b, controller, name]).encode() + b"\n")
+
+assert sum(handler_outcomes.values()) == 2520 and sum(confirm_outcomes.values()) == 48
+receipt = dict(schema="H2_TU15_POSTGAME_LEAVE_ACTION_V1", passed=True,
+    observed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+    handler=hex(HANDLER), confirm=hex(CONFIRM), close_both_entry=hex(CLOSE_BOTH),
+    primary_close=hex(CLOSE_PRIMARY), secondary_close=hex(CLOSE_SECONDARY),
+    dialog_arguments_verified=True, confirm_passes_zero=True, original_session_predicate="0x59f90",
+    handler_controls=sum(handler_outcomes.values()), confirm_controls=sum(confirm_outcomes.values()),
+    handler_outcomes=dict(handler_outcomes), confirm_outcomes=dict(confirm_outcomes),
+    original_addresses=len(instructions), code_sha256=sha256(b"".join(
+        struct.pack("<IH", a, len(v)) + v for a,v in sorted(instructions.items()))).hexdigest(),
+    controls_sha256=cases.hexdigest(), tool_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
+    all_executed_bytes_verified=True, original_writes_stack_only=True,
+    synthetic_session_inputs=True, active_network_owner_body_executed=False,
+    patched_instructions=[], replaced_callees=[], scratch=str(scratch))
+out = root / "build/test-results/frontend-postgame-leave-rust-20261102/tu15-confirm-leave.json"
+out.write_text(json.dumps(receipt,indent=2)+"\n")
+print(json.dumps(dict(passed=True,handler=dict(handler_outcomes),confirm=dict(confirm_outcomes))),flush=True)

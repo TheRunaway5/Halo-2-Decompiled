@@ -1,0 +1,88 @@
+{
+  "schema": "H2_MATCHMAKING_NATIVE_REPLICATED_TICKS_DIAGNOSTICS_V1",
+  "scope": "Native Linux Debug, rendered pregame party, authenticated direct peer gameplay, existing isolated legacy adapter. Both complete acceptance tests remained red.",
+  "passed": false,
+  "source_pin_sha256": "ff44692170202b5eb6c78a34c7546dc0469c0a50420f1bc7022cb526603db4d4",
+  "refreshed": [
+    {
+      "path": "tests/online_match_launch_tests.cpp",
+      "before": "bfe1d5845a615fecc128c445e6f5793dc08ea90208bffcb64e83280d2a6570bb",
+      "after": "32e1b5ff779a0c739acbe2fc9e80af5f08b57dbb6b85393158c7df37c3f51025"
+    }
+  ],
+  "binaries": {
+    "online_match_launch_tests": {
+      "sha256": "f9e39f5cdd0319ac3c20579d880421d371cc42fb0037f406c3be805c7370a295",
+      "bytes": 1397827664
+    }
+  },
+  "ctest_output_sha256": "ee672296a69ba34c097ed96a49a9a2e02670962e63fe87d144c4cd24867d33f5",
+  "ctest_output_bytes": 41642,
+  "ctest_results": [
+    "1/2 Test #817: online_match_launch ..............***Failed  136.14 sec",
+    "2/2 Test #837: online_match_party_launch ........***Failed  177.38 sec"
+  ],
+  "cases": {
+    "two_player": {
+      "gameplay_and_voice": [
+        "Observed native client roster=2 tick=210 moved=1 minimum_loaded=0 audible=331 before_unmute=217 captures=582",
+        "Observed native host roster=2 tick=210 moved=1 minimum_loaded=0 audible=346 before_unmute=229 captures=578"
+      ],
+      "source_accuracy": [
+        {
+          "authority": true,
+          "mode": "core",
+          "native_hits": 0,
+          "native_shots": 120,
+          "native_source_engine": true,
+          "original_bank_equal": true,
+          "owner": "two",
+          "recording_enabled": 1,
+          "recording_frozen": 1,
+          "terminal_accuracy_equal": true,
+          "tick": 450
+        }
+      ],
+      "report_comparison_by_owner": [
+        {
+          "authority": false,
+          "full_original_pcr_comparison_passed": true,
+          "mode": "core",
+          "owner": "one",
+          "terminal_accuracy_present": true,
+          "tick": 450
+        },
+        {
+          "authority": true,
+          "full_original_pcr_comparison_passed": true,
+          "mode": "core",
+          "owner": "two",
+          "terminal_accuracy_present": true,
+          "tick": 451
+        }
+      ],
+      "errors": [
+        "Native ONLINE handoff timed out: postgame-voice-ready",
+        "ONLINE match connection failed or ended. Search again."
+      ]
+    },
+    "four_player_party": {
+      "gameplay_and_voice": [
+        "Observed native client roster=4 tick=210 moved=1 minimum_loaded=0 audible=534 before_unmute=332 captures=804",
+        "Observed native host roster=4 tick=210 moved=1 minimum_loaded=0 audible=570 before_unmute=345 captures=804",
+        "Observed native client roster=4 tick=210 moved=1 minimum_loaded=0 audible=518 before_unmute=330 captures=804",
+        "Observed native client roster=4 tick=210 moved=1 minimum_loaded=0 audible=515 before_unmute=329 captures=805"
+      ],
+      "source_accuracy": [],
+      "report_comparison_by_owner": [],
+      "errors": [
+        "Native ONLINE handoff timed out: native result publication and review",
+        "Native ONLINE handoff timed out: native result publication and review",
+        "Native ONLINE handoff timed out: native result publication and review",
+        "Native ONLINE handoff timed out: native result publication and review"
+      ]
+    }
+  },
+  "persisted_rows_verified": false,
+  "retained_generated_large_artifacts": []
+}

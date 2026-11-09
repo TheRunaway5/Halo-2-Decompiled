@@ -1,7 +1,6 @@
 #include "halo2/source_campaign_view_tu15.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
-#include "halo2/native_tu15_cull_walk_44710.hpp"
 #include "halo2/native_tu15_render_lighting.hpp"
 #include "halo2/source_live_shadow_main_inputs_tu15.hpp"
 #include "halo2/source_live_shadow_main_draws_tu15.hpp"
@@ -16,7 +15,7 @@
 namespace halo2 {
 SourceCampaignViewTu15::SourceCampaignViewTu15(const Cache &cache,std::size_t bsp)
     :portals_(cache.load_source_portal_bsp(bsp)),geometry_(cache.load_source_bsp_admission(bsp)),
-     particles_(cache,std::span<const ScenarioObject>{}),group_parts_(cache),clusters_(geometry_.clusters.size()),
+     particles_(cache,std::span<const ScenarioObject>{}),group_parts_(cache),main_cull_(cache,"campaign"),clusters_(geometry_.clusters.size()),
      definitions_(geometry_.definitions.size()),instances_(geometry_.instances.size()),transforms_(geometry_.instances.size()) {
     // Same authored geometry/instance fields consumed by the existing MP
     // SourceBspEffectLights collector. Actual native130980 still owns each
@@ -197,7 +196,7 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         source_live_shadow_main_queues_tu15(world,frame.bsp,frame.objects);
         static const bool reference_cull=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_CULL");return p && *p;}();
         if(reference_cull) {auto cull=world.prepare_source_call();world.run_actual(0x44710u,cull);}
-        else source_native_cull_walk_tu15(world);
+        else main_cull_.run(world,&frame.visibility);
         // Authenticated normal13660→13768→2BCB0 argument5=0; after the
         // real completed main handoff/cull, never a model-only boolean.
         static const bool reference_commands=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_COMMANDS");return p && *p;}();

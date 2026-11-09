@@ -1,0 +1,65 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/NativeTu15LevelHandlesStartup.cmake",
+      "line": 1,
+      "target": "halo2_level_handles_startup_tu15"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_level_handles_startup_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "9d94f30464199f100f3205438a10d2683333022b912d2f9ddbfb4e36ad0af409",
+      "selected_resolver_sha256": "09fe082583c024d3bda0ca988718f4c23ead383a2b78d23882d7a1783e0a6c79"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "9d94f30464199f100f3205438a10d2683333022b912d2f9ddbfb4e36ad0af409",
+      "selected_resolver_sha256": "09fe082583c024d3bda0ca988718f4c23ead383a2b78d23882d7a1783e0a6c79"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_level_handles_startup_tu15"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "398887e2ec10c0773a9509bdf09b393efcb4ba933756cb372dbb656fdd251947",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1a5410",
+      "instruction_callback_sites": 50,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1a5410",
+        "tu15": "1a5410"
+      },
+      "line": 330,
+      "literal_dispatch_required_targets": [
+        "16e450"
+      ],
+      "observed_entry": "1a5410",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1a5410",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1a5410",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/source_level_handles_startup_tu15_generated.cpp",
+  "source_bytes": 23590,
+  "source_filename_scope": "generated",
+  "source_sha256": "2dc8b7c97f4d14b67150ff97aebcc532489b31e5c62e5da4105de501782fb318"
+}

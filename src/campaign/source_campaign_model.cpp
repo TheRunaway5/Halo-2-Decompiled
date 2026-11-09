@@ -134,15 +134,26 @@ void SourceCampaignModel::prepare_materials(const Cache &cache,Mesh &destination
     if(section_materials_)section_prepare=[&](auto&m,unsigned section){return prepare(m,section,2);};
     auto shaders=std::make_unique<SourceDynamicModelShaders>(cache,resources,render_model_,2,0.f,section_prepare);
     std::optional<RenderModel> defaults;std::unique_ptr<SourceDynamicModelShaders> default_shaders;
-    if(section_materials_) {
+    if(section_materials_ || per_vertex_scenery) {
         defaults=resources;
-        for(auto&material:defaults->mesh.materials) {
-            const auto colors=material.object_render_colors;
-            if(!prepare(material,first_section,3))throw FormatError("Campaign default model material is unresolved: "+material.name);
-            if(colors)apply_object_render_colors(material,*colors);
+        try {
+            // TU1.5 2CFE0 can classify a scenery draw as 3 when its baked
+            // lightmap resource is unavailable. 4CBE0 selects that
+            // material's implementation 3 from the same model and LOD.
+            for(auto&material:defaults->mesh.materials) {
+                const auto colors=material.object_render_colors;
+                if(!prepare(material,first_section,3))throw FormatError("Campaign default model material is unresolved: "+material.name);
+                if(colors)apply_object_render_colors(material,*colors);
+            }
+            SourceDynamicModelShaders::MaterialPreparer default_section_prepare;
+            if(section_materials_)default_section_prepare=[&](auto&m,unsigned section){return prepare(m,section,3);};
+            default_shaders=std::make_unique<SourceDynamicModelShaders>(cache,*defaults,render_model_,3,0.f,default_section_prepare);
+        } catch(const FormatError&) {
+            if(section_materials_)throw;
+            // An unavailable default bank must not retire the valid baked
+            // or dynamic bank. Its actual class-3 consumer still refuses.
+            defaults.reset();
         }
-        default_shaders=std::make_unique<SourceDynamicModelShaders>(cache,*defaults,render_model_,3,0.f,
-            [&](auto&m,unsigned section){return prepare(m,section,3);});
     }
     if(destination.materials.size()+resources.mesh.materials.size()+
         (baked?baked->mesh.materials.size():0)+(defaults?defaults->mesh.materials.size():0)>0xffffffffull)
@@ -166,6 +177,12 @@ void SourceCampaignModel::prepare_materials(const Cache &cache,Mesh &destination
         for(auto &material:baked->mesh.materials)destination.materials.push_back(std::move(material));
         baked_shaders_=std::move(baked_shaders);
     }
+}
+bool SourceCampaignModel::admits_ordinary_draw(const SourceLiveModelBaseDrawTu15& draw)const {
+    return draw.override_slot==255 && draw.lighting_class==(draw.unit.words[0]>>29) &&
+        (draw.lighting_class==1 || draw.lighting_class==2 ||
+         (draw.lighting_class==3 && default_shaders_)) &&
+        ((draw.unit.words[0]&1u) || section_materials_);
 }
 void SourceCampaignModel::rebase_materials(unsigned before,unsigned after) {
     if(!shaders_ || material_base_<before || std::uint64_t(material_base_-before)+after>0xffffffffull)
@@ -270,9 +287,7 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
     for(const auto &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
-        if((draw.lighting_class!=1 && draw.lighting_class!=2 && !(draw.lighting_class==3 && default_shaders_)) ||
-            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 ||
-            (!(draw.unit.words[0]&1u) && !section_materials_))
+        if(!admits_ordinary_draw(draw))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
         if(draw.lod>=6 || draw.lod!=draws.front().lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");
@@ -317,9 +332,7 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
     for(const auto &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
-        if((draw.lighting_class!=1 && draw.lighting_class!=2 && !(draw.lighting_class==3 && default_shaders_)) ||
-            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 ||
-            (!(draw.unit.words[0]&1u) && !section_materials_))
+        if(!admits_ordinary_draw(draw))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
         if(draw.lod>=6 || draw.lod!=draws.front().lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");

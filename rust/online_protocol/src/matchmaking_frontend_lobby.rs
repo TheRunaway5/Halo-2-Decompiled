@@ -412,3 +412,116 @@ impl Lobby {
 pub fn beeps(previous: i32, stage: i32) -> bool {
     (0..=3).contains(&stage) && stage != previous
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SetupRoute {
+    Open,
+    SwitchCoop,
+    SwitchCustom,
+    AlternateSession,
+    OpenPlaylist,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SetupRow {
+    pub semantic: i32,
+    pub label: u32,
+    pub destination: i32,
+    pub route: SetupRoute,
+}
+
+fn setup_row(semantic: i32) -> Option<SetupRow> {
+    use SetupRoute::*;
+    let (label, destination, route) = match semantic {
+        0 => (0x0a0005d3, 206, Open),
+        1 => (0x0e0005d4, 207, Open),
+        2 => (0x0c0005d5, 11, Open),
+        3 => (0x110005d6, 12, Open),
+        4 => (0x0d00042a, 222, Open),
+        6 => (0x0e0005db, 14, SwitchCoop),
+        7 => (0x120005dd, 14, SwitchCustom),
+        8 => (0x130005dc, 237, AlternateSession),
+        9 => (0x0d0005d8, 237, AlternateSession),
+        _ => return None,
+    };
+    Some(SetupRow {
+        semantic,
+        label,
+        destination,
+        route,
+    })
+}
+
+pub fn setup_label(semantic: i32) -> u32 {
+    setup_row(semantic).map_or(0, |row| row.label)
+}
+
+pub fn setup_rows(session: i32) -> impl Iterator<Item = SetupRow> {
+    // Original Setup constructor uses these semantic values in datum order.
+    let order: &[i32] = match session {
+        0 | 2 => &[2, 3, 7],
+        1 | 3 => &[0, 1, 4, 6],
+        4 => &[2, 3, 7, 8],
+        5 => &[0, 1, 4, 6, 8],
+        6 => &[9, 6, 7],
+        _ => &[],
+    };
+    order.iter().filter_map(|&semantic| setup_row(semantic))
+}
+
+pub fn setup_focus(session: i32, index: i32) -> i32 {
+    usize::try_from(index)
+        .ok()
+        .and_then(|index| setup_rows(session).nth(index))
+        .map_or(-1, |row| row.semantic)
+}
+
+pub fn setup_accept(
+    session: i32,
+    index: u32,
+    online: bool,
+    leader: bool,
+) -> Result<Option<SetupRow>, &'static str> {
+    let Some(mut row) = setup_rows(session).nth(index as usize) else {
+        return Ok(None);
+    };
+    if online {
+        if !leader {
+            return Err("Only the party leader can change Game Setup.");
+        }
+        match row.semantic {
+            6 => return Err("ONLINE cooperative sessions are not available from this service."),
+            7 => return Err("ONLINE custom-game hosting is not available from this service."),
+            9 => row.route = SetupRoute::OpenPlaylist,
+            _ => {}
+        }
+    }
+    if row.route == SetupRoute::AlternateSession {
+        return Err("This network session mode is not implemented by the native runtime.");
+    }
+    Ok(Some(row))
+}
+
+pub fn setup_privacy(
+    online: bool,
+    session: Option<i32>,
+    privacy_present: bool,
+    leader: bool,
+    busy: bool,
+) -> Result<bool, &'static str> {
+    if !online {
+        return Ok(session.is_some_and(|session| !matches!(session, 0 | 1)));
+    }
+    // ONLINE is backed by the replacement party service. Its admitted
+    // privacy capability can be absent even on an authored Setup screen.
+    if !privacy_present {
+        return Err("This ONLINE service does not support party privacy settings.");
+    }
+    if !leader {
+        return Err("Only the party leader can change party privacy.");
+    }
+    if busy {
+        return Err("Wait for the current ONLINE operation to finish.");
+    }
+    Ok(true)
+}

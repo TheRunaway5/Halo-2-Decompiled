@@ -22,6 +22,50 @@ BODY = re.compile(
 HELPER = re.compile(
     r'^(?=(?:long double|__m128|std::uint\d+_t|void|float|double|bool|unsigned|int)\s+\w+\([^;\n]*\)\s*\{)',
     re.M)
+NON_CODE = re.compile(
+    r'//[^\n]*|/\*.*?\*/|(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\('
+    r'.*?\)(?P=delimiter)"|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', re.S)
+DIRECTIVE = re.compile(r'^[ \t]*#', re.M)
+DIRECTIVE_TAIL = re.compile(r'(?:[^\n]*\\\r?\n)*[^\n]*')
+STATIC_STATE = re.compile(
+    r'^[ \t]*(?:static (?!void (?:run_[0-9a-f]+|dispatch)\()|thread_local )', re.M)
+
+
+def namespace_static_state(prefix):
+    """Find unowned state without mistaking an inline helper's local static.
+
+    Accounting may embed an inline header before the generated namespace. Its
+    function-local counters keep one ODR identity across partitions, just like
+    local statics in the generated inline helpers. Namespace variables still
+    require an explicit owner, including inside nested/indented namespaces.
+    """
+    blank = lambda match: re.sub(r'[^\n]', ' ', match[0])
+    mask = NON_CODE.sub(blank, prefix)
+    # Locate visible # tokens after masking comments/strings, but determine
+    # continuations from the original bytes. A continued string in a macro
+    # must not erase the backslash that owns the following directive line.
+    for directive in reversed(list(DIRECTIVE.finditer(mask))):
+        end = DIRECTIVE_TAIL.match(prefix, directive.end()).end()
+        mask = mask[:directive.start()] + re.sub(r'[^\n]', ' ', prefix[directive.start():end]) + mask[end:]
+    candidates = {match.start(): match for match in STATIC_STATE.finditer(mask)}
+    scopes = []
+    boundary = 0
+    for index, char in enumerate(mask):
+        if index in candidates and all(scopes):
+            return candidates[index]
+        if char == '{':
+            statement = mask[boundary:index]
+            namespace = bool(re.search(r'\bnamespace(?:\s+[A-Za-z_]\w*(?:::\w+)*)?\s*$', statement))
+            linkage = bool(re.search(r'\bextern\s*$', statement))
+            scopes.append(namespace or linkage)
+            boundary = index + 1
+        elif char == '}':
+            if scopes:
+                scopes.pop()
+            boundary = index + 1
+        elif char == ';':
+            boundary = index + 1
+    return None
 
 
 def sha(value):
@@ -56,7 +100,7 @@ def split(source, directory, count):
     prefix, footer = text[:bodies[0].start()], text[bodies[-1].end():]
     if prefix.count('namespace {\n') != 1 or not footer.startswith('} // namespace\n'):
         raise ValueError('Unsupported native namespace boundary')
-    if re.search(r'^(?:static (?!void (?:run_[0-9a-f]+|dispatch)\()|thread_local )', prefix, re.M):
+    if namespace_static_state(prefix):
         raise ValueError('Native partition has unowned namespace static state')
     module = 'native_split_' + re.sub(r'\W', '_', source.stem)
     prefix = prefix.replace('namespace {\n', 'namespace ' + module + ' {\n', 1)

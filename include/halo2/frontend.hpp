@@ -471,12 +471,23 @@ class MenuState {
   friend struct FrontendAccountFlowNativeIo;
   friend struct FrontendFriendsNativeIo;
   friend struct FrontendClansNativeIo;
+  friend struct FrontendCouchNativeIo;
+  friend struct FrontendSigninNativeIo;
+  friend struct FrontendPostgameNativeIo;
+  bool postgame_flow_drive(unsigned,const MenuFrame* =nullptr,unsigned=0)const;
+  FrontendSigninResult signin_flow_drive(unsigned,unsigned=0,unsigned=0,std::string={},bool=false)const;
+  void signin_restore_key(const std::optional<std::string>&);
   void account_flow_drive(bool);
   FrontendFriendsResult friends_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,unsigned=0)const;
   FrontendClansResult clans_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,unsigned=0,bool=false,OnlineClanCommand={},std::string={})const;
   void clans_bind_account(std::shared_ptr<OnlineAccount>);
   void clans_bind_voice(std::shared_ptr<OnlineVoice>);
   bool clan_message_advance();
+  FrontendCouchResult couch_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,int=0,bool=false,std::string={})const;
+  std::optional<DiscordIdentity>couch_identity()const;
+  std::vector<OnlineLocalPlayer>couch_players()const;
+  bool couch_back(bool joining=false);
+  bool couch_profile_entry(unsigned,const std::string&)const;
   std::string lobby_query_campaign_file(unsigned) const;
   void party_view_populate(MenuFrame&)const;
   std::string party_view_text(const MenuFrame&,unsigned)const;
@@ -669,7 +680,7 @@ public:
   // Resolve actual SDL identity before dispatch. An unbound A/Start in the
   // offline sign-in/lobby opens the existing profile picker for that user.
   std::optional<unsigned> controller_slot(std::int32_t instance,bool join);
-  std::optional<unsigned> joining_controller() const { return joining_controller_?joining_controller_:online_local_options_; }
+  std::optional<unsigned> joining_controller() const { return party_flow_.active_controller(); }
   bool custom_match_settings_frame(const MenuFrame &) const;
   void leave_local_controller(unsigned);
   int profile_option(unsigned key, int fallback = 0) const;
@@ -748,10 +759,6 @@ private:
   std::array<std::shared_ptr<DiscordLogin>,4> local_discord_logins_{};
   std::array<std::shared_ptr<OnlineAccount>,4> local_profile_accounts_{};
   std::function<std::shared_ptr<DiscordLogin>()> local_discord_factory_;
-  std::array<std::string,4> local_discord_subjects_{};
-  std::optional<unsigned> online_local_options_;
-  bool joining_online_{};
-  std::uint64_t couch_revision_{};
   void populate_online_couch(MenuFrame &) const;
   bool accept_online_couch();
   void update_online_couch();
@@ -822,10 +829,6 @@ private:
   bool update_online_lobby_countdown();
   // A party follower's report continues once the leader has left it.
   void update_online_postgame();
-  unsigned pending_online_screen_ = 186, pending_online_context_{};
-  bool awaiting_discord_login_{};
-  bool saved_login_suppressed_{};
-  std::string login_profile_;
   std::filesystem::path preferences_;
   std::vector<MenuFrame> stack_;
   std::uint32_t ui_clock_{};
@@ -836,12 +839,9 @@ private:
   std::string signed_in_;
   std::array<std::string,4> local_profiles_{};
   std::array<std::int32_t,4> local_inputs_{-1,-1,-1,-1};
-  std::optional<unsigned> joining_controller_;
-  unsigned host_profile_{};
   void finish_local_signin();
   std::map<std::string, std::map<unsigned, int>> profile_values_;
   std::map<std::string,std::string> profile_service_tags_;
-  std::map<std::string,std::string> profile_login_keys_;
   std::string profile_login_key(const std::string &);
   void bind_primary_login();
   GameVariantSettings variant_values_;

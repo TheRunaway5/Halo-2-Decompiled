@@ -96,6 +96,8 @@ pub struct Pending {
 }
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct State {
+    pub signin: crate::matchmaking_frontend_signin::State,
+    pub couch: crate::matchmaking_frontend_couch::State,
     pub target: Vec<u8>,
     pub kind: u32,
     pub version: u64,
@@ -165,6 +167,24 @@ impl Controller {
     }
     pub fn state(&self) -> State {
         self.0.lock().unwrap().clone()
+    }
+    pub fn couch_state(&self) -> crate::matchmaking_frontend_couch::State {
+        self.0.lock().unwrap().couch.clone()
+    }
+    pub fn signin_state(&self) -> crate::matchmaking_frontend_signin::State {
+        self.0.lock().unwrap().signin.clone()
+    }
+    pub(crate) fn edit_signin(&self, f: impl FnOnce(&mut crate::matchmaking_frontend_signin::State)) {
+        self.edit(|s| f(&mut s.signin));
+    }
+    pub(crate) fn take_signin_key(&self, name: &[u8]) -> Option<Vec<u8>> {
+        self.0.lock().unwrap().signin.keys.remove(name)
+    }
+    pub(crate) fn edit_couch(&self, f: impl FnOnce(&mut crate::matchmaking_frontend_couch::State)) {
+        self.edit(|s| f(&mut s.couch));
+    }
+    pub fn couch_changed(&self) {
+        self.edit_couch(|s| s.revision = s.revision.wrapping_add(1));
     }
     fn edit(&self, f: impl FnOnce(&mut State)) {
         f(&mut self.0.lock().unwrap())

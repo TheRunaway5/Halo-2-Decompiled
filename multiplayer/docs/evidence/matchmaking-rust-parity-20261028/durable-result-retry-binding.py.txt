@@ -1,0 +1,70 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+root=Path.cwd()
+scratch=Path(os.environ["HALO2_TEST_SCRATCH"])
+source=scratch/"source"
+out=Path(sys.argv[1]).resolve()
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for crate in ("online_protocol","matchmaking_service"):
+    shutil.copytree(root/"rust"/crate,source/"rust"/crate,ignore=shutil.ignore_patterns("target","__pycache__"))
+for path in {external for p in (source/"rust").rglob("*.rs")
+    for external in re.findall(r'"\.\./\.\./\.\./([^"\n]+)"',p.read_text())}:
+    target=source/path
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(root/path,target)
+crate=source/"rust/online_protocol"
+prod=Path("rust/online_protocol/src/matchmaking_persistence.rs")
+test=Path("rust/matchmaking_service/src/rooms.rs")
+baseline={str(p):sha(source/p) for p in (prod,test)}
+assert all(sha(root/path)==pin for path,pin in baseline.items())
+out.with_suffix(".baseline.json").write_text(json.dumps(baseline,indent=2)+"\n")
+env=os.environ|dict(CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_AUTO_INSTALL="0")
+def run(cwd,*args):
+    cmd=["cargo","test","--locked","--offline",*args]
+    res=subprocess.run(cmd,cwd=cwd,env=env,capture_output=True,text=True)
+    lines=[line for line in res.stdout.splitlines() if line.startswith("test result:")]
+    counts=sum(int(re.search(r' (\d+) passed;',line)[1]) for line in lines)
+    item=dict(command=cmd,exit_code=res.returncode,tests_passed=counts,tests=lines,
+        stdout_sha256=hashlib.sha256(res.stdout.encode()).hexdigest())
+    if res.returncode:
+        item["failure_tail"]=res.stdout[-2500:]
+    print(json.dumps({k:item[k] for k in ("command","exit_code","tests_passed")}),flush=True)
+    return item
+service=source/"rust/matchmaking_service"
+focus=["committed_result_retry_verifies_durable_data_before_room_acknowledgement"]
+report=dict(schema="H2_DURABLE_RESULT_RETRY_RUST_V1",scratch=str(scratch),
+    passed=False,baseline=baseline,retained_generated_large_artifacts=[])
+try:
+    report["red"]=run(service,*focus)
+    out.with_suffix(".red.json").write_text(json.dumps(report,indent=2)+"\n")
+    assert report["red"]["exit_code"]==101 and "Invalid durable result was acknowledged" in report["red"]["failure_tail"]
+    ready=out.with_suffix(".candidate.json")
+    deadline=time.monotonic()+900
+    while not ready.exists():
+        assert time.monotonic()<deadline,"Candidate file not provided"
+        time.sleep(1)
+    expected=json.loads(ready.read_text())
+    assert expected[str(test)]==baseline[str(test)] and expected[str(prod)]!=baseline[str(prod)]
+    assert all(sha(root/path)==pin for path,pin in expected.items())
+    shutil.copyfile(root/prod,source/prod)
+    assert all(sha(source/path)==pin for path,pin in expected.items())
+    report["candidate"]=expected
+    manifest={str(p.relative_to(source)):sha(p) for p in source.rglob("*") if p.is_file()}
+    report["frozen_source_sha256"]=hashlib.sha256(json.dumps(manifest,sort_keys=True).encode()).hexdigest()
+    report["focused_green"]=run(service,*focus)
+    if report["focused_green"]["exit_code"]==0:
+        report["green"]=[run(crate),run(source/"rust/matchmaking_service")]
+    report["frozen_sources_unchanged"]=all(sha(source/path)==pin for path,pin in manifest.items())
+    report["passed"]=report["frozen_sources_unchanged"] and len(report.get("green",[]))==2 and all(
+        row["exit_code"]==0 for row in report["green"])
+finally:
+    out.write_text(json.dumps(report,indent=2)+"\n")
+assert report["passed"]

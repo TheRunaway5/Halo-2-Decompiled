@@ -1,0 +1,119 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_executable",
+      "file": "cmake/MultiplayerEnginesTu15.cmake",
+      "line": 670,
+      "target": "multiplayer_engines_tu15_tests"
+    },
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1187,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {
+    "src/gameplay/multiplayer/source_objective_native_tu15_internal.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_LITERAL_INSTRUCTIONS",
+        "HALO2_REFERENCE_OBJECTIVE_NATIVE_KERNELS"
+      ],
+      "sha256": "0f4382e8e2bd61948e1de04018488dd0774bfaad8f940a4a74c83fdecafef8a0"
+    }
+  },
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "09964250c2b9e70a3fa8a145cce4c5ec2c33180e54c52554d86af4cb08662790",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "09964250c2b9e70a3fa8a145cce4c5ec2c33180e54c52554d86af4cb08662790",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_LITERAL_INSTRUCTIONS",
+    "HALO2_REFERENCE_OBJECTIVE_NATIVE_KERNELS"
+  ],
+  "routine_count": 2,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "source_objective_native_tu15_detail::player_spawn"
+      ],
+      "body_sha256": "93f7bbf31e3eba273001ff174b6370b3f344c5a550ff21c9a6da7da15880d02a",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_249600",
+      "instruction_callback_sites": 48,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "249600",
+        "tu15": "249600"
+      },
+      "line": 353,
+      "literal_dispatch_required_targets": [
+        "b1e80",
+        "1a8740",
+        "24c540"
+      ],
+      "native_admission_hints": [
+        "source_objective_native_tu15_detail::player_spawn"
+      ],
+      "observed_entry": "249600",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "249600",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "WorldState",
+      "symbol": "249600",
+      "symbol_kind": "address-named"
+    },
+    {
+      "admission_prefix_calls": [
+        "source_objective_native_tu15_detail::spawn_filter"
+      ],
+      "body_sha256": "6b06eb513181bdb884bb4084434d3dae2903490c7b13dd9e51163e0c7a6e14c2",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_24a6f0",
+      "instruction_callback_sites": 80,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "24a6f0",
+        "tu15": "24a6f0"
+      },
+      "line": 406,
+      "literal_dispatch_required_targets": [
+        "160e50"
+      ],
+      "native_admission_hints": [
+        "source_objective_native_tu15_detail::spawn_filter"
+      ],
+      "observed_entry": "24a6f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "24a6f0",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "WorldState",
+      "symbol": "24a6f0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/multiplayer/source_ctf_activation_spawn_tu15_generated.cpp",
+  "source_bytes": 33161,
+  "source_filename_scope": "generated",
+  "source_sha256": "d7dadaee5f8c1c3effe5a12128387b650e6a8dce1d83e08daca2c385b7fa8218"
+}

@@ -1,4 +1,5 @@
 #include "rendering/effects/source_lens_cpu_cache_tu15.hpp"
+#include "../source_bitmap_format_catalogue_tu15.hpp"
 #include "halo2/render_program.hpp"
 #include <array>
 namespace halo2::private_lens_cpu {
@@ -60,11 +61,11 @@ std::vector<Region> mcc_cache_plan() {
     // existing finite supported-format guard before these lookups; entries
     // for unsupported formats are data only, never new format admission.
     result.push_back({0x45c488,SourceRuntimeMemory::Access::ReadOnly,
-        "native lens authored nonlinear-format header table24",encode(std::array<unsigned,24>{0x00000019u,0x00000000u,0x00000001u,0x0000001au,0xffffffffu,0xffffffffu,0x00000005u,0xffffffffu,0x00000002u,0x00000004u,0x00000007u,0x00000006u,0xffffffffu,0xffffffffu,0x0000000cu,0x0000000eu,0x0000000fu,0x0000000bu,0x0000000bu,0xffffffffu,0xffffffffu,0xffffffffu,0x00000028u,0x00000028u})});
+        "native lens authored nonlinear-format header table24",encode(source_bitmap_format_catalogue_tu15::nonlinear)});
     result.push_back({0x45c4e8,SourceRuntimeMemory::Access::ReadOnly,
-        "native lens authored linear-format header table24",encode(std::array<unsigned,24>{0x0000001fu,0x00000013u,0x0000001bu,0x00000020u,0xffffffffu,0xffffffffu,0x00000011u,0xffffffffu,0x00000010u,0x0000001du,0x0000001eu,0x00000012u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0x00000017u,0x00000017u})});
+        "native lens authored linear-format header table24",encode(source_bitmap_format_catalogue_tu15::linear)});
     result.push_back({0x45f290,SourceRuntimeMemory::Access::ReadOnly,
-        "native lens authored bit-depth table24",encode(std::array<unsigned,12>{0x00080008u,0x00100008u,0x00000000u,0x00000010u,0x00100010u,0x00200020u,0x00000000u,0x00080004u,0x00080008u,0x00800008u,0x00300060u,0x00100010u})});
+        "native lens authored bit-depth table24",encode(source_bitmap_format_catalogue_tu15::bit_depth)});
     return result;
 }
 }

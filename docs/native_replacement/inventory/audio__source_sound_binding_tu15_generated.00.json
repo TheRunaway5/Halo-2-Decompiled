@@ -1,0 +1,86 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 472,
+      "target": "halo2_systems"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "4d09f52f20a13579a365cadb8ac9c9dfe1d3c26481d9ab029b16fa77f2e5c41e",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "4d09f52f20a13579a365cadb8ac9c9dfe1d3c26481d9ab029b16fa77f2e5c41e",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "423585dac0bf6bdb2a5a36fa61a4fd1367f3fc9af44761011b3981772373b1dd",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_129470",
+      "instruction_callback_sites": 38,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "129470",
+        "tu15": "129470"
+      },
+      "line": 352,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "129470",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "129470",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "129470",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "8c40c6a9e2e5dce8900b6706ffcc7b3cc0d9c70372f94a6d2eae21c215a4f718",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "129470"
+      ],
+      "function_name": "run_12b1c0",
+      "instruction_callback_sites": 16,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "12b1c0",
+        "tu15": "12b1c0"
+      },
+      "line": 394,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "12b1c0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "12b1c0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "12b1c0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_binding_tu15_generated.cpp",
+  "source_bytes": 24691,
+  "source_filename_scope": "generated",
+  "source_sha256": "1bb2abadaf853eb61bc7c77f75aafd623a8f7dd33e9908f8b4cf01eba5c03218"
+}

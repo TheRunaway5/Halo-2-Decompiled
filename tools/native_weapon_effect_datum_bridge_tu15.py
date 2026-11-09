@@ -34,6 +34,9 @@ def bridge(mode):
 
 
 def install_native_effect_datum(source,mode='tu15'):
+    if mode=='tu15':
+        from native_effect_datum_allocate_replacements import install_native_effect_datum_allocate
+        return install_native_effect_datum_allocate(source)
     entry='16e6a0' if mode=='tu15' else '16d2c0'
     state='ObservedWorldState' if mode=='observed' else 'WorldState'
     marker='static void run_'+entry+'('+state+' &s) {\n'

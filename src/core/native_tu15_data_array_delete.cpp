@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_data_array_delete.hpp"
+#include "halo2/native_tu15_datum_delete_kernel.hpp"
 #include "halo2/physics_contact_runtime.hpp"
 #include <array>
 #include <bit>
@@ -17,25 +18,14 @@ std::int32_t signed32(std::uint32_t v){return std::bit_cast<std::int32_t>(v);}
 }
 void native_tu15_data_array_delete(SourcePhysicsContactMemory &m,
         std::uint32_t pool,std::uint32_t datum) {
-    const auto rows=read(m,pool+0x44u),stride=read(m,pool+0x24u),index=datum&0xffffu;
-    auto record=rows+index*stride;
-    if(read(m,pool+0x2au,1)&8u) {
-        for(std::uint32_t i=0;i<(stride>>2u);++i)write(m,record+i*4u,0xbabababau);
-        for(std::uint32_t i=0;i<(stride&3u);++i)write(m,record+(stride&~3u)+i,0xbau,1);
-    }
-    const auto occupancy=read(m,pool+0x48u)+(index>>5u)*4u;
-    write(m,occupancy,read(m,occupancy)&~(1u<<(index&31u)));
-    write(m,record,0,2);
-    if(signed32(index)<signed32(read(m,pool+0x34u)))write(m,pool+0x34u,index);
-    if(index+1u==read(m,pool+0x38u)) {
-        const auto current_stride=read(m,pool+0x24u);
-        for(;;) {
-            const auto extent=read(m,pool+0x38u)-1u;
-            record-=current_stride;write(m,pool+0x38u,extent);
-            if(signed32(extent)<=0||read(m,record,2)!=0)break;
-        }
-    }
-    write(m,pool+0x3cu,read(m,pool+0x3cu)-1u);
+    struct Access {
+        SourcePhysicsContactMemory &memory;
+        std::uint32_t read(NativeTu15DatumDeletePhase,const NativeTu15DatumDelete&,std::uint32_t at,unsigned width){return halo2::read(memory,at,width);}
+        void write(NativeTu15DatumDeletePhase,const NativeTu15DatumDelete&,std::uint32_t at,std::uint32_t value,unsigned width){halo2::write(memory,at,value,width);}
+        void prepare(NativeTu15DatumDeletePhase,const NativeTu15DatumDelete&){}
+        void complete(NativeTu15DatumDeletePhase,const NativeTu15DatumDelete&){}
+    }access{m};
+    NativeTu15DatumDelete state;state.pool=pool;state.datum=datum;native_tu15_delete_datum(access,state);
 }
 
 void native_tu15_data_array_delete_abi(SourcePhysicsContactMemory &m,

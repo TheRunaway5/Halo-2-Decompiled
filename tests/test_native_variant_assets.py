@@ -95,11 +95,13 @@ class NativeVariantAssetTests(unittest.TestCase):
         from custom_ui_test_support import custom_ui_fixture
         from custom_loading_test_support import custom_loading_fixture, permitted_source_policy_fixture
         from test_custom_map_assets import custom_map_fixture
+        from test_mcc_movies import bundle_fixture as movie_fixture
         controller_prompt_fixture(self.source)
         custom_ui_fixture(self.source)
         custom_map_fixture(self.source)
         custom_loading_fixture(self.source)
         permitted_source_policy_fixture(self.source)
+        movie_fixture(self.source)
         for name in ('tools/steam/content-profile.json', 'tools/macos/__init__.py',
                      'tools/macos/atomic_files.py', 'tools/macos/steam_setup.py',
                      'tools/macos/loading_converter.py', 'resources/launcher.svg',
@@ -126,7 +128,7 @@ class NativeVariantAssetTests(unittest.TestCase):
         self.assertIn(assets.DIRECTORY + '/bomb-defusal-v1.json', manifest['bundled_native_variants']['files'])
         self.assertEqual(set(manifest['bundled_custom_assets']['groups']), {
             'native_variants', 'controller_prompts', 'custom_ui', 'custom_maps', 'custom_loading',
-            'permitted_source_policies'})
+            'permitted_source_policies', 'bundled_movies'})
         self.assertEqual(len(manifest['bundled_custom_assets']['groups']['custom_loading']['files']), 5)
         for name, row in manifest['bundled_custom_assets']['files'].items():
             self.assertEqual((resources / name).stat().st_size, row['bytes'])

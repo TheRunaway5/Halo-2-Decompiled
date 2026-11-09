@@ -275,7 +275,7 @@ if(BUILD_TESTING)
   add_executable(vehicle_weapon_hud_world_tests tests/vehicle_weapon_hud_world_tests.cpp)
   target_link_libraries(vehicle_weapon_hud_world_tests PRIVATE halo2_systems)
   add_executable(vehicle_loop_profiles_tu15_tests tests/vehicle_loop_profiles_tu15_tests.cpp)
-  target_link_libraries(vehicle_loop_profiles_tu15_tests PRIVATE halo2_systems)
+  halo2_link_audio_continuation(vehicle_loop_profiles_tu15_tests)
   add_executable(source_loop_detail_centered_tu15_tests tests/source_loop_detail_centered_tu15_tests.cpp
       src/audio/source_loop_detail_control_tu15.cpp)
   target_include_directories(source_loop_detail_centered_tu15_tests PRIVATE include)
@@ -295,6 +295,15 @@ if(BUILD_TESTING)
         "${HALO2_ROCKET_GHOST_MCC_MAP}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/vehicle_loop_profiles_tu15.json"
         "${CMAKE_CURRENT_BINARY_DIR}/vehicle-loop-profiles.json")
     set_tests_properties(native_mcc_vehicle_loop_profiles_tu15 PROPERTIES TIMEOUT 180)
+    foreach(vehicle_audio_map 06b_floodzone 04a_gasgiant 03a_oldmombasa)
+      if(EXISTS "${halo2_ghost_boost_maps}/${vehicle_audio_map}.map")
+        add_test(NAME native_mcc_vehicle_loop_profiles_${vehicle_audio_map} COMMAND vehicle_loop_profiles_tu15_tests
+            "${halo2_ghost_boost_maps}/${vehicle_audio_map}.map"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/vehicle_loop_profiles_${vehicle_audio_map}_tu15.json"
+            "${CMAKE_CURRENT_BINARY_DIR}/vehicle-loop-profiles-${vehicle_audio_map}.json")
+        set_tests_properties(native_mcc_vehicle_loop_profiles_${vehicle_audio_map} PROPERTIES TIMEOUT 180)
+      endif()
+    endforeach()
     foreach(vehicle_audio_case ghost warthog warthog-gauss)
       set(vehicle_audio_owner "${vehicle_audio_case}")
       set(vehicle_audio_env "")

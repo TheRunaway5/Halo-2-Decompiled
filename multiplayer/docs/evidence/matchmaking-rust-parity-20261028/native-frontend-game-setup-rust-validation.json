@@ -1,0 +1,221 @@
+{
+  "schema": "H2_FRONTEND_GAME_SETUP_RUST_COMPONENT_V1",
+  "passed": true,
+  "steps": [
+    {
+      "name": "differential-syntax",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-Iinclude",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om",
+        "-fsyntax-only",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-game-setup-rust-20261102/setup-differential.cpp"
+      ],
+      "exit_code": 0,
+      "log": "differential-syntax.log"
+    },
+    {
+      "name": "before-link",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-I/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-game-setup-rust-20261102/before/include",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-game-setup-rust-20261102/before/tests/frontend_lobby_setup_tests.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup-before"
+      ],
+      "exit_code": 0,
+      "log": "before-link.log"
+    },
+    {
+      "name": "before-fixture",
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup-before",
+        "tests/fixtures/frontend_lobby_setup_original.tsv"
+      ],
+      "exit_code": 0,
+      "log": "before-fixture.log"
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "rust/online_protocol_bridge/Cargo.toml",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "log": "bridge.log"
+    },
+    {
+      "name": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "rust/online_protocol/Cargo.toml",
+        "--test",
+        "matchmaking_frontend_lobby"
+      ],
+      "exit_code": 0,
+      "log": "rust.log"
+    },
+    {
+      "name": "syntax",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-Iinclude",
+        "-Isrc",
+        "-Itests",
+        "-Irust/online_protocol_bridge",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+        "-I/usr/include/SDL2",
+        "-D_GNU_SOURCE=1",
+        "-D_REENTRANT",
+        "-fsyntax-only",
+        "src/ui/frontend_state.cpp",
+        "src/ui/frontend_painter.cpp"
+      ],
+      "exit_code": 0,
+      "log": "syntax.log"
+    },
+    {
+      "name": "link",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-Iinclude",
+        "-Isrc",
+        "-Itests",
+        "-Irust/online_protocol_bridge",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+        "tests/frontend_lobby_setup_tests.cpp",
+        "src/ui/frontend_matchmaking_lobby_bridge.cpp",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/target/debug/libhalo2_online_protocol_bridge.a",
+        "-lcurl",
+        "-lssl",
+        "-lcrypto",
+        "-ldl",
+        "-lpthread",
+        "-lm",
+        "-lrt",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup"
+      ],
+      "exit_code": 0,
+      "log": "link.log"
+    },
+    {
+      "name": "fixture",
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup",
+        "tests/fixtures/frontend_lobby_setup_original.tsv"
+      ],
+      "exit_code": 0,
+      "log": "fixture.log"
+    },
+    {
+      "name": "differential-link",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O1",
+        "-Iinclude",
+        "-Isrc",
+        "-Itests",
+        "-Irust/online_protocol_bridge",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-game-setup-rust-20261102/setup-differential.cpp",
+        "src/ui/frontend_matchmaking_lobby_bridge.cpp",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/target/debug/libhalo2_online_protocol_bridge.a",
+        "-lcurl",
+        "-lssl",
+        "-lcrypto",
+        "-ldl",
+        "-lpthread",
+        "-lm",
+        "-lrt",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup-differential"
+      ],
+      "exit_code": 0,
+      "log": "differential-link.log"
+    },
+    {
+      "name": "differential",
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om/setup-differential"
+      ],
+      "exit_code": 0,
+      "log": "differential.log"
+    }
+  ],
+  "observed_utc": "2026-11-03T03:19:56.152470+00:00",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-game-setup-rust-20261102/halo2-test-2pgt03om",
+  "frozen_input_count": 2555,
+  "frozen_input_sha256": "ba7054c8ee6a3dc6cd50fd6f88940e68ab5e72a68f40ca8f3e86f7484e013f30",
+  "changed_source_pins": {
+    "cmake/OnlinePeers.cmake": "a298287e9580cb79543898291abc043fa3190300c3a81aaeaf90f4547e9c7b97",
+    "include/halo2/frontend_lobby_setup.hpp": "9bfcfedf3fccaf7794d5c3fc1ff57619bf9cbcdbe5a6cc541eba3cf834a62150",
+    "rust/online_protocol/src/matchmaking_frontend_lobby.rs": "342b8cc01caf408ac30500cea7c799813bee2862298a3f9992b59a7373e55c96",
+    "rust/online_protocol_bridge/src/lib.rs": "0788ce2f5c9b5d53a7a23f308948a4aa7a12abb4e10b169d79a5319ae67bd803",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby.rs": "f1209714b31fcf2b78d01f03924af1d6ce5939973d8407c4b57fb2c986e7e35b",
+    "src/ui/frontend_matchmaking_lobby_bridge.cpp": "b8c1c6a756df1dd74f29baf3496e1b73673cf379fee78fc1545a8b1084e0a9b3",
+    "src/ui/frontend_state.cpp": "b6e1176bcb23b322bb10c5c500cee87009713d545fdf2d77d5e0d08210d98e13",
+    "tests/frontend_lobby_setup_tests.cpp": "7ac6a717febf0fc126ea319c8f19a856e54292068dc56b20b8fab8736abbeec4"
+  },
+  "original_retail_fixture_sha256": "fceedb699fd0f7c0c8c3d0f267cc68487120bb1a85423657893794f9e9d98be9",
+  "captured_before_pins": {
+    "cmake/OnlinePeers.cmake": "ed16c14845651f8feeccf558179f4e22a00fb94cabf93938360b3eb60682caa7",
+    "include/halo2/frontend_lobby_setup.hpp": "3229f3c24aeed87e1eadda30aba555c85a34eae0082fd7cbc7c6d934e70a9f08",
+    "rust/online_protocol/src/matchmaking_frontend_lobby.rs": "2bd52f45c3f6caecbcde51ce7d74c455556b9e00d52403c6885ae7e79048f8bb",
+    "rust/online_protocol_bridge/src/lib.rs": "2eda7acd230f48eeefcf8cf889006831c8362f28ed121624145901e4dcb29c2d",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby.rs": "dd7ff39cbe1212b82e31614b53f732c2e2f6b25915fc9092e4b8fa771bf12839",
+    "src/ui/frontend_matchmaking_lobby_bridge.cpp": "01ed8c1b7d95bc4fa156e53d11503e93535ffda8d43b252a6bf126c43278893c",
+    "src/ui/frontend_state.cpp": "5efffc5f4d1f1f0c934f3e657e1d167038a42b1213d95d56948cc73594d9ddb5",
+    "tests/frontend_lobby_setup_tests.cpp": "103b57474929634825d092e5ecfd0e593444716af7ff7f60718c47a9447e144c"
+  },
+  "retained_large_artifacts": [],
+  "exact_caller_block_sha256": {
+    "before": "2f25de6c5742fec60ad818c34d9b3b686b46291e03c9f29eff2ab5f0f8742373",
+    "after": "50f3e8953ae8b8f3bfd2cd5edcf731b60240012bbeeac694d3123183263bd556"
+  },
+  "caller_comparison": {
+    "accept_controls": 15120,
+    "auxiliary_controls": 1440,
+    "exception_controls": 1053,
+    "reentrant_open_controls": 1053
+  },
+  "native_binary_sha256": "f2a638015b059999fa8791a71528230d76b0edc31807365dfe1450a4f7c4685f",
+  "frozen_inputs_intact": true,
+  "changed_live_inputs_match": true,
+  "original_tu15_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/tu15-game-setup-and-start.json",
+  "original_tu15_receipt_sha256": "0ef25eb2b317b72ed74179d4a1767e7e3d40a330df6fd12d4323650d8bf847e4",
+  "retail_original_fixture_cases": 118,
+  "retail_cases_through_rust": 65,
+  "existing_rust_lobby_tests": 13,
+  "original_tu15_rows_equal_retail_fixture": true,
+  "component_scratch_removed": true,
+  "original_scratch_removed": true,
+  "archived_differential_sources": {
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-captured-before.inc.txt": "2f25de6c5742fec60ad818c34d9b3b686b46291e03c9f29eff2ab5f0f8742373",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-captured-after.inc.txt": "50f3e8953ae8b8f3bfd2cd5edcf731b60240012bbeeac694d3123183263bd556",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-captured-table.hpp.txt": "d2510a2a1b88a0fdcc2c28b6514fe3be84cbf4710b8ca8784805741605d1ea0d",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-differential.cpp.txt": "fc572f17e52ff06497b91e396794f901735803a7f418926b0609358de38b49d9"
+  },
+  "followup_test_count": 10,
+  "native_setup_run_completed": false,
+  "installed_client_verified": false,
+  "full_goal_complete": false
+}

@@ -2,6 +2,7 @@
 #include "halo2/source_device.hpp"
 #include "halo2/source_device_world.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/source_model_admission.hpp"
 #include "halo2/source_prt.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/scenery.hpp"
@@ -19,6 +20,8 @@
 #include "halo2/source_campaign_machine_view.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <map>
+#include <array>
+#include <cstring>
 #include <algorithm>
 #include <set>
 #include <limits>
@@ -60,6 +63,9 @@ struct SourceMachineScene::Impl {
         // checkpoint state. Each hit also retains the fresh kernel's FP/errno
         // effects through ModelWorldPoseCache's strict admission gate.
         std::array<ModelWorldPoseCache,6> pose_cache;
+        std::array<std::uint8_t,6> lod_alias{0,1,2,3,4,5};
+        std::array<const void*,12> lod_alias_key{};
+        bool lod_alias_ready=false;
         ObjectLightingCache light;
         ShadowCasterSphere sphere;
         ObjectColors initial_colors;
@@ -305,6 +311,35 @@ struct SourceMachineScene::Impl {
         if(m.resource_error)throw FormatError("Visible machine placement "+std::to_string(m.source_object)+
             " requires original source resources: "+*m.resource_error);
     }
+    // Slot k aliases the first earlier slot whose resident model skins
+    // identically. Keyed by bank storage, so a reloaded bank is re-examined.
+    static bool skin_identical(const RenderModel &a,const RenderModel &b) {
+        const auto same=[](const auto &x,const auto &y) {
+            return x.size()==y.size() && (x.empty() || !std::memcmp(x.data(),y.data(),x.size()*sizeof(x[0])));
+        };
+        if(!same(a.mesh.vertices,b.mesh.vertices) || !same(a.skin,b.skin) || !same(a.compound_nodes,b.compound_nodes) ||
+           a.bones.size()!=b.bones.size())return false;
+        for(std::size_t n=0;n<a.bones.size();++n)
+            if(std::memcmp(a.bones[n].inverse.data(),b.bones[n].inverse.data(),sizeof(a.bones[n].inverse)) ||
+               std::memcmp(&a.bones[n].inverse_scale,&b.bones[n].inverse_scale,sizeof(float)))return false;
+        return true;
+    }
+    static void refresh_lod_aliases(Machine &m) {
+        std::array<const void*,12> key{};
+        for(unsigned lod=0;lod<6;++lod) {
+            const auto &model=m.geometry.at(lod).model;
+            key[lod*2]=model.mesh.vertices.data();key[lod*2+1]=model.skin.data();
+        }
+        if(m.lod_alias_ready && key==m.lod_alias_key)return;
+        for(unsigned lod=0;lod<6;++lod) {
+            m.lod_alias[lod]=std::uint8_t(lod);
+            for(unsigned earlier=0;earlier<lod;++earlier)
+                if(m.lod_alias[earlier]==earlier && skin_identical(m.geometry.at(earlier).model,m.geometry.at(lod).model)) {
+                    m.lod_alias[lod]=std::uint8_t(earlier);break;
+                }
+        }
+        m.lod_alias_key=key;m.lod_alias_ready=true;
+    }
     static void pose(Machine &m){
         const auto&model=m.geometry.model();
         const auto position=m.presentation?m.presentation->position:m.position;
@@ -317,10 +352,40 @@ struct SourceMachineScene::Impl {
         const auto* fresh=std::getenv("HALO2_REFERENCE_FRESH_MACHINE_POSES");
         if(!m.resource_error) {
             if(m.solved_nodes && !(fresh && *fresh)) {
-                for(unsigned lod=0;lod<6;++lod)m.geometry.pose_world_lod_view(lod,[&](const RenderModel& resident) {
+                // LODs whose resident models are skin-identical (same source
+                // vertices, bindings, bind poses and compound nodes; every
+                // Zanzibar machine repeats one bank in all six slots) share one
+                // skin. Each LOD still publishes its own copy and materials.
+                // Repeating an identical skin only re-raises the sticky SSE
+                // flags the first one raised, so the FP state matches too.
+                // HALO2_REFERENCE_MACHINE_LOD_SKINS=1 skins every slot;
+                // HALO2_VERIFY_MACHINE_LOD_SKINS=1 also skins the aliases and
+                // rejects any byte difference.
+                static const bool reference_lods=[]{const auto *e=std::getenv("HALO2_REFERENCE_MACHINE_LOD_SKINS");return e && *e;}();
+                static const bool verify_lods=[]{const auto *e=std::getenv("HALO2_VERIFY_MACHINE_LOD_SKINS");return e && *e;}();
+                static const bool reference_publication=[]{const auto *e=std::getenv("HALO2_REFERENCE_MACHINE_POSE_PUBLICATION");return e && *e;}();
+                static const bool verify_publication=[]{const auto *e=std::getenv("HALO2_VERIFY_MACHINE_POSE_PUBLICATION");return e && *e;}();
+                if(!reference_lods)refresh_lod_aliases(m);
+                std::array<std::span<const Vertex>,6> posed_lods{};
+                for(unsigned lod=0;lod<6;++lod) {
+                  const auto produce=[&](const RenderModel& resident)->SourceObjectGeometry::CachedWorldPose {
+                    const unsigned alias=reference_lods?lod:m.lod_alias[lod];
+                    if(alias!=lod) {
+                        if(verify_lods) {
+                            const auto own=m.pose_cache[lod].update_preserving_effects(resident,m.world_nodes);
+                            if(own.vertices.size()!=posed_lods[alias].size() || (!own.vertices.empty() &&
+                               std::memcmp(own.vertices.data(),posed_lods[alias].data(),own.vertices.size_bytes())))
+                                throw FormatError("Machine LOD skin alias differs from its own skin: "+m.definition.name);
+                        }
+                        return {{posed_lods[alias],{},false},&m.pose_cache[alias],m.pose_cache[alias].publication()};
+                    }
                     const auto posed=m.pose_cache[lod].update_preserving_effects(resident,m.world_nodes);
-                    return ModelSkinWorldPoseView{posed.vertices,{},false};
-                });
+                    posed_lods[lod]=posed.vertices;
+                    return {{posed.vertices,{},false},&m.pose_cache[lod],m.pose_cache[lod].publication()};
+                  };
+                  if(reference_publication)m.geometry.pose_world_lod_view(lod,[&](const RenderModel &resident){return produce(resident).pose;});
+                  else m.geometry.pose_world_lod_cached_view(lod,produce,verify_publication);
+                }
             } else m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
                 skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
         }
@@ -486,7 +551,8 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         const auto at=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),[&](const auto&machine){
             return machine.source_object==live.placement&&machine.definition_datum==draw.definition;
         });
-        if(at==impl_->state.machines.end()||live.handle!=draw.object||!live.visible||live.bsp_hidden)
+        if(at==impl_->state.machines.end()||live.handle!=draw.object||
+           live.script_hidden||(!live.visible&&!live.bsp_hidden))
             throw FormatError("Campaign machine draw lost its actual full scene owner/placement");
         const auto&machine=*at;Impl::require_resources(machine);
         if(draw.unit.words[1]!=machine.definition.render_model||draw.lod>=6||draw.override_slot!=255||
@@ -495,6 +561,17 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         const auto body=world.source_object_body(draw.object);
         if(Bytes(world.memory().view(body,4)).u32(0)!=draw.definition)
             throw FormatError("Campaign machine draw lost its actual native definition generation");
+        if(live.bsp_hidden) {
+            // The scene placement policy can classify a persistent object as
+            // hidden even when the current native BSP has registered it. Use
+            // the original B9CE0 visibility decision for that disagreement.
+            const auto &memory=world.memory();
+            SourceModelResourceWorld visibility;
+            visibility.banks.objects=Bytes(memory.view(0x4ecbd0u,4)).u32(0);
+            visibility.banks.read=[&](auto address,auto size){return memory.view(address,size);};
+            if(source_model_owner_hidden(draw.object,visibility))
+                throw FormatError("Campaign machine draw disagrees with native object visibility");
+        }
         packet->ordinals.push_back(draw.ordinal);
         if(!draw.geometry.geometry.resident)continue; // Actual449D0 no-resource return.
         const auto nodes=world.rendered_world_nodes(draw.object);

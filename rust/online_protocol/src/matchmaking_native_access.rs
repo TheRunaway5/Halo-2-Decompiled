@@ -1,6 +1,9 @@
 //! Session feature limits, local ownership/views and postgame caller policy.
 //! Actual mutexes, audio devices, buffers and native resource handles remain IO.
-use crate::{migration_driver::Phase, peer_authority_transfer::Limits};
+use crate::{
+    migration_driver::Phase,
+    peer_authority_transfer::{COMPLETE_HOST_ARCHIVE, Limits},
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Error;
@@ -15,7 +18,8 @@ pub fn admission_owner(slot: u32, peer: u32) -> Result<u8> {
     u8::try_from(if peer == u32::MAX { slot } else { peer }).map_err(|_| Error)
 }
 pub fn transfer_limits(snapshot: bool, selection: bool, terminal: bool) -> Limits {
-    let mut features = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 8192;
+    let mut features =
+        1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 8192 | COMPLETE_HOST_ARCHIVE;
     if snapshot {
         features |= 1024;
     }
@@ -122,7 +126,7 @@ mod tests {
     fn all_feature_combinations_and_successor_terminal_operand() {
         for bits in 0..8 {
             let l = transfer_limits(bits & 1 != 0, bits & 2 != 0, bits & 4 != 0);
-            let mut expected = 9215;
+            let mut expected = 9215 | 16384;
             if bits & 1 != 0 {
                 expected |= 1024;
             }

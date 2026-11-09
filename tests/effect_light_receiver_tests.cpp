@@ -5,6 +5,9 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#ifdef HALO2_EFFECT_RECEIVER_BANK_PROBE
+#include <nlohmann/json.hpp>
+#endif
 
 using namespace halo2;
 namespace {
@@ -30,9 +33,34 @@ public:
 }
 int main(int argc,char** argv) {try {
     require(argc==3,"receiver cache and original fixture required");
+#ifdef HALO2_EFFECT_RECEIVER_BANK_PROBE
+    // Pure component probe: every consumed BSP field is exported literally
+    // from retained RAM. Its containing cluster and fog bytes are explicit
+    // original caller inputs. Cache admission and point location remain
+    // covered by the ordinary full-system target below.
+    using J=nlohmann::json;std::ifstream bank_file(argv[1]);const auto bank=J::parse(bank_file);
+    const auto scalar=[](const J& v){return std::bit_cast<float>(v.get<std::uint32_t>());};
+    const auto vector=[&](const J& v){return Vec3{scalar(v[0]),scalar(v[1]),scalar(v[2])};};
+    ObjectLightSpatialBsp spatial;BspAtmosphere locations;SourceBspAdmissionBsp geometry;SourcePortalBsp portals;
+    for(const auto& p:bank.at("planes"))portals.planes.push_back({scalar(p[0]),scalar(p[1]),scalar(p[2]),scalar(p[3])});
+    portals.cluster_portals=bank.at("cluster_portals").get<decltype(portals.cluster_portals)>();
+    for(const auto& p:bank.at("portals")) {
+        SourcePortalGeometry v;v.back=p.at("back");v.front=p.at("front");v.plane_index=p.at("plane");v.flags=p.at("flags");
+        for(const auto& a:p.at("vertices"))v.vertices.push_back(vector(a));portals.portals.push_back(std::move(v));
+    }
+    for(const auto& c:bank.at("clusters")) {
+        SourceBspAdmissionCluster v;v.geometry_count=c.at("geometry");
+        for(unsigned n=0;n<6;++n)v.bounds[n]=scalar(c.at("bounds")[n]);
+        v.instances=c.at("instances").get<decltype(v.instances)>();geometry.clusters.push_back(std::move(v));
+    }
+    for(const auto& i:bank.at("instances"))geometry.instances.push_back({i.at("definition"),vector(i.at("sphere")),scalar(i.at("sphere")[3])});
+    for(const auto& d:bank.at("definitions"))geometry.definitions.push_back({d.get<std::uint16_t>()});
+#else
     Cache cache(argv[1]);const auto spatial=cache.load_object_light_spatial_bsp(0);
     const auto geometry=cache.load_source_bsp_admission(0);
     const auto locations=cache.load_bsp_atmosphere(0);
+    const auto portals=cache.load_source_portal_bsp(0);
+#endif
     Fixture file(argv[2]);const auto version=file.word();const bool large=version==0x3252434c;
     require(large||version==0x3152434c,"receiver fixture version");
     const auto cases=file.word(),clusters=file.word(),camera_words=file.word();
@@ -40,14 +68,15 @@ int main(int argc,char** argv) {try {
     require(clusters==geometry.clusters.size()&&camera_words==6*0x1bc/4,"receiver original input bank shape");
     const auto cameras=file.read<std::array<SourceFrustumCamera,6>>();
     std::vector<std::uint8_t> fog;for(unsigned i=0;i<clusters;++i)fog.push_back(file.read<std::uint8_t>());file.align();
+#ifndef HALO2_EFFECT_RECEIVER_BANK_PROBE
     require(fog==source_bsp_fog_admission(locations,{true,true,fog_datum,fog_flags}),"receiver main-view fog differs from unchanged16E210");
+#endif
     SourceBspAdmission main;
     for(auto* queue:{&main.clusters,&main.instances}) {
         const auto count=file.word();
         for(unsigned i=0;i<count;++i){SourceBspAdmissionRecord r;r.id=file.word();r.flags=std::uint16_t(file.word());
             r.other=file.word();r.association=std::uint16_t(file.word());queue->push_back(r);}
     }
-    const auto portals=cache.load_source_portal_bsp(0);
     SourceEffectLightReceiverWorld world{spatial,geometry,locations,bsp,&portals,{}};
     EffectLightSphere shape;const auto position=cameras[0].camera_to_world.position;
     shape.shape[11]=std::bit_cast<std::uint32_t>(position.x);shape.shape[12]=std::bit_cast<std::uint32_t>(position.y);
@@ -55,6 +84,9 @@ int main(int argc,char** argv) {try {
     std::size_t words=0,positive=0,association_count=0;
     for(unsigned index=0;index<cases;++index) {
         const auto cluster=std::int16_t(file.word());const auto center=file.read<Vec3>();const auto radius=file.read<float>();
+#ifdef HALO2_EFFECT_RECEIVER_BANK_PROBE
+        require(large&&cluster>=0,"explicit-bank probe requires its captured containing cluster and mode0 fixture");
+#endif
         auto case_cameras=cameras;
         std::array<std::uint32_t,16> mask{};
         if(large) {

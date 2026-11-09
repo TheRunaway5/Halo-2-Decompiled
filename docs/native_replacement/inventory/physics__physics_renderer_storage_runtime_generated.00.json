@@ -1,0 +1,116 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsRendererStorage.cmake",
+      "line": 2,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "aa127ff8ab287fe12a02972d43cdde5048d2b546c00cbb10ea0f5abea88b6131",
+      "selected_resolver_sha256": "0aa191e6f4aaf8637372bcfb4ca17f6999b76ebc360b32d849e1dd9eb5975bb2"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "aa127ff8ab287fe12a02972d43cdde5048d2b546c00cbb10ea0f5abea88b6131",
+      "selected_resolver_sha256": "0aa191e6f4aaf8637372bcfb4ca17f6999b76ebc360b32d849e1dd9eb5975bb2"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "6b94ddbd3335907aba98aca20bf452039b7025fb9dea00b9bbbbc8cd603ef84b",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1360f0"
+      ],
+      "function_name": "run_133760",
+      "instruction_callback_sites": 42,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "133760",
+        "tu15": "134b00"
+      },
+      "line": 74,
+      "literal_dispatch_required_targets": [
+        "2dbc2e",
+        "33b3ac"
+      ],
+      "observed_entry": "133760",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "133760",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "133760",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "3061a281d223be6dff32d0263e07791ecab4e81c21a3d4ba54d3f953a852f09e",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "165740"
+      ],
+      "function_name": "run_1360f0",
+      "instruction_callback_sites": 128,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1360f0",
+        "tu15": "137460"
+      },
+      "line": 120,
+      "literal_dispatch_required_targets": [
+        "32a3bb"
+      ],
+      "observed_entry": "1360f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1360f0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1360f0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "ed0d2c810099e9762381cd3bcf589db465c69151b4ec3d1a4d85ce26519000bb",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_165740",
+      "instruction_callback_sites": 22,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "165740",
+        "tu15": "166b20"
+      },
+      "line": 252,
+      "literal_dispatch_required_targets": [
+        "32a3bb"
+      ],
+      "observed_entry": "165740",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "165740",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "165740",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/physics_renderer_storage_runtime_generated.cpp",
+  "source_bytes": 28952,
+  "source_filename_scope": "generated",
+  "source_sha256": "ee95eba4f2e85a9d1944d58c5e78fef6e978f5f0e96259e7c63aaa03b1e31bcc"
+}

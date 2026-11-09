@@ -1,6 +1,7 @@
 #include "halo2/native_tu15_body_constraint_update.hpp"
 #include "halo2/native_tu15_data_array_allocate.hpp"
 #include "halo2/native_tu15_geometry.hpp"
+#include "halo2/native_tu15_retained_store_observer.hpp"
 #include <bit>
 #include <stdexcept>
 #include <xmmintrin.h>
@@ -100,14 +101,20 @@ public:
     void request(std::uint32_t datum,const std::array<std::uint32_t,2>&slots,
       std::uint16_t first_node,std::uint16_t second_node,std::uint16_t type,std::uint16_t index,
       const NativeTu15ModelConstraintFrame&frame){ //20D8B0
-        if(stats_)++stats_->requests;const auto p=scratch_.request.identity;
-        word(0x20d8b0u,p,0u,1);word(0x20d8b6u,p+4u,datum);word(0x20d8bdu,p+8u,slots[0]);
-        word(0x20d8c5u,p+0xcu,first_node,2);word(0x20d8cdu,p+0x10u,slots[1]==0xffffffffu?0xffffffffu:datum);
-        word(0x20d8d4u,p+0x14u,slots[1]);word(0x20d8dcu,p+0x18u,second_node,2);
-        word(0x20d8ebu,p+0x1cu,frame.position[0]);word(0x20d8f0u,p+0x20u,frame.position[1]);word(0x20d8f6u,p+0x24u,frame.position[2]);
-        word(0x20d8feu,p+0x28u,frame.forward[0]);word(0x20d903u,p+0x2cu,frame.forward[1]);word(0x20d910u,p+0x30u,frame.forward[2]);
-        word(0x20d917u,p+0x34u,0xffffffffu);word(0x20d91au,p+0x38u,0u,1);
-        word(0x20d935u,p+0x3au,std::uint32_t(type)|(std::uint32_t(index)<<16u));
+        if(stats_)++stats_->requests;
+        struct Data final:NativeTu15ModelConstraintRequestData {
+            const NativeTu15ModelConstraintFrame&frame;std::uint32_t descriptor;
+            Data(const NativeTu15ModelConstraintFrame&f,std::uint32_t d):frame(f),descriptor(d){}
+            std::uint32_t position_word(unsigned n)const override{return frame.position.at(n);}
+            std::uint32_t forward_word(unsigned n)const override{return frame.forward.at(n);}
+            std::uint32_t descriptor_word()const override{return descriptor;}
+        }data(frame,std::uint32_t(type)|(std::uint32_t(index)<<16u));
+        NativeTu15ModelConstraintRequestFields fields;
+        fields.first_datum=datum;fields.first_slot=slots[0];fields.first_node=first_node;
+        fields.second_datum=slots[1]==0xffffffffu?0xffffffffu:datum;
+        fields.second_slot=slots[1];fields.second_node=second_node;
+        fields.constraint_class=0xffffffffu;fields.has_descriptor=true;
+        native_tu15_initialize_model_constraint_request(memory_,scratch_.request,fields,data,observer_);
     }
     std::uint32_t scaled_extent(std::uint32_t value,std::uint32_t scale){
         if((fp_.mxcsr&0x1f80u)!=0x1f80u||(fp_.mxcsr&0xffff0000u))
@@ -180,6 +187,29 @@ public:
         }while(less(ordinal,count));
     }
 };
+}
+void native_tu15_initialize_model_constraint_request(SourcePhysicsContactMemory&memory,
+ NativeTu15ModelConstraintRequest request,const NativeTu15ModelConstraintRequestFields&r,
+ const NativeTu15ModelConstraintRequestData&data,const SourcePhysicsContactRecordObserver&explicit_observer){
+    const auto&observer=native_tu15_effective_store_observer(memory,explicit_observer);
+    const auto store=[&](std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width=4){
+        std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(8u*n));
+        const bool observed=native_tu15_observes_retained_store(memory,observer,pc,p,width);
+        SourcePhysicsContactRecordStore event{pc,p,{},{}};
+        if(observed){event.before.resize(width);memory.read(p,event.before);event.written.assign(bytes.begin(),bytes.begin()+width);}
+        memory.write(p,std::span(bytes).first(width));if(observed)observer(event);
+    };
+    const auto p=request.identity;
+    store(0x20d8b0u,p,r.mode,1);store(0x20d8b6u,p+4u,r.first_datum);store(0x20d8bdu,p+8u,r.first_slot);
+    store(0x20d8c5u,p+0xcu,r.first_node,2);store(0x20d8cdu,p+0x10u,r.second_datum);
+    store(0x20d8d4u,p+0x14u,r.second_slot);store(0x20d8dcu,p+0x18u,r.second_node,2);
+    store(0x20d8ebu,p+0x1cu,data.position_word(0));store(0x20d8f0u,p+0x20u,data.position_word(1));
+    store(0x20d8f6u,p+0x24u,data.position_word(2));store(0x20d8feu,p+0x28u,data.forward_word(0));
+    store(0x20d903u,p+0x2cu,data.forward_word(1));const auto final_forward=data.forward_word(2);
+    store(0x20d910u,p+0x30u,final_forward);store(0x20d917u,p+0x34u,r.constraint_class);
+    store(0x20d91au,p+0x38u,0u,1);
+    if(r.has_descriptor)store(0x20d935u,p+0x3au,data.descriptor_word());
+    else{store(0x20d925u,p+0x3au,0xffffu,2);store(0x20d929u,p+0x3cu,0xffffu,2);}
 }
 NativeTu15ModelConstraintFrame native_tu15_model_constraint_body_frame(const SourcePhysicsContactMemory&memory,
  NativeTu15PhysicsComponent component,std::uint32_t slot,NativeTu15PhysicsFrameFp&fp,NativeTu15ModelConstraintUpdateStats*stats){

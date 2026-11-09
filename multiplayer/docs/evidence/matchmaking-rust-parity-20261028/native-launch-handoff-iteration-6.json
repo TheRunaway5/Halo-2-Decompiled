@@ -1,0 +1,60 @@
+{
+  "schema": "H2_MATCHMAKING_NATIVE_LAUNCH_HANDOFF_DIAGNOSTICS_V1",
+  "scope": "Frozen Linux debug binary, existing local service fixtures, actual native processes. All three complete acceptance tests failed.",
+  "passed": false,
+  "exit_code": 8,
+  "source_pin_sha256": "99e57a1c88759b8cce74417c276592f8e737ac908df1b49e256df14a5ad295c9",
+  "refreshed": [
+    {
+      "path": "tests/online_match_launch_tests.cpp",
+      "before": "8f4b50aae1f895facb6b942925fa484532bd086acfc7f2ff45a6dea90dbcae8a",
+      "after": "fdbec7a91283af59c2c167440514d2f564ba5945697e09f59b16117cdbf4043d"
+    },
+    {
+      "path": "tests/online_multiteam_launch_http_test.py",
+      "before": "0c900909bdbf27f3d5a34cfe2f1af8beab1df0d5a852e7c29a7a65f92c49f1da",
+      "after": "a92debd636dff7caa576c2b8af59afae4d6b4bcc525989ea9fe2e02e29bdecf5"
+    }
+  ],
+  "binaries": {
+    "online_match_launch_tests": {
+      "sha256": "9ca8346491d1121f14cb44e5b6f5ed54e914aa9bcf85766f9bcdc7ac8f26add3",
+      "bytes": 1397801896
+    },
+    "online_multiteam_launch_tests": {
+      "sha256": "225433059fd1ed513ccd60ea48377f665aaccacebb18502e15d8fabedcbc31bf",
+      "bytes": 1390518800
+    }
+  },
+  "ctest_output_sha256": "7a6f6b10bd974a3a11862d3d5b73a1ff0a0c66fef6db9359cb9389eae605279c",
+  "ctest_output_bytes": 62577,
+  "ctest_results": [
+    "1/3 Test #817: online_match_launch ..............***Failed  133.73 sec",
+    "2/3 Test #837: online_match_party_launch ........***Failed  133.28 sec",
+    "3/3 Test #857: online_multiteam_native_flow .....***Failed  165.51 sec"
+  ],
+  "terminal_observations": {
+    "online_match_launch": [
+      "Native ONLINE handoff timed out: native room loading and shared start",
+      "Native ONLINE handoff timed out: native room loading and shared start"
+    ],
+    "online_match_party_launch": [
+      "Rendered shared lobby countdown timed out at phase 14",
+      "Rendered shared lobby countdown timed out at phase 14",
+      "Rendered shared lobby countdown timed out at phase 14",
+      "Rendered shared lobby countdown timed out at phase 14"
+    ],
+    "online_multiteam_native_flow": [
+      "native twelve-seat rounds: Sky material/texture semantics differ from the authenticated projection input",
+      "native twelve-seat rounds: Sky material/texture semantics differ from the authenticated projection input",
+      "native twelve-seat rounds: Sky material/texture semantics differ from the authenticated projection input"
+    ]
+  },
+  "party_rendered_zero_and_search_observed": true,
+  "party_gameplay_handoff_verified": false,
+  "four_team_world_preparation_observed": true,
+  "four_team_earliest_exception_preserved": [
+    "RuntimeError: Actual native owner three exited 1"
+  ],
+  "retained_generated_large_artifacts": []
+}

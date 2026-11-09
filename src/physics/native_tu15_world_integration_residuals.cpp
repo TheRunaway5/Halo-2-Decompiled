@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_world_integration_residuals.hpp"
+#include "halo2/native_tu15_world_factory_scratch.hpp"
 #include "halo2/native_tu15_pair_pool_release_input_observer.hpp"
 #include "halo2/native_tu15_motion_pose.hpp"
 #include "halo2/native_tu15_island_deactivation.hpp"
@@ -486,9 +487,10 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
         stats?&stats->reversed_list_agent_destructor:nullptr);
       if(stats)++stats->native_contact_agent_native_destructors;return;
     }
-    if(owner.identity==0x2f8090u||owner.identity==0x3051a0u||owner.identity==0x2fc540u){
+    if(owner.identity==0x2f8090u||owner.identity==0x3051a0u||owner.identity==0x2fc540u||owner.identity==0x2f35f0u){
       const auto kind=owner.identity==0x2f8090u?NativeTu15AgentDestructor::owner_2f8090:
-        owner.identity==0x3051a0u?NativeTu15AgentDestructor::owner_3051a0:NativeTu15AgentDestructor::owner_2fc540;
+        owner.identity==0x3051a0u?NativeTu15AgentDestructor::owner_3051a0:
+        owner.identity==0x2f35f0u?NativeTu15AgentDestructor::owner_2f35f0:NativeTu15AgentDestructor::owner_2fc540;
       (void)native_tu15_destroy_contact_agent(m,kind,{object},disposing,context,agent_children,observe);
       if(stats)++stats->native_contact_agent_native_destructors;return;
     }
@@ -884,26 +886,14 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
           stats->native_wrapped_factory_unqualified_owners+=activity.unqualified_owners;
         }};
         try{
-          // This closed native chain cannot re-enter the World factory or
-          // execute a residual. Retain its three512B DATA slots above the
-          // wake packet (first+1000..1880), below regroup/merge DATA, and
-          // below every live list/transform parent and its filter packet.
-          // Parent slots descend by512B; this check also reserves the next
-          // slot's256B filter area. Refuse before touching any live DATA.
-          const auto wrapped_first=factory_depth?std::uint64_t(scratch.first)+0x2000u:end-0xf00u;
-          const auto wrapped_end=wrapped_first+0x600u;
-          const auto parent_required=0xa00ull+512ull*factory_depth;
-          if(scratch.bytes<0x2800u||(factory_depth&&(scratch.bytes<0x5000u||
-              wrapped_end>end-0x2800u||parent_required>scratch.bytes||
-              wrapped_end>end-parent_required))){
-            ++activity.attempts;++activity.refusals;
-            throw std::runtime_error("Native wrapped factory requires disjoint retained DATA for its native chain");
-          }
+          // The closed native constructor graph cannot re-enter the World
+          // factory or execute a residual while this DATA is retained.
+          const auto wrapped=native_tu15_world_factory_scratch(scratch,factory_depth);
           const NativeTu15WrappedContactArguments arguments{
             [&]{return first.identity;},[&]{return second.identity;},
             [&]{return settings.identity;},[&]{return manager.identity;}};
           const auto result=native_tu15_create_bound_wrapped_contact_factory(m,target,
-            arguments,{std::uint32_t(wrapped_first),0x600u},current,state.x87_depth,
+            arguments,wrapped,current,state.x87_depth,
             pair_storage,observe,&activity);
           collect_wrapped();return result;
         }catch(...){collect_wrapped();

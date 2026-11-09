@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/physics_contact_runtime.hpp"
 #include <algorithm>
+#include <cstdlib>
 #include <stdexcept>
 
 namespace halo2 {
@@ -13,9 +14,22 @@ struct PhysicsInstructionRemapTu15 {
     std::span<const Binding> bindings;
 
     const Binding *find(std::uint32_t pc)const {
+        // Fall-through execution usually asks for the last row or the next
+        // one. A hinted row is accepted only when it is exactly lower_bound's
+        // result (equal key, previous key smaller), so the answer is the same.
+        // HALO2_REFERENCE_PHANTOM_REMAP=1 always searches.
+        static const bool reference=[]{const auto *p=std::getenv("HALO2_REFERENCE_PHANTOM_REMAP");return p && *p;}();
+        thread_local const Binding *hint_table{};thread_local std::size_t hint{};
+        if(!reference && hint_table==bindings.data())
+            for(std::size_t candidate=hint;candidate<=hint+1 && candidate<bindings.size();++candidate)
+                if(bindings[candidate].key==pc && (candidate==0 || bindings[candidate-1].key<pc)) {
+                    hint=candidate;return &bindings[candidate];
+                }
         const auto at=std::lower_bound(bindings.begin(),bindings.end(),pc,
             [](const auto &row,auto value){return row.key<value;});
-        return at!=bindings.end() && at->key==pc?&*at:nullptr;
+        if(at==bindings.end() || at->key!=pc)return nullptr;
+        if(!reference){hint_table=bindings.data();hint=std::size_t(at-bindings.begin());}
+        return &*at;
     }
     void operator()(std::uint32_t pc)const {
         if(!source->instruction)return;

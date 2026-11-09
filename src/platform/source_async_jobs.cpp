@@ -1,3 +1,5 @@
+#include "halo2/native_tu15_async_promotion_value.hpp"
+#include "halo2/native_tu15_async_queue_value.hpp"
 #include "halo2/source_async_jobs.hpp"
 #include <stdexcept>
 
@@ -21,22 +23,7 @@ void unlinked(const SourceAsyncQueue &queue,unsigned node){
 }
 bool source_async_before(const SourceAsyncNode &incoming,const SourceAsyncNode &other,
     SourceAsyncInsertState &state){
-    bool result=false;
-    if(incoming.priority>other.priority)result=true;
-    else if(incoming.priority==other.priority && incoming.callback==source_async_read_callback){
-        if(other.callback!=source_async_read_callback)result=true;
-        else if((state.valid_word&255u)!=0){
-            const auto incoming_file=incoming.task.words[0]-state.file;
-            const auto other_file=other.task.words[0]-state.file;
-            result=incoming_file<other_file || (incoming_file==other_file &&
-                incoming.task.words[3]-state.offset<other.task.words[3]-state.offset);
-        }
-    }
-    if(other.callback==source_async_read_callback){
-        state.file=other.task.words[0];state.offset=other.task.words[3];
-        state.valid_word=(state.valid_word&0xffffff00u)|1u;
-    }
-    return result;
+    return native_async_queue_value_detail::before(incoming,other,state);
 }
 void source_async_initialize(SourceAsyncQueue &queue){
     const auto counter=queue.counter,added=queue.requests_added;
@@ -52,20 +39,7 @@ std::optional<unsigned> source_async_take_free(SourceAsyncQueue &queue){
 }
 void source_async_insert(SourceAsyncQueue &queue,unsigned node){
     unlinked(queue,node);
-    auto &incoming=queue.nodes[node];
-    if(queue.work_head==source_async_none || incoming.priority>queue.nodes[queue.work_head].priority){
-        incoming.next=queue.work_head;queue.work_head=node;return;
-    }
-    SourceAsyncInsertState state;
-    auto previous=queue.work_head;
-    while(queue.nodes[previous].next!=source_async_none){
-        const auto next=queue.nodes[previous].next;
-        if(source_async_before(incoming,queue.nodes[next],state)){
-            incoming.next=next;queue.nodes[previous].next=node;return;
-        }
-        previous=next;
-    }
-    queue.nodes[previous].next=node;incoming.next=source_async_none;
+    native_async_queue_value_detail::insert(queue,node);
 }
 std::uint32_t source_async_publish(SourceAsyncQueue &queue,unsigned node){
     source_async_insert(queue,node);
@@ -85,11 +59,8 @@ void source_async_unlink(SourceAsyncQueue &queue,unsigned node){
     queue.nodes[node].job=source_async_none;
 }
 bool source_async_reprioritize(SourceAsyncQueue &queue,std::uint32_t job,std::int32_t priority){
-    const auto node=job&255u;valid(node);
-    if(queue.nodes[node].job!=job)return false;
-    //120CE0 unlinks without clearing its existing job identity.
-    source_async_unlink(queue,node);queue.nodes[node].job=job;
-    queue.nodes[node].priority=priority;source_async_insert(queue,node);return true;
+    valid(job&255u);
+    return native_async_promotion_value_detail::reprioritize(queue,job,priority,[&]{chain(queue,queue.work_head);});
 }
 unsigned source_async_count(const SourceAsyncQueue &queue){
     chain(queue,queue.work_head);unsigned count=0;

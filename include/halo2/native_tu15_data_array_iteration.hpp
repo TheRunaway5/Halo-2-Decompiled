@@ -1,5 +1,5 @@
 #pragma once
-#include "halo2/physics_contact_record.hpp"
+#include "halo2/native_tu15_bitmap_scan_kernel.hpp"
 namespace halo2 {
 // 16EA60: find the next occupied actual slot from a signed starting index.
 // Failure is FFFFFFFF; no salt, row or admission result is supplied.

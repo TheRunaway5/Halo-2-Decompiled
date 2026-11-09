@@ -66,6 +66,11 @@ int main()try {
         std::uint16_t after_control,after_status;std::uint32_t after_mxcsr;
         asm volatile("fnstcw %0; fnstsw %1":"=m"(after_control),"=m"(after_status)::"memory");
         asm volatile("stmxcsr %0":"=m"(after_mxcsr)::"memory");
+        // These SSE-only owners never load/store the x87 control word.
+        // FLDCW/FNSTCW used by this host harness canonicalize reserved bit6;
+        // ptrace's original ABI retains the caller's exact supplied bits.
+        if(after_control!=std::uint16_t(control|0x40u))throw FormatError("Frustum kernel changed an x87 control field");
+        after_control=control;
         J output_units=J::array(),output_calls=J::array();
         for(const auto& unit:units)output_units.push_back(unit.words);
         for(const auto& call:calls)output_calls.push_back(J::array({call.argument,call.entry}));

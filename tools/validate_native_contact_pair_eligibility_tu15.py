@@ -46,8 +46,13 @@ def cases():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--overlay-source',type=Path,default=ROOT)
     args=parser.parse_args();args.output=args.output.resolve();args.output.mkdir(parents=True,exist_ok=False)
-    scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();pins={name:sha(ROOT/name)for name in FILES}
+    args.overlay_source=args.overlay_source.resolve()
+    def source_path(name):
+        candidate=args.overlay_source/name
+        return candidate if name==FILES[1]and candidate.is_file()else ROOT/name
+    scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();pins={str(source_path(name).relative_to(ROOT)):sha(source_path(name))for name in FILES}
     report=dict(passed=False,owned_scratch=str(scratch),source_hashes=pins,retained_large_artifacts=[],
         source_outcomes_supplied=False,actual_live_input_claimed=False)
     try:
@@ -57,7 +62,11 @@ def main():
         save(fixture/'original.json',dict(image_sha256=NEW_PIN,
             oracle='unchanged-tu15-physical-array-and-real-pool-v1',cases=rows))
         project=scratch/'project';project.mkdir();shutil.copytree(ROOT/'include',project/'include')
-        shutil.copyfile(ROOT/FILES[1],project/'native.cpp')
+        domain=args.overlay_source/'include/halo2/native_tu15_retained_store_observation.hpp'
+        if domain.is_file():
+            pins[str(domain.relative_to(ROOT))]=sha(domain)
+            shutil.copyfile(domain,project/'include/halo2'/domain.name)
+        shutil.copyfile(source_path(FILES[1]),project/'native.cpp')
         driver='#include "halo2/native_tu15_contact_pair_eligibility.hpp"\n'+(ROOT/FILES[-1]).read_text()
         begin=driver.index('      NativeTu15ArrayGrowthMemory array');end=driver.index('      const auto host_sw=',begin)
         driver=driver[:begin]+'''      NativeTu15PhysicsFrameFp fp{c.at("before_fp")[0],c.at("before_fp")[1],c.at("before_fp")[2]};

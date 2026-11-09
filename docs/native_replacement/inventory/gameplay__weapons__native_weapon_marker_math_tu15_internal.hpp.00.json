@@ -1,0 +1,114 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "_mm_add_ss",
+        "_mm_castsi128_ps",
+        "_mm_cvtsi32_si128",
+        "_mm_div_ss",
+        "_mm_getcsr",
+        "_mm_mul_ss",
+        "_mm_sub_ss",
+        "defined",
+        "emplace",
+        "instruction",
+        "iterator_flags",
+        "marker_quaternion_matrix",
+        "pop",
+        "read",
+        "scalar",
+        "std::runtime_error",
+        "store",
+        "vector",
+        "volatile"
+      ],
+      "body_sha256": "6c4b7cfefda58134a544f0d142c109245c76a3f9207ec96bf7783af351d3a7ab",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_quaternion_matrix",
+      "instruction_callback_sites": 77,
+      "line": 15,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "144910",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "144910",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_quaternion_matrix",
+      "symbol_kind": "descriptive"
+    },
+    {
+      "admission_prefix_calls": [
+        "_mm_getcsr",
+        "_mm_shuffle_ps",
+        "emplace",
+        "halo2::native_effect_transform_product_detail::try_native",
+        "halo2::native_tu15_leaves::ordered_add_ps",
+        "halo2::native_tu15_leaves::ordered_mul_ps",
+        "halo2::native_tu15_leaves::ordered_mul_ss",
+        "instruction",
+        "marker_load_high",
+        "marker_store_high",
+        "marker_transform_product",
+        "pop",
+        "read",
+        "scalar",
+        "store",
+        "vector"
+      ],
+      "body_sha256": "5a25513631d0aee9d21a64973f053110f4ca3de2bce8946d6cb00ed141def865",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_transform_product",
+      "instruction_callback_sites": 69,
+      "line": 108,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_transform_product_detail::try_native",
+        "halo2::native_tu15_leaves::ordered_add_ps",
+        "halo2::native_tu15_leaves::ordered_mul_ps",
+        "halo2::native_tu15_leaves::ordered_mul_ss"
+      ],
+      "observed_entry": "145560",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "145560",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_transform_product",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_marker_math_tu15_internal.hpp",
+  "source_bytes": 12627,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1630,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "53842cb92a1bb507da6504170599ea8381e25bd30d987fa5b39213b98fc5927b"
+}

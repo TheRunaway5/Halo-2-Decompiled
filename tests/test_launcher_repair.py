@@ -18,9 +18,19 @@ from windows_shader_binding import readonly_shader_literal
 
 class HealthTests(unittest.TestCase):
     def setUp(self):
+        bundle = patch('custom_asset_cache.verify', return_value={})
+        bundle.start()
+        self.addCleanup(bundle.stop)
         self.f = fixtures.FrontendCapabilityTests()
         self.f.setUp()
         self.addCleanup(self.f.doCleanups)
+
+    def test_missing_custom_bundle_disables_play_with_rebuild_instruction(self):
+        with patch('custom_asset_cache.verify', side_effect=ValueError('bundle missing')):
+            health = self.inspect()
+        self.assertFalse(health)
+        self.assertEqual(health.category, 'assets')
+        self.assertIn('Rebuild Cache', health.message)
 
     def inspect(self):
         with patch('mcc_onboarding.selected', return_value=(self.f.cache, {})):
@@ -50,9 +60,10 @@ class HealthTests(unittest.TestCase):
     def test_failed_verification_repairs_from_mcc_and_rechecks(self):
         with patch('mcc_onboarding.selected', return_value=(self.f.cache, {})), \
              patch('mcc_onboarding.select', side_effect=ValueError('corrupt private copy')), \
-             patch('mcc_onboarding.setup', return_value=(self.f.cache, {})) as setup:
+             patch('rebuild_asset_cache.rebuild', return_value=(self.f.cache, {})) as rebuild:
             repair_launcher.repair(self.f.root, self.f.runtime, mcc_root=self.f.root/'MCC', progress=lambda _: None)
-        self.assertEqual(setup.call_args.args[1], self.f.root/'MCC')
+        self.assertEqual(rebuild.call_args.kwargs['mcc_root'], self.f.root/'MCC')
+        self.assertEqual(rebuild.call_args.kwargs['runtime'], self.f.runtime)
 
     def test_cache_repair_does_not_bypass_missing_runtime_validation(self):
         self.f.sidecar.unlink()

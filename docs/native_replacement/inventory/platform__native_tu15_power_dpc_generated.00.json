@@ -1,0 +1,61 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/NativeTu15StartupTimer.cmake",
+      "line": 1,
+      "target": "halo2_native_tu15_startup_timer"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_tu15_startup_timer::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_tu15_startup_timer"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "catch",
+        "instruction",
+        "load",
+        "minus",
+        "pop",
+        "push",
+        "r",
+        "required",
+        "save",
+        "scope",
+        "source_run_tu15_power_dpc"
+      ],
+      "body_sha256": "e0b01b915d4381c716e6c134fbc73239fcb11abfa7f7669589819f5068819826",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "source_run_tu15_power_dpc",
+      "instruction_callback_sites": 4,
+      "line": 5,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2e009d",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2e009d",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "local-state",
+      "symbol": "source_run_tu15_power_dpc",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/native_tu15_power_dpc_generated.cpp",
+  "source_bytes": 1134,
+  "source_filename_scope": "generated",
+  "source_sha256": "6767f55a3a2322f5ce0f3e2c09a9277640e7abd2b41fb48c40253a9a3fa90029"
+}

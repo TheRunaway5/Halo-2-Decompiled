@@ -2,63 +2,31 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace halo2 {
-enum class FrontendLobbySetupAction { Open, SwitchCoop, SwitchCustom, AlternateSession };
+enum class FrontendLobbySetupAction { Open, SwitchCoop, SwitchCustom, AlternateSession, OpenPlaylist };
 struct FrontendLobbySetupRow {
   int semantic{};
   std::uint32_t label{};
   int destination = -1;
   FrontendLobbySetupAction action = FrontendLobbySetupAction::Open;
 };
-inline std::uint32_t frontend_lobby_setup_label(int semantic) {
-  // Literal2BB74F semantic-keyed table, not authored widget/row ordinals.
-  switch (semantic) {
-  case 0: return 0x0a0005d3;
-  case 1: return 0x0e0005d4;
-  case 2: return 0x0c0005d5;
-  case 3: return 0x110005d6;
-  case 4: return 0x0d00042a;
-  case 6: return 0x0e0005db;
-  case 7: return 0x120005dd;
-  case 8: return 0x130005dc;
-  case 9: return 0x0d0005d8;
-  default: return 0;
-  }
-}
-inline std::vector<FrontendLobbySetupRow> frontend_lobby_setup_rows(int session_enum) {
-  std::vector<int> semantics;
-  switch (session_enum) {
-  case 0: case 2: semantics = {2, 3, 7}; break;
-  case 1: case 3: semantics = {0, 1, 4, 6}; break;
-  case 4: semantics = {2, 3, 7, 8}; break;
-  case 5: semantics = {0, 1, 4, 6, 8}; break;
-  case 6: semantics = {9, 6, 7}; break;
-  }
-  std::vector<FrontendLobbySetupRow> result;
-  for (const int semantic : semantics) {
-    FrontendLobbySetupRow row{semantic, frontend_lobby_setup_label(semantic)};
-    switch (semantic) {
-    case 0: row.destination = 206; break;
-    case 1: row.destination = 207; break;
-    // Alternate11/12 loaders update the session and close their own screen;
-    // IDs also used by ordinary campaign launch need caller context.
-    case 2: row.destination = 11; break;
-    case 3: row.destination = 12; break;
-    case 4: row.destination = 222; break;
-    case 6: row.destination = 14; row.action = FrontendLobbySetupAction::SwitchCoop; break;
-    case 7: row.destination = 14; row.action = FrontendLobbySetupAction::SwitchCustom; break;
-    case 8: case 9: row.destination = 237; row.action = FrontendLobbySetupAction::AlternateSession; break;
-    }
-    result.push_back(row);
-  }
-  return result;
-}
-inline int frontend_lobby_setup_focused_semantic(int session_enum, int row) {
-  const auto rows = frontend_lobby_setup_rows(session_enum);
-  return row >= 0 && std::size_t(row) < rows.size() ? rows[std::size_t(row)].semantic : -1;
-}
+struct FrontendLobbySetupSelection {
+  std::optional<FrontendLobbySetupRow> row;
+  std::string error;
+};
+struct FrontendLobbySetupPrivacy {
+  bool open{};
+  std::string error;
+};
+std::uint32_t frontend_lobby_setup_label(int semantic);
+std::vector<FrontendLobbySetupRow> frontend_lobby_setup_rows(int session_enum);
+int frontend_lobby_setup_focused_semantic(int session_enum, int row);
+FrontendLobbySetupSelection frontend_lobby_setup_accept(int session_enum, unsigned selected, bool online, bool leader);
+FrontendLobbySetupPrivacy frontend_lobby_setup_privacy(bool online, std::optional<int> session_enum,
+    bool privacy_present, bool leader, bool busy);
 inline std::uint32_t frontend_lobby_setup_subtitle(int session_enum) {
   return session_enum == 0 || session_enum == 1 ? 0x0b0005f9 : 0x0a0005f8;
 }

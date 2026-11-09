@@ -74,7 +74,11 @@ LEDGERS=[
  'native-solver-hull-polytope-state-qualified-20261102/cleanup-verification.json',
  'native-moving-shape-process-solved-qualified-actual1479-20261102/cleanup-verification.json',
  'native-moving-shape-process-full-native-actual1479-20261102-fourth/cleanup-verification.json',
- 'native-moving-shape-process-bound-actual1479-20261102-third/cleanup-verification.json']
+ 'native-moving-shape-process-bound-actual1479-20261102-third/cleanup-verification.json',
+ 'native-moving-shape-retained-world-stage-v2-20261102/cleanup-verification.json',
+ 'native-outside-frame-scope-audit-20261102/cleanup-verification.json',
+ 'native-look-additional-host-stage-20261102/cleanup-verification.json',
+ 'native-activation-owned-followups-20261102/cleanup-verification.json']
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();owners={};missing=[]
  for relative in LEDGERS:

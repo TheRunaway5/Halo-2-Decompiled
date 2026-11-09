@@ -176,6 +176,7 @@
 !/tests/fixtures/source_shadow_native_query_tu15_original.json
 !/tests/fixtures/shadow_array_swap_tu15_original.json
 !/tests/fixtures/loop_audio_locations_tu15_original.json
+!/tests/fixtures/loop_combined_driver_tu15.json
 !/tests/fixtures/mcc_action_prompt_templates.json
 !/tests/fixtures/mcc-pc-sky-closure-regions.json
 !/tests/fixtures/*.md

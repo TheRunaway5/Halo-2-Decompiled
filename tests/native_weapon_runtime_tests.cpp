@@ -232,6 +232,8 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
   const bool verify_shared_timeline=std::getenv("HALO2_TEST_SHARED_EFFECT_CATCHUP");
   bool delivery_pause_done{};
   unsigned observed_tick{},last_firing_tick{};
+  bool local_triggers_released{};
+  std::optional<std::uint32_t> release_sequence,release_receipt_tick;
   nlohmann::json firing_trace=nlohmann::json::array();
   const auto trace_firing=[&](nlohmann::json row) {
     if(firing_trace.size()<256)firing_trace.push_back(std::move(row));
@@ -244,6 +246,15 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
       report["shared_effect_timeline"]={{"caught_up_ticks",frame.shared_effect_catchup_ticks},
           {"received_gaps",frame.shared_effect_catchup_receipts},
           {"source_requests",frame.shared_effect_catchup_requests}};
+      const auto &schedule=frame.schedule;
+      if(stage==Stage::done && local_triggers_released && !release_sequence && schedule.client_input_sent)
+        release_sequence=schedule.client_input_sent;
+      if(release_sequence && !release_receipt_tick && schedule.client_input_consumed &&
+          std::bit_cast<std::int32_t>(*schedule.client_input_consumed-*release_sequence)>=0) {
+        release_receipt_tick=schedule.client_input_receipt_tick;
+        trace_firing({{"kind","release_ack"},{"tick",*release_receipt_tick},
+            {"sent",*release_sequence},{"consumed",*schedule.client_input_consumed}});
+      }
     };
     check(host.firing_sound!=null_datum && !host.firing_effects.empty(),
         "Joining-client firing coverage lacks its authored SMG sound/effect bank");
@@ -272,6 +283,8 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     if(!slot)return;
     const auto &player=state.players[*slot];
     observed_tick=state.tick;
+    local_triggers_released=!input.empty() && !input[0].fire && !input[0].fire_secondary;
+    if(!local_triggers_released){release_sequence.reset();release_receipt_tick.reset();}
     check(!player.dead,"Network dual participant died before its pose assertions");
     weapons={player.source_weapon,player.secondary_weapon.datum};
     if(verify_firing)for(const auto &[weapon,loaded]:std::array{
@@ -364,12 +377,12 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     if(stage!=Stage::pickup)check(weapons[0]!=null_datum && weapons[1]!=null_datum,
         "Joining-client dual sequence lost an authoritative hand owner");
     const auto required_clips=verify_firing?2u:3u;
-    // SDL release is queued by the observer and reaches the authority on a
-    // later frame. Finish only after its original unit trigger bits clear
-    // and the final ammunition change has drained through presentation.
+    // An idle timeout can temporarily clear source trigger bits while a
+    // previously held packet is still in flight. Wait for the authority to
+    // consume a packet sent after physical release, then drain presentation.
     const bool firing_delivered=!verify_firing || (fired_rounds>1 && firing_sounds==fired_rounds &&
-        !input.empty() && !input[0].fire && !input[0].fire_secondary &&
-        !(player.motion_sensor_control&0x21u) && state.tick-last_firing_tick>=10 &&
+        local_triggers_released && release_receipt_tick && state.tick>=*release_receipt_tick &&
+        !(player.motion_sensor_control&0x21u) && state.tick-std::max(last_firing_tick,*release_receipt_tick)>=10 &&
         particle_weapons.contains(weapons[0]) && particle_weapons.contains(weapons[1]));
     if(stage==Stage::done && state.tick-stage_tick>=10 && firing_delivered && !quit && draws[0]>10 && draws[1]>10 && poses[0].size()>3 && poses[1].size()>3 &&
         channels[0].size()>3 && channels[1].size()>3 && hand_clips[0].size()>=required_clips && hand_clips[1].size()>=required_clips) {

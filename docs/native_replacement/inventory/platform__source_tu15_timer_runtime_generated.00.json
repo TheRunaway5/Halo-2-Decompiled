@@ -1,0 +1,200 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/SourceTu15Timer.cmake",
+      "line": 1,
+      "target": "halo2_source_tu15_timer"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_source_tu15_timer::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_source_tu15_timer"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 9,
+  "routines": [
+    {
+      "body_sha256": "5555970f7a13a63d676557ffdc81b73d57619f5d16669ed692eae995c364e591",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "8001951c"
+      ],
+      "function_name": "run_800195d6",
+      "instruction_callback_sites": 7,
+      "line": 34,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "800195d6",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "800195d6",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "800195d6",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "659b4cf97f29b4846943cbadc2df8e3b3dced776addb7df4844eae07a0fff9ae",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "80014348",
+        "8001c4cf"
+      ],
+      "function_name": "run_8001951c",
+      "instruction_callback_sites": 72,
+      "line": 43,
+      "literal_dispatch_required_targets": [
+        "80018ba0",
+        "8001a3c3",
+        "8001c033",
+        "8002dab0"
+      ],
+      "observed_entry": "8001951c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001951c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001951c",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "c8e949e7aba1f97c5153a09c55636a72a265d3448dbed448e40e76ec57c5f072",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_80014348",
+      "instruction_callback_sites": 4,
+      "line": 117,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "80014348",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "80014348",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "80014348",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "5abda0b6f498b37de7a0fc9ae846db7043f22903e23a116a16b712e8565f9713",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "8001a384"
+      ],
+      "function_name": "run_8001cd34",
+      "instruction_callback_sites": 24,
+      "line": 123,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "8001cd34",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001cd34",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001cd34",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "4c9c5375d0607d17c185ed9918fea4374d89a7a6d62f8435b026f066421f4285",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_8001a384",
+      "instruction_callback_sites": 8,
+      "line": 149,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "8001a384",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001a384",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001a384",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "2c6ff26b29e8269c097ff25d7863bef86e90d700bd81a17f1a540e560f9b9cc7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_800194c0",
+      "instruction_callback_sites": 15,
+      "line": 159,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "800194c0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "800194c0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "800194c0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "a3574074f4c2b5f4b4bc7c5ba044fd6fb76c03c6776f00c2b70f6f960665b1c3",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "8001c3cf"
+      ],
+      "function_name": "run_8001c4cf",
+      "instruction_callback_sites": 47,
+      "line": 176,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "8001c4cf",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001c4cf",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001c4cf",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "30c1d32e4a194ac66059197c2bec523b24ca93775c80691cb9348a3d5d2420f0",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "8001ccac"
+      ],
+      "function_name": "run_8001c3cf",
+      "instruction_callback_sites": 89,
+      "line": 225,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "8001c3cf",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001c3cf",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001c3cf",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "d26ab6d88eaa3848b2c3b3a62da8a91ad08d0ded86e9703490a197ef0c980293",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_8001ccac",
+      "instruction_callback_sites": 38,
+      "line": 316,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "8001ccac",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "8001ccac",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "TimerState",
+      "symbol": "8001ccac",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_tu15_timer_runtime_generated.cpp",
+  "source_bytes": 40013,
+  "source_filename_scope": "generated",
+  "source_sha256": "223f20082174a97e1a220d698cb47f40620111403a57c4b485449fe88b5f9f97"
+}

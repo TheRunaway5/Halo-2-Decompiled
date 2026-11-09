@@ -1,0 +1,137 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/native-source",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build",
+  "steps": [
+    {
+      "name": "frontend_clans-object",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_clans.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_clans.o"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "frontend_matchmaking_clans-object",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_matchmaking_clans.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_matchmaking_clans.o"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "frontend_matchmaking_party_flow_bridge-object",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_matchmaking_party_flow_bridge.o"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "frontend_state-object",
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_state.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_state.o"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "objects": [
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "source_sha256": "a9cb40bb7150926b0efe8f4e2c89f5dd8eb8a44ebce2ba905d1639913a10688a",
+      "object_sha256": "ca23a5c45dc204b56051c4567b4149fe643d31d8a19242c5654211fa3e0da69d",
+      "object_bytes": 37360,
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_clans.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_clans.o"
+      ]
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_clans.cpp",
+      "source_sha256": "68e58cb400ff77ea549143918b11f6a5635093f3a7d2ea722c8b67ddf3111228",
+      "object_sha256": "a027d4ad9c253cbffeff5dad4d7b0bca72efed1495943a1b31a424cb5dabfec5",
+      "object_bytes": 487824,
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_matchmaking_clans.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_matchmaking_clans.o"
+      ]
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+      "source_sha256": "11a29b7dfdfa6ec38e04f7a35bfbe440005fcfece4bd84951dc72a1fc460f535",
+      "object_sha256": "faf948af1c7ab7b2fcbae6c0edda8dfed46786c7c95e4192620e7c1f11e27205",
+      "object_bytes": 130704,
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-O0",
+        "-g0",
+        "-Iinclude",
+        "-Isrc",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk/build/online-protocol/Debug/include",
+        "-c",
+        "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102/halo2-test-oetuf920/frontend_matchmaking_party_flow_bridge.o"
+      ]
+    }
+  ],
+  "retained_large_artifacts": [],
+  "cmake_native_checks": "Separate focused Debug CTest cohort; the interrupted 36-check whole native run remains pending."
+}

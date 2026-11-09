@@ -82,6 +82,18 @@ inline void native_tu15_produce_bound_contacts(SourcePhysicsContactMemory&storag
     if '#include "halo2/native_tu15_retained_store_observer.hpp"'not in solver:
         solver='#include "halo2/native_tu15_retained_store_observer.hpp"\n'+solver
     target.write_text(solver)
+    # These producer-only writers were outside the moving-process writer set.
+    # A retained observer may not request an unknown local preimage. Default
+    # public memory still emits every same event after the committed write.
+    for name,member in (('native_tu15_contact_query.cpp','observer_'),('native_tu15_convex_contact_query.cpp','observe_')):
+        target=stage/'src/physics'/name;content=target.read_text()
+        old='SourcePhysicsContactRecordStore event{pc,p,{},{}};if('+member+'){event.before.resize(b.size());memory_.read(p,event.before);event.written.assign(b.begin(),b.end());}memory_.write(p,b);if('+member+')'+member+'(event);'
+        new='const bool observed=native_tu15_observes_retained_store(memory_,'+member+',pc,p,b.size());SourcePhysicsContactRecordStore event{pc,p,{},{}};if(observed){event.before.resize(b.size());memory_.read(p,event.before);event.written.assign(b.begin(),b.end());}memory_.write(p,b);if(observed)'+member+'(event);'
+        target.write_text('#include "halo2/native_tu15_retained_store_observation.hpp"\n'+replace(content,old,new))
+    target=stage/'src/physics/native_tu15_contact_pair_eligibility.cpp';content=target.read_text()
+    content=replace(content,'    if(observe){event.before.resize(1);','    const bool observed=native_tu15_observes_retained_store(memory,observe,site,result,1u);\n    if(observed){event.before.resize(1);')
+    content=replace(content,'memory.write(result,bytes);if(observe)observe(event);','memory.write(result,bytes);if(observed)observe(event);')
+    target.write_text('#include "halo2/native_tu15_retained_store_observation.hpp"\n'+content)
     files={str(p.relative_to(stage)):{'sha256':sha(p)}for p in stage.rglob('*')if p.is_file()}
     report=dict(qualified=False,production_applied=False,base_manifest_sha256=sha(BASE/'source-pins.json'),files=files,units=before['units'],preparer_sha256=sha(Path(__file__)),remaining=['Same production-helper genuine original BOTH4FP and typed-observer proof','Admission/lifetime/default/fault and mutation controls','Independent peer','World and visible imported-MCC multiplayer delivery'])
     (a.output/'source-pins.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print(dict(files=len(files),source_pins_sha256=sha(a.output/'source-pins.json')))

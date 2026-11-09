@@ -14,6 +14,10 @@ PROFILES={
     '0fb4bfcf1d502798571206228687f996c185d88417493acb49d9012f9fd876e1':'ImageSelected',
     '66fb612a582a2d8bc55c1956b0d68f53ab60738631c43d26b924e41ebfb9d75e':'Tu15Literal',
     '17d1015517b4161dfc533ea26f68bf05e558a28e424b9452a7b2aff5e76bcbb9':'Tu15Literal',
+    # Fresh canonical TU1.5 lowering publishes FLD/FABS C1 clears and the
+    # 30BF1 FST rounding status. Operands/control flow are unchanged; this
+    # complete body is separately qualified as the ninth physical variant.
+    '91940d101dc7a0bdb88bf74512b76902b09458abb7abd5dae0f1e2998912de6c':'Tu15Literal',
 }
 PATTERN=r'static void run_30bd0\(\w+ &s\) \{.*?\n\}'
 

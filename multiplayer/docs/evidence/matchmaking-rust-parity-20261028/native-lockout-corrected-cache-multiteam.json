@@ -1,0 +1,67 @@
+{
+  "schema": "H2_MATCHMAKING_LOCKOUT_CORRECTED_CACHE_MULTITEAM_REPLAY_V1",
+  "passed": false,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/native-source/tests/online_multiteam_launch_http_test.py",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/build/online_multiteam_launch_tests",
+    "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b"
+  ],
+  "exit_code": 1,
+  "previous_native_cohort": "99e57a1c88759b8cce74417c276592f8e737ac908df1b49e256df14a5ad295c9",
+  "binary_sha256": "225433059fd1ed513ccd60ea48377f665aaccacebb18502e15d8fabedcbc31bf",
+  "fixture_sha256": "a92debd636dff7caa576c2b8af59afae4d6b4bcc525989ea9fe2e02e29bdecf5",
+  "security_library_sha256": "3b879bfa6a5a35c99f63e3459604a5c3f1a65fb9453d9422b2a4e36b40799998",
+  "network_fixture_profile": "unlimited",
+  "runtime_log_sha256": "a513a054407064ff822d5458dbf741bad4b7ea2dda8612008e3da94764da1bcf",
+  "runtime_log_bytes": 360504,
+  "ui_cache": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+  "gameplay_cache": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11",
+  "lockout_sha256": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+  "retained_generated_large_artifacts": [],
+  "fixture": {
+    "persistent_counts": {
+      "players": 4,
+      "match_results": 0,
+      "match_result_players": 0,
+      "match_result_memberships": 0,
+      "match_result_skill": 0,
+      "carnage_reports": 0
+    },
+    "verified_owners": [
+      "four",
+      "one",
+      "three",
+      "two"
+    ],
+    "phase_observations": {
+      "four-game-fade-phases.tsv": "phase\tview\ttick\talpha\tsource_counter\tgame_over_countdown\n",
+      "four-phases.tsv": "phase\tscreen\tcontext\tplayers\npregame\t14\t0\t0\npregame-countdown\t14\t0\t0\nmatchmaking-pane-0-state-0\t210\t0\t0\nmatchmaking-pane-0-state-5\t210\t0\t12\nmatchmaking-pane-3-state-7\t210\t0\t12\nmatchmaking-pane-3-state-8\t210\t0\t12\n",
+      "one-game-fade-phases.tsv": "phase\tview\ttick\talpha\tsource_counter\tgame_over_countdown\n",
+      "one-phases.tsv": "phase\tscreen\tcontext\tplayers\npregame\t14\t0\t0\npregame-countdown\t14\t0\t0\nmatchmaking-pane-0-state-0\t210\t0\t0\nmatchmaking-pane-0-state-5\t210\t0\t12\nmatchmaking-pane-3-state-7\t210\t0\t12\nmatchmaking-pane-3-state-8\t210\t0\t12\n",
+      "three-game-fade-phases.tsv": "phase\tview\ttick\talpha\tsource_counter\tgame_over_countdown\n",
+      "three-phases.tsv": "phase\tscreen\tcontext\tplayers\npregame\t14\t0\t0\npregame-countdown\t14\t0\t0\nmatchmaking-pane-0-state-0\t210\t0\t0\nmatchmaking-pane-0-state-5\t210\t0\t12\nmatchmaking-pane-3-state-7\t210\t0\t12\nmatchmaking-pane-3-state-8\t210\t0\t12\n",
+      "two-game-fade-phases.tsv": "phase\tview\ttick\talpha\tsource_counter\tgame_over_countdown\n",
+      "two-phases.tsv": "phase\tscreen\tcontext\tplayers\npregame\t14\t0\t0\npregame-countdown\t14\t0\t0\nmatchmaking-pane-0-state-0\t210\t0\t0\nmatchmaking-pane-0-state-5\t210\t0\t12\nmatchmaking-pane-3-state-7\t210\t0\t12\nmatchmaking-pane-3-state-8\t210\t0\t12\n"
+    },
+    "limits": [
+      "External Discord responses are controlled fixtures.",
+      "Single-map rotation weight and finite match duration are explicit validation inputs.",
+      "Original XBE hash identifies offline compiled-kernel authority; live validation imports only MCC, with no Xbox image/map input.",
+      "No installed runtime replacement or backend rollout.",
+      "Fixture service rate is explicitly100000/minute with20ms queue polling; production rate-budget/cadence behavior is not qualified by this case."
+    ],
+    "catalog_sha256": "0a3414ca62301f80eaaf32a6665e013b21fbb1b898e928cb81173537e75fea5c",
+    "physical_native_owners": 4,
+    "local_players_per_owner": 3,
+    "admitted_players": 12
+  },
+  "captured_frame_count": 28,
+  "terminal_observations": [
+    "native twelve-seat rounds: Actual rendered Multi-Team lost views, twelve players, or independent controls",
+    "Traceback (most recent call last):",
+    "RuntimeError: Actual native owner four exited 1"
+  ],
+  "failure_tail": "BSP effect light material boundary: 4146419735/4088943787: Invalid spherical effect-light radius/brightness\nBSP effect light material boundary: 3929623340/4141307849: Invalid spherical effect-light radius/brightness\nBSP effect light material boundary: 3985264253/4141307849: Invalid spherical effect-light radius/brightness\nBSP effect light material boundary: 4124595914/4141307849: Invalid spherical effect-light radius/brightness\nBSP effect light material boundary: 4146419735/4141307849: Invalid spherical effect-light radius/brightness\nMultiplayer GPU: NVIDIA GeForce RTX 5080 split_views=3\nONLINE waiting for matched players to load\nActual Multi-Team controls owner=four retirement=0 ticks=0 peak=0 frames=0 views=0 controls=000 leave_stage=0 exit_reason=7\nnative twelve-seat rounds: Actual rendered Multi-Team lost views, twelve players, or independent controls\nShutdown handler: cleanup.\n\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/native-source/tests/online_multiteam_launch_http_test.py\", line 208, in <module>\n    if __name__=='__main__':sys.exit(asyncio.run(main()))\n                                     ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/native-source/tests/online_multiteam_launch_http_test.py\", line 187, in main\n    if failure:raise RuntimeError(str(failure))\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Actual native owner four exited 1"
+}

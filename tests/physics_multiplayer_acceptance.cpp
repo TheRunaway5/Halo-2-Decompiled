@@ -1,3 +1,4 @@
+#include <tuple>
 #include "helpers/native_pair_deletion_child_input_capture_tu15.hpp"
 #include "helpers/native_contact_body_update_input_capture_tu15.hpp"
 #include "helpers/native_pair_pool_release_input_capture_tu15.hpp"
@@ -460,7 +461,7 @@ PropWatchEntrance prop_watch_entrance(const Cache &cache,const LevelContent &con
   }
   throw FormatError("Original scripted prop has no visible cached-BSP observer floor");
 }
-struct ControlEntrance {Spawn spawn;Vec3 target;std::uint32_t definition;Vec3 gate;};
+struct ControlEntrance {Spawn spawn;Vec3 target;std::uint32_t definition;Vec3 gate;std::uint32_t gate_definition;std::int16_t group;};
 ControlEntrance control_entrance(const Cache &cache,const LevelContent &content) {
   const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t) {
     return t.group=="ctrl" && t.name=="scenarios\\objects\\multi\\zanzibar\\gate_control\\house_gate_control";
@@ -491,7 +492,7 @@ ControlEntrance control_entrance(const Cache &cache,const LevelContent &content)
       const auto &placed_gate=content.objects[gate];const auto gate_basis=authored_basis(placed_gate.rotation);
       const auto gate_root=source_object_transform(placed_gate.position,gate_basis.forward,gate_basis.up,placed_gate.scale,false);
       Transform offset;offset.position=placed_gate.bounding_offset;
-      return {spawn,target,tag->datum,compose_transform(gate_root,offset).position};
+      return {spawn,target,tag->datum,compose_transform(gate_root,offset).position,placed_gate.definition,d.placement.position_group};
     }
     throw FormatError("Original control has no authored linked machine");
   }
@@ -866,12 +867,30 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_look_reorientation_kernel_calls",native_frames.native_look_reorientation_kernel_calls},
         {"native_look_reorientation_kernel_refusals",native_frames.native_look_reorientation_kernel_refusals},
         {"native_look_reorientation_yaw_wraps",native_frames.native_look_reorientation_yaw_wraps},
+        {"native_bsp_association_association_records",native_frames.native_bsp_association_association_records},
+        {"native_bsp_association_attempts",native_frames.native_bsp_association_attempts},
+        {"native_bsp_association_calls",native_frames.native_bsp_association_calls},
+        {"native_bsp_association_excluded_objects",native_frames.native_bsp_association_excluded_objects},
+        {"native_bsp_association_iterator_calls",native_frames.native_bsp_association_iterator_calls},
+        {"native_bsp_association_kernel_entries",native_frames.native_bsp_association_kernel_entries},
+        {"native_bsp_association_kernel_refusals",native_frames.native_bsp_association_kernel_refusals},
+        {"native_bsp_association_matched_objects",native_frames.native_bsp_association_matched_objects},
+        {"native_bsp_association_observer_refusals",native_frames.native_bsp_association_observer_refusals},
+        {"native_bsp_association_refusals",native_frames.native_bsp_association_refusals},
+        {"native_bsp_association_reset_objects",native_frames.native_bsp_association_reset_objects},
+        {"native_bsp_association_resource_refusals",native_frames.native_bsp_association_resource_refusals},
         {"native_look_initialization_attempts",native_frames.native_look_initialization_attempts},
         {"native_look_initialization_calls",native_frames.native_look_initialization_calls},
         {"native_look_initialization_refusals",native_frames.native_look_initialization_refusals},
         {"native_look_initialization_cleared_records",native_frames.native_look_initialization_cleared_records},
         {"native_look_initialization_unit_directions",native_frames.native_look_initialization_unit_directions},
         {"native_look_initialization_unchanged",native_frames.native_look_initialization_unchanged},
+        {"native_look_initialization_remote_birth_attempts",native_frames.native_look_initialization_remote_birth_attempts},
+        {"native_look_initialization_remote_birth_calls",native_frames.native_look_initialization_remote_birth_calls},
+        {"native_look_initialization_remote_birth_refusals",native_frames.native_look_initialization_remote_birth_refusals},
+        {"native_look_initialization_input_collection_attempts",native_frames.native_look_initialization_input_collection_attempts},
+        {"native_look_initialization_input_collection_calls",native_frames.native_look_initialization_input_collection_calls},
+        {"native_look_initialization_input_collection_refusals",native_frames.native_look_initialization_input_collection_refusals},
         {"native_dirty_island_objects_attempts",native_frames.native_dirty_island_objects_attempts},
         {"native_dirty_island_objects_calls",native_frames.native_dirty_island_objects_calls},
         {"native_dirty_island_objects_refusals",native_frames.native_dirty_island_objects_refusals},
@@ -2538,6 +2557,9 @@ int main(int argc,char **argv) try {
   const bool terminal_physics_test=terminal_walk_test&&std::getenv("HALO2_TU15_TERMINAL_PHYSICS_INPUT");
   unsigned terminal_walk_commands{};bool terminal_approached{};
   float terminal_control_position{};bool terminal_ready_capture{},terminal_used_capture{};
+  float terminal_gate_position{},terminal_group_value{};
+  unsigned terminal_pickup_commands{},terminal_native_targets{},terminal_gate_motion_ticks{};
+  Json terminal_commands=Json::array();
   const bool glass_state_test=glass_walk_test && std::getenv("HALO2_TU15_GLASS_STATE_INPUT");
   std::set<std::tuple<int,unsigned,unsigned>> glass_authored_parts;
   std::set<std::size_t> glass_submitted_slots;
@@ -2711,6 +2733,7 @@ int main(int argc,char **argv) try {
   std::vector<Vec3> single_vehicle_route;
   std::size_t single_vehicle_route_index{};
   unsigned single_vehicle_steering_looks{};
+  std::optional<std::tuple<std::uint64_t,Vec3,float>> single_vehicle_previous;
   float single_vehicle_target_distance=1000000.f;
   {const Cache admitted(o.map,o.shared_maps);check(admitted.is_mcc(),"Live physics acceptance requires an actual MCC cache");
     for(const auto& tag:admitted.tags())if(tag.group=="mach" &&
@@ -2729,6 +2752,7 @@ int main(int argc,char **argv) try {
   o.local_players=single_vehicle_view?1:lan&&!vehicle&&!objects?1:2;o.mute=true;
   if(glass_walk_test||terminal_walk_test){o.local_players=1;o.reference_tick_cadence=true;o.reference_render_fraction=1.f;}
   if(gauss_fire_test){o.local_players=1;o.reference_tick_cadence=true;o.reference_render_fraction=1.f;}
+  if(terminal_use_test)o.reference_tick_cadence=false;
   if(single_vehicle_view) {
     o.reference_tick_cadence=true;
     o.reference_render_fraction=1.f;
@@ -2922,6 +2946,7 @@ int main(int argc,char **argv) try {
       check(!terrain.overlaps(control_start->spawn.position,content.player.height,content.player.radius),"Terminal walk starts inside authored BSP");
       Camera camera;camera.position=control_start->spawn.position+Vec3{0,0,content.player.camera_height};
       camera.forward=away*-1.f;camera.up={0,0,1};camera.oriented=true;o.capture_camera=camera;
+      if(terminal_use_test){camera.forward=normalized(control_start->target-camera.position);o.capture_camera=camera;}
     }
     o.native_spawn_inputs={control_start->spawn};
     report["declared_control_approach"]=xyz(control_start->spawn.position);
@@ -2937,7 +2962,7 @@ int main(int argc,char **argv) try {
               return p.action_prompt.target.action==3 && p.action_prompt.definition==control_start->definition;})) {
             terminal_ready_capture=true;return output/"terminal-ready.ppm";
           }
-          if(terminal_ready_capture && !terminal_used_capture && terminal_control_position>.99f) {
+          if(terminal_ready_capture && !terminal_used_capture && terminal_gate_position>.99f) {
             terminal_used_capture=true;return output/"terminal-used.ppm";
           }
           return {};
@@ -4173,20 +4198,45 @@ int main(int argc,char **argv) try {
           single_vehicle_target_distance=std::min(single_vehicle_target_distance,std::hypot(delta.x,delta.y));
           while(single_vehicle_route_index+1<single_vehicle_route.size() &&
               std::hypot(single_vehicle_route[single_vehicle_route_index].x-vehicle_position->x,
-                         single_vehicle_route[single_vehicle_route_index].y-vehicle_position->y)<.45f)
+                         single_vehicle_route[single_vehicle_route_index].y-vehicle_position->y)<(vehicle_name=="warthog_gauss"?1.5f:.45f))
             ++single_vehicle_route_index;
           const auto route_delta=single_vehicle_route[single_vehicle_route_index]-*vehicle_position;
           if(!forward_released && vehicle_forward) {
             const auto desired=std::atan2(route_delta.y,route_delta.x);
             const auto heading=std::atan2(vehicle_forward->y,vehicle_forward->x);
-            key(window_id,SDL_SCANCODE_W,std::abs(std::remainder(desired-heading,6.283185307f))<.4f);
+            const auto error=std::remainder(desired-heading,6.283185307f);
+            if(vehicle_name=="warthog_gauss") {
+              // Measure actual motion to avoid running wide of the narrow
+              // surveyed bends at full throttle. These are ordinary keys;
+              // all acceleration, steering and contact remain native results.
+              float speed{},yaw_rate{};
+              if(single_vehicle_previous&&std::get<0>(*single_vehicle_previous)<s.tick) {
+                const auto seconds=float(s.tick-std::get<0>(*single_vehicle_previous))*tick_seconds;
+                const auto motion=*vehicle_position-std::get<1>(*single_vehicle_previous);
+                speed=(motion.x*vehicle_forward->x+motion.y*vehicle_forward->y)/seconds;
+                yaw_rate=std::remainder(heading-std::get<2>(*single_vehicle_previous),6.283185307f)/seconds;
+              }
+              single_vehicle_previous=std::tuple{s.tick,*vehicle_position,heading};
+              const float target_speed=std::abs(error)>.6f?1.2f:2.5f;
+              const float steering=.7f*error-.22f*yaw_rate;
+              key(window_id,SDL_SCANCODE_W,speed<target_speed-.15f);
+              key(window_id,SDL_SCANCODE_S,speed>target_speed+.35f);
+              key(window_id,SDL_SCANCODE_A,steering>.10f);
+              key(window_id,SDL_SCANCODE_D,steering<-.10f);
+              row["single_view_driver_input"]={{"waypoint",single_vehicle_route_index},
+                  {"heading_error",error},{"speed",speed},{"yaw_rate",yaw_rate},
+                  {"target_speed",target_speed},{"steering",steering}};
+            } else key(window_id,SDL_SCANCODE_W,std::abs(error)<.4f);
           }
           if(!forward_released && elapsed%5u==0) {
             const auto& settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
             SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
             // The original seat transition retains a view baseline distinct
             // from the desktop sample. Aim against its completed source view.
-            look.motion.xrel=-int(std::lround(std::remainder(std::atan2(route_delta.y,route_delta.x)-p.yaw,6.283185307f)/gain));
+            const auto view_forward=vehicle_name=="warthog_gauss"&&p.source_vehicle_camera?
+                p.source_vehicle_camera->forward:direction(p.yaw,p.pitch);
+            const auto view_yaw=std::atan2(view_forward.y,view_forward.x);
+            look.motion.xrel=-int(std::lround(std::remainder(std::atan2(route_delta.y,route_delta.x)-view_yaw,6.283185307f)/gain));
             if(look.motion.xrel) {check(SDL_PushEvent(&look)==1,"SDL rejected ordinary Ghost approach to the big wheel");++single_vehicle_steering_looks;}
           }
         }
@@ -4319,7 +4369,11 @@ int main(int argc,char **argv) try {
         if(!vehicle_collision_test && (wheel_receiver_reached || (source_drive_ticks?elapsed>=*drive_start+source_drive_ticks:
             vehicle_drive_commands>=(long_vehicle_sequence?300u:65u))) && !forward_released &&
             (!turret_damage_test || (turret_fire_started && elapsed>=*turret_fire_started+120u))) {
-          key(window_id,SDL_SCANCODE_W,false);forward_released=true;drive_end=elapsed;
+          key(window_id,SDL_SCANCODE_W,false);
+          if(single_vehicle_view&&vehicle_name=="warthog_gauss") {
+            key(window_id,SDL_SCANCODE_S,false);key(window_id,SDL_SCANCODE_A,false);key(window_id,SDL_SCANCODE_D,false);
+          }
+          forward_released=true;drive_end=elapsed;
         }
         if(vehicle_rate_reversal_input) {
           const auto phase=elapsed-*drive_start;
@@ -4776,8 +4830,11 @@ int main(int argc,char **argv) try {
         const auto &settings=o.desktop->keyboard_settings;
         const float gain=.0025f*float(settings.sensitivity)/3.f;check(gain>0,"Control approach has invalid mouse gain");
         SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-        look.motion.xrel=-int(std::lround(std::remainder(desired.first-c.yaw,6.283185307179586f)/gain));
-        look.motion.yrel=-int(std::lround((desired.second-c.pitch)/gain))*(settings.invert?-1:1);
+        // The native look controller applies raw SDL deltas to the authored
+        // spawn facing. Aim from the completed player look, not the raw baseline.
+        const auto [aim_yaw,aim_pitch]=terminal_walk_test?std::pair{p.yaw,p.pitch}:current;
+        look.motion.xrel=-int(std::lround(std::remainder(desired.first-aim_yaw,6.283185307179586f)/gain));
+        look.motion.yrel=-int(std::lround((desired.second-aim_pitch)/gain))*(settings.invert?-1:1);
         if(look.motion.xrel || look.motion.yrel) {
           check(SDL_PushEvent(&look)==1,"SDL rejected control approach look");control_pending_look=current;
         }
@@ -4789,16 +4846,38 @@ int main(int argc,char **argv) try {
       if(terminal_walk_test){
         terminal_walk_commands+=c.right!=0;terminal_approached|=shown;
         key(window_id,SDL_SCANCODE_D,elapsed>=10&&elapsed<120&&!shown&&!control_pressed);
-        if(terminal_use_test)for(const auto& owner:s.devices.owners)
-          if(owner.definition==control_start->definition)
-            terminal_control_position=std::max(terminal_control_position,owner.state.motion.position);
+        if(terminal_use_test) {
+          terminal_pickup_commands+=c.pickup;
+          if(c.pickup && terminal_commands.size()<24) {
+            const auto& memory=o.prepared_world->source_objects->memory();
+            const Bytes command(memory.view(0x6002800cu+local_slot*0x5cu,0x5c));
+            if(command.u16(0x28)==3 && std::any_of(s.devices.owners.begin(),s.devices.owners.end(),[&](const auto& owner){
+                return owner.definition==control_start->definition && owner.state.handle==command.u32(0x2c);
+              }))++terminal_native_targets;
+            terminal_commands.push_back({{"tick",s.tick},{"pickup_ms",c.pickup_milliseconds},
+              {"native_buttons",command.u16(0x1c)},{"native_action",command.u16(0x28)},
+              {"native_target",command.u32(0x2c)},{"prompt_action",p.action_prompt.target.action},
+              {"prompt_target",p.action_prompt.target.object}});
+          }
+          for(const auto& owner:s.devices.owners) {
+            if(owner.definition==control_start->definition)
+              terminal_control_position=std::max(terminal_control_position,owner.state.motion.position);
+            if(owner.definition==control_start->gate_definition) {
+              const auto position=owner.state.motion.position;
+              terminal_gate_motion_ticks+=position>0.f && position<.99f && position>terminal_gate_position;
+              terminal_gate_position=std::max(terminal_gate_position,position);
+            }
+          }
+          check(control_start->group>=0 && unsigned(control_start->group)<s.devices.groups.size(),"Terminal lost its actual named device group");
+          terminal_group_value=std::max(terminal_group_value,s.devices.groups[unsigned(control_start->group)].value);
+        }
       } else key(window_id,SDL_SCANCODE_W,!script_test && elapsed>=10 && !control_pressed && !shown &&
           delta.x*delta.x+delta.y*delta.y>interaction_content.player.radius*interaction_content.player.radius);
       const int binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Pickup)];
       check(binding>0 && binding<SDL_NUM_SCANCODES,"Control test requires the actual pickup key");
       if(!script_test && (!terminal_walk_test || terminal_use_test) && shown && !control_pressed) {key(window_id,SDL_Scancode(binding),true);control_pressed=true;}
-      if(control_pressed && !control_released && c.pickup_milliseconds>=
-          source_pickup_hold_threshold(interaction_content.pickup_hold_seconds)+100u) {
+      if(control_pressed && !control_released && (terminal_use_test?terminal_pickup_commands>=15u:
+          c.pickup_milliseconds>=source_pickup_hold_threshold(interaction_content.pickup_hold_seconds)+100u)) {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
       }
     }
@@ -4863,11 +4942,11 @@ int main(int argc,char **argv) try {
         elapsed-*companion_entered_tick>=90)quit();
     // Every support input, including a declared device phase, must observe
     // enough real authority ticks to satisfy the shared170-sample minimum.
-    if(elapsed>=(single_vehicle_view?1500u:player_rearm_test?450u:object_field_test?object_field_ticks:prop_watch_test?900u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle_blast_test?1800u:vehicle?(long_vehicle_sequence?900u:450u):180u))quit();
+    if(elapsed>=(terminal_use_test?360u:single_vehicle_view?1500u:player_rearm_test?450u:object_field_test?object_field_ticks:prop_watch_test?900u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle_blast_test?1800u:vehicle?(long_vehicle_sequence?900u:450u):180u))quit();
   };
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
-  if(!lan){o.capture_tick=single_vehicle_view?1501:vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
+  if(!lan){o.capture_tick=terminal_use_test?361:single_vehicle_view?1501:vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
   int result{};
   try {result=run_multiplayer(o);if(host)host->finish();}
   catch(const std::exception &error) {
@@ -5388,9 +5467,14 @@ int main(int argc,char **argv) try {
     {"native_wheel_receiver_vertices",terminal_native_receiver_vertices}};
     passed&=terminal_walk_commands>0&&(terminal_physics_test?distance>0:terminal_approached)&&jump_commands==0;
     if(terminal_use_test) {
+      report["terminal_input_commands"]=terminal_commands;
       report["terminal_use"]={{"pickup_pressed",control_pressed},{"pickup_released",control_released},
-        {"native_control_maximum_position",terminal_control_position},{"ready_capture",terminal_ready_capture},{"used_capture",terminal_used_capture}};
-      passed&=control_pressed&&control_released&&terminal_control_position>.99f&&terminal_ready_capture&&terminal_used_capture;
+        {"native_control_maximum_position",terminal_control_position},{"native_gate_maximum_position",terminal_gate_position},
+        {"native_group_maximum_value",terminal_group_value},{"held_native_commands",terminal_pickup_commands},{"ready_capture",terminal_ready_capture},{"used_capture",terminal_used_capture}};
+      report["terminal_use"]["native_control_target_commands"]=terminal_native_targets;
+      report["terminal_use"]["native_gate_motion_ticks"]=terminal_gate_motion_ticks;
+      passed&=control_pressed&&control_released&&terminal_native_targets>0&&terminal_gate_motion_ticks>1&&
+          terminal_gate_position>.99f&&terminal_group_value>.99f&&terminal_ready_capture&&terminal_used_capture;
     }
   }
   else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
@@ -5728,12 +5812,30 @@ int main(int argc,char **argv) try {
         {"native_look_reorientation_kernel_calls",native_frames.native_look_reorientation_kernel_calls},
         {"native_look_reorientation_kernel_refusals",native_frames.native_look_reorientation_kernel_refusals},
         {"native_look_reorientation_yaw_wraps",native_frames.native_look_reorientation_yaw_wraps},
+        {"native_bsp_association_association_records",native_frames.native_bsp_association_association_records},
+        {"native_bsp_association_attempts",native_frames.native_bsp_association_attempts},
+        {"native_bsp_association_calls",native_frames.native_bsp_association_calls},
+        {"native_bsp_association_excluded_objects",native_frames.native_bsp_association_excluded_objects},
+        {"native_bsp_association_iterator_calls",native_frames.native_bsp_association_iterator_calls},
+        {"native_bsp_association_kernel_entries",native_frames.native_bsp_association_kernel_entries},
+        {"native_bsp_association_kernel_refusals",native_frames.native_bsp_association_kernel_refusals},
+        {"native_bsp_association_matched_objects",native_frames.native_bsp_association_matched_objects},
+        {"native_bsp_association_observer_refusals",native_frames.native_bsp_association_observer_refusals},
+        {"native_bsp_association_refusals",native_frames.native_bsp_association_refusals},
+        {"native_bsp_association_reset_objects",native_frames.native_bsp_association_reset_objects},
+        {"native_bsp_association_resource_refusals",native_frames.native_bsp_association_resource_refusals},
         {"native_look_initialization_attempts",native_frames.native_look_initialization_attempts},
         {"native_look_initialization_calls",native_frames.native_look_initialization_calls},
         {"native_look_initialization_refusals",native_frames.native_look_initialization_refusals},
         {"native_look_initialization_cleared_records",native_frames.native_look_initialization_cleared_records},
         {"native_look_initialization_unit_directions",native_frames.native_look_initialization_unit_directions},
         {"native_look_initialization_unchanged",native_frames.native_look_initialization_unchanged},
+        {"native_look_initialization_remote_birth_attempts",native_frames.native_look_initialization_remote_birth_attempts},
+        {"native_look_initialization_remote_birth_calls",native_frames.native_look_initialization_remote_birth_calls},
+        {"native_look_initialization_remote_birth_refusals",native_frames.native_look_initialization_remote_birth_refusals},
+        {"native_look_initialization_input_collection_attempts",native_frames.native_look_initialization_input_collection_attempts},
+        {"native_look_initialization_input_collection_calls",native_frames.native_look_initialization_input_collection_calls},
+        {"native_look_initialization_input_collection_refusals",native_frames.native_look_initialization_input_collection_refusals},
         {"native_dirty_island_objects_attempts",native_frames.native_dirty_island_objects_attempts},
         {"native_dirty_island_objects_calls",native_frames.native_dirty_island_objects_calls},
         {"native_dirty_island_objects_refusals",native_frames.native_dirty_island_objects_refusals},
@@ -6754,6 +6856,25 @@ int main(int argc,char **argv) try {
       native_frames.native_look_reorientation_kernel_calls==native_frames.native_look_reorientation_calls&&
       native_frames.native_look_reorientation_refusals==0&&native_frames.native_look_reorientation_kernel_refusals==0;
     report["native_look_reorientation_gate"]=native_reorientation;passed&=native_reorientation;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_REMOTE_BIRTH")) {
+    const bool native_site=native_frames.native_look_initialization_remote_birth_calls>0&&
+      native_frames.native_look_initialization_remote_birth_attempts==native_frames.native_look_initialization_remote_birth_calls&&native_frames.native_look_initialization_remote_birth_refusals==0;
+    passed&=native_site;report["native_look_initialization_remote_birth_positive_gate"]=native_site;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_INPUT_COLLECTION")) {
+    const bool native_site=native_frames.native_look_initialization_input_collection_calls>0&&
+      native_frames.native_look_initialization_input_collection_attempts==native_frames.native_look_initialization_input_collection_calls&&native_frames.native_look_initialization_input_collection_refusals==0;
+    passed&=native_site;report["native_look_initialization_input_collection_positive_gate"]=native_site;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BSP_OBJECT_ASSOCIATION")) {
+    const auto calls=native_frames.native_bsp_association_calls;
+    const bool native_bootstrap=calls>0&&native_frames.native_bsp_association_attempts==calls&&
+      native_frames.native_bsp_association_iterator_calls>=calls&&
+      native_frames.native_bsp_association_kernel_entries==calls&&native_frames.native_bsp_association_refusals==0&&
+      native_frames.native_bsp_association_kernel_refusals==0&&native_frames.native_bsp_association_resource_refusals==0&&
+      native_frames.native_bsp_association_observer_refusals==0;
+    passed&=native_bootstrap;report["native_bsp_object_association_gate"]=native_bootstrap;
   }
   if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_INITIALIZATION")) {
     const bool native_initialization=native_frames.native_look_initialization_calls>0&&

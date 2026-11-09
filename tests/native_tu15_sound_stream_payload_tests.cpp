@@ -31,7 +31,8 @@ constexpr std::uint32_t table=0x04000000u,stream=table+12u,cache=0x04200000u,ent
  stack=0x02008000u,codec=0x0048b908u,codec_table=0x004633b4u,
  sdk_status=0x07000000u,sdk_process=0x07000010u,sdk_boundary=0x07000020u;
 #ifdef HALO2_SOUND_COLD_CACHE
-constexpr std::uint32_t cache_bits=0x04900000u,page_bits=0x04a00000u;
+constexpr std::uint32_t cache_bits=0x04900000u,page_bits=0x04a00000u,
+ binding=0x04b00000u,tag_table=0x04d00000u;
 #endif
 const native_tu15_sound::Kernel& kernel(std::uint32_t entry){
  for(const auto table:{native_tu15_sound::resource_kernels(),native_tu15_sound::startup_kernels()}){
@@ -113,6 +114,11 @@ struct Pipeline {
   memory.put(sdk,sdk+0x100u);memory.put(sdk+0x10cu,sdk_status);memory.put(sdk+0x110u,sdk_process);memory.put(sdk+0x114u,sdk_boundary);
 #ifdef HALO2_SOUND_COLD_CACHE
   memory.map(cache_bits,4096);memory.map(page_bits,4096);
+  memory.map(0x004f0000u,4096);memory.map(binding,4096);memory.map(tag_table,1024*1024);
+  memory.put(0x4f0414u,tag_table);memory.put(tag_table+(sound.value&65535u)*16u+8u,memory.bank->sound_root(sound));
+  memory.put(0x52d664u,memory.bank->gestalt_root());memory.put(binding+12u,sound.value);
+  need(pitch<=127u&&permutation<=127u,"Authenticated binding indices escape original signed byte fields");
+  memory.put(binding+0x9cu,pitch,1);memory.put(binding+0x9du,permutation,1);
   const auto capacity=std::uint32_t(plan.chunks.size()+1u);
   for(const auto [owner,rows,bits,stride]:std::array<std::array<std::uint32_t,4>,2>{{{cache,entries,cache_bits,16},{block_owner,blocks,page_bits,24}}}){
    for(const auto [offset,value]:std::array<std::pair<unsigned,std::uint32_t>,8>{{{0x20,capacity},{0x24,stride},{0x34,0},{0x38,0},{0x3c,0},{0x40,0x8000},{0x44,rows},{0x48,bits}}})memory.put(owner+offset,value);
@@ -151,10 +157,15 @@ struct Pipeline {
   need(memory.get(cache+0x3cu)==0&&memory.get(block_owner+0x3cu)==0&&read_receipts.empty(),"Cold fixture did not start from empty pools");
   for(auto& chunk:plan.chunks){
    need(memory.get(chunk.descriptor+8u)==0xffffffffu,"Cold fixture supplied a loaded cache datum");
-   abi.gp[3]=chunk.descriptor;run(0x21f420u,std::array{sound.value});
+   memory.put(binding+0x9eu,unsigned(&chunk-plan.chunks.data()),2);
+   run(0x128970u,std::array{binding});need(abi.gp[0]==1,"Original binding readiness caller did not observe actual resource completion");
    const auto handle=memory.get(chunk.descriptor+8u),index=handle&65535u;
    need(handle!=0xffffffffu&&memory.get(entries+index*16u,2)==(handle>>16u)&&memory.get(entries+index*16u+2u,1)==1,
     "Native cache allocation/read did not publish its actual salted ready entry");
+   need(memory.get(binding+4u,1)==2u&&memory.get(entries+index*16u+4u,1)==1u,"Actual ready binding did not own its source cache lock");
+   const auto receipts_before=read_receipts.size();run(0x128970u,std::array{binding});
+   need(abi.gp[0]==1&&read_receipts.size()==receipts_before&&memory.get(entries+index*16u+4u,1)==1u,"Repeated binding readiness duplicated its read or cache lock");
+   abi.gp[1]=binding;run(0x129470u);need(memory.get(binding+4u,1)==0&&memory.get(entries+index*16u+4u,1)==0,"Binding retirement did not release its actual cache lock");
    chunk.data=pool+(memory.get(blocks+index*24u+8u)<<9u);
    need(read_receipts.size()==std::size_t(&chunk-plan.chunks.data()+1)&&read_receipts.back().destination==chunk.data&&
     read_receipts.back().bytes==((chunk.bytes+511u)&~511u),"Actual resource receipt differs from native page allocation");
@@ -316,7 +327,8 @@ int main(int argc,char**argv){J report{{"passed",false},{"goal_complete",false},
  {"source_world_cache_voice_or_device_admission",false},{"retail_sdk_dsp_or_xbox_waveform_equivalence",false},{"source_event_schedule_or_normal_gameplay_delivery",false},
  {"whole_encoded_chunks_only",true},{"seeked_or_zero_frame_packet_mapping_verified",false},{"native_boundary_policy","Input-boundary annotation over actual PCM queue; no Xbox discontinuity command equivalence"}};
 #ifdef HALO2_SOUND_COLD_CACHE
- report["scope"]="Authenticated original resources through complete native21F420/13FE50 allocation/binding, actual native1A3B70 resource reads and receipts, native stock stream lifecycle and manual SDL consumption; declared empty pool/physical backing, driver, producer timing and unity gain/rate";
+ report["scope"]="Authenticated original resources through native128970/1293F0/21F260 binding readiness and21F420/13FE50 allocation, actual native1A3B70 resource reads and receipts, native stock stream lifecycle and manual SDL consumption; declared empty pool/physical backing, binding request, driver, producer timing and unity gain/rate";
+ report["original_binding_readiness_and_lock_release"]=true;
  report["cache_loaded_rows_supplied"]=false;report["native_cache_allocator_and_actual_resource_read"]=true;report["pcm_decoded_from_actual_cold_cache_bytes"]=true;
  report["caller_format_preparation"]="Actual native224E20/225EF0 caller; cold cache readiness follows actual native resource receipts; driver ABI, unity gain and manual timing remain declared";
 #endif

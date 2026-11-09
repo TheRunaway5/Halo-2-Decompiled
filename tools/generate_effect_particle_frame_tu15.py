@@ -28,6 +28,9 @@ ENTRIES=(0x3eb10,0x3f3e0,0x30bd0,0x11f9c0,0x13a6b0,0x145560,0x1458a0,0x1459b0,0x
     # Actual2C2B01 collision owner and its literal helper closure. Metadata
     # vtable slots0/4/38/3C are authenticated below, never supplied returns.
     0x2c2d90,0x176a40,0x24ffe0,0x2c4110,0x250310,0x250380,0x2502b0,
+    # 2C2B27 selects the type-3 particle motion owner. Its linked geometry
+    # and curve children are admitted by their existing World services.
+    0x2c3e30,
     0x252100,0x18bbc0,0x2501c0,0x250220,0x178e30,0x4efa0,0x16e940,
     0x22b6e0,0x22b6f0,0x22b750,0x22b760,
     # Actual CRT row46D978 constructs1024C0's static fallback records.
@@ -36,14 +39,24 @@ ENTRIES=(0x3eb10,0x3f3e0,0x30bd0,0x11f9c0,0x13a6b0,0x145560,0x1458a0,0x1459b0,0x
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp'));ap.add_argument('--directory',type=Path,required=True)
     ap.add_argument('--preserve-existing-bodies',action='store_true',help='Append newly authenticated entries without regenerating already qualified bodies or shared helpers')
+    ap.add_argument('--append-entries-only',action='store_true',help='Emit only newly listed routines when preserving an already qualified generated module')
     a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     existing=a.output.read_text() if a.preserve_existing_bodies else None
+    pattern=r'static void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}'
+    old_bodies=dict(re.findall(pattern,existing,re.S)) if existing else {}
+    emit=ENTRIES
+    if a.append_entries_only:
+        if not old_bodies or not {int(entry,16) for entry in old_bodies}<=set(ENTRIES):
+            ap.error('--append-entries-only requires a preserved module with known owners')
+        emit=tuple(entry for entry in ENTRIES if f'{entry:x}' not in old_bodies)
+        if not emit:ap.error('--append-entries-only requires at least one new owner')
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     assert code.at(0x13aa28).operands[0].imm==0x179df0
     assert code.at(0x179ec8).operands[0].imm==0x177830
     assert code.at(0x18fa45).mnemonic=='call' and code.at(0x18fa45).operands[0].imm==0x17e160
     assert code.at(0x18fb2c).mnemonic=='call' and code.at(0x18fb2c).operands[0].imm==0x230b10
     assert code.at(0x2c2b01).mnemonic=='call' and code.at(0x2c2b01).operands[0].imm==0x2c2d90
+    assert code.at(0x2c2b27).bytes.hex()=='e804130000' and code.at(0x2c2b27).operands[0].imm==0x2c3e30
     assert struct.unpack('<4I',image.read(0x44b56c,16))==(0x22c440,0x31d400,0x22c480,0x31d400)
     assert struct.unpack('<I',image.read(0x46d978,4))[0]==0x380e70
     tables={}
@@ -57,7 +70,7 @@ def main():
         assert targets[0x1c]==(0x22aca0 if pointer==0x48603c else 0x22b710)
         assert set(targets.values())<=set(ENTRIES);tables[f'{pointer:08x}']=dict(table=table,targets=targets)
     sites,instructions,addresses,routines={},{},{},[]
-    for entry in sorted(ENTRIES):
+    for entry in sorted(emit):
         body=_trace(code,entry,set(ENTRIES));assert body.code
         if entry in (0x17e160,0x230b10):
             extent=226 if entry==0x17e160 else 802
@@ -72,16 +85,15 @@ def main():
             for operand in i.operands:
                 if operand.type==2:addresses[operand.imm&0xffffffff]=operand.imm&0xffffffff
                 elif operand.type==3:addresses[operand.mem.disp&0xffffffff]=operand.mem.disp&0xffffffff
-    paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{p:08x}':p for p in ENTRIES},body_sites=sites,instruction_map=instructions,address_map={f'{p:08x}':q for p,q in addresses.items()},routines=routines)
+    paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{p:08x}':p for p in emit},body_sites=sites,instruction_map=instructions,address_map={f'{p:08x}':q for p,q in addresses.items()},routines=routines)
     a.directory.mkdir(parents=True,exist_ok=True);correspondence=a.directory/'bodies.json';correspondence.write_text(json.dumps(paired,indent=2,sort_keys=True)+'\n')
     generated_output=a.directory/'generated.cpp' if existing is not None else a.output
     generate(SimpleNamespace(output=generated_output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)
     source=generated_output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_effect_particle_frame_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_effect_particle_frame_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_effect_particle_frame_tu15').replace('source_physics_live_support_tu15_owns_entry','source_effect_particle_frame_tu15_owns_entry')
     preserved=0
     if existing is not None:
-        pattern=r'static void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}'
-        old_bodies=dict(re.findall(pattern,existing,re.S));new_bodies=dict(re.findall(pattern,source,re.S))
-        assert set(old_bodies)<=set(new_bodies) and old_bodies
+        new_bodies=dict(re.findall(pattern,source,re.S))
+        assert old_bodies and (set(old_bodies).isdisjoint(new_bodies) if a.append_entries_only else set(old_bodies)<=set(new_bodies))
         regenerated=source;source=existing;preserved=len(old_bodies)
         added_entries=set(new_bodies)-set(old_bodies)
         first=re.search(pattern,source,re.S).start()
@@ -143,5 +155,5 @@ def main():
     report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),particle_vtables=tables,preserved_existing_bodies=preserved,
         effect_loop_location=dict(entry='0017e160',bytes=226,caller='0018fa45',returned='0018fa4a',ret_bytes=8),
         physics_loop_location=dict(entry='00230b10',bytes=802,caller='0018fb2c',returned='0018fb31',ret_bytes=12))
-    (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print('Complete source particle-frame owners',len(ENTRIES),'instructions',len(instructions))
+    (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print('Generated source particle-frame owners',len(emit),'instructions',len(instructions))
 if __name__=='__main__':main()

@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include "halo2/native_tu15_world_integration_residuals.hpp"
 #include "halo2/native_tu15_array_allocator.hpp"
 #include "halo2/native_tu15_pair_consumer_input_observer.hpp"
@@ -10,11 +11,17 @@
 namespace {
 using namespace halo2;
 void check(bool b,const char*s){if(!b)throw std::runtime_error(s);}
-struct Memory:SourcePhysicsContactMemory{
+struct Memory:SourcePhysicsContactMemory,NativeTu15RetainedCounterStorage{
   std::map<std::uint32_t,std::vector<std::byte>>banks;
   auto at(std::uint32_t p,std::size_t n)const{auto i=banks.upper_bound(p);check(i!=banks.begin(),"Missing residual model bank");--i;check(std::uint64_t(p-i->first)+n<=i->second.size(),"Missing residual model extent");return i;}
   void read(std::uint32_t p,std::span<std::byte>b)const override{auto i=at(p,b.size());std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
   void write(std::uint32_t p,std::span<const std::byte>b)override{auto i=at(p,b.size());std::copy(b.begin(),b.end(),banks.at(i->first).begin()+p-i->first);}
+  NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t p,unsigned width,std::uint32_t delta)override{
+    check(width==2u||width==4u,"Unqualified model counter width");const auto target=at(p,width);
+    std::array<std::byte,4>before{};read(p,std::span(before).first(width));
+    const auto result=native_tu15_adjust_counter_value(before,width,delta);
+    std::copy_n(result.written.begin(),width,banks.at(target->first).begin()+p-target->first);return result;
+  }
   void put(std::uint32_t p,std::uint32_t n,unsigned size=4){std::array<std::byte,4>b{};for(unsigned i=0;i<size;++i)b[i]=std::byte(n>>(i*8u));write(p,std::span(b).first(size));}
   std::uint32_t get(std::uint32_t p,unsigned size=4)const{std::array<std::byte,4>b{};read(p,std::span(b).first(size));std::uint32_t n{};for(unsigned i=0;i<size;++i)n|=std::to_integer<unsigned>(b[i])<<(i*8u);return n;}
 };
@@ -91,7 +98,10 @@ SourcePhysicsContactRuntimeAbi initial(){SourcePhysicsContactRuntimeAbi a{};a.gp
 #include "helpers/native_world_convex_factory_prefix_tu15.hpp"
 #include "helpers/native_world_island_merge_prefix_tu15.hpp"
 #include "helpers/native_contact_process_binding_model_tu15.hpp"
-int main(int argc,char**argv){try{native_contact_process_binding_model();if(argc==3&&std::string(argv[1])=="pair-wake-prefix")return native_world_convex_factory_prefix(argv[2],false,true);if(argc==3&&std::string(argv[1])=="gsk-prefix")return native_world_convex_factory_prefix(argv[2],true);if(argc==4&&std::string(argv[1])=="merge-prefix")return native_world_island_merge_prefix(argv[2],argv[3]);if(argc==2)return native_world_convex_factory_prefix(argv[1]);
+#include "helpers/native_world_factory_scratch_model_tu15.hpp"
+#include "helpers/native_world_pair_deletion_cleanup_model_tu15.hpp"
+#include "helpers/native_world_wrapped_phantom_model_tu15.hpp"
+int main(int argc,char**argv){try{native_world_factory_scratch_model();native_world_pair_deletion_cleanup_model();native_world_wrapped_phantom_model();native_contact_process_binding_model();if(argc==3&&std::string(argv[1])=="pair-wake-prefix")return native_world_convex_factory_prefix(argv[2],false,true);if(argc==3&&std::string(argv[1])=="gsk-prefix")return native_world_convex_factory_prefix(argv[2],true);if(argc==4&&std::string(argv[1])=="merge-prefix")return native_world_island_merge_prefix(argv[2],argv[3]);if(argc==2)return native_world_convex_factory_prefix(argv[1]);
   auto m=model();auto a=initial();NativeTu15PhysicsFrameFp fp{0x27f,0x2800,0x1f80};NativeTu15WorldIntegrationStats stats;std::uint64_t residuals{};std::vector<std::uint32_t>calls;std::uint32_t packet=top-0x10u;unsigned checks{};
   m.put(0x48c974,world+0x5600);m.put(0x48c978,world+0x5800);std::uint64_t timestamps{};
   bool corrupt_clock{},contact_motion_case{},completion_case{},delete_pair_case{},inactive_cleanup_case{};

@@ -1,0 +1,84 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1145,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "e348930f185ff9629ff4283f46d9a73febfdfae0ace8d5407884a5013fd0677c",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "e348930f185ff9629ff4283f46d9a73febfdfae0ace8d5407884a5013fd0677c",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "0921a066a48ae156e4aa1bd7c4fbb43f24dca2541487b1f301d94a9af7642347",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_324e60",
+      "instruction_callback_sites": 12,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "324e60",
+        "tu15": "324e60"
+      },
+      "line": 351,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "324e60",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "324e60",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "324e60",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "df65b00e61b492cc288439f37af3c44f683c36c70a361d6e70513816ed726f60",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_324f80",
+      "instruction_callback_sites": 79,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "324f80",
+        "tu15": "324f80"
+      },
+      "line": 367,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "324f80",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "324f80",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "324f80",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/source_body_impulse_tu15_generated.cpp",
+  "source_bytes": 27626,
+  "source_filename_scope": "generated",
+  "source_sha256": "1d3edfe632da4a08c77563440fd767eaf414caef8b1cc8d2d34478bde192bd7a"
+}

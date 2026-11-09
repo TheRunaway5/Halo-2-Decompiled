@@ -179,15 +179,22 @@ def relay(binary,scratch,catalog,Server):
                 counts=await http('GET','/v1/online/status',200)
                 assert counts['joining']=={'users':2,'guests':1} and counts['online']==counts['joining']
                 await denial(path+'/relay',descriptors[0]['token'],409)
-                first=await http('GET','/v1/matchmaking/ticket?start=1',200,grants[0]);remaining=first['start_countdown_ms']
+                legacy=await http('GET','/v1/matchmaking/ticket?start=1',200,grants[0])
+                assert 'start_room' not in legacy
+                start_path='/v1/matchmaking/ticket?start=1&start_room=1'
+                first=await http('GET',start_path,200,grants[0]);remaining=first['start_countdown_ms']
                 assert 0<remaining<=10000
-                second=await http('GET','/v1/matchmaking/ticket?start=1',200,grants[1])
+                second=await http('GET',start_path,200,grants[1])
+                assert first['start_room']==second['start_room']==descriptors[0]['id']
                 assert abs(second['start_countdown_ms']-remaining)<250
                 started=time.monotonic()
                 for ws in room_sockets:await ws.send_json({'loaded':'0123456789abcdef:000001a'})
                 for queue in queues:await until(queue,lambda r:isinstance(r,dict) and r.get('phase')=='running',13)
                 elapsed=time.monotonic()-started;assert elapsed>=remaining/1000-.25
-                observed.update(start_countdown_ms=remaining,real_start_elapsed_seconds=elapsed,physical_connections=2,logical_seats=3)
+                retired=await http('GET',start_path,200,grants[0])
+                assert retired['start_countdown_ms'] is None and retired['start_room'] is None
+                observed.update(start_countdown_ms=remaining,real_start_elapsed_seconds=elapsed,physical_connections=2,logical_seats=3,
+                    countdown_room_binding=True,legacy_clock_shape_preserved=True,running_clock_retired=True)
                 assert (await http('GET','/v1/online/status',200))['playing']=={'users':2,'guests':1}
                 await http('POST','/v1/matchmaking/ticket',409,grants[0],request())
                 checks.append('actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission')
@@ -361,6 +368,13 @@ def direct(binary,scratch,fixture,Server):
                     await ws.send_json({'peer_ready':[dict(peer=other['slot'],rtt_ms=sorted(samples[i])[1])]})
                 first=await until(qa,'phase','loading');second=await until(qb,'phase','loading')
                 assert first['host']==second['host']
+                start_path='/v1/matchmaking/ticket?start=1&start_room=1'
+                for i,grant in enumerate(grants):
+                    receipt=await http('GET',start_path,200,grant)
+                    assert receipt['start_room']==low['id'] and 0<receipt['start_countdown_ms']<=10000
+                    assert receipt['state']=='awaiting_transport' and receipt['playlist_id']==row['id']
+                    assert receipt['match']['map']=='lockout' and receipt['match']['variant']=='Slayer'
+                    assert [p['name'] for p in receipt['match']['players'] if p['self']]==[f'Direct Pilot {i}']
                 started=time.monotonic()
                 for ws in (a,b):await ws.send_json({'loaded':'0123456789abcdef:000001a'})
                 await until(qa,'phase','running',13);await until(qb,'phase','running',13)
@@ -382,7 +396,8 @@ def direct(binary,scratch,fixture,Server):
                 assert notice==dict(departed_players=1<<low['slot']) and not b.closed
                 with sqlite3.connect(state/'registry.sqlite3') as db:assert db.execute('SELECT count(*) FROM match_results').fetchone()[0]==0
                 checks.append('explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room')
-                observed.update(physical_connections=2,udp_probe_exchanges=6,client_reported_rtt_ms=[sorted(s)[1] for s in samples],replaced_close_code=a.close_code)
+                observed.update(physical_connections=2,udp_probe_exchanges=6,client_reported_rtt_ms=[sorted(s)[1] for s in samples],
+                    replaced_close_code=a.close_code,countdown_room_binding=True)
             finally:
                 for wire in udp:wire.close()
                 for ws in connections:await ws.close()

@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/SourceShadowArraySwap.cmake",
+      "line": 1,
+      "target": "halo2_shadow_array_swap_tu15"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_shadow_array_swap_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "25e3f883a34783f52afd084f1173133dd0a033b1530f51af29d00df9c4e299ba",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "25e3f883a34783f52afd084f1173133dd0a033b1530f51af29d00df9c4e299ba",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_shadow_array_swap_tu15"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "cd1edb1138e588338c9fb95b0edbab6c75df81264a70dddc8a6181f4b93c6ccb",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_166c30",
+      "instruction_callback_sites": 33,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "166c30",
+        "tu15": "166c30"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "166c30",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "166c30",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "166c30",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/rendering/shadows/source_shadow_array_swap_tu15_generated.cpp",
+  "source_bytes": 21611,
+  "source_filename_scope": "generated",
+  "source_sha256": "73c70aa5b0472ae3b17067ae4106f3c127f9add8ef70a616167e54b35430b8ca"
+}

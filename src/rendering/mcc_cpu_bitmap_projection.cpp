@@ -172,8 +172,8 @@ unsigned WorldProjection::stage_frame(TagHandle bitmap,unsigned canonical_root,u
     if(!resource_only)require(Bytes(selected.rows_bytes).u16(std::size_t(frame)*168u+10u)==0,
         "Private CPU bitmap samples require their proved 2D image");
     const auto format=Bytes(selected.rows_bytes).u16(std::size_t(frame)*168u+12u);
-    if(format!=10 && format!=11 && (format<14 || format>16))
-        throw FormatError("Private inline CPU bitmap constructor requires proved raw10/11 or DXT14/15/16: "+
+    if(!cpu_sampling_format(format) && !(resource_only&&raw_resource_format(format)))
+        throw FormatError("Private inline bitmap requires a qualified sampling format or raw resource-only storage: "+
             selected.tag.name+" frame"+std::to_string(frame)+" format"+std::to_string(format));
     const auto key=std::pair{bitmap.value,frame};
     auto known=state.frames.find(key);
@@ -222,6 +222,11 @@ void WorldProjection::lookup(SourcePhysicsWorldRuntimeAbi& abi,SourcePhysicsFact
     }
     require(Bytes(selected.rows_bytes).u16(std::size_t(frame)*168u+10u)==0,
         "Private CPU bitmap samples require their proved 2D image");
+    // A prior prediction can have staged a raw resource-only frame. Do not
+    // let that existing frame bypass the CPU sampling domain on a later
+    // lookup; its bytes/header alone do not qualify the source pixel fetch.
+    require(cpu_sampling_format(Bytes(selected.rows_bytes).u16(std::size_t(frame)*168u+12u)),
+        "Private CPU bitmap pixel sampling format is not qualified");
     const auto key=std::pair{bitmap.value,unsigned(frame)};
     auto known=state.frames.find(key);
     if(known==state.frames.end()){

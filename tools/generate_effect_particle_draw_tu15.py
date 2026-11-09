@@ -98,6 +98,13 @@ def main():
     a.directory.mkdir(parents=True,exist_ok=True);correspondence=a.directory/'bodies.json';correspondence.write_text(json.dumps(paired,indent=2,sort_keys=True)+'\n')
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired,code_override=code)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_effect_particle_draw_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_effect_particle_draw_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_effect_particle_draw_tu15').replace('source_physics_live_support_tu15_owns_entry','source_effect_particle_draw_tu15_owns_entry')
+    # Preserve this module's established declaration context after the common
+    # generator prunes headers unused by its own recovered bodies.
+    attachment_include='#include "halo2/source_object_attachment_tu15.hpp"\n'
+    if attachment_include not in source:
+        anchor='#include "halo2/source_projectile_effect_observer.hpp"\n'
+        assert source.count(anchor)==1
+        source=source.replace(anchor,anchor+attachment_include,1)
     data_regions=((0x40dac8,26*4),(0x40db30,64),(0x40dfe0,16),(0x4078d4,44),(0x4078ac,40),(0x407a7c,32),(0x46a0c8,0x24),(0x46a250,4),
                   (0x40db78,64),(0x40dff0,40),(0x40ddb0,560),(0x44a8a0,4),
                   (0x46a4b0,4),(0x46a388,4),(0x46a270,4),(0x46a11c,4),(0x46a9b8,4),

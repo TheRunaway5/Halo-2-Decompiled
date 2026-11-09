@@ -101,10 +101,8 @@ struct SourceWeatherLineRender::Impl {
         if(p.pixel.words!=source_weather_pixel_program(true).words)throw FormatError("unsupported weather line39780 pixel definition");
         if(p.raster.stencil_enabled)throw FormatError("weather rain requires explicit stencil-disabled state");
         if(p.vertices.size()%2)throw FormatError("weather rain requires complete immediate line pairs");
-        if(!std::isfinite(p.raster.line_width) || p.raster.line_width<=0 ||
-           p.raster.line_width<properties.limits.lineWidthRange[0] || p.raster.line_width>properties.limits.lineWidthRange[1] ||
-           (p.raster.line_width!=1 && !context.wide_lines_enabled))
-            throw FormatError("authored weather rain width is not admitted by the actual logical device");
+        if(!std::isfinite(p.raster.line_width) || p.raster.line_width<=0)
+            throw FormatError("weather rain requires a finite positive authored width");
         if(p.vertices.size()>0xffffffffu||p.raster.color_write_mask>15)
             throw FormatError("weather line draw count/color mask exceeds native bounds");
         for(const auto &c:p.camera)for(float v:c)if(!std::isfinite(v))throw FormatError("nonfinite weather camera input");
@@ -122,7 +120,14 @@ struct SourceWeatherLineRender::Impl {
             throw FormatError("weather rain requires explicit zero depth-offset/factor");
         if(p.raster.depth_clamp&&!context.depth_clamp_enabled)throw FormatError("weather line depthClamp not enabled on logical device");
         for(const auto &point:p.vertices)for(float v:point.position)if(!std::isfinite(v))throw FormatError("nonfinite immediate weather input");
-        clear();if(p.vertices.empty())return;
+        // 391E0 can open and close a rain primitive without emitting a
+        // vertex pair. There is no Vulkan width to bind for that packet.
+        if(p.vertices.empty()){clear();return;}
+        if(p.raster.line_width<properties.limits.lineWidthRange[0] ||
+           p.raster.line_width>properties.limits.lineWidthRange[1] ||
+           (p.raster.line_width!=1 && !context.wide_lines_enabled))
+            throw FormatError("authored weather rain width is not admitted by the actual logical device");
+        clear();
         try {
             VertexUniform v;v.camera=p.camera;v.flags={p.raster.depth_clipping,0,0,0};v.clip=p.raster.clip_range;v.surface=p.raster.surface;v.depth={p.raster.depth_factor,p.raster.depth_offset,0,0};
             buffers[0]=buffer(sizeof(v),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,&v);

@@ -1,0 +1,103 @@
+{
+  "schema": "H2_LINUX_GAME_SETUP_NATIVE_VALIDATION_V1",
+  "completed_at_utc": "2026-11-03T04:07:23.417042+00:00",
+  "passed": true,
+  "iteration": 5,
+  "tests": [
+    "frontend_postgame_cpp_rust",
+    "frontend_search_cpp_rust",
+    "frontend_lobby_cpp_rust",
+    "rust_frontend_lobby_blocked",
+    "rust_frontend_lobby_complete",
+    "rust_frontend_lobby_rendered",
+    "frontend_online_lobby_buttons",
+    "frontend_online_lobby_buttons_gpu",
+    "frontend_matchmaking_http",
+    "retail_frontend_lobby_setup"
+  ],
+  "frozen_source_pin_sha256": "90cb23514eb082b9bd1323177fe17fc2c2c80641c690be41209b6ae78607308f",
+  "previous_source_pin_sha256": "7d93160b7204b7cc34efdb4ccd3baa3b766b89d56aa6d0a4456aa45e7ea8f525",
+  "refreshed": [
+    {
+      "path": "cmake/OnlinePeers.cmake",
+      "before": "ed16c14845651f8feeccf558179f4e22a00fb94cabf93938360b3eb60682caa7",
+      "after": "a298287e9580cb79543898291abc043fa3190300c3a81aaeaf90f4547e9c7b97"
+    },
+    {
+      "path": "include/halo2/frontend_lobby_setup.hpp",
+      "before": "3229f3c24aeed87e1eadda30aba555c85a34eae0082fd7cbc7c6d934e70a9f08",
+      "after": "9bfcfedf3fccaf7794d5c3fc1ff57619bf9cbcdbe5a6cc541eba3cf834a62150"
+    },
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_lobby.rs",
+      "before": "2bd52f45c3f6caecbcde51ce7d74c455556b9e00d52403c6885ae7e79048f8bb",
+      "after": "342b8cc01caf408ac30500cea7c799813bee2862298a3f9992b59a7373e55c96"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/lib.rs",
+      "before": "2eda7acd230f48eeefcf8cf889006831c8362f28ed121624145901e4dcb29c2d",
+      "after": "0788ce2f5c9b5d53a7a23f308948a4aa7a12abb4e10b169d79a5319ae67bd803"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_lobby.rs",
+      "before": "dd7ff39cbe1212b82e31614b53f732c2e2f6b25915fc9092e4b8fa771bf12839",
+      "after": "f1209714b31fcf2b78d01f03924af1d6ce5939973d8407c4b57fb2c986e7e35b"
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_lobby_bridge.cpp",
+      "before": "01ed8c1b7d95bc4fa156e53d11503e93535ffda8d43b252a6bf126c43278893c",
+      "after": "b8c1c6a756df1dd74f29baf3496e1b73673cf379fee78fc1545a8b1084e0a9b3"
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "before": "5efffc5f4d1f1f0c934f3e657e1d167038a42b1213d95d56948cc73594d9ddb5",
+      "after": "b6e1176bcb23b322bb10c5c500cee87009713d545fdf2d77d5e0d08210d98e13"
+    },
+    {
+      "path": "tests/frontend_lobby_setup_tests.cpp",
+      "before": "103b57474929634825d092e5ecfd0e593444716af7ff7f60718c47a9447e144c",
+      "after": "7ac6a717febf0fc126ea319c8f19a856e54292068dc56b20b8fab8736abbeec4"
+    }
+  ],
+  "binaries": {
+    "frontend_lobby_setup_tests": {
+      "sha256": "0b2e925ef0b2a12559e3dd16e266a390310e3e11a819032f7968b2c71a23d1c8",
+      "bytes": 26809848
+    },
+    "frontend_matchmaking_lobby_rust_tests": {
+      "sha256": "8241de1d0c61f64bca8e395991cd48d8dfd4fc5422e9b75b1b97e5e420fbc9c4",
+      "bytes": 30779072
+    },
+    "native_frontend_search_rust_tests": {
+      "sha256": "db566a682b29aa0ea8655a30f5f9541105235bdf863fd8d75e532b3e8260b1fc",
+      "bytes": 31919512
+    },
+    "native_frontend_postgame_rust_tests": {
+      "sha256": "4e2cde8c96a188754ffffaf7a8ef51c300bcf77a71019053cba66d490405dfae",
+      "bytes": 30612960
+    },
+    "frontend_online_tests": {
+      "sha256": "777dc5a9a902fd8157cf264ab303926eb9bd637c45f7d0bcb65f9f957d209a67",
+      "bytes": 1114125488
+    },
+    "frontend_online_lobby_buttons_tests": {
+      "sha256": "311909a53de8e086b84bd33a9ed4dd96fd222033077b1fd7ee2464d495853f98",
+      "bytes": 1146372360
+    }
+  },
+  "ctest_output_sha256": "74bc435b7faf924d8fedc2a2e43ef5e4b0b96a517c63d44126f8192cf3c745a8",
+  "postgame_original_report": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-game-setup-cohort-postgame-policy.json",
+  "postgame_original_report_sha256": "97c6ce384b910ddda4aeac808dd33b906a2f98c94e8b3f925d616cc7d8b1ab47",
+  "postgame_cases": 2560,
+  "postgame_leave_cases": 519,
+  "rendered_mouse_chooser_and_start_observed": true,
+  "prior_launch_acceptance_failed": [
+    "online_match_launch",
+    "online_match_party_launch",
+    "online_multiteam_native_flow"
+  ],
+  "scope": "Private source-pinned Linux CMake build and isolated service. Match completion, installed client and production service remain open.",
+  "installed_client_verified": false,
+  "full_goal_complete": false,
+  "retained_generated_large_artifacts": []
+}

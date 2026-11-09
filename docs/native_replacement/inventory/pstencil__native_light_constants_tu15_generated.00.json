@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PStencil.cmake",
+      "line": 12,
+      "target": "halo2_systems"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "5410a19b8aa78bec6e1571fadf0c39e4757f85807b049958c65d98044677f10d",
+      "selected_resolver_sha256": "dc43fea5d98a5d2d163f9cdd39bf33a262b8ea4692385192195064866634c18d"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "5410a19b8aa78bec6e1571fadf0c39e4757f85807b049958c65d98044677f10d",
+      "selected_resolver_sha256": "dc43fea5d98a5d2d163f9cdd39bf33a262b8ea4692385192195064866634c18d"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "e42d6164baa946d33ad080ea78bf55bd378ace0ccc01b40a14d2894211e62348",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_49790",
+      "instruction_callback_sites": 679,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "49790",
+        "tu15": "49790"
+      },
+      "line": 349,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "49790",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "49790",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "49790",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/pstencil/native_light_constants_tu15_generated.cpp",
+  "source_bytes": 100325,
+  "source_filename_scope": "generated",
+  "source_sha256": "f0d5d19dc819b540108e77d449ae2f7f2ec841ac24bc4d4b557294e21d3dbe6f"
+}

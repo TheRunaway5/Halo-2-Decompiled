@@ -33,6 +33,11 @@ void native_tu15_regroup_physics_islands_with_native_services(SourcePhysicsConta
         if(activity){++activity->extended_info_queries;++activity->regroup.native_info_queries;}
         return;
       }
+      if(owner.identity==0x31f740u){
+        (void)native_tu15_get_conveyor_constraint_info(m,constraint,info,observe);
+        if(activity){++activity->extended_info_queries;++activity->regroup.native_info_queries;}
+        return;
+      }
       if(activity)++activity->unknown_constraint_info;unknown("constraint info",owner);
     };
     services.add_info=[&](auto,auto owner,auto,auto,auto&){

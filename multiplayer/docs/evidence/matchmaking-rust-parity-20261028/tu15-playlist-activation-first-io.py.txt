@@ -1,0 +1,153 @@
+"""Replay the original chooser through the hopper validation and first IO call."""
+
+from collections import Counter
+from datetime import datetime, timezone
+from hashlib import sha256
+from itertools import product
+import json
+import os
+from pathlib import Path
+import struct
+import sys
+
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import (
+    UC_X86_REG_ECX, UC_X86_REG_EDI, UC_X86_REG_EFLAGS, UC_X86_REG_EIP, UC_X86_REG_ESP,
+)
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+
+
+CHOOSER, ACTIVATE, GET = 0x2BBE4B, 0x2BBE83, 0x196D70
+VALIDATE, MAKE_PATH, OPEN_FILE, DIALOG = 0x196920, 0x196B60, 0x2DC640, 0x195DA9
+MENU, TABLE, BANK, CALLER, CONTROLLER, EVENT = (0x1100000 + i * 0x1000 for i in range(6))
+META, COUNT, FLAGS = 0x560988, 0x48A0C8, 0x48A0C4
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+memory = source.g
+memory.mem_map(MENU, 0x10000)
+memory.mem_map(0x1FF0000, 0x10000)
+
+
+def put(address, *values):
+    memory.mem_write(address, struct.pack("<" + "I" * len(values), *(v & 0xFFFFFFFF for v in values)))
+
+
+def get(address, count):
+    return struct.unpack("<" + "I" * count, memory.mem_read(address, 4 * count))
+
+
+def observe(g, at, size, _):
+    global outcome
+    raw = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == raw, hex(at)
+    sp = g.reg_read(UC_X86_REG_ESP)
+    if at == DIALOG:
+        outcome = ("dialog", get(sp, 8))
+    elif at == OPEN_FILE:
+        ret, path, *args = get(sp, 8)
+        assert STACK - 0x18000 <= path < STACK
+        filename = bytes(g.mem_read(path, 256)).split(b"\0", 1)[0].decode("ascii")
+        outcome = ("open_file", (ret, filename, *args))
+    else:
+        if at == GET:
+            assert get(sp, 3) == (0x2BBE9E, key, STACK - 20 - 0x15CB8)
+        seen[at] = raw
+        visits[at] += 1
+        return
+    g.emu_stop()
+
+
+def guard_write(g, kind, at, size, value, _):
+    assert STACK - 0x18000 <= at and at + size <= STACK + 16, (hex(at), size)
+
+
+memory.hook_add(UC_HOOK_CODE, observe)
+memory.hook_add(UC_HOOK_MEM_WRITE, guard_write)
+put(MENU + 0x70, TABLE)
+put(TABLE + 0x24, 16)
+put(TABLE + 0x38, 1)
+put(TABLE + 0x44, BANK)
+put(CALLER, CONTROLLER)
+put(EVENT, 0x40000)
+
+good_fields = (2, 2, 4, 2, 1, 4)
+descriptors = [(f"accepted_type_{n}", n, 3, 100, 127, good_fields, True) for n in range(1, 6)]
+descriptors += [
+    ("low_envelope", 1, 0, 1, 3, (1, 16, 4, 2, 1, 4), True),
+    ("unknown_type_low", 0, 3, 100, 127, good_fields, False),
+    ("unknown_type_high", 6, 3, 100, 127, good_fields, False),
+    ("field_4_negative", 1, -1, 100, 127, good_fields, False),
+    ("field_4_above_limit", 1, 4, 100, 127, good_fields, False),
+    ("field_8_zero", 1, 3, 0, 127, good_fields, False),
+    ("field_8_above_limit", 1, 3, 101, 127, good_fields, False),
+    ("field_8_unsigned", 1, 3, -1, 127, good_fields, False),
+    ("signed_table_byte", 1, 3, 100, 128, good_fields, False),
+    ("table_byte_below_position", 1, 3, 100, 2, good_fields, False),
+    ("minimum_over_maximum", 2, 3, 100, 127, (3, 2, 4, 2, 1, 4), False),
+    ("maximum_above_16", 2, 3, 100, 127, (2, 17, 4, 2, 1, 4), False),
+    ("type_3_capacity", 3, 3, 100, 127, (5, 2, 4, 2, 1, 4), False),
+    ("type_4_imbalance", 4, 3, 100, 127, (2, 2, 4, 3, 1, 4), False),
+    ("type_5_team_count", 5, 3, 100, 127, (1, 2, 4, 2, 1, 4), False),
+]
+visits, seen, counts, examples = Counter(), {}, Counter(), {}
+controls = sha256()
+for count, flags, key, controller, descriptor in product(
+        (0, 1, 14, 0xFFFF), (0, 1, 2, 3, 0xFF), (0, 1, 3), (0, 1, 31, 32, 0xFEDCBA98), descriptors):
+    name, kind, field4, field8, value, fields, valid = descriptor
+    memory.mem_write(COUNT, struct.pack("<H", count))
+    memory.mem_write(FLAGS, bytes([flags]))
+    memory.mem_write(BANK, struct.pack("<HBBI8x", 4, 1, 0, key))
+    metadata = META + key * 0x614
+    memory.mem_write(metadata, bytes(0x614))
+    put(metadata, kind, field4, field8)
+    put(metadata + 0x5EC, *fields)
+    rank = bytearray(range(0x80))
+    rank[3] = value
+    memory.mem_write(metadata + 0x51C, bytes(rank))
+    put(CONTROLLER + 4, controller)
+    put(STACK, STOP, CALLER, EVENT)
+    memory.reg_write(UC_X86_REG_ESP, STACK)
+    memory.reg_write(UC_X86_REG_ECX, MENU)
+    memory.reg_write(UC_X86_REG_EDI, 0xFABAB00F)
+    memory.reg_write(UC_X86_REG_EFLAGS, 0x202)
+    old = [visits[address] for address in (ACTIVATE, GET, VALIDATE, MAKE_PATH)]
+    outcome = None
+    memory.emu_start(CHOOSER, STOP, count=10000)
+    assert outcome is not None
+    ready = count != 0 and flags & 2 != 0
+    opens = ready and valid
+    assert [visits[address] - old[i] for i, address in enumerate((ACTIVATE, GET, VALIDATE, MAKE_PATH))] == [1, 1, ready, opens]
+    if opens:
+        assert memory.reg_read(UC_X86_REG_EIP) == OPEN_FILE
+        assert outcome == ("open_file", (0x139512, "n:\\multiplayer_hopper.dat", 0x80000000, 1, 0, 3, 0x80, 0)), outcome
+        branch = "opens_hopper"
+    else:
+        assert memory.reg_read(UC_X86_REG_EIP) == DIALOG
+        assert outcome == ("dialog", (0x2BBF19, 1, 0x7B, 4, 1 << (controller & 31), 0x2BC011, 0, 0)), outcome
+        branch = "dialog_empty_header" if not count else "dialog_unready_header" if not ready else "dialog_invalid_descriptor"
+    counts[branch] += 1
+    observed = (count, flags, key, controller, name, branch, outcome)
+    examples.setdefault(branch, observed)
+    controls.update(json.dumps(observed).encode() + b"\n")
+
+proof = dict(
+    schema="H2_TU15_PLAYLIST_ACTIVATION_FIRST_IO_V1", passed=True,
+    completed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+    chooser_callback=hex(CHOOSER), activation_entry=hex(ACTIVATE), hopper_read=hex(GET),
+    descriptor_validator=hex(VALIDATE), first_io_boundaries={"dialog": hex(DIALOG), "open_file": hex(OPEN_FILE)},
+    all_controls=sum(counts.values()), branches=dict(counts), sample_by_branch=examples,
+    controls_sha256=controls.hexdigest(), verified_executed_addresses=len(seen),
+    verified_instruction_invocations=sum(visits.values()),
+    code_sha256=sha256(b"".join(struct.pack("<IH", a, len(raw)) + raw for a, raw in sorted(seen.items()))).hexdigest(),
+    all_instruction_bytes_verified=True, emulated_writes_stack_only=True,
+    synthetic_catalog_inputs=True, patched_instructions=[], replaced_callees=[],
+    first_io_owners_executed=False, original_hopper_file_supplied=False, host_and_close_body_executed=False,
+    tool_sha256=sha256(Path(__file__).read_bytes()).hexdigest(), scratch=str(scratch),
+)
+out = root / "build/test-results/frontend-postgame-leave-rust-20261102/tu15-playlist-activation-entry.json"
+out.write_text(json.dumps(proof, indent=2) + "\n")
+print(json.dumps(dict(passed=True, controls=sum(counts.values()), branches=counts, instructions=len(seen))))

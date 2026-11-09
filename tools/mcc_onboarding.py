@@ -129,7 +129,7 @@ def selected(root):
 def select(root, cache, *, verify=True, progress=print):
     root = Path(root).resolve()
     cache, report = private_cache(root, cache, verify=verify, progress=progress)
-    activation = WorkProgress('select-cache', 'Selecting prepared game files', 6, progress)
+    activation = WorkProgress('select-cache', 'Selecting prepared game files', 7, progress)
     from custom_map_assets import compatible as custom_maps_compatible
     if not custom_maps_compatible(root, cache, report):
         raise FormatError("The selected cache needs the bundled custom maps; run MCC setup to prepare a fresh cache. Existing files were retained.")
@@ -147,11 +147,16 @@ def select(root, cache, *, verify=True, progress=print):
     from h2ek_loading_ambience import repair as repair_h2ek_ambience
     cache, report = repair_h2ek_ambience(root, cache, progress=progress)
     activation.advance()
+    from mcc_movies import repair as repair_bundled_movies
+    cache, report = repair_bundled_movies(root, cache, progress=progress)
+    activation.advance()
     from native_variant_assets import install as install_variants
     install_variants(root, cache, progress=progress)
     activation.advance()
     install_variants(root, root, progress=progress)
     activation.advance()
+    from custom_asset_cache import publish as publish_custom_bundle
+    publish_custom_bundle(root, cache, report)
     relative = cache.relative_to(root).as_posix()
     registry = root / REGISTRY
     registry.parent.mkdir(parents=True, exist_ok=True)
@@ -487,7 +492,6 @@ def repair_shaders(root, *, progress=print):
 
 
 def repair_movies(root, *, cache=None, progress=print):
-    """Explicit supplied-movie reference repair; normal MCC setup omits it."""
     """Resume only the bundled movie handoff; never reimport the MCC tree."""
     value = selected(root) if cache is None else private_cache(root, cache)
     if value is None:
@@ -564,18 +568,20 @@ def _needs_graphics_reimport(root, report):
     return True
 
 
-def setup(root, mcc_source=None, *, progress=print):
+def setup(root, mcc_source=None, *, progress=print, force_rebuild=False, select_cache=True, runtime=None):
     root = Path(root).resolve()
     import mcc_presentation
-    presentation = mcc_presentation.requirements(root)
+    presentation = mcc_presentation.requirements(root, runtime=runtime)
     source = directory(mcc_source) if mcc_source is not None else discover()
     progress("Found Halo MCC Halo 2: " + str(source))
     if presentation['family'] == mcc_presentation.AUTHORED:
         mcc_presentation.preflight(root, source, presentation)
+    if force_rebuild:
+        progress('Preparing a fresh private cache. Existing caches and game files are preserved.')
     imports = root / "assets/imported"
     candidates = sorted(imports.glob("mcc-*/provenance.json"),
                         key=lambda p: p.stat().st_mtime_ns, reverse=True) if imports.is_dir() else []
-    for provenance in candidates:
+    for provenance in (() if force_rebuild else candidates):
         try:
             report = json.loads(provenance.read_text())
             if Path(report.get("source", "")).resolve() != source:
@@ -620,5 +626,10 @@ def setup(root, mcc_source=None, *, progress=print):
         mcc_presentation.recheck(presentation)
         return select(root, cache, verify=False, progress=progress)
     cache, report = prepare(root, source, progress=progress, presentation=presentation)
-    mcc_presentation.recheck(presentation)
-    return select(root, cache, verify=False, progress=progress)
+    try:
+        mcc_presentation.recheck(presentation)
+    except BaseException:
+        if not select_cache:
+            shutil.rmtree(cache)
+        raise
+    return select(root, cache, verify=False, progress=progress) if select_cache else (cache, report)

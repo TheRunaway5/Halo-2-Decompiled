@@ -117,6 +117,9 @@ function(halo2_add_online_protocol)
         "${module}/src/matchmaking_frontend_account_flow.hpp"
         "${module}/src/matchmaking_frontend_friends.hpp"
         "${module}/src/matchmaking_frontend_clans.hpp"
+        "${module}/src/matchmaking_frontend_couch.hpp"
+        "${module}/src/matchmaking_frontend_signin.hpp"
+        "${module}/src/matchmaking_frontend_postgame.hpp"
         "${module}/src/matchmaking_frontend_lobby_view.hpp"
         "${module}/rust-toolchain.toml" "${root}/rust/online_protocol/Cargo.toml"
         "${root}/rust/online_protocol/rust-toolchain.toml"
@@ -154,6 +157,9 @@ function(halo2_add_online_protocol)
         "${output}/include/src/matchmaking_frontend_account_flow.hpp"
         "${output}/include/src/matchmaking_frontend_friends.hpp"
         "${output}/include/src/matchmaking_frontend_clans.hpp"
+        "${output}/include/src/matchmaking_frontend_couch.hpp"
+        "${output}/include/src/matchmaking_frontend_signin.hpp"
+        "${output}/include/src/matchmaking_frontend_postgame.hpp"
         "${output}/include/src/matchmaking_frontend_lobby_view.hpp"
         "${output}/include/rust/cxx.h" "${output}/build-report.json"
         COMMAND "${Python3_EXECUTABLE}" "${root}/tools/build_online_protocol_rust.py" ${arguments}
@@ -184,6 +190,9 @@ function(halo2_add_online_protocol)
         "${output}/include/src/matchmaking_frontend_account_flow.hpp"
         "${output}/include/src/matchmaking_frontend_friends.hpp"
         "${output}/include/src/matchmaking_frontend_clans.hpp"
+        "${output}/include/src/matchmaking_frontend_couch.hpp"
+        "${output}/include/src/matchmaking_frontend_signin.hpp"
+        "${output}/include/src/matchmaking_frontend_postgame.hpp"
         "${output}/include/src/matchmaking_frontend_lobby_view.hpp"
         "${output}/include/rust/cxx.h" "${output}/native-libs.rsp")
     add_library(halo2_online_protocol_rust STATIC IMPORTED GLOBAL)

@@ -20,6 +20,7 @@ from custom_loading_test_support import custom_loading_fixture, permitted_source
 from native_variant_test_support import variant_fixture
 from test_controller_prompt_assets import controller_prompt_fixture
 from test_custom_map_assets import custom_map_fixture
+from test_mcc_movies import bundle_fixture as movie_fixture
 
 
 class CustomAssetSources(unittest.TestCase):
@@ -41,6 +42,7 @@ class CustomAssetSources(unittest.TestCase):
         self.addCleanup(authenticator.stop)
         custom_loading_fixture(self.source)
         permitted_source_policy_fixture(self.source)
+        movie_fixture(self.source)
 
     def test_complete_install_retains_sources_and_stable_receipt(self):
         pins = assets.inventory(self.source)
@@ -48,7 +50,12 @@ class CustomAssetSources(unittest.TestCase):
         self.assertEqual(receipt['files'], pins)
         self.assertEqual(set(receipt['groups']), {
             'native_variants', 'controller_prompts', 'custom_ui', 'custom_maps', 'custom_loading',
-            'permitted_source_policies'})
+            'permitted_source_policies', 'bundled_movies'})
+        movies = receipt['groups']['bundled_movies']
+        self.assertEqual(movies['roles'], {role: f'resources/movies/{role}_60.mp4'
+                                          for role in ('intro', 'credits')})
+        self.assertEqual(set(movies['files']), {
+            *movies['roles'].values(), 'resources/movie-manifest.json', 'resources/movies/manifest.json'})
         self.assertEqual(assets.inventory(self.destination), pins)
         self.assertEqual(assets.required_bytes(self.source), sum(row['bytes'] for row in pins.values()))
         self.assertFalse(any('authoring/' in name for name in pins))

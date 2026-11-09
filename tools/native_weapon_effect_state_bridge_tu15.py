@@ -28,24 +28,8 @@ def install_native_effect_state(source):
 
 
 def install_native_effect_slot_scan(source):
-    marker='static void run_16ea60(WorldState &s) {'
-    if marker not in source:return source
-    assert source.count(marker)==1
-    bridge="""
-    // Native16EA60 owns only the integer file; keep live FP/MMX in place.
-    if(s.image==SourcePhysicsContactImage::TitleUpdate15) {
-        auto flags=s.other_flags|s.flags.bits();
-        const auto publish=[&]{s.other_flags=flags&~0x8d5u;s.flags.load(flags);};
-        try {native_weapon_effect_integer_tu15_run(s.memory,0x16ea60u,s.gp,flags,s.services,s.observe);}
-        catch(...) {publish();throw;}
-        publish();return;
-    }
-"""
-    if marker+bridge not in source:source=source.replace(marker,marker+bridge,1)
-    if INCLUDE not in source:
-        anchor='#include "physics/runtime/physics_world_runtime_internal.hpp"\n';assert source.count(anchor)==1
-        source=source.replace(anchor,anchor+INCLUDE,1)
-    return source
+    from native_effect_slot_scan_replacements import install_native_effect_slot_scan as authenticated
+    return authenticated(source)
 
 
 def install_native_effect_frame(source):

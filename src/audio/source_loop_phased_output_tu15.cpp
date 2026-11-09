@@ -166,7 +166,7 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
     if(combined)output.require_combined_output();
     if(created){if(args[5]==2)return;
         //220FBD..221539 handles every five-bit track policy, including the
-        //unused master-surround bit and alternate-only tracks (normal NONE).
+        //master-surround scheduling bit and alternate-only tracks (normal NONE).
         //The original phase selector, rather than a required normal loop,
         //decides which authored sound exists for this request.
         for(const auto& track:definition.tracks)if((track.flags&~0x1fu) ||
@@ -177,7 +177,7 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
             track.alternate,track.alternate_end,track.alternate_transition_in,track.alternate_transition_out})if(sound!=none){
             const auto& d=output.metadata(sound,0);
             if(Bytes(d.playback).f32(0x14)!=0.f)
-                throw FormatError("Native phase requires its motion-dependent pitch owner");
+                throw FormatError("Native phase requires its authored gain-variance owner");
             if(d.pitch_ranges.empty() || d.pitch_ranges.size()>9)
                 throw FormatError("Native phase exceeds the original frame's pitch-layer domain");
             for(unsigned range=0;range<d.pitch_ranges.size();++range){const auto& selected=output.metadata(sound,range);

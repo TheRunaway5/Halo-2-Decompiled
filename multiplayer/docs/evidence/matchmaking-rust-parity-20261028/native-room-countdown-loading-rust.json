@@ -1,0 +1,108 @@
+{
+  "schema": "H2_RUST_ROOM_COUNTDOWN_LOADING_ADMISSION_V1",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-final-20261103/halo2-test-1pwjz472",
+  "master_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+  "candidate_pins": {
+    "src/matchmaking_client.rs": "f83e73c40822de4b7d813790f45e64043ac84c07061cf11c61631768fe8096c7",
+    "src/matchmaking_queue_api.rs": "930110023f7e2ff0c1c2cf5123a89bf4af22f87a0fe41bfba3b6d12727731d8c",
+    "src/matchmaking_room_setup.rs": "5b7c8aad332866eb6601c2e3b1cce495bc8bc019dc9f350da0fe315ad2c566f9",
+    "tests/matchmaking_client_controller.rs": "e73aa85ce3907b346ad104f815d538e31789d37c95bc480e313f99b5dd83e971",
+    "tests/matchmaking_queue_api.rs": "c22539d5b041dac04f23bef5d9351b78e224e7f745370e92ed6b4a82453b3e6a"
+  },
+  "retained_generated_large_artifacts": [],
+  "frozen_source_count": 220,
+  "frozen_source_sha256": "5e27719161062d851225d96e04c30598ba759bb6ecd52d0638decaeae81649a9",
+  "focused": {
+    "command": [
+      "cargo",
+      "test",
+      "--test",
+      "matchmaking_queue_api",
+      "loading_room_keeps_full_match_and_clock",
+      "--locked",
+      "--offline"
+    ],
+    "exit_code": 0,
+    "passed_count": 1,
+    "test_result_lines": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s"
+    ],
+    "stdout_sha256": "8f63283f8acfc67e8eb7fdc9932dec6f744017023de2c5d8262b2348e6ea319a",
+    "stderr_sha256": "985d03355c925fcb0ced704d89ccf30a9b7f0f50bd3d7e690724b7031d66e04e"
+  },
+  "green": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "passed_count": 771,
+      "test_result_lines": [
+        "test result: ok. 282 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.73s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.37s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stdout_sha256": "aedce7630c32a798b95f8a519e230c3a56bea8f1df2d8906683ddb58c1e3bdc0",
+      "stderr_sha256": "c33769b20136f81fa3b9892277f63ef936d95a716907b6837fbafe09293e7459"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "passed_count": 20,
+      "test_result_lines": [
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.64s"
+      ],
+      "stdout_sha256": "123262777a27445a317096a3af8eea79daebee889af0b851e41dab685c3c3f80",
+      "stderr_sha256": "2130fa1d0a0afe9c80507955a026b2bbbae4f3bca17d2b9a92959d23236d4066"
+    }
+  ],
+  "frozen_sources_unchanged": true,
+  "passed": true
+}

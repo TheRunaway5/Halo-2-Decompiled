@@ -1,0 +1,175 @@
+{
+  "schema": "H2_CATALOG_REVISION_RESTART_VALIDATION_V1",
+  "passed": true,
+  "scope": "Actual standalone Rust listener, production HTTP grants, prepared catalog and SQLite state in an isolated local process. Provider grants are fixtures.",
+  "test_scope": "Changed game weight under existing revision. Equivalent JSON rewrite, new revision, original revision rollback, request and old-grant rejection.",
+  "red_green_rust": {
+    "schema": "H2_CATALOG_REVISION_RESTART_RUST_V1",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-catalog-revision-rust-20261103/halo2-test-c5qk_te0",
+    "passed": true,
+    "baseline": {
+      "rust/matchmaking_service/src/runtime.rs": "e1b3cf09586ec7ce7685c14e3dfded7bc178f3a7c12cd526f89a1d6a728ff1d5",
+      "rust/matchmaking_service/src/variant_catalog_tests.rs": "4ce29195310947b1fa357108813e8051f1ceef5605346fc9401fd92e8cb9e2fa"
+    },
+    "retained_generated_large_artifacts": [],
+    "red": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback"
+      ],
+      "exit_code": 101,
+      "tests_passed": 0,
+      "tests": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.50s"
+      ],
+      "stdout_sha256": "032f86d60d6231558142275b2efcc88d252c833651e1436e0972ef6f11e1d543",
+      "failure_tail": "\nrunning 1 test\ntest runtime::variant_catalog_tests::catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback ... FAILED\n\nfailures:\n\n---- runtime::variant_catalog_tests::catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback stdout ----\n\nthread 'runtime::variant_catalog_tests::catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback' (2570814) panicked at src/variant_catalog_tests.rs:70:10:\nReused playlist revision was accepted\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    runtime::variant_catalog_tests::catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.50s\n\n"
+    },
+    "candidate": {
+      "rust/matchmaking_service/src/runtime.rs": "f416ca9a6f50a29095b6607e7461ca264ad213604235f76a3c7e8e4dc2bcd1f6",
+      "rust/matchmaking_service/src/variant_catalog_tests.rs": "4ce29195310947b1fa357108813e8051f1ceef5605346fc9401fd92e8cb9e2fa"
+    },
+    "frozen_source_sha256": "ee568797aae9fc900fbeae4d2baa776f7fb9f7c3159df55f93a51765428822ab",
+    "focused_green": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "catalog_restart_refuses_a_reused_revision_and_allows_exact_rollback"
+      ],
+      "exit_code": 0,
+      "tests_passed": 1,
+      "tests": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.83s"
+      ],
+      "stdout_sha256": "0dea3b4fc2100c46bc0d73fd4e95767ec2e4abb3ac8e73dd6f697cf79114fe86"
+    },
+    "green": [
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "tests_passed": 771,
+        "tests": [
+          "test result: ok. 282 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.57s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.41s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s",
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "stdout_sha256": "a972da1a772c35f1f3258a7300a263c92184336b5149ee9df7c9e696c09f5706"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "tests_passed": 22,
+        "tests": [
+          "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.03s"
+        ],
+        "stdout_sha256": "0bf15b048d7b943d4cc708c74ff6afde4e699bcf87bb38ae785720375f0091ca"
+      }
+    ],
+    "frozen_sources_unchanged": true
+  },
+  "red_green_cli": {
+    "schema": "H2_CATALOG_RESTART_CLI_V1",
+    "passed": true,
+    "source_count": 209,
+    "production_before": "e1b3cf09586ec7ce7685c14e3dfded7bc178f3a7c12cd526f89a1d6a728ff1d5",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-catalog-revision-cli-20261103/halo2-test-f6okx2yc",
+    "retained_generated_large_artifacts": [],
+    "checks": [
+      "Same revision with a changed weight is rejected before listening and leaves no partial binding.",
+      "An equivalent JSON rewrite, a fresh revision, and exact rollback all open against the same database. Old grants and stale revision requests fail."
+    ],
+    "red_binary_sha256": "bcac829171661b99ae13f28d0d59177b49790f78fc50387067d62bdb83dfe952",
+    "red": {
+      "reused_revision_served": true,
+      "old_revision_enqueued": true
+    },
+    "production_after": "f416ca9a6f50a29095b6607e7461ca264ad213604235f76a3c7e8e4dc2bcd1f6",
+    "green_binary_sha256": "c8cf23fc7520e28cc3441998af08a834a88a644e65de9692f37c813dbe430034",
+    "original_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "bindings": [
+      14,
+      16
+    ]
+  },
+  "current_exact_source_cli_and_rust_service": {
+    "schema": "H2_CATALOG_RESTART_FINAL_CLI_V1",
+    "passed": true,
+    "source_count": 209,
+    "production_pin": "57026c91827b2832f328165b4b8f03cf397266074d246055f71f5167cbe47947",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-catalog-revision-final-20261103/halo2-test-7t0cn2wr",
+    "retained_generated_large_artifacts": [],
+    "checks": [
+      "Same revision with a changed weight is rejected before listening and leaves no partial binding.",
+      "An equivalent JSON rewrite, a fresh revision, and exact rollback all open against the same database. Old grants and stale revision requests fail."
+    ],
+    "candidate_binary_sha256": "dcc90868e0fd1e06eb858efec1ee3c8a72f40e2f50e9f2fcfe096232b5836397",
+    "original_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "bindings": [
+      14,
+      16
+    ],
+    "service_tests_passed": 22,
+    "service_test_output_sha256": "fe4350d918f9ab82276448e69a4a9a86e829cdd3a75b185adf3465d10607c41e"
+  },
+  "exact_source_note": "The final build restores the pre-existing order of adjacent module declarations. The candidate logic and test sources are identical.",
+  "runners": {
+    "rust-red-green.py": "e4f8cd6c2b4dda18bb05597eef544c470f8efcd598e83786a0f74a93a1665e8c",
+    "cli-replay.py": "0a741e00683924de0412daaffddd3cdbede9312eb1d0aca7567ae439769fd8a4",
+    "final-cli.py": "58ff6a436195f9db72e6dea7508949afa5d1cdeade6d93e91931417948bab08e"
+  },
+  "retained_generated_large_artifacts": []
+}

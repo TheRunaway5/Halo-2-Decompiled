@@ -1,0 +1,67 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 973,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "8a40a41fc689f0f77bfc2b28b58c795e744a2b1b6b5dd9ae0969dcb1eb1ec5ac",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "8a40a41fc689f0f77bfc2b28b58c795e744a2b1b6b5dd9ae0969dcb1eb1ec5ac",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "01c764baef8c6e7feb93fd1d77b7096c133f5a79160f34b5e1f863e2ec3b75c9",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_b3350",
+      "instruction_callback_sites": 33,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "b3350",
+        "tu15": "b3350"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [
+        "b18b0",
+        "b1900",
+        "b8050"
+      ],
+      "observed_entry": "b3350",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "b3350",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "b3350",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/vehicles/source_vehicle_evasion_tu15_generated.cpp",
+  "source_bytes": 21258,
+  "source_filename_scope": "generated",
+  "source_sha256": "b7802b4e8bff5d56f9afb0051ad241697feb354404be974019da2cbe92071170"
+}

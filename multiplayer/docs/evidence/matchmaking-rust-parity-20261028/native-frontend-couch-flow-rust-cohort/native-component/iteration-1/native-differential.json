@@ -1,0 +1,405 @@
+{
+  "passed": false,
+  "cases": 2638,
+  "native_io_observations": 4507,
+  "rust_state_reentries": 4507,
+  "fault_controls": 108,
+  "preserved_native_exception_identity": 108,
+  "differences": [
+    {
+      "index": 2637,
+      "case": {
+        "options": null,
+        "profiles": [
+          "",
+          "one",
+          "two",
+          "three"
+        ],
+        "login1": {
+          "identity": [
+            255,
+            0,
+            128
+          ],
+          "authorized": true,
+          "status": 3
+        },
+        "login2": {
+          "identity": "two",
+          "authorized": true,
+          "status": 3
+        },
+        "accounts": 6,
+        "primary": {
+          "identity": "primary",
+          "steam": true
+        },
+        "tags": [
+          {
+            "name": "one",
+            "value": [
+              255,
+              0,
+              128
+            ]
+          }
+        ],
+        "frames": [],
+        "op": "controller",
+        "authenticated": false,
+        "inputs": [
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        "input": 9,
+        "join": true
+      },
+      "actual": {
+        "before": {
+          "calls": [],
+          "reentries": 0,
+          "state": {
+            "couch_revision": 0,
+            "host_profile": 0,
+            "joining": null,
+            "joining_online": false,
+            "options": null,
+            "subjects": [
+              [],
+              [],
+              [],
+              []
+            ]
+          },
+          "storage": {
+            "account": 1,
+            "accounts": [
+              null,
+              21,
+              22,
+              null
+            ],
+            "authenticated": false,
+            "detached": [
+              31,
+              1129272643,
+              0,
+              18446744073709551615,
+              99,
+              [
+                111,
+                108,
+                100,
+                32,
+                116,
+                105,
+                116,
+                108,
+                101
+              ],
+              [
+                111,
+                108,
+                100,
+                32,
+                100,
+                101,
+                115,
+                99,
+                114,
+                105,
+                112,
+                116,
+                105,
+                111,
+                110
+              ],
+              []
+            ],
+            "edits": [
+              [
+                1,
+                2
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                7,
+                8
+              ]
+            ],
+            "frames": [],
+            "inputs": [
+              9,
+              -1,
+              -1,
+              -1
+            ],
+            "live_logins": [
+              [
+                2,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                90,
+                0
+              ]
+            ],
+            "logins": [
+              null,
+              11,
+              12,
+              null
+            ],
+            "mode": 3,
+            "next_actor": 100,
+            "primary": 2,
+            "profile": 2,
+            "profiles": [
+              [],
+              [
+                111,
+                110,
+                101
+              ],
+              [
+                116,
+                119,
+                111
+              ],
+              [
+                116,
+                104,
+                114,
+                101,
+                101
+              ]
+            ],
+            "revision": 0,
+            "signed_in": [
+              104,
+              111,
+              115,
+              116
+            ],
+            "status": 3,
+            "teams": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "value": 0
+        },
+        "rust": {
+          "calls": [],
+          "error": "std",
+          "reentries": 0,
+          "state": {
+            "couch_revision": 0,
+            "host_profile": 0,
+            "joining": null,
+            "joining_online": false,
+            "options": null,
+            "subjects": [
+              [],
+              [],
+              [],
+              []
+            ]
+          },
+          "storage": {
+            "account": 1,
+            "accounts": [
+              null,
+              21,
+              22,
+              null
+            ],
+            "authenticated": false,
+            "detached": [
+              31,
+              1129272643,
+              0,
+              18446744073709551615,
+              99,
+              [
+                111,
+                108,
+                100,
+                32,
+                116,
+                105,
+                116,
+                108,
+                101
+              ],
+              [
+                111,
+                108,
+                100,
+                32,
+                100,
+                101,
+                115,
+                99,
+                114,
+                105,
+                112,
+                116,
+                105,
+                111,
+                110
+              ],
+              []
+            ],
+            "edits": [
+              [
+                1,
+                2
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                7,
+                8
+              ]
+            ],
+            "frames": [],
+            "inputs": [
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            "live_logins": [
+              [
+                2,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                90,
+                0
+              ]
+            ],
+            "logins": [
+              null,
+              11,
+              12,
+              null
+            ],
+            "mode": 3,
+            "next_actor": 100,
+            "primary": 2,
+            "profile": 2,
+            "profiles": [
+              [],
+              [
+                111,
+                110,
+                101
+              ],
+              [
+                116,
+                119,
+                111
+              ],
+              [
+                116,
+                104,
+                114,
+                101,
+                101
+              ]
+            ],
+            "revision": 0,
+            "signed_in": [
+              104,
+              111,
+              115,
+              116
+            ],
+            "status": 3,
+            "teams": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "what": [
+            78,
+            97,
+            116,
+            105,
+            118,
+            101,
+            32,
+            99,
+            111,
+            117,
+            99,
+            104,
+            32,
+            102,
+            114,
+            97,
+            109,
+            101,
+            32,
+            111,
+            119,
+            110,
+            101,
+            114,
+            32,
+            97,
+            98,
+            115,
+            101,
+            110,
+            116
+          ]
+        }
+      }
+    }
+  ],
+  "undefined_cpp_inputs_excluded": true,
+  "scoped_enum_defaults_retained": true,
+  "actual_actions_initialize_state": true,
+  "provider_shared_pointer_ownership_observed": true,
+  "native_sha256": "3efe305f19b104f0bd4662ba02e5039eefb9d950aba6e623bb0edb537814f211",
+  "scope": "Authenticated complete modern couch/controller/identity callers vs production Rust/CXX IO.\n\nActual selection/update actions initialize Rust state. Controlled providers,\nprofile metadata, frames and rosters compare callback order, shared-pointer\nownership, failure prefixes and reentry. Only the two declared Back branches\nand profile-list predicates are wrapped; the rest of the dispatcher, original\nXbox/Live providers and installed/native-runtime delivery stay unqualified.\nOut-of-range selected entries/slots, null factories/workers and null options\ninside the old dereference are excluded from C++ execution; Rust error controls\nare separate. Scoped-enum int defaults remain in the valid comparison domain.\n"
+}

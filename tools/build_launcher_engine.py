@@ -52,8 +52,14 @@ SEPARATE_COMPONENTS = {
     # source_campaign_screen_tu15.hpp and K12 of the native engine checklist
     # name the semantic replacement; linking both duplicates its entry points.
     'src/campaign/source_campaign_screen_tu15_generated.cpp': 'Superseded generated screen reference; production uses semantic lifecycle/timed kernels through source_campaign_screen_native_tu15.cpp',
+    'src/core/native_tu15_function_evaluation.cpp': 'Superseded bounded evaluator reference; production contact-point binding uses the linked extended evaluator',
+    'src/core/native_tu15_function_power_error.cpp': 'Standalone authored-power CRT error proposal without an admitted production caller',
+    'src/core/native_tu15_function_power_special.cpp': 'Standalone infinite-operand authored-power proposal without an admitted production caller',
     'src/physics/native_tu15_motion_pose.cpp': 'Standalone native pose component; actual integrate_pose retains the original production virtual owner',
     'src/gameplay/vehicles/native_tu15_seat_look.cpp': 'Standalone typed seat-look component without an admitted production camera caller',
+    'src/gameplay/vehicles/native_tu15_look_direction.cpp': 'Standalone typed look-direction component; production look/camera caller admission remains open',
+    'src/physics/native_tu15_attached_camera_position.cpp': 'Unintegrated attached-camera proposal without a caller; the on-foot collision/crouch branch remains unimplemented',
+    'src/physics/native_tu15_component_reset.cpp': 'Standalone typed component reset; production retains generated1D8470 and actual lifetime-service/World admission remains open',
     'src/physics/native_tu15_activation_agents.cpp': 'Standalone typed activation-agent composition without an admitted production activation caller',
     'src/physics/native_tu15_cached_motion.cpp': 'Qualified typed cached-motion component; live world activation remains a separate gate',
     'src/physics/native_tu15_compound_process.cpp': 'Standalone typed compound processing without an admitted production collision caller',
@@ -63,7 +69,13 @@ SEPARATE_COMPONENTS = {
     'src/physics/native_tu15_contact_candidate_buffers.cpp': 'Standalone typed candidate-buffer ownership without an admitted production candidate caller',
     'src/physics/native_tu15_contact_candidates.cpp': 'Typed candidate-update source review and live binding remain open',
     'src/physics/native_tu15_contact_producer.cpp': 'Standalone typed contact producer without an admitted production collision caller',
+    'src/physics/native_tu15_contact_collector_destructor.cpp': 'Standalone typed3261D0 collector destructor; production allocation/lifetime caller admission remains open',
+    'src/physics/native_tu15_contact_creation_gameplay.cpp': 'Standalone bounded creation listeners and bumper; only proposed private producer bindings consume this component',
     'src/physics/native_tu15_contact_records.cpp': 'Standalone typed contact records without an admitted production producer caller',
+    'src/physics/native_tu15_conditional_contact_process.cpp': 'Standalone typed2F0F10 conditional parent used by private query compositions; no production caller',
+    'src/physics/native_tu15_convex_contact_process.cpp': 'Standalone typed2F8B60 semantic parent; production solver/publication closure remains open',
+    'src/physics/native_tu15_moving_shape_process.cpp': 'Standalone typed2E5320 moving-shape process; production resource/wake/depth/World admission remains open',
+    'src/physics/native_tu15_reversed_query_process.cpp': 'Standalone typed2F1A50 reversed query wrapper; only private query-parent validators consume it',
     'src/physics/native_tu15_inverse_geometry.cpp': 'Qualified inverse-affine geometry component; native candidate-update integration remains open',
     'src/physics/native_tu15_island_activation.cpp': 'Standalone typed island activation without an admitted production world caller',
     'src/physics/native_tu15_array_allocator.cpp': 'Standalone typed array allocator requires the actual production allocator virtual owners',
@@ -74,6 +86,10 @@ SEPARATE_COMPONENTS = {
     'src/physics/native_tu15_constraint_solver.cpp': 'Standalone typed constraint solver pending positive-iteration physical qualification; production retains actual 0x326A40 residual',
     'src/physics/native_tu15_constraint_solver_rows.cpp': 'Standalone typed constraint row kernels pending their admitted solver consumer; production retains actual 0x326A40 residual',
     'src/physics/native_tu15_constraint_custom_schema.cpp': 'Standalone typed custom-schema callbacks require an admitted production solver consumer and physical qualification; production retains its existing custom-schema refusal/residual owner',
+    'src/physics/native_tu15_solver_hull_edge.cpp': 'Standalone solver-hull edge selection used by physical validators; no admitted production solver caller',
+    'src/physics/native_tu15_solver_hull_line.cpp': 'Standalone solver-hull line extension used by physical validators; no admitted production solver caller',
+    'src/physics/native_tu15_solver_hull_polytope.cpp': 'Standalone minimum-facet/direction-sampling components; no admitted production solver caller',
+    'src/physics/native_tu15_solver_hull_polytope_state.cpp': 'Standalone polytope-clear/facet-clip components; no admitted production solver caller',
     'src/ui/vista/vista_lobby_leave_return.cpp': 'Original Vista UI reference component without a frontend caller',
     'src/ui/vista/vista_network_browser.cpp': 'Original Vista UI reference component without a frontend caller',
     'src/ui/vista/vista_network_browser_back.cpp': 'Original Vista UI reference component without a frontend caller',
@@ -620,6 +636,15 @@ def runtime_environment(scratch):
     return environment
 
 
+def qualification_maps(prior, additional):
+    names = set(prior['maps'] if prior else ['lockout.map'])
+    for name in additional:
+        if not isinstance(name, str) or not re.fullmatch(r'[a-z0-9_]+\.map', name):
+            raise ValueError('Additional qualification maps must be lowercase cache basenames')
+        names.add(name)
+    return sorted(names)
+
+
 def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_driver=''):
     log = scratch / f'{Path(name).stem}-{players}.log'
     preferences = scratch / 'smoke-preferences' / uuid.uuid4().hex
@@ -791,6 +816,12 @@ def publication_identity(path):
 def publish_runtime_files(root, destination, scratch, record, frontend_record, report, expected,
                           *, cache_choice=None):
     """Rollback only this transaction's still-owned root files on any failure."""
+    if report.get('custom_asset_input_cohort', {}).get('kind') == 'owned_frozen':
+        from custom_assets import inventory as custom_asset_inventory
+        manifest = destination / 'custom-assets/custom-assets.json'
+        if (digest(manifest) != report['custom_assets']['sha256'] or
+                json.loads(manifest.read_text())['files'] != custom_asset_inventory(root)):
+            raise RuntimeError('Current custom assets differ from the frozen qualified candidate; existing runtime retained')
     backup = scratch / ('engine-publication-' + uuid.uuid4().hex)
     backup.mkdir()
     state = report['publication'] = dict(complete=False, rollback_failed=False, files=[])
@@ -973,8 +1004,15 @@ def worker(args):
         name: publication_identity(root / name) for name in
         publication_names}
     baseline_selection = getattr(args, 'baseline_selection', None)
-    prior = (selected_gameplay_runtime(root, selection_name=baseline_selection) if baseline_selection
-             else selected_gameplay_runtime(root))
+    baseline_cache = getattr(args, 'baseline_cache', None)
+    baseline_admission = {}
+    if baseline_selection:
+        baseline_admission['selection_name'] = baseline_selection
+    if baseline_cache is not None:
+        if not prepare_only or not baseline_selection:
+            raise ValueError('A baseline cache requires a named preparation baseline')
+        baseline_admission['cache_candidate'] = baseline_cache
+    prior = selected_gameplay_runtime(root, **baseline_admission)
     if cache_candidate is None:
         cache = selected(root)
     else:
@@ -984,10 +1022,24 @@ def worker(args):
     if cache is None:
         raise RuntimeError('Prepare the private MCC cache before building the launcher engine')
     maps = cache[0] / 'halo2/h2_maps_win64_dx11'
+    reference_cache = cache[0]
+    reference_pins = {}
+    reference_input = getattr(args, 'native_reference_cache', None)
+    if reference_input is not None:
+        if not prepare_only:
+            raise ValueError('A separate native reference cache requires candidate preparation')
+        candidate = reference_input if reference_input.is_absolute() else root / reference_input
+        reference_cache, _ = private_cache(root, candidate, verify=True)
+        for relative in ('provenance.json', 'halo2/h2_maps_win64_dx11/shared.map',
+                         'native-shaders/coagulation/library.json', 'native-shaders/01b_spacestation/library.json'):
+            path = reference_cache / relative
+            if path.resolve(strict=True) != path or not path.is_file():
+                raise ValueError('Native reference cache lacks a direct reference file: ' + relative)
+            reference_pins[relative] = digest(path)
     audio_image = getattr(args, 'weapon_audio_reference_xbe', None)
     if audio_image:
         audio_image = audio_image.resolve(strict=True)
-    names = sorted(prior['maps']) if prior else ['lockout.map']
+    names = qualification_maps(prior, getattr(args, 'qualify_map', []))
     default_map = prior['default_map'] if prior else 'lockout.map'
     players = prior['local_players'] if prior else 1
     source = scratch / 'source'
@@ -1028,7 +1080,25 @@ def worker(args):
     else:
         pins = freeze_source(root, source)
     from custom_assets import inventory as custom_asset_inventory, install as install_custom_assets
-    asset_pins = custom_asset_inventory(root)
+    asset_root = root
+    frozen_asset_root = getattr(args, 'frozen_custom_asset_root', None)
+    asset_manifest_pin = None
+    if frozen_asset_root is not None:
+        from installation_paths import resource_root
+        asset_root = frozen_asset_root.resolve(strict=True)
+        if (not prepare_only or not reuse_owned_build or frozen_asset_root.is_symlink() or
+                asset_root.parent != scratch.resolve() or asset_root in (source, scratch / 'build') or
+                resource_root(asset_root) != asset_root):
+            raise RuntimeError('Frozen custom assets require their own direct directory in the active preparation owner')
+        manifest = asset_root / 'custom-assets.json'
+        if manifest.is_symlink():
+            raise RuntimeError('Frozen custom asset receipt must be a regular owned file')
+        asset_manifest_pin = digest(manifest)
+    asset_pins = custom_asset_inventory(asset_root)
+    if asset_manifest_pin is not None:
+        if (json.loads(manifest.read_text())['files'] != asset_pins or
+                custom_asset_inventory(root) != asset_pins or digest(manifest) != asset_manifest_pin):
+            raise RuntimeError('Frozen custom assets must match their receipt and current Root inputs before qualification')
     map_pins = {name: digest(maps / name) for name in names}
     grenade_map_pins = {name: digest(maps / name)
                         for name, _ in GRENADE_SHADOW_CASES.values()}
@@ -1038,6 +1108,7 @@ def worker(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     atomic_json(output / 'source-hashes.json', pins)
+    atomic_json(output / 'custom-asset-source.json', asset_pins)
     report = dict(passed=False,
                   scope='qualified_candidate_only' if prepare_only else
                       'Owned frozen source cohort, launcher routing checks and MCC submitted-frame smoke'
@@ -1048,7 +1119,11 @@ def worker(args):
                   unresolved_case_failures=[], accepted_case_failures=[],
                   limits=['No full gameplay, Xbox framebuffer or audio parity claim'])
     report['reused_active_owned_build'] = reuse_owned_build
+    if asset_manifest_pin is not None:
+        report['custom_asset_input_cohort'] = dict(kind='owned_frozen', source=str(asset_root),
+            manifest_sha256=asset_manifest_pin, inventory_sha256=digest(output / 'custom-asset-source.json'))
     report['build_configuration'] = configuration
+    report['requested_additional_maps'] = sorted(set(getattr(args, 'qualify_map', [])))
     report['grenade_shadow_maps'] = grenade_map_pins
     report['smg_warthog_reference'] = smg_reference
     report['tu15_gameplay_reference'] = gameplay_reference
@@ -1061,6 +1136,9 @@ def worker(args):
         inventory_sha256=digest(output / 'source-hashes.json'))
     if cache_candidate is not None:
         report['cache_candidate'] = cache[0].relative_to(root).as_posix()
+    if reference_pins:
+        report['native_reference_cache'] = dict(path=reference_cache.relative_to(root).as_posix(),
+            sha256=reference_pins)
     promoted = False
     prepared = False
     candidate_qualified = False
@@ -1103,6 +1181,14 @@ def worker(args):
                    '--target', 'workshop_navigation_content_tests',
                    '--target', 'workshop_camera_shared_tests',
                    '--target', 'native_tu15_world_residuals_tests',
+                   '--target', 'native_tu15_overlap_query_handoff_tests',
+                   '--target', 'native_mcc_gravlift_contact_tu15_tests',
+                   '--target', 'native_mcc_custom_mechanics_tu15_tests',
+                   '--target', 'custom_mode_local_launch_tests',
+                   '--target', 'native_first_person_registry_tu15_tests',
+                   '--target', 'native_source_membership_tests',
+                   '--target', 'native_mcc_unit_equipment_profile_tu15_tests',
+                   '--target', 'native_mcc_custom_powerup_tu15_tests',
                    '--target', 'source_bsp_breakable_visibility_tu15_tests',
                    '--target', 'source_model_depth_input_tests',
                    '--target', 'world_effects_tests',
@@ -1155,7 +1241,15 @@ def worker(args):
                    'native_mcc_scenery_animation_(bootstrap|hs|named_hs|lifecycle|render_consumer|relative_consumer|inactive_control|gpu|relative_gpu)|'
                    'workshop_scenery_start|'
                    'original_object_name_lookup_tu15|original_workshop_camera_shared|'
-                   'workshop_empty_prop_content|workshop_navigation_content|native_world_residuals_model_tu15|'
+                   'workshop_empty_prop_content|workshop_navigation_content|native_world_residuals_model_tu15|native_overlap_query_handoff_tu15|'
+                   'native_mcc_gravlift_contact_(lockout|midship|coagulation)_[12]|'
+                   'native_mcc_custom_mechanics_tu15|'
+                   'native_mcc_custom_mode_(local|render)_launch|'
+                   'native_mcc_fp_registry_local_human|'
+                   'native_source_nonplaying_membership|'
+                   'native_cli_gameplay_routes_tu15|'
+                   'native_mcc_unit_(equipment_profile|vitality_observer)_tu15|'
+                   'native_mcc_custom_powerup_tu15|'
                    'source_bsp_breakable_visibility_tu15|native_source_model_depth_owners|'
                    'native_world_light_material_catalog|native_late_effect_light_creation|'
                    'original_tu15_hs_scalar_cast_constructor|'
@@ -1166,12 +1260,14 @@ def worker(args):
                    '--cmake-arg=-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=ON',
                    '--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF',
                    '--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON',
-                   '--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(root),
+                   '--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(asset_root),
                    '--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(root),
                    '--cmake-arg=-DHALO2_WORKSHOP_TEST_CACHE=' + str(cache[0]),
                    '--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=' + str(maps / default_map),
+                   '--cmake-arg=-DHALO2_MCC_ONLINE_PRESENTATION_MAP=' + str(maps / default_map),
+                   '--cmake-arg=-DHALO2_MCC_GRAVLIFT_MAP_DIRECTORY=' + str(maps),
                    '--cmake-arg=-DHALO2_OBJECT_FUNCTION_MCC_MAP=' + str(maps / 'coagulation.map'),
-                   '--cmake-arg=-DHALO2_MCC_NATIVE_LIBRARY_DIRECTORY=' + str(maps.parent.parent / 'native-shaders'),
+                   '--cmake-arg=-DHALO2_MCC_NATIVE_LIBRARY_DIRECTORY=' + str(reference_cache / 'native-shaders'),
                    '--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE=' + str(cache[0]),
                    '--cmake-arg=-DHALO2_MCC_WATER_MAP_DIRECTORY=' + str(maps),
                    '--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF',
@@ -1179,6 +1275,14 @@ def worker(args):
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
                    '--retain-report', 'engine-targets.txt',
                    '--retain-report', 'multiplayer-menu-startup.json',
+                   '--retain-report', 'custom-mechanics.json',
+                   '--retain-report', 'custom-mode-local-launch.json',
+                   '--retain-report', 'custom-mode-render-launch.json',
+                   '--retain-report', 'native_mcc_fp_registry_local_human.json',
+                   '--retain-report', 'native-cli-gameplay-routes.json',
+                   '--retain-report', 'native-unit-equipment-profile.json',
+                   '--retain-report', 'native-unit-vitality-observer.json',
+                   '--retain-report', 'native-custom-powerup.json',
                    '--retain-report', 'friends-footer-anchor.json',
                    '--retain-report', 'loop-audio-locations.json',
                    '--retain-report', 'smg-warthog-audio.json',
@@ -1208,6 +1312,12 @@ def worker(args):
             at = command.index('--filter') + 1
             command[at] = command[at][:-2] + ('|original_loading_gpu|original_loading_gpu_4_3|native_vista_loading_adapter|h2ek_loading_onboarding|'
                 'bundled_loading_ambience|original_vista_loading|original_vista_loading_thread)$')
+        if getattr(args, 'terminal_display_checks', False):
+            command.extend(['--target', 'source_machine_scene_tests', '--target', 'source_machine_portal_tests',
+                            '--target', 'source_object_lod_scene_tests'])
+            at = command.index('--filter') + 1
+            command[at] = command[at][:-2] + '|retail_source_machine_scene|retail_source_machine_portal|retail_source_object_lod_scene)$'
+            report['terminal_display_checks_requested'] = True
         if audio_image:
             command.extend(['--target', 'multiplayer_audio_runtime_tests',
                             '--target', 'multiplayer_audio_tests', '--target', 'mcc_sound_rate_tests',
@@ -1268,6 +1378,8 @@ def worker(args):
             raise RuntimeError('Engine qualification requires completed passing CTest checks')
         if source_hashes(source)!=pins:
             raise RuntimeError('Frozen engine source changed during qualification')
+        if any(digest(reference_cache / relative) != pin for relative, pin in reference_pins.items()):
+            raise RuntimeError('Native reference cache changed during qualification')
         if smg_warthog_reference(source, maps) != smg_reference:
             raise RuntimeError('SMG Warthog audio reference changed during qualification')
         if digest(build/'halo2_native')!=executable_pin:
@@ -1297,7 +1409,7 @@ def worker(args):
         # An active frozen cohort can predate CMake's custom-source target.
         # Asset delivery has its own current, pinned owner, so stage it through
         # this coordinator even when that older build did not create a bank.
-        staged_assets = install_custom_assets(root, build / 'custom-assets')
+        staged_assets = install_custom_assets(asset_root, build / 'custom-assets')
         if staged_assets['files'] != asset_pins:
             raise RuntimeError('Custom assets changed during the engine build; existing runtime retained')
         report['wiring'] = wiring(build / 'engine-targets.txt', source)
@@ -1366,7 +1478,8 @@ def worker(args):
                 raise RuntimeError('Packaged renderer 4K frame qualification failed; existing launcher selection retained')
             if digest(runtime) != executable_pin:
                 raise RuntimeError('Packaged renderer executable changed after its compiled shader qualification')
-        if (source_hashes(source) != pins or custom_asset_inventory(root) != asset_pins or
+        if (source_hashes(source) != pins or custom_asset_inventory(asset_root) != asset_pins or
+                (asset_manifest_pin is not None and digest(manifest) != asset_manifest_pin) or
                 any(digest(maps / name) != pin for name, pin in map_pins.items()) or
                 any(digest(maps / name) != pin for name, pin in grenade_map_pins.items())):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
@@ -1441,6 +1554,8 @@ def main():
     parser.add_argument('--config', choices=('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel'),
                         default='Release', help='CMake build configuration (default: Release)')
     parser.add_argument('--timeout', type=float, default=180)
+    parser.add_argument('--qualify-map', action='append', default=[], metavar='NAME.map',
+                        help='Also require this MCC multiplayer cache to pass submitted-frame qualification')
     parser.add_argument('--status', action='store_true')
     parser.add_argument('--runtime', type=Path)
     parser.add_argument('--eos-client-config', type=Path,
@@ -1459,8 +1574,16 @@ def main():
                         help='Qualify and retain a candidate without publishing ROOT launchers or selections')
     parser.add_argument('--baseline-selection',
                         help='Validate this project-relative qualified selection as the preparation baseline; requires --prepare-only')
+    parser.add_argument('--baseline-cache', type=Path,
+                        help='Verify the named baseline against its own private MCC cache; requires --baseline-selection')
+    parser.add_argument('--frozen-custom-asset-root', type=Path,
+                        help='Use a verified staged custom asset source inside the active owned preparation')
+    parser.add_argument('--terminal-display-checks', action='store_true',
+                        help='Require the selected terminal machine, portal and object LOD reference checks')
     parser.add_argument('--cache-candidate', type=Path,
                         help='Qualify this verified private MCC cache without selecting it during preparation')
+    parser.add_argument('--native-reference-cache', type=Path,
+                        help='Use this verified private MCC cache for shader reference checks; requires --prepare-only')
     parser.add_argument('--renderer-4k-reference-control', action='append', default=[], metavar='NAME=VALUE',
                         help='Require four Original/Off 4K parity cases on this exact packaged runtime versus these reference environment controls before publication (repeatable)')
     args = parser.parse_args()
@@ -1468,6 +1591,12 @@ def main():
         parser.error('--reuse-owned-build requires --worker inside an active run_test.py coordinator')
     if args.baseline_selection and not args.prepare_only:
         parser.error('--baseline-selection requires --prepare-only')
+    if args.baseline_cache and not args.baseline_selection:
+        parser.error('--baseline-cache requires --baseline-selection')
+    if args.native_reference_cache and not args.prepare_only:
+        parser.error('--native-reference-cache requires --prepare-only')
+    if args.frozen_custom_asset_root and not (args.prepare_only and args.reuse_owned_build):
+        parser.error('--frozen-custom-asset-root requires --prepare-only and --reuse-owned-build')
     if args.status:
         if args.runtime and (args.root / 'CMakeLists.txt').is_file():
             print(source_status(args.root, args.runtime))

@@ -162,6 +162,7 @@ void usage() {
       << "  halo2_native --validate-systems DIRECTORY\n"
       << "  halo2_native --map PATH --simulate TICKS [--weapon NAME] "
          "[--place-squad NAME] [--script NAME]\n"
+      << "  MCC gameplay uses its authored scenario type: multiplayer Play/simulation joins the native match world; campaign simulation uses the native campaign world.\n"
       << "  --campaign activates authored startup/dormant/continuous scripts; "
          "unsupported mission services report faults.\n"
       << "  --bsp-replay TARGET --frames 6 exercises native streaming and checkpoint restore.\n"
@@ -980,7 +981,7 @@ int main(int argc, char **argv) {
       play = !launch->workshop_preview;
       if (launch->workshop_preview) mcc_preview = true;
     }
-    if(multiplayer) {
+    const auto run_multiplayer_scene=[&] {
       multiplayer_options.desktop = desktop;
       if(campaign)throw std::runtime_error("Choose either campaign or multiplayer");
       multiplayer_options.map=map;multiplayer_options.bsp=bsp;multiplayer_options.frames=frame_limit;
@@ -994,14 +995,40 @@ int main(int argc, char **argv) {
       if(!multiplayer_loop_audio_report.empty())
         return halo2::app::run_loop_audio_capture(multiplayer_options,multiplayer_loop_audio_report);
       return halo2::run_multiplayer(multiplayer_options, outcome);
-    }
+    };
+    if(multiplayer)return run_multiplayer_scene();
     if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","cache_begin"}});
     const auto gameplay_data=multiplayer_options.gameplay_xbe.empty()
         ?std::shared_ptr<const halo2::OriginalData>{}
         :halo2::OriginalData::load_xbe(multiplayer_options.gameplay_xbe);
-    const halo2::Cache cache=prepared_mcc_cache_root
-        ?halo2::Cache(map,multiplayer_options.shared_maps,gameplay_data,*prepared_mcc_cache_root)
-        :halo2::Cache(map,multiplayer_options.shared_maps,gameplay_data);
+    auto scene_cache=prepared_mcc_cache_root
+        ?std::make_unique<halo2::Cache>(map,multiplayer_options.shared_maps,gameplay_data,*prepared_mcc_cache_root)
+        :std::make_unique<halo2::Cache>(map,multiplayer_options.shared_maps,gameplay_data);
+    const bool requested_gameplay=play || simulate || !weapon_name.empty() ||
+        !squad_name.empty() || !script_name.empty();
+    if(scene_cache->is_mcc() && requested_gameplay) {
+      if(!scene_cache->original_data() ||
+          scene_cache->original_data()->image!=halo2::OriginalData::Image::TitleUpdate15)
+        throw halo2::FormatError("MCC gameplay requires the TU1.5 source mechanics owner");
+      // The literal scenario type owns gameplay admission. load_content's
+      // multiplayer_spawn is optional data selected by that API's caller;
+      // a generic scene load cannot use its absence to select campaign rules.
+      const auto type=scene_cache->load_source_geometry_scenario_type();
+      if(type==1) {
+        if(campaign || reference_capture || !weapon_name.empty() || !squad_name.empty() ||
+            !script_name.empty() || !camera_graph.empty() || !first_person_action.empty() ||
+            bsp_replay || diagnostic || use_overview || resize_test || !sound_name.empty() ||
+            !play_sound_name.empty() || !loop_sound_name.empty())
+          throw halo2::FormatError("MCC multiplayer gameplay requires native multiplayer inputs; scene/campaign fixtures cannot select another mechanics owner");
+        // Release classification resources before the canonical prepared
+        // match acquires its own cache and source World.
+        scene_cache.reset();
+        return run_multiplayer_scene();
+      }
+      if(type!=0)
+        throw halo2::FormatError("Selected MCC scenario has no campaign or multiplayer gameplay owner");
+    }
+    const auto &cache=*scene_cache;
     if(reference_capture && (!cache.is_mcc() || !cache.original_data() ||
         cache.original_data()->image!=halo2::OriginalData::Image::TitleUpdate15))
       throw halo2::FormatError("Campaign reference capture requires genuine MCC content with the TU1.5 source owner");
@@ -1100,7 +1127,7 @@ int main(int argc, char **argv) {
     std::map<halo2::MultiplayerAudio::Voice,halo2::MultiplayerAudioSubmission> scripted_speech;
     std::map<halo2::MultiplayerAudio::Voice,std::int32_t> traced_scripted_voice_volumes;
     const auto campaign_source=[&](std::size_t selected) -> std::shared_ptr<halo2::CampaignSourceRuntime> {
-      if(!play || !content || content->multiplayer_spawn ||
+      if(!requested_gameplay || !content || cache.load_source_geometry_scenario_type()!=0 ||
           cache.original_data()->image!=halo2::OriginalData::Image::TitleUpdate15)return {};
       if(cache.is_mcc()) {
         auto result=std::make_shared<halo2::CampaignSourceRuntime>(cache,
@@ -3172,9 +3199,7 @@ int main(int argc, char **argv) {
                     // ordinary units retain the native collector's coverage,
                     // including coverage inherited by attached model owners.
                     if(hologram_owns(object.handle) && draw.override_slot!=255)continue;
-                    if(draw.override_slot!=255 || (draw.lighting_class!=1 && draw.lighting_class!=2 &&
-                       !(draw.lighting_class==3 && v.source_cinematic_model->section_materials())) ||
-                       (!(draw.unit.words[0]&1u) && !v.source_cinematic_model->section_materials())) {
+                    if(!v.source_cinematic_model->admits_ordinary_draw(draw)) {
                       if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","scenery_rejected"},
                           {"frame",frames},{"tick",simulation->ticks()},{"owner",object.handle},
                           {"definition",placement.definition},{"placement",object.placement},{"ordinal",draw.ordinal},

@@ -2,6 +2,7 @@
 #include <memory>
 namespace halo2 {
 class Cache;
+class SourceRuntimeResources;
 struct MccOriginalSoundRuntimeInputTu15;
 class PreparedOriginalSoundCatalogBindingTu15;
 // One match-scoped preparation of the exact authenticated resident/shared
@@ -20,6 +21,10 @@ public:
     // a repeated consumer rejects instead of falling back to ordinary assets.
     SourceRuntimeResourcePreparation(std::shared_ptr<const Cache>,const MccOriginalSoundRuntimeInputTu15&);
     SourceRuntimeResourcePreparation(std::shared_ptr<const Cache>,const PreparedOriginalSoundCatalogBindingTu15&);
+    // Stage a separate single-consumer handoff from a same-Cache resource
+    // owner that still has its unpublished MCC metadata. The new World
+    // publishes its own tag bank and timing lease.
+    SourceRuntimeResourcePreparation(std::shared_ptr<const Cache>,const SourceRuntimeResources&);
     ~SourceRuntimeResourcePreparation();
     SourceRuntimeResourcePreparation(const SourceRuntimeResourcePreparation&)=delete;
     SourceRuntimeResourcePreparation& operator=(const SourceRuntimeResourcePreparation&)=delete;

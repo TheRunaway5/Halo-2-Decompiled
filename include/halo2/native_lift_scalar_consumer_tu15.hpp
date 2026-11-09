@@ -5,6 +5,17 @@
 #include <functional>
 #include <thread>
 namespace halo2 {
+struct NativeTu15PhysicsFrameFp;
+class NativeTu15RetainedStoreObserver;
+enum class NativeTu15LiftVelocityPhase { add_linear, set_angular };
+struct NativeTu15LiftVelocityDelivery {
+  NativeTu15LiftVelocityPhase phase;
+  std::uint32_t component, slot, caller_vector;
+  unsigned incoming_x87_depth;
+};
+using NativeTu15LiftVelocityService = std::function<void(SourcePhysicsContactMemory &,
+    const NativeTu15LiftVelocityDelivery &, NativeTu15PhysicsFrameFp &,
+    const NativeTu15RetainedStoreObserver &)>;
 struct NativeLiftScalarConsumerTu15 {
   std::uint32_t call_site{},entry_stack{},stack_pointer{},scratch_word{},fs_base{},continuation{};
   bool allow_reverse{};
@@ -16,6 +27,8 @@ struct NativeLiftScalarConsumerTu15 {
 struct NativeLiftScalarActivityTu15 {
   std::array<std::uint64_t,4> caller_calls{};
   std::uint64_t power_calls{},errno_writes{},observation_refusals{};
+  std::array<std::uint64_t,2> velocity_attempts{}, velocity_completed{}, velocity_observed_stores{};
+  std::uint64_t velocity_refusals{};
 };
 struct NativeLiftScalarConsumerPolicyTu15 {
   std::uint32_t caller_stack_begin{},caller_stack_end{}; // Exclusive end.
@@ -24,6 +37,12 @@ struct NativeLiftScalarConsumerPolicyTu15 {
   const bool* second_trace{};
   bool observation_only_stores{};
   NativeLiftScalarActivityTu15* world_activity{};
+  // Typed DATA-only owner of the two direct1DA750 velocity calls. Live scope
+  // never falls through to the old executor when this owner is unavailable.
+  NativeTu15LiftVelocityService deliver_velocity;
+  std::function<std::uint16_t(SourcePhysicsContactMemory &, std::uint32_t object,
+      bool direct, std::uint32_t marker, std::int16_t capacity, std::uint32_t destination,
+      NativeTu15PhysicsFrameFp &)> request_marker;
 };
 // An owning native world can admit its real retained caller stack and readonly
 // collector without importing legacy machine-dispatch capabilities. The scope

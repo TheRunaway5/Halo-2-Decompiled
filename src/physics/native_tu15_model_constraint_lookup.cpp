@@ -29,17 +29,7 @@ class Lookup {
     const SourcePhysicsContactMemory&memory_;NativeTu15PhysicsFrameFp&fp_;NativeTu15ModelConstraintLookupStats*stats_;
     std::uint32_t word(std::uint32_t p,unsigned width=4)const{return read(memory_,p,width);}
     bool visible(std::uint32_t first,std::uint32_t second){ //22E0D0
-        if(stats_)++stats_->body_visibility_queries;
-        const auto objects=word(0x4ecbd0u),manager=word(0x52be5cu);
-        const auto is_biped=[&](std::uint32_t datum){
-            if(datum==0xffffffffu)return false;
-            const auto components=word(manager+0x44u),object=word(components+(datum&0xffffu)*160u+8u),headers=word(objects+0x44u),type=word(headers+(object&0xffffu)*12u+3u,1);
-            return((1u<<(type&31u))&1u)!=0;
-        };
-        const auto first_biped=is_biped(first),second_biped=is_biped(second);bool first_visible=true,second_visible=true;
-        if(first_biped){const auto bank=word(manager+0x44u);first_visible=(word(bank+(first&0xffffu)*160u+4u)&0x800u)!=0;}
-        if(second_biped){const auto bank=word(manager+0x44u);second_visible=(word(bank+(second&0xffffu)*160u+4u)&0x800u)!=0;}
-        return first_visible&&second_visible;
+        return native_tu15_model_constraint_bodies_visible(memory_,first,second,stats_);
     }
     bool matching(std::uint32_t instance,std::uint32_t request,std::uint32_t flags){ //22DEF0
         const auto request_kind=short_signed(word(request+0x3au,2)),instance_kind=short_signed(word(instance+0x9cu,2));
@@ -83,6 +73,22 @@ public:
         }
     }
 };
+}
+bool native_tu15_model_constraint_bodies_visible(const SourcePhysicsContactMemory&memory,
+ std::uint32_t first,std::uint32_t second,NativeTu15ModelConstraintLookupStats*stats){
+    if(stats)++stats->body_visibility_queries;
+    const auto objects=read(memory,0x4ecbd0u),manager=read(memory,0x52be5cu);
+    const auto is_biped=[&](std::uint32_t datum){
+        if(datum==0xffffffffu)return false;
+        const auto components=read(memory,manager+0x44u),object=read(memory,components+(datum&0xffffu)*160u+8u);
+        const auto headers=read(memory,objects+0x44u),type=read(memory,headers+(object&0xffffu)*12u+3u,1);
+        return((1u<<(type&31u))&1u)!=0;
+    };
+    const auto first_biped=is_biped(first),second_biped=is_biped(second);
+    bool first_visible=true,second_visible=true;
+    if(first_biped){const auto bank=read(memory,manager+0x44u);first_visible=(read(memory,bank+(first&0xffffu)*160u+4u)&0x800u)!=0;}
+    if(second_biped){const auto bank=read(memory,manager+0x44u);second_visible=(read(memory,bank+(second&0xffffu)*160u+4u)&0x800u)!=0;}
+    return first_visible&&second_visible;
 }
 std::uint32_t native_tu15_find_model_constraint(const SourcePhysicsContactMemory&memory,
  NativeTu15PhysicsComponent component,NativeTu15ModelConstraintRequest request,std::uint32_t flags,

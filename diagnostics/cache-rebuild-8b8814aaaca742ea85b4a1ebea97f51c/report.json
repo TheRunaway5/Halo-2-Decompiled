@@ -1,0 +1,218 @@
+{
+  "passed": true,
+  "runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+  "runtime_sha256": "7a3ee8d20aadf15caac6ad797ad2f83042fe3f19d0a5e87018ab7359e70c9e98",
+  "cases": [
+    {
+      "name": "intro",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 7.266651656012982,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-se4nz_pr/intro.ppm",
+        "--menu-screen",
+        "9",
+        "--movie-frame",
+        "100"
+      ],
+      "capture_sha256": "5806aa91671acbce29c336479298c87bb34e1a497c036fc3d79f0bfa04b59e11",
+      "capture_bytes": 2073615
+    },
+    {
+      "name": "title",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 8.117789698007982,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-se4nz_pr/title.ppm",
+        "--menu-screen",
+        "9",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 7205,
+        "last_clear_ui_clock_ms": 7255,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4120,
+        "warmup_frames": 237
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            1,
+            255
+          ],
+          [
+            2,
+            255
+          ],
+          [
+            4,
+            255
+          ]
+        ]
+      },
+      "capture_sha256": "223110f228135d99aeb8b231980c5ef6129a976f43120b38a646dcaba7c3909b",
+      "capture_bytes": 2073615
+    },
+    {
+      "name": "main-menu",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 8.170532922958955,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-se4nz_pr/main-menu.ppm",
+        "--menu-screen",
+        "6",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 7302,
+        "last_clear_ui_clock_ms": 7352,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4118,
+        "warmup_frames": 243
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "capture_sha256": "1ca1107275ade5b79fa1ec05675c4399d216c9b5a1983cc58c7cb441e4facde1",
+      "capture_bytes": 2073615
+    },
+    {
+      "name": "online-sign-in",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 8.172033614013344,
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+        "--menu-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--shared-maps",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11",
+        "--hidden",
+        "--mute",
+        "--frames",
+        "4",
+        "--screenshot",
+        "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-se4nz_pr/online-sign-in.ppm",
+        "--menu-screen",
+        "20",
+        "--skip-intro",
+        "--menu-wait-intro-clear"
+      ],
+      "intro_clear": {
+        "clear_observed": true,
+        "first_clear_ui_clock_ms": 7351,
+        "last_clear_ui_clock_ms": 7395,
+        "qualified_frames": 4,
+        "schema": "H2_FRONTEND_INTRO_CLEAR_CAPTURE_V1",
+        "wait_budget_ms": 30000,
+        "waited_ms": 4120,
+        "warmup_frames": 242
+      },
+      "visible_frame": {
+        "size": [
+          960,
+          720
+        ],
+        "nonblack_bbox": [
+          0,
+          0,
+          960,
+          720
+        ],
+        "channel_extrema": [
+          [
+            0,
+            240
+          ],
+          [
+            0,
+            246
+          ],
+          [
+            0,
+            254
+          ]
+        ]
+      },
+      "capture_sha256": "1b608fc79d458088301ff2535e5217612c51a8ddb4cff3be2f1836600eb8b358",
+      "capture_bytes": 2073615
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/.cache-check-se4nz_pr",
+  "optional_intro_movie": "checked",
+  "limits": "Four rendered menu frames per screen after the actual source map intro clears; supplied intro frame 100 also checked. Real account sign-in and completed online gameplay remain unverified."
+}

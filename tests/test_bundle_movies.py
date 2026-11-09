@@ -97,6 +97,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
         custom_map_fixture(self.source)
         custom_loading_fixture(self.source)
         permitted_source_policy_fixture(self.source)
+        bundle_fixture(self.source)
         # Preflight-only executable: these publication fixtures never execute
         # it or claim decoder/media qualification. The codebook keeps its real
         # fixed source identity; no original loading tone is a default input.
@@ -174,7 +175,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
         self.assertTrue(result["preflight_reached_owned_stage"])
         self.assertEqual(list(self.output.parent.iterdir()), [self.output])
 
-    def test_real_assembly_has_no_reference_prompt_or_movie_closure(self):
+    def test_real_assembly_bundles_the_two_original_movies(self):
         """Actual staging/manifest/ZIP route; ELF/platform execution is mocked.
 
         This qualifies dependency omission and preservation only, not a working
@@ -191,6 +192,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
             (decoder_tools / name).write_bytes(b'# not executed: ' + name.encode())
         layout_fixture(self.source)
         (self.source / 'resources/launcher.svg').write_bytes(b'<svg/>')
+        (self.source / 'resources/launcher').mkdir()
         licenses = self.source / 'resources/licenses'
         licenses.mkdir()
         (licenses / 'notice.txt').write_bytes(b'fixture notice')
@@ -225,18 +227,11 @@ class PreviewPackageMoviesTest(unittest.TestCase):
                     bank.mkdir(parents=True)
                     sentinel = bank / 'manifest.json'
                     sentinel.write_bytes(b'custom old reference bank; deliberately invalid')
-                    supplied = self.source / 'resources/movies'
-                    supplied.mkdir()
-                    (supplied / 'manifest.json').write_bytes(b'invalid preserved movie metadata')
-                    (supplied / 'intro_60.mp4').write_bytes(b'invalid preserved intro')
-                    (supplied / 'credits_60.mp4').write_bytes(b'invalid preserved credits')
-                    source_manifest = self.source / 'resources/movie-manifest.json'
-                    source_manifest.write_bytes(b'invalid preserved source manifest')
                     playback = self.source / 'resources/movie-playback'
                     playback.mkdir()
                     (playback / 'intro.hevc.mp4').write_bytes(b'preserved optional playback copy')
                     (playback / 'manifest.json').write_bytes(b'preserved optional playback owner')
-                    preserved = [sentinel, source_manifest, *supplied.iterdir(), *playback.iterdir()]
+                    preserved = [sentinel, *playback.iterdir()]
                 before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in preserved}
                 with patch.object(preview_package, 'verify_bundled_prompts', side_effect=AssertionError('Reference preflight selected')), \
                      patch.object(preview_package, 'copy_bundled_prompts', side_effect=AssertionError('Reference bank copied')), \
@@ -254,7 +249,6 @@ class PreviewPackageMoviesTest(unittest.TestCase):
                     result = self.package()
                 self.assertFalse(result['stage_retained'])
                 self.assertNotIn('authored_prompt_source_files', result)
-                self.assertNotIn('bundled_movie_payload_bytes', result)
                 with zipfile.ZipFile(self.output) as archive:
                     names = archive.namelist()
                     prefix = self.output.stem + '/'
@@ -266,7 +260,7 @@ class PreviewPackageMoviesTest(unittest.TestCase):
                     self.assertIn('data/tags/variants/bomb-defusal-v1.json', manifest['bundled_native_variants']['files'])
                     self.assertEqual(set(manifest['bundled_custom_assets']['groups']), {
                         'native_variants', 'controller_prompts', 'custom_ui', 'custom_maps', 'custom_loading',
-                        'permitted_source_policies'})
+                        'permitted_source_policies', 'bundled_movies'})
                     for name, row in manifest['bundled_custom_assets']['files'].items():
                         payload = archive.read(prefix + name)
                         self.assertEqual(hashlib.sha256(payload).hexdigest(), row['sha256'])
@@ -275,18 +269,31 @@ class PreviewPackageMoviesTest(unittest.TestCase):
                         self.assertEqual(archive.read(prefix + 'tools/macos/' + name),
                                          (decoder_tools / name).read_bytes())
                     self.assertNotIn('authored_prompts', manifest)
-                    self.assertNotIn('bundled_movies', manifest)
+                    bundled = manifest['bundled_movies']
+                    self.assertEqual(bundled, manifest['bundled_custom_assets']['groups']['bundled_movies'])
+                    self.assertEqual(bundled['roles'], {role: f'resources/movies/{role}_60.mp4'
+                                                       for role in ('intro', 'credits')})
+                    for name in bundled['roles'].values():
+                        member = archive.getinfo(prefix + name)
+                        self.assertEqual(member.compress_type, zipfile.ZIP_STORED)
+                        self.assertEqual(archive.read(member), (self.source / name).read_bytes())
                     self.assertIn('Controller artwork files are included.', readme)
                     self.assertNotIn('for each local player', readme)
                     self.assertIn('Menus use imported MCC fonts.', readme)
-                    self.assertIn('Intro, credits and attract remain unavailable', readme)
+                    self.assertIn('bundled 4K60 intro and credits', readme)
                     self.assertFalse(any('/resources/presentation/prompts/' in name or '/presentation/prompts/' in name for name in names))
-                    self.assertFalse(any('/resources/movies/' in name or '/presentation/movies/' in name or
-                                         '/resources/movie-playback/' in name or name.endswith('/resources/movie-manifest.json')
+                    self.assertFalse(any('/presentation/movies/' in name or '/resources/movie-playback/' in name
                                          for name in names))
-                    self.assertFalse(any(name.endswith(('/intro_60.mp4', '/credits_60.mp4', '/intro.hevc.mp4')) for name in names))
                 self.assertEqual({p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in preserved}, before)
                 self.assertFalse(any(self.output.parent.glob('.mcc-package-*')))
+
+    def test_missing_bundled_credits_prevents_package_staging(self):
+        (self.source / 'resources/movies/credits_60.mp4').unlink()
+        with patch.object(preview_package, '_assemble') as assemble:
+            with self.assertRaisesRegex(ValueError, 'Bundled movie extent differs'):
+                self.package()
+        assemble.assert_not_called()
+        self.assertFalse(self.output.parent.exists())
 
     def test_missing_loading_converter_stops_package_before_staging(self):
         self.converter.unlink()

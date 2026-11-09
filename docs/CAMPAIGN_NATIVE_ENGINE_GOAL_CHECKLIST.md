@@ -1,6 +1,8 @@
 # Native TU1.5 campaign engine implementation
 
-Started October 28, 2026. Goal status: **active; incomplete**.
+Started October 28, 2026. Implementation is **active and incomplete**.
+The goal service currently reports blocked automatic continuation despite the
+user's resume. Current-turn authorized implementation continues.
 
 October30 user clarification: cutscene audio, sound effects and dialogue must
 also be 1:1 native kernels. Full campaign completion requires their generic
@@ -18,6 +20,35 @@ authenticates the original console-mode query and its projection/aperture
 consumers. Current PC drawable-aspect adaptation remains a separate extension.
 The user identifies the reference as TU1.5 but does not know its widescreen
 setting; the video's aspect ratio does not establish that setting.
+The user selected widescreen as the preferred native-build default because
+most players use widescreen displays. Use Xbox 16:9 by default and retain a
+separate 4:3 selection. Resolution scaling must follow that explicit choice.
+This preference does not identify the reference console's setting. The
+[private settings implementation](../analysis/campaign-camera-20261030/native-display-settings-r3/report.json)
+now includes persistence, the format picker, adapter rollback and default
+restoration. Its compatibility successor appends the new member after all
+18 existing aggregate fields. Fresh actual MenuState CPU tests pass 58,817
+checks, with another 119 transition-asset checks. Compiler negatives reject
+the earlier inserted layout and an incorrect omitted-field default. The
+[independent review](../analysis/campaign-camera-20261030/native-display-settings-r2-independent-root-review-r1.json)
+verifies both sealed packages and the exact two-file forward/reverse patch.
+The original renderer-linked target and pause/MCC
+runtime tests remain open. Runtime admission, complete-frame presentation
+binding and composed validation remain open.
+The latest two-file successor preserves the selected format during a pause
+graphics reset and restores widescreen during a main-menu reset. Its new
+ordinary MenuState regression fails against the previous handler and passes
+after the correction.
+
+The [Arbiter environment followup](../analysis/campaign-camera-20261030/arbiter-env-source-followup-r1/report.json)
+joins the Original vertex program and declaration to the actual captured AOT
+module. Perspective weights derived from the retained projected triangle
+reproduce the measured basis within 1.28e-7 and eye vector within 9.16e-8.
+The measured cube coordinates also agree with the authored dot/reflection
+expressions. These checks support no basis correction. The next discriminator
+requires the three local vertices, their skin bindings and the completed
+palette that produced the captured post-skin attributes. Xbox shading and
+framebuffer acceptance remain open.
 
 Implement the missing capabilities in [the audit](CAMPAIGN_NATIVE_KERNEL_AUDIT_20261028.md) as generic native semantic TU1.5 kernels, so imported tags, authored Halo scripts, AI and cinematic sequences run with original behavior. The native Halo script VM may interpret game-script data. Xbox CPU emulation, instruction lifting, executable-backed gameplay and per-mission replacements do not qualify. Original executable execution is an independent offline reference only.
 
@@ -351,6 +382,16 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   [corner-specific recheck](../analysis/campaign-camera-20261030/earth-corner-followup-r1/retained-corner-red.json)
   show that V13 still exposes the poster edge at the far upper-right corner:
   the old strip excluded those rows and is not full Earth-pan acceptance.
+  The [current sky-selection audit](../analysis/campaign-camera-20261030/sky-selector-current-rebase-r1/report.json)
+  finds missing per-retry context reads and intervening auxiliary owners in
+  the typed admission path. A [private native fragment](../analysis/campaign-camera-20261030/sky-selector-raw-fragment-r1/report.json)
+  now preserves the real incoming context cell, held WORD, partial registers,
+  flags and access order across all23 authenticated sites. Three compiler
+  configurations,330 authored cases each and16 compiled negatives pass;
+  Root independently reviews the actual Xbox bytes and current dependencies.
+  Its parent loop and auxiliary children remain open, and it is unbound.
+  The retained Earth mapping is NONE. Projection/scaling, the actual upper
+  corner and full Original presentation remain separate acceptance gates.
   These bounded checks leave the recorded
   Armory, complete native audio, hologram image-quality and whole-campaign
   gates open.
@@ -641,7 +682,21 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   in the retained region. It changes diagnostic classification only; the old
   capture remains rejected and no color/alpha metrics were accepted. New
   one-frame alpha and exact3001 Council capture adapters are CPU-qualified
-  and independently reviewed, awaiting the R7 build and idle capture lease.
+  and independently reviewed. The R7 cold build was interrupted before a
+  runtime was produced; its owner is removed and these captures have not run.
+  The [R8 exact1401 observation](../analysis/campaign-camera-20261030/arbiter-alpha-r8-epoch2-exact1401-r3-root-observation-review.json)
+  accepts3,090 strict-interior, same-D24 candidates. Destination alpha is
+  nonzero at3,083 candidates, with an RGB change across the environment pass
+  at2,786. This bounds the alpha diagnosis without proving unique fragment
+  ownership or expected Xbox lighting. The [unchanged draw replay](../analysis/campaign-camera-20261030/arbiter-fragment-replay-candidate-r8-r1/report.json)
+  reproduces all4,096 captured post-environment pixels exactly on theRTX5080.
+  The [hardware fragment observer](../analysis/campaign-camera-20261030/arbiter-fragment-observer-candidate-r8-r1/report.json)
+  preserves that equality in all four observation groups and identifies an
+  actual passing primitive216 at pixel500,259. It records real lookup
+  coordinates, texture results and unblended output, with zero Vulkan
+  validation errors. Root rehashes the sealed evidence and checks the output
+  and PrimitiveID controls. Upstream basis, original cube sampling/combiner
+  arithmetic, gold highlights and Xbox framebuffer acceptance remain open.
 - [ ] **Actual post-cutscene crash:** the user's log reaches01a_tutorial and
   fails at tick10 in actual root1D0670, callback1B0AD9→1BBEE0. The tight native
   Armory reproduction matches its actor, descriptor and GP/stack packet.
@@ -702,14 +757,119 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   references. The R7 continuation carries exact epoch7 source files and raw
   links into a new owned source tree, with no build or acceptance transferred.
   Its [first reviewed refresh](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r7/refresh-001/root-admission.json)
-  admits the same E04B0 closure; a fresh full build is active. V13 remains
-  launcher-selected.
+  admits the same E04B0 closure. Its [official build report](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r7/execution/epochs/epoch-001/build-validation/report.json)
+  records an interrupted build with no result or executed validation. Root's
+  [terminal and cleanup recheck](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r7/root-interruption-and-cleanup.json)
+  verifies the source/build owner and its exact processes are gone. No R7
+  runtime, replay or visual acceptance exists. A bounded recovery leaves62
+  original inputs unavailable, so it does not establish an exact restoration.
+  The [new R8 snapshot and rebase](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/source-and-rebase-root-review.json)
+  freezes14,326 current worktree inputs, preserves unrelated newer changes,
+  and admits64 reviewed campaign files after fresh five-TU GCC/Clang/sanitizer
+  qualification. Its first full build and speech test pass. The [actual R8
+  natural replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/execution/captures/capture-001-epoch-001/root-review.json)
+  reaches Armory25 after loading, then exits at actualE246C→202660, returning
+  toE2471. This is a reproduced native-runtime failure, not a completed
+  handoff. Required replay references total6,316,219 bytes; raw scratch and
+  the private audio sink are removed. No earlier acceptance transfers.
+  Required refresh-source postimages retain32,932,477 bytes; their
+  derived32,414,959-byte historical copies are removed. V13 remains selected.
   The [35-site BCDF0 lookup](../analysis/campaign-native-ai-actions-20261030/action-object-datum-lookup-abi-r1/report.json)
   and [13-site E22C0 reset](../analysis/campaign-native-ai-actions-20261030/action-object-reset-abi-r1/report.json)
   now pass bounded raw-ABI component tests and independent source reviews.
   Each preserves real memory/stack reads and ordered stores; no new Original
-  execution or comparisons were performed. Their caller compositions and
-  actual runtime branches remain separate, unfinished gates.
+  execution or comparisons were performed. The [combined real-call caller](../analysis/campaign-native-ai-actions-20261030/action-object-reset-caller-r1/report.json)
+  now passes three compiler configurations, including the real lookup/reset
+  branches in the whole Root tests, actual RET guards and compiled negatives.
+  The R8 context check finds60 of61 old compiler inputs unchanged and refuses
+  transfer for the changed weapon-effects source. The [fresh eight-TU caller
+  qualification](../analysis/campaign-native-ai-actions-20261030/action-object-navigation-body-caller-r1/report.json)
+  consumes the actual changed source in all three compiler configurations,
+  with ten compiled/executed negatives and independent source review. The
+  [second R8 admission](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/refresh-002/root-admission.json)
+  adds the genuine navigation/body/lookup/reset calls, diagnostic facing-sign
+  correction and deferred hologram test. Its full build and speech test pass.
+  The second natural replay reaches the sameE246C→202660 boundary.
+  The [third admission](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/refresh-003/root-admission.json)
+  adds the genuine149-site route-selection prefix and its integer/SSE
+  children. Full build, speech and both focused CTests pass. The [actual
+  third replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/execution/captures/capture-003-epoch-003/root-review.json)
+  advances to202800→123210 with actual pushed return202805, then exits1
+  at post-loading Armory25. Its collection gate fails because the observed
+  timeline reaches5247 against the declared5400 minimum. Speech diagnostics
+  also exhaust their budget. The runtime failure is reproduced, while full
+  collection, speech coverage and gameplay handoff remain open.
+  The [exact Source3 archive](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r8/retained-source3/retention.json)
+  retains116,257,739 bytes as a required continuation reference, with every
+  member verified against the frozen manifest and raw-link topology. Root
+  ended the finite coordinator and verified removal of its source/build
+  owner. The campaign launcher still selectsV13.
+  The [27-site native111D10 leaf](../analysis/campaign-native-ai-actions-20261030/action-111d10-abi-r2/report.json)
+  passes146 authored cases per compiler configuration,47 operand fault cuts,
+  observer/instruction refusals and eight rejected compiled mutants. Root
+  independently checks its static Xbox bytes and exact20-input recovered
+  dependency closure. The earlier observer-fixture failure is preserved;
+  no parent binding, direct Original execution comparison or gameplay
+  acceptance is implied. The [109-site parent prefix](../analysis/campaign-native-ai-actions-20261030/action-body-point-direction-prefix-abi-r1/report.json)
+  now owns100 sites, including genuine111D10 and218B20 calls, late velocity
+  stores and lazy native SUBSS/MULSS. Three compiler configurations,392 main
+  cases each, the failed-child supplement and16 compiled negatives pass.
+  Independent review adds six failed-child cases across three configurations.
+  The actual30BD0 normalization call and its nine following sites remain
+  unowned; neither the prefix nor static byte comparisons qualify live play.
+  The [physical x87 normalization component](../analysis/campaign-native-ai-actions-20261030/normalize-raw-physical-abi-r1/report.json)
+  now matches223 retained Original cases across GCC/Clang/sanitizers and
+  passes independent source review. It requires explicit physical tag and
+  payload knowledge; fresh callers, occupied-stack/unmasked exceptions and
+  actual World producer/transport binding remain open. No contiguous-depth
+  inference supplies that authority. The [107-site query publication kernel](../analysis/campaign-native-ai-actions-20261030/action-query-publication-abi-r1/report.json)
+  passes three compiler configurations, alias/fault/FP/RET controls and nine
+  compiled negatives, with independent source review; live admission and
+  direct Original comparisons remain open.
+  The [85-site native video wrappers](../analysis/campaign-camera-20261030/native-video-mode-producer-r1/report.json)
+  pass three compiler configurations and fifteen compiled negatives. Root
+  rechecks all original bytes and32 actual R8 dependency inputs. Actual video
+  preference queries, SMC publication, physical/logical Main-view scaling
+  and Earth/framebuffer acceptance remain open; no console mode is inferred.
+  A [dedicated native query8 provider](../analysis/campaign-camera-20261030/native-video-preference-query-r1/report.json)
+  now accepts an explicit immutable native video-preference word. Three
+  compiler profiles exercise120 queries each, real resource-guard callbacks,
+  ordered output/observer prefixes and fourteen compiled negatives. Factory
+  query103, AV/SMC ownership and complete display activation remain open.
+  An [accepted private desktop input contract](../analysis/campaign-camera-20261030/native-video-platform-input-contract-r1/report.json)
+  uses an actual retained SDL window lease, explicit immutable screen-format
+  input, a genuine unsupported factory-query result and a separately owned
+  AV_NONE input. The existing original wrappers produce the mode bytes before
+  the CPU renderer defaults. Device boot12490 remains a separate boundary.
+  Resource issuance, provider implementation and constructor/checkpoint
+  integration are being qualified privately. Format changes during a game
+  require returning to the main menu under this startup-owned policy.
+  The [full166-site route parent](../analysis/campaign-native-ai-actions-20261030/action-route-select-full-physical-abi-r1/report.json)
+  composes the real physical children and completes its seventeen trailing
+  sites. Three profiles and twenty compiled negatives pass. Its [five-TU
+  Source3 caller qualification](../analysis/campaign-native-ai-actions-20261030/action-route-select-full-caller-r1/report.json)
+  preserves the real first-FLD refusal at123213 when physical state is
+  unavailable, including the child stack adjustment and pushed202805.
+  These private packages have no runtime admission. The [control-policy
+  operation](../analysis/campaign-native-ai-actions-20261030/physical-x87-control-policy-r1/report.json)
+  qualifies the actual9001F/FFFFF control merge and conditional native reset
+  across three exhaustive profiles. It establishes CW knowledgeFFFF and
+  SW knowledge80FF. Initial physical context, tags/TOP/payload authority and
+  native-frame/callback/checkpoint transport remain required owners.
+  The [follow-up native probe](../analysis/campaign-native-ai-actions-20261030/action-route-unknown-top-feasibility-r1/report.json)
+  exposes an incorrect preserve-TOP assumption in the private physical
+  transport helper. Intel's architectural tables specify EMMS TOS000, empty
+  tags and preserved physical payloads. Three native compiler profiles agree
+  under FNOP/restore controls. The old transport/producers/lifecycle packages
+  require a corrected successor and dependent requalification before
+  admission. Their previous green checks do not qualify that assumption.
+  The [corrected private successor](../analysis/campaign-native-ai-actions-20261030/physical-x87-emms-transport-r2/report.json)
+  passes 91,316 checks per compiler profile, 8,192 native FNOP/EMMS pairs,
+  six native pending-exception cases per profile and seventeen compiled
+  negatives. It also fixes the numeric-MMX save/load roundtrip that could
+  promote unavailable payload proof. Root rechecks the sealed evidence and
+  final source. These results qualify the helper correction. Genuine producer
+  reachability, dependent lifecycle handoff and runtime admission remain open.
   Five [private native safety dependencies](../analysis/campaign-native-ai-actions-20261030/safety-components-root-review-v3.json)
   (269CA0/269BF0/269B60/269A60/269940) pass7,315 unchanged original cases,259 reachable sites, exact ordered
   reads/stores, raw byte returns, SIMD status/lanes and original x87/MMX

@@ -1,0 +1,249 @@
+{
+  "schema": "H2_DATED_2006_HOPPER_CHANGELOG_JOIN_V1",
+  "recorded_at_utc": "2026-11-03T02:04:01.822976+00:00",
+  "april": {
+    "post_id": 6642602,
+    "original_url": "https://www.bungie.net/Forums/posts.aspx?postID=6642602",
+    "direct_original_http_status": 404,
+    "contemporary_announcement": "https://halo.bungie.org/bwu/index.html?item=70",
+    "wayback_availability_url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.bungie.net%2FForums%2Fposts.aspx%3FpostID%3D6642602&timestamp=20060414",
+    "wayback_capture_timestamp": "20071111201933",
+    "replay_url": "https://web.archive.org/web/20071111201933/http://www.bungie.net:80/Forums/posts.aspx?postID=6642602",
+    "replay_http_status": 200,
+    "replay_bytes": 208857,
+    "replay_sha256": "4bb55ac66a17462d4d7f068fdd6ab2ed8db2d4487d3487df71d64276caee25a2",
+    "raw_capture_url": "https://web.archive.org/web/20071111201933id_/http://www.bungie.net:80/Forums/posts.aspx?postID=6642602",
+    "raw_capture_http_status": 200,
+    "raw_capture_bytes": 189570,
+    "raw_capture_sha256": "6c11d448583d0230dc556e895cd26e0325f076ffd99937658c8be24110c6ca27",
+    "first_post_html_id": "ctl00_mainContent_postRepeater1_ctl01_ctl00_postControl_skin_PostBlock",
+    "first_post_html_inner_bytes": 3472,
+    "first_post_html_inner_sha256": "8c8aaceb5e51d36fb37a42921ec000724077144b5703198717386e5fd9fc2758",
+    "author_as_displayed": "Ninja 0n Fire",
+    "author_profile_uid": 1041322,
+    "post_date_as_displayed": "04.14.2006 2:36 PM PST",
+    "edit_date_as_displayed": "4/25/2006",
+    "author_edited_post_says_deployed": true,
+    "team_snipers_removed_map_names": [
+      "Containment",
+      "Waterworks",
+      "Elongation"
+    ],
+    "relative_weight_only_examples": [
+      {
+        "playlist": "Rumble Training",
+        "entry": "objective modes",
+        "change": "increase",
+        "numeric_weight": null
+      },
+      {
+        "playlist": "Team ActionSack",
+        "entry": "shotgun modes",
+        "change": "decrease",
+        "numeric_weight": null
+      },
+      {
+        "playlist": "Team ActionSack",
+        "entry": "Pit of Joy",
+        "change": "increase",
+        "numeric_weight": null
+      }
+    ],
+    "workbook_option_groups": {
+      "pit_king_score": {
+        "heading_cell": "DF2",
+        "heading": "Pit Of Joy",
+        "option_cell": "B44",
+        "option_name": "Score to Win Round (King)",
+        "rows": [
+          {
+            "address": "DF45",
+            "choice": "Off",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF46",
+            "choice": "30 Seconds",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF47",
+            "choice": "1 Minute",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF48",
+            "choice": "2 Minutes",
+            "type": 0,
+            "value": ""
+          },
+          {
+            "address": "DF49",
+            "choice": "3 Minutes",
+            "type": 0,
+            "value": ""
+          },
+          {
+            "address": "DF50",
+            "choice": "5 Minutes",
+            "type": 2,
+            "value": 300.0
+          }
+        ]
+      },
+      "pit_round_timer": {
+        "heading_cell": "DF2",
+        "heading": "Pit Of Joy",
+        "option_cell": "B74",
+        "option_name": "Round Time Limit",
+        "rows": [
+          {
+            "address": "DF75",
+            "choice": "None",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF76",
+            "choice": "1 Minute (60)",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF77",
+            "choice": "2 Minutes (120)",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF78",
+            "choice": "3 Minutes (180)",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF79",
+            "choice": "4 Minutes",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF80",
+            "choice": "5 Minutes",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF81",
+            "choice": "6 Minutes",
+            "type": 0,
+            "value": ""
+          },
+          {
+            "address": "DF82",
+            "choice": "7 Minutes",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF83",
+            "choice": "8 Minutes (480)",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF84",
+            "choice": "9 Minutes",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF85",
+            "choice": "10 Minutes",
+            "type": 2,
+            "value": 600.0
+          },
+          {
+            "address": "DF86",
+            "choice": "12 Minutes (720)",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF87",
+            "choice": "15 Minutes",
+            "type": 6,
+            "value": ""
+          },
+          {
+            "address": "DF88",
+            "choice": "20 minutes",
+            "type": 6,
+            "value": ""
+          }
+        ]
+      },
+      "brutality_resistance": {
+        "heading_cell": "R2",
+        "heading": "Team Brutality",
+        "option_cell": "B141",
+        "option_name": "Damage Resistance",
+        "rows": [
+          {
+            "address": "R142",
+            "choice": "On",
+            "type": 0,
+            "value": ""
+          },
+          {
+            "address": "R143",
+            "choice": "Off",
+            "type": 2,
+            "value": 0.0
+          },
+          {
+            "address": "R144",
+            "choice": "",
+            "type": 6,
+            "value": ""
+          }
+        ]
+      }
+    }
+  },
+  "june": {
+    "source": "https://halo.bungie.org/bwu/index.html?item=77",
+    "published": "2006-06-02",
+    "response_bytes": 26430,
+    "response_sha256": "b9ea3458ee1a5744f7842bd2dee7dd6cee13a12072446d382ce9b5e281dc9043",
+    "contemporary_rollout_report": "https://halo.bungie.org/news.html?item=15893",
+    "contemporary_rollout_report_sha256": "f0a796fb9187b9974033a146a7556afc01969153c0e6a15a05042691d7351f6f",
+    "bungie_kp_confirmation": "https://forums.bungie.org/halo/archive24.pl?read=717097",
+    "bungie_kp_confirmation_sha256": "6e30c3c8cb628256523dd8eec32a08ec0d238a2410b9a8b5a78e8a56e6293d35",
+    "confirmed_rollout_date": "2006-06-06",
+    "team_swat_added_unranked": true,
+    "team_slayer_lockout_relative_weight_change": "increase",
+    "team_slayer_lockout_numeric_weight": null
+  },
+  "canonical_catalog_comparison": {
+    "path": "multiplayer/master_server/examples/matchmaking-online.json",
+    "sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "team_snipers_revision": "h2f-final-era-v1",
+    "april_removed_maps_present_in_modern_profile": [
+      "containment",
+      "elongation",
+      "waterworks"
+    ]
+  },
+  "workbook_sha256": "a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998",
+  "full_hopper_snapshot_recovered": false,
+  "historical_numeric_weights_recovered": false,
+  "historical_serialized_variant_recovered": false,
+  "final_2010_payload_recovered": false,
+  "production_catalog_changed": false,
+  "retained_html": false,
+  "retained_generated_large_artifacts": []
+}

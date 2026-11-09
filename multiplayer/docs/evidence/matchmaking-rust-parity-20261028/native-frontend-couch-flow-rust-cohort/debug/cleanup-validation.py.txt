@@ -1,0 +1,7 @@
+import json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-couch-flow-rust-20261102';read=lambda n:json.loads((work/n).read_text());info=read('native/inputs.json');component=read('component-before-cleanup.json');assert not Path(info['scratch']).exists()and not Path(component['scratch']).exists();rows=[]
+names=['core','component','component-worker','rust-full','rust-final','stager','native','probe-before','probe-after','delivery-initial','delivery-final','scope','scope-final','production-objects','finish','helper-syntax']
+for name in names:
+ p=root/'.local/test-scratch'/('frontend-couch-'+name+'-20261102');children=sorted(q.name for q in p.iterdir())if p.exists()else[];rows.append(dict(path=str(p),empty=not children,children=children))
+assert all(r['empty']for r in rows);before=read('native-before-cleanup.json');report=dict(owned_scratch_removed=True,parents=rows,completed_native_removed_regular_bytes=before['regular_bytes'],completed_component_removed_regular_bytes=component['regular_bytes'],retained_large_artifacts=[],original_assets_existing_references_other_owners_and_selected_runtimes_preserved=True);(work/'cleanup.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(owned_parents_empty=len(rows),removed_regular_bytes=before['regular_bytes']+component['regular_bytes'],retained_large_artifacts=[])))

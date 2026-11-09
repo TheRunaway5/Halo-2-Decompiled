@@ -134,6 +134,29 @@ int main() {
         std::vector<int> out(16,0);
         native_overlap_run([&]{native_parallel_for(16,[&](std::size_t i){out[i]=int(i)*3;});},[]{});
         bool ok=true;for(int i=0;i<16;++i)ok&=out[i]==i*3;need(ok,"job used the worker pool");
+        // Nesting is rejected on either side; the primitive stays usable afterwards.
+        try{native_overlap_run([&]{native_overlap_run([]{},[]{});},[]{});need(!workers,"nested job call rejected");}
+        catch(const std::logic_error&){need(true,"nested job call rejected");}
+        try{native_overlap_run([]{},[&]{native_overlap_run([]{},[]{});});need(!workers,"nested overlap call rejected");}
+        catch(const std::logic_error&){need(true,"nested overlap call rejected");}
+        int after=0;native_overlap_run([&]{after=1;},[]{});need(after==1,"overlap thread reusable after a rejected nesting");
+        // native_overlap_run2: two jobs on two distinct threads, overlap on the caller.
+        {
+            using halo2::native_overlap_run2;
+            std::thread::id a,b,c;
+            native_overlap_run2([&]{a=std::this_thread::get_id();},[&]{b=std::this_thread::get_id();},[&]{c=std::this_thread::get_id();});
+            need(c==self,"overlap2 runs overlap on the caller");
+            need(!workers || (a!=self && b!=self && a!=b),"overlap2 jobs run on two distinct threads");
+            _mm_setcsr(_mm_getcsr()&~0x3fu);
+            native_overlap_run2([]{},[&]{volatile float z=divide(1.f,0.f);(void)z;},[]{});
+            need(_mm_getcsr()&0x4u,"second job's SSE flag merged into the caller");
+            _mm_setcsr(_mm_getcsr()&~0x3fu);
+            try{native_overlap_run2([]{},[]{throw std::runtime_error("second");},[]{throw std::runtime_error("overlap");});need(false,"overlap2 exception propagated");}
+            catch(const std::runtime_error& e){need(std::string(e.what())=="second","second job's exception precedes overlap's");}
+            try{native_overlap_run2([]{throw std::runtime_error("first");},[]{throw std::runtime_error("second");},[]{});need(false,"overlap2 exception propagated");}
+            catch(const std::runtime_error& e){need(std::string(e.what())=="first","first job's exception precedes the others");}
+            int done=0;native_overlap_run2([&]{done|=1;},[&]{done|=2;},[&]{done|=4;});need(done==7,"overlap2 reusable after exceptions");
+        }
     }
 
     if(failures)return 1;

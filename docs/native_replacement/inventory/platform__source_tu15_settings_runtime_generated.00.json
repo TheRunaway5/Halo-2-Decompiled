@@ -1,0 +1,67 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/SourceTu15Settings.cmake",
+      "line": 1,
+      "target": "halo2_source_tu15_settings"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_source_tu15_settings::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_source_tu15_settings"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "58ddeb1c7ab10bf670d29d9eff212abd1292a83311f46e91c33eadc272cccd6e",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [
+        "2e101c"
+      ],
+      "function_name": "run_2e0fe2",
+      "instruction_callback_sites": 12,
+      "line": 7,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2e0fe2",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2e0fe2",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2e0fe2",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "d59cd84ee119a0f0c62d05f3354d68e4d91747447b6b6377c29225fb1c44290e",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_2e101c",
+      "instruction_callback_sites": 1,
+      "line": 22,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2e101c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2e101c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2e101c",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_tu15_settings_runtime_generated.cpp",
+  "source_bytes": 2342,
+  "source_filename_scope": "generated",
+  "source_sha256": "32882db1a8efe77af45eae96e079f3534706a4e8aa2c9588638ec6d1d0d698c5"
+}

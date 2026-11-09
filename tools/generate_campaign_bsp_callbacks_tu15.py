@@ -9,7 +9,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import sha
 
 CONSTRUCTED = (3,14,17,18,19,20,21,22,23,25,27,28,30,32,34,35,37,39,
-               40,45,46,47,48,49,51,54,58,59,63)
+               40,45,46,47,48,49,51,54,58,59,60,63)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

@@ -50,6 +50,8 @@ NativeMeleeHit query_native_melee(Vec3 origin,Vec3 aim,Vec3 pyramid,
 class NativeMeleeAnimation {
 public:
   NativeMeleeAnimation(std::shared_ptr<const Cache>,const LevelContent &,NativeMeleeConstants);
+  NativeMeleeAnimation(std::shared_ptr<const Cache>,const LevelContent &,NativeMeleeConstants,
+      const SourceRuntimeResources &);
   void update(Unit &,bool pressed,std::uint32_t tick,std::uint32_t &rng,
       const std::function<void(std::uint32_t)> &activity,
       const std::function<void(const NativeMeleeAction&)> &impact={},int kind=1);
@@ -62,6 +64,7 @@ public:
   AuthorityDigest authority_binding()const;
   std::shared_ptr<NativeMeleeAnimation> prepare_authority_owner(const LevelContent &,AuthorityDigest)const;
 private:
+  friend class MultiplayerMatch;
   NativeMeleeAnimation(std::shared_ptr<const Cache>,const LevelContent &,NativeMeleeConstants,
       std::shared_ptr<const SourceRuntimeResources>);
   std::shared_ptr<const Cache> cache_;

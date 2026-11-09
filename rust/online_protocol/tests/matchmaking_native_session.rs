@@ -584,6 +584,12 @@ fn full_result_receipt_requires_review_confirmation_and_matching_digest() {
     );
     assert_eq!(s.view().phase, Phase::Postgame);
     assert_eq!(s.view().result_recorded, Some(false));
+    let completed = s.view();
+    // The caller can still be handling an observed Reviewing phase when the
+    // socket worker accepts the earlier confirmation's completion receipt.
+    s.confirm().unwrap();
+    assert_eq!(s.view(), completed);
+    assert!(s.confirmation_text().is_none());
     text(&mut s, json!({"voice_host":1,"voice_members":6}));
     assert_eq!(s.view().presence, Some(6));
     s.close_postgame();

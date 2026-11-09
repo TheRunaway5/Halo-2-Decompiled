@@ -72,7 +72,8 @@ int main(int argc,char**argv){try{
     calls.push_back(observed);
    }
    J pending_reads=J::array(),pending_writes=J::array();bool stop_before{};
-   for(const auto&o:it->second.at("operands")){const auto p=address(o,gp(regs)),n=o.at("bytes").get<unsigned>();if(!retained(p,n)){check(p<0x1000000u||p>=0x1004000u,"Original query escaped declared persistent operands");continue;}
+   const bool empty_repeat=it->second.value("repeat_ecx",false)&&std::uint32_t(regs.rcx)==0;
+   if(!empty_repeat)for(const auto&o:it->second.at("operands")){const auto p=address(o,gp(regs)),n=o.at("bytes").get<unsigned>();if(!retained(p,n)){check(p<0x1000000u||p>=0x1004000u,"Original query escaped declared persistent operands");continue;}
     if(o.at("read").get<bool>()){if(phase=="before_read"&&read_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}++read_count;pending_reads.push_back(J{{"instruction",pc},{"address",p},{"bytes",n}});}
     if(o.at("write").get<bool>()){if(phase=="before_write"&&write_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}pending_writes.push_back(J{{"instruction",pc},{"address",p},{"bytes",n},{"before",hex(memory(child.pid,p,n))}});}
    }

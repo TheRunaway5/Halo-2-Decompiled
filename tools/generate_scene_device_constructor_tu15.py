@@ -3,6 +3,8 @@
 import argparse
 import json
 from pathlib import Path
+from model_light_source_native_replacements import replace_model_light_source
+from model_vector_length_native_replacements import replace_model_vector_length
 from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe, _Code
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
@@ -258,7 +260,7 @@ def main():
 }
 
 '''+source[end:]
-    a.output.write_text(source)
+    a.output.write_text(replace_model_vector_length(replace_model_light_source(source)))
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(a.output), wrapper_sha256=sha(Path(__file__)),
         update_spec_sha256=sha(Path(__file__).with_name('scene_device_tu15_entries.json')),

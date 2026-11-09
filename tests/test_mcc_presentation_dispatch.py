@@ -82,6 +82,34 @@ class PresentationOwnerTests(unittest.TestCase):
             self.assertEqual(presentation.preflight(self.root, self.root / 'halo2', value), 0)
         v3.assert_called_once()
 
+    def test_custom_map_binding_owner_allows_mcc_detection_and_fresh_rebuild(self):
+        bindings = self.fixture.cache/'frontend-map-bindings.json'
+        bindings.write_text(json.dumps(dict(schema='H2_FRONTEND_MAP_BINDINGS_V1',maps=[])))
+        self.fixture.report['resources'][bindings.name] = self.fixture.digest(bindings)
+        self.fixture.publish()
+        self.select()
+        donor = mcc_source_fixture(self.root/'MCC')
+        fresh = self.root/'assets/imported/mcc-rebuilt'
+        fresh.mkdir()
+        with patch.object(mcc_onboarding,'discover',return_value=donor) as discover, \
+             patch.object(mcc_onboarding,'prepare',return_value=(fresh,{})) as prepare:
+            result = mcc_onboarding.setup(self.root,force_rebuild=True,select_cache=False,progress=lambda _:None)
+        discover.assert_called_once()
+        self.assertEqual(result,(fresh,{}))
+        self.assertEqual(prepare.call_args.args[:2],(self.root,donor))
+
+    def test_custom_map_binding_permission_is_exact_and_does_not_allow_path_aliases(self):
+        self.select()
+        for name in ('../frontend-map-bindings.json','custom/frontend-map-bindings.json',
+                     'frontend-map-bindings.json/other','frontend-map-bindings.json\\other'):
+            with self.subTest(name=name):
+                self.fixture.report['resources'][name]='a'*64
+                self.fixture.publish()
+                self.select()
+                with self.assertRaises(ValueError):
+                    presentation.requirements(self.root)
+                del self.fixture.report['resources'][name]
+
     def test_no_capability_retains_unqualified_v3_default_and_pins_absence(self):
         value = presentation.requirements(self.root)
         self.assertEqual(value['family'], presentation.V3)
@@ -190,23 +218,26 @@ class PresentationOwnerTests(unittest.TestCase):
         self.assertFalse(cache.exists())
         presentation.recheck(valid)
 
-    def test_v3_prepare_and_repair_dispatch_only_to_the_mcc_producers(self):
+    def test_v3_prepares_mcc_loading_with_the_bundled_movies(self):
         self.select()
         value = presentation.requirements(self.root)
         source, cache = self.root / 'halo2', self.root / 'private-cache'
-        prepared, repaired = object(), object()
+        prepared, repaired, movies = object(), object(), object()
         with patch.object(loading, 'prepare_v3', return_value=prepared) as prepare, \
              patch.object(loading, 'repair_v3', return_value=repaired) as repair, \
              patch.object(loading, 'prepare', side_effect=AssertionError('V2 selected')), \
              patch.object(loading, 'repair', side_effect=AssertionError('V2 repair selected')), \
-             patch.object(mcc_movies, 'prepare', side_effect=AssertionError('movie donor selected')), \
+             patch.object(mcc_movies, 'required_bytes', return_value=123) as movie_bytes, \
+             patch.object(mcc_movies, 'prepare', return_value=movies) as prepare_movies, \
              patch.object(mcc_prompts, 'prepare', side_effect=AssertionError('prompt donor selected')):
-            self.assertEqual(presentation.required_bytes(self.root, value), 0)
+            self.assertEqual(presentation.required_bytes(self.root, value), 123)
             self.assertEqual(presentation.prepare(self.root, cache, source, value),
-                             dict(native_loading_presentation=prepared))
+                             dict(native_loading_presentation=prepared, port_bundled_movies=movies))
             self.assertIs(presentation.repair(self.root, cache, source, value), repaired)
         prepare.assert_called_once_with(self.root, cache, source, progress=print)
         repair.assert_called_once_with(self.root, cache, source, progress=print)
+        movie_bytes.assert_called_once_with(self.root)
+        prepare_movies.assert_called_once_with(self.root, cache, progress=print)
         presentation.recheck(value)
 
 

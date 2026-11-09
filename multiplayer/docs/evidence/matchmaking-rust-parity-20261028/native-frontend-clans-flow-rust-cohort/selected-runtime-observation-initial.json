@@ -1,0 +1,107 @@
+{
+  "schema": "H2_MATCHMAKING_SELECTED_RUNTIME_OBSERVATION_V2",
+  "observed_at_utc": "2026-11-02T21:22:32.538494+00:00",
+  "read_only": true,
+  "observation_method": "Direct selection JSON, declared executable bytes and adjacent source manifest; launcher resolver did not finish.",
+  "launchers": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/Halo2-Launcher",
+      "sha256": "698f643373b1ab6465d2eeae2d6424a1e7f544bd32f1b3cd867b0bdb5869b221",
+      "bytes": 302912,
+      "resolved_runtime_observed": false
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/Halo2-Title-Launcher",
+      "sha256": "9f30e786158e1930df1ff56cf456dc01a076e20a1b595a1b63f440a727d4feb0",
+      "bytes": 302920,
+      "resolved_runtime_observed": false
+    }
+  ],
+  "runtime": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+    "sha256": "c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551",
+    "bytes": 267311528,
+    "selection_declared_hash_verified": true
+  },
+  "source_manifest": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/source-hashes.json",
+    "sha256": "f53c58d01788c6415645478b302237b10a340357112bcde5ddf13f6094987208",
+    "entries": 14615
+  },
+  "migration_inputs": [
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_clans.rs",
+      "current_sha256": "ff8ba92f25a36fab1a4d2c61e4ac011e5bce2e0d5952c8ae3467c5c55ae207b5",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_party_flow.rs",
+      "current_sha256": "6cf2bdff6fdcab3f2ad7a88da1c9aa2638c7c8219c751e33ee66b160082d800f",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_clans.rs",
+      "current_sha256": "5cf23e3e95773732e2a8787521789b4971f87412d05d103b41f465cd78a5624c",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_clans.hpp",
+      "current_sha256": "ee1998343379c79ca8c3b429a8e159660d4a53fc061a0b0ae041221848089ee2",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "current_sha256": "a9cb40bb7150926b0efe8f4e2c89f5dd8eb8a44ebce2ba905d1639913a10688a",
+      "published_sha256": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+      "present_in_selected_source_manifest": true,
+      "matches": false
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_clans.cpp",
+      "current_sha256": "68e58cb400ff77ea549143918b11f6a5635093f3a7d2ea722c8b67ddf3111228",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "current_sha256": "2ce6989366d405cef139e49b21ed9c82b4d2b6c5470d8fd0ac24b8815e5dfae4",
+      "published_sha256": "8c6a7cb37700faaf6239b38a25329c4d46ce1a71f3e108b84afeccdbad4bc17a",
+      "present_in_selected_source_manifest": true,
+      "matches": false
+    }
+  ],
+  "migration_inputs_match_selected_source_manifest": false,
+  "migration_delivered": false,
+  "migration_delivery_qualified": false,
+  "frontend_selection": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/frontend-runtime-selection.json",
+    "sha256": "5e96b4f766be1ab5be5f0dfca57e00f1d10b8b9e5941fff651d00a4709f9e4c1",
+    "bytes": 316,
+    "record": {
+      "capability_sha256": "37e10187cc217bc3b6e1b341e91dddef266e4c8062ba688ccfcc9ab6dac27cd7",
+      "runtime": "bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+      "runtime_sha256": "c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551",
+      "schema": "H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1"
+    }
+  },
+  "launcher_info": {
+    "completed": false,
+    "timeout_seconds": 60,
+    "diagnostic": "launcher-info-timeout.json"
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "acceptance_gates_closed": [],
+  "scope": "Direct declared selection/artifact metadata observation only. No CLI resolver, installed execution, production service/catalog/configuration or physical input is qualified.",
+  "retained_large_artifacts": []
+}

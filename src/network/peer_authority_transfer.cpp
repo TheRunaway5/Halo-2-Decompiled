@@ -60,6 +60,7 @@ std::optional<ReceivedAuthorityCut> PeerAuthorityTransfer::take_completed(){
     return ReceivedAuthorityCut{v.peer,native(v.context),native(v.seal),std::make_shared<const std::vector<std::byte>>(native(v.bytes))};
 }
 bool PeerAuthorityTransfer::acknowledge_validated(const AuthorityTransferContext &c,const AuthorityCutSeal &seal){return bridge::peer_authority_transfer_acknowledge(*impl_->owner,wire(c),wire(seal));}
+bool PeerAuthorityTransfer::begin_delivered_preparation(const AuthorityTransferContext &c,const AuthorityCutSeal &seal){return bridge::peer_authority_transfer_begin_preparation(*impl_->owner,wire(c),wire(seal));}
 bool PeerAuthorityTransfer::reject_delivered(const AuthorityTransferContext &c,const AuthorityCutSeal &seal){return bridge::peer_authority_transfer_reject(*impl_->owner,wire(c),wire(seal));}
 std::vector<ValidatedAuthorityCut> PeerAuthorityTransfer::validated_cuts(){
     std::vector<ValidatedAuthorityCut> out;for(const auto &p:bridge::peer_authority_transfer_validated(*impl_->owner))out.push_back({p.peer,native(p.context),native(p.seal)});return out;

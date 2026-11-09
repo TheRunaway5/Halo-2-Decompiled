@@ -14,6 +14,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "rendering/models/model_world_pose_cache.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -64,6 +65,10 @@ struct SourceSceneryScene::Impl {
         bool query_state_valid{};
         ObjectColors initial_colors;
         std::array<std::optional<SourceView>,4> source_views;
+        // Derived memo for retained native views: one exact WORLD skin per
+        // LOD, keyed by the node bytes and the fresh skin's FP/errno effects
+        // (ModelWorldPoseCache's strict gate). Not scene or checkpoint state.
+        std::array<ModelWorldPoseCache,6> view_pose_cache;
     };
     // Only the values written after resident resource preparation. A cut must
     // own all six posed streams and active collector lists, not just node0.
@@ -540,14 +545,23 @@ struct SourceSceneryScene::Impl {
             auto [binding,inserted]=selected.emplace(std::pair{part.section,part.part},target);
             if(!inserted && binding->second!=target)throw FormatError("SCEN duplicate collector changed shader binding");
         }
+        // Vertices arrive in runs of one (section, part): repeat the previous
+        // binding and admission result instead of two map searches per vertex.
+        std::pair<unsigned,unsigned> last_part{~0u,~0u};unsigned last_target=0;bool have_part=false;
+        unsigned admitted_slot=0;bool have_admitted=false;
         vertices.erase(std::remove_if(vertices.begin(),vertices.end(),[&](auto &vertex) {
-            const auto binding=selected.find({vertex.source_section,vertex.source_part});
-            if(binding==selected.end())throw FormatError("SCEN emitted vertex lost its source shader part");
-            if(binding->second==0xffffffffu)return true;
+            const std::pair<unsigned,unsigned> part{vertex.source_section,vertex.source_part};
+            if(!have_part || part!=last_part) {
+                const auto binding=selected.find(part);
+                if(binding==selected.end())throw FormatError("SCEN emitted vertex lost its source shader part");
+                last_part=part;last_target=binding->second;have_part=true;
+            }
+            if(last_target==0xffffffffu)return true;
             // Resource union preparation may retain an unbound shader for a
             // different BSP or unselected LOD.41040 requires its actual inputs
             // only after this part is admitted. Never submit unresolved values.
-            require_bound(binding->second);vertex.material=binding->second;return false;
+            if(!have_admitted || admitted_slot!=last_target){require_bound(last_target);admitted_slot=last_target;have_admitted=true;}
+            vertex.material=last_target;return false;
         }),vertices.end());
         return vertices;
     }
@@ -693,7 +707,13 @@ bool SourceSceneryScene::retain_source_view(unsigned view,std::span<const Source
         const auto& geometry=scenery.lods[draw.lod];const auto section=(draw.unit.words[3]>>9)&511u;
         if(std::find(geometry.sections.begin(),geometry.sections.end(),section)==geometry.sections.end())
             throw FormatError("Native SCEN selected an unprepared original section");
-        const auto posed=skin_model_world_nodes(geometry.model,nodes);
+        // Every section draw of a LOD, in every view, skins the same model
+        // with the same WORLD nodes; reuse that skin while the nodes and FP
+        // effects match. HALO2_REFERENCE_SCENERY_VIEW_SKINS=1 skins per draw.
+        static const bool reference_skins=[]{const auto *e=std::getenv("HALO2_REFERENCE_SCENERY_VIEW_SKINS");return e && *e;}();
+        std::vector<Vertex> fresh;std::span<const Vertex> posed;
+        if(reference_skins){fresh=skin_model_world_nodes(geometry.model,nodes);posed=fresh;}
+        else posed=scenery.view_pose_cache[draw.lod].update_preserving_effects(geometry.model,nodes).vertices;
         std::map<std::pair<unsigned,unsigned>,unsigned> parts;
         for(const auto& part:geometry.shader_parts)if(part.section==section) {
             const auto choice=source_model_shader_part({0,draw.coverage},part.scale,impl_->shader_definitions.at(part.shader),shader).choice;

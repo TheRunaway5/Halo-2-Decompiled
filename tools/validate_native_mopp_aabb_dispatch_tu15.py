@@ -22,16 +22,16 @@ GROUPS=('return','scale','jump','key_base','projected_split','single_split',
 def digest(b):return hashlib.sha256(b).hexdigest()
 def native_groups(text):
  body=text[text.index('    void run('):text.index('\n};',text.index('    void run('))]
- conditions=re.findall(r'^            if\((opcode[^\n]*?)\)(?:\{|return;)',body,re.M)
+ conditions=re.findall(r'^            if\((d_\.opcode[^\n]*?)\)(?:\{|return;)',body,re.M)
  assert len(conditions)==len(GROUPS),(conditions,len(conditions))
  compiled=[]
  for expression in conditions:
-  expression=re.sub(r'(0x[0-9a-f]+|\d+)u\b',r'\1',expression).replace('&&',' and ').replace('||',' or ')
+  expression=re.sub(r'(0x[0-9a-f]+|\d+)u\b',r'\1',expression).replace('d_.opcode','opcode').replace('&&',' and ').replace('||',' or ')
   tree=ast.parse(expression,mode='eval')
   assert all(isinstance(x,(ast.Expression,ast.Compare,ast.BoolOp,ast.And,ast.Or,ast.Eq,ast.GtE,ast.LtE,ast.Name,ast.Load,ast.Constant))for x in ast.walk(tree))
   assert all(x.id=='opcode'for x in ast.walk(tree)if isinstance(x,ast.Name))
   compiled.append(compile(tree,'native-opcode-condition','eval'))
- assert 'if(opcode&3u)throw std::runtime_error("Native MOPP AABB requires its additional property-slot lifetime owner")'in body
+ assert 'if(d.opcode&3u)throw std::runtime_error("Native MOPP AABB requires its additional property-slot lifetime owner")'in text
  return [next((GROUPS[i]for i,c in enumerate(compiled)if eval(c,{'__builtins__':{}},{'opcode':op})),'diagnostic')for op in range(256)],digest(body.encode())
 def source_group(target):
  if target==TARGETS[0]:return'return'
@@ -53,7 +53,8 @@ def main():
   before=NativeContactProcessBeforeInput(ARCHIVE,ARCHIVE_PIN,scratch/'before',0x304350);image=Xbe(NEW_DEFAULT);assert sha(NEW_DEFAULT)==NEW_PIN
   classes=image.read(0x309fb0,108);raw=image.read(0x309f30,128);handlers=struct.unpack('<32I',raw)
   assert before.read(0x309fb0,108)==classes and before.read(0x309f30,128)==raw,'Actual captured immutable CODE table differs from XBE'
-  text=(ROOT/'src/physics/native_tu15_mopp_aabb_traversal.cpp').read_text();rows,control_pin=verify(classes,handlers,text)
+  from validate_native_mopp_aabb_traversal_tu15 import expanded_source
+  text=expanded_source();rows,control_pin=verify(classes,handlers,text)
   code=_Code(image,'.text');assert code.at(0x309960).mnemonic=='movzx'and code.at(0x309967).mnemonic=='jmp'
   negatives=[]
   for name,c,h,t in [('captured_class',bytes([classes[0]^1])+classes[1:],handlers,text),('handler_target',classes,(handlers[0]^1,*handlers[1:]),text),('native_scale_boundary',classes,handlers,text.replace('opcode<=4u','opcode<=3u',1))]:

@@ -1,6 +1,7 @@
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_bsp_breakable_visibility_tu15.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_main_frustum_cull_tu15.hpp"
 #include "halo2/source_live_shadow_main_draws_tu15.hpp"
 #include "halo2/source_live_shadow_selection_tu15.hpp"
 #include "halo2/source_campaign_view_tu15.hpp"
@@ -66,6 +67,7 @@ struct SourceBspEffectLights::Impl {
         std::unique_ptr<SourceModelEffectLights> draw;
     };
     std::map<ModelKey,ModelSection> models;
+    SourceMainFrustumCullTu15 main_frustum;
     std::unique_ptr<pstencil::PointCasterBank> pstencil_casters;
     using MaterialKey=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
     struct Slot {unsigned material;Material authored;MenuWorldSourcePass pass;};
@@ -96,7 +98,7 @@ struct SourceBspEffectLights::Impl {
        store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
        clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
        transforms(bsp.instances.size()),palettes(bsp.instances.size()),
-       cluster_commands(clusters.size()),definition_commands(definitions.size()) {
+       cluster_commands(clusters.size()),definition_commands(definitions.size()),main_frustum(c,"multiplayer") {
         const auto owned=cache.load_source_bsp_metadata(index);
         const Bytes root(owned.bytes_at(owned.source_address(),owned.size()));
         const auto read=[&](auto p,auto n){return Bytes(owned.bytes_at(p,n));};
@@ -262,8 +264,7 @@ struct SourceBspEffectLights::Impl {
         unsigned shown=0;for(const auto& [address,hits]:commands_oracle.outside_addresses){if(shown++==8)break;std::cerr<<" ["<<std::hex<<address<<std::dec<<"x"<<hits<<"]";}
         std::cerr<<'\n';
     }
-    // Publish every phase in source order. Genuine preparation/emission
-    // services retain their banks; no flags are hidden and no streams merge.
+    // Publish every phase into the existing banks in source order.
     void main_commands_native(PhysicsLiveWorldTu15& world,SourcePhysicsWorldRuntimeAbi& abi) {
         const auto fp=world.run_native_command_frame_tu15(abi.gp[0]);
         abi.x87_status=fp.status;
@@ -284,7 +285,8 @@ struct SourceBspEffectLights::Impl {
         static Output output;if(!output.file.is_open())return;
         const auto& memory=world.memory();const auto banks=CommandBankSet::read(memory);
         const auto controls=abi.floating_point.value();
-        const std::array<std::uint32_t,6> header{0x40e80001u,selector,Bytes(memory.view(0x4cd3a0u,4)).u32(0),
+        static const bool transparent=[]{const auto* p=std::getenv("HALO2_COMMAND_BANKS_TRACE_TRANSPARENT");return p&&*p&&*p!='0';}();
+        const std::array<std::uint32_t,6> header{transparent?0x40e80002u:0x40e80001u,selector,Bytes(memory.view(0x4cd3a0u,4)).u32(0),
             controls.x87_control_word,abi.x87_status,controls.mxcsr};
         const auto emit=[&](std::span<const std::byte> bytes){output.file.write(reinterpret_cast<const char*>(bytes.data()),std::streamsize(bytes.size()));};
         emit(std::as_bytes(std::span(header)));emit(memory.view(CommandBankSet::headers,CommandBankSet::header_bytes));
@@ -292,6 +294,15 @@ struct SourceBspEffectLights::Impl {
         for(const auto& [at,size]:banks.storage) {
             if(size>16u*1024u*1024u || (!at&&size))throw FormatError("Command bank trace lost a complete retained capacity");
             if(size)emit(memory.view(at,size));
+        }
+        if(transparent) {
+            constexpr auto capacity=0x400u,record_bytes=0x70u;
+            const auto at=Bytes(memory.view(0x4c2aa8u,4)).u32(0);
+            const auto count=Bytes(memory.view(0x4c2aa0u,4)).u32(0);
+            if(count>capacity||(!at&&count))throw FormatError("Command bank trace lost the transparent pool");
+            const std::array<std::uint32_t,2> pool{at,at?capacity*record_bytes:0};
+            emit(std::as_bytes(std::span(pool)));emit(memory.view(0x4c2ab1u,1));
+            if(at)emit(memory.view(at,pool[1]));
         }
         if(!output.file)throw FormatError("Command bank trace failed to publish its owned bytes");
     }
@@ -375,10 +386,6 @@ struct SourceBspEffectLights::Impl {
         }
         return {false,unit.words[3]>>9&511u};
     }
-    struct MainCullStats {
-        std::uint64_t views{},native_entries{},residual_entries{},fallbacks{},
-            unit_mismatches{},mask_mismatches{},fp_mismatches{};
-    } main_cull_stats;
     std::vector<NativeTu15FrustumDrawCall> light_frustum_cull(PhysicsLiveWorldTu15& live,
         const SourceLiveEffectLightStateTu15& retained,SourceDrawUnitState& state,
         const SourceBspAdmission& admission,const SourceObjectAdmission& objects,
@@ -405,6 +412,11 @@ struct SourceBspEffectLights::Impl {
             calls=native_tu15_frustum_draw_cull_44710(state.units,state.arena,bindings.light_arena_token,
                 context,visibility,admission.associations,resolve);
         }
+        // No cull owner changes CW. Host FLDENV/FNSTCW canonicalizes its
+        // reserved bit6; retain the World's exact ABI word across that scope.
+        if(fp.control_word!=std::uint16_t(controls.x87_control_word|0x40u))
+            throw FormatError("Large-sphere native cull changed an x87 control field");
+        fp.control_word=controls.x87_control_word;
         if(!before)return calls;
         auto& memory=live.memory();
         // Restore bytes through their existing owner. Check both the complete
@@ -432,6 +444,7 @@ struct SourceBspEffectLights::Impl {
             }
             void restore() {
                 if(failed)return;
+                try {
                 while(!writes.empty()) {
                     const auto& old=writes.back();
                     if(live.memory().native_address(old.address,old.bytes.size())!=old.backing) {
@@ -439,8 +452,11 @@ struct SourceBspEffectLights::Impl {
                     }
                     live.write_source_call_input(old.address,old.bytes);writes.pop_back();
                 }
+                }catch(...){failed=true;throw;}
             }
-            ~Journal(){restore();}
+            ~Journal() {
+                if(!failed&&!writes.empty())try{restore();}catch(...){std::terminate();}
+            }
         } journal{live};
         try {
             source_live_effect_light_handoff_tu15(memory,retained,*before,admission,objects,bindings,
@@ -516,16 +532,9 @@ struct SourceBspEffectLights::Impl {
                 " reference="<<flag_policy_reference<<'\n';
         if(const auto* v=std::getenv("HALO2_NATIVE_LIGHT_PARENT_STATS");v&&*v)
             std::cerr<<"Sphere parent-biped stats: queries="<<parent_policy_queries<<" appended="<<parent_receiver_rows<<'\n';
-        const auto* enabled=std::getenv("HALO2_NATIVE_CULL_WALK_STATS");
-        if(!enabled || !*enabled)return;
-        const auto& s=main_cull_stats;
-        std::cerr<<"Native main cull: views="<<s.views<<" native_entries="<<s.native_entries<<
-            " residual_entries="<<s.residual_entries<<" fallbacks="<<s.fallbacks<<
-            " unit_mismatches="<<s.unit_mismatches<<" mask_mismatches="<<s.mask_mismatches<<
-            " fp_mismatches="<<s.fp_mismatches<<'\n';
     }
-    // The typed44710 walk interleaves native BSP entries and actual44E80
-    // model/unavailable entries. Each entry publishes its mask before the
+    // The typed44710 walk interleaves native BSP/model entries and actual44E80
+    // unavailable entries. Each entry publishes its mask before the
     // next one can inspect shared backing; flags are never hidden or merged.
     void main_cull(PhysicsLiveWorldTu15& world,const SourcePortalVisibilitySet* visibility,
         const std::function<void()>& translated) {
@@ -533,21 +542,9 @@ struct SourceBspEffectLights::Impl {
         translated();return;
 #else
         (void)translated;
-        static const bool oracle=[]{const auto* p=std::getenv("HALO2_MAIN_CULL_ORACLE");return p && *p;}();
-        constexpr std::uint32_t context=0x556e18u,units_at=0x4c6958u,arena_at=context+0x25cu;
+        constexpr std::uint32_t context=0x556e18u;
         const auto& memory=world.memory();
         const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
-        const auto read_unit=[&](std::uint32_t at) {
-            SourceCullDrawUnit unit;std::memcpy(&unit,memory.view(at,sizeof(unit)).data(),sizeof(unit));return unit;
-        };
-        const auto read_arena=[&] {
-            SourceBspRangeArena out;
-            std::memcpy(out.words.data(),memory.view(arena_at,sizeof(out.words)).data(),sizeof(out.words));
-            out.used=Bytes(memory.view(context+0xa5cu,2)).u16(0);return out;
-        };
-        const auto write=[&](std::uint32_t at,const auto& v) {
-            world.write_source_call_input(at,std::as_bytes(std::span(&v,1)));
-        };
         bool owner=false;
         if(visibility && word(0x4cd3a0u)==context && !word(context+0x2a78u))try {
             const auto* scenario=cache.find_tag(cache.scenario_tag(),tag_groups::scenario);
@@ -558,50 +555,21 @@ struct SourceBspEffectLights::Impl {
                     word(root+0x138u)==definitions.size() && word(root+0x140u)==instances.size();
             }
         } catch(const FormatError&) {owner=false;}
-        ++main_cull_stats.views;
-        source_native_cull_walk_tu15(world,[&](auto index,auto entry,auto& arithmetic) {
-            const auto residual=[&]{++main_cull_stats.residual_entries;return false;};
-            if(!owner || word(0x4cd3a0u)!=context || word(context+0x2a78u))return residual();
-            const auto at=units_at+32u*std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(index))));
-            const auto before=read_unit(at);
-            if(before.words[1]!=0xffffffffu)return residual();
-            auto unit=before;auto arena=read_arena();const auto initial_arena=arena;
-            auto native_fp=arithmetic;
-            try {
-                const auto instance=unit.words[3]>>18&2047u;
-                if((unit.words[0]&0x1000u) && instance>=bsp.instances.size())return residual();
-                const auto selected=key(unit);const auto found=sections.find(selected);
-                if(found==sections.end() || found->second.ranges.accelerator_count<=0)return residual();
-                std::optional<Transform> transform;
-                if(unit.words[7]) {
-                    transform.emplace();std::memcpy(&*transform,memory.view(unit.words[7],sizeof(Transform)).data(),sizeof(Transform));
-                }
-                detail::NativeTu15ArithmeticEnvironment environment(native_fp);
-                source_bsp_frustum_cull_entry(unit,{&found->second.ranges,true,transform},arena,
-                    {0,0,0,0,arena_at},*visibility,entry);
-            } catch(const FormatError&) {++main_cull_stats.fallbacks;return residual();}
-            ++main_cull_stats.native_entries;
-            if(oracle) {
-                auto actual=world.prepare_source_call(std::array{index,entry});actual.x87_status=arithmetic.status;
-                actual.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
-                world.run_actual(0x44e80u,actual);
-                arithmetic={actual.floating_point->x87_control_word,actual.x87_status,actual.floating_point->mxcsr};
-                const auto observed_unit=read_unit(at);const auto observed_arena=read_arena();
-                const bool units_equal=observed_unit.words==unit.words,mask_equal=observed_arena.words==arena.words;
-                const bool fp_equal=arithmetic.control_word==native_fp.control_word && arithmetic.status==native_fp.status && arithmetic.mxcsr==native_fp.mxcsr;
-                main_cull_stats.unit_mismatches+=!units_equal;main_cull_stats.mask_mismatches+=!mask_equal;
-                main_cull_stats.fp_mismatches+=!fp_equal;
-                if(!units_equal || !mask_equal || !fp_equal)
-                    throw FormatError("Ordered native44E80 entry differs at unit "+std::to_string(index)+" entry "+std::to_string(entry)+
-                        " native FP="+std::to_string(native_fp.control_word)+":"+std::to_string(native_fp.status)+":"+std::to_string(native_fp.mxcsr)+
-                        " actual FP="+std::to_string(arithmetic.control_word)+":"+std::to_string(arithmetic.status)+":"+std::to_string(arithmetic.mxcsr));
-                return true; // genuine service has already published this entry
+        SourceMainFrustumCullTu15::BspEntry native_bsp;
+        if(owner)native_bsp=[&](auto& unit,auto& arena,auto arena_at,auto entry,auto& fp) {
+            const auto instance=unit.words[3]>>18&2047u;
+            if((unit.words[0]&0x1000u)&&instance>=bsp.instances.size())return false;
+            const auto found=sections.find(key(unit));
+            if(found==sections.end()||found->second.ranges.accelerator_count<=0)return false;
+            std::optional<Transform> transform;
+            if(unit.words[7]) {
+                transform.emplace();std::memcpy(&*transform,memory.view(unit.words[7],sizeof(Transform)).data(),sizeof(Transform));
             }
-            if(unit.words[0]!=before.words[0])write(at,unit.words[0]);
-            for(unsigned k=0;k<arena.words.size();++k)
-                if(arena.words[k]!=initial_arena.words[k])write(arena_at+4u*k,arena.words[k]);
-            arithmetic=native_fp;return true;
-        });
+            detail::NativeTu15ArithmeticEnvironment environment(fp);
+            source_bsp_frustum_cull_entry(unit,{&found->second.ranges,true,transform},arena,{0,0,0,0,arena_at},*visibility,entry);
+            return true;
+        };
+        main_frustum.run(world,visibility,native_bsp);
 #endif
     }
 
@@ -887,6 +855,9 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             auto completed=source_live_effect_light_commands_tu15(objects->world,*retained_light,
                 state,bsp,object_receivers,bindings,[&](bool before,const auto& abi,const auto& memory) {
                     if(objects->light_commands)objects->light_commands(before,receiver.identity,abi,memory);
+                    // Include each completed secondary producer, not only the
+                    // following main view, in finite full-capacity bank/FP proof.
+                    if(!before)i.trace_command_banks(objects->world,0,abi);
                 });
             commands=std::move(completed.legacy);
         };

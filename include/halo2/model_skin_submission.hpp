@@ -20,6 +20,10 @@ struct ModelSkinWorldPoseView {
     bool gpu{};
 };
 ModelSkinWorldPose model_skin_world_pose(const RenderModel&,std::span<const Transform>,bool allow_gpu);
+// As model_skin_world_pose, but an admitted (gpu) result carries no vertex
+// copy: its local records are exactly model.mesh.vertices, which the caller
+// reads in place. Refused poses return the complete CPU skin as before.
+ModelSkinWorldPose model_skin_world_pose_borrowed(const RenderModel&,std::span<const Transform>,bool allow_gpu);
 // GPU WORLD deformation is the default presentation route. The original CPU
 // kernel stays selectable with HALO2_REFERENCE_CPU_SKINNING or
 // HALO2_ENABLE_GPU_SKINNING=0; per-model admission still applies either way.

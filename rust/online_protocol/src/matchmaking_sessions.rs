@@ -540,9 +540,7 @@ impl Registry {
         if let Some(c) = &core.catalog {
             let e = c.entry(pid)?;
             reject(
-                e["required_compatibility"].as_str().is_none_or(|required| {
-                    catalog::supports(s(&record.data, "compatibility"), required)
-                }),
+                catalog::admits_client(e, s(&record.data, "compatibility")),
                 409,
                 "Update Halo 2 for this playlist",
             )?;
@@ -608,9 +606,7 @@ impl Registry {
             if let Some(c) = &core.catalog {
                 let e = c.entry(s(check, "playlist"))?;
                 reject(
-                    e["required_compatibility"]
-                        .as_str()
-                        .is_none_or(|required| catalog::supports(version, required)),
+                    catalog::admits_client(e, version),
                     409,
                     "Every party member must update Halo 2 for this playlist",
                 )?;

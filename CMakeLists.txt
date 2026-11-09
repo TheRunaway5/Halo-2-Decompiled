@@ -118,7 +118,7 @@ include(cmake/SnapshotStorage.cmake)
 # Public interfaces continue to be exported through include/halo2/.
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-add_library(halo2_cache src/assets/cache.cpp src/rendering/material.cpp src/rendering/shader_animation.cpp src/rendering/bitmap_animation.cpp src/assets/appearance.cpp src/rendering/models/model_environment.cpp src/rendering/world/sky.cpp src/rendering/world/lightmap.cpp src/rendering/renderer/render_program.cpp src/rendering/renderer/render_view.cpp src/rendering/atmosphere.cpp src/rendering/fog_composite.cpp src/rendering/patchy_fog.cpp src/ui/menu_bloom.cpp src/ui/menu_atmosphere.cpp src/rendering/vertex_program.cpp src/rendering/texture.cpp src/rendering/texture_state.cpp src/rendering/cubemap.cpp src/rendering/bitmap_mips.cpp src/assets/content.cpp src/rendering/models/model.cpp src/rendering/models/model_pose.cpp src/core/transform.cpp src/ui/frontend_content.cpp src/ui/frontend_font.cpp src/ui/frontend_material.cpp)
+add_library(halo2_cache src/assets/cache.cpp src/rendering/material.cpp src/rendering/shader_animation.cpp src/rendering/bitmap_animation.cpp src/assets/appearance.cpp src/rendering/models/model_environment.cpp src/rendering/world/sky.cpp src/rendering/world/lightmap.cpp src/rendering/renderer/render_program.cpp src/rendering/renderer/render_view.cpp src/rendering/atmosphere.cpp src/rendering/fog_composite.cpp src/rendering/patchy_fog.cpp src/ui/menu_bloom.cpp src/ui/menu_atmosphere.cpp src/rendering/vertex_program.cpp src/rendering/texture.cpp src/rendering/texture_state.cpp src/rendering/cubemap.cpp src/rendering/bitmap_mips.cpp src/assets/content.cpp src/rendering/models/model.cpp src/rendering/models/model_pose.cpp src/rendering/models/model_section_index.cpp src/core/transform.cpp src/ui/frontend_content.cpp src/ui/frontend_font.cpp src/ui/frontend_material.cpp)
 target_sources(halo2_cache PRIVATE src/assets/tag_owner_index.cpp)
 target_sources(halo2_cache PRIVATE src/rendering/models/mcc_sky_geometry.cpp)
 target_sources(halo2_cache PRIVATE src/ui/controller_prompt_artwork.cpp)
@@ -445,7 +445,14 @@ target_sources(halo2_cache PRIVATE src/gameplay/objects/source_object_admission.
 target_sources(halo2_cache PRIVATE src/gameplay/objects/source_object_admission_memory.cpp)
 target_sources(halo2_cache PRIVATE src/gameplay/objects/source_object_render_queue.cpp)
 target_sources(halo2_cache PRIVATE src/gameplay/objects/source_object_render_entry.cpp)
-target_sources(halo2_cache PRIVATE src/rendering/source_geometry_resource.cpp)
+add_library(halo2_geometry_resource STATIC src/rendering/source_geometry_resource.cpp)
+target_include_directories(halo2_geometry_resource PUBLIC include)
+target_compile_features(halo2_geometry_resource PUBLIC cxx_std_20)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_geometry_resource PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_geometry_resource PUBLIC -fsanitize=address,undefined)
+endif()
+target_link_libraries(halo2_cache PUBLIC halo2_geometry_resource)
 target_sources(halo2_cache PRIVATE src/rendering/source_geometry_resource_request.cpp)
 target_link_libraries(halo2_cache PUBLIC SDL2::SDL2)
 if(MSVC)
@@ -513,6 +520,13 @@ else()
     set_source_files_properties(src/rendering/source_transparent_parts.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
     set_source_files_properties(src/rendering/models/source_model_palette.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
     set_source_files_properties(src/rendering/models/source_model_pose.cpp src/rendering/models/model_pose.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+    # Line tables for the sampler's self-time attribution (tools/perf_4k60/selflines.py);
+    # -g1 changes no code generation. Off by default.
+    option(HALO2_PROFILE_LINE_INFO "Compile the frame-loop units with line tables" OFF)
+    if(HALO2_PROFILE_LINE_INFO)
+        set_property(SOURCE src/rendering/renderer/renderer.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp
+                     src/rendering/effects/particle_renderer.cpp APPEND PROPERTY COMPILE_OPTIONS -g1)
+    endif()
     set_source_files_properties(src/rendering/shadows/source_shadow_submission.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
     set_source_files_properties(src/rendering/source_shader_lod.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
     set_source_files_properties(src/rendering/models/source_model_shader.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
@@ -1159,6 +1173,7 @@ add_dependencies(online_multiteam_launch_tests halo2_shaders)
 target_sources(halo2_cache PRIVATE src/rendering/models/model_markers.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/effects/weapon_effect.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/effects/muzzle_effects.cpp)
+include(cmake/SourceEffectLightingColorsTu15.cmake)
 target_sources(halo2_systems PRIVATE src/rendering/effects/world_effects.cpp src/campaign/scripting/source_script_effect.cpp
     src/campaign/scripting/source_script_effect_runtime_tu15.cpp src/campaign/source_campaign_cinematic_runtime_tu15.cpp
     src/rendering/renderer/source_renderer_cpu_interface_tu15.cpp)
@@ -2363,6 +2378,9 @@ if(BUILD_TESTING)
     target_link_libraries(native_parallel_tests PRIVATE Threads::Threads)
     set_source_files_properties(tests/native_parallel_tests.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
     add_test(NAME native_parallel_fork_join COMMAND native_parallel_tests)
+    add_executable(model_section_index_tests tests/model_section_index_tests.cpp)
+    target_link_libraries(model_section_index_tests PRIVATE halo2_cache)
+    add_test(NAME native_model_section_index COMMAND model_section_index_tests)
     add_executable(source_runtime_immutable_tests tests/source_runtime_immutable_tests.cpp src/runtime/source_runtime_memory.cpp)
     add_executable(native_tu15_physics_branch_ownership_tests
         tests/native_tu15_physics_branch_ownership_tests.cpp
@@ -2654,6 +2672,20 @@ if(BUILD_TESTING)
 endif()
 add_executable(lockout_lift_match_tests EXCLUDE_FROM_ALL tests/lockout_lift_match_tests.cpp)
 target_link_libraries(lockout_lift_match_tests PRIVATE halo2_systems)
+add_executable(native_mcc_gravlift_contact_tu15_tests tests/native_mcc_gravlift_contact_tu15_tests.cpp)
+target_link_libraries(native_mcc_gravlift_contact_tu15_tests PRIVATE halo2_systems)
+if(BUILD_TESTING)
+    set(HALO2_MCC_GRAVLIFT_MAP_DIRECTORY "" CACHE PATH "Prepared MCC maps for native gravlift contact regression")
+    foreach(gravlift_map IN ITEMS lockout midship coagulation)
+        foreach(gravlift_players IN ITEMS 1 2)
+            add_test(NAME native_mcc_gravlift_contact_${gravlift_map}_${gravlift_players}
+                COMMAND native_mcc_gravlift_contact_tu15_tests
+                    "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}/${gravlift_map}.map" "${gravlift_map}" "${gravlift_players}")
+            set_tests_properties(native_mcc_gravlift_contact_${gravlift_map}_${gravlift_players} PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180
+                ENVIRONMENT "XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+        endforeach()
+    endforeach()
+endif()
 if(BUILD_TESTING)
     add_test(NAME original_source_teleporter_control COMMAND source_teleporter_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/integration/teleporter-control-20261010/measured-v4/fixture.json)
@@ -3276,10 +3308,10 @@ if(BUILD_TESTING)
 endif()
 if(BUILD_TESTING)
     add_test(NAME live_smg_muzzle_lifetimes COMMAND muzzle_effects_tests
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(live_smg_muzzle_lifetimes PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME native_muzzle_presentation_handoff COMMAND muzzle_effects_tests
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map" "${HALO2_TU15_GAMEPLAY_XBE}")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map" "${HALO2_TU15_GAMEPLAY_XBE}")
     set_tests_properties(native_muzzle_presentation_handoff PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_test(NAME stock_smg_movement_metadata COMMAND muzzle_movement_metadata_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps" "${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps")
@@ -8010,6 +8042,12 @@ if(BUILD_TESTING)
     add_executable(mcc_native_pc_world_programs_probe tests/mcc_native_pc_world_programs_tests.cpp src/runtime/mcc_native_library.cpp)
     target_include_directories(mcc_native_pc_world_programs_probe PRIVATE include src)
     target_link_libraries(mcc_native_pc_world_programs_probe PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    # These probes use Bytes without linking the full cache runtime.
+    foreach(native_library_probe IN ITEMS mcc_native_library_snapshot_tests mcc_native_pc_sky_closure_tests
+            mcc_native_pc_world_closure_probe mcc_native_pc_world_programs_probe)
+        target_sources(${native_library_probe} PRIVATE src/assets/cache.cpp)
+        target_compile_definitions(${native_library_probe} PRIVATE HALO2_CACHE_BYTES_ONLY=1)
+    endforeach()
     add_executable(mcc_native_vehicle_restoration_probe
         tests/mcc_native_vehicle_restoration_tests.cpp
         src/runtime/mcc_native_library.cpp src/assets/cache.cpp)
@@ -11105,6 +11143,77 @@ include(cmake/NativeTu15FinalStartupStorage.cmake)
 include(cmake/NativeTu15LateStartupValidation.cmake)
 include(cmake/NativeTu15RendererConstructorTests.cmake)
 include(cmake/NativeTu15ModelViewSlots.cmake)
+include(cmake/NativeTu15AsyncPromotion.cmake)
+include(cmake/NativeTu15RecordSearch.cmake)
+include(cmake/NativeTu15RecordLookup.cmake)
+include(cmake/NativeTu15ResourceRecordSearch.cmake)
+include(cmake/NativeTu15ResourceRecordCount.cmake)
+include(cmake/NativeTu15ResourceTouch.cmake)
+include(cmake/NativeTu15ResourceMaintenance.cmake)
+include(cmake/NativeTu15ResourcePage.cmake)
+include(cmake/NativeTu15AnimationCacheIo.cmake)
+include(cmake/NativeTu15AnimationResourceRead.cmake)
+include(cmake/NativeTu15AnimationResourceWait.cmake)
+include(cmake/NativeTu15ResourceBusy.cmake)
+include(cmake/NativeTu15NodeResource.cmake)
+include(cmake/NativeTu15NodeDescriptorLookup.cmake)
+include(cmake/NativeTu15VehicleChoiceData.cmake)
+include(cmake/NativeTu15NodeResourceLifecycle.cmake)
+include(cmake/NativeTu15EffectDatumAllocate.cmake)
+include(cmake/NativeTu15EffectTransformProduct.cmake)
+include(cmake/NativeTu15ModelDefaultPose.cmake)
+include(cmake/NativeTu15BspSurface2D.cmake)
+include(cmake/NativeTu15BspSurfacePolygon.cmake)
+include(cmake/NativeTu15BspLeafSurface.cmake)
+include(cmake/NativeTu15BspSegment.cmake)
+include(cmake/NativeTu15BspSegmentSetup.cmake)
+include(cmake/NativeTu15PhysicalEpoch.cmake)
+include(cmake/NativeTu15DatumDelete.cmake)
+include(cmake/NativeTu15DatumSpecific.cmake)
+include(cmake/NativeTu15PageWindow.cmake)
+include(cmake/NativeTu15PageRetire.cmake)
+include(cmake/NativeTu15PageAllocateData.cmake)
+include(cmake/NativeTu15PageAllocateAbi.cmake)
+include(cmake/NativeTu15StackProbe.cmake)
+include(cmake/NativeTu15HalfwordBitQuery.cmake)
+include(cmake/NativeTu15MoppAabbAbi.cmake)
+include(cmake/NativeTu15MoppRayData.cmake)
+include(cmake/NativeTu15MoppRayIntegerFrame.cmake)
+include(cmake/NativeTu15MoppRayScaleFrame.cmake)
+include(cmake/NativeTu15MoppRayPrimitiveKeyFrame.cmake)
+include(cmake/NativeTu15MoppRayPlaneFrame.cmake)
+include(cmake/NativeTu15MoppRaySlabFrame.cmake)
+include(cmake/NativeTu15InstancedRayCallbackFrame.cmake)
+include(cmake/NativeTu15InstancedRayChild.cmake)
+include(cmake/NativeTu15InstructionCursor.cmake)
+include(cmake/NativeCohortTestFilter.cmake)
+include(cmake/NativeTu15RawX87Scope.cmake)
+include(cmake/NativeTu15RetainedObserverFp.cmake)
+include(cmake/NativeTu15ObjectNodeHierarchy.cmake)
+include(cmake/NativeTu15ObjectNodeRebuild.cmake)
+include(cmake/NativeTu15ResourceComposition.cmake)
+include(cmake/NativeTu15SphereFrustum.cmake)
+include(cmake/NativeTu15SimplexDirection.cmake)
+include(cmake/NativeTu15SimplexCandidate.cmake)
+include(cmake/NativeTu15SimplexFinalize.cmake)
+include(cmake/NativeTu15SimplexInitialize.cmake)
+include(cmake/NativeTu15SimplexProjection.cmake)
+include(cmake/NativeTu15SimplexIteration.cmake)
+include(cmake/NativeTu15PolygonSupport.cmake)
+include(cmake/NativeTu15PolygonFeatures.cmake)
+include(cmake/NativeTu15CameraInstanceAdmission.cmake)
+include(cmake/NativeTu15CameraInstanceBitmap.cmake)
+include(cmake/NativeTu15AsyncQueueData.cmake)
+include(cmake/NativeTu15AsyncPromotionData.cmake)
+include(cmake/NativeTu15TickConversion.cmake)
+include(cmake/NativeTu15MillisecondClock.cmake)
+include(cmake/NativeTu15KernelYield.cmake)
+include(cmake/NativeTu15ObjectScan.cmake)
+include(cmake/NativeTu15LazyHeapData.cmake)
+include(cmake/NativeTu15PhysicalAllocation.cmake)
+include(cmake/NativeTu15PhysicalCallbacks.cmake)
+include(cmake/NativeTu15EffectSlotScan.cmake)
+include(cmake/NativeTu15PrtSample.cmake)
 include(cmake/PhysicsEarlyInitializer.cmake)
 include(cmake/PhysicsRendererStorage.cmake)
 include(cmake/PhysicsLiveWorldTu15.cmake)
@@ -11848,6 +11957,104 @@ endforeach()
 if(BUILD_TESTING)
     add_test(NAME native_operand_specialization COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_operand_specialization.py)
+    add_custom_target(native_bsp_leaf_tests)
+    add_test(NAME native_bsp_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_bsp_leaves.py)
+    add_test(NAME native_matrix_leaf_faults COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_matrix_leaf_faults.py)
+    add_test(NAME original_tu15_native_matrix_alignment COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_matrix_alignment_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-matrix-alignment.json)
+    set_tests_properties(original_tu15_native_matrix_alignment PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+    add_test(NAME native_bsp_cluster_flood COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_bsp_cluster_flood.py)
+    add_test(NAME native_geometry_request_bindings COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_geometry_request_bindings.py)
+    add_test(NAME native_async_order_bindings COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_async_order_bindings.py)
+    add_test(NAME native_async_insert_bindings COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_async_insert_bindings.py)
+    add_test(NAME native_instruction_shaped_audit_parser COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_instruction_shaped_audit.py)
+    add_test(NAME native_instruction_shaped_audit COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/audit_native_instruction_shaped_owners.py
+        --output ${CMAKE_CURRENT_BINARY_DIR}/native-instruction-shapes.json)
+    set(_h2_async_order_sanitizers)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        list(APPEND _h2_async_order_sanitizers --sanitizers)
+    endif()
+    add_test(NAME original_tu15_native_async_order COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_async_order_tu15.py
+        --xbe "${HALO2_TU15_GAMEPLAY_XBE}"
+        --generation
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-async-order.json
+        ${_h2_async_order_sanitizers})
+    set_tests_properties(original_tu15_native_async_order PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    add_test(NAME original_tu15_native_async_insert COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_async_insert_tu15.py
+        --xbe "${HALO2_TU15_GAMEPLAY_XBE}" --generation
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-async-insert.json
+        ${_h2_async_order_sanitizers})
+    set_tests_properties(original_tu15_native_async_insert PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
+    unset(_h2_async_order_sanitizers)
+    add_test(NAME original_tu15_native_collision_matrix_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_collision_matrix_leaves_tu15.py)
+    add_test(NAME original_tu15_native_broadphase_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_broadphase_leaves_tu15.py)
+    add_test(NAME original_tu15_native_broadphase_bounds_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_broadphase_bounds_leaves_tu15.py)
+    add_test(NAME original_tu15_native_partition_temporary_abi COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_partition_temporary_abi_tu15.py)
+    add_test(NAME original_tu15_native_array_abi COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_array_abi_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-array-abi.json)
+    set(_halo2_pool_abi_sanitizers)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        list(APPEND _halo2_pool_abi_sanitizers --sanitizers)
+    endif()
+    add_test(NAME original_tu15_native_pool_allocator_abi COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_pool_allocator_abi_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-pool-allocator-abi.json ${_halo2_pool_abi_sanitizers})
+    set_tests_properties(original_tu15_native_pool_allocator_abi PROPERTIES TIMEOUT 240)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        add_test(NAME original_tu15_native_pool_allocator_abi_release COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_pool_allocator_abi_tu15.py
+            --report ${CMAKE_CURRENT_BINARY_DIR}/native-pool-allocator-abi-release.json)
+        set_tests_properties(original_tu15_native_pool_allocator_abi_release PROPERTIES TIMEOUT 240)
+    endif()
+    unset(_halo2_pool_abi_sanitizers)
+    add_test(NAME original_tu15_native_broadphase_remove COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_broadphase_remove_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-broadphase-remove.json)
+    add_test(NAME original_tu15_native_broadphase_add_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_broadphase_add_leaves_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-broadphase-add-leaves.json)
+    add_test(NAME original_tu15_native_broadphase_add_object COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_broadphase_add_object_tu15.py
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-broadphase-add-object.json)
+    set(_halo2_geometry_request_sanitizers)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        list(APPEND _halo2_geometry_request_sanitizers --sanitizers)
+    endif()
+    add_test(NAME original_tu15_native_geometry_request_abi COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_geometry_request_abi_tu15.py
+        --xbe "${HALO2_TU15_GAMEPLAY_XBE}"
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-geometry-request-abi.json
+        ${_halo2_geometry_request_sanitizers})
+    set_tests_properties(original_tu15_native_geometry_request_abi PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    add_test(NAME original_tu15_native_geometry_publish_abi COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_geometry_request_abi_tu15.py
+        --xbe "${HALO2_TU15_GAMEPLAY_XBE}" --publication
+        --report ${CMAKE_CURRENT_BINARY_DIR}/native-geometry-publish-abi.json
+        ${_halo2_geometry_request_sanitizers})
+    set_tests_properties(original_tu15_native_geometry_publish_abi PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    unset(_halo2_geometry_request_sanitizers)
+    add_test(NAME original_tu15_native_portal_predicate_leaves COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_portal_predicate_leaves_tu15.py)
+    add_test(NAME native_instruction_census COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_instruction_census.py)
+    add_test(NAME native_migration_inventory COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_migration_inventory.py)
     add_test(NAME native_instruction_cursor COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_instruction_cursor.py)
 endif()

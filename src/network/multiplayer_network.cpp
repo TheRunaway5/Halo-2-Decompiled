@@ -16,6 +16,7 @@
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/source_authority_delta.hpp"
 #include "halo2/source_player_departure.hpp"
+#include "source_membership_validation.hpp"
 #include "halo2/native_grenade_wire.hpp"
 #include "halo2/snapshot_stream.hpp"
 #include "halo2/system_link_state.hpp"
@@ -1702,12 +1703,10 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids,unsi
     }
     validate_objective_presentation(u.source_objective_presentation,s.source_engine);
     u.source_configuration=decode_profile(r);
-    if ((s.team_mode && (u.source_membership < 0 || u.source_membership > 7 ||
-          !(s.retained_team_mask & (1u << unsigned(u.source_membership))))) ||
-        (!s.team_mode && (u.source_membership < 0 || u.source_membership >= int(multiplayer_capacity))))
-      throw FormatError("Invalid native LAN source team membership");
-    if(u.source_configuration && std::bit_cast<std::int8_t>((*u.source_configuration)[0x7c])!=u.source_membership)
-      throw FormatError("Native profile and live membership differ");
+    if(u.source_membership==-1) {
+      if(s.source_game_type!=2 || !detail::native_nonplaying_member_candidate(u))
+        throw FormatError("Invalid nonplaying native LAN source participation");
+    } else detail::validate_native_source_membership(s,u);
     u.source_zoom.current=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
     u.source_zoom.requested=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
     u.source_zoom.motion=r.get(4);u.zoom_reset_serial=r.get(4);
@@ -2217,6 +2216,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids,unsi
     poses.poses[n].sphere=bounds[n].second;
   }
   s.source_body_poses=std::move(poses.poses);
+  for(const auto& player:s.players)detail::validate_native_source_membership(s,player);
   if(stream_version>=player_world_model_protocol) {
     r.at+=decode_source_world_pose_models(std::span(r.p).subspan(r.at),s.source_body_poses);
     validate_player_world_models(s);

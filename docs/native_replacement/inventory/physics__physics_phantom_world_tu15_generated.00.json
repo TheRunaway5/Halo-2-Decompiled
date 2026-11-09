@@ -1,0 +1,130 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/PhysicsPhantomWorldTu15.cmake",
+      "line": 2,
+      "target": "halo2_physics_phantom_world_tu15"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_phantom_world_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {
+    "src/physics/runtime/physics_instruction_remap_tu15.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_PHANTOM_REMAP"
+      ],
+      "sha256": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d"
+    }
+  },
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_phantom_world_tu15"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_PHANTOM_REMAP"
+  ],
+  "routine_count": 5,
+  "routines": [
+    {
+      "body_sha256": "f6fc9b9edcf9a197eef7ebe6b73ff28936f847a4d5f2f80bf3413e18b7df5dcd",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_1d9ec0",
+      "instruction_callback_sites": 39,
+      "line": 23,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1d9ec0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1d9ec0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "1d9ec0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "879159c1aec31da5c249e739c8692ea0d7c21b6932473a0858d782f119d5945a",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_1f3460",
+      "instruction_callback_sites": 20,
+      "line": 66,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1f3460",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1f3460",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "1f3460",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b6934fe06d195a18e893a5b05e64ffce171e503345903f65555b2377e88c5301",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [
+        "1d9ec0",
+        "1f3460"
+      ],
+      "function_name": "run_22d460",
+      "instruction_callback_sites": 189,
+      "line": 90,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "22d460",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "22d460",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "22d460",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "560830b73a34b7ca552b5debc9b32ed479f895f3bc4b32fba09b31ddae75f73d",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [
+        "22d460"
+      ],
+      "function_name": "run_2816a0",
+      "instruction_callback_sites": 35,
+      "line": 283,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2816a0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2816a0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "2816a0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "5b49382bb2fd44113dc1408828fc2d35a336eedbaf4a69e9c5331b81f0f28824",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_282870",
+      "instruction_callback_sites": 194,
+      "line": 322,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "282870",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "282870",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "MathState",
+      "symbol": "282870",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/physics_phantom_world_tu15_generated.cpp",
+  "source_bytes": 1232919,
+  "source_filename_scope": "generated",
+  "source_sha256": "ffc5e234c763ecdb65b6bf05f47f7b0ea7e96f59307e858a3ad4b81296227c5f"
+}

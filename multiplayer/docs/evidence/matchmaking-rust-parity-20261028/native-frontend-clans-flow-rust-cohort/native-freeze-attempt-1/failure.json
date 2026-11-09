@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "validation_not_run": true,
+  "reason": "Unrelated frustum qualification helper kept changing during the ten all-source freshness sweeps.",
+  "scratch_removed": true,
+  "root_work_preserved": true,
+  "recovery": "Freeze the complete private source tree, require all declared matchmaking scope bytes to match current root, and record unrelated live drift without refreshing that work."
+}

@@ -1,5 +1,6 @@
 #include "halo2/source_authority_publisher.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/source_host_archive_policy.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
@@ -34,11 +35,11 @@ struct SourceAuthorityPublisher::Impl {
     static constexpr std::uint64_t queue_limit=64ull*1024*1024;
     struct Job {std::uint64_t generation{};AuthorityTransferContext context;std::optional<SourceMatchAuthority::Checkpoint> cut;
         std::optional<SourceReplayBatch> replay;std::optional<AuthorityArchiveImage> base;std::optional<LanHost::Continuation> host;std::uint64_t serial{};
-        std::optional<PeerSnapshotToken> candidate;};
+        std::optional<PeerSnapshotToken> candidate;bool complete_host_archive{};};
     struct Result {std::uint64_t generation{},tick{},encoding_us{},full_bytes{};AuthorityTransferContext context;
         std::optional<AuthorityArchiveImage> image;std::optional<SourceReplayBinding> replay;std::uint64_t phases{};
         ArchiveBytes payload;std::optional<LanHost::Continuation> host;bool delta{},paired{};std::string error;
-        std::optional<PeerSnapshotToken> candidate;};
+        std::optional<PeerSnapshotToken> candidate;bool complete_host_archive{};};
     mutable std::mutex mutex;std::condition_variable_any condition;
     std::uint64_t generation{};bool working{};std::optional<Job> job;std::optional<Result> result;
     // Join before destroying the captured value queue or any session borrower.
@@ -65,7 +66,8 @@ struct SourceAuthorityPublisher::Impl {
         std::optional<LanHost::Continuation> saved;
         if(host)saved=host->checkpoint(source_authority_binding(*context));
         const auto size=source_replay_phase_allocation(phase)+sizeof(QueuedPhase)+(saved?LanHost::continuation_allocation(*saved):0);
-        need(phases.size()<1024&&size<=queue_limit-queued_bytes);
+        if(phases.size()>=1024)throw std::length_error("Source authority successor journal exceeds phase limit");
+        if(size>queue_limit-queued_bytes)throw std::length_error("Source authority successor journal exceeds byte limit");
         need(authority.execution_boundary()==after);
         phases.push_back({{before,after.tick,std::move(phase)},std::move(saved),size});queued_bytes+=size;recorded_boundary=after;
         ++stats.recorded_phases;
@@ -91,6 +93,10 @@ struct SourceAuthorityPublisher::Impl {
                 (!host||session->authority_host_continuation_supported(peer))&&
                 (!session->terminal_recovery_enabled()||session->authority_admitted_camera_supported(peer));});
     }
+    bool complete_host_archive_supported()const{
+        return host&&std::ranges::all_of(targets,[&](unsigned peer){
+            return session->authority_complete_host_archive_supported(peer);});
+    }
     bool candidate_active(const PeerSnapshotToken &token)const{
         if(!stats.snapshot_candidate_mode||!stats.common_cut_barrier||!host||context!=token.context||
             token.recipients!=recipients)return false;
@@ -107,6 +113,8 @@ struct SourceAuthorityPublisher::Impl {
             Result out;out.generation=item->generation;out.context=item->context;out.candidate=item->candidate;const auto started=Clock::now();
             try {
                 out.host=item->host;
+                out.complete_host_archive=item->complete_host_archive;
+                need(!out.complete_host_archive||out.host.has_value());
                 if(item->replay){
                     need(!item->cut&&item->replay->binding.context==item->context&&!item->replay->steps.empty());
                     out.replay=item->replay->binding;out.phases=item->replay->steps.size();out.tick=item->replay->steps.back().after_tick;
@@ -116,7 +124,7 @@ struct SourceAuthorityPublisher::Impl {
                 need(item->cut.has_value());out.tick=item->cut->match.simulation.ticks;
                 const auto binding=source_authority_binding(item->context);
                 need(item->cut->match.admitted_binding==binding&&item->cut->match.simulation.admitted_binding==binding);
-                const auto limits=source_authority_network_codec_limits();
+                const auto limits=source_host_archive_network_codec_limits(item->complete_host_archive);
                 out.paired=item->host.has_value();
                 out.payload=item->host?encode_source_host_continuation({item->context,item->serial,std::move(*item->cut),std::move(*item->host)},limits):
                     encode_source_authority(*item->cut,limits);out.full_bytes=out.payload.size();
@@ -217,6 +225,8 @@ void SourceAuthorityPublisher::update(){
     {std::lock_guard lock(s.mutex);if(!s.stats.held_group&&s.result&&(s.pending.empty()||(s.result->replay&&appendable()))){output=std::move(s.result);s.result.reset();}}
     if(output&&output->generation==s.generation&&output->context==current){
     s.stats.encoding_microseconds=output->encoding_us;
+    if(output->complete_host_archive&&!s.complete_host_archive_supported())
+        output->error="Complete host archive capability changed while encoding";
     if(!output->error.empty()){const auto error=output->error;s.discard_stream();s.stats.error=error;return;}
     try {
         if(s.stats.snapshot_candidate_mode)
@@ -253,6 +263,7 @@ bool SourceAuthorityPublisher::capture(){
     auto &s=*impl_;s.own();update();if(s.stats.snapshot_candidate_mode||!s.active(s.context)||s.stats.held_group||!s.pending.empty()||!s.available())return false;
     try {
         const auto started=Clock::now();Impl::Job next;next.generation=s.generation;next.context=*s.context;
+        next.complete_host_archive=s.complete_host_archive_supported();
         if(s.host){need(s.stats.captures<UINT64_MAX);auto cut=capture_source_host_continuation(*s.host,*s.context,s.stats.captures+1);
             next.cut=std::move(cut.world);next.host=std::move(cut.host);next.serial=cut.serial;}
         else next.cut=s.authority.checkpoint(source_authority_binding(*s.context));
@@ -274,6 +285,7 @@ bool SourceAuthorityPublisher::capture_candidate(const PeerSnapshotToken &token,
         // world itself, as well as the opaque peer stamps, must be exact.
         need(cut.world.match.simulation.ticks==emission.tick()&&s.host->candidate_current(emission,s.session->snapshot_candidates())&&s.candidate_active(token));
         Impl::Job next;next.generation=s.generation;next.context=token.context;next.cut=std::move(cut.world);
+        next.complete_host_archive=s.complete_host_archive_supported();
         next.host=std::move(cut.host);next.serial=cut.serial;next.candidate=token;
         s.stats.capture_microseconds=micros(started);
         s.replay.reset();s.phases.clear();s.queued_bytes=0;s.recorded_boundary.reset();

@@ -11,10 +11,12 @@ def main():
     for name in names:
         destination=project/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
     fixture=project/'tests/fixtures/native_tu15_data_array_allocate.json.gz';fixture.parent.mkdir(parents=True);shutil.copyfile(args.fixture,fixture)
-    core=(project/names[2]).read_text();variants={}
-    for name,needle,replacement in [('wrong_bit','(1u<<(index&31u))','(1u<<((index+1u)&31u))'),('salt_sentinel','==0xffffu','==0xfffeu'),('cached_clear_length','const auto clear_bytes=read(memory,pool+0x24u);','const auto clear_bytes=stride;'),('omit_tail','n<(clear_bytes&3u)','n<0u')]:
+    core=(project/'include/halo2/native_tu15_datum_allocate_kernel.hpp').read_text();variants={}
+    for name,needle,replacement in [('wrong_bit','(1u<<(s.index&31u))','(1u<<((s.index+1u)&31u))'),('salt_sentinel','s.salt_check==0xffffu','s.salt_check==0xfffeu'),('cached_clear_length','s.clear_bytes=memory.read(P::clear_stride,s,s.pool+0x24u,4);','s.clear_bytes=s.stride;'),('omit_tail','while(s.tail_count)','while(false&&s.tail_count)')]:
         assert core.count(needle)==1,(name,core.count(needle));variants[name]=core.replace(needle,replacement)
-    for name,text in variants.items():(project/f'src/core/{name}.cpp').write_text(text)
+    for name,text in variants.items():
+        header=project/name/'include/halo2/native_tu15_datum_allocate_kernel.hpp';header.parent.mkdir(parents=True);header.write_text(text)
+        shutil.copyfile(project/names[2],project/f'src/core/{name}.cpp')
     (project/'negative.py').write_text('''import subprocess,sys
 r=subprocess.run([sys.executable,sys.argv[1],'--probe',sys.argv[2],'--fixture',sys.argv[3]],text=True,capture_output=True)
 assert r.returncode!=0 and any(v in r.stderr for v in ('allocation datum differs','allocation read order differs','allocation store order differs','allocation retained bytes differ')),(r.returncode,r.stdout,r.stderr)
@@ -33,12 +35,12 @@ target_link_libraries(mutation_driver PRIVATE nlohmann_json::nlohmann_json)
 '''
     for name in variants:
         cmake+=f'''add_executable(allocate_{name} $<TARGET_OBJECTS:mutation_driver> src/core/{name}.cpp)
-target_include_directories(allocate_{name} PRIVATE include)
+target_include_directories(allocate_{name} PRIVATE "${{CMAKE_CURRENT_SOURCE_DIR}}/{name}/include" include)
 target_compile_features(allocate_{name} PRIVATE cxx_std_20)
 add_test(NAME allocate_{name} COMMAND "${{Python3_EXECUTABLE}}" "${{CMAKE_CURRENT_SOURCE_DIR}}/negative.py" "${{CMAKE_CURRENT_SOURCE_DIR}}/tools/test_native_campaign_screen_lifecycle_tu15.py" "$<TARGET_FILE:allocate_{name}>" "${{CMAKE_CURRENT_SOURCE_DIR}}/tests/fixtures/native_tu15_data_array_allocate.json.gz")
 '''
     (project/'CMakeLists.txt').write_text(cmake)
-    pins={name:sha(ROOT/name)for name in names};pins.update({str(p.relative_to(ROOT)):sha(p)for p in (ROOT/'include/halo2/native_tu15_data_array_allocate.hpp',ROOT/'include/halo2/physics_contact_record.hpp',Path(__file__))});results=[]
+    pins={name:sha(ROOT/name)for name in names};pins.update({str(p.relative_to(ROOT)):sha(p)for p in (ROOT/'include/halo2/native_tu15_data_array_allocate.hpp',ROOT/'include/halo2/native_tu15_datum_allocate_kernel.hpp',ROOT/'include/halo2/physics_contact_record.hpp',Path(__file__))});results=[]
     for kind,compiler,sanitizers in [('normal','g++',False),('clang-controls','clang++',False),('sanitizers','clang++',True)]:
         command=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(args.output/kind),'--target','native_tu15_data_array_allocate_tests','--filter','^(native_tu15_data_array_allocate|allocate_)'if kind=='clang-controls'else'^native_tu15_data_array_allocate$','--jobs','2','--test-jobs','1','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,'--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON','--retain-report','Testing/Temporary/LastTest.log']
         if kind=='clang-controls':

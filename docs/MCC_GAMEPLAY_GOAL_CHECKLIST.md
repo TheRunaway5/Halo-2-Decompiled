@@ -18,11 +18,12 @@ or unqualified features explicit as the cohort and feature inventory expand.
 
 - [ ] Complete the MCC registry/content capability inventory beyond the
   installed cohort, and close its native behavior and delivery gates. The
-  current compiled profile contains411 builtin declarations and17 external
+  current development profile contains412 builtin declarations and17 external
   globals; those counts describe admitted metadata, not complete effects or
-  the total MCC registry. The current411 signatures match the pinned full
-  registry;507 declarations still require explicit admission and qualified
-  native effects. [Current profile inventory](../build/test-results/workshop-goal-20261101/mcc-script-profile-current-1.json).
+  the total MCC registry. The current412 signatures match the pinned full
+  registry;506 declarations still require explicit admission and qualified
+  native effects. The selected runtime remains411 until the qualified feedback
+  candidate is delivered. [Current declaration audit](../build/test-results/workshop-goal-20261101/mcc-script-registry-inventory-3.json).
 - [x] Re-audit all918 pinned MCC declarations directly after scenery-start
   admission. All411 current signatures match the authenticated binary, with
   897 distinct names, maximum arity8 and507 declarations still unprofiled.
@@ -30,13 +31,41 @@ or unqualified features explicit as the cohort and feature inventory expand.
   global/value type or qualify untested engine effects.
   [Fresh complete declaration audit](../build/test-results/workshop-goal-20261101/mcc-script-registry-inventory-2.json).
 - [ ] Authenticate the complete external-global and value-type registry
-  bounds, backing, initialization and actual consumers. Direct encoded
-  LEA/MOV searches around the first global record find no authenticated
-  consumer, while the same search proves13 builtin-table references. That
-  bounded negative result does not establish a global count or absence of
-  indirect consumers; do not infer either from neighboring data. The
-  separate probe owners are removed and no runtime admission is changed.
-  [Bounded global-reference probe](../build/test-results/workshop-goal-20261101/mcc-global-table-consumers-3.json).
+  backing, initialization and actual consumers. The complete external-global
+  bound/pointer-table and value-type name range below are now authenticated;
+  parser/storage/initialization and actual effects still need qualification. Earlier inline-record
+  reference searches remain historical negative evidence only.
+- [x] Re-audit all918 builtin declarations after camera admission. All412
+  development signatures match, leaving506 unprofiled declarations. The
+  selected build's411-entry table and installed57-gap report remain distinct
+  until feedback qualification and delivery finish. Audit scratch is removed.
+  [Current builtin registry](../build/test-results/workshop-goal-20261101/mcc-script-registry-inventory-3.json).
+- [x] Authenticate the external-global name lookup's signed16-bit count1086
+  at180B342F0 and pointer table180E06560. Traverse all1086 unique declarations
+  through their actual pointers; the first records do not obey the previous
+  inline formula. Verify all17 admitted names/types and their explicit backing
+  pins, and compare every name/type candidate with the authenticated TU1.5
+  catalogue/records. Record1069 unprofiled declarations,1000 null MCC backing
+  pointers and1025 original name/type candidates. These are metadata facts,
+  not missing-implementation counts or permission to substitute global values.
+  All probe owners are removed; no native global admission is changed.
+  [Complete external-global registry](../build/test-results/workshop-goal-20261101/mcc-external-global-registry-1.json).
+- [x] Authenticate MCC's type-name table180DFC5A0 through the unchanged
+  type-completion wrapper1806E2BE0 and collector1806E2740. Its explicit range
+  is[4,62), with four reserved syntax names at0..3. Preserve all62 literal
+  display names, including spaces, and compare their indexed original
+  catalogue names without inventing aliases. Every type ID in all918 builtin
+  declarations and1086 external globals fits this named range. Original
+  catalogue widths are reference metadata only; MCC storage widths, parser
+  callbacks and native type consumers remain unqualified. Audit owners are
+  removed and no type or global value is newly admitted.
+  [Bounded type-name catalogue](../build/test-results/workshop-goal-20261101/mcc-script-type-names-1.json).
+- [x] Refresh the actual Steam Workshop catalogue before the feedback sweep.
+  All10 installed Halo2 packages and96 declared mission/map identities still
+  match the completed candidate6 cohort. This checks catalogue identity only;
+  the new packaged runtime must still execute every installed-map check and
+  preserve all previously passing checks before publication.
+  [Current installed catalogue](../build/test-results/workshop-goal-20261101/installed-catalogue-current-20261102.json).
 - [x] Authenticate the full pinned MCC builtin registry bound through its
   actual name-search loop and918-entry count at180B228E4. Inventory all918
   declarations,897 distinct names, signatures and original Xbox candidates;
@@ -1620,7 +1649,17 @@ records the verified result here before starting dependent work.
   qualification, installed-cohort comparison, source archive and both normal
   launcher delivery are still required before publishing it to the user.
   [Production camera consumers](../build/test-results/workshop-goal-20261101/camera-e3-gpu-13-production/consumer.json).
-- [ ] Implement and qualify the complete authored three-channel environment/
+- [x] Recover the exact declared camera cohort after the build14 coordinator,
+  compiler and owned source/build all became authoritatively absent. Its
+  partial running report is not acceptance; no candidate package survived.
+  Restore the selected authenticated code archive plus all58 exact overlay
+  hashes, reconstructing only the narrow CMake/Cache additions from the sealed
+  base. All14652 production files reproduce aacb3395 exactly, and separately
+  frozen vendor inputs match. Preserve both Root launchers/selections and all
+  qualified camera evidence. A new owned coordinator will requalify build15;
+  no prior removed build or terminal process is reused.
+  [Exact cohort recovery](../build/test-results/workshop-goal-20261101/camera-engine-recovery-1/recovery.json).
+- [x] Implement and qualify the complete authored three-channel environment/
   illumination material conversion, then rerun the actual E3 camera GPU path
   before production camera admission or a new qualified feedback build.
 - [x] Authenticate the next reported E3 requirement,`scenery_animation_start`:
@@ -1643,6 +1682,331 @@ records the verified result here before starting dependent work.
   declarations is enabled by this inventory.
   [Prediction contracts](../build/test-results/workshop-goal-20261101/prediction-contract-inventory.json),
   [Original effect roots](../build/test-results/workshop-goal-20261101/prediction-effect-original.json).
+- [x] Execute unchanged18D1D0 ->128A20 ->21F260 with no intercepted calls or
+  supplied callee results. Eleven NONE/empty/ready/pending/mixed-track cases
+  make86 genuine cache requests. All25 looping and31 sound-selection sites
+  execute; only67 of92 request sites are covered. Complete fixture-bank
+  differences prove the selected cache timestamps/usage bytes, preserving
+  other tracks, permutations, chunks and live caller FP/SIMD state. Cold
+  allocation/streaming, MCC projection and actual native HS consumers remain
+  open; no additional script declaration is admitted.
+  [Original cache-effect reference](../build/test-results/workshop-goal-20261101/looping-prediction-component-1/original.json).
+- [x] Qualify both native looping-prediction effect bodies with the current
+  Root complete-frame21F260 cache kernel. GCC/Clang/ASan-UBSan each pass all11
+  original cases/86 real cache calls, complete fixture banks and source stack,
+  GP/defined flags and live FP/SIMD. Both unsanitized compilers reject all four
+  deliberately wrong track/priority/stride/loop variants. Additive generation
+  preserves all15 existing Workshop bodies exactly. Publish the component in
+  Root with its3943-byte portable original reference and pass its registered
+  Root CTest. All completed probe/compiler owners are removed; the frozen
+  feedback15 cohort remains14652/aacb3395 and both launcher selections stay
+  unchanged. The earlier failed frozen-kernel comparisons are retained:
+  they identify stack differences in its optimized request implementation,
+  not a mission/runtime crash. No script declaration is admitted here.
+  [Native effects and cleanup](../build/test-results/workshop-goal-20261101/looping-prediction-acceptance-1.json),
+  [Frozen-kernel comparison](../build/test-results/workshop-goal-20261101/looping-prediction-component-1/report.json),
+  [Exact differing bytes](../build/test-results/workshop-goal-20261101/looping-prediction-component-2-diagnostic/g++/tests.log).
+- [x] Authenticate every literal prediction caller in all three installed E3
+  map variants against their complete map hashes. Normal and low-spec each
+  have one looping-sound, five shader and eleven bitmap prediction callers;
+  Playground has none. Both looping callers select the authored two music
+  tracks' front/rear-speaker loop sounds with full-salt tag identities. This
+  is content inventory; no caller execution is inferred.
+  [E3 prediction content](../build/test-results/workshop-goal-20261101/e3-prediction-content-1.json).
+- [x] Run the complete unchanged original scalar initialization, HS dispatcher,
+  argument parser, looping-prediction evaluator/effects, real cache request and
+  VOID completion together. Eleven cases execute22 wrapper/parser calls:
+  one deferred and one parsed return per case,86 genuine cache requests and
+  all11 thread-frame retirements. Complete accessed page preimages/postimages,
+  GP/flags/FP/SIMD and generated paths form a12675-byte reproducible reference;
+  no original instruction or callee result is replaced. Reference-construction
+  scratch is removed. The native comparison described below now passes using
+  complete production campaign and AI providers.
+  [Complete original HS reference](../build/test-results/workshop-goal-20261101/looping-prediction-HS-original-2.json).
+- [x] Compare the complete native HS initialization, dispatcher, parser,
+  looping-prediction evaluator/effects, genuine cache request and completion
+  against that unchanged original reference. All11 cases pass22 parsed/deferred
+  wrappers and86 actual cache requests, with exact accessed pages, full stack,
+  GP/defined flags, FP/SIMD and generated instruction paths. Compile all691 AI
+  bodies unchanged using the existing official partitioner and the complete
+  production campaign provider; do not reduce HS bodies or supply callee
+  results. All source/archive pins pass and compiler/probe scratch is removed.
+  This cached-state component closes the native HS comparison only; World,
+  actual MCC resource delivery and cold streaming remain separate gates.
+  [Native HS qualification and cleanup](../build/test-results/workshop-goal-20261101/looping-prediction-HS-acceptance-1.json).
+- [x] Reproduce both E3 variants' bitmap resource-only refusal on the actual
+  authored format1`ec_sky_dome`. Extend closed raw resource storage to all11
+  formats supported by the existing decoder and original format-bit table:
+  0/1/2/3/6/8/9/10/11/22/23. Retain exact encoded mip banks and original header
+  metadata; CPU sampling stays10/11/14/15/16. Check that domain again before
+  a previously predicted frame can be reused by the actual World lookup.
+  GCC/Clang/ASan-UBSan each pass87 rejection controls and all19472 unchanged
+  original header cases/97360 words. Both actual E3 resource tests now pass
+  all11 callers/nine distinct images and six malformed/CPU-mode controls each.
+  Register the portable raw-storage regression; its complete Root Cache-linked
+  CMake regression now passes with the original-header and actual sound-resource
+  tests below. Actual World lifecycle/GPU/HS acceptance remains open. All completed compiler,
+  prepared-map and snapshot owners are removed. These Root changes are outside
+  the immutable running feedback15 cohort and do not admit`bitmap_predict`.
+  [Raw storage qualification](../build/test-results/workshop-goal-20261101/raw-prediction-storage-1/report.json),
+  [Actual E3 resources](../build/test-results/workshop-goal-20261101/e3-prediction-bitmap-resource-3/report.json),
+  [Bounded progress and cleanup](../build/test-results/workshop-goal-20261101/prediction-resource-progress-1.json).
+- [x] Complete the real MCC sound DAT resource consumer with a coherent
+  Cache/sound-plan/provider cohort. The frozen feedback source lacks the newer
+  resource-owner interfaces, while Root's Cache and sound-plan ABIs differ.
+  Preserve the complete native descriptor/sector/encoded-owner test; reject
+  mixed headers/archives before map preparation instead of supplying I/O or
+  weakening its assertions. This is an explicit source-cohort gate, not a
+  reproduced mission crash or completed resource acceptance. Register the
+  complete actual-E3 consumer and start its Cache-linked CMake test together
+  with raw-storage and original-header regressions in an exact15888-file Root
+  snapshot (32bee1a6). Its complete copied inventory equals the pre-copy
+  inventory despite a later unrelated Root tool edit; no mixed source is
+  accepted. All three CTests pass: original pending-header corpus, raw-storage,
+  and both actual E3 sound-resource variants. Each variant qualifies9230 routes,
+  its two authored front/rear loop sounds and all10 malformed-identity refusals;
+  every native chunk handle remains NONE in this metadata-only consumer. Exact
+  first-chunk bytes agree with both retained and independent Cache reads.
+  All source/vendor/publication pins pass and the entire compiler, prepared-map
+  and source owner is removed. This closes resource ownership/I/O only.
+  The first two
+  refused copies ran no native tests and their owners are removed. The
+  immutable feedback15 source/build and both launcher selections are preserved.
+  [Cohort preflight](../build/test-results/workshop-goal-20261101/e3-prediction-delivery-2-preflight/report.json),
+  [Passed coherent resource cohort](../build/test-results/workshop-goal-20261101/e3-prediction-root-cohort-3/report.json),
+  [Native HS progress and cleanup](../build/test-results/workshop-goal-20261101/prediction-resource-progress-2.json).
+- [x] Run complete native18D1D0/128A20/21F260/21F420 and page/datum allocation
+  into the actual E3 DAT/I/O owner, then replay resident resources without new
+  reads. The new consumer declares empty source pool layouts from the existing
+  original page-allocation oracle; it supplies no cache handle, readiness or
+  file result. Invalid actual descriptor requests must leave completion unset.
+  Native composition passes both E3 variants under optimized GCC and Clang
+  ASan/UBSan, using exact copied providers from the passed32bee1a6 resource
+  cohort. Each variant makes two genuine allocations, two actual reads and two
+  retained receipts; resident replay makes no additional read, and both real
+  resource-identity faults leave completion unset. Sanitizers cover the native
+  consumer and kernels; the borrowed GCC Cache providers are uninstrumented.
+  The direct native effect component passes; its new registered Root CTest
+  still needs the next complete Root cohort. All copied providers, compiler,
+  source and prepared-map owners are removed.
+  The first compiler attempt exposed an omitted constant-only`groups.def` in
+  the staging helper, restored from identical qualified source references with
+  the exact provider includer. No Cache ABI header or assertion was changed.
+  A further fixture binding error was diagnosed at the exact native read:
+  MccSoundRuntimePlan::address is a merged allocation buffer. Correct the
+  fixture to use the authored globals -> full-salt canonical`ugh!` tag root,
+  matching the existing World binder, and validate all11 table descriptors.
+  No production owner or guard changed. Native World initialization and HS
+  scheduling remain separate gates.
+  [Owned cold-cache preparation](../build/test-results/workshop-goal-20261101/e3-cold-prediction-2/preparation.json),
+  [Declared catalogue restoration](../build/test-results/workshop-goal-20261101/e3-cold-prediction-2/header-catalogue-restoration.json),
+  [Cold component acceptance](../build/test-results/workshop-goal-20261101/e3-cold-prediction-acceptance-1.json),
+  [Source, publication pins and cleanup](../build/test-results/workshop-goal-20261101/prediction-resource-progress-3.json).
+- [x] Detect a concurrent terminal-display publication during the final
+  publication guard. Both Root launchers now selecte26c2de8/7a3ee8; preserve
+  that newer selection. Its script profile and owners are identical to the
+  delivered411/23 script cohort, but three machine/multiplayer source files
+  differ from the mod candidate's old base. Recover those exact three files
+  and four associated tests from the authenticated selected-base archive and
+  retained37050-byte patch; verify every before/after SHA. Retain only these
+  seven required source references,1,163,139 bytes total. The current selected
+  runtime has not had this goal's fresh96-map native sweep. Completed side
+  compiler/source/prepared-map owners are removed; the active camera build
+  remains14652/aacb3395 and is not mutated.
+  [Exact selected source delta](../build/test-results/workshop-goal-20261101/selected-terminal-overlay-2/report.json),
+  [Updated script-status boundary](../build/test-results/workshop-goal-20261101/current-script-gaps-verification-2.json).
+- [x] Preserve the exact feedback15 source after all 109 CTests passed.
+  The asset consistency guard stopped the run before stock smoke, frontend
+  checks or packaging. Retain the 1,485,209-byte source delta and verify
+  the reconstructed inventory against the tested source. The existing
+  launcher selection is unchanged.
+  [Tested source checkpoint](../build/test-results/workshop-goal-20261101/source-checkpoint-candidate-15.json).
+- [x] Apply the three terminal-display production files and four tests to
+  the owned cohort, verifying the full 14,652-file inventory. Freeze and
+  authenticate the 5,942 custom asset files in the same owner. Publication
+  still requires the qualified candidate's asset manifest to match the
+  live checkout; the drift control refuses before changing either launcher.
+  [Source refresh](../build/test-results/workshop-goal-20261101/terminal-cohort-refresh-1.json),
+  [Asset snapshot](../build/test-results/workshop-goal-20261101/feedback16-frozen-assets-1.json),
+  [Asset guards](../build/test-results/workshop-goal-20261101/feedback16-frozen-asset-guards-1.json).
+- [x] Finish the feedback16 build and all 112 required CTests. Thirteen
+  stock/player cases pass. The Dune process joins and exits with status 0
+  after one tick and zero submitted frames, so the builder stops before
+  frontend checks and discards the unqualified package.
+  [Feedback16 qualification report](../build/test-results/workshop-goal-20261101/launcher-16/report.json).
+- [x] Replay Dune with the feedback16 executable, exact shader inventory and
+  packaged runtime path. The candidate submits four frames on both the normal
+  display and isolated X11. The selected build also submits four frames under
+  isolated X11. All three runs reach ten ticks. The earlier exit remains
+  unexplained. Freeze and verify all 5,946 current custom assets, including
+  four movie paths missing from the earlier snapshot.
+  [Dune replay](../build/test-results/workshop-goal-20261101/feedback16-dune-replay-3.json),
+  [Live asset comparison](../build/test-results/workshop-goal-20261101/feedback16-live-inputs-1.json),
+  [Feedback17 asset snapshot](../build/test-results/workshop-goal-20261101/feedback17-frozen-assets-1.json).
+- [x] Verify the old runtime selection against its original prepared cache
+  after the checkout selects a different cache. The previous build attempt
+  stopped at the baseline cache identity check. The builder now accepts an
+  explicit baseline cache only for a named preparation baseline and checks
+  it through the existing verified cache reader. The new build exercises the
+  current selected cache. Zanzibar is the only stock map whose bytes differ
+  between the two caches.
+  [Baseline and current cache comparison](../build/test-results/workshop-goal-20261101/feedback17-cache-baseline-1.json).
+- [x] Record the feedback18 qualification stop. The build passed 111 of 112
+  CTests. The character shader fixture requires the authenticated reference
+  `shared.map`, which differs from the current gameplay cache. The frozen
+  exporter verified all 12 character setups against the reference cache.
+  [Feedback18 result](../build/test-results/workshop-goal-20261101/launcher-18/report.json).
+- [x] Preserve the gate prompt fix from the newer build selected by both
+  launchers. It adds one production change to the previously selected
+  terminal-display build and leaves the MCC script profile unchanged. Retain
+  the exact inventory source and its matching native control regression for
+  the camera build. Both before and after hashes match the respective builds.
+  Both files type-check with the camera build's compiler inputs. Both normal
+  launchers resolve the newer runtime and its frontend on a fresh check.
+  [Selected source reference](../build/test-results/workshop-goal-20261101/selected-inventory-overlay-1/report.json),
+  [Rebase preflight](../build/test-results/workshop-goal-20261101/selected-inventory-overlay-1/preflight.json),
+  [Launcher routes](../build/test-results/workshop-goal-20261101/selected-inventory-launcher-routes-2.json),
+  [Selected Mods menu Explore Map run](../build/test-results/workshop-goal-20261101/selected-inventory-mods-flow-1.json).
+- [x] Apply the two selected inventory files to the frozen camera source
+  after feedback18 stopped.
+  [Exact source refresh](../build/test-results/workshop-goal-20261101/feedback19-cohort-refresh-1.json).
+- [x] Record feedback19 qualification through all 112 CTests, 14 stock/player
+  cases and four frontend captures. Final frontend admission refused a
+  shared cache proof owned by a different executable. The candidate and
+  its temporary source and build were removed.
+  [Feedback19 report](../build/test-results/workshop-goal-20261101/launcher-19/report.json),
+  [Frontend admission result](../build/test-results/workshop-goal-20261101/launcher-19/frontend/frontend-owner-readmission.json).
+- [x] Scope a rebuilt cache proof to its named executable. Other qualified
+  executables must pass their own exact asset proof against the cache. The
+  packager uses the proof returned by that same reader. Live admission and
+  packaging pass for the currently selected armor build and the prior gate
+  prompt build on the same cache. The shared cache proof is unchanged.
+  [Live shared-cache proof tests](../build/test-results/workshop-goal-20261101/frontend-multi-runtime-live-2.json).
+- [x] Stage the exact tested camera and material changes over the newer
+  selected armor source. Preserve its renderer and CMake changes and its
+  six armor and native execution checks in the combined qualification.
+  [Combined source hashes](../build/test-results/workshop-goal-20261101/camera-selected-refresh-1/recovery.json).
+- [x] Diagnose the feedback20 preflight stop. Its archived asset reader
+  interpreted the staged source under an older inventory policy. All 5,946
+  staged files match the current inventory and its receipt when both are
+  read with the same policy.
+  [Asset comparison](../build/test-results/workshop-goal-20261101/camera-selected-refresh-1/asset-drift-1.json).
+- [ ] Complete feedback21 qualification with the current installation
+  readers and the same verified source and assets. Run the installed 96-map sweep,
+  archive the qualified source, verify the Mods menu and publish through
+  both normal launchers.
+- [x] Match the native `bitmap_predict` effect to the original Xbox TU1.5
+  executable. All 12 cases match instruction paths, ordered stores,
+  final banks, registers, defined flags and SIMD. The test exercises 10
+  lookups and three retries through the existing native texture cache.
+  Two cases cover ready paged entries, page age updates, header publication
+  and clock wrap. Private generation preserves all 18 current Workshop
+  routines and produces identical new evaluator and effect bodies against
+  the frozen build used for the comparison.
+  [Bitmap effect comparison](../build/test-results/workshop-goal-20261101/bitmap-prediction-effect-acceptance-1.json).
+- [x] Run all 12 original bitmap cases through the native script scheduler
+  and compare both evaluator invocations per case, including the deferred
+  call, type-39 parse, actual cache calls and VOID completion. All 24 parser
+  returns, ordered stores, complete touched banks, registers, flags, SIMD
+  and instruction paths match the original Xbox executable.
+  [Bitmap scheduler comparison](../build/test-results/workshop-goal-20261101/bitmap-prediction-HS-acceptance-1.json).
+- [x] Bind MCC texture reads to the actual bitmap tag salt, frame and
+  authored partition. Both E3 variants pass with 11 callers, nine bitmap
+  routes and 63 refusal controls each. The sector read preserves all decoded
+  payload bytes and supplies only the padding required by the original I/O
+  transfer size. The package source, native dependencies and installed
+  launcher files are verified by the resource test.
+  [E3 partition owner tests](../build/test-results/workshop-goal-20261101/e3-bitmap-partition-owner-2/report.json).
+- [x] Authenticate MCC prediction mode 2 through the shipped executable.
+  It visits each 168-byte frame and queues the first authored partition
+  when the frame has neither a texture nor an outstanding read. Preserve
+  that selection as a separate input from the Xbox LOD cutoff. None of the
+  506 nonzero original cutoff words in 778 comparable retail/MCC frames
+  reappears at any offset in the paired MCC row. The original retail rows
+  supply the serialized empty tracker, header and stamp preimages.
+  [MCC request instructions](../build/test-results/workshop-goal-20261101/bitmap-prediction-mcc-read-contract-1.json),
+  [Original cold row inputs](../build/test-results/workshop-goal-20261101/bitmap-xbox-cold-row-evidence-1.json),
+  [Retail and MCC cutoff comparison](../build/test-results/workshop-goal-20261101/bitmap-xbox-mcc-cutoff-comparison-1.json).
+- [x] Run the unchanged TU1.5 prediction prefix over 16 authenticated cold
+  bitmap rows. It reaches `12F4A0` and `1300B0` with partition 0,
+  priority 2 and no wait in every case.
+  [Original cold call inputs](../build/test-results/workshop-goal-20261101/bitmap-cold-call-original-1.json).
+- [x] Exercise the native cold texture allocator with real E3 partition
+  bytes and cache pools started by a stock MCC World. The first native run
+  reached the header constructor and exposed a missing format table. Mount
+  the exact original linear and nonlinear tables at renderer startup and
+  share their declarations with the lens renderer. Both E3 variants now
+  pass nine cold allocations and nine resident repeat lookups each. The
+  test uses declared descriptor rows and a scoped synchronous I/O fixture
+  with a fixture job ID. Native code owns physical allocation, tracking,
+  header construction and repeat lookup. The lens cache regression passes.
+  [Original table bytes](../build/test-results/workshop-goal-20261101/bitmap-cold-format-tables-1.json),
+  [Cold allocation comparison](../build/test-results/workshop-goal-20261101/e3-bitmap-cold-world-4/report.json),
+  [Lens regression](../build/test-results/workshop-goal-20261101/bitmap-format-catalogue-lens-1.json).
+- [x] Use one native texture I/O completion routine for the World and the
+  authored E3 cold allocator tests. The routine checks the exact request,
+  writes the complete payload, records the job and then marks the original
+  tracking row ready. Each E3 case verifies that a short transfer leaves the
+  destination, job, readiness and call ABI intact. The complete World caller
+  type-checks with the frozen camera compiler inputs.
+  [World I/O tests](../build/test-results/workshop-goal-20261101/e3-bitmap-cold-world-io-4/report.json),
+  [World caller compile](../build/test-results/workshop-goal-20261101/bitmap-world-io-compile-1.json).
+- [x] Build each initial 116-byte cache descriptor from its owned MCC
+  partition offsets and decoded lengths. Preserve the full-salt bitmap
+  handle at original offset `0x4c`, confirmed on all 6,374 original rows
+  sampled across Old Mombasa, Lockout and shared resources. The native tests
+  for both E3 variants now use these descriptors and verify that allocation
+  preserves the full-salt handle.
+  [Original full-salt owner](../build/test-results/workshop-goal-20261101/bitmap-cold-descriptor-tag-owner-1.json).
+- [x] Keep a stable source descriptor for each authored MCC bitmap frame
+  used by the World. Restore the index from the same cache and validate its
+  authored bytes. Route the exact partition through the World texture read
+  and existing job owner. The combined World changes type-check against
+  the frozen camera source. Both E3 component tests reconstruct all nine
+  resident descriptor addresses and reject an altered authored offset.
+  The existing `140310` and `12FD10` cache callbacks also evict and reload
+  one bitmap per variant at the same address. All nine authored cold
+  requests and nine repeat lookups pass in the same frame. The first
+  eviction run reached the original limit of ten fresh reads in one frame.
+  [World caller compile](../build/test-results/workshop-goal-20261101/bitmap-prediction-world-compile-1.json),
+  [E3 eviction and descriptor tests](../build/test-results/workshop-goal-20261101/e3-bitmap-prediction-eviction-2/report.json),
+  [Original evaluator and eviction instructions](../build/test-results/workshop-goal-20261101/bitmap-script-and-eviction-original-1.json).
+- [ ] Verify the real E3 World request and its production job receipts
+  without fixture I/O. Exercise a complete authority restore and check
+  active tracker and receipt ownership. Connect the verified path to the
+  original evaluator and test both E3 variants before admitting the MCC
+  declaration. The production I/O fixture type-checks and is queued against
+  the combined candidate's native libraries after its CTests complete.
+- [x] Preflight that exact selected delta against the camera cohort without
+  changing its active source. All seven before hashes match, the retained patch
+  applies without fuzz and every result matches the selected reference. The
+  complete selected multiplayer caller type-checks with the actual camera
+  compiler flags; the complete paired machine module links against unchanged
+  camera renderer libraries and passes all three machine/portal/object-LOD CPU
+  consumers. Their required original fixtures remain read-only. The first two
+  private attempts exposed missing SDL include propagation and missing fixture
+  aliases, corrected in the standalone helper without changing engine code or
+  assertions. Source/libraries/selected identities stay pinned and every side
+  source/compiler owner is removed. Expected production inventory after the
+  future three-file refresh is14652/3adad6b3; no new engine is qualified here.
+  [Selected-delta compatibility and cleanup](../build/test-results/workshop-goal-20261101/terminal-rebase-preflight-acceptance-1.json).
+- [x] Prepare the guarded owned source refresh for that migration. Require the
+  same camera scratch owner, a terminal worker, its exact qualified code archive
+  or an authenticated tested-source checkpoint for the asset-only refusal,
+  and unchanged reviewed publication identities before replacing
+  the three production/four test files. Verify the archive's complete old
+  production manifest, refresh timestamps and check the full predicted new
+  inventory. Reject foreign owners and optimized Python before source access;
+  both negative controls pass. The helper is not invoked on the active worker.
+  [Refresh guards](../build/test-results/workshop-goal-20261101/terminal-refresh-guards-1.json).
+- [ ] Qualify the looping-prediction evaluator with actual World-initialized
+  cache pools and native HS scheduling over real MCC resources, then mission
+  consumers. The complete original/native HS comparison, canonical resource
+  owner and direct native cold allocation/I/O comparisons above now pass.
+  Add its new regression
+  to the future mandatory feedback-builder policy after the currently running
+  build15 terminates. Current source remains412 admitted declarations and22
+  E3 requirements; the delivered build remains411/23.
 - [x] Audit all59 distinct requirements from the last complete installed
   sweep against60 authenticated MCC declarations and signature-matching
   original evaluators. Only three declarations have matching generated

@@ -80,4 +80,12 @@ MccNativeVehicleLibrary supplement_mcc_native_vehicle_library(
     const std::filesystem::path& native_library_root,std::uint64_t admitted_bytes,
     std::string_view admitted_sha256,const MccNativeLibraryRead&);
 
+// Admit the shared original camouflage material only after the exact PC
+// bootstrap has preserved its existing world and vehicle programs.
+std::map<std::string,std::filesystem::path> supplement_mcc_native_pc_camouflage(
+    nlohmann::json&,const std::filesystem::path& source_map,std::span<const Tag>,
+    TagHandle globals,const MccShaderRead&,const MccShaderBitmapFrame&,
+    const std::filesystem::path& native_library_root,std::uint64_t admitted_bytes,
+    std::string_view admitted_sha256,const MccNativeLibraryRead&);
+
 }

@@ -1,0 +1,332 @@
+{
+  "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/PhysicsVehicleRuntime.cmake",
+      "line": 13,
+      "target": "halo2_physics_vehicle_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_vehicle_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "46ce672d2937a092c0c5daf154b228657e933afb93a018c05a434002ae7ef1d5",
+      "selected_resolver_sha256": "8b24d8c367404f75f9c9dd0e077dfbd5498ab846a32a03ec32c06b461e417682"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "46ce672d2937a092c0c5daf154b228657e933afb93a018c05a434002ae7ef1d5",
+      "selected_resolver_sha256": "8b24d8c367404f75f9c9dd0e077dfbd5498ab846a32a03ec32c06b461e417682"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_vehicle_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 10,
+  "routines": [
+    {
+      "body_sha256": "323ccf405bd768424927b51df75f08cc6fda1ea2fa17477f7e86e1beb965ee7b",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "208d80",
+        "208e70",
+        "379338",
+        "f5930"
+      ],
+      "function_name": "run_f02d0",
+      "instruction_callback_sites": 251,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "f02d0",
+        "tu15": "f11f0"
+      },
+      "line": 41,
+      "literal_dispatch_required_targets": [
+        "d3750"
+      ],
+      "observed_entry": "f11f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "f11f0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "f02d0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "2b7b560e3672bdd18dd2235c5cc7d5c411f4a407cca74cdb06bb2f38bcbbb653",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "208d80"
+      ],
+      "function_name": "run_f06b0",
+      "instruction_callback_sites": 299,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "f06b0",
+        "tu15": "f15d0"
+      },
+      "line": 296,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "f15d0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "f15d0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "f06b0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "704e28a2eff74057fcc97904950d9f7515c536a4f9af641bbe6f55dca8288283",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "208d80",
+        "f02d0",
+        "f06b0",
+        "f5930"
+      ],
+      "function_name": "run_f0b30",
+      "instruction_callback_sites": 232,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "f0b30",
+        "tu15": "f1a50"
+      },
+      "line": 599,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "f1a50",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "f1a50",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "f0b30",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "184e751478db2ee88503ab41e184f420a6dab589af356f0d45ff181f323be394",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "326af0",
+        "379338",
+        "f0b30"
+      ],
+      "function_name": "run_f1420",
+      "instruction_callback_sites": 583,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "f1420",
+        "tu15": "f2340"
+      },
+      "line": 835,
+      "literal_dispatch_required_targets": [
+        "b9800",
+        "bbbc0",
+        "bbf20",
+        "bc190",
+        "bc200",
+        "bc400",
+        "bc820",
+        "bda50",
+        "ce860",
+        "d8bb0",
+        "da0d0",
+        "e8d80",
+        "f1dd0",
+        "f20c0",
+        "f2190",
+        "f2c20",
+        "f3880",
+        "f4230",
+        "f44e0",
+        "f48c0",
+        "f5570",
+        "f6d60",
+        "f8570",
+        "f8bd0",
+        "f9130",
+        "113d30",
+        "116520",
+        "1d7e40",
+        "1da710",
+        "1da750",
+        "20d7d0",
+        "20d9a0",
+        "20dea0"
+      ],
+      "observed_entry": "f2340",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "f2340",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "f1420",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "f98d0dff092db14d87d60d7038acd1d63b396f8de372ca2b44791ee8e6b38a4f",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_f5930",
+      "instruction_callback_sites": 31,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "f5930",
+        "tu15": "f6850"
+      },
+      "line": 1422,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "f6850",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "f6850",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "f5930",
+      "symbol_kind": "address-named"
+    },
+    {
+      "admission_prefix_calls": [
+        "vehicle_rate_accelerate_native",
+        "vehicle_rate_native_eligible"
+      ],
+      "body_sha256": "eef3692fe99e3779e911fc0327cc60deee0cccd9afa2be88a0153f8ce1de30db",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_208d80",
+      "instruction_callback_sites": 63,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "208d80",
+        "tu15": "20d680"
+      },
+      "line": 1457,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "vehicle_rate_accelerate_native",
+        "vehicle_rate_native_eligible"
+      ],
+      "observed_entry": "20d680",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "20d680",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "VehicleState",
+      "symbol": "208d80",
+      "symbol_kind": "address-named"
+    },
+    {
+      "admission_prefix_calls": [
+        "vehicle_rate_approach_native",
+        "vehicle_rate_native_eligible"
+      ],
+      "body_sha256": "a1352437f35fee775179e97513cdb6342a14d5874ce6d99ee4741ccd21486794",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "208d80"
+      ],
+      "function_name": "run_208e70",
+      "instruction_callback_sites": 31,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "208e70",
+        "tu15": "20d770"
+      },
+      "line": 1525,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "vehicle_rate_approach_native",
+        "vehicle_rate_native_eligible"
+      ],
+      "observed_entry": "20d770",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "20d770",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "VehicleState",
+      "symbol": "208e70",
+      "symbol_kind": "address-named"
+    },
+    {
+      "admission_prefix_calls": [
+        "halo2::native_stack_probe_detail::run"
+      ],
+      "body_sha256": "c299861da5d86e387d3c44c21290f530ecadb191e21de818d3ee9522f174141b",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_326af0",
+      "instruction_callback_sites": 27,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "326af0",
+        "tu15": "32a660"
+      },
+      "line": 1561,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_stack_probe_detail::run"
+      ],
+      "observed_entry": "32a660",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32a660",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "state_type": "VehicleState",
+      "symbol": "326af0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "cca5944171ecdaef465721f40bc865f9649ef14c79d54f2191f3996c2b2534cb",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [
+        "37933a"
+      ],
+      "function_name": "run_379338",
+      "instruction_callback_sites": 1,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "379338",
+        "tu15": "37cde8"
+      },
+      "line": 1593,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "37cde8",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37cde8",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "379338",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "1a65f1e8a9f04b7a6b080aef9bcb56a6c04b1c6a11c3e4fb8d65eca4fb50e0f6",
+      "callback_image_scope": "tu15-observation-remap-or-map-pack11",
+      "direct_run_symbols": [],
+      "function_name": "run_37933a",
+      "instruction_callback_sites": 8,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "37933a",
+        "tu15": "37cdea"
+      },
+      "line": 1598,
+      "literal_dispatch_required_targets": [
+        "37ce0c"
+      ],
+      "observed_entry": "37cdea",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "37cdea",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "VehicleState",
+      "symbol": "37933a",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/vehicles/physics_vehicle_runtime_generated.cpp",
+  "source_bytes": 179788,
+  "source_filename_scope": "generated",
+  "source_sha256": "f56180fe28e83d9b47c966b24513d6ef80fe2e1d38ddd52fe282058e1daffb99"
+}

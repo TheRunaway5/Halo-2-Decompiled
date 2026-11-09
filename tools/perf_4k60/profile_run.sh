@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: profile_run.sh RUNTIME REPORT_DIR LABEL PLAYERS FRAMES [SAMPLE_DELAY] [extra runtime args...]
-# Env: H2_MAPS (MCC map directory), H2_MAP (default coagulation), H2_WINDOW (profile seconds), H2_CPUMON=1 (CPU ms/frame), H2_GPU_TIMINGS=1 (same-queue GPU intervals).
+# Env: H2_MAPS (MCC map directory), H2_MAP (default coagulation), H2_WINDOW (profile seconds), H2_CPUMON=1 (CPU ms/frame), H2_GPU_TIMINGS=1 (same-queue GPU intervals), H2_KEEP_LINES=REGEX (keep matching log lines).
 # Runs inside tools/run_test.py; raw samples/builds live in HALO2_TEST_SCRATCH.
 set -euo pipefail
 runtime=$1 report=$2 label=$3 players=$4 frames=$5 delay=${6:-}
@@ -17,7 +17,7 @@ scratch=$HALO2_TEST_SCRATCH
 mkdir -p "$report"
 # A failed retry must not leave the previous invocation's successful metrics
 # under the same label. These suffixes are owned exclusively by this helper.
-for suffix in timing.txt timing.tsv gpu.tsv failure.log elapsed cpu.txt cull.txt profile.txt samples maps; do
+for suffix in timing.txt timing.tsv gpu.tsv failure.log elapsed cpu.txt cull.txt lane.txt lane_timing.txt profile.txt samples maps lines.txt; do
   rm -f -- "$report/$label.$suffix"
 done
 env_extra=()
@@ -129,7 +129,13 @@ python3 -c "print('elapsed %.1f s' % ($end - $start))" | tee "$report/$label.ela
 cp "$scratch/timing.tsv" "$report/$label.timing.tsv"
 grep -a "Native main cull" "$scratch/run.log" | tail -40 > "$report/$label.cull.txt" || true
 grep -a "Render overlap" "$scratch/run.log" | head -3 > "$report/$label.overlap.txt" || true
+grep -a "Posing lane" "$scratch/run.log" | head -3 > "$report/$label.lane.txt" || true
+grep -a "Posing lane timing" "$scratch/run.log" > "$report/$label.lane_timing.txt" || true
 grep -a -A2 "Presented scope census" "$scratch/run.log" | tail -12 > "$report/$label.census.txt" || true
+# H2_KEEP_LINES=REGEX keeps the last 400 matching log lines as <label>.lines.txt.
+if [[ -n "${H2_KEEP_LINES:-}" ]]; then
+  grep -a -E -- "$H2_KEEP_LINES" "$scratch/run.log" | tail -400 > "$report/$label.lines.txt" || true
+fi
 if [[ -f "$scratch/cpumon.txt" ]]; then
   python3 - "$scratch/cpumon.txt" "$frames" <<'PY' | tee "$report/$label.cpu.txt"
 import sys

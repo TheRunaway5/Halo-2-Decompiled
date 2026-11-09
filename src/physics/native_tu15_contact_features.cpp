@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_contact_features.hpp"
+#include "halo2/native_tu15_polygon_features_value.hpp"
 #include <bit>
 #include <cstring>
 #include <sstream>
@@ -51,7 +52,8 @@ void native_tu15_contact_shape_features(SourcePhysicsContactMemory&memory,
         return;
     }
     if(owner.identity==0x1f6690u){
-        auto last=count-1u;if(!nonnegative(last))return;do{const auto id=m.word(ids+last*2u,2);const auto value=m.vector_bytes(shape.identity+(id+2u)*16u);m.vector_bytes(0x1f66beu,output+last*16u,value);if(!last)break;--last;}while(true);return;
+        native_polygon_features_detail::ValueAccess access{m,shape.identity,ids,count,output};
+        NativeTu15PolygonFeatures data;native_tu15_expand_polygon_features(access,data);return;
     }
     if(owner.identity==0x3070f0u){
         auto last=count-1u;if(!nonnegative(last))return;for(std::uint32_t n=0;n<count;++n){const auto id=m.word(ids+n*2u,2);m.vector_bytes(0x30710cu,output+n*16u,m.vector_bytes(shape.identity+id+0x10u));const auto tag=m.word(ids+n*2u,2);m.word(0x307118u,output+n*16u+0xcu,tag|0x3f000000u);}return;

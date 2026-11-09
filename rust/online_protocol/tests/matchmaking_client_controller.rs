@@ -77,6 +77,7 @@ struct Data {
     queued: bool,
     catalog: String,
     ticket: Option<String>,
+    countdown_binding: Option<String>,
     descriptor: Value,
     token: String,
     lease: u32,
@@ -103,6 +104,7 @@ impl Fixture {
                 queued: false,
                 catalog: playlists().to_string(),
                 ticket: None,
+                countdown_binding: Some("private-room".into()),
                 descriptor: descriptor(),
                 token: "s".repeat(43),
                 lease: 900,
@@ -202,6 +204,21 @@ impl Io for Fixture {
                 }
             }
             if let Some(body) = &d.ticket {
+                if r.url.ends_with("&start_room=1")
+                    && let Some(id) = &d.countdown_binding
+                    && let Ok(mut response) = serde_json::from_str::<Value>(body)
+                    && let Some(countdown) = response.get("start_countdown_ms")
+                {
+                    response["start_room"] = if countdown.is_null() {
+                        Value::Null
+                    } else {
+                        json!(id)
+                    };
+                    return Ok(Response {
+                        status: 200,
+                        body: response.to_string(),
+                    });
+                }
                 return Ok(Response {
                     status: 200,
                     body: body.clone(),
@@ -433,6 +450,7 @@ fn launch() -> matchmaking_readiness::NativeLaunchObservation {
 fn launch_is_bound_to_the_observed_shared_zero_and_transfers_once() {
     let f = Fixture::new(config());
     f.start_match();
+    assert!(!f.client.take_launch(launch(), &[]));
     let mut connecting = launch();
     connecting.loading = false;
     assert!(!f.client.take_launch(connecting, &[]));
@@ -452,6 +470,84 @@ fn launch_is_bound_to_the_observed_shared_zero_and_transfers_once() {
     let count = f.count("POST", "/ticket");
     f.client.poll(&f);
     assert_eq!(f.count("POST", "/ticket"), count);
+}
+
+#[test]
+fn an_identical_unbound_countdown_cannot_transfer_an_installed_connection() {
+    let f = Fixture::new(config());
+    f.start_match();
+    {
+        let mut d = f.data.lock().unwrap();
+        d.phase = ConnectionPhase::Loading;
+        d.countdown_binding = None;
+    }
+    f.client.poll(&f);
+    assert_eq!(f.client.snapshot().status, Status::Failed);
+    assert!(!f.client.take_launch(launch(), &[]));
+}
+
+#[test]
+fn identical_countdown_from_another_room_cannot_transfer_and_the_correct_room_can_retry() {
+    let f = Fixture::new(config());
+    f.start_match();
+    {
+        let mut d = f.data.lock().unwrap();
+        d.phase = ConnectionPhase::Loading;
+        d.countdown_binding = Some("other-private-room".into());
+    }
+    f.client.poll(&f);
+    assert_eq!(f.client.snapshot().status, Status::Failed);
+    assert!(!f.client.take_launch(launch(), &[]));
+    f.data.lock().unwrap().countdown_binding = Some("private-room".into());
+    f.client.poll(&f);
+    assert_eq!(f.count("GET", "/ticket?start=1&failure=1&start_room=1"), 2);
+    assert!(f.client.take_launch(launch(), &[]));
+    assert_eq!(f.data.lock().unwrap().installed.len(), 1);
+}
+
+#[test]
+fn countdown_for_changed_match_cannot_transfer_installed_connection() {
+    for mutation in 0..7 {
+        let f = Fixture::new(config());
+        f.start_match();
+        let mut changed = matched();
+        match mutation {
+            0 => changed["playlist_id"] = json!("other"),
+            1 => changed["match"]["map"] = json!("ascension"),
+            2 => changed["match"]["variant"] = json!("Rockets"),
+            3 => changed["match"]["game_id"] = json!("another-row"),
+            4 => {
+                let mut bytes = decoded(changed["match"]["settings"].as_str().unwrap());
+                bytes[0x50] ^= 1;
+                changed["match"]["settings"] = json!(encoded(&bytes));
+                changed["match"]["settings_sha256"] = json!(encoded(&Sha256::digest(&bytes)));
+            }
+            5 => changed["match"]["players"][1]["name"] = json!("Different Peer"),
+            _ => {
+                changed = ticket(false);
+                changed["start_countdown_ms"] = json!(0);
+            }
+        }
+        {
+            let mut d = f.data.lock().unwrap();
+            d.phase = ConnectionPhase::Loading;
+            d.ticket = Some(changed.to_string());
+        }
+        f.client.poll(&f);
+        assert_eq!(f.client.snapshot().status, Status::Failed, "{mutation}");
+        assert!(!f.client.take_launch(launch(), &[]), "{mutation}");
+
+        let mut expected = matched();
+        let players = expected["match"]["players"].as_array_mut().unwrap();
+        for player in players {
+            player.as_object_mut().unwrap().remove("level");
+        }
+        f.data.lock().unwrap().ticket = Some(expected.to_string());
+        f.client.poll(&f);
+        assert_eq!(f.client.snapshot().status, Status::Loading);
+        assert!(f.client.take_launch(launch(), &[]));
+        assert_eq!(f.data.lock().unwrap().installed.len(), 1);
+    }
 }
 
 #[test]
@@ -571,6 +667,90 @@ fn transport_roster_names_teams_owners_guests_and_session_are_bound_before_insta
 }
 
 #[test]
+fn transport_refuses_a_changed_catalog_revision_or_team_mode() {
+    let refused: Vec<_> = (0..2)
+        .map(|case| {
+            let f = Fixture::new(config());
+            f.ready();
+            {
+                let mut d = f.data.lock().unwrap();
+                d.ticket = Some(matched().to_string());
+                if case == 0 {
+                    d.descriptor["transport"]["session"]["revision"] = json!("another-revision");
+                } else {
+                    d.descriptor["team_mode"] = json!(true);
+                }
+            }
+            f.join();
+            let installed = f.data.lock().unwrap().installed.len();
+            (f.client.snapshot().status, installed)
+        })
+        .collect();
+    assert_eq!(refused, [(Status::Failed, 0), (Status::Failed, 0)]);
+}
+
+#[test]
+fn full_settings_clients_refuse_name_only_stock_matches_before_transport() {
+    for compatibility in ["halo2-native-queue-v15", "halo2-native-queue-v16"] {
+        for complete_envelope in [false, true] {
+            let f = Fixture::new(Config {
+                compatibility: compatibility.into(),
+                ..config()
+            });
+            f.ready();
+            let mut body = matched();
+            if complete_envelope {
+                body["match"]["settings"] = Value::Null;
+                body["match"]["settings_sha256"] = Value::Null;
+            } else {
+                let game = body["match"].as_object_mut().unwrap();
+                for key in ["game_id", "settings", "settings_sha256"] {
+                    game.remove(key);
+                }
+            }
+            f.data.lock().unwrap().ticket = Some(body.to_string());
+            f.join();
+            assert_eq!(f.client.snapshot().status, Status::Failed);
+            assert_eq!(f.count("GET", "/transport"), 0);
+            assert!(f.data.lock().unwrap().installed.is_empty());
+        }
+    }
+}
+
+#[test]
+fn named_legacy_and_modern_extension_paths_keep_their_explicit_profiles() {
+    for (compatibility, variant, complete_envelope) in [
+        ("halo2-native-queue-v14", "Slayer", false),
+        ("halo2-native-queue-v15", "Fiesta Slayer", true),
+        ("halo2-native-queue-v16", "Infection Slayer", true),
+    ] {
+        let f = Fixture::new(Config {
+            compatibility: compatibility.into(),
+            ..config()
+        });
+        f.ready();
+        let mut body = matched();
+        body["match"]["variant"] = json!(variant);
+        if complete_envelope {
+            body["match"]["settings"] = Value::Null;
+            body["match"]["settings_sha256"] = Value::Null;
+        } else {
+            let game = body["match"].as_object_mut().unwrap();
+            for key in ["game_id", "settings", "settings_sha256"] {
+                game.remove(key);
+            }
+        }
+        let mut io = f.data.lock().unwrap();
+        io.ticket = Some(body.to_string());
+        io.descriptor["transport"]["session"]["variant"] = json!(variant);
+        drop(io);
+        f.join();
+        assert_eq!(f.data.lock().unwrap().installed.len(), 1, "{variant}");
+        assert!(f.client.snapshot().game.unwrap().settings.is_none());
+    }
+}
+
+#[test]
 fn every_authored_preset_keeps_its_complete_304_byte_ticket() {
     let presets = presets();
     let rows = presets["variants"].as_array().unwrap();
@@ -587,6 +767,7 @@ fn every_authored_preset_keeps_its_complete_304_byte_ticket() {
             let mut d = f.data.lock().unwrap();
             d.ticket = Some(body.to_string());
             d.descriptor["transport"]["session"]["variant"] = row["name"].clone();
+            d.descriptor["team_mode"] = json!(settings[0x48] & 1 != 0);
         }
         f.join();
         assert_eq!(

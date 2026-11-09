@@ -95,11 +95,13 @@ class LoadingAmbience(unittest.TestCase):
 
     def test_onboarding_cache_selection_imports_loading_sound_before_publication(self):
         import mcc_onboarding as onboarding
+        from test_mcc_onboarding import bundle_fixture
+        from custom_ui_test_support import custom_ui_menu_fixture
+        bundle_fixture(self.root)
+        custom_ui_menu_fixture(self.cache, self.root)
         report = json.loads(self.provenance.read_bytes())
         with patch.object(onboarding, 'private_cache', return_value=(self.cache, report)), \
-             patch('custom_map_assets.compatible', return_value=True), \
-             patch('custom_ui_assets.repair', side_effect=lambda root, cache, **kw: (cache, report)), \
-             patch('native_variant_assets.install'):
+             patch('custom_map_assets.compatible', return_value=True):
             cache, updated = onboarding.select(self.root, self.cache, verify=False, progress=lambda _: None)
         self.assertEqual(cache, self.cache)
         self.assertTrue(ambience.verify(cache, updated.get('h2ek_loading_ambience')))

@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Execute the TU1.5 playlist callback and datum lookup up to activation."""
+from collections import Counter
+from datetime import datetime, timezone
+import hashlib
+import itertools
+import json
+import os
+from pathlib import Path
+import struct
+import sys
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDI, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP
+
+BEGIN, GET, ACTIVATE = 0x2BBE4B, 0x16E940, 0x2BBE83
+MENU, TABLE, BANK = 0x1100000, 0x1101000, 0x1102000
+CALLER, CONTROLLER, EVENT, STRIDE = 0x1103000, 0x1103100, 0x1103200, 16
+OLD_ESI, OLD_EDI = 0x8A9BAADB, 0x75647392
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+memory = source.g
+memory.mem_map(MENU, 0x10000)
+seen = {}
+visits = Counter()
+outcome = None
+case_index = 0
+
+def put(at, *values):
+    memory.mem_write(at, struct.pack("<" + "I" * len(values), *(v & 0xFFFFFFFF for v in values)))
+
+def read(at):
+    return struct.unpack("<I", memory.mem_read(at, 4))[0]
+
+def observe(g, at, size, unused):
+    global outcome
+    raw = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == raw, hex(at)
+    if at == ACTIVATE:
+        sp = g.reg_read(UC_X86_REG_ESP)
+        outcome = dict(playlist=g.reg_read(UC_X86_REG_EDI), row=g.reg_read(UC_X86_REG_EAX),
+                       chooser=read(sp + 4), controller=read(sp + 8), caller_return=read(sp))
+        g.emu_stop()
+        return
+    seen[at] = raw
+    visits[at] += 1
+
+def write_guard(g, kind, at, size, value, unused):
+    assert STACK - 0x100 <= at and at + size <= STACK + 16, (case_index, hex(at), size)
+
+memory.hook_add(UC_HOOK_CODE, observe)
+memory.hook_add(UC_HOOK_MEM_WRITE, write_guard)
+put(MENU + 0x70, TABLE)
+put(TABLE + 0x24, STRIDE)
+put(TABLE + 0x44, BANK)
+put(CALLER, CONTROLLER)
+results = Counter()
+control_digest = hashlib.sha256()
+examples = {}
+# Control the slot index, salt, record flags and declared table extent separately.
+cases = itertools.product([0, 1, 2, 65535], [0, 1, 0x7FFF, 0x8000, 0xFFFF],
+                          [0, 1, 0x7FFF, 0x8000, 0xFFFF], [0, 1, 2, 3, 0x80, 0xFF], [0, 1, 2])
+for case_index, (index, handle_salt, stored_salt, flags, extent) in enumerate(cases):
+    handle = (handle_salt << 16) | index
+    controller = [0, 1, 3, 0xFEDCBA98][case_index % 4]
+    keys = [0xA5343210, 0x11223344]
+    put(TABLE + 0x38, extent)
+    put(CONTROLLER + 4, controller)
+    put(EVENT, handle)
+    for i, key in enumerate(keys):
+        memory.mem_write(BANK + i * STRIDE, struct.pack("<HBBI8x", stored_salt, flags, 0x7E, key))
+    put(STACK, STOP, CALLER, EVENT)
+    memory.reg_write(UC_X86_REG_ESP, STACK)
+    memory.reg_write(UC_X86_REG_ECX, MENU)
+    memory.reg_write(UC_X86_REG_ESI, OLD_ESI)
+    memory.reg_write(UC_X86_REG_EDI, OLD_EDI)
+    outcome = None
+    before_get = visits[GET]
+    memory.emu_start(BEGIN, STOP, count=250)
+    if handle == 0xFFFFFFFF:
+        reason = "invalid_handle_sentinel"
+    elif index >= extent:
+        reason = "index_outside_table"
+    elif stored_salt == 0:
+        reason = "vacant_record"
+    elif handle_salt != stored_salt:
+        reason = "stale_salt"
+    elif flags & 1 == 0:
+        reason = "record_flag_clear"
+    else:
+        reason = "activation_call"
+    results[reason] += 1
+    assert (visits[GET] != before_get) == (reason != "invalid_handle_sentinel")
+    assert memory.reg_read(UC_X86_REG_ESI) == OLD_ESI
+    if reason == "activation_call":
+        assert memory.reg_read(UC_X86_REG_EIP) == ACTIVATE
+        assert outcome == dict(playlist=keys[index], row=BANK + index * STRIDE,
+                              chooser=MENU, controller=controller, caller_return=0x2BBE7F)
+    else:
+        assert outcome is None
+        assert memory.reg_read(UC_X86_REG_EIP) == STOP
+        assert memory.reg_read(UC_X86_REG_ESP) == STACK + 12
+        assert memory.reg_read(UC_X86_REG_EDI) == OLD_EDI
+    result = [index, handle_salt, stored_salt, flags, extent, controller, reason, outcome]
+    examples.setdefault(reason, result)
+    control_digest.update(json.dumps(result, sort_keys=True).encode() + b"\n")
+assert set(results) == {"invalid_handle_sentinel", "index_outside_table", "vacant_record",
+                       "stale_salt", "record_flag_clear", "activation_call"}
+proof = dict(schema="H2_TU15_PLAYLIST_CHOOSER_ACTIVATION_V1", passed=True,
+             completed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+             callback_entry=hex(BEGIN), executed_datum_getter=hex(GET),
+             stop_before_activation_body=hex(ACTIVATE), observed_source_instructions=len(seen),
+             source_instruction_invocations=sum(visits.values()), original_controls=sum(results.values()),
+             activation_gate_results=dict(results), controls_sha256=control_digest.hexdigest(),
+             sample_by_result=examples, original_executed_bytes_sha256=hashlib.sha256(b"".join(
+                 struct.pack("<IH", a, len(raw)) + raw for a, raw in sorted(seen.items()))).hexdigest(),
+             patched_instructions=[], replaced_callees=[], all_instruction_bytes_verified=True,
+             source_code_emulated_writes_stack_only=True, synthetic_table_inputs=True,
+             original_row_selectability_producer_executed=False, original_activation_body_executed=False,
+             production_catalog_changed=False, retained_generated_large_artifacts=[],
+             tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), scratch=str(scratch))
+out = root / "build/test-results/frontend-postgame-flow-rust-20261102/tu15-chooser-activation-probe.json"
+out.write_text(json.dumps(proof, indent=2) + "\n")
+print(json.dumps(dict(passed=True, controls=sum(results.values()), branches=dict(results),
+                      original_instructions=len(seen), instruction_invocations=sum(visits.values()))))

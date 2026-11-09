@@ -1,0 +1,90 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 972,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "edd7fc3d5c4994f55b784126c68c1c0b0ad2a6efc97b90e2408ca8fb1f1e9509",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "edd7fc3d5c4994f55b784126c68c1c0b0ad2a6efc97b90e2408ca8fb1f1e9509",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "47a75ad1c80c390c94637979277eb25eeaa4f1d598a0fd5424fed80e1112168e",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_105420",
+      "instruction_callback_sites": 18,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "105420",
+        "tu15": "105420"
+      },
+      "line": 351,
+      "literal_dispatch_required_targets": [
+        "10a980"
+      ],
+      "observed_entry": "105420",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "105420",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "105420",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b9b989e55936d225ad1a39e4ce2b66500d60f357811d270e968fa0303153b6ce",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_116790",
+      "instruction_callback_sites": 100,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "116790",
+        "tu15": "116790"
+      },
+      "line": 373,
+      "literal_dispatch_required_targets": [
+        "bc380",
+        "111b10",
+        "111d10"
+      ],
+      "observed_entry": "116790",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "116790",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "116790",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/units/source_unit_animation_cancel_tu15_generated.cpp",
+  "source_bytes": 30942,
+  "source_filename_scope": "generated",
+  "source_sha256": "b088d53bb940b865eadfad208f2f9057cb8d7f3db21a98f62f5ea48cb9aee33c"
+}

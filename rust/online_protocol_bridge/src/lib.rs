@@ -78,6 +78,12 @@ mod matchmaking_frontend_friends;
 use matchmaking_frontend_friends::*;
 mod matchmaking_frontend_clans;
 use matchmaking_frontend_clans::*;
+mod matchmaking_frontend_couch;
+use matchmaking_frontend_couch::*;
+mod matchmaking_frontend_signin;
+use matchmaking_frontend_signin::*;
+mod matchmaking_frontend_postgame;
+use matchmaking_frontend_postgame::*;
 mod matchmaking_frontend_lobby_view;
 use matchmaking_frontend_lobby_view::*;
 use matchmaking_readiness::{matchmaking_connected_teams, matchmaking_eligibility,
@@ -223,7 +229,7 @@ mod ffi {
     struct NativeExchangeSession {self_peer:u32,host:u32,direct:bool,running:bool,common_phase:bool,candidate_phase:bool,terminal_recovery:bool}
     struct NativeExchangeCommon {present:bool,supported:bool,context:NativePublicationContext}
     enum NativeExchangeCommonAction {Offer,ConfirmNative,Associate,Apply,Release,Reject,Abort,AcknowledgeAbort}
-    enum NativeExchangeCapability {Authority,Replay,Pipeline,HostContinuation,AdmittedCamera,SourceConfirmed}
+    enum NativeExchangeCapability {Authority,Replay,Pipeline,HostContinuation,AdmittedCamera,SourceConfirmed,CompleteHostArchive}
     struct MatchmakingQosConfig {
         input_valid: bool, origin: String, bearer: String, loopback: bool,
         url_parsed: bool, url_normalized: String, url_scheme: String, url_host: String,
@@ -306,7 +312,25 @@ mod ffi {
     struct PartyFlowFriend {id:Vec<u8>,state:Vec<u8>}
     struct PartyFlowFacts {mode:i32,frames:Vec<PartyFlowFrame>,account_client:bool,queue_client:bool,voice_client:bool,authenticated:bool,busy:bool,party:bool,leader:bool,version:u64,privacy_present:bool,privacy:PartyFlowPrivacy,outgoing:Vec<PartyBytesData>,invitations:Vec<PartyFlowInvite>,friends:Vec<PartyFlowFriend>,clan:bool,clan_members:Vec<PartyBytesData>,signed_in:Vec<u8>,launch:bool,status:u32,party_message:Vec<u8>,command_serial:u64,successful_present:bool,successful:bool,voice_party:bool,voice_joined:bool,voice_connecting:bool,microphone_muted:bool,muted:Vec<PartyBytesData>}
     struct PartyFlowCommand {action:Vec<u8>,value:Vec<u8>,playlist:Vec<u8>,revision:Vec<u8>,version:u64,privacy_present:bool,privacy:u32,privacy_revision:u64,privacy_context:Vec<u8>,join_context:Vec<u8>}
-    struct PartyFlowState {clan_target:Vec<u8>,clan_target_kind:u32,clan_message_page:u32,clan_confirmation_present:bool,clan_confirmation:ClansFlowCommand,friend_target:Vec<u8>,activity_target:Vec<u8>,friend_join_serial:u64,account_name:Vec<u8>,voice_party:bool,voice_wanted:bool,target:Vec<u8>,kind:u32,version:u64,tab:u32,dismissed:Vec<PartyBytesData>,pending:bool,frame_instance:u64,command_serial:u64,revision:u64,mode:u32,context:Vec<u8>}
+    struct PartyFlowState {signin:SigninFlowState,couch:CouchFlowState,clan_target:Vec<u8>,clan_target_kind:u32,clan_message_page:u32,clan_confirmation_present:bool,clan_confirmation:ClansFlowCommand,friend_target:Vec<u8>,activity_target:Vec<u8>,friend_join_serial:u64,account_name:Vec<u8>,voice_party:bool,voice_wanted:bool,target:Vec<u8>,kind:u32,version:u64,tab:u32,dismissed:Vec<PartyBytesData>,pending:bool,frame_instance:u64,command_serial:u64,revision:u64,mode:u32,context:Vec<u8>}
+    struct PostgameFlowReport {online:bool,results_present:bool,player_count:u32,select:bool}
+    struct PostgameFlowFrame {screen:u32,report_present:bool,report:PostgameFlowReport}
+    struct PostgameFlowFacts {authenticated:bool,party:bool,leader:bool,members:Vec<AccountClientPostgameMember>,mode:i32,frames:Vec<PostgameFlowFrame>,prior_present:bool,prior:PostgameFlowReport,view_present:bool,view:PostgameFlowReport}
+    struct SigninFlowKey {name:Vec<u8>,key:Vec<u8>}
+    struct SigninFlowState {keys:Vec<SigninFlowKey>,bound:Vec<u8>,suppressed:bool,awaiting:bool,pending_screen:u32,pending_context:u32}
+    struct SigninFlowFrame {screen:u32,context:u32,selected:u32,instance:u64,pane_clock:u32,description:Vec<u8>,entries:Vec<AccountFlowEntry>}
+    struct SigninFlowFacts {login:bool,account:bool,queue:bool,voice:bool,social:bool,directory:bool,mode:i32,signed_in:Vec<u8>,keyboard:Vec<u8>,frames:Vec<SigninFlowFrame>}
+    struct SigninFlowSnapshot {status:i32,identity:bool}
+    struct SigninFlowEffect {kind:u32,index:u32,a:u32,b:u32,instance:u64,pane_clock:u32,text:Vec<u8>}
+    struct SigninFlowArgument {screen:u32,context:u32,flag:bool,text:Vec<u8>}
+    struct SigninFlowResult {handled:bool,screen:u32,context:u32,present:bool,text:Vec<u8>}
+    struct CouchFlowState {subjects:Vec<PartyBytesData>,options_present:bool,options:u32,joining_present:bool,joining:u32,joining_online:bool,host_profile:u32,revision:u64}
+    struct CouchFlowFrame {screen:u32,context:u32,selected:u32,instance:u64,description:Vec<u8>,entries:Vec<AccountFlowEntry>}
+    struct CouchFlowFacts {status:i32,mode:i32,primary_login:bool,account_client:bool,authenticated:bool,factory:bool,local_logins:Vec<bool>,local_accounts:Vec<bool>,profiles:Vec<PartyBytesData>,inputs:Vec<i32>,profile:u32,signed_in:Vec<u8>,system_link_host:bool,countdown_present:bool,countdown:i32,frame_present:bool,frame:CouchFlowFrame,frames:Vec<CouchFlowFrame>}
+    struct CouchFlowSnapshot {status:i32,identity_present:bool,identity:Vec<u8>}
+    struct CouchFlowEffect {kind:u32,index:u32,value:i32,a:u32,b:u32,instance:u64,text:Vec<u8>,entry:AccountFlowEntry,entries:Vec<AccountFlowEntry>}
+    struct CouchFlowArgument {a:u32,signed_value:i32,flag:bool,text:Vec<u8>}
+    struct CouchFlowResult {handled:bool,present:bool,index:u32,text:Vec<u8>}
     struct ClansFlowCommand {action:Vec<u8>,value:Vec<u8>,role:u32,confirmed:bool}
     struct ClansFlowMember {id:Vec<u8>,name:Vec<u8>,role:u32,is_self:bool,presence:i32}
     struct ClansFlowMessage {name:Vec<u8>,body:Vec<u8>}
@@ -345,6 +369,10 @@ mod ffi {
     struct FrontendLobbyObservation {revision:bool,beep:bool,departure:bool,search:bool}
     struct FrontendLobbyInputEffects {handled:bool,sound:bool,bounded_sound:bool,error:String,confirm_leave:bool,friends:bool,refresh_account:bool,begin_leave:bool}
     struct FrontendLobbyView {matchmaking:bool,seconds:i32,stage:i32,consumed:u64,counted:Vec<String>,leave_pending:bool}
+    enum FrontendSetupRoute { Open, SwitchCoop, SwitchCustom, AlternateSession, OpenPlaylist }
+    struct FrontendSetupRow { semantic:i32, label:u32, destination:i32, route:FrontendSetupRoute }
+    struct FrontendSetupSelection { selected:bool, row:FrontendSetupRow, error:String }
+    struct FrontendSetupPrivacy { open:bool, error:String }
     struct NativeResultPlayer {connected:bool,membership:i32,total_score:i32,kills:i32,deaths:i32,assists:i32,suicides:i32}
     struct NativeResultState {finished:bool,results_finalized:bool,game_over_countdown:i32,team_mode:bool,retained_teams:u8,
         players:Vec<NativeResultPlayer>,team_scores:Vec<i32>,accuracy_present:bool,accuracy:Vec<u16>}
@@ -702,6 +730,42 @@ mod ffi {
         fn clans_flow_prepare_pane(self:&NativeFrontendClansIo,screen:u32,pane:u32)->Result<()>;
         fn clans_flow_localized(self:&NativeFrontendClansIo,index:u32)->Result<Vec<u8>>;
         fn clans_flow_localized_direct(self:&NativeFrontendClansIo,screen:u32,pane:u32,index:u32)->Result<Vec<u8>>;
+    }
+    unsafe extern "C++" {
+        include!("src/matchmaking_frontend_postgame.hpp");
+        type NativeFrontendPostgameIo;
+        fn postgame_flow_facts(self:&NativeFrontendPostgameIo)->Result<PostgameFlowFacts>;
+        fn postgame_flow_effect(self:&NativeFrontendPostgameIo,kind:u32)->Result<()>;
+        fn postgame_flow_hold(self:&NativeFrontendPostgameIo,index:u32)->Result<bool>;
+        fn postgame_flow_continue(self:&NativeFrontendPostgameIo)->Result<()>;
+        fn postgame_flow_request_leave(self:&NativeFrontendPostgameIo)->Result<bool>;
+        fn postgame_flow_leave_held(self:&NativeFrontendPostgameIo)->Result<()>;
+        fn postgame_flow_unavailable(self:&NativeFrontendPostgameIo,message:&str)->Result<()>;
+        include!("src/matchmaking_frontend_signin.hpp");
+        type NativeFrontendSigninIo;
+        fn signin_flow_facts(self:&NativeFrontendSigninIo)->Result<SigninFlowFacts>;
+        fn signin_flow_effect(self:&NativeFrontendSigninIo,effect:&SigninFlowEffect)->Result<()>;
+        fn signin_flow_random(self:&NativeFrontendSigninIo)->Result<Vec<u8>>;
+        fn signin_flow_steam(self:&NativeFrontendSigninIo)->Result<bool>;
+        fn signin_flow_authorized(self:&NativeFrontendSigninIo)->Result<bool>;
+        fn signin_flow_snapshot(self:&NativeFrontendSigninIo)->Result<SigninFlowSnapshot>;
+        fn signin_flow_identity(self:&NativeFrontendSigninIo)->Result<bool>;
+        fn signin_flow_profile_name(self:&NativeFrontendSigninIo)->Result<Vec<u8>>;
+        fn signin_flow_build(self:&NativeFrontendSigninIo,screen:u32,context:u32)->Result<SigninFlowFrame>;
+        include!("src/matchmaking_frontend_couch.hpp");
+        type NativeFrontendCouchIo;
+        fn couch_flow_facts(self:&NativeFrontendCouchIo)->Result<CouchFlowFacts>;
+        fn couch_flow_effect(self:&NativeFrontendCouchIo,effect:&CouchFlowEffect)->Result<()>;
+        fn couch_flow_hold(self:&NativeFrontendCouchIo,index:u32)->Result<bool>;
+        fn couch_flow_release(self:&NativeFrontendCouchIo)->Result<()>;
+        fn couch_flow_snapshot(self:&NativeFrontendCouchIo,kind:u32,index:u32)->Result<CouchFlowSnapshot>;
+        fn couch_flow_authorized(self:&NativeFrontendCouchIo,kind:u32,index:u32)->Result<bool>;
+        fn couch_flow_steam(self:&NativeFrontendCouchIo,kind:u32,index:u32)->Result<bool>;
+        fn couch_flow_cancel(self:&NativeFrontendCouchIo,kind:u32,index:u32)->Result<()>;
+        fn couch_flow_identity(self:&NativeFrontendCouchIo)->Result<bool>;
+        fn couch_flow_description(self:&NativeFrontendCouchIo)->Result<Vec<u8>>;
+        fn couch_flow_build(self:&NativeFrontendCouchIo)->Result<CouchFlowFrame>;
+        fn couch_flow_players(self:&NativeFrontendCouchIo)->Result<Vec<u32>>;
     }
     unsafe extern "C++" {
         include!("src/matchmaking_native_preparation.hpp");
@@ -1087,6 +1151,7 @@ mod ffi {
         fn peer_authority_transfer_delivered(state:&PeerAuthorityTransfer,context:&SourceAdmissionsContext,seal:&MigrationPreparationCut,peer:u32)->Result<bool>;
         fn peer_authority_transfer_failed(state:&PeerAuthorityTransfer,context:&SourceAdmissionsContext,seal:&MigrationPreparationCut,peer:u32,now:u64)->Result<bool>;
         fn peer_authority_transfer_preparing(state:&PeerAuthorityTransfer,context:&SourceAdmissionsContext,seal:&MigrationPreparationCut,peer:u32,now:u64)->Result<bool>;
+        fn peer_authority_transfer_begin_preparation(state:&PeerAuthorityTransfer,context:&SourceAdmissionsContext,seal:&MigrationPreparationCut)->Result<bool>;
         fn peer_authority_transfer_poll(state:&PeerAuthorityTransfer,now:u64,budget:u32)->Result<Vec<SourceAdmissionsPacket>>;
         fn peer_authority_transfer_receive(state:&PeerAuthorityTransfer,peer:u32,bytes:&[u8],now:u64)->Result<bool>;
         fn peer_authority_transfer_completed(state:&PeerAuthorityTransfer)->Result<AuthorityTransferReceived>;
@@ -1157,6 +1222,17 @@ mod ffi {
         fn frontend_friends_screen(screen:u32,context:u32)->bool;
         fn frontend_clans_flow(controller:&FrontendPartyFlow,action:u32,argument:&ClansFlowArgument,io:&NativeFrontendClansIo)->Result<ClansFlowResult>;
         fn frontend_clans_screen(screen:u32,context:u32)->bool;
+        fn frontend_postgame_flow(action:u32,id:u32,io:&NativeFrontendPostgameIo)->Result<bool>;
+        fn frontend_signin_state(controller:&FrontendPartyFlow)->SigninFlowState;
+        fn frontend_signin_load_key(controller:&FrontendPartyFlow,name:&[u8],key:&[u8]);
+        fn frontend_signin_take_key(controller:&FrontendPartyFlow,name:&[u8])->SigninFlowResult;
+        fn frontend_signin_flow(controller:&FrontendPartyFlow,action:u32,argument:&SigninFlowArgument,io:&NativeFrontendSigninIo)->Result<SigninFlowResult>;
+        fn frontend_couch_state(controller:&FrontendPartyFlow)->CouchFlowState;
+        fn frontend_couch_changed(controller:&FrontendPartyFlow);
+        fn frontend_couch_selected_controller(controller:&FrontendPartyFlow)->CouchFlowResult;
+        fn frontend_couch_guest_entry(controller:&FrontendPartyFlow,screen:u32)->bool;
+        fn frontend_couch_screen(screen:u32,context:u32)->bool;
+        fn frontend_couch_flow(controller:&FrontendPartyFlow,action:u32,argument:&CouchFlowArgument,io:&NativeFrontendCouchIo)->Result<CouchFlowResult>;
 
         fn new_frontend_party_flow()->Box<FrontendPartyFlow>;
         fn clone_frontend_party_flow(controller:&FrontendPartyFlow)->Box<FrontendPartyFlow>;
@@ -1225,6 +1301,11 @@ mod ffi {
         fn frontend_lobby_enter(l:&mut FrontendLobby,f:&FrontendLobbyFacts);
         fn frontend_lobby_observe(l:&mut FrontendLobby,f:&FrontendLobbyFacts)->FrontendLobbyObservation;
         fn frontend_lobby_start_error(l:&FrontendLobby,f:&FrontendLobbyFacts)->String;
+        fn frontend_setup_label(semantic:i32)->u32;
+        fn frontend_setup_rows(session:i32)->Vec<FrontendSetupRow>;
+        fn frontend_setup_focus(session:i32,index:i32)->i32;
+        fn frontend_setup_accept(session:i32,index:u32,online:bool,leader:bool)->FrontendSetupSelection;
+        fn frontend_setup_privacy(online:bool,session_present:bool,session:i32,privacy_present:bool,leader:bool,busy:bool)->FrontendSetupPrivacy;
         fn frontend_lobby_plan(l:&FrontendLobby,f:&FrontendLobbyFacts,event:u32,destination:i32)->Result<Box<FrontendLobbyPlan>>;
         fn frontend_lobby_plan_command(p:&FrontendLobbyPlan)->u8;
         fn frontend_lobby_plan_playlist(p:&FrontendLobbyPlan)->String;

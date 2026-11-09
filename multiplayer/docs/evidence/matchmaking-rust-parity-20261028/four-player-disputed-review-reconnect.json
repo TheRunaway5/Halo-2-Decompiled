@@ -1,0 +1,472 @@
+{
+  "schema": "H2_FOUR_PLAYER_DISPUTED_REVIEW_RECONNECT_V1",
+  "passed": true,
+  "scope": "Real four-owner direct signaling through standalone Rust and legacy HTTP with production Rust ABI. Test provider grants, load signatures and team report. Native gameplay and installed release are separate.",
+  "exact_prior_vote_retry_only": true,
+  "original_live_arbitration_verified": false,
+  "rust": {
+    "schema": "H2_DISPUTED_REVIEW_EXISTING_VOTE_DIFFERENTIAL_V1",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-disputed-vote-rust-20261103/halo2-test-8fn9qbsx",
+    "passed": true,
+    "baseline": {
+      "rust/online_protocol/src/matchmaking_results.rs": "ddfb4a6020c39f74c03e606aa6bfcf53e681b98947d65a756f2ea26176088015",
+      "rust/online_protocol/tests/matchmaking_results.rs": "626e07446eca5becc425f40267caa2eeeabd60eea75f043240b3b03f9bc6aba8"
+    },
+    "retained_generated_large_artifacts": [],
+    "red": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_results",
+        "membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate"
+      ],
+      "exit_code": 101,
+      "tests_passed": 0,
+      "tests": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s"
+      ],
+      "stdout_sha256": "1ac8693a596cee91c825bd6a4ef404356e8a2557a15290e1f27adaef52422980",
+      "failure_tail": "\nrunning 1 test\ntest membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate ... FAILED\n\nfailures:\n\n---- membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate stdout ----\n\nthread 'membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate' (2504251) panicked at tests/matchmaking_results.rs:163:52:\ncalled `Result::unwrap()` on an `Err` value: Error(409, \"Conflicting result is quarantined\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s\n\n"
+    },
+    "candidate": {
+      "rust/online_protocol/src/matchmaking_results.rs": "07a63e1391192478ca590f6f3872f9f4887d2a48de3e03e5ef88bd32a184ce21",
+      "rust/online_protocol/tests/matchmaking_results.rs": "626e07446eca5becc425f40267caa2eeeabd60eea75f043240b3b03f9bc6aba8"
+    },
+    "frozen_source_sha256": "4a4d571b534a6ecef68d9c287dc9a84c85d8c82a1844265b095a5d9efaeee5c5",
+    "focused_green": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_results",
+        "membership_precedes_mutation_and_conflicts_quarantine_the_original_electorate"
+      ],
+      "exit_code": 0,
+      "tests_passed": 1,
+      "tests": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.02s"
+      ],
+      "stdout_sha256": "145c02e0b938fa360e8ce786b4a55fa9f5f90ce1c37277430cf53e6d24ff9d2c"
+    },
+    "green": [
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "tests_passed": 771,
+        "tests": [
+          "test result: ok. 282 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.66s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.50s",
+          "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s",
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s",
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "stdout_sha256": "fe52f09c010c9fc166c0dbc59d791a4657406265d5aa82e590132078deec18a1"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline"
+        ],
+        "exit_code": 0,
+        "tests_passed": 20,
+        "tests": [
+          "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s"
+        ],
+        "stdout_sha256": "b21fc18d07192ff36b444c012a057d92c694db659e0ddb75ce1b31bc75bdd871"
+      }
+    ],
+    "frozen_sources_unchanged": true
+  },
+  "standalone": {
+    "schema": "H2_FOUR_PARTY_DISPUTED_REVIEW_RECONNECT_V1",
+    "passed": true,
+    "source_pin_sha256": "96c6ab289653bdf298ae551a83012687308d43db1e28b57415480383f76a4423",
+    "source_count": 209,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-disputed-vote-http-20261103/halo2-test-em7pygpb",
+    "build": [
+      "cargo",
+      "build",
+      "--locked",
+      "--offline"
+    ],
+    "retained_generated_large_artifacts": [],
+    "checks": [],
+    "scope": "Standalone Rust service with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+    "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+    "production_before": "ddfb4a6020c39f74c03e606aa6bfcf53e681b98947d65a756f2ea26176088015",
+    "baseline_binary_sha256": "672a90cf3229dc99a83d96d0980317e0cb72af0480665e598ef847584159d795",
+    "red": {
+      "survivor_completions": 3,
+      "matched_postgame_on_reconnect": true,
+      "retry_disconnected": true,
+      "recovered_noncompetitive_completion": false,
+      "persisted": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "carnage_reports": 0
+      },
+      "loopback_probe_exchanges": 12
+    },
+    "production_after": "07a63e1391192478ca590f6f3872f9f4887d2a48de3e03e5ef88bd32a184ce21",
+    "candidate_binary_sha256": "99290e860a6bdc02ebe0d659fb2b4a74bfd42402828c88da4ffb6a44f1d4c536",
+    "green": {
+      "survivor_completions": 3,
+      "matched_postgame_on_reconnect": true,
+      "retry_disconnected": false,
+      "recovered_noncompetitive_completion": true,
+      "persisted": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "carnage_reports": 0
+      },
+      "loopback_probe_exchanges": 12
+    }
+  },
+  "legacy_adapter": {
+    "schema": "H2_FOUR_PARTY_DISPUTED_REVIEW_RECONNECT_V1",
+    "passed": true,
+    "source_pin_sha256": "3c5bb525416e7653b3c7df1f9ce4580f813424b2386dc55847e8801c484a6a7a",
+    "source_count": 351,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-disputed-vote-http-legacy-20261103/halo2-test-f2a520ys",
+    "build": [
+      "cargo",
+      "build",
+      "--locked",
+      "--offline"
+    ],
+    "retained_generated_large_artifacts": [],
+    "checks": [],
+    "scope": "Legacy HTTP adapter with production Rust ABI with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+    "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+    "production_before": "ddfb4a6020c39f74c03e606aa6bfcf53e681b98947d65a756f2ea26176088015",
+    "baseline_binary_sha256": "46eb787ec1cdca69b655f9c5b4a7f7493336ac53c7647f319451665458659458",
+    "red": {
+      "survivor_completions": 3,
+      "matched_postgame_on_reconnect": true,
+      "retry_disconnected": true,
+      "recovered_noncompetitive_completion": false,
+      "persisted": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "carnage_reports": 0
+      },
+      "loopback_probe_exchanges": 12
+    },
+    "production_after": "07a63e1391192478ca590f6f3872f9f4887d2a48de3e03e5ef88bd32a184ce21",
+    "candidate_binary_sha256": "766870de2a233a8647ab790496e589a28719979d4e83516f44ffe95bbe202344",
+    "green": {
+      "survivor_completions": 3,
+      "matched_postgame_on_reconnect": true,
+      "retry_disconnected": false,
+      "recovered_noncompetitive_completion": true,
+      "persisted": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "carnage_reports": 0
+      },
+      "loopback_probe_exchanges": 12
+    }
+  },
+  "adverse_scenarios": {
+    "standalone": {
+      "schema": "H2_FOUR_PARTY_REVIEW_DEPARTURE_V1",
+      "passed": true,
+      "source_pin_sha256": "d2c2346d436f1a73421579eab71c5c65d2f51c97e40a6c19ea6aee3fad40b176",
+      "source_count": 209,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-four-player-departure-final-20261103/halo2-test-0e1miza1",
+      "build": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline"
+      ],
+      "retained_generated_large_artifacts": [],
+      "checks": [],
+      "scope": "Standalone Rust service with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+      "binary_sha256": "cb357ad58c590223da8ba0d655f760069f630a93796a883e15377cd40260d5e1",
+      "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+      "cases": {
+        "abstain-then-depart": {
+          "passed": true,
+          "recorded": false,
+          "completion_receipts": 3,
+          "persisted": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "carnage_reports": 0
+          },
+          "ranked_deltas": [],
+          "personal_xp": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        },
+        "cast-then-depart": {
+          "passed": true,
+          "recorded": true,
+          "completion_receipts": 3,
+          "persisted": {
+            "match_results": 1,
+            "match_result_players": 4,
+            "match_result_memberships": 4,
+            "match_result_skill": 4,
+            "carnage_reports": 1
+          },
+          "ranked_deltas": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "personal_xp": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        },
+        "conflict": {
+          "passed": true,
+          "recorded": false,
+          "completion_receipts": 0,
+          "persisted": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "carnage_reports": 0
+          },
+          "ranked_deltas": [],
+          "personal_xp": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 3
+        },
+        "signal-reconnect": {
+          "passed": true,
+          "recorded": true,
+          "completion_receipts": 4,
+          "persisted": {
+            "match_results": 1,
+            "match_result_players": 4,
+            "match_result_memberships": 4,
+            "match_result_skill": 4,
+            "carnage_reports": 1
+          },
+          "ranked_deltas": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "personal_xp": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "replacement_signal_sockets": 1,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        }
+      }
+    },
+    "legacy_adapter": {
+      "schema": "H2_FOUR_PARTY_REVIEW_DEPARTURE_V1",
+      "passed": true,
+      "source_pin_sha256": "1a71f72272783c202e8263108b5ac77a2224480055c6df512e9b9cd523dfb860",
+      "source_count": 351,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-four-player-departure-legacy-final-20261103/halo2-test-yqpt2jd5",
+      "build": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline"
+      ],
+      "retained_generated_large_artifacts": [],
+      "checks": [],
+      "scope": "Legacy HTTP adapter with production Rust ABI with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.",
+      "binary_sha256": "282407573bed8d45134cb631b13c2af3de5abd1b5262cbbcf08845b017cac1f0",
+      "catalog_sha256": "c87942eee0ba808de7e2b51b61b46d9a98fb473a2e812cb470c81c8b9b0b2d73",
+      "cases": {
+        "abstain-then-depart": {
+          "passed": true,
+          "recorded": false,
+          "completion_receipts": 3,
+          "persisted": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "carnage_reports": 0
+          },
+          "ranked_deltas": [],
+          "personal_xp": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        },
+        "cast-then-depart": {
+          "passed": true,
+          "recorded": true,
+          "completion_receipts": 3,
+          "persisted": {
+            "match_results": 1,
+            "match_result_players": 4,
+            "match_result_memberships": 4,
+            "match_result_skill": 4,
+            "carnage_reports": 1
+          },
+          "ranked_deltas": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "personal_xp": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        },
+        "conflict": {
+          "passed": true,
+          "recorded": false,
+          "completion_receipts": 0,
+          "persisted": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "carnage_reports": 0
+          },
+          "ranked_deltas": [],
+          "personal_xp": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "replacement_signal_sockets": 0,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 3
+        },
+        "signal-reconnect": {
+          "passed": true,
+          "recorded": true,
+          "completion_receipts": 4,
+          "persisted": {
+            "match_results": 1,
+            "match_result_players": 4,
+            "match_result_memberships": 4,
+            "match_result_skill": 4,
+            "carnage_reports": 1
+          },
+          "ranked_deltas": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "personal_xp": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "replacement_signal_sockets": 1,
+          "loopback_probe_exchanges": 12,
+          "new_votes_rejected_after_quarantine": 0
+        }
+      }
+    }
+  },
+  "fixture_control_correction": "The initial conflict case expected new votes after a dispute to complete local review. The final case checks that all three new votes are rejected and leave no result.",
+  "runner_sha256": {
+    "disputed-vote-http.py": "ae0940152270d00ddb0b8d42a456ace65af752c6e397d5de990d62ffb8fcfbb5",
+    "disputed-vote-red-green.py": "d8c89a79ee7882d3f9ed3a406bdd23b132d107573f830b2e9c4699c717212cc2",
+    "party-review-departures-final.py": "520ba520a9e44832b4edd5e210d1c32a4d16030f55280bf87157d76a38cd50a8"
+  },
+  "retained_generated_large_artifacts": []
+}

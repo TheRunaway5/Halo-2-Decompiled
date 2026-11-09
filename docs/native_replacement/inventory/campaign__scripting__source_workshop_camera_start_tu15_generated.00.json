@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_executable",
+      "file": "cmake/WorkshopSceneryTests.cmake",
+      "line": 61,
+      "target": "workshop_camera_start_tests"
+    }
+  ],
+  "configured_production_scope": "excluded",
+  "configured_production_target_ids": [],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "ed005a6ea71e41d28d7375272de5f54907061fe26352bb864aba5f4f7ae640be",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "ed005a6ea71e41d28d7375272de5f54907061fe26352bb864aba5f4f7ae640be",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [],
+  "production_scope": "registered_outside_static_production_closure",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "cd484932866be599994518d6f4817d3fe09c13f5f38e81480d9b434aa6fb50b9",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_2b27b0",
+      "instruction_callback_sites": 26,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2b27b0",
+        "tu15": "2b27b0"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [
+        "16edd0",
+        "211da0",
+        "212010"
+      ],
+      "observed_entry": "2b27b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2b27b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2b27b0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/scripting/source_workshop_camera_start_tu15_generated.cpp",
+  "source_bytes": 20924,
+  "source_filename_scope": "generated",
+  "source_sha256": "34c79a0cae0ff0a544f41ecf9e3961abed0fe3daad17739613ece9d359c0c952"
+}

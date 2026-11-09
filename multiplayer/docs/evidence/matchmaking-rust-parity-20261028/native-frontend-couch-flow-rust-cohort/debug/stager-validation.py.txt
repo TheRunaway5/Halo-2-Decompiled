@@ -1,0 +1,13 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+names=['tests/test_build_online_protocol_rust.py','tools/build_online_protocol_rust.py']
+for name in names:
+ p=source/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,p)
+pins={n:hashlib.sha256((source/n).read_bytes()).hexdigest()for n in names}
+command=[sys.executable,'-B','tests/test_build_online_protocol_rust.py']
+p=subprocess.run(command,cwd=source,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+output=root/'build/test-results/frontend-couch-flow-rust-20261102/stager';output.mkdir(parents=True)
+(output/'tests.log').write_bytes(p.stdout[-1048576:])
+report=dict(passed=p.returncode==0,command=command,exit_code=p.returncode,source_pins=pins,scratch=str(scratch),retained_large_artifacts=[])
+(output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(p.stdout.decode(errors='replace')[-3000:]);raise SystemExit(p.returncode)

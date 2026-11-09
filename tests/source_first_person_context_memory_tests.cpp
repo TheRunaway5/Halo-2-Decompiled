@@ -202,6 +202,33 @@ struct QuietSource final:SourcePhysicsContactMemory {
     }
     void write(std::uint32_t,std::span<const std::byte>)override {throw std::runtime_error("source write");}
 };
+void adoption_reuse() {
+    QuietSource source;Candidate memory(false,false);memory.borrow(&source);
+    constexpr std::uint32_t at=0x20000123, count=0x29000;
+    memory.pin_range(at,count);
+    // Actual adopt_local pattern: discard ownership, then pin the same pools.
+    // Repeated adoption must neither preserve old private bytes nor allocate.
+    memory.write(at,bytes(count,99));
+    allocation_probe::count=0;allocation_probe::active=true;
+    memory.clear();memory.pin_range(at,count);
+    allocation_probe::active=false;
+    require(allocation_probe::count==0,"repeated FP adoption allocates its page bank or a pin temporary");
+    std::vector<std::byte> expected(count),actual(count);
+    source.read(at,expected);memory.read(at,actual);
+    require(actual==expected,"FP adoption reused stale private bytes");
+    require(memory.fully_owned(at,count),"FP adoption did not publish its complete pin");
+    const auto before=memory.ranges();unsigned observations{};
+    memory.relinquish(at+63);const auto partial=memory.ranges();
+    memory.observe_reads([&](auto observed_at,auto observed){
+        require(observed_at==at&&observed.size()==count,"pin observer lost its contiguous completed range");
+        ++observations;throw halo2::FormatError("observer failed");
+    });
+    require(error([&]{memory.pin_range(at,count);})=="observer failed"&&observations==1,
+        "pin observer failure changed");
+    require(same_ranges(partial,memory.ranges()),"throwing pin observer published private ownership");
+    memory.observe_reads({});memory.pin_range(at,count);
+    require(same_ranges(before,memory.ranges()),"observer fallback changed pin bytes");
+}
 double cpu_seconds() {
 #ifdef CLOCK_THREAD_CPUTIME_ID
     timespec t{};require(clock_gettime(CLOCK_THREAD_CPUTIME_ID,&t)==0,"thread CPU clock failed");
@@ -241,6 +268,29 @@ template<class Memory> double pin_loop(std::uint64_t &sum) {
     }
     sum+=memory.ranges().size();return cpu_seconds()-start;
 }
+double adoption_loop(bool reference,std::uint64_t &sum) {
+    QuietSource source;std::array<Candidate,4> memory{
+        Candidate(false,reference),Candidate(false,reference),Candidate(false,reference),Candidate(false,reference)};
+    for(auto &m:memory)m.borrow(&source);
+    constexpr std::array<unsigned,7> sizes{0x200*0x3c,0x100*0x190,0x200*0x10,0x80*0xc,0x15e*8,0x30fc,0x200*0x18};
+    const auto start=cpu_seconds();
+    for(unsigned tick=0;tick<300;++tick)for(auto &m:memory) {
+        m.clear();
+        for(unsigned n=0;n<sizes.size();++n)m.pin_range(0x20000100+n*0x40000,sizes[n]);
+    }
+    const auto elapsed=cpu_seconds()-start;
+    for(auto &m:memory)sum+=m.ranges().size();return elapsed;
+}
+void adoption_benchmark() {
+    std::uint64_t sum{};std::cout<<"{\"adoption_pairs\":[";
+    for(unsigned pair=0;pair<5;++pair) {
+        double a{},b{};
+        if(pair%2){b=adoption_loop(false,sum);a=adoption_loop(true,sum);}
+        else {a=adoption_loop(true,sum);b=adoption_loop(false,sum);}
+        if(pair)std::cout<<',';std::cout<<'['<<a<<','<<b<<']';
+    }
+    std::cout<<"],\"ticks\":300,\"views\":4,\"checksum\":"<<sum<<"}\n";
+}
 void benchmark() {
     // Actual source FP installation/cache-owner sizes, controlled addresses and
     // bytes. Component CPU only; this deliberately does not claim live FPS.
@@ -261,9 +311,11 @@ void benchmark() {
 int main(int argc,char **argv) {
     try {
         if(argc==2&&std::string_view(argv[1])=="--benchmark"){benchmark();return 0;}
+        if(argc==2&&std::string_view(argv[1])=="--benchmark-adoption"){adoption_benchmark();return 0;}
         for(const bool reference:{false,true}) {
             seams(reference);extent_and_owner(reference);pin_and_restore(reference);randomized(reference);
         }
+        adoption_reuse();
         if(argc==2) {
             const auto mode=std::string_view(argv[1]);
             require(mode=="--expect-native"||mode=="--expect-reference","unknown control expectation");

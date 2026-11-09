@@ -1,0 +1,318 @@
+import asyncio
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import shutil
+import socket
+import sqlite3
+import struct
+import subprocess
+import sys
+import time
+import uuid
+
+import aiohttp
+
+root=Path.cwd()
+scratch=Path(os.environ["HALO2_TEST_SCRATCH"])
+out=Path(sys.argv[1]).resolve()
+legacy=sys.argv[2:]==["--legacy"]
+source=scratch/"source"
+source.mkdir()
+paths=("rust/online_protocol","rust/online_security_ffi","multiplayer/master_server") if legacy else ("rust/online_protocol","rust/matchmaking_service","multiplayer/master_server/examples")
+for path in paths:
+    shutil.copytree(root/path,source/path,symlinks=True,ignore=shutil.ignore_patterns("target","__pycache__"))
+(source/"tools").mkdir()
+shutil.copyfile(root/"tools/test_rust_matchmaking_service.py",source/"tools/test_rust_matchmaking_service.py")
+sys.path.insert(0,str(source/"tools"))
+from test_rust_matchmaking_service import Server
+
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+pins={str(p.relative_to(source)):sha(p) for p in source.rglob("*") if p.is_file() and not p.is_symlink()}
+assert all(sha(root/path)==pin for path,pin in pins.items())
+pins_hash=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest()
+command=["cargo","build","--locked","--offline"]
+report=dict(schema="H2_RUST_FOUR_PHYSICAL_PARTY_REVIEW_V1",passed=False,source_pin_sha256=pins_hash,
+    source_count=len(pins),scratch=str(scratch),build=command,retained_generated_large_artifacts=[],checks=[],
+    scope=("Legacy HTTP adapter with production Rust ABI" if legacy else "Standalone Rust service")+" with four private Steam grants, two real accepted parties, actual direct signaling and measured loopback UDP, synthetic loaded fingerprints and a constructed team result.")
+crate="online_security_ffi" if legacy else "matchmaking_service"
+result=subprocess.run(command,cwd=source/"rust"/crate,env=os.environ|dict(CARGO_BUILD_JOBS="2",
+    CARGO_TARGET_DIR=str(scratch/"cargo"),RUSTUP_AUTO_INSTALL="0"),capture_output=True)
+(out.with_suffix(".build.log")).write_bytes(result.stdout+result.stderr)
+result.check_returncode()
+binary=scratch/"cargo/debug"/("libhalo2_online_security_ffi.so" if legacy else "halo2-matchmaking-service")
+report["binary_sha256"]=sha(binary)
+
+entry=dict(id="party-review",revision="party-review-v1",name="Declared ranked party review",
+    description="Four physical Rust review control",ranked=True,quickmatch=False,team_size=2,
+    minimum_players=4,maximum_players=4,maximum_party=2,skill=dict(kind="bungie-2007",high_rank_radius=14),
+    stages=[dict(after_seconds=0,rank_numerator=1,rank_denominator=1,minimum_connection=50)],
+    games=[dict(id="team-slayer",map="lockout",variant="Team Slayer",weight=1)],
+    rank_configuration="retail-launch-2004",provenance="Declared v12 loopback, constructed team result")
+catalog=scratch/"catalog.json"
+catalog.write_text(json.dumps(dict(version=1,playlists=[entry])))
+report["catalog_sha256"]=sha(catalog)
+state=scratch/"state"
+db=state/"registry.sqlite3"
+tokens=["h2s_"+c*43 for c in "ABCD"]
+subjects=[str(76561197960288340+i) for i in range(4)]
+names=["Party Pilot "+str(i) for i in range(4)]
+def projection_digest(value):
+    return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
+
+def sql(query):
+    with sqlite3.connect(db) as connection:
+        return connection.execute(query).fetchall()
+
+async def qualify(scenario):
+    base=f"http://{server.host}:{server.port}"
+    async with aiohttp.ClientSession() as http_client:
+        async def http(method,path,status,grant=None,body=None):
+            headers={"Authorization":"Bearer "+grant} if grant else {}
+            async with http_client.request(method,base+path,headers=headers,json=body) as reply:
+                data=await reply.json()
+                assert reply.status==status,(method,path,reply.status,data.get("error"))
+                return data
+        auth=[(await http("POST","/v1/account/session",201,t,{"screen_name":name}))["token"] for t,name in zip(tokens,names)]
+        with sqlite3.connect(db) as connection:
+            connection.executemany("UPDATE player_profiles SET discord_username=? WHERE player=(SELECT player FROM player_identities WHERE provider='steam' AND subject=?)",
+                [(f"party_review_{i}",s) for i,s in enumerate(subjects)])
+        grants=[(await http("POST","/v1/matchmaking/session",201,token,dict(screen_name=name,maps=["lockout"],
+            compatibility="halo2-native-queue-v12",language=0)))["token"] for token,name in zip(tokens,names)]
+        chosen=dict(playlist_id=entry["id"],revision=entry["revision"])
+        async def party(i):
+            return await http("GET","/v1/party",200,auth[i])
+        async def command(i,action,**fields):
+            if action not in ("create","accept"):
+                fields["version"]=(await party(i))["party"]["version"]
+            return await http("POST","/v1/party/commands",200,auth[i],
+                dict(action=action,request_id=str(uuid.uuid4()))|fields)
+        for leader,follower in ((0,1),(2,3)):
+            await command(leader,"create")
+            await command(leader,"invite",username=f"party_review_{follower}")
+            invite=(await party(follower))["invitations"][0]
+            await command(follower,"accept",target=invite["id"],version=invite["version"])
+            await http("POST","/v1/matchmaking/ticket",409,grants[leader],chosen|dict(request_id=str(uuid.uuid4())))
+            await command(follower,"ready",**chosen)
+            await http("POST","/v1/matchmaking/ticket",201,grants[leader],chosen|dict(request_id=str(uuid.uuid4())))
+        descriptors=[await http("GET","/v1/matchmaking/transport",200,g) for g in grants]
+        room=descriptors[0]["id"]
+        assert all(d["id"]==room and d["transport"]["kind"]=="direct-udp-v1" for d in descriptors)
+        roster=descriptors[0]["players"]
+        assert len(roster)==4 and len({p["identity"] for p in roster})==4
+        groups=[tuple(roster[d["slot"]]["team"] for d in descriptors[i:i+2]) for i in (0,2)]
+        assert groups[0][0]==groups[0][1] and groups[1][0]==groups[1][1] and groups[0][0]!=groups[1][0]
+        
+        queues=[asyncio.Queue() for _ in grants]
+        sockets=[]
+        readers=[]
+        udp=[socket.socket(socket.AF_INET,socket.SOCK_DGRAM) for _ in grants]
+        for wire in udp:
+            wire.bind(("127.0.0.1",0))
+            wire.setblocking(False)
+        async def read(ws,queue):
+            async for message in ws:
+                if message.type==aiohttp.WSMsgType.TEXT:
+                    item=json.loads(message.data)
+                    if "ping" in item:
+                        await ws.send_json({"pong":item["ping"]})
+                    else:
+                        await queue.put(item)
+            await queue.put(None)
+        async def until(queue,field,value=None,timeout=8):
+            async with asyncio.timeout(timeout):
+                while True:
+                    item=await queue.get()
+                    assert item is not None,("Room closed",field,value)
+                    if field in item and (value is None or item[field]==value):
+                        return item
+        try:
+            for descriptor,queue in zip(descriptors,queues):
+                ws=await http_client.ws_connect(base+f"/v1/matches/{room}/signal?completion=1&native_handoff=1",
+                    headers={"Authorization":"Bearer "+descriptor["token"]},compress=0)
+                sockets.append(ws)
+                readers.append(asyncio.create_task(read(ws,queue)))
+            rtts=[]
+            loop=asyncio.get_running_loop()
+            for i,wire in enumerate(udp):
+                rows=[]
+                for j,peer in enumerate(udp):
+                    if i==j:
+                        continue
+                    challenge=os.urandom(12)
+                    start=time.monotonic_ns()
+                    await loop.sock_sendto(wire,challenge,peer.getsockname())
+                    sample,address=await asyncio.wait_for(loop.sock_recvfrom(peer,32),2)
+                    assert sample==challenge and address==wire.getsockname()
+                    await loop.sock_sendto(peer,sample,address)
+                    assert await asyncio.wait_for(loop.sock_recvfrom(wire,32),2)==(challenge,peer.getsockname())
+                    rows.append(dict(peer=descriptors[j]["slot"],rtt_ms=math.ceil((time.monotonic_ns()-start)/1_000_000)))
+                rtts.append(rows)
+            for ws,rows in zip(sockets,rtts):
+                await ws.send_json({"peer_ready":rows})
+            loading=await asyncio.gather(*(until(queue,"phase","loading") for queue in queues))
+            host=loading[0]["host"]
+            assert all(row["host"]==host for row in loading)
+            for grant in grants:
+                row=await http("GET","/v1/matchmaking/ticket?start=1&start_room=1",200,grant)
+                assert row["start_room"]==room and 0<row["start_countdown_ms"]<=10000
+            for ws in sockets:
+                await ws.send_json({"loaded":"0123456789abcdef:000001a"})
+            await asyncio.gather(*(until(queue,"phase","running",14) for queue in queues))
+            
+            publisher=next(i for i,d in enumerate(descriptors) if d["slot"]==host)
+            raw=bytearray(0xdc78)
+            raw[:2]=raw[0x10:0x12]=b"\x01\x01"
+            raw[0x64]=2
+            raw[0x13]=raw[0x68]=1
+            teams=sorted({p["team"] for p in roster})
+            for placement,team in enumerate(teams):
+                at=0xcb0+team*0x18
+                raw[at]=1
+                raw[at+1]=placement
+                struct.pack_into("<h",raw,at+2,10-placement)
+            for slot,player in enumerate(roster):
+                at=0x370+slot*0x94
+                raw[at]=1
+                raw[at+2:at+10]=bytes.fromhex(player["identity"])
+                name=player["name"].encode("utf-16-le")
+                raw[at+12:at+12+len(name)]=name
+                raw[at+0x88]=player["team"]
+                raw[at+0x90]=slot
+                struct.pack_into("<h",raw,at+0x92,4+(slot%2))
+            digest=hashlib.sha256(raw).hexdigest()
+            await sockets[publisher].send_json({"postgame":raw.hex()})
+            reviews=await asyncio.gather(*(until(q,"postgame") for q in queues))
+            assert all(row["postgame"]==raw.hex() for row in reviews)
+            retired=(publisher+1)%len(sockets)
+            survivors=[i for i in range(len(sockets)) if i!=retired]
+            expected_members=15^(1<<descriptors[retired]["slot"])
+            replacements=0
+            if scenario=="signal-reconnect":
+                # Signaling loss alone leaves a direct peer in the electorate.
+                await sockets[retired].close()
+                await readers[retired]
+                for i in survivors:
+                    await sockets[i].send_json({"confirm_result":digest})
+                await asyncio.sleep(.1)
+                assert sql("SELECT count(*) FROM match_results")==[(0,)]
+                replacement=await http_client.ws_connect(
+                    base+f"/v1/matches/{room}/signal?completion=1&native_handoff=1",
+                    headers={"Authorization":"Bearer "+descriptors[retired]["token"]},compress=0)
+                sockets[retired]=replacement
+                queues[retired]=asyncio.Queue()
+                readers[retired]=asyncio.create_task(read(replacement,queues[retired]))
+                assert (await until(queues[retired],"postgame"))["postgame"]==raw.hex()
+                await replacement.send_json({"confirm_result":digest})
+                recipients=list(range(len(sockets)))
+                replacements=1
+            else:
+                if scenario=="cast-then-depart":
+                    await sockets[retired].send_json({"confirm_result":digest})
+                if scenario=="conflict":
+                    other=hashlib.sha256(b"conflicting terminal observation").hexdigest()
+                    assert other!=digest
+                    await sockets[retired].send_json({"confirm_result":other})
+                else:
+                    await sockets[retired].send_json({"leave":True})
+                await asyncio.wait_for(readers[retired],5)
+                assert sockets[retired].closed
+                try:
+                    accidental=await http_client.ws_connect(
+                        base+f"/v1/matches/{room}/signal?completion=1&native_handoff=1",
+                        headers={"Authorization":"Bearer "+descriptors[retired]["token"]},compress=0)
+                except aiohttp.WSServerHandshakeError as error:
+                    assert error.status in (401,403,404,409)
+                else:
+                    await accidental.close()
+                    raise AssertionError("Retired room bearer was re-admitted")
+                for i in survivors:
+                    await until(queues[i],"voice_members",expected_members)
+                assert sql("SELECT count(*) FROM match_results")==[(0,)]
+                if scenario=="conflict":
+                    for i in survivors:
+                        await sockets[i].send_json({"confirm_result":digest})
+                        await asyncio.wait_for(readers[i],5)
+                        assert sockets[i].closed
+                    recipients=[]
+                else:
+                    for i in survivors:
+                        await sockets[i].send_json({"confirm_result":digest})
+                    recipients=survivors
+
+            recorded=scenario in ("signal-reconnect","cast-then-depart")
+            completed=await asyncio.gather(*(until(queues[i],"completed",digest) for i in recipients))
+            assert all(row==dict(completed=digest,recorded=recorded) for row in completed),completed
+            for i in recipients:
+                await sockets[i].send_json({"confirm_result":digest})
+            await asyncio.sleep(.15)
+            counts={name:sql("SELECT count(*) FROM "+name)[0][0] for name in
+                ("match_results","match_result_players","match_result_memberships","match_result_skill","carnage_reports")}
+            assert counts=={"match_results":int(recorded),"match_result_players":4*int(recorded),
+                "match_result_memberships":4*int(recorded),"match_result_skill":4*int(recorded),
+                "carnage_reports":int(recorded)},counts
+            deltas=[row[0] for row in sql("SELECT delta FROM match_result_skill ORDER BY delta")]
+            xp=[row[0] for row in sql("SELECT xp FROM playlist_skill ORDER BY xp")]
+            assert deltas==([0,0,100,100] if recorded else []),(scenario,deltas)
+            assert xp==([0,0,100,100] if recorded else [0,0,0,0]),(scenario,xp)
+            return dict(recorded=recorded,completion_receipts=len(completed),persisted=counts,ranked_deltas=deltas,
+                personal_xp=xp,replacement_signal_sockets=replacements,loopback_probe_exchanges=sum(map(len,rtts)),
+                new_votes_rejected_after_quarantine=len(survivors) if scenario=="conflict" else 0)
+        finally:
+            for wire in udp:
+                wire.close()
+            for ws in sockets:
+                await ws.close()
+            await asyncio.gather(*readers)
+
+
+def seed():
+    with sqlite3.connect(db) as connection:
+        connection.executemany("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",[
+            (hashlib.sha256(token.encode()).hexdigest(),subject,"Private party fixture",int(time.time())+3600)
+            for token,subject in zip(tokens,subjects)])
+
+
+async def run_legacy(scenario):
+    from aiohttp.test_utils import TestServer
+    from multiplayer.master_server.service import Settings, create_app
+    global server
+    settings=Settings(state=state,public_url="http://127.0.0.1:8080",allow_http=True,steam_enabled=True,
+        matchmaking_catalog=str(catalog),rate_per_minute=100000,prefix_rate_per_minute=100000,global_rate_per_minute=100000)
+    async with TestServer(create_app(settings)) as server:
+        seed()
+        return await qualify(scenario)
+
+def run_standalone(scenario):
+    global server
+    room_scratch=scratch/scenario
+    room_scratch.mkdir()
+    server=Server(binary,state,room_scratch,catalog)
+    try:
+        seed()
+        return asyncio.run(qualify(scenario))
+    finally:
+        server.close()
+
+report["schema"]="H2_FOUR_PARTY_REVIEW_DEPARTURE_V1"
+report["cases"]={}
+try:
+    if legacy:
+        os.environ["H2_SECURITY_LIBRARY"]=str(binary)
+        sys.path.insert(0,str(source))
+    for scenario in ("abstain-then-depart","cast-then-depart","conflict","signal-reconnect"):
+        state=scratch/("state-"+scenario)
+        db=state/"registry.sqlite3"
+        try:
+            case=asyncio.run(run_legacy(scenario)) if legacy else run_standalone(scenario)
+            report["cases"][scenario]=dict(passed=True,**case)
+        except Exception as error:
+            report["cases"][scenario]=dict(passed=False,error=repr(error))
+            print(scenario,repr(error),flush=True)
+    report["passed"]=all(case["passed"] for case in report["cases"].values()) and all(
+        sha(source/path)==digest for path,digest in pins.items())
+finally:
+    out.write_text(json.dumps(report,indent=2)+"\n")
+assert report["passed"]

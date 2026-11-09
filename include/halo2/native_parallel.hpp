@@ -19,5 +19,11 @@ unsigned native_parallel_workers()noexcept;
 // unless overlap changed errno itself (the later change in the serial order).
 // The job's exception is rethrown first, else overlap's. With
 // HALO2_REFERENCE_SERIAL_NATIVE both run in order on the calling thread.
+// A nested call from the job or from overlap throws std::logic_error.
 void native_overlap_run(const std::function<void()>& job,const std::function<void()>& overlap);
+// Two jobs on two persistent overlap threads while overlap runs on the caller.
+// Same rules as native_overlap_run; exceptions are rethrown in the order
+// first, second, overlap. HALO2_REFERENCE_SERIAL_NATIVE runs all three in order.
+void native_overlap_run2(const std::function<void()>& first,const std::function<void()>& second,
+                         const std::function<void()>& overlap);
 }

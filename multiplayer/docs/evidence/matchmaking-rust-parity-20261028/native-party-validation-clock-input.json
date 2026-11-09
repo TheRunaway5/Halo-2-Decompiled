@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Complete original-authored stock buffer compared before the test fixture overlays. Bound to actual adapter and variant descriptor source. Online source world and result timeout not replayed.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-party-clock-20261102/halo2-test-fxdo874n",
+  "retained_generated_large_artifacts": [],
+  "variant": {
+    "stock_seconds": 480,
+    "stock_score_limit": 50,
+    "validation_seconds": 8,
+    "validation_score_limit": 0,
+    "round_selector": 0,
+    "teams": 1
+  },
+  "source_pins": {
+    "tests/online_match_launch_tests.cpp": "5ea2416d941088bd7f54bca21a0df9a7c2b05bea5f1b6814d41ed6cb4804b330",
+    "tests/fixtures/source_game_variant_original.tsv": "18acf6e0c926943057f2d087630d205b05109ae6e9cfa83ac244af26ead11f2c",
+    "src/gameplay/multiplayer/source_game_variant.cpp": "39a51be06f6df8846996622e8c40eb032daf8b0c50aa4e1dd5d01da818884e75",
+    "src/gameplay/multiplayer/source_game_variant_descriptors.inc": "563171876ff54549d8eaf084851e0f73214a8cdccc803f15490369b00cd25d3d",
+    "build/test-results/matchmaking-full-settings-admission-20261102/party-clock.cpp": "2714ad88dc0f64831cd3a7a17f120b530d3cc3ac95a0f15ee65e265cf467c84e"
+  },
+  "native_fixture_translation_unit_syntax_passed": true
+}

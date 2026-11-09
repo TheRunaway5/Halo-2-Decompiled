@@ -36,6 +36,16 @@ bool FrontendMatchmakingPartyFlow::match_voice(bool selected,bool joined)const{r
 void FrontendMatchmakingPartyFlow::observe_account(const bridge::NativeFrontendAccountFlowIo&io,bool continuation)const{bridge::frontend_account_flow(*impl_->state,continuation,io);}
 bridge::FriendsFlowResult FrontendMatchmakingPartyFlow::friends(unsigned action,unsigned a,unsigned b,const bridge::NativeFrontendFriendsIo&io)const{return bridge::frontend_friends_flow(*impl_->state,action,a,b,io);}
 bridge::ClansFlowResult FrontendMatchmakingPartyFlow::clans(unsigned action,const bridge::ClansFlowArgument&arg,const bridge::NativeFrontendClansIo&io)const{return bridge::frontend_clans_flow(*impl_->state,action,arg,io);}
+bridge::CouchFlowResult FrontendMatchmakingPartyFlow::couch(unsigned action,const bridge::CouchFlowArgument&arg,const bridge::NativeFrontendCouchIo&io)const{return bridge::frontend_couch_flow(*impl_->state,action,arg,io);}
+bridge::SigninFlowResult FrontendMatchmakingPartyFlow::signin(unsigned action,const bridge::SigninFlowArgument&a,const bridge::NativeFrontendSigninIo&io)const{return bridge::frontend_signin_flow(*impl_->state,action,a,io);}
+void FrontendMatchmakingPartyFlow::signin_load_key(const std::string&name,const std::string&key)const{const auto n=bytes(name),k=bytes(key);bridge::frontend_signin_load_key(*impl_->state,{n.data(),n.size()},{k.data(),k.size()});}
+std::optional<std::string>FrontendMatchmakingPartyFlow::signin_take_key(const std::string&name)const{const auto n=bytes(name);const auto k=bridge::frontend_signin_take_key(*impl_->state,{n.data(),n.size()});return k.present?std::optional<std::string>(flow_text(k.text)):std::nullopt;}
+std::vector<std::pair<std::string,std::string>>FrontendMatchmakingPartyFlow::signin_keys()const{std::vector<std::pair<std::string,std::string>>out;for(const auto&k:bridge::frontend_signin_state(*impl_->state).keys)out.emplace_back(flow_text(k.name),flow_text(k.key));return out;}
+std::optional<unsigned>FrontendMatchmakingPartyFlow::joining_controller()const{const auto s=bridge::frontend_couch_state(*impl_->state);return s.joining_present?std::optional<unsigned>(s.joining):std::nullopt;}
+std::optional<unsigned>FrontendMatchmakingPartyFlow::active_controller()const{const auto s=bridge::frontend_couch_selected_controller(*impl_->state);return s.present?std::optional<unsigned>(s.index):std::nullopt;}
+std::uint64_t FrontendMatchmakingPartyFlow::couch_revision()const{return bridge::frontend_couch_state(*impl_->state).revision;}
+void FrontendMatchmakingPartyFlow::couch_changed()const{bridge::frontend_couch_changed(*impl_->state);}
+bool FrontendMatchmakingPartyFlow::couch_guest_entry(unsigned screen)const{return bridge::frontend_couch_guest_entry(*impl_->state,screen);}
 unsigned FrontendMatchmakingPartyFlow::tab()const{return state().tab;}
 std::string FrontendMatchmakingPartyFlow::target()const{return flow_text(state().target);}
 unsigned FrontendMatchmakingPartyFlow::kind()const{return state().kind;}
@@ -50,4 +60,5 @@ bool frontend_party_flow_screen(int mode,unsigned screen,unsigned context){retur
 bool frontend_party_flow_picker(unsigned screen,unsigned context){return bridge::frontend_party_flow_picker(screen,context);}
 bool frontend_friends_flow_screen(unsigned screen,unsigned context){return bridge::frontend_friends_screen(screen,context);}
 bool frontend_clans_flow_screen(unsigned screen,unsigned context){return bridge::frontend_clans_screen(screen,context);}
+bool frontend_couch_flow_screen(unsigned screen,unsigned context){return bridge::frontend_couch_screen(screen,context);}
 }

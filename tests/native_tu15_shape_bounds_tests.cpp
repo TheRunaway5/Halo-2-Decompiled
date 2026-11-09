@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include "halo2/native_tu15_shape_bounds.hpp"
 #ifdef HALO2_SHAPE_CENTERED
 #include "halo2/native_tu15_centered_shape_bounds.hpp"
@@ -16,12 +17,19 @@ void check(bool b,const std::string&s){if(!b)throw std::runtime_error(s);}
 std::vector<std::byte>bytes(const std::string&s){std::vector<std::byte>b;for(std::size_t n=0;n<s.size();n+=2)b.push_back(std::byte(std::stoul(s.substr(n,2),nullptr,16)));return b;}
 std::string hex(std::span<const std::byte>b){const char*d="0123456789abcdef";std::string s;for(auto v:b){auto n=std::to_integer<unsigned>(v);s+=d[n>>4];s+=d[n&15];}return s;}
 struct Prefix{};
-struct Memory:SourcePhysicsContactMemory{
+struct Memory:SourcePhysicsContactMemory,NativeTu15RetainedCounterStorage{
  std::map<std::uint32_t,std::vector<std::byte>>banks;std::string phase;unsigned ordinal{};mutable unsigned attempts{};unsigned writes{};bool logging{},raw_logging{};mutable J reads=J::array();std::vector<SourcePhysicsContactRecordStore>raw;
  auto at(std::uint32_t p,std::size_t n)const{auto i=banks.upper_bound(p);check(i!=banks.begin(),"Missing shape bank");--i;check(std::uint64_t(p-i->first)+n<=i->second.size(),"Missing shape extent");return i;}
  void read(std::uint32_t p,std::span<std::byte>b)const override{if(phase=="before_read"&&attempts++==ordinal)throw Prefix{};if(logging)reads.push_back(J::array({p,b.size()}));auto i=at(p,b.size());std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
  void read_vector(std::uint32_t p,std::span<std::byte,16>b)const override{read(p,b);}
  void write(std::uint32_t p,std::span<const std::byte>b)override{if(phase=="before_write"&&writes++==ordinal)throw Prefix{};auto i=at(p,b.size());if(raw_logging)raw.push_back({0,p,std::vector<std::byte>(i->second.begin()+p-i->first,i->second.begin()+p-i->first+b.size()),std::vector<std::byte>(b.begin(),b.end())});std::copy(b.begin(),b.end(),banks.at(i->first).begin()+p-i->first);}
+ NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t p,unsigned width,std::uint32_t delta)override{
+  check(width==2u||width==4u,"Unqualified shape-model counter width");
+  if(phase=="before_write"&&writes++==ordinal)throw Prefix{};const auto target=at(p,width);
+  std::array<std::byte,4>before{};read(p,std::span(before).first(width));const auto result=native_tu15_adjust_counter_value(before,width,delta);
+  std::copy_n(result.written.begin(),width,banks.at(target->first).begin()+p-target->first);
+  if(raw_logging)raw.push_back({0,p,{result.before.begin(),result.before.begin()+width},{result.written.begin(),result.written.begin()+width}});return result;
+ }
 };
 struct Host {
  alignas(16)std::array<std::byte,108>outer{},expected{};unsigned mxcsr;

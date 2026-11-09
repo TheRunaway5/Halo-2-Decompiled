@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from native_gameplay_test import (FRONTEND_CAPABILITY, FRONTEND_MAP, FRONTEND_SCHEMA,
@@ -20,6 +21,56 @@ from packaged_shader_test_support import elf_with_readonly_literal
 
 
 class FrontendCapabilityTests(unittest.TestCase):
+    def test_cache_scoped_proof_uses_same_runtime_without_replacing_its_original_proof(self):
+        import copy
+        from custom_asset_cache import SCHEMA as CUSTOM_SCHEMA, MANIFEST
+        original = self.sidecar.read_bytes()
+        (self.cache/FRONTEND_MAP).write_bytes(b'rebuilt menu with custom map cards')
+        self.assertFalse(self.available())
+        bundle = self.cache/MANIFEST
+        bundle.write_text('{}')
+        rebuilt = copy.deepcopy(self.report)
+        rebuilt['map']['sha256'] = self.digest(self.cache/FRONTEND_MAP)
+        rebuilt['validation'].update(custom_asset_cache_profile=CUSTOM_SCHEMA,
+                                     custom_asset_cache_sha256=self.digest(bundle))
+        proof = self.cache/'frontend-runtime-capability.json'
+        proof.write_text(json.dumps(rebuilt))
+        with patch('custom_asset_cache.verify', return_value={}) as verify:
+            (self.cache/'provenance.json').write_text('{}')
+            import native_gameplay_test as admission
+            with patch.object(admission,'_runtime_owner',wraps=admission._runtime_owner) as audit:
+                self.assertTrue(self.available())
+            self.assertEqual(audit.call_count,1,'Rebuilt cache repeated the full executable/shader audit')
+            verify.assert_called()
+            rebuilt['shaders']['directory'] = str(self.root/'other-shaders')
+            proof.write_text(json.dumps(rebuilt))
+            self.assertFalse(self.available())
+            rebuilt['shaders'] = self.report['shaders']
+            proof.write_text(json.dumps(rebuilt))
+            bundle.write_text('changed')
+            self.assertFalse(self.available())
+            bundle.write_text('{}')
+            self.runtime.write_bytes(self.runtime.read_bytes()+b'changed')
+            self.assertFalse(self.available())
+        self.assertEqual(self.sidecar.read_bytes(), original)
+
+    def test_shared_cache_proof_for_another_executable_uses_own_qualified_assets(self):
+        import copy
+
+        previous = copy.deepcopy(self.report)
+        previous['runtime']['path'] = str(self.root / 'previous/halo2_native')
+        proof = self.cache / 'frontend-runtime-capability.json'
+        proof.write_text(json.dumps(previous))
+        before = proof.read_bytes()
+
+        self.assertTrue(self.available())
+        admitted = qualified_frontend(self.runtime, self.cache)
+        self.assertEqual(admitted['report'], self.report)
+        self.assertEqual(admitted['source_capability_sha256'], self.digest(self.sidecar))
+        (self.cache / FRONTEND_MAP).write_bytes(b'changed menu requires its own requalification')
+        self.assertFalse(self.available())
+        self.assertEqual(proof.read_bytes(), before)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="halo2-frontend-capability-")
         self.addCleanup(self.temp.cleanup)

@@ -92,6 +92,14 @@ def cases():
             f = dict(sounds=sounds, snapshot=dict(status=state, matched=True, gathering=True, countdown=countdown),
                      screens=[6, 186, 14, 210, dict(screen=top, destination=-16)])
             yield "overlay-sound-bound", [command("update", f)]
+    for screens, mode, queue, reentry, fault in itertools.product(
+            ([6], [186], [6, 210, 7], [6, 186, 14, 210, 7], [6, 186, 14, 186, 210, 7]),
+            (0, 3), (False, True), (False, True), ("", "cancel", "open", "enter_lobby")):
+        seeded = dict(identity=False, screens=[6, 186, 210])
+        facts = dict(screens=screens, mode=mode, queue=queue, reenter_open=reentry, fault=fault,
+                     clock=0xffffffff)
+        yield "confirmed-search-cancel", [command("open_search", seeded),
+                                           command("cancel_and_return", facts)]
     faults = ("identity", "profile", "lobby_countdown", "pull_after", "account", "command", "open",
               "enter_lobby", "populate_lobby", "populate_search", "refresh", "cancel", "join", "pull",
               "local_players", "take", "team_mode", "local_slots", "roster", "validate_map", "reject_content")

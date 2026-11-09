@@ -30,7 +30,7 @@ def main():
    else:merged[address]=data;last=address
   image=Xbe(NEW_DEFAULT);section=next(s for s in image.sections if s.name=='.text');(scratch/'text.bin').write_bytes(image.section_bytes(section))
   source=inspect.getsource(base.original);source=source[:source.index('        active=dict(m')]+'        return owned/"reference"\n';source=source.replace("case['before_fp']=fp","fp=case['before_fp_input'];case['before_fp']=fp")
-  fp=typed['floating_point'];case=dict(entry=0x30e930,receiver=typed['work'],arguments=[typed[n]for n in('first','second','relative_transform','support_cache','plane')],before_fp_input=[fp['x87_control_word'],fp['x87_status'],fp['mxcsr']]);environment=dict(base.__dict__,metadata=lambda i,b:({},{}));exec(source,environment);exe=environment['original'](image,merged,[case],scratch)
+  fp=typed['floating_point'];case=dict(entry=0x30e930,receiver=typed['work'],arguments=[typed[n]for n in('first','second','relative_transform','support_cache','plane')],before_fp_input=[fp['x87_control_word'],fp['x87_status'],fp['mxcsr']]);environment=dict(base.__dict__,metadata=lambda i,b,implicit_stack=False:({},{}));exec(source,environment);exe=environment['original'](image,merged,[case],scratch)
   bridge=(ROOT/'tools/observe_native_contact_producer_tu15.cpp').read_text();bridge=bridge[:bridge.index('struct Memory:SourcePhysicsContactMemory')]
   driver='#include "halo2/native_tu15_convex_simplex_solver.hpp"\n'+bridge+'''}
 int main(int argc,char**argv){J result{{"passed",false}};try{
@@ -153,6 +153,16 @@ int main(int argc,char**argv){J result{{"passed",false}};try{
    units=[str(ROOT/'src/physics'/n)for n in dict.fromkeys(core.UNITS)]
   primary=None;profiles=[];negative=[]
   report['source_hashes']={str(Path(n).relative_to(ROOT)):sha(n)for n in units}
+  report['source_hashes']['tools/validate_native_array_growth_tu15.py']=sha(ROOT/'tools/validate_native_array_growth_tu15.py')
+  if a.native:
+   direction_header=ROOT/'include/halo2/native_tu15_simplex_direction_kernel.hpp'
+   report['source_hashes'][str(direction_header.relative_to(ROOT))]=sha(direction_header)
+   candidate_header=ROOT/'include/halo2/native_tu15_simplex_candidate_kernel.hpp'
+   report['source_hashes'][str(candidate_header.relative_to(ROOT))]=sha(candidate_header)
+   finalize_header=ROOT/'include/halo2/native_tu15_simplex_finalize_kernel.hpp'
+   report['source_hashes'][str(finalize_header.relative_to(ROOT))]=sha(finalize_header)
+   for header in ('native_tu15_polygon_features_kernel.hpp','native_tu15_polygon_features_value.hpp','native_tu15_polygon_support_kernel.hpp','native_tu15_polygon_support_value.hpp'):
+    path=ROOT/'include/halo2'/header;report['source_hashes'][str(path.relative_to(ROOT))]=sha(path)
   for compiler in (('g++','clang++')if a.qualify else('c++',)):
    assert shutil.which(compiler),compiler
    executable=scratch/('probe-'+compiler)
@@ -169,9 +179,9 @@ int main(int argc,char**argv){J result{{"passed",false}};try{
     request_data['input']=typed;request.write_text(json.dumps(request_data));kernel=ROOT/'src/physics/native_tu15_convex_simplex_solver.cpp';text=kernel.read_text()
     mutations={
      'zero_epsilon':('0x2edbe6ffu','0u'),
-     'wrong_edge_axis':('subtract(outer_a,outer_b)','add(outer_a,outer_b)'),
+     'wrong_edge_axis':('projection.direction','add(projection.outer_positive,projection.outer_negative)'),
      'wrong_iteration_parity':('std::uint32_t iteration{},result{}','std::uint32_t iteration{1u},result{}'),
-     'wrong_simplex_growth':('input.work,current+1u);return true;','input.work,current+2u);return true;'),
+     'wrong_simplex_growth':('m.word(early(d)?0x30ef9eu:0x30f57au,address,value);','m.word(early(d)?0x30ef9eu:0x30f57au,address,value+1u);'),
     }
     for name,(old,new)in mutations.items():
      assert text.count(old)==1,name;mutant=scratch/(name+'.cpp');mutant.write_text(text.replace(old,new));target=scratch/(compiler+'-'+name);changed=[str(mutant)if n==str(kernel)else str(target)if n==str(executable)else n for n in command];changed.insert(1,'-I'+str(ROOT/'src/physics'))

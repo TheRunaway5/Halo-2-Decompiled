@@ -1,0 +1,112 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1150,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "d7e86e80904a5322d525cc8c6bacfdda4a8bf0bee7d2a36d4f0ce738f2eb7b80",
+      "selected_resolver_sha256": "0529ee750d5d17d2c3f38e5ffbb84a1d2d18dce55c111238af59e8d2a9c921fd"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "d7e86e80904a5322d525cc8c6bacfdda4a8bf0bee7d2a36d4f0ce738f2eb7b80",
+      "selected_resolver_sha256": "0529ee750d5d17d2c3f38e5ffbb84a1d2d18dce55c111238af59e8d2a9c921fd"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "e108b2364271076e17c7dcb385d88c9204179e18a9d012605fd9920266d4872b",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_11f7e0",
+      "instruction_callback_sites": 75,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "11f7e0",
+        "tu15": "11f7e0"
+      },
+      "line": 351,
+      "literal_dispatch_required_targets": [
+        "32ccd8"
+      ],
+      "observed_entry": "11f7e0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "11f7e0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "11f7e0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "f4a6c2f2b8b964ff4b5fdd005d647b754e16b82e26cb887db09406e404837a5f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_18a2a0",
+      "instruction_callback_sites": 30,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "18a2a0",
+        "tu15": "18a2a0"
+      },
+      "line": 430,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "18a2a0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "18a2a0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "18a2a0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "98a05fe1de4b8f562cdeb64863c1d68c6e987eeedcdd0bc5477b203eeeab71bf",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "11f7e0"
+      ],
+      "function_name": "run_18a300",
+      "instruction_callback_sites": 334,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "18a300",
+        "tu15": "18a300"
+      },
+      "line": 464,
+      "literal_dispatch_required_targets": [
+        "bad60",
+        "189fd0"
+      ],
+      "observed_entry": "18a300",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "18a300",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "18a300",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/vehicles/source_vehicle_look_tu15_generated.cpp",
+  "source_bytes": 73635,
+  "source_filename_scope": "generated",
+  "source_sha256": "984df826be95a1ed2cd745fdb28a2cb57672b897a94d3807e955d4318041e669"
+}

@@ -177,7 +177,9 @@ def original(image,banks,rows,scratch,*,source_transform=None,observer_transform
     assert source.count(needle)==1
     source=source.replace(needle,'str(observer_source)')
     start=source.index("        prepare=''\n")
-    end=source.index('        assembly.append(',start)
+    # Replace allocator preparation only. The shared observer also declares
+    # ordinary memory/register inputs before assembling the bridge.
+    end=source.index('        initial_words=',start)
     prepare=r'''        prepare=''
         if case.get('exhaust_header_pool'):
             prepare=f'mov ${SP-0x100},%esp\n drain_header_pool:\n push $0x12\n push $12\n mov $0x10076040,%ecx\n call 0x233250\n test %eax,%eax\n jne drain_header_pool\n movl $0x10076040,0x48c938\n'

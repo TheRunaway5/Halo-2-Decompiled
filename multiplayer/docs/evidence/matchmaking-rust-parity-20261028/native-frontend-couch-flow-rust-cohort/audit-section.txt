@@ -1,0 +1,58 @@
+## Signed-local/guest and controller callers in Rust (2026-11-02)
+
+`matchmaking_frontend_couch` now owns the complete modern native couch caller,
+including mutable-status gates, guest/sign-in actions, pending-provider ordering,
+duplicate subjects, per-profile worker admission, retained menu refresh and
+local-player projection. Complete controller slot/join/finish/leave and primary
+identity callers, the two exact couch/join Back branches and profile-list
+predicates also reach Rust. The existing party controller owns subjects,
+options, joining controller/online state, host profile and couch revision; all
+six former C++ fields are removed. Search reads that actual Rust revision.
+Actual login/account pointers, device/profile/preferences and frame IO stay
+native. Snapshot presence crosses the bridge; private authorization bytes do
+not. Held-login and current-slot reads remain distinct, including a replacement
+between profile-key binding and Start. Native exceptions and state changes
+before failure are preserved in the controlled comparison.
+
+The first comparison identified a real port ordering error: an unassigned
+primary input with no frame and an ineligible online identity returns slot0
+in the captured C++ caller, while Rust read the absent frame too early. The
+minimal comparison failed twice in under a second; one-frame, already-bound
+and negative-input controls agreed. The corrected Rust short-circuit and
+regression test pass, and the original corpus remains intact.
+
+The current cohort passes **@RUST@ Rust tests**, with **@NEW@ new controls** and
+four existing ignores. Exact captured/production comparisons match **@CASES@
+cases**, **@IO@ callback observations and Rust-state reentries**, and **@FAULTS@
+native exception controls**. Actual selection/update actions initialize the
+comparison state. Scoped-enum unknown values remain in the defined domain.
+C++ out-of-range row/slot access, null factory/worker dereferences and options
+that disappear before the original dereference are excluded from C++ execution;
+separate Rust controls require safe errors. Back/profile branch wrappers are
+explicitly described and their original dispatcher positions are checked.
+
+All **13 focused CMake caller checks** pass without skips, with Debug C++ and
+Rust release defaults. Seven build-staging controls pass. All five affected
+production C++ units compile using the frozen CMake compilation database;
+object/ABI imports reach Rust, and search imports the Rust couch revision.
+These are component checks with controlled providers. The **37-check native
+runtime checklist**, including HTTP/SDL/Vulkan/lobby/Start/countdown, remains
+pending. The prior interrupted whole-runtime run is not counted as acceptance.
+Original Xbox/Live/historical recovery, genuine providers, natural played-world
+scope and installed delivery remain separate required work.
+
+[The receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-couch-flow-rust-validation.json)
+records the failed-before/passed-after case, sources, callback boundaries,
+linkage and cleanup. The new comparison JSON was omitted from the retention
+list; its complete success summary is recovered from retained CTest stdout,
+with binary identity and the empty-differences inference recorded explicitly.
+The receipt does not claim the original JSON file bytes were retained.
+Source/build/SDK/binary/object outputs are removed; only
+bounded reports and authenticated reference inputs remain. The selected runtime
+is observed read-only and has not received this migration; no service is
+activated. All 12 GAP records, 53 algorithm IDs, G01-G12 gates and complete exit
+criteria remain unchanged. The goal stays active. Generic profile/login,
+team editing, other postgame/keyboard/voice coordination and every other
+matching-related non-Rust owner, full original recovery and whole-runtime/
+delivery acceptance remain open.
+

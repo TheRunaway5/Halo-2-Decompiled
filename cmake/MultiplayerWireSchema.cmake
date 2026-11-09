@@ -4,6 +4,7 @@ include_guard(GLOBAL)
 # while their feature version is equal. Keep those peers out of one match.
 set(multiplayer_wire_inputs
     src/network/multiplayer_network.cpp
+    src/network/source_membership_validation.hpp
     src/runtime/source_shadow_transport.cpp
     include/halo2/source_shadow_transport.hpp
     include/halo2/online_packet_role.hpp

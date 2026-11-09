@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "cases": 2560,
+  "native_io_observations": 1381,
+  "rust_state_reentries": 1381,
+  "fault_controls": 28,
+  "preserved_native_exception_identity": 28,
+  "differences": [],
+  "undefined_cpp_inputs_excluded": true,
+  "actual_native_report_objects": true,
+  "native_report_identity_and_lifetime_observed": true,
+  "first_online_report_preserved": true,
+  "fresh_prior_after_selection_preserved": true,
+  "native_sha256": "4e2cde8c96a188754ffffaf7a8ef51c300bcf77a71019053cba66d490405dfae",
+  "scope": "Captured modern postgame callers, leave action and prior/navigation hooks.\n\nUses real native report/result objects and captured account helper definitions\nwhich call their existing Rust leaves. Compares callback ordering, actual shared\nowner identities/lifetimes, first-report selection, replacement during select,\nleave acceptance, refusal, failure prefixes and reentry. Native rendering and the PCR\nfactory remain outside the differential; their source is authenticated unchanged\nafter the two declared substitutions. Not original Xbox/Live service replay.\nUndefined empty-stack dereferences and null report dereferences in the captured\nbranches are excluded; separate Rust owner-error controls cover those boundaries.\n",
+  "leave_cases": 519
+}

@@ -58,6 +58,7 @@ def main():
         from native_vehicle_choice_kernel_tu15 import strip_native_vehicle_choice
         text=strip_native_vehicle_choice(text)
     helpers='''#pragma once
+#include "gameplay/objects/native_tu15_vehicle_choice.hpp"
 namespace vehicle_choice_literal_routes {
 using namespace halo2::physics_world_runtime_detail;
 using halo2::SourcePhysicsContactImage;

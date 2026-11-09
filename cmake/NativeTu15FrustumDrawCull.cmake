@@ -1,5 +1,6 @@
 if(TARGET halo2_systems)
-    target_sources(halo2_systems PRIVATE src/rendering/native_tu15_frustum_draw_cull.cpp)
+    target_sources(halo2_systems PRIVATE src/rendering/native_tu15_frustum_draw_cull.cpp
+        src/rendering/world/source_main_frustum_cull_tu15.cpp)
     if(MSVC)
         set_source_files_properties(src/rendering/native_tu15_frustum_draw_cull.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
     else()
@@ -21,9 +22,13 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESS
         target_compile_options(native_tu15_frustum_draw_cull_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(native_tu15_frustum_draw_cull_tests PRIVATE -fsanitize=address,undefined)
     endif()
+    set(halo2_frustum_genuine_arguments)
+    if(HALO2_FRUSTUM_GENUINE_ZANZIBAR)
+        list(APPEND halo2_frustum_genuine_arguments --genuine-zanzibar)
+    endif()
     add_test(NAME original_tu15_frustum_draw_cull COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_tu15_frustum_draw_cull.py"
         --xbe "${HALO2_TU15_GAMEPLAY_XBE}" --native $<TARGET_FILE:native_tu15_frustum_draw_cull_tests>
-        --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-frustum-draw-cull.json")
+        --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-frustum-draw-cull.json" ${halo2_frustum_genuine_arguments})
     set_tests_properties(original_tu15_frustum_draw_cull PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 endif()

@@ -3632,3 +3632,119 @@ budget refusal is not rerun or bypassed. The
 [closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
 records private source/build/bank removal, preservation of the required original
 reference and no new large artifact or selected-runtime promotion.
+
+
+## Native binding readiness and request frames, 2026-11-02
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-request-20261102/qualification.json)
+fixes a reproduced source-frame mismatch at `128970`. Native `128970`,
+`1293F0` and `21F260` now retain their original saved registers, argument-byte
+stores and nested return slots in actual mapped memory. Request flags, pending
+locks, repeat-ready lock ownership and byte-wrapping lock counts follow the
+original CPU accesses. The freshly compiled old implementation fails case 1536;
+all seven other compiled negative controls also fail.
+
+The unchanged-XBE corpus passes 3,402 comparisons: 2,296 returns, 28 matching
+faults and 1,078 required-boundary stops. It observes 24,300 semantic stores,
+62,598 original private-stack writes and 1,701 DF-set cases, with an identical
+independent fixture repeat. All static sites of the two binding callers are
+exercised. Seven request sites after I/O/wait returns remain unexercised by this
+original-code oracle; no read or scheduler result is supplied. Final mapped
+frame bytes are compared, without claiming native ordered private-stack events.
+
+Authenticated cold playback now enters actual `128970` binding readiness from
+declared empty pools. Each real read must publish ready state, own exactly one
+cache lock, avoid duplicate reads/locks on repeat, and release the lock through
+`129470` before playback. All 273 distinct permutations/1,147 lifecycle scenarios
+pass using PCM decoded from actual physical cache bytes, with the unchanged
+1,657 reads/53,057,536 sector bytes. The prior loaded-cache payload report and
+constructor/service/format input and trace hashes remain unchanged. All thirteen
+restored suites pass. The first full run's two 180-second timeouts are retained;
+the complete repeat uses a declared private 600-second budget for the three
+long reference suites under measured host contention, with unchanged cases.
+
+This is component progress. Declared raw binding/pool/physical reservation and
+driver inputs, synchronous native I/O and manual SDL policy remain explicit.
+Source World/cache/voice/device admission, original event schedule/selection/
+gain/pitch/spatial behavior, normal local/split/LAN delivery, both combined
+four-bin profiles and Xbox waveform/wet feedback remain open. All 37 complete
+definition gates and D01-D13 remain open. The preceding full-World census owner
+was interrupted and removed before a census case executed; its stale running
+report is corrected, and the archive-budget refusal remains unresolved. The
+[closure receipt](../build/test-results/vehicle-destruction-native-cache-request-20261102/owner-closure.json)
+records private source/build/bank removal and preservation of the required
+original reference. No new large artifact or selected-runtime promotion is added.
+
+## Complete native World archive admission, 2026-11-02
+
+The [full World census](../build/test-results/vehicle-destruction-native-archive-fields-20261102/native-census/evidence/original-sound-archive-census.json)
+captures four local players and eight actual joins. The complete checkpoint
+uses 118,739,079 canonical bytes, with 128,419,790 bytes of claimed native
+allocation and 1,041,992,652 bytes of weighted staging. These measurements
+exceed the respective legacy 96 MiB, 96 MiB and 768 MiB budgets. The baseline
+selected-cache transfer refuses the decoded archive before either recipient
+prepares. The existing larger policy passes the offline control with exact
+canonical and bank bytes. It does not omit any arena, geometry or Match state.
+
+Complete paired host checkpoints now negotiate that bounded policy with every
+physical recipient. The encoded ceiling remains 32 MiB. Legacy and unpaired
+archives retain their original limits. The first selected-cache policy run
+gets both recipients through native preparation and exact local pin export,
+but the host does not reach native-all validation. The private diagnostic
+repeat hits its setup deadline before the first offer. The precise cause of
+the missing receipts in that first run remains unmeasured.
+
+The complete archive profile also carries bounded preparation liveness for an
+exact delivered seal. The host still needs the genuine native validation ACK.
+Liveness applies to active sends within their absolute lifetime. It ends on
+acknowledgement, rejection, cancellation or a generation change. The
+receiver registers the lease before cold World construction for this profile.
+The [transfer regression](../build/test-results/vehicle-destruction-native-archive-fields-20261102/preparation-wire-red.log)
+fails on the old wire, and all [14 transfer tests](../build/test-results/vehicle-destruction-native-archive-fields-20261102/preparation-transfer-green.log)
+pass with the new profile. The selected-cache native Release check and the
+original-bank playing Audio factory check are separate runtime gates.
+
+The [first integration build](../build/test-results/vehicle-destruction-native-archive-fields-20261102/selected-common-cut-complete-native-preparation/tests.log)
+uses the preparation wire before the warm-order correction. Both clients
+prepare and export the first cold cut, but the publisher reaches its validation
+deadline without native-all. The next cut reaches host native-all with two
+independently prepared clients, even after the bounded successor journal hits
+its phase limit. The test still fails the exact first-cut gate. This distinguishes
+the cold attempt from the warmed successor without attributing the first
+missing receipt to an unobserved wire expiry.
+
+The [warm-order runtime](../build/test-results/vehicle-destruction-native-archive-fields-20261102/warm-order-native-release.json)
+completes the first 19,307,793-byte cut: two independent native preparations
+and exports, exact foreground associations, all-recipient Release, and live
+roles preserved. Both byte deliveries remain live across cold construction,
+including an observed 53.8-second target warm and 41.8-second workspace warm.
+The enclosing selected-cache case still fails its input guard because the
+selected registry changed during the run. The actual old map payloads and
+all 19 protected inputs rehash unchanged. The newer selection requires its
+own test. The source proof covers 1,870 linked objects
+and 129 distinct linked archives in the frozen diagnostic cohort.
+
+The first owned sound run reached the receiver exports and then hit a null
+World dereference in the test fixture. A normal foreground client owns a
+replica. The fixture now uses an independent native timing World on the exact
+resident Cache for both sealed audio phases. The next run exposed contention
+between cold construction and the shared archive reservation. The receivers
+now warm after registering the delivered lease, while archive decode and
+staging keep their existing shared reservation. [Crash receipt](../build/test-results/vehicle-destruction-native-archive-fields-20261102/original-audio-fixture-crash.json)
+
+The owned original-bank case passes both genuine factory phases. Each phase
+checks 26 Lockout cues for original encoded payloads, restored playing position
+and parameters, exact PCM and selection replay, and fresh receipts. The
+Banshee windup retains its 122,131 decoded silent frames. Its test window
+extends through the measured onset at the saved voice rate. [Playing Audio report](../build/test-results/vehicle-destruction-native-archive-fields-20261102/owned-original-playing-audio-native-onset/evidence/original-common-cut-playing-audio.json)
+
+The subsequent selected-cache case passes with stable complete input hashes
+and the same executable used for the Audio case. The final source build
+produces that exact executable. The disposable owner is removed and the
+required 22,328,168-byte original reference matches its recorded SHA-256.
+[Selected-cache report](../build/test-results/vehicle-destruction-native-archive-fields-20261102/current-selected-archive-inputs-after.json), [closure receipt](../build/test-results/vehicle-destruction-native-archive-fields-20261102/owner-closure.json)
+
+Original destruction event scheduling, normal single/split/LAN delivery,
+native source voice allocation, aggregate World and Audio adoption, and
+Xbox waveform and wet feedback remain open. All 37 complete-definition
+gates and D01-D13 remain open.

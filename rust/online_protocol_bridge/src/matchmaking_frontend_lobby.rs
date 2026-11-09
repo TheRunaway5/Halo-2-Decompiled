@@ -81,6 +81,79 @@ pub fn frontend_lobby_observe(
 pub fn frontend_lobby_start_error(l: &FrontendLobby, f: &ffi::FrontendLobbyFacts) -> String {
     l.0.start_error(&facts(f)).into()
 }
+fn setup_row(row: core::SetupRow) -> ffi::FrontendSetupRow {
+    let route = match row.route {
+        core::SetupRoute::Open => ffi::FrontendSetupRoute::Open,
+        core::SetupRoute::SwitchCoop => ffi::FrontendSetupRoute::SwitchCoop,
+        core::SetupRoute::SwitchCustom => ffi::FrontendSetupRoute::SwitchCustom,
+        core::SetupRoute::AlternateSession => ffi::FrontendSetupRoute::AlternateSession,
+        core::SetupRoute::OpenPlaylist => ffi::FrontendSetupRoute::OpenPlaylist,
+    };
+    ffi::FrontendSetupRow {
+        semantic: row.semantic,
+        label: row.label,
+        destination: row.destination,
+        route,
+    }
+}
+pub fn frontend_setup_label(semantic: i32) -> u32 {
+    core::setup_label(semantic)
+}
+pub fn frontend_setup_rows(session: i32) -> Vec<ffi::FrontendSetupRow> {
+    core::setup_rows(session).map(setup_row).collect()
+}
+pub fn frontend_setup_focus(session: i32, index: i32) -> i32 {
+    core::setup_focus(session, index)
+}
+pub fn frontend_setup_accept(
+    session: i32,
+    index: u32,
+    online: bool,
+    leader: bool,
+) -> ffi::FrontendSetupSelection {
+    let (row, error) = match core::setup_accept(session, index, online, leader) {
+        Ok(row) => (row, String::new()),
+        Err(error) => (None, error.into()),
+    };
+    ffi::FrontendSetupSelection {
+        selected: row.is_some(),
+        row: row.map_or(
+            ffi::FrontendSetupRow {
+                semantic: -1,
+                label: 0,
+                destination: -1,
+                route: ffi::FrontendSetupRoute::Open,
+            },
+            setup_row,
+        ),
+        error,
+    }
+}
+pub fn frontend_setup_privacy(
+    online: bool,
+    session_present: bool,
+    session: i32,
+    privacy_present: bool,
+    leader: bool,
+    busy: bool,
+) -> ffi::FrontendSetupPrivacy {
+    match core::setup_privacy(
+        online,
+        session_present.then_some(session),
+        privacy_present,
+        leader,
+        busy,
+    ) {
+        Ok(open) => ffi::FrontendSetupPrivacy {
+            open,
+            error: String::new(),
+        },
+        Err(error) => ffi::FrontendSetupPrivacy {
+            open: false,
+            error: error.into(),
+        },
+    }
+}
 pub fn frontend_lobby_plan(
     l: &FrontendLobby,
     f: &ffi::FrontendLobbyFacts,

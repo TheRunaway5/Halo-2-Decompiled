@@ -1,0 +1,179 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+import uuid
+
+root=Path.cwd()
+scratch=Path(os.environ["HALO2_TEST_SCRATCH"])
+out=Path(sys.argv[1]).resolve()
+source=scratch/"source"
+source.mkdir()
+for relative in ("rust/online_protocol","rust/matchmaking_service","multiplayer/master_server/examples"):
+    shutil.copytree(root/relative,source/relative,symlinks=True,ignore=shutil.ignore_patterns("target","__pycache__"))
+(source/"tools").mkdir()
+shutil.copyfile(root/"tools/test_rust_matchmaking_service.py",source/"tools/test_rust_matchmaking_service.py")
+sys.path.insert(0,str(source/"tools"))
+from test_rust_matchmaking_service import Server
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={str(p.relative_to(source)):sha(p) for p in source.rglob("*") if p.is_file()}
+prod="rust/matchmaking_service/src/runtime.rs"
+expected=out.parent/"rust-validation.baseline.json"
+assert json.loads(expected.read_text())[prod]==pins[prod]
+assert all(sha(root/path)==pin for path,pin in pins.items())
+report=dict(schema="H2_CATALOG_RESTART_CLI_V1",passed=False,source_count=len(pins),production_before=pins[prod],
+            scratch=str(scratch),retained_generated_large_artifacts=[],checks=[])
+out.with_suffix(".baseline.json").write_text(json.dumps(report,indent=2)+"\n")
+cmd=["cargo","build","--locked","--offline"]
+def build():
+    result=subprocess.run(cmd,cwd=source/"rust/matchmaking_service",capture_output=True,
+        env=os.environ|dict(CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_AUTO_INSTALL="0"))
+    with out.with_suffix(".build.log").open("ab") as log:
+        log.write(result.stdout+result.stderr)
+    result.check_returncode()
+    return scratch/"cargo/debug/halo2-matchmaking-service"
+
+original_path=source/"multiplayer/master_server/examples/matchmaking-online.json"
+original=json.loads(original_path.read_text())
+maps=sorted({g["map"] for p in original["playlists"] for g in p["games"]})
+candidate=json.loads(original_path.read_text())
+candidate["playlists"][0]["revision"]="atomic-cli-catalog-restart-v2"
+lab=next(p for p in candidate["playlists"] if p["id"]=="lab-test")
+original_revision=lab["revision"]
+lab["games"][0]["weight"]+=1
+changed=scratch/"reuse.json"
+changed.write_text(json.dumps(candidate))
+pretty=scratch/"pretty.json"
+pretty.write_text(json.dumps(original,indent=2))
+state=scratch/"state"
+db=state/"registry.sqlite3"
+token="h2s_"+"R"*43
+subject="76561197960288506"
+
+def sql(statement,parameters=()):
+    with sqlite3.connect(db) as handle:
+        return handle.execute(statement,parameters).fetchall()
+
+def request(server,method,path,status,**kwargs):
+    code,data=server.request(method,path,**kwargs)
+    assert code==status,(method,path,code,data.get("error"))
+    return data
+
+def queue(server):
+    body=dict(screen_name="Catalog Restart",maps=maps,compatibility="halo2-native-queue-v16",language=0)
+    return request(server,"POST","/v1/matchmaking/session",201,token=token,body=body)["token"]
+
+def start(binary,catalog):
+    return Server(binary,state,scratch,catalog)
+
+def baselines():
+    return dict(identities=sql("SELECT count(*) FROM player_identities"),
+                skill=sql("SELECT playlist,raw_rank,xp,configuration FROM playlist_skill ORDER BY playlist"))
+def rows():
+    return sql("SELECT playlist,revision,profile_sha256 FROM matchmaking_catalog_revisions ORDER BY playlist,revision")
+
+try:
+    binary=build()
+    report["red_binary_sha256"]=sha(binary)
+    server=start(binary,original_path)
+    try:
+        assert request(server,"GET","/v1/health",200)["catalog_sha256"]==sha(original_path)
+        sql("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
+            (hashlib.sha256(token.encode()).hexdigest(),subject,"Catalog Restart Fixture",int(time.time())+3600))
+        before=queue(server)
+        request(server,"POST","/v1/matchmaking/ticket",201,token=before,
+                body=dict(playlist_id="lab-test",revision=original_revision,request_id=str(uuid.uuid4())))
+        established=baselines()
+        assert established["identities"]==[(1,)]
+    finally:
+        server.close()
+    reused=start(binary,changed)
+    try:
+        assert request(reused,"GET","/v1/health",200)["catalog_sha256"]==sha(changed)
+        fresh=queue(reused)
+        result=request(reused,"POST","/v1/matchmaking/ticket",201,token=fresh,
+                body=dict(playlist_id="lab-test",revision=original_revision,request_id=str(uuid.uuid4())))
+        report["red"]=dict(reused_revision_served=True,old_revision_enqueued=result["state"]=="searching")
+    finally:
+        reused.close()
+    out.with_suffix(".red.json").write_text(json.dumps(report,indent=2)+"\n")
+    pin_file=out.parent/"rust-validation.candidate.json"
+    deadline=time.monotonic()+900
+    while not pin_file.exists():
+        assert time.monotonic()<deadline
+        time.sleep(1)
+    digest=json.loads(pin_file.read_text())[prod]
+    assert sha(root/prod)==digest
+    shutil.copyfile(root/prod,source/prod)
+    assert sha(source/prod)==digest
+    pins[prod]=digest
+    report["production_after"]=digest
+    binary=build()
+    report["green_binary_sha256"]=sha(binary)
+    server=start(binary,original_path)
+    try:
+        assert request(server,"GET","/v1/health",200)["catalog_sha256"]==sha(original_path)
+        assert baselines()==established
+        request(server,"GET","/v1/matchmaking/playlists",401,token=before)
+        old=queue(server)
+        original_pins=rows()
+        assert len(original_pins)==len(original["playlists"])
+    finally:
+        server.close()
+
+    rejected=False
+    try:
+        invalid=start(binary,changed)
+    except RuntimeError as error:
+        assert "Matchmaking playlist revision has different content (409)" in str(error)
+        rejected=True
+    else:
+        invalid.close()
+    assert rejected and rows()==original_pins and baselines()==established
+    report["checks"].append("Same revision with a changed weight is rejected before listening and leaves no partial binding.")
+    server=start(binary,pretty)
+    try:
+        assert request(server,"GET","/v1/health",200)["catalog_sha256"]==sha(pretty)
+        assert rows()==original_pins
+    finally:
+        server.close()
+
+    lab["revision"]="new-lab-rotation-cli"
+    new=scratch/"new-revision.json"
+    new.write_text(json.dumps(candidate))
+    server=start(binary,new)
+    try:
+        assert request(server,"GET","/v1/health",200)["catalog_sha256"]==sha(new)
+        request(server,"GET","/v1/matchmaking/playlists",401,token=old)
+        grant=queue(server)
+        changed_rows=rows()
+        assert set(original_pins)<=set(changed_rows) and len(changed_rows)==len(original_pins)+2
+        failure=request(server,"POST","/v1/matchmaking/ticket",409,token=grant,
+                    body=dict(playlist_id="lab-test",revision=original_revision,request_id=str(uuid.uuid4())))
+        assert failure["error"]=="Playlist changed; refresh playlists"
+        request(server,"POST","/v1/matchmaking/ticket",201,token=grant,
+                body=dict(playlist_id="lab-test",revision=lab["revision"],request_id=str(uuid.uuid4())))
+    finally:
+        server.close()
+    server=start(binary,original_path)
+    try:
+        assert request(server,"GET","/v1/health",200)["catalog_sha256"]==sha(original_path)
+        assert rows()==changed_rows and baselines()==established
+        grant=queue(server)
+        request(server,"POST","/v1/matchmaking/ticket",201,token=grant,
+                body=dict(playlist_id="lab-test",revision=original_revision,request_id=str(uuid.uuid4())))
+    finally:
+        server.close()
+    report["checks"].append("An equivalent JSON rewrite, a fresh revision, and exact rollback all open against the same database. Old grants and stale revision requests fail.")
+    report["original_catalog_sha256"]=sha(original_path)
+    report["bindings"]=[len(original_pins),len(changed_rows)]
+    report["passed"]=all(sha(source/path)==pin for path,pin in pins.items())
+finally:
+    out.write_text(json.dumps(report,indent=2)+"\n")
+assert report["passed"]

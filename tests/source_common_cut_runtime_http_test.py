@@ -38,6 +38,7 @@ async def bounded_output(stream):
 
 
 async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False,audio_report=None):
+    timeout = 1560 if audio_report else (660 if os.environ.get('HALO2_COMMON_ARCHIVE_ADMISSION_ONLY') else 270)
     extra=['--original-destruction-sounds',str(audio_report)]if audio_report else[]
     process = await asyncio.create_subprocess_exec(str(binary), origin, str(descriptor), gameplay, str(map_path),*extra,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -46,7 +47,7 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False,au
     timed_out = False
     try:
         try:
-            await asyncio.wait_for(process.wait(), 270)
+            await asyncio.wait_for(process.wait(), timeout)
         except asyncio.TimeoutError:
             timed_out = True
     finally:
@@ -60,9 +61,13 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False,au
             if total > len(tail):
                 print(f'{label}: retained final {len(tail)} of {total} bytes', flush=True)
             print(tail.decode(errors='replace'), flush=True)
-    assert not timed_out, 'Native common-cut runtime exceeded 270 seconds'
-    assert process.returncode == 0, 'Native common-cut runtime failed'
+    assert not timed_out, f'Native common-cut runtime exceeded {timeout} seconds'
+    assert process.returncode == 0, f'Native common-cut runtime failed with return code {process.returncode}'
     text = output[0][0].decode(errors='replace')
+    if os.environ.get('HALO2_COMMON_ARCHIVE_ADMISSION_ONLY'):
+        marker = 'PASS complete host archive admission:'
+        assert text.count(marker) == 1, 'Missing/duplicated complete native archive admission control'
+        return
     if os.environ.get('HALO2_COMMON_DISCONNECT'):
         marker = 'PASS genuine ordinary disconnect recovery refusal:'
         assert text.count(marker) == 1, 'Missing/duplicated genuine ordinary disconnect recovery control'

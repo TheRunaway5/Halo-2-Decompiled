@@ -1,0 +1,19 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102/halo2-test-b_hk65pk",
+  "regular_bytes": 4418672730,
+  "regular_files": 48718,
+  "borrowed_symlinks_not_followed": true,
+  "accepted_iteration": 1,
+  "passing_focused_cmake_checks": 12,
+  "whole_native_36_check_cohort_completed": false,
+  "scoped_sources_current": true,
+  "scoped_sources": 46,
+  "validated_object_hashes_unchanged": true,
+  "actual_cmake_abi_archive": {
+    "path": "libhalo2_frontend_party_flow.a",
+    "sha256": "f7461c0bb822e806fd62f2723b0c0442b584b197652a1f1fed6c88bde608b2b7",
+    "bytes": 311638
+  },
+  "production_probe_objects_removed": true,
+  "retained_large_artifacts": []
+}

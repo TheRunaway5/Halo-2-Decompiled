@@ -12,7 +12,8 @@ struct NativeTu15ObjectDeletionSpatialBindingActivity {
 };
 // Native BA570/C0F60 with locally computed BA910/16E290 packet DATA and
 // native1D30A0/29FFF0 updates. No numeric address represents a CPU frame.
-// Remaining attachment/controller/AI/player children retain explicit refusal.
+// Native C5250/1D30F0 owns light detachment. Remaining attachment deletion,
+// controller/AI/player children retain explicit refusal.
 inline void native_tu15_delete_spatially_bound_object(SourcePhysicsContactMemory&memory,
     std::uint32_t datum,NativeTu15PhysicsFrameFp&fp,
     const SourcePhysicsContactRecordObserver&observe={},
@@ -23,7 +24,11 @@ inline void native_tu15_delete_spatially_bound_object(SourcePhysicsContactMemory
         NativeTu15ObjectDeletionServices services;
         std::optional<NativeTu15ObjectSpatialPacketData>packet;
         services.detach_object=[&](auto object,auto&state){
-            native_tu15_detach_object_tree(memory,{object,1u,0u,0u,0u},state,{},observe,&result.detachment);
+            NativeTu15ObjectDetachmentServices detach;
+            detach.detach_attachment=[&](auto attachment,auto&){
+                native_tu15_detach_light_attachment(memory,attachment,observe,&result.detachment.attachments);
+            };
+            native_tu15_detach_object_tree(memory,{object,1u,0u,0u,0u},state,detach,observe,&result.detachment);
         };
         services.spatial_packet=[&](auto object,auto,auto&){
             packet=native_tu15_build_object_spatial_packet(memory,object,&result.spatial);

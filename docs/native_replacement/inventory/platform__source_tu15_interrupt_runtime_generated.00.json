@@ -1,0 +1,72 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/SourceTu15Interrupt.cmake",
+      "line": 1,
+      "target": "halo2_source_tu15_interrupt"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_source_tu15_interrupt::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_source_tu15_interrupt"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "39c68cb47f228a472bbf5a207274118bd06cfd7de781b1f6d5f282736428a8c0",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "80014368"
+      ],
+      "function_name": "run_80018ba0",
+      "instruction_callback_sites": 42,
+      "line": 19,
+      "literal_dispatch_required_targets": [
+        "80014128",
+        "80018dc0",
+        "8001bb3d",
+        "8001bd68"
+      ],
+      "observed_entry": "80018ba0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "80018ba0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "InterruptState",
+      "symbol": "80018ba0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "a1c1ed0f1ef8aa9f64e938ec6303883404d79e99bcd35296cdd383401d125404",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_80014368",
+      "instruction_callback_sites": 25,
+      "line": 63,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "80014368",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "80014368",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "InterruptState",
+      "symbol": "80014368",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_tu15_interrupt_runtime_generated.cpp",
+  "source_bytes": 10069,
+  "source_filename_scope": "generated",
+  "source_sha256": "02e7b755fe23e3fc939a011195f733bb78e71b65ea5a2b57d12d92213c66265a"
+}

@@ -1,0 +1,117 @@
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+import uuid
+
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+cohort = scratch / "source"
+destination = Path(sys.argv[1]).resolve()
+previous = json.loads(destination.with_name("validation.red.json").read_text())
+candidate = json.loads(destination.with_name("validation.green-request.json").read_text())
+sha = lambda path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+for name in ("online_protocol", "matchmaking_service"):
+    shutil.copytree(root/"rust"/name, cohort/"rust"/name, ignore=shutil.ignore_patterns("target"))
+references = [
+    "tests/fixtures/hopper_selection_tu15_original.json",
+    "tests/fixtures/matchmaking_skill_original.json",
+    "multiplayer/master_server/examples/matchmaking-online.json",
+    "multiplayer/master_server/data/online-hopper-frequencies-v1.json",
+    "tools/test_rust_matchmaking_service.py",
+]
+external = set()
+for path in (cohort / 'rust').rglob('*.rs'):
+    external.update(re.findall(r'"\.\./\.\./\.\./([^"\n]+)"', path.read_text()))
+references.extend(sorted(external - set(references)))
+for name in references:
+    target=cohort/name
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(root/name,target)
+assert all(sha(cohort/"rust/online_protocol"/name)==pin for name,pin in candidate.items())
+pins={str(p.relative_to(cohort)):sha(p) for p in cohort.rglob("*") if p.is_file()}
+env=os.environ | {"CARGO_TARGET_DIR":str(scratch/"cargo"),"CARGO_BUILD_JOBS":"2","RUSTUP_AUTO_INSTALL":"0"}
+out=dict(schema="H2_RUST_FULL_SETTINGS_DOWNGRADE_VALIDATION_V1",scratch=str(scratch),
+         preserved_master_sha256=previous["master_sha256"],
+         red=previous["red"], baseline_pins=previous["baseline_pins"], candidate_pins=candidate,
+         source_file_count=len(pins),source_inventory_sha256=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest(),
+         retained_generated_large_artifacts=[],commands=[],passed=False)
+def cargo(working,*args):
+    command=["cargo",*args,"--locked","--offline"]
+    completed=subprocess.run(command,cwd=cohort/working,env=env,capture_output=True,text=True)
+    details=[line for line in completed.stdout.splitlines() if line.startswith(("test result:", "test full_settings_clients", "test stock_name_only_catalog", "test named_legacy"))]
+    item=dict(cwd=working,command=command,exit_code=completed.returncode,details=details,
+              stdout_sha256=hashlib.sha256(completed.stdout.encode()).hexdigest(),
+              stderr_sha256=hashlib.sha256(completed.stderr.encode()).hexdigest())
+    if completed.returncode:
+        item["failure_tail"]=(completed.stdout[-3500:]+"\n"+completed.stderr[-3500:]).strip()
+        print(item["failure_tail"],flush=True)
+    out["commands"].append(item)
+    return completed.returncode
+
+def legacy_control(binary, Server):
+    case=scratch/"legacy"
+    case.mkdir()
+    catalog=case/"catalog.json"
+    row=dict(id="compat-stock",revision="declared",name="Compatibility fixture",
+             description="Isolated legacy Slayer test",ranked=False,quickmatch=False,
+             team_size=0,minimum_players=2,maximum_players=2,maximum_party=1,
+             games=[dict(id="slayer",map="lockout",variant="Slayer",weight=1)],
+             stages=[dict(after_seconds=0,rank_numerator=1,rank_denominator=1,minimum_connection=50)],
+             skill=dict(kind="custom",radius=6),provenance="Modern isolated test fixture")
+    catalog.write_text(json.dumps(dict(version=1,playlists=[row])))
+    server=Server(binary,case/"state",case,catalog)
+    cases=[]
+    try:
+        for index,compatibility in enumerate(("halo2-native-queue-v12","halo2-native-queue-v15","halo2-native-queue-v16")):
+            grant="h2s_"+chr(65+index)*43
+            with sqlite3.connect(case/"state/registry.sqlite3") as db:
+                db.execute("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
+                    (hashlib.sha256(grant.encode()).hexdigest(),str(76561197960287930+index),"Steam Fixture",int(time.time())+3600))
+            status,value=server.request("POST","/v1/matchmaking/session",token=grant,
+                body=dict(screen_name=f"Settings Pilot {index}",maps=["lockout"],compatibility=compatibility,language=0))
+            assert status==201,(compatibility,status,value.get("error"))
+            token=value["token"]
+            status,value=server.request("GET","/v1/matchmaking/playlists",token=token)
+            assert status==200 and len(value["playlists"])==1
+            eligible=value["playlists"][0]["eligible"]
+            control=dict(compatibility=compatibility,eligible=eligible)
+            cases.append(control)
+            assert eligible==(index==0),control
+            if index:
+                status,value=server.request("POST","/v1/matchmaking/ticket",token=token,
+                    body=dict(playlist_id=row["id"],revision=row["revision"],request_id=str(uuid.uuid4())))
+                control.update(enqueue_status=status,enqueue_error=value.get("error"))
+                assert status==409 and value.get("error")=="Update Halo 2 for this playlist",control
+                status,value=server.request("GET","/v1/matchmaking/ticket",token=token)
+                assert status==200 and value["state"]=="idle",control
+                control["ticket_after_refusal"]=value["state"]
+    finally:
+        server.close()
+    return dict(catalog_sha256=sha(catalog),cases=cases)
+
+try:
+    assert cargo("rust/online_protocol","test")==0
+    assert cargo("rust/matchmaking_service","test")==0
+    assert cargo("rust/matchmaking_service","build")==0
+    binary=scratch/"cargo/debug/halo2-matchmaking-service"
+    out["binary_sha256"]=sha(binary)
+    sys.path.insert(0,str(cohort/"tools"))
+    from test_rust_matchmaking_service import Server, qualify_matchmaking
+    out["legacy_http"]=legacy_control(binary,Server)
+    out["source_catalog_http"]=qualify_matchmaking(binary,scratch/"canonical",cohort/references[2])
+    out["frozen_sources_unchanged"]=all(sha(cohort/p)==h for p,h in pins.items())
+    assert out["frozen_sources_unchanged"]
+    out["passed"]=True
+except BaseException as error:
+    out["error"]=str(error)
+    raise
+finally:
+    destination.write_text(json.dumps(out,indent=2)+"\n")
+    print(json.dumps({"passed":out["passed"],"commands":[row["exit_code"] for row in out["commands"]]}),flush=True)

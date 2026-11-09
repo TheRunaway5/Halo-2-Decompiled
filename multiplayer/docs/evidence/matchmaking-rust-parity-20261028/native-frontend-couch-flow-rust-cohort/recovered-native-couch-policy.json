@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "cases": 2638,
+  "native_io_observations": 4507,
+  "rust_state_reentries": 4507,
+  "fault_controls": 108,
+  "preserved_native_exception_identity": 108,
+  "differences": [],
+  "undefined_cpp_inputs_excluded": true,
+  "scoped_enum_defaults_retained": true,
+  "actual_actions_initialize_state": true,
+  "provider_shared_pointer_ownership_observed": true,
+  "native_sha256": "eea1d0ee8421338c0d347fb369d42bf15585a17f1e9505c19bcc7b759ba3066b",
+  "scope": "Authenticated complete modern couch/controller/identity callers vs production Rust/CXX IO.\n\nActual selection/update actions initialize Rust state. Controlled providers,\nprofile metadata, frames and rosters compare callback order, shared-pointer\nownership, failure prefixes and reentry. Only the two declared Back branches\nand profile-list predicates are wrapped; the rest of the dispatcher, original\nXbox/Live providers and installed/native-runtime delivery stay unqualified.\nOut-of-range selected entries/slots, null factories/workers and null options\ninside the old dereference are excluded from C++ execution; Rust error controls\nare separate. Scoped-enum int defaults remain in the valid comparison domain.\n"
+}

@@ -18,4 +18,11 @@ void native_tu15_forward_reversed_contact_pair(SourcePhysicsContactMemory&,
     NativeTu15ContactQueryCollector,NativeTu15PhysicsBody first,
     NativeTu15PhysicsBody second,NativeTu15PhysicsFrameFp&,
     const NativeTu15ContactPairCollectorServices&);
+// Actual1CDFA0, the4615B8 collector reached by genuine object-body overlap.
+// Only the second descriptor is read. Preserve its root,2001 component,
+// current shape-user-data and excluded-component predicates before writing.
+// No FP arithmetic or callback result is supplied.
+void native_tu15_collect_object_overlap_pair(SourcePhysicsContactMemory&,
+    NativeTu15ContactQueryCollector,NativeTu15PhysicsBody second,
+    const SourcePhysicsContactRecordObserver& = {});
 }

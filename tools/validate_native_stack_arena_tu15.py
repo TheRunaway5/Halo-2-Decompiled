@@ -5,7 +5,7 @@ The real original149DA0/233250 allocates every backing block, including each
 release case's preparation. Native routing/pool kernels derive their own
 results from the same before bytes. No requested pointer outcome is supplied.
 """
-import argparse,hashlib,inspect,json,os,shutil,subprocess,sys
+import argparse,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 import validate_native_array_growth_tu15 as base
 from oracle_smg_firing_1_1 import ROOT,Xbe
@@ -31,12 +31,9 @@ def main():
  files=['include/halo2/native_tu15_stack_arena.hpp','src/physics/native_tu15_stack_arena.cpp','include/halo2/native_tu15_array_allocator.hpp','src/physics/native_tu15_array_allocator.cpp','include/halo2/native_tu15_array_growth.hpp','src/physics/native_tu15_array_growth.cpp','tools/validate_native_array_growth_tu15.py','tools/observe_native_array_growth_tu15.cpp','tests/native_tu15_array_growth_tests.cpp','tools/validate_native_stack_arena_tu15.py'];pins={f:sha(ROOT/f)for f in files};report=dict(passed=False,owned_scratch=str(scratch),source_hashes=pins,retained_large_artifacts=[],supplied_original_outcomes=False)
  try:
   assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);banks,provenance=base.reference_inputs(image);base.OWNERS=(*base.OWNERS,0x2e10a0,0x2e1110)
-  # The shared oracle already supports genuine allocation preparation; this
-  # additional preparation invokes the real slow-arena owner, never sets its
-  # backing pointer or saved header from an expected result.
-  source=inspect.getsource(base.original);needle="        assembly.append(f'''.code32";assert source.count(needle)==1
-  preparation="        if 'prepare_arena_bytes' in case:\n            prepare=f'mov ${SP-0x100},%esp\\n push ${case[\"prepare_arena_bytes\"]}\\n mov ${case[\"receiver\"]},%ecx\\n call 0x2e10a0\\n'\n"
-  environment=dict(base.__dict__);exec(source.replace(needle,preparation+needle),environment);all_cases=cases();fixture,authority=environment['original'](image,banks,all_cases,scratch)
+  # Preparation executes the unchanged slow-arena owner before the input
+  # snapshot. No backing pointer or saved-header outcome is supplied.
+  all_cases=cases();fixture,authority=base.original(image,banks,all_cases,scratch)
   save(fixture/'original.json',dict(image_sha256=NEW_PIN,oracle='unchanged-tu15-physical-array-and-real-pool-v1',cases=all_cases))
   project=scratch/'project';project.mkdir();shutil.copytree(ROOT/'include',project/'include')
   for name in('native_tu15_stack_arena','native_tu15_array_allocator','native_tu15_array_growth'):shutil.copyfile(ROOT/f'src/physics/{name}.cpp',project/f'{name}.cpp')
@@ -59,7 +56,7 @@ add_test(NAME native_stack_arena COMMAND arena "'''+str(fixture/'original.json')
   def run(label,compiler):
    command=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/label),'--target','arena','--filter','^native_stack_arena$','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,'--jobs','1','--test-jobs','1'];commands.append(command);r=subprocess.run(command);results.append(dict(label=label,exit_code=r.returncode));return r.returncode
   for compiler in a.compilers:assert run(compiler,compiler)==0,'Native slow arena mismatch'
-  mutations=[('header_word','m.word(0x2e10d1u,block,m.word(arena+8u));','m.word(0x2e10d1u,block,m.word(arena+8u)^1u);'),('minimum','requested_bytes:0x1000u','requested_bytes:0x800u'),('restore_remaining','m.word(0x2e112fu,arena+0xcu,m.word(backing+4u));','m.word(0x2e112fu,arena+0xcu,m.word(backing+4u)^1u);')]
+  mutations=[('header_word','m.word(publications[field],block+field*4u,phase.value);','m.word(publications[field],block+field*4u,phase.value^(field==0u?1u:0u));'),('minimum','requested_bytes:0x1000u','requested_bytes:0x800u'),('restore_remaining','m.word(publications[field],arena+8u+field*4u,phase.value);','m.word(publications[field],arena+8u+field*4u,phase.value^(field==1u?1u:0u));')]
   target=project/'native_tu15_stack_arena.cpp';unchanged=target.read_text()
   for name,needle,replacement in mutations:
    assert unchanged.count(needle)==1;target.write_text(unchanged.replace(needle,replacement));assert run('negative-'+name,a.compilers[0])!=0,'Unchanged source failed to reject mutation';target.write_text(unchanged)

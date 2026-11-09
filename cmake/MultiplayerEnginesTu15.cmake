@@ -83,6 +83,12 @@ if(BUILD_TESTING)
     target_link_libraries(custom_mode_local_launch_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
     target_compile_definitions(custom_mode_local_launch_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
     add_dependencies(custom_mode_local_launch_tests halo2_shaders)
+    add_executable(native_mcc_custom_mechanics_tu15_tests tests/native_mcc_custom_mechanics_tu15_tests.cpp)
+    target_link_libraries(native_mcc_custom_mechanics_tu15_tests PRIVATE halo2_systems)
+    add_executable(native_source_membership_tests tests/native_source_membership_tests.cpp)
+    target_include_directories(native_source_membership_tests PRIVATE src)
+    target_link_libraries(native_source_membership_tests PRIVATE halo2_systems)
+    add_test(NAME native_source_nonplaying_membership COMMAND native_source_membership_tests)
     add_executable(objective_native_tu15_tests tests/objective_native_tu15_tests.cpp)
     target_include_directories(objective_native_tu15_tests PRIVATE include src ${HALO2_TEST_JSON_INCLUDE})
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -140,6 +146,10 @@ if(BUILD_TESTING)
         "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/custom-mode-local-launch.json")
     set_tests_properties(native_mcc_custom_mode_local_launch PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+    add_test(NAME native_mcc_custom_mechanics_tu15 COMMAND native_mcc_custom_mechanics_tu15_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/custom-mechanics.json")
+    set_tests_properties(native_mcc_custom_mechanics_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1200 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
     find_program(HALO2_CUSTOM_MODE_XVFB_RUN xvfb-run)
     if(HALO2_CUSTOM_MODE_XVFB_RUN)
         add_test(NAME native_mcc_custom_mode_render_launch

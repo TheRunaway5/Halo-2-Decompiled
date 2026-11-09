@@ -1,0 +1,161 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1138,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "1299ad0e90557388e5898b71cf4be2d8dbe098880bdde9e357001260dd2fa06d",
+      "selected_resolver_sha256": "71546773286778b4f2daa5167bdbf954650183416b58ea07e44a6c8135d80bad"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "1299ad0e90557388e5898b71cf4be2d8dbe098880bdde9e357001260dd2fa06d",
+      "selected_resolver_sha256": "71546773286778b4f2daa5167bdbf954650183416b58ea07e44a6c8135d80bad"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 5,
+  "routines": [
+    {
+      "body_sha256": "9b080ed3ed53794fc68693df579c3cff76b7c824278325299599e622d25848d3",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_d2330",
+      "instruction_callback_sites": 36,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "d2330",
+        "tu15": "d2330"
+      },
+      "line": 353,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "d2330",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "d2330",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "d2330",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "3289250c6d3286de2cf957ecd417028e3e1a846e2a3ef86b470d1824bf140482",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1055f0",
+      "instruction_callback_sites": 219,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1055f0",
+        "tu15": "1055f0"
+      },
+      "line": 393,
+      "literal_dispatch_required_targets": [
+        "bad60",
+        "bcdf0",
+        "1059c0",
+        "10b330"
+      ],
+      "observed_entry": "1055f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1055f0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1055f0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "4de14160eb3c293e5e72fcb3d347925774524b7dd449b86bd503c77449e4f3e3",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_10b3d0",
+      "instruction_callback_sites": 77,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "10b3d0",
+        "tu15": "10b3d0"
+      },
+      "line": 615,
+      "literal_dispatch_required_targets": [
+        "bcdf0"
+      ],
+      "observed_entry": "10b3d0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "10b3d0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "10b3d0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "c005b3161d68cf0c2aabdd329dc923c1fb45683f1df7ccbc2dad8cdf3568bb4f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1055f0"
+      ],
+      "function_name": "run_13da89",
+      "instruction_callback_sites": 71,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "13da89",
+        "tu15": "13da89"
+      },
+      "line": 696,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "13da89",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "13da89",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "13da89",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "eda5b2f55607319c3e6a7e922c04681e07a9a5ea73f961621416a4f70844ff89",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "10b3d0"
+      ],
+      "function_name": "run_13dc44",
+      "instruction_callback_sites": 89,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "13dc44",
+        "tu15": "13dc44"
+      },
+      "line": 771,
+      "literal_dispatch_required_targets": [
+        "bcdf0",
+        "1e7810"
+      ],
+      "observed_entry": "13dc44",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "13dc44",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "13dc44",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/source_weapon_hud_tu15_generated.cpp",
+  "source_bytes": 82678,
+  "source_filename_scope": "generated",
+  "source_sha256": "080123823201a5d4c154f1b4da14a0e962c9982c8546fc4512023340a72a5bd5"
+}

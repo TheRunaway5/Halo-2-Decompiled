@@ -30,6 +30,7 @@ public:
     };
     using Bindings=std::array<Binding,16>;
     explicit NativeFirstPersonRegistryTu15(std::shared_ptr<const Cache>);
+    NativeFirstPersonRegistryTu15(std::shared_ptr<const Cache>,const SourceRuntimeResources &);
     ~NativeFirstPersonRegistryTu15();
     void action(const SourcePhysicsContactMemory&,const SourcePhysicsWorldRuntimeAbi&,
         const SourcePhysicsWorldRuntimeServices&,const SourceFirstPersonNativeActionTu15&,

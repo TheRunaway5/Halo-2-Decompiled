@@ -30,6 +30,7 @@ std::uint32_t motion_kind(SourcePhysicsContactMemory&m,std::uint32_t body,Native
 std::uint32_t shape_kind(SourcePhysicsContactMemory&m,std::uint32_t payload,NativeTu15ContactCreationGameplayStats&s){
     const auto shape=word(m,payload),table=word(m,shape),owner=word(m,table+0x14u);++s.class_queries;
     if(owner==0xa9520u)return native_tu15_contact_child_class_23();
+    if(owner==0xab4b0u)return native_tu15_contact_child_class_24();
     if(auto kind=native_tu15_activation_type(owner))return*kind;missing(s,owner);
 }
 #endif

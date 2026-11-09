@@ -1,0 +1,65 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeSuperbounceTu15.cmake",
+      "line": 2,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "addition_flags",
+        "diagnostic",
+        "instruction",
+        "native_tu15_scoped_contact_query",
+        "observe",
+        "publish",
+        "read",
+        "read_word",
+        "resize",
+        "source_run_collision_query_tu15",
+        "std::byte",
+        "write"
+      ],
+      "body_sha256": "680e5b046f97f9e6ac6562b09f7177c3d1cb5647cb097149a5e2f02131e93f39",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "native_tu15_scoped_contact_query",
+      "instruction_callback_sites": 1,
+      "line": 28,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_tu15_scoped_contact_query"
+      ],
+      "observed_entry": "2f5657",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2f5657",
+      "route_status": "literal_observer_boundary_requires_semantic_review",
+      "state_type": "local-state",
+      "symbol": "native_tu15_scoped_contact_query",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/collision/native_tu15_scoped_contact_query.cpp",
+  "source_bytes": 3688,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "ebcae2a9e95a89835057312d5425d3f4355da488088446118c4b407d4e16ea5a"
+}

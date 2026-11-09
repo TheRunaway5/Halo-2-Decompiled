@@ -1,0 +1,199 @@
+{
+  "schema": "H2_RUST_FULL_SETTINGS_DOWNGRADE_VALIDATION_V1",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-full-settings-service-20261102/halo2-test-gdksgk42",
+  "preserved_master_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+  "red": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_client_controller",
+        "full_settings_clients_refuse_name_only_stock_matches_before_transport",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "stdout_sha256": "ea8e86a9132b5684688befe582eccce7e20a10bb10607da69e68be3e0e1aef01",
+      "stderr_sha256": "7928ef0367ec40685a770806c28d9343955e75cf04ceb53feefbbcdce3e39d7b",
+      "details": [
+        "test full_settings_clients_refuse_name_only_stock_matches_before_transport ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.00s"
+      ],
+      "failure_tail": "\nrunning 1 test\ntest full_settings_clients_refuse_name_only_stock_matches_before_transport ... FAILED\n\nfailures:\n\n---- full_settings_clients_refuse_name_only_stock_matches_before_transport stdout ----\n\nthread 'full_settings_clients_refuse_name_only_stock_matches_before_transport' (2242359) panicked at tests/matchmaking_client_controller.rs:594:13:\nassertion `left == right` failed\n  left: CheckingConnections\n right: Failed\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    full_settings_clients_refuse_name_only_stock_matches_before_transport\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.00s\n\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_catalog",
+        "stock_name_only_catalog_is_ineligible_for_full_settings_clients",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "stdout_sha256": "96e475ae39621189403482eb113039e4741ed402a918970ac2bb892ac032f641",
+      "stderr_sha256": "f028286107b9eaccc8a00e1d2c338747db46fecb15599b51332c437d9b02563e",
+      "details": [
+        "test stock_name_only_catalog_is_ineligible_for_full_settings_clients ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s"
+      ],
+      "failure_tail": "\nrunning 1 test\ntest stock_name_only_catalog_is_ineligible_for_full_settings_clients ... FAILED\n\nfailures:\n\n---- stock_name_only_catalog_is_ineligible_for_full_settings_clients stdout ----\n\nthread 'stock_name_only_catalog_is_ineligible_for_full_settings_clients' (2242444) panicked at tests/matchmaking_catalog.rs:116:9:\nassertion failed: !catalog::eligible(&e[0], compatibility,\n            &json!([connection(\"p0\", compatibility, false,\n                    Value::Null)])).unwrap()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    stock_name_only_catalog_is_ineligible_for_full_settings_clients\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s\n\n"
+    }
+  ],
+  "baseline_pins": {
+    "src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "src/matchmaking_client.rs": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+    "src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+    "src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+    "src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+    "tests/matchmaking_catalog.rs": "ce8145b6e7ffaae8683a05093353274b2040d9a6c4a46b781f92d6f4f5b52010",
+    "tests/matchmaking_client_controller.rs": "873a2146977e88edc85da241fb05fbe7389339f3e622701f8776994f90b6635e"
+  },
+  "candidate_pins": {
+    "src/matchmaking_catalog.rs": "18cc72d701d102037be6d009dfe5f97d7bcb03c5bb645e12cb10bf230003e3c2",
+    "src/matchmaking_client.rs": "aae175faf1a94caea25bf2fc3a91c837654b84b6e8cd8205df5a08ddefa03de7",
+    "src/matchmaking_coordinator.rs": "a2d68e2ae7ab81b60a75588d17c79e6bfc302b956eeb3e7f6a00acacce7a4678",
+    "src/matchmaking_results.rs": "ddfb4a6020c39f74c03e606aa6bfcf53e681b98947d65a756f2ea26176088015",
+    "src/matchmaking_sessions.rs": "ed7b047c00880bef2e4e4bd90612326666ac6009568c58280887ab9904406079",
+    "tests/matchmaking_catalog.rs": "3ef621d50c7e4645a8a6a9645cb259a5e710eed1df342fbc84cfdedb05809f29",
+    "tests/matchmaking_client_controller.rs": "affc2dd3b807d8e37a9b4cb911ffcddb23372addb6df72064966bc9a363f2034"
+  },
+  "source_file_count": 221,
+  "source_inventory_sha256": "0463157493f0bd32363529a3eab95344b04c25817b9b28091b1ba7570c7489e4",
+  "retained_generated_large_artifacts": [],
+  "commands": [
+    {
+      "cwd": "rust/online_protocol",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "details": [
+        "test result: ok. 282 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.71s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test stock_name_only_catalog_is_ineligible_for_full_settings_clients ... ok",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test full_settings_clients_refuse_name_only_stock_matches_before_transport ... ok",
+        "test named_legacy_and_modern_extension_paths_keep_their_explicit_profiles ... ok",
+        "test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.52s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stdout_sha256": "6853a489fdf4ada3ca86d4741e613e1721c20e531f3f99e609c93d44dd9ad53f",
+      "stderr_sha256": "5560ea3cb3fe5416fc146cd5b1c4eb50385721f9fcf680d282958aab473de518"
+    },
+    {
+      "cwd": "rust/matchmaking_service",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "details": [
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s"
+      ],
+      "stdout_sha256": "8295c89fd4ba8c1296b145626da8e129874bacfcbf59b850e28c714076a3b220",
+      "stderr_sha256": "ad853c58fa3a49473afc51ec6ff10eaa436f15b677b51ddccd967cd66536a338"
+    },
+    {
+      "cwd": "rust/matchmaking_service",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "details": [],
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "24bde689807f6784c79863bda483d180ac7c6a7633ca299ad2d0e9054aff4227"
+    }
+  ],
+  "passed": true,
+  "binary_sha256": "7ff10a48363588280f71265614717fe6d9efef48ba61af9e63a17ea017c59061",
+  "legacy_http": {
+    "catalog_sha256": "165806faea504921bcee2f8dbcb6226eb555f80d405a8981d7cc6d3abdaf4768",
+    "cases": [
+      {
+        "compatibility": "halo2-native-queue-v12",
+        "eligible": true
+      },
+      {
+        "compatibility": "halo2-native-queue-v15",
+        "eligible": false,
+        "enqueue_status": 409,
+        "enqueue_error": "Update Halo 2 for this playlist",
+        "ticket_after_refusal": "idle"
+      },
+      {
+        "compatibility": "halo2-native-queue-v16",
+        "eligible": false,
+        "enqueue_status": 409,
+        "enqueue_error": "Update Halo 2 for this playlist",
+        "ticket_after_refusal": "idle"
+      }
+    ]
+  },
+  "source_catalog_http": [
+    "session parser and verified couch preflight reject forged/duplicate inputs before canonical writes",
+    "actual 14-row catalog over Rust HTTP: v12 admits zero; v16 admits all twelve non-clan playlists",
+    "real queue API/SQL/gathering continuation rolls back ticket and rank writes on failed COMMIT, retries once, waits for actual QoS and cancels without fabricated matches",
+    "accepted-party create/invite/accept follows the same Rust queue source and hides private identities",
+    "real shared pregame countdown requires remote consent, enforces leader authority, replays once and ticks without request clocks",
+    "actual failed session COMMIT restores the prior native grant, accepted-party version, consent and active countdown",
+    "failed countdown COMMIT preserves publication and request retry cancels exactly once",
+    "four-seat canonical transaction rolls back new signed locals on failed COMMIT; guests remain transient, renewal preserves the grant and duplicate physical seating is rejected",
+    "actual session retirement clears shared countdown and stale consent through Rust directory effects",
+    "real Rust restart keeps accepted membership and canonical identities, while retiring session grants and countdown state",
+    "high-frequency countdown reads use the separate native countdown allowance and preserve ordinary social request capacity",
+    "room descriptors reject an account-only grant; unported EOS issuance stays unavailable and full readiness stays false"
+  ],
+  "frozen_sources_unchanged": true
+}

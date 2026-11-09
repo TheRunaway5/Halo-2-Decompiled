@@ -1,6 +1,13 @@
 if(TARGET halo2_systems)
     target_sources(halo2_systems PRIVATE src/rendering/world/native_tu15_command_walk.cpp
+        src/rendering/world/native_tu15_command_part_prepare.cpp
+        src/rendering/world/native_tu15_command_emit.cpp
+        src/rendering/world/native_tu15_material_selection.cpp
+        src/rendering/world/native_tu15_shader_lod.cpp
         src/rendering/world/source_native_command_walk_tu15.cpp)
+    set_source_files_properties(src/rendering/world/native_tu15_command_part_prepare.cpp
+        src/rendering/world/native_tu15_command_emit.cpp src/rendering/world/native_tu15_shader_lod.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
     if(BUILD_TESTING)
         add_executable(source_native_command_walk_tests tests/source_native_command_walk_tests.cpp)
         target_link_libraries(source_native_command_walk_tests PRIVATE halo2_systems)
@@ -9,6 +16,9 @@ if(TARGET halo2_systems)
         set_tests_properties(native_command_walk_world_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endif()
 endif()
+include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15CommandPartPrepare.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15CommandEmit.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15ShaderLod.cmake")
 if(BUILD_TESTING)
     add_executable(native_tu15_command_walk_tests tests/native_tu15_command_walk_tests.cpp
         src/rendering/world/native_tu15_command_walk.cpp)

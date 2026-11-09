@@ -1,12 +1,16 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-namespace halo2::online_protocol_bridge {class NativeFrontendPartyFlowIo;class NativeFrontendPartyViewIo;class NativeFrontendAccountFlowIo;class NativeFrontendFriendsIo;class NativeFrontendClansIo;struct ClansFlowArgument;struct ClansFlowResult;struct FriendsFlowResult;struct PartyFlowState;}
+#include <utility>
+namespace halo2::online_protocol_bridge {class NativeFrontendPartyFlowIo;class NativeFrontendPartyViewIo;class NativeFrontendAccountFlowIo;class NativeFrontendFriendsIo;class NativeFrontendClansIo;class NativeFrontendCouchIo;class NativeFrontendSigninIo;struct SigninFlowArgument;struct SigninFlowResult;struct CouchFlowArgument;struct CouchFlowResult;struct ClansFlowArgument;struct ClansFlowResult;struct FriendsFlowResult;struct PartyFlowState;}
 namespace halo2 {
 struct FrontendFriendsResult {bool handled{};std::string text;};
 struct FrontendClansResult {bool handled{};std::string text;};
+struct FrontendSigninResult {bool handled{};unsigned screen{},context{};std::string text;};
+struct FrontendCouchResult {bool handled{};std::optional<unsigned>index;std::string text;};
 struct OnlinePartyCommand;
 enum class FrontendPartyFlowAction:unsigned {Accept,Notice,SwitchTab,OpenedPrivacy,SelectPrivacy,ObservePrivacy};
 class FrontendMatchmakingPartyFlow {
@@ -28,6 +32,16 @@ public:
   void observe_account(const online_protocol_bridge::NativeFrontendAccountFlowIo&,bool)const;
   online_protocol_bridge::FriendsFlowResult friends(unsigned,unsigned,unsigned,const online_protocol_bridge::NativeFrontendFriendsIo&)const;
   online_protocol_bridge::ClansFlowResult clans(unsigned,const online_protocol_bridge::ClansFlowArgument&,const online_protocol_bridge::NativeFrontendClansIo&)const;
+  online_protocol_bridge::CouchFlowResult couch(unsigned,const online_protocol_bridge::CouchFlowArgument&,const online_protocol_bridge::NativeFrontendCouchIo&)const;
+  online_protocol_bridge::SigninFlowResult signin(unsigned,const online_protocol_bridge::SigninFlowArgument&,const online_protocol_bridge::NativeFrontendSigninIo&)const;
+  void signin_load_key(const std::string&,const std::string&)const;
+  std::optional<std::string>signin_take_key(const std::string&)const;
+  std::vector<std::pair<std::string,std::string>>signin_keys()const;
+  std::optional<unsigned>joining_controller()const;
+  std::optional<unsigned>active_controller()const;
+  std::uint64_t couch_revision()const;
+  void couch_changed()const;
+  bool couch_guest_entry(unsigned)const;
   unsigned tab()const;
   std::string target()const;
   unsigned kind()const;
@@ -46,4 +60,5 @@ bool frontend_party_flow_screen(int mode,unsigned screen,unsigned context);
 bool frontend_party_flow_picker(unsigned screen,unsigned context);
 bool frontend_friends_flow_screen(unsigned screen,unsigned context);
 bool frontend_clans_flow_screen(unsigned screen,unsigned context);
+bool frontend_couch_flow_screen(unsigned screen,unsigned context);
 }

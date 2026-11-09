@@ -38,8 +38,8 @@ ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu
     const auto mask=word(0x4c6834u),previous_definition=word(0x4920e4u);
     const auto active=memory.view(0x4c6838u,1)[0];
     const auto restore=[&] {put(0x4c6834u,mask);put(0x4c6838u,active);put(0x4920e4u,previous_definition);};
-    // Publish completed caller inputs only. Keep every selected descriptor,
-    //implementation pointer, vertex class and source sort output original.
+    // Publish completed caller inputs before selecting descriptors through the
+    // original material callback on the retained command bank.
     put(0x4c6834u,out.features);put(0x4c6838u,std::uint8_t(1));put(0x4920e4u,root);
     try {
         auto call=world.prepare_source_call(std::array{1u});const auto caller=call.gp[4];
@@ -47,7 +47,7 @@ ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu
         put(caller-0xf008u,call.gp[5]);
         const std::array arguments{word(caller),bank,1u,12u,output};put(callee,arguments);
         call.gp[4]=callee;call.gp[0]=output;call.gp[3]=12;call.gp[5]=1;call.gp[7]=bank;
-        world.run_actual(0x3baa0u,call);
+        world.run_command_selection_tu15(call);
         const auto count=call.gp[0];
         if(call.gp[4]!=caller-0xf008u || count>capacity || count>header[1]-header[3])
             throw FormatError("Projected selector escaped its original caller output");

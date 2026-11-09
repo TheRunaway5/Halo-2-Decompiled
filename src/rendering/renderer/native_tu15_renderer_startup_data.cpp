@@ -1,11 +1,12 @@
 #include "halo2/native_tu15_renderer_startup_data.hpp"
+#include "../source_bitmap_format_catalogue_tu15.hpp"
 #include <stdexcept>
 namespace halo2 {
 void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,127>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,128>{{
                 {0x4117e0u,8u},
                 {0x49219cu,144u},{0x49222cu,16u},{0x49223cu,16u},{0x49224cu,4u},
                 {0x4c6894u,192u},{0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
@@ -14,7 +15,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
                 {0x46a460u,4u},{0x46a79cu,4u},{0x46a7a0u,4u},{0x138be8u,4u},{0x45f290u,48u},{0x1d588u,4u},{0x1d5a7u,1u},
                 {0x1d574u,8u},{0x1d59eu,2u},{0x40db36u,2u},{0x138be4u,4u},
                 {0x1d580u,4u},{0x1d5a4u,1u},{0x40db3cu,1u},
-                {0x40db3fu,1u},{0x45c4c8u,4u},{0x46a24cu,4u},{0x46a258u,4u},{0x46a248u,4u},{0x46a7a4u,4u},{0x46a1ccu,4u},
+                {0x40db3fu,1u},{0x45c488u,96u},{0x45c4e8u,96u},{0x46a24cu,4u},{0x46a258u,4u},{0x46a248u,4u},{0x46a7a4u,4u},{0x46a1ccu,4u},
                 {0x46a1c8u,4u},{0x46a1c4u,4u},{0x46a798u,4u},{0x4c6958u,850u*32u},{0x4cd3a4u,850u},
                 {0x4cd6f6u,850u},{0x4cda48u,192u*4u},{0x4cdd4cu,32u*36u},{0x4cd398u,4u},{0x4cd39cu,4u},
                 {0x4cdd48u,4u},{0x4ce1ccu,4u},{0x41c4e8u,4u},{0x2e6dfcu,92u},{0x2e6e58u,108u},
@@ -109,10 +110,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // 138510/1385D0/1386E0/138C20/138F70. This replaces four isolated cells;
     // it supplies neither a decoded pixel nor the following sentinel/text.
     // Authenticated TU1.5 image21b207e7..., exact bytes45F290..45F2BF.
-    m.mount(0x45f290u,encode(std::array{
-        0x00080008u,0x00100008u,0x00000000u,0x00000010u,
-        0x00100010u,0x00200020u,0x00000000u,0x00080004u,
-        0x00080008u,0x00800008u,0x00300060u,0x00100010u}),
+    m.mount(0x45f290u,encode(source_bitmap_format_catalogue_tu15::bit_depth),
         SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored24-format bitmap bit-depth table");
 
@@ -128,8 +126,12 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // genuine405770 returns; this is not an invented hardware-ready value.
     m.mount(0x40db3f,std::array<std::byte,1>{std::byte{0x08}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored407C00 format15 cache bitmap flag");
-    m.mount(0x45c4c8,encode(std::array{0x0fu}),SourceRuntimeMemory::Access::ReadOnly,
-        "native TU1.5 authored1301E0 bitmap format16 hardware format");
+    // 1301E0 indexes both complete 24-entry catalogues when it allocates
+    // a cold texture. The former format-16 word is at nonlinear index 16.
+    m.mount(0x45c488u,encode(source_bitmap_format_catalogue_tu15::nonlinear),
+        SourceRuntimeMemory::Access::ReadOnly, "native TU1.5 nonlinear texture header formats");
+    m.mount(0x45c4e8u,encode(source_bitmap_format_catalogue_tu15::linear),
+        SourceRuntimeMemory::Access::ReadOnly, "native TU1.5 linear texture header formats");
     // Exact additional operands read by complete original D5610 for the
     // MCC opening's XRGB/ARGB images. Original-raw-bitmap-proof.json records
     // all64 complete calls; no sampled color or constructor return is supplied.

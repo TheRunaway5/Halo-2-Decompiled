@@ -1,0 +1,63 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15RendererDepth.cmake",
+      "line": 1,
+      "target": "halo2_systems"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "179554b77caa46d41457737c0145eb4fb67a35016358035504719afc02a1261e",
+      "selected_resolver_sha256": "08b825e4872ae7b71061f4a2c0996736802bdd1b1506713b9d7b137686d145ba"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "179554b77caa46d41457737c0145eb4fb67a35016358035504719afc02a1261e",
+      "selected_resolver_sha256": "08b825e4872ae7b71061f4a2c0996736802bdd1b1506713b9d7b137686d145ba"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "eaee6f0bb37f40b52e6a8bd1abd3679c4a28ebefc98142d7cc4d5876da80ae35",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1d640",
+      "instruction_callback_sites": 21,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1d640",
+        "tu15": "1d640"
+      },
+      "line": 330,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1d640",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1d640",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1d640",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/rendering/renderer/source_renderer_resource_storage_tu15_generated.cpp",
+  "source_bytes": 19930,
+  "source_filename_scope": "generated",
+  "source_sha256": "aea5f914c9576bd41caf65057f2cf41588df78edd59a643a6b7bcdc123493051"
+}

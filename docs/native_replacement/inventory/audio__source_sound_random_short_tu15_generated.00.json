@@ -1,0 +1,69 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 469,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 652,
+      "target": "native_tu15_sound_manager_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f91b17ff8bde3c6e35b0a18019e1ef4a79cb40d73a1df3df7bf3da2081f8b211",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "f91b17ff8bde3c6e35b0a18019e1ef4a79cb40d73a1df3df7bf3da2081f8b211",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "0fa5851cc04b5c4fa27e75c2b41236cafeec762f46760005f00c549027a82f1f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_127e00",
+      "instruction_callback_sites": 34,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "127e00",
+        "tu15": "127e00"
+      },
+      "line": 351,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "127e00",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "127e00",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "127e00",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_random_short_tu15_generated.cpp",
+  "source_bytes": 22110,
+  "source_filename_scope": "generated",
+  "source_sha256": "4b1ae83261f3cf8b033bff1866e641971a36c2c496c8e14c2d680c44474ca3f9"
+}

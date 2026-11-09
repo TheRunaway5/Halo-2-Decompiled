@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "cases": 6025,
+  "native_io_observations": 4993,
+  "rust_state_reentries": 4993,
+  "fault_controls": 106,
+  "preserved_native_exception_identity": 106,
+  "differences": [],
+  "former_cpp_int_min_negations_excluded": true,
+  "native_sha256": "8b9114f6f19f212fe094f6ccc2d9a6ae4e9993da5fa793699518526a4542a5f3",
+  "scope": "Captured complete modern friends caller versus exact production Rust/CXX IO.\n\nAccount, social, localization and navigation providers are controlled. Cached\nopaque data, targets, detached/retained frames and native callback-boundary\nstate are compared. Original Live providers, original Xbox full callers and\ninstalled-client delivery are not certified. Former C++ -INT_MIN inputs are\nexcluded here; the separate Rust unit control covers that safe invalid index.\n"
+}

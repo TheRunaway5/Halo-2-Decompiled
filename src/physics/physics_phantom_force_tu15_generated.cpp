@@ -2,10 +2,92 @@
 #include "halo2/physics_phantom_force_tu15.hpp"
 #include "halo2/physics_velocity_observation.hpp"
 #include "halo2/native_lift_scalar_consumer_tu15.hpp"
+#include "halo2/native_tu15_physics_frame.hpp"
+#include "halo2/native_tu15_retained_store_observer.hpp"
 #include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_motion_math_detail;
+bool native_lift_marker_call(MathState &state) {
+  const auto *policy = native_lift_scalar_consumer_policy_tu15(state.memory);
+  if (!policy) return false;
+  if (!policy->request_marker || !policy->publish_phase ||
+      (policy->first_trace && *policy->first_trace) ||
+      (policy->second_trace && *policy->second_trace) ||
+      (state.observe && !policy->observation_only_stores) || state.active_mmx)
+    throw std::runtime_error("Native lift marker requires its typed DATA and observation owner");
+  const auto stack = state.gp[4];
+  const auto destination = state.gp[3];
+  if (stack < policy->caller_stack_begin || std::uint64_t(stack) + 0x188u > policy->caller_stack_end ||
+      destination != stack + 0x118u)
+    throw std::runtime_error("Native lift marker needs its caller-owned record");
+  const auto object = r(state.memory, stack, 4);
+  const auto marker = r(state.memory, stack + 4u, 4);
+  const auto capacity = r(state.memory, stack + 8u, 2);
+  if (capacity != 1u || state.reg(1, 1, 0))
+    throw std::runtime_error("Native lift marker caller arguments differ");
+  NativeTu15PhysicsFrameFp fp{control_word(), state.fp.word(), _mm_getcsr()};
+  policy->publish_phase(0xbad60u);
+  const auto publish = [&] {
+    state.fp.status = fp.status;
+    state.fp.top = (fp.status >> 11u) & 7u;
+    load_control_word(fp.control_word);
+    _mm_setcsr(fp.mxcsr);
+  };
+  std::uint16_t count{};
+  try {
+    count = policy->request_marker(state.memory, object, false, marker, 1, destination, fp);
+  } catch (...) {
+    publish();
+    throw;
+  }
+  publish();
+  // The first caller tests AX. The second reloads EAX at its continuation.
+  state.set(0, count, 2, 0);
+  state.gp[4] += 12u;
+  return true;
+}
+bool native_lift_body_velocity_call(MathState &s, std::uint32_t site) {
+  const auto *policy=native_lift_scalar_consumer_policy_tu15(s.memory);
+  if(!policy)return false; // Standalone original-ABI proof, outside live policy.
+  const bool angular=site==0x1db64fu;
+  if(!angular&&site!=0x1db370u)throw std::runtime_error("Native lift velocity callsite differs");
+  const auto index=angular?1u:0u;
+  auto *activity=policy->world_activity;
+  if(activity)++activity->velocity_attempts[index];
+  try {
+  if(!policy->deliver_velocity || !policy->publish_phase ||
+     (policy->first_trace&&*policy->first_trace) || (policy->second_trace&&*policy->second_trace) ||
+     (s.observe&&!policy->observation_only_stores) || s.active_mmx)
+    throw std::runtime_error("Native lift velocity requires its typed DATA and observation owner");
+  const auto sp=s.gp[4],vector=s.gp[angular?1u:2u];
+  if(sp<policy->caller_stack_begin || std::uint64_t(sp)+(angular?4u:0u)>policy->caller_stack_end ||
+     vector<policy->caller_stack_begin || std::uint64_t(vector)+12u>policy->caller_stack_end)
+    throw std::runtime_error("Native lift velocity needs retained caller DATA");
+  const NativeTu15LiftVelocityDelivery input{
+      angular?NativeTu15LiftVelocityPhase::set_angular:NativeTu15LiftVelocityPhase::add_linear,
+      angular?r(s.memory,sp,4):s.gp[6],s.gp[angular?0u:1u],vector,s.fp.count};
+  NativeTu15PhysicsFrameFp fp{control_word(),s.fp.word(),_mm_getcsr()};
+  policy->publish_phase(angular?0x1d9100u:0x1d92c0u);
+  NativeTu15RetainedStoreObserver observation(s.observe?SourcePhysicsContactRecordObserver([&](const auto&e){
+      policy->publish_phase(e.instruction);s.observe(e);
+      if(activity&&e.instruction==(angular?0x323a07u:0x3239f7u))++activity->velocity_observed_stores[index];
+  }):SourcePhysicsContactRecordObserver{});
+  const auto publish=[&]{
+    s.fp.status=fp.status;s.fp.top=(fp.status>>11u)&7u;
+    load_control_word(fp.control_word);_mm_setcsr(fp.mxcsr);
+  };
+  try{policy->deliver_velocity(s.memory,input,fp,observation);}
+  catch(...){publish();throw;}
+  publish();
+  if(angular)s.gp[4]+=4u; // Actual RET4 pops the caller's ordinary component argument.
+  if(activity)++activity->velocity_completed[index];
+  return true;
+  } catch(...) {
+    if(activity)++activity->velocity_refusals;
+    throw;
+  }
+}
 template<class State>
 void native_lift_scalar_call(State&s,std::uint32_t site,std::uint32_t continuation){
   const auto stack=s.gp[4];bool ordinary{},readonly_observer{},traced{};
@@ -572,7 +654,7 @@ if(s.services.instruction)s.services.instruction(0x1da99bu); s.push(0x1da99bu,s.
 if(s.services.instruction)s.services.instruction(0x1da99cu); s.push(0x1da99cu,s.reg(0,4,0));
 if(s.services.instruction)s.services.instruction(0x1da99du); s.set(1,s.flags.logic((s.reg(1,1,0))^(s.reg(1,1,0)),1),1,0);
 if(s.services.instruction)s.services.instruction(0x1da99fu); s.set(3,(0x118u+s.gp[4]),4,0);
-if(s.services.instruction)s.services.instruction(0x1da9a6u); {const auto target=0xbad60u;s.push(0x1da9a6u,0x1da9abu);s.required(0x1da9a6u,target,false);}
+if(s.services.instruction)s.services.instruction(0x1da9a6u); if(!native_lift_marker_call(s)){const auto target=0xbad60u;s.push(0x1da9a6u,0x1da9abu);s.required(0x1da9a6u,target,false);}
 if(s.services.instruction)s.services.instruction(0x1da9abu); s.flags.logic((s.reg(0,2,0))&(s.reg(0,2,0)),2);
 if(s.services.instruction)s.services.instruction(0x1da9aeu); if(!s.flags.zf)goto L1da9c7;
 if(s.services.instruction)s.services.instruction(0x1da9b0u); s.set(1,r(s.memory,(0x1e8u+s.gp[4]),4),4,0);
@@ -1107,7 +1189,7 @@ if(s.services.instruction)s.services.instruction(0x1db362u); w(s.memory,s.observ
 L1db368: if(s.services.instruction)s.services.instruction(0x1db368u); s.set(1,s.reg(6,4,0),4,0);
 if(s.services.instruction)s.services.instruction(0x1db36au); s.set(2,(0x24u+s.gp[4]),4,0);
 if(s.services.instruction)s.services.instruction(0x1db36eu); s.set(6,s.reg(7,4,0),4,0);
-if(s.services.instruction)s.services.instruction(0x1db370u); s.push(0x1db370u,0x1db375u);run_1d92c0(s);
+if(s.services.instruction)s.services.instruction(0x1db370u); if(!native_lift_body_velocity_call(s,0x1db370u)){s.push(0x1db370u,0x1db375u);run_1d92c0(s);}
 if(s.services.instruction)s.services.instruction(0x1db375u); s.set(2,r(s.memory,(0x4u+s.gp[7]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1db378u); s.set(2,s.flags.right(s.reg(2,4,0),0x1u,4,false),4,0);
 if(s.services.instruction)s.services.instruction(0x1db37au); s.flags.logic((s.reg(2,1,0))&(0x1u),1);
@@ -1122,7 +1204,7 @@ if(s.services.instruction)s.services.instruction(0x1db399u); s.push(0x1db399u,s.
 if(s.services.instruction)s.services.instruction(0x1db39au); s.push(0x1db39au,s.reg(1,4,0));
 if(s.services.instruction)s.services.instruction(0x1db39bu); s.set(1,s.flags.logic((s.reg(1,1,0))^(s.reg(1,1,0)),1),1,0);
 if(s.services.instruction)s.services.instruction(0x1db39du); s.set(3,(0x118u+s.gp[4]),4,0);
-if(s.services.instruction)s.services.instruction(0x1db3a4u); {const auto target=0xbad60u;s.push(0x1db3a4u,0x1db3a9u);s.required(0x1db3a4u,target,false);}
+if(s.services.instruction)s.services.instruction(0x1db3a4u); if(!native_lift_marker_call(s)){const auto target=0xbad60u;s.push(0x1db3a4u,0x1db3a9u);s.required(0x1db3a4u,target,false);}
 L1db3a9: if(s.services.instruction)s.services.instruction(0x1db3a9u); s.set(2,r(s.memory,(0x474d04u),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1db3afu); s.set(0,r(s.memory,(0x0u+s.gp[2]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1db3b1u); s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x58u+s.gp[5]),4)));
@@ -1259,7 +1341,7 @@ if(s.services.instruction)s.services.instruction(0x1db639u); s.set(1,(0x6cu+s.gp
 if(s.services.instruction)s.services.instruction(0x1db63du); w(s.memory,s.observe,0x1db63du,(0x6cu+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction)s.services.instruction(0x1db643u); w(s.memory,s.observe,0x1db643u,(0x70u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction)s.services.instruction(0x1db649u); w(s.memory,s.observe,0x1db649u,(0x74u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[2])));
-if(s.services.instruction)s.services.instruction(0x1db64fu); s.push(0x1db64fu,0x1db654u);run_1d9100(s);
+if(s.services.instruction)s.services.instruction(0x1db64fu); if(!native_lift_body_velocity_call(s,0x1db64fu)){s.push(0x1db64fu,0x1db654u);run_1d9100(s);}
 if(s.services.instruction)s.services.instruction(0x1db654u); goto L1db676;
 L1db656: if(s.services.instruction)s.services.instruction(0x1db656u); s.set(1,r(s.memory,(0x4u+s.gp[3]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1db659u); s.set(0,r(s.memory,(0x0u+s.gp[3]),4),4,0);

@@ -1,0 +1,161 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15RendererTargetStorage.cmake",
+      "line": 1,
+      "target": "halo2_systems"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15RendererTargetStorage.cmake",
+      "line": 3,
+      "target": "native_tu15_renderer_target_storage_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "fa018ca97ab52fd27e4e86694eeae5e4e321553a21b62a890ffa323a065c1cd4",
+      "selected_resolver_sha256": "0e3e3de18d9e852b51f81daa73bc4ac8c397b0270a848b323d6d297e300dd4ef"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "fa018ca97ab52fd27e4e86694eeae5e4e321553a21b62a890ffa323a065c1cd4",
+      "selected_resolver_sha256": "0e3e3de18d9e852b51f81daa73bc4ac8c397b0270a848b323d6d297e300dd4ef"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 5,
+  "routines": [
+    {
+      "body_sha256": "cbf785f138d87c51bf63c738e4953f466a6ec2e4b00ae6d840c97f77e20c9636",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1d6d0",
+      "instruction_callback_sites": 50,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1d6d0",
+        "tu15": "1d6d0"
+      },
+      "line": 334,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1d6d0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1d6d0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1d6d0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "fbc6210c1d9d598d5062ccc7a8ddbec4b6ae63186fb5f9555c960ba5eb9c475b",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1daf0",
+        "1df00"
+      ],
+      "function_name": "run_1d750",
+      "instruction_callback_sites": 260,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1d750",
+        "tu15": "1d750"
+      },
+      "line": 388,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1d750",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1d750",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1d750",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "16a533993468427cc9ef4f4f371d6c105845aae156560b8f1f52f51205e36e10",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1df00",
+        "2db4ca"
+      ],
+      "function_name": "run_1daf0",
+      "instruction_callback_sites": 41,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1daf0",
+        "tu15": "1daf0"
+      },
+      "line": 652,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1daf0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1daf0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1daf0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "fc79d40441e5ab75d63fc38c8981129620b207dc800b2af16de759fabcde73e8",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1d6d0"
+      ],
+      "function_name": "run_1df00",
+      "instruction_callback_sites": 152,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1df00",
+        "tu15": "1df00"
+      },
+      "line": 697,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1df00",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1df00",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1df00",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "46babddcbaa7f13b3432dd5c66fa9ad11f9ac4f38251e6f4559c4de349bfa12a",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_2db4ca",
+      "instruction_callback_sites": 4,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2db4ca",
+        "tu15": "2db4ca"
+      },
+      "line": 853,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2db4ca",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2db4ca",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2db4ca",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/rendering/renderer/source_renderer_target_storage_tu15_generated.cpp",
+  "source_bytes": 77529,
+  "source_filename_scope": "generated",
+  "source_sha256": "44dc306ac8808268a5ae790a9b0ce856a0aa7769ccf26ed77a7a7cfd43d80b79"
+}

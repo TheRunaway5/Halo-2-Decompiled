@@ -4,6 +4,7 @@
 #include "halo2/peer_common_cut.hpp"
 #include "halo2/source_peer_host_takeover.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
+#include "halo2/source_host_archive_policy.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/cache.hpp"
 #include "helpers/source_common_client.hpp"
@@ -40,13 +41,18 @@ bool same_peer_envelopes(const SoundClassFades &a,const SoundClassFades &b){
     }
     return true;
 }
-const auto deadline=std::chrono::steady_clock::now()+240s;
+const auto test_started=std::chrono::steady_clock::now();
 std::function<void(std::string_view)> diagnostic;
 unsigned diagnostic_reports{};
 void diagnose(std::string_view reason)noexcept {
     try{if(diagnostic)diagnostic(reason);}catch(...){std::cerr<<"DIAGNOSTIC common-cut status unavailable\n";}
 }
-template<class F>void wait(F &&ready,const char *why){auto next_report=std::chrono::steady_clock::now()+5s;
+template<class F>void wait(F &&ready,const char *why){
+    // The opt-in original Audio case runs multiple complete native cuts and
+    // genuine factory phases after its cold World setup.
+    const auto deadline=test_started+(original_audio_report_path?1500s:
+        (std::getenv("HALO2_COMMON_ARCHIVE_ADMISSION_ONLY")?600s:240s));
+    auto next_report=std::chrono::steady_clock::now()+5s;
     for(;;){bool done{};try{done=ready();}catch(...){diagnose("predicate exception");throw;}if(done)return;
         const auto now=std::chrono::steady_clock::now();
         if(now>=deadline){diagnose("deadline");check(false,why);}
@@ -188,7 +194,10 @@ int main(int argc,char **argv)try{
     const bool client_mode=std::getenv("HALO2_COMMON_CLIENT")!=nullptr;
     const bool client_abort_mode=std::getenv("HALO2_COMMON_CLIENT_ABORT")!=nullptr;
     const bool disconnect_mode=std::getenv("HALO2_COMMON_DISCONNECT")!=nullptr;
+    const bool archive_only=std::getenv("HALO2_COMMON_ARCHIVE_ADMISSION_ONLY")!=nullptr;
     const std::string inventory_mode=std::getenv("HALO2_COMMON_INVENTORY")?std::getenv("HALO2_COMMON_INVENTORY"):"";
+    check(!archive_only||(selected_mcc&&!prospective_mode&&!client_mode&&!client_abort_mode&&!disconnect_mode&&inventory_mode.empty()),
+        "Complete archive admission requires its separate selected MCC route");
     check(!disconnect_mode||(!prospective_mode&&!client_mode&&!client_abort_mode&&inventory_mode.empty()),
         "Ordinary disconnect recovery requires its separate unmodified native common-cut route");
     check(inventory_mode.empty()||inventory_mode=="abort"||inventory_mode=="freeze"||inventory_mode=="preparation","Unknown retained inventory fixture");
@@ -314,6 +323,11 @@ int main(int argc,char **argv)try{
                 std::cerr<<" associated="<<common->associated<<" applied="<<common->applied<<" released="<<common->released
                     <<" aborted="<<common->aborted<<" native_all="<<common->native_all_validated
                     <<" commit="<<common->commit<<" release="<<common->release<<" abort="<<common->abort<<" rejected="<<common->rejected;
+                if(p==host&&common->pending){
+                    std::uint16_t delivered{};for(auto recipient:clients)
+                        if(sessions[p]->authority_delivered(recipient,common->context,common->pending->seal))delivered|=std::uint16_t(1u<<recipient);
+                    std::cerr<<" live_byte_delivery="<<delivered;
+                }
             }
             std::cerr<<'\n';
             if(!foreground[p])continue;const auto &f=*foreground[p];const auto history=f.history.state();const auto shadow=owners[p]->shadow_state();
@@ -326,6 +340,8 @@ int main(int argc,char **argv)try{
                 <<" received="<<shadow->received<<" prepared="<<shadow->prepared<<" decoding="<<shadow->decoding
                 <<" replaying="<<shadow->replaying<<" ready="<<(shadow->ready?shadow->ready->seal.id:0)
                 <<" host_ready="<<shadow->host_ready<<" rejected="<<(shadow->rejected?shadow->rejected->seal.id:0)
+                <<" warm_us="<<shadow->warm_microseconds<<" workspace_us="<<shadow->workspace_microseconds
+                <<" decode_us="<<shadow->decode_microseconds<<" prepare_us="<<shadow->prepare_microseconds
                 <<" error_present="<<!shadow->error.empty()<<'\n';
         }
     };
@@ -368,27 +384,38 @@ int main(int argc,char **argv)try{
             if(foreground[p]->current)check(owners[p]->match().replica_checkpoint(*foreground[p]->current).matches(*foreground[p]->current),
                 "Common recovery-pin service restored a historical replica into the live receipt");}
     };
-    if(original_audio_report_path){
-        // Exercise the same complete native checkpoint and network policy as
-        // the actual publisher. An offline/expanded limit must never mint a
-        // common cut or hide this route's real admission failure.
-        stage="original Audio native archive admission";
+    if(selected_mcc){
+        // Exercise the actual negotiated paired transport policy over the
+        // complete checkpoint. The real publisher, receiver preparation and
+        // common-cut ownership checks still follow this encoding preflight.
+        stage="negotiated complete native archive admission";
+        const bool complete=std::ranges::all_of(clients,[&](auto peer){
+            return sessions[host]->authority_complete_host_archive_supported(peer);});
+        check(!archive_only||complete,"The complete native archive policy was not negotiated by every physical recipient");
+        const auto limits=source_host_archive_network_codec_limits(complete);
         const auto paired=capture_source_host_continuation(*authority.host(),generation,1);
         std::uint64_t bank_bytes{};for(const auto& r:paired.world.world.world.bank.regions)bank_bytes+=r.bytes.size();
-        original_audio_report["native_archive_preflight"]={{"network_admitted",false},
-            {"native_bank_bytes",bank_bytes},{"network_decoded_limit",authority_network_decoded_bytes}};
-        try{const auto encoded=encode_source_host_continuation(paired,source_authority_network_codec_limits());
-            original_audio_report["native_archive_preflight"]["network_admitted"]=true;
-            original_audio_report["native_archive_preflight"]["encoded_bytes"]=encoded.size();}
-        catch(const FormatError& error){original_audio_report["native_archive_preflight"]["error"]=error.what();throw;}
+        if(original_audio_report_path)original_audio_report["native_archive_preflight"]={{"network_admitted",false},
+            {"native_bank_bytes",bank_bytes},{"network_decoded_limit",limits.decoded_bytes},
+            {"complete_host_archive_negotiated",complete}};
+        try{const auto encoded=encode_source_host_continuation(paired,limits);
+            if(original_audio_report_path){original_audio_report["native_archive_preflight"]["network_admitted"]=true;
+                original_audio_report["native_archive_preflight"]["encoded_bytes"]=encoded.size();save_original_audio_report();}
+            std::cout<<"PASS negotiated host archive preflight: complete="<<complete<<" encoded="<<encoded.size()<<'\n';}
+        catch(const FormatError& error){if(original_audio_report_path)original_audio_report["native_archive_preflight"]["error"]=error.what();throw;}
     }
     stage="first exact common offer";std::optional<PeerCommonCut> first;
     wait([&]{drive();first=offered();return first.has_value();},"Actual runtime publisher never offered its exact all-peer cut");
     check(first->context==generation&&first->recipients==recipient_mask,"Runtime Offer changed native generation or fixed physical membership");
     foreground[clients[0]]->associate_enabled=true;
     stage="independent native exports";
-    wait([&]{drive();return ready_pair(*first)&&sessions[host]->common_cut()->native_all_validated&&
-        (sessions[host]->common_cut()->associated&(1u<<clients[0]));},"Both receiver-native exports/first foreground association did not finish");
+    wait([&]{
+        drive();
+        const auto common=sessions[host]->common_cut();
+        check(common&&common->pending==first&&!common->abort,
+            "First common cut retired before both receiver exports");
+        return ready_pair(*first)&&common->native_all_validated&&(common->associated&(1u<<clients[0]));
+    },"Both receiver-native exports/first foreground association did not finish");
     auto first_native_a=foreground[clients[0]]->native,first_native_b=foreground[clients[1]]->native;
     check(first_native_a!=first_native_b&&first_native_a->cut().peer==clients[0]&&first_native_b->cut().peer==clients[1],"Independent receivers shared an in-process native proof");
     for(auto p:clients){const auto &f=*foreground[p];const auto &retained=f.native->retained_world();
@@ -409,6 +436,14 @@ int main(int argc,char **argv)try{
         const auto before_pin=owners[p]->pending_native_cut();
         check(before_pin&&!owners[p]->recover()&&owners[p]->pending_native_cut()==before_pin&&owners[p]->shadow_state(),
             "Unavailable disconnect recovery exported a cut, retired a worker or consumed a genuine native pin");
+    }
+    if(archive_only){
+        foreground[clients[1]]->associate_enabled=true;
+        stage="complete archive first Release";
+        wait([&]{drive();return all_released(*first);},"The complete native archive did not reach all-recipient Release");
+        require_live();
+        std::cout<<"PASS complete host archive admission: actual twelve-player World, negotiated bounded codec, two independent native preparations and exports, exact foreground associations and all-recipient Release; live roles preserved\n";
+        return 0;
     }
     if(disconnect_mode){
         check(std::ranges::all_of(clients,[&](unsigned p){return !sessions[p]->peer_migration();}),
@@ -437,6 +472,7 @@ int main(int argc,char **argv)try{
     check(owners[candidate]->prepare_common_native(preimported_cut,unused_clock)&&unused_clock->calls==0,
         "Repeated exact preparation reconstructed a second native target");
     std::optional<MccSoundVariationProvider::NativeBinding> prospective_binding;
+    std::unique_ptr<PhysicsLiveWorldTu15> original_audio_source;
     std::optional<SourceNativePublication::Boundary> prospective_boundary;
     Mesh prospective_mesh;
     std::unique_ptr<SourceWorldParticleDrawsTu15> prospective_particles;
@@ -487,8 +523,22 @@ int main(int argc,char **argv)try{
             "Routing refusal consumed the exact prospective foreground owner");
         prospective_binding=owners[candidate]->common_prospective_audio_binding(preimported_cut);
         check(prospective_binding&&prospective_binding->current(),"Sealed prospective target did not mint a genuine native audio binding");
-        if(original_audio_report_path)original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
-            worlds[candidate]->cache,worlds[candidate]->source_objects->tu15_world(),*prospective_binding,"sealed-before-certificate"));
+        if(original_audio_report_path){
+            stage="original playing Audio before certificate";
+            // The live client is a replica. Build an independent native
+            // timing source on its exact Cache, as in the takeover Audio
+            // controls. The prospective target keeps its own sealed scope.
+            const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+            check(scratch&&std::filesystem::is_directory(scratch),"Original Audio requires owned scratch");
+            const auto files=std::filesystem::path(scratch)/"original-playing-audio-world";
+            check(std::filesystem::create_directory(files),"Original Audio source directory already exists");
+            original_audio_source=std::make_unique<PhysicsLiveWorldTu15>(*cache,files,options[candidate].bsp);
+            original_audio_source->initialize_map();
+            original_audio_source->configure_session(source_game_variant(variant),1,30,0x651d83f1u);
+            original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
+                cache,*original_audio_source,*prospective_binding,"sealed-before-certificate"));
+            save_original_audio_report();
+        }
         prospective_clock_calls=imported_clock->calls.load();
         check(owners[candidate]->prepare_common_prospective(preimported_cut,unused_clock)&&
             owners[candidate]->seal_common_prospective(preimported_cut)&&unused_clock->calls==0&&
@@ -1125,8 +1175,13 @@ int main(int argc,char **argv)try{
         check(prospective_binding&&prospective_binding->current()&&prospective_boundary&&prospective_boundary->current()&&
             prospective_foreground->ready(*prospective_foreground_prepared)&&imported_clock->calls==prospective_clock_calls,
             "Private prospective scope did not survive history eviction, Release and unrelated Abort repair");
-        if(original_audio_report_path)original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
-            worlds[candidate]->cache,worlds[candidate]->source_objects->tu15_world(),*prospective_binding,"learned-certificate"));
+        if(original_audio_report_path){
+            stage="original playing Audio after certificate";
+            check(bool(original_audio_source),"Original Audio lost its independent native source World");
+            original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
+                worlds[candidate]->cache,*original_audio_source,*prospective_binding,"learned-certificate"));
+            save_original_audio_report();
+        }
         const auto role=owners[candidate]->prepared_common_prospective();
         sessions[candidate]->loaded(fingerprint^1u,variant);bool fingerprint_refused{};
         try{fingerprint_refused=!owners[candidate]->prepare_takeover(decision,unused_clock);}

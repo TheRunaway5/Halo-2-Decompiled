@@ -110,6 +110,49 @@ fn original_retail_clock_alias_and_explicit_native_clock_have_identical_owned_in
     assert!(catalog::parse(raw.to_string().as_bytes()).is_err());
 }
 #[test]
+fn stock_name_only_catalog_is_ineligible_for_full_settings_clients() {
+    let e = entries(&document());
+    for compatibility in ["halo2-native-queue-v15", "halo2-native-queue-v16"] {
+        assert!(
+            !catalog::eligible(
+                &e[0],
+                compatibility,
+                &json!([connection("p0", compatibility, false, Value::Null)])
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            enqueue(&mut owner(&e), 0, compatibility).unwrap_err().0,
+            409
+        );
+    }
+    assert!(enqueue(&mut owner(&e), 0, "halo2-native-queue-v12").is_ok());
+}
+
+#[test]
+fn full_settings_catalog_preserves_complete_stock_rows_and_named_modern_extensions() {
+    let mut doc = document();
+    doc["playlists"][0]["required_compatibility"] = json!("halo2-native-queue-v15");
+    let v: Value = serde_json::from_str(include_str!("../data/tu15-result-presets.json")).unwrap();
+    doc["playlists"][0]["games"][0]["settings"] = v["variants"][0]["settings"].clone();
+    let e = entries(&doc);
+    for compatibility in ["halo2-native-queue-v15", "halo2-native-queue-v16"] {
+        assert!(enqueue(&mut owner(&e), 0, compatibility).is_ok());
+    }
+    assert_eq!(
+        enqueue(&mut owner(&e), 0, "halo2-native-queue-v14")
+            .unwrap_err()
+            .0,
+        409
+    );
+    let game = &mut doc["playlists"][0]["games"][0];
+    game["variant"] = json!("Fiesta Slayer");
+    game.as_object_mut().unwrap().remove("settings");
+    let e = entries(&doc);
+    assert!(enqueue(&mut owner(&e), 0, "halo2-native-queue-v16").is_ok());
+}
+
+#[test]
 fn protocol_guest_common_map_and_clan_gates_are_rust_owned() {
     let e = entries(&document())[0].clone();
     assert!(

@@ -5,6 +5,26 @@
 namespace halo2 {
 struct NativeTu15ModelConstraintRequest {std::uint32_t identity{};};
 struct NativeTu15ModelConstraintScratch {NativeTu15ModelConstraintRequest request;};
+struct NativeTu15ModelConstraintRequestFields {
+    std::uint32_t first_datum{},first_slot{},second_datum{},second_slot{},constraint_class{};
+    std::uint16_t first_node{},second_node{};
+    std::uint8_t mode{};
+    bool has_descriptor{};
+};
+// Deferred ordinary DATA reads preserve original vector/output alias order.
+// A native caller may supply typed local values; no register/frame image enters.
+class NativeTu15ModelConstraintRequestData {
+public:
+    virtual ~NativeTu15ModelConstraintRequestData()=default;
+    virtual std::uint32_t position_word(unsigned)const=0;
+    virtual std::uint32_t forward_word(unsigned)const=0;
+    virtual std::uint32_t descriptor_word()const=0;
+};
+// Sole general20D8B0, including its null-descriptor two-word store branch.
+void native_tu15_initialize_model_constraint_request(SourcePhysicsContactMemory&,
+    NativeTu15ModelConstraintRequest,const NativeTu15ModelConstraintRequestFields&,
+    const NativeTu15ModelConstraintRequestData&,
+    const SourcePhysicsContactRecordObserver& = {});
 struct NativeTu15ModelConstraintFrame {
     std::uint32_t scale{};
     std::array<std::uint32_t,3>forward{},side{},up{},position{};

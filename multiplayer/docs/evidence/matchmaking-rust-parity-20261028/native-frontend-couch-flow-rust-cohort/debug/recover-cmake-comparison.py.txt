@@ -1,0 +1,15 @@
+import hashlib,json
+from pathlib import Path
+w=Path('build/test-results/frontend-couch-flow-rust-20261102');source=w/'native/iteration-1/evidence/Testing/Temporary/LastTest.log';rows=[]
+for index,line in enumerate(source.read_bytes().splitlines(keepends=True),1):
+ try:v=json.loads(line)
+ except (ValueError,UnicodeDecodeError):continue
+ if isinstance(v,dict)and v.get('provider_shared_pointer_ownership_observed')is True:rows.append((index,line,v))
+assert len(rows)==1;index,line,summary=rows[0];record=json.loads((w/'native/iteration-1-report.json').read_text());binary=record['binaries']['native_frontend_couch_rust_tests'];assert summary['passed']and summary['native_sha256']==binary['sha256'];assert summary['cases']==2638 and summary['native_io_observations']==4507 and summary['fault_controls']==108
+script=Path('tests/test_native_frontend_couch_rust.py').read_text();assert 'passed=not differences'in script and "if k!='differences'"in script
+report={}
+for k,v in summary.items():
+ report[k]=v
+ if k=='preserved_native_exception_identity':report['differences']=[]
+provenance=dict(schema='H2_CTEST_STDOUT_COMPARISON_RECOVERY_V1',original_json_report_retained=False,reason='New report was omitted from the retain-report list. The passed test printed every report field except differences; its pinned builder sets passed=not differences.',source=str(source.relative_to(w)),source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),summary_line_number=index,summary_line_sha256=hashlib.sha256(line).hexdigest(),summary_fields_preserved=True,only_reconstructed_field=dict(name='differences',value=[],justification='Pinned test source sets passed=not differences and the actual CTest summary reports passed=true.'),native_binary_sha256_verified_against_worker_record=True,recovered_report='recovered-native-couch-policy.json',not_claimed_original_file_bytes=True)
+(w/'recovered-native-couch-policy.json').write_text(json.dumps(report,indent=2)+'\n');(w/'comparison-retention-recovery.json').write_text(json.dumps(provenance,indent=2)+'\n');print(json.dumps(dict(actual_ctest_success_summary_recovered=True,native_binary_sha256=summary['native_sha256'],original_report_retained=False,only_inferred_field='empty differences from passed=true')))

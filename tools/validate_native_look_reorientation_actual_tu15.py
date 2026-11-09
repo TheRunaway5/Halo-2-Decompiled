@@ -40,7 +40,7 @@ def main():
    if merged and last+len(merged[last])==first:merged[last]+=raw
    else:merged[first]=raw;last=first
   source=inspect.getsource(base.original);source=source[:source.index('        active=dict(m')]+"        return owned/'reference'\n";source=source.replace("case['before_fp']=fp","fp=case['before_fp_input'];case['before_fp']=fp")
-  fp=typed['floating_point'];case=dict(entry=0x18a2a0,receiver=typed['control_index'],arguments=[],before_fp_input=[fp['x87_control_word'],fp['x87_status'],fp['mxcsr']]);environment=dict(base.__dict__,metadata=lambda i,b:({},{}));exec(source,environment);executable=environment['original'](image,merged,[case],scratch)
+  fp=typed['floating_point'];case=dict(entry=0x18a2a0,receiver=typed['control_index'],arguments=[],before_fp_input=[fp['x87_control_word'],fp['x87_status'],fp['mxcsr']]);environment=dict(base.__dict__,metadata=lambda i,b,implicit_stack=False:({},{}));exec(source,environment);executable=environment['original'](image,merged,[case],scratch)
   original=(ROOT/'tools/observe_native_contact_producer_tu15.cpp').read_text();bridge=original[:original.index('struct Memory:SourcePhysicsContactMemory')];begin=original.index('struct Memory:SourcePhysicsContactMemory');end=original.index('std::array<std::uint32_t,8>gp',begin);bridge+=original[begin:end];end=original.index('struct Bridge',end);bridge+=original[original.index('std::array<std::uint32_t,8>gp',begin):end]
   bridge='#include "halo2/native_tu15_look_reorientation_binding.hpp"\n'+bridge+(ROOT/'tools/observe_native_look_reorientation_actual_tu15.cpp').read_text();(scratch/'driver.cpp').write_text(bridge);results=[]
   for compiler in('g++','clang++'):

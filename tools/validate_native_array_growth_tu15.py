@@ -21,6 +21,13 @@ OWNERS=(0x2e3250,0x2e2e30,0x149da0,0x149e00,0x233250,0x233420)
 FILES=('include/halo2/native_tu15_array_growth.hpp','src/physics/native_tu15_array_growth.cpp','include/halo2/native_tu15_array_allocator.hpp','src/physics/native_tu15_array_allocator.cpp','tests/native_tu15_array_growth_tests.cpp','tools/observe_native_array_growth_tu15.cpp')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def word(raw,p):return struct.unpack_from('<I',raw,p)[0]
+DATUM_PREPARATION_IMAGE=(193,'364c120c63e46ef6ce9f57c6c6fe759a507f20f2b836d8d85b5694c18aad41f4')
+def datum_preparation(case):
+    if 'prepare_datum_pool'not in case and'prepare_datum_pools'not in case:return''
+    assert not('prepare_datum_pool'in case and'prepare_datum_pools'in case)
+    pools=case['prepare_datum_pools']if'prepare_datum_pools'in case else[case['prepare_datum_pool']]
+    assert isinstance(pools,list)and 0<len(pools)<=16 and all(isinstance(pool,int)and 0<=pool<=0xffffffff for pool in pools)
+    return f'mov ${SP-0x100},%esp\n'+''.join(f' mov ${pool},%edx\n call 0x16e6a0\n'for pool in pools)
 def reference_inputs(image):
     manifest=json.loads(lzma.decompress(ARCHIVE.with_name('all-file-hashes.json.xz').read_bytes()))
     def read(name):
@@ -34,19 +41,31 @@ def reference_inputs(image):
     for p in (0x45f4cc,0x4638b8):banks[p]=image.read(p,24)
     proof=dict(archive_sha256=sha(ARCHIVE),capture_sha256=hashlib.sha256(capture_raw).hexdigest(),members={name:manifest[MEMBER+name] for name in selected},initial_pool=0x10076040,mode=2,allocator=0x486080,allocator_vtable=0x45f4cc,pool_vtable=0x4638b8,allocation_outcomes_supplied=False)
     return banks,proof
-def metadata(image,banks):
+def metadata(image,banks,implicit_stack=False):
     code=_Code(image,'.text');sites=[];counts=[];listings={};gp={name:i for i,name in enumerate(('eax','ecx','edx','ebx','esp','ebp','esi','edi'))}
     for owner in OWNERS:
         body=complete_body(code,owner);counts.append(len(body.code));lines=[]
         for pc in sorted(body.code):
             ins=code.at(pc);lines.append(f'{pc:x} {ins.bytes.hex()} {ins.mnemonic} {ins.op_str}\n');operands=[]
-            if ins.mnemonic!='lea':
+            # Prefetch is an advisory cache hint, not a required Memory
+            # read; its address must not create a data-access/fault event.
+            if ins.mnemonic!='lea'and not ins.mnemonic.startswith('prefetch'):
                 for op in ins.operands:
                     if op.type!=X86_OP_MEM:continue
                     base,index=ins.reg_name(op.mem.base),ins.reg_name(op.mem.index)
                     assert not op.mem.segment or ins.reg_name(op.mem.segment)=='es'
-                    operands.append(dict(base=gp[base] if base else -1,index=gp[index] if index else -1,scale=op.mem.scale,displacement=op.mem.disp&0xffffffff,bytes=op.size,read=bool(op.access&CS_AC_READ),write=bool(op.access&CS_AC_WRITE)))
-            sites.append(dict(instruction=pc,operands=operands))
+                    # Capstone reports access=0 for TEST memory,register
+                    # (including the real32A660 page touches). TEST still
+                    # reads its memory operand before producing flags.
+                    operands.append(dict(base=gp[base] if base else -1,index=gp[index] if index else -1,scale=op.mem.scale,displacement=op.mem.disp&0xffffffff,bytes=op.size,read=bool(op.access&CS_AC_READ)or ins.mnemonic=='test',write=bool(op.access&CS_AC_WRITE)))
+            if implicit_stack and ins.mnemonic in ('push','pop','call','ret'):
+                writing=ins.mnemonic in ('push','call')
+                operands.append(dict(base=gp['esp'],index=-1,scale=1,displacement=0xfffffffc if writing else 0,
+                    bytes=4,read=not writing,write=writing))
+            site=dict(instruction=pc,operands=operands)
+            if ins.mnemonic=='rdtsc':site['timestamp_input']=True
+            if ins.mnemonic.startswith('rep '):site['counted_repeat']=True
+            sites.append(site)
         listings[hex(owner)]=hashlib.sha256(''.join(lines).encode()).hexdigest()
     return dict(sites=sites,regions=[dict(address=p,bytes=len(raw)) for p,raw in sorted(banks.items())]),dict(body_sites=counts,listing_sha256=listings)
 def cases(quick):
@@ -75,26 +94,29 @@ def cases(quick):
         add('real_pool_page_exhaustion',0x233250,[8192,0x12],drain_class=8192,exhaust_pages=True)
     return rows
 def original(image,banks,all_cases,scratch):
+    if any('prepare_datum_pool'in case or'prepare_datum_pools'in case for case in all_cases):
+        size,pin=DATUM_PREPARATION_IMAGE;assert hashlib.sha256(image.read(0x16e6a0,size)).hexdigest()==pin
     owned=scratch/'original';owned.mkdir();observer=owned/'observer';subprocess.run(['c++','-std=c++20','-O2',str(ROOT/'tools/observe_native_array_growth_tu15.cpp'),'-o',str(observer)],check=True,capture_output=True)
     flat=bytearray(0x7f0000)
     for section in image.sections:
         raw=image.section_bytes(section);flat[section.va-0x10000:section.va-0x10000+len(raw)]=raw
     for p,raw in banks.items():
         if 0x10000<=p and p+len(raw)<=0x800000:flat[p-0x10000:p-0x10000+len(raw)]=raw
-    (owned/'image.bin').write_bytes(flat);m,source=metadata(image,{**banks,UI:bytes(0x10000)});fixture=scratch/'fixture';fixture.mkdir();(fixture/'banks').mkdir()
+    (owned/'image.bin').write_bytes(flat);m,source=metadata(image,{**banks,UI:bytes(0x10000)},any(c.get('full_abi')for c in all_cases));fixture=scratch/'fixture';fixture.mkdir();(fixture/'banks').mkdir()
     def persist(raw):
         target=fixture/'banks'/(hashlib.sha256(raw).hexdigest()+'.bin')
         if not target.exists():target.write_bytes(raw)
         return str(target.relative_to(fixture))
     for case in all_cases:
+        call_sp=case.get('stack_pointer',SP)
         user=bytearray(random.Random(12345).randbytes(0x10000));struct.pack_into('<3I',user,0,DATA,case.get('count',0),case.get('capacity',0))
         for offset,value in case.get('user_words',[]):struct.pack_into('<I',user,offset,value)
         (owned/'user.bin').write_bytes(user);sections=['.image 0x10000 : { *(.image) }','.user 0x4000000 : { *(.user) }'];assembly=[f'.section .image,"awx"\n.incbin "{owned/"image.bin"}"',f'.section .user,"aw"\n.incbin "{owned/"user.bin"}"']
         for i,(p,raw) in enumerate(sorted(banks.items())):
             if p<0x800000:continue
             target=owned/f'bank{i}.bin';target.write_bytes(raw);assembly.append(f'.section .bank{i},"aw"\n.incbin "{target}"');sections.append(f'.bank{i} 0x{p:x} : {{ *(.bank{i}) }}')
-        stack=bytearray(0x10000);struct.pack_into('<I',stack,SP-STACK,STOP)
-        for n,value in enumerate(case['arguments']):struct.pack_into('<I',stack,SP-STACK+4+n*4,value)
+        stack=bytearray(0x10000);struct.pack_into('<I',stack,call_sp-STACK,STOP)
+        for n,value in enumerate(case['arguments']):struct.pack_into('<I',stack,call_sp-STACK+4+n*4,value)
         (owned/'stack.bin').write_bytes(stack);assembly.append(f'.section .stack,"aw"\n.incbin "{owned/"stack.bin"}"');sections.append(f'.stack 0x{STACK:x} : {{ *(.stack) }}')
         index=all_cases.index(case);fp=[0x27f|((index%4)<<10),((index%8)<<11)|((index%4)<<8)|(index%32),0x1f80|((index%4)<<13)];case['before_fp']=fp
         environment=bytearray(28);struct.pack_into('<H',environment,0,fp[0]);struct.pack_into('<H',environment,4,fp[1]);struct.pack_into('<H',environment,8,0xffff);(owned/'env.bin').write_bytes(environment)
@@ -108,8 +130,25 @@ def original(image,banks,all_cases,scratch):
             if iterations:prepare=f'mov ${SP-0x100},%esp\n mov ${iterations},%ebx\n drain_class:\n push $0x12\n push ${size}\n mov $0x10076040,%ecx\n call 0x233250\n dec %ebx\n jne drain_class\n'
         if 'prepare_bytes'in case:
             prepare=f'mov ${SP-0x100},%esp\n push $0x12\n push ${case["prepare_bytes"]}\n mov $0x486080,%ecx\n call 0x149da0\n'
-            if case.get('prepare_argument'):prepare+=f'mov %eax,{SP+4}\n'
+            if case.get('prepare_argument'):prepare+=f'mov %eax,{call_sp+4}\n'
             else:prepare+=f'mov %eax,{HEADER}\n mov %eax,%edi\n mov ${DATA},%esi\n mov ${case.get("count",0)*case["arguments"][1]},%ecx\n rep movsb\n'
+        if 'prepare_arena_bytes'in case:
+            prepare=f'mov ${SP-0x100},%esp\n push ${case["prepare_arena_bytes"]}\n mov $0x486080,%ecx\n call 0x2e10a0\n'
+        if 'prepare_raw_bytes'in case:
+            prepare=f'mov ${SP-0x100},%esp\n push ${case.get("prepare_raw_class",0x12)}\n push ${case["prepare_raw_bytes"]}\n mov ${case.get("prepare_raw_receiver",0x486080)},%ecx\n call {case.get("prepare_raw_owner",0x149bf0)}\n'
+            if case.get('prepare_raw_argument'):prepare+=f'mov %eax,{call_sp+4}\n'
+        if 'prepare_datum_pool'in case or'prepare_datum_pools'in case:
+            # Execute the unchanged allocator before the observed call. Its
+            # computed handle remains in EAX and all resulting banks become
+            # declared before inputs; no allocation result is supplied.
+            prepare=datum_preparation(case)
+        initial_words=''.join(f'movl ${value},0x{address:x}\n' for address,value in case.get('input_words',[]))
+        initial_registers=case.get('input_registers',{})
+        assert set(initial_registers)<=set(('eax','edx','ebx','ebp','esi','edi'))
+        register_inputs=''.join(f'mov ${value},%{register}\n' for register,value in initial_registers.items())
+        if case.get('prepare_datum_to_ebx'):
+            assert('prepare_datum_pool'in case or'prepare_datum_pools'in case)and'eax'not in initial_registers and'ebx'not in initial_registers
+            register_inputs+='mov %eax,%ebx\n'
         assembly.append(f'''.code32
 .section .bridge,"ax"
 .globl _start
@@ -119,8 +158,11 @@ _start:
  fldenv environment
  ldmxcsr sse_control
  {prepare}
- mov ${SP},%esp
+ {initial_words}
+ mov ${call_sp},%esp
  mov ${case['receiver']},%ecx
+ {register_inputs}
+ {'std' if case.get('direction_flag') else 'cld'}
  int3
  jmp *entry
 entry: .long {case['entry']}
@@ -130,7 +172,15 @@ environment: .incbin "{owned/'env.bin'}"
         subprocess.run(['as','--32',str(owned/'reference.s'),'-o',str(owned/'reference.o')],check=True,capture_output=True);subprocess.run(['ld','-melf_i386','-T',str(owned/'link.ld'),str(owned/'reference.o'),'-o',str(owned/'reference')],check=True,capture_output=True)
         active=dict(m,**{k:case[k] for k in ('fault','mutations') if k in case})
         if case.get('retained_arguments'):
-            active['regions']=[*m['regions'],dict(address=SP+4,bytes=4*len(case['arguments']))]
+            active['regions']=[*m['regions'],dict(address=call_sp+4,bytes=4*len(case['arguments']))]
+        if case.get('full_abi'):
+            active['regions']=[*m['regions'],dict(address=STACK,bytes=0x10000)]
+            active['record_full_abi']=True
+        if case.get('required_entries'):
+            active['required_entries']=case['required_entries']
+        if case.get('abi_entries'):active['abi_entries']=case['abi_entries']
+        if case.get('record_timestamp_inputs'):active['record_timestamp_inputs']=True
+        if case.get('stop_before_sites'):active['stop_before_sites']=case['stop_before_sites']
         (owned/'metadata.json').write_text(json.dumps(active,separators=(',',':')))
         result=subprocess.run([str(observer),str(owned/'reference'),str(owned/'metadata.json'),str(owned/'output.json'),hex(STOP)],capture_output=True,text=True);assert result.returncode==0,(case['name'],result.stdout,result.stderr)
         observed=json.loads((owned/'output.json').read_text());assert observed['mutations_applied']==len(case.get('mutations',[])) or observed['declared_fault']

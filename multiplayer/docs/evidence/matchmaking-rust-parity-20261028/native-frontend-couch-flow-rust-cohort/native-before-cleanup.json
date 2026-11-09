@@ -1,0 +1,19 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-native-20261102/halo2-test-rezh2k18",
+  "regular_bytes": 4463040272,
+  "regular_files": 48798,
+  "borrowed_symlinks_not_followed": true,
+  "accepted_iteration": 1,
+  "passing_focused_cmake_checks": 13,
+  "whole_native_runtime_checklist_completed": false,
+  "scoped_sources_current": true,
+  "scoped_sources": 65,
+  "validated_object_hashes_unchanged": true,
+  "actual_cmake_abi_archive": {
+    "path": "libhalo2_frontend_party_flow.a",
+    "sha256": "99536f7cf27b8c1ee6486435131acaf1b3f5a97451abba21d73a7e6c2391435f",
+    "bytes": 330752
+  },
+  "production_probe_objects_removed": true,
+  "retained_large_artifacts": []
+}

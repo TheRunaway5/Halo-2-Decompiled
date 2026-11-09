@@ -1,0 +1,29 @@
+import hashlib,json,os,re,shlex,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-clans-flow-rust-20261102';info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source']);scratch=Path(os.environ['HALO2_TEST_SCRATCH']);generated=build/'online-protocol/Debug/include';assert (generated/'halo2-online-protocol-bridge/src/lib.rs.h').is_file()
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+report=dict(passed=False,scratch=str(scratch),source=str(source),build=str(build),steps=[],objects=[],retained_large_artifacts=[],cmake_native_checks='Separate focused Debug CTest cohort; the interrupted 36-check whole native run remains pending.')
+def save():(work/'production-objects.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,argv):
+ p=subprocess.run(argv,cwd=source,capture_output=True,text=True);(work/(name+'.log')).write_text((p.stdout+p.stderr)[-1048576:]);report['steps'].append(dict(name=name,command=argv,exit_code=p.returncode));save();print(json.dumps(dict(step=name,exit_code=p.returncode,diagnostic_tail=(p.stdout+p.stderr)[-1500:])),flush=True);assert p.returncode==0
+try:
+ units=['src/ui/frontend_clans.cpp','src/ui/frontend_matchmaking_clans.cpp','src/ui/frontend_matchmaking_party_flow_bridge.cpp','src/ui/frontend_state.cpp'];objects=[]
+ for n in units:
+  p=source/n;assert sha(p)==sha(root/n);obj=scratch/(p.stem+'.o');rows=[u for u in json.loads((build/'compile_commands.json').read_text())if u['file']==str(p)];assert len(rows)==1;cmd=shlex.split(rows[0]['command']);cmd[cmd.index('-o')+1]=str(obj);run(p.stem+'-object',cmd);objects.append(obj);report['objects'].append(dict(path=n,source_sha256=sha(p),object_sha256=sha(obj),object_bytes=obj.stat().st_size,command=cmd));save()
+ def symbols(path):
+  p=subprocess.run(['nm','-C',str(path)],capture_output=True,text=True);assert p.returncode==0;return p.stdout.splitlines()
+ thin,adapter,flow,state=map(symbols,objects)
+ def count(lines,kind,token):return sum(' '+kind+' 'in row and token in row for row in lines)
+ assert count(adapter,'T','halo2::MenuState::clans_flow_drive(')==1
+ assert count(adapter,'U','halo2::FrontendMatchmakingPartyFlow::clans(')==1
+ for name in ['clans_flow_drive(','clans_bind_account(','clans_bind_voice(']:assert count(thin,'U','halo2::MenuState::'+name)==1,name
+ assert count(state,'U','halo2::MenuState::clan_message_advance(')==1
+ entries=['set_online_account','set_online_voice','voice_push_to_talk','online_clan_screen','update_online_account','populate_online_clans','online_clan_column','online_clan_text','clan_command','confirm_clan','accept_online_clans','clan_message_advance']
+ for name in entries:
+  pattern=r' T halo2::MenuState::'+name+r'(?:\[abi:[^\]]+\])?\(';assert sum(bool(re.search(pattern,row))for row in thin)==1,name
+ for name in ['frontend_clans_flow','frontend_clans_screen']:assert count(flow,'U','halo2::online_protocol_bridge::'+name+'(')==1
+ for p in [source/'include/halo2/frontend.hpp',*(source/'src/ui').glob('*.cpp')]:assert not re.search(r'\b(?:clan_target_|clan_target_kind_|clan_message_page_|clan_confirmation_)\b',p.read_text())
+ archive=build/'libhalo2_frontend_party_flow.a';lines=symbols(archive)
+ for name in ['frontend_clans_flow','frontend_clans_screen']:assert count(lines,'U','halo2::online_protocol_bridge::'+name+'(')==1
+ report.update(passed=True,all_four_actual_production_cpp_units_compile=True,compiled_thin_entry_points=12,clan_page_dispatch_calls_rust=True,actual_cmake_abi_archive_imports_rust=True,cmake_abi_archive=dict(path=str(archive.relative_to(build)),sha256=sha(archive),bytes=archive.stat().st_size),policy_fields_removed=True,installed_runtime_qualified=False,whole_native_36_check_run_passed=False)
+finally:save()

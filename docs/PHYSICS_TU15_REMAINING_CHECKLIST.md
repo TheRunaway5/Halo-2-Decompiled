@@ -15,6 +15,23 @@ Native execution and parity — required across every completion group:
 - [ ] Inventory every live player/vehicle/object/world physics path and replace
   remaining instruction-lifted, virtual-CPU or emulated execution with native
   semantic kernels; no production fallback to the old execution backend.
+  A current outside-Frame audit confirms lifted14FEC0/B8F40 object schedulers,
+  their13B6F0/B9090/B9180/BE4A0/10E630 dependencies, internal look callers
+  14F677 and 14F769→18A0C0 and 1088DC→18A300, plus two later canonical raw
+  18A0C0 Host sites. The two local-player constructor sites now have an
+  integrated private v1483 layer with exact original comparisons.
+  The two later Host constructor bindings now pass both compilers and are
+  narrowly applied to canonical source, with6 per-site counters/two JSON outputs
+  and positive gates. Their live delivery remains open; frozen1481 cannot
+  qualify these later entries. The two-owner Frame census excludes this work.
+  [Current outside-Frame source inventory](../analysis/physics/native-outside-frame-scope-audit-20261102/report.json).
+  The setup audit also finds generated11EF70 resident-definition preparation,
+  1F2C70→1EE380 physical-model reference fixup,1255C0 BSP publication,171120
+  instanced MOPP preparation and2190C0 body association. These setup owners
+  remain in the native goal. The initial2190C0 constructor route is now wired
+  natively with exact-context proof; visible delivery remains pending.158290 is already intercepted natively; its
+  call_actual spelling alone is not evidence of emulation.
+  [Bootstrap routing and original-site evidence](../analysis/physics/native-outside-frame-scope-audit-20261102/bootstrap-report.json).
 - [ ] Preserve English Xbox TU1.5 rules, ordering, timing, numerical behavior,
   state, callbacks and lifetime semantics. Validate each replacement against
   independent original evidence without relaxed gates or altered tuning.
@@ -68,6 +85,403 @@ Native-only closure remains open.
 
 Latest live checks:
 
+- [x] Qualify the native player cluster refresh at 1500AC–1501A8. Both
+  compilers match 36 complete handoffs to 1500EC, including current and
+  backup actor lookup, an attached-object chain, skipped unavailable
+  clusters, bitmap traversal and the exact published cluster word. The
+  returned player pool and FP match. The full 14FEC0 scheduler still
+  needs native dispatch and live coverage.
+  [Player cluster comparison](../analysis/physics/native-player-scheduled-clusters-stage-20261103/physical-first/report.json).
+- [x] Qualify the sole native1D5790/1E15D0 transition/counter leaf for the
+  object scheduler. Both compilers pass801 profiles/787 full returns/14 faults,
+  all48 sites,2,350 reads/1,170 SourcePC stores, exact DATA/FP/boolean and
+  three complete-return semantic mutants. The private BE4A0 draft's receiver
+  was corrected from a transition datum to the actual body-record address.
+  Whole scheduler composition and live delivery remain open.
+  [Transition qualification](../analysis/physics/native-object-transition-qualified-20261103/source-pins.json).
+- [x] Qualify a typed-data entry to the existing sole3200B0 metadata algorithm.
+  Both compilers pass61 profiles/all27 sites,14 fault prefixes, exact DATA/FP/
+  read/store order and numeric/deferred/typed-local interfaces. Only four
+  defined data words are available; the control-stack word at+10 is absent.
+  Both compilers also pass256 existing default cases each, including all four
+  rounding modes/four incoming x87 depths, full DATA/FP/order/RET and semantic
+  controls. Independent review passes, and the exact two-file typed-core/
+  retained-observer change is canonical. Visible coverage remains open.
+  [Typed metadata qualification](../analysis/physics/native-island-info-typed-data-qualified-20261103/source-pins.json).
+- [x] Qualify the native31F460 mass-scaling callback through the sole typed
+  3200B0 metadata kernel. GCC and Clang match all66 instruction sites on44
+  profiles with19 fault prefixes,300 ordered reads and176 SourcePC stores.
+  Three mutants return normally but change12/13/14 retained results. Both
+  compilers also match the full281710 parent on two separately declared
+  inverse-mass edits to the captured topology, across four FP modes, with
+  all89,795,481 bytes,261/263 reads and38 stores. The unmodified event does
+  not select scaling. World wiring, retained roles and live coverage remain open.
+  [Callback comparison](../analysis/physics/native-created-constraint-metadata-20261103-first/report.json),
+  [Full parent comparison](../analysis/physics/native-accepted-contact-mass-scaling-20261103-first/report.json).
+- [x] Qualify the selected nativeBE4A0 object-update graph with actual native
+  transition, unit-owner-zero, no-model damage, empty attachment, recursion
+  and existing BDA50 publication owners. Both compilers pass228 profiles:
+  135 full returns,88 faults and five genuine named child boundaries, all125
+  parent sites,7,202 reads/562 stores and exact DATA/FP. Three mutants fully
+  return132 times and change28/24/58 retained results. This is private bounded
+  qualification; positive unit callbacks/damage/attachments and1D6FB0, full
+  scheduler wiring and live coverage remain open. The bounded B37A0 prediction
+  graph passes both compilers on309 profiles including117 strict faults and17
+  named child boundaries. An additional preinstruction fault at atomic byte
+  update B3858 exposed an extra native read on rejected writes; the exact
+  atomic slice and runtime capability pass both compilers on269 profiles, and
+  the previously excluded fault now matches in the complete selected B37A0
+  graph. Positive C0910 attachment rows pass in that graph on385 profiles with
+ 146 fault prefixes; the BCB70 formula children and full scheduler wiring
+  remain open.
+  [Object-update qualification](../analysis/physics/native-object-update-bounded-qualified-20261103/source-pins.json).
+- [x] Qualify the native BE4A0 component update through1D6FB0 and the FA430
+  vehicle force branch. The native route reuses the existing BCDF0 vehicle
+  lookup and executes native D3750. Both compilers pass483 profiles with222
+  full returns,260 exact fault prefixes and one named motion callback boundary.
+  The physical comparison covers every FA430, BCDF0 and D3750 instruction,
+  including42 direct D3750 result checks. World delivery remains open.
+  [Selected scheduler force proof](../analysis/physics/native-vehicle-component-force-qualified-20261103/source-pins.json).
+- [x] Qualify the selected native B9090 and B9180 object postphase parents
+  against original TU1.5. Both compilers match 24 full returns and 16
+  genuine child-entry prefixes across the two parents, with exact retained
+  DATA, FP, ordered reads and attributed stores. The native 102910 scan and
+  102980 marker handling separately match 16 returns and four genuine
+  109220 entries per compiler. Binding 102910 through both parents keeps
+  those earlier results exact. Native C13B0 matches eight no-eviction
+  returns and 24 genuine mode handoffs per compiler. The native 10E710
+  no-component route matches 12 complete returns and four true component
+  boundaries per compiler. Eviction methods, positive component publication,
+  other child methods and live delivery stay open.
+  [Object postphases](../analysis/physics/native-object-postphase-stage-20261103/physical-second/report.json),
+  [Native notification scan](../analysis/physics/native-object-physics-notifications-stage-20261103/physical-first/report.json),
+  [Retirement tail](../analysis/physics/native-object-retirement-tail-stage-20261103/physical-third/report.json),
+  [Queued publication](../analysis/physics/native-object-queued-publication-stage-20261103/physical-first/report.json).
+- [x] Qualify the 10DD80 publication method walk for all 13 authored object
+  types in its no-component domain. Each compiler matches 52 original
+  returns, eight positive-component prefixes, 888 reads, four attributed
+  stores and FP. DFEE0 clears the original body flag on its no-component
+  branch. The DFEE0 and 11B260 positive-component graphs and the live BE850
+  parent remain open.
+  [Type publication comparison](../analysis/physics/native-object-publication-methods-stage-20261103/physical-second/report.json).
+- [x] Qualify the selected BE850 recursive publication with its native type,
+  bounds and model children. Both compilers match 16 full returns, 12 child
+  handoffs, 2,268 reads, 360 retained stores and FP. The separate BFF20
+  bounding-sphere comparison has 20 full returns and 12 component or
+  partition handoffs per compiler. C0200 matches 56 returns and eight
+  1157D0 entries with the original signed node data and count.
+  Wider child graphs and live scheduler dispatch remain open.
+  [Recursive publication comparison](../analysis/physics/native-object-be850-publication-stage-20261103/physical-first/report.json),
+  [Bounding sphere comparison](../analysis/physics/native-object-bounding-sphere-stage-20261103/physical-first/report.json),
+  [Model publication comparison](../analysis/physics/native-object-model-publication-stage-20261103/physical-first/report.json).
+- [x] Stage the typed B8F40 Host dispatch and share the native lift force
+  body with its 11E410 crate method. The same force kernel, wake arena,
+  allocator, retained stores and phase observers serve both entry points.
+  The three new frozen compile contexts pass. Other object methods and
+  composed visible coverage stay open.
+  [Object scheduler source](../analysis/physics/native-object-scheduler-wiring-v1483-05-stage-20261103/scope.md),
+  [Typed crate lift verification](../analysis/physics/native-object-scheduler-typed-lift-stage-20261103/verification.json).
+- [x] Qualify native184D30/184D80 body weights as standalone components:
+  both compilers pass1,418 profiles/all66 sites, exact scalar DATA/FP and
+  meaningful mutants. They do not admit the accepted-contact parent.
+  [Weights qualification](../analysis/physics/native-contact-body-weights-qualified-20261102/source-pins.json).
+- [x] Qualify native1CE1E0 contact keys and1D76B0 sparse contact-row initialization,
+  reusing the sole existing body-property helpers. Both compilers pass269
+  profiles/all117 sites,35 fault prefixes,2,013 reads/3,308 attributed stores,
+  full DATA/FP and RET36. Mutants change10 key results or219 retained rows;
+  independent source/proof review passes. Same-view production composition and
+  genuine accepted-contact delivery remain open.
+  [Row qualification](../analysis/physics/native-created-contact-row-qualified-20261102/source-pins.json),
+  [Independent review](../analysis/physics/native-created-contact-row-root-peer-20261103/review.json).
+- [ ] Complete accepted281710,31F460 and281890 creation/listener continuation
+  from genuine BEFORE DATA, including their required body/material/row/constraint
+  children. Preserve real event flags, definedness, current pointer chains and
+  Source ordering; no fabricated callback result or hidden old executor.
+  The actual flag0 Original call now returns RET4 in all four FP modes through
+  1,060 unique Source sites. The corrected native listener and its production
+  helper match all89,795,481 retained bytes and FP in both compilers on four
+  genuine rounding profiles,24 separate declared scalar controls and11 fault
+  prefixes each. Genuine runs match244 ordered reads and30 attributed stores.
+  Independent Source review found reversed material-product argument order;
+  both genuine products are zero, so the captured-input pass did not expose
+  it. The old order now completes but changes16 bytes on the asymmetric
+  controls. The corrected revision is sealed and independently checked; World
+  retained-input roles, resource relocation and live delivery remain open, as
+  do eviction, BC200/PART and positive model-constraint creation.
+  [Corrected listener](../analysis/physics/native-accepted-body-contact-qualified-actual1481-v3-20261103/source-pins.json),
+  [Independent proof check](../analysis/physics/native-accepted-body-contact-v3-final-proof-peer-20261103/review.json).
+  The next production helper revision adds retained-body and row guards plus
+  the qualified native scaling continuation. Both compilers pass the same
+  genuine/asymmetric/fault matrix and eight separate unequal-mass cases each.
+  Both compilers also pass the guarded helper at the real live resource
+  addresses through the production event dispatch and World callback, with
+  no underlying scratch-bank writes. The full visible gates remain open.
+  [Guarded V4 qualification](../analysis/physics/native-accepted-body-contact-qualified-actual1481-v4-20261103/source-pins.json),
+  [Exact World source and link checks](../analysis/physics/native-accepted-body-contact-world-cohort1482-v4-test-closure-20261103/qualification.json),
+  [Guarded unequal-mass proof](../analysis/physics/native-accepted-contact-bound-mass-scaling-20261103-first/report.json),
+  [Guarded relocation proof](../analysis/physics/native-accepted-contact-moving-resource-v4-actual1481-20261103-second/report.json).
+  The 1482 cold build passes eight regressions. Driving, grenade and rocket
+  stop at retained property store 322F19 after the accepted contact listener.
+  Driving matches 89,729,945 startup bytes and FP. The native fix attributes
+  the original FST and preserves the nonpopping x87 and write-fault behavior.
+  Both compilers pass 77 physical regression profiles each. The incremental
+  1482/01 build passes all eight regressions again and all three multiplayer
+  cases advance to the 30E930 projection refusal. The requested final frame,
+  seated camera and positive gates remain open.
+  [Physical FST regression](../analysis/physics/native-contact-point-fst-default-regression-20261103-first/report.json),
+  [Live suite](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-accepted-contact-original-v1482-20261103/matrix.json).
+- [x] Qualify the lift's native linear and angular velocity delivery and additive
+  linear motion routines1D9080/1D9100/1D92C0 through the existing native wake
+  owner. Both compilers match66 complete returns,87 fault prefixes, all130
+  setter/adder sites,2,629 ordered reads and403 retained SourcePC stores.
+  Real island wake and deferred-reference removal cover the three native
+  word/dword counter updates that require write admission before any read.
+  Two mutations complete63 times and each changes51 retained banks. World
+  forwarding and the direct1DA750 caller handoffs now compile in private
+  staging. The first mixed parent comparison found stale high bytes in the
+  old marker helper's private argument. Twelve physical controls change
+  those bytes without changing later store values, exit state or final
+  memory. Reusing the native marker helper then passes six physical parent
+  cases on both compilers, with12 marker requests,24 velocity stores and
+  1,720 ordered stores outside the proved private records. Visible lift
+  coverage and the remaining lifted force-parent logic stay open.
+  [Lift velocity and wake proof](../analysis/physics/native-phantom-body-velocity-qualified-20261103/source-pins.json),
+  [Marker argument control](../analysis/physics/native-lift-marker-argument-20261103/second.json),
+  [Marker and velocity parent comparison](../analysis/physics/native-lift-marker-velocity-parent-bound-20261103-first/report.json).
+- [x] Qualify radial, tangential, axial and angular force in the native
+  1DA750 parent. Both compilers match 120 full physical profiles, 720
+  attributed stores, both body-velocity publications and FP. The marker-miss
+  transform BC190 separately matches 56 declared and eight genuine MCC
+  rider or vehicle profiles under both compilers.
+  [Four force families](../analysis/physics/native-lift-members-stage-v5-20261103/full-angular-first.json),
+  [Native BC190](../analysis/physics/native-bc190-lift-transform-stage-20261103/qualification.json).
+- [x] Stage the full native lift parent through all three authenticated
+  gameplay callers. The private source layer binds typed arguments, native
+  activation and allocator release through the actual World and Host entry
+  points. Both compilers match 120 original force profiles with telemetry.
+  The three caller continuations match 56,472,362 retained bytes per replay
+  and FP. The source layer passes 50 full syntax contexts on both compilers.
+  [Caller proof](../analysis/physics/native-lift-caller-continuation-20261103/qualification.json),
+  [Integrated source ledger](../analysis/physics/native-lift-live-binding-stage-20261103/prepared-source-pins.json).
+- [x] Pass the official linked lift and island-transition regressions.
+  Both pass on the exact lift source. The private build and source owners
+  are removed. The v1483/01 Midship increment now builds in the same
+  multiplayer worker.
+  [Linked regressions](../analysis/physics/native-lift-live-binding-stage-20261103/official-regressions-first/cmake/report.json),
+  [Live source review](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/root-lift-final-technical-review.json).
+- [ ] Qualify the lift in visible imported-MCC Midship. Require a genuine
+  native parent replay, changed linear and angular velocities, and a strict
+  final frame. Record body activation, island activation and allocator
+  release independently.
+  v1483/01 builds and passes eight regressions. It runs 334 visible
+  input rows through authority tick 282 and matches an earlier complete
+  frame against all 89,746,329 original bytes and FP. It then stops in
+  2F1CC0 at the factory nesting or caller-arena guard. No completed lift
+  call changed both motion fields. The v1483/04 diagnostic captures
+  nesting depth two and a 64 KiB caller arena. The nested predicate is
+  true and the undersized predicate is false. The original completes
+  the captured 2F1CC0 → 2E4EB0 call in four FP rounding modes. GCC and
+  Clang match all four returns, 312 ordered reads, 108 attributed stores,
+  FP and all 89,764,761 original captured bytes outside the disjoint
+  47,104-byte native arena. The original does not access that interval
+  during the call. Both semantic mutants are rejected. The nested arena
+  is wired in the v1483/06 candidate for another visible Midship run.
+  The first build stops in a model of a different constructor, 2F0EB0.
+  The corrected v1483/07 arena regression passes all eight linked tests
+  with identical production source. The visible run advances through the
+  nested factory to pair cleanup owner 2F0DA0 at authority tick 336.
+  The earlier strict frame matches 89,746,329 original bytes and FP.
+  Positive lift parent, motion and wake gates stay open.
+  [Midship result](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-01-midship-platform-native-gravity-lift/original/comparison.json),
+  [Lifetime capture receipt](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-04-midship-2f1cc0-factory-lifetime-diagnostic/required-factory-before/retention.json),
+  [Nested arena source](../analysis/physics/native-midship-wrapped-factory-lifetime-capture-v1483-stage-20261103/nested-world/after-point/dormant-operations.json),
+  [Physical comparison](../analysis/physics/native-midship-wrapped-factory-lifetime-capture-v1483-stage-20261103/nested-world/physical-second/report.json),
+  [Visible Midship outcome](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-07-outcome.json).
+- [x] Qualify native BC200 object velocity with the shared 1D8C80 and
+  1D8D80 reader. Both compilers pass 36 complete returns, 71 fault prefixes,
+  all 155 owner sites, 1,859 ordered reads and 261 attributed stores. Both
+  compilers also pass the vehicle-contact caller 281BD0 across 21 physical
+  profiles, including six high-speed returns, 15 ordinary returns and a
+  rejected threshold change. The bound World route and live delivery remain
+  separate.
+  [Physical object velocity proof](../analysis/physics/native-object-velocity-query-physical-20261103-fourth/report.json),
+  [Vehicle-contact caller proof](../analysis/physics/native-vehicle-contact-material-bc200-physical-20261103-third/report.json).
+- [x] Bind the vehicle-speed material branch through the production
+  accepted-contact role guard and the shared object-velocity archive.
+  Both compilers match 21 physical comparisons, including six high-speed
+  returns. All 21 deliberate output aliases are refused per compiler
+  without changing retained bytes. The genuine listener regression now
+  passes on both compilers in four rounding modes, with all 89,795,481
+  retained bytes, 244 ordered reads, 30 stores and FP. Positive live
+  vehicle-contact coverage remains open. All three v1483/02 cases reach
+  BC200 after the combined solver clears the previous guard. The exact
+  rebased BC200 source passes eight compile contexts and is applied to
+  v1483/03 with the same camera and frame checks. All eight linked
+  regressions pass. All three runs reach the actual Warthog seat and
+  advance to 31F840 in point binding. v1483/08 driving records 18 native
+  BC200 speed checks and two high-speed overrides in its terminal report.
+  [Staged source ledger](../analysis/physics/native-bc200-world-binding-stage-20261103/prepared-source-pins.json),
+  [Production role proof](../analysis/physics/native-bc200-world-binding-stage-20261103/role-first/report.json),
+  [Genuine listener regression](../analysis/physics/native-bc200-world-binding-stage-20261103/genuine-regression-third/report.json),
+  [Live integration review](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/root-bc200-technical-review.json),
+  [Driving telemetry](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-driving-vehicle-camera/run/lan-vehicle/report.json).
+- [x] Bind native 31F840 extended constraint info in contact-point removal.
+  The exact staged callback matches 16 original 3201B0 detach returns
+  per compiler, including ordered reads, stores and FP. Four frozen
+  compile contexts pass. The v1483/05 build applies the one-header change
+  and reruns the same three visible vehicle cases.
+  Its driving tick 450 matches 114,363,573 original bytes and FP. The
+  live case stops later at the wider initial simplex guard, before the
+  complete vehicle-camera report.
+  [Binding qualification](../analysis/physics/native-1483-point-extended-constraint-binding-stage-20261103/qualification.json),
+  [Live request](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/request-05.json),
+  [Driving tick 450](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-05-native-accepted-contact-driving-vehicle-camera/original/comparison.json).
+- [x] Wire the qualified native 3×1 and 1×3 cached starts in v1483/08.
+  Both compilers match 12 original returns. The new driving run reaches
+  the terminal report and passes the actual Warthog camera gate, with
+  403 exact seated frames, deliberate look, normal exit and 41 post-exit
+  frames. All 458 LAN snapshots agree. The strict frame matches all
+  114,363,573 original bytes and FP. Full case acceptance stays open
+  because the deferred delete, deferred update and island step listener
+  branches did not run. The observed Frame still invokes lifted 304350.
+  Frag also passes its camera and strict frame, with 450 exact seated
+  frames, 2,298 exact LAN snapshots, a real grenade release and target
+  impulse, and two original debris objects. Rockets later reaches the
+  separate 31F840 constraint-info call in contact creation, after exit.
+  [Cached simplex proof](../analysis/physics/native-convex-cached-triangle-stage-20261103/physical-first/report.json),
+  [Strict driving comparison](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-driving-vehicle-camera/original/comparison.json),
+  [Actual Warthog camera](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-driving-vehicle-camera/requested-video/window.mp4),
+  [Frag recording](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-native-accepted-contact-range6-frag-vehicle-camera/requested-video/window.mp4),
+  [Live outcome](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-08-outcome.json).
+- [x] Bind the native 2F0DA0 pair cleanup after the visible Midship factory
+  repair. The exact World regression verifies secondary-reference clearing,
+  manager release and refusal of unsupported children before residual
+  execution. v1483/09 reaches nested cleanup owner 2F7790 during startup,
+  before any visible frames or strict replay. The staged v1483/11 route
+  uses the native class-22 callback and actual 1F3550 leave. Its focused
+  World cases pass with the exact retained refcount and secondary clear,
+  and unsupported leave owners still refuse. The v1483/11 live run passes
+  eight linked tests and matches all 89,746,329 bytes and FP in an earlier
+  original World frame. It reaches the 2F75F0 reversed transformed factory
+  at authority tick 601 without completing the lift force gate.
+  [Focused binding proof](../analysis/physics/native-midship-pair-bv-cleanup-v1483-08-stage-20261103/verification.json),
+  [Midship outcome](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-09-outcome.json),
+  [Midship original frame](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-11-midship-platform-native-gravity-lift/original/comparison.json),
+  [Phantom cleanup proof](../analysis/physics/native-midship-phantom-cleanup-v1483-09-stage-20261103/verification.json).
+- [x] Bind the same native 31F840 kernel during contact creation. Both
+  compilers match 28 extended registration returns in 55 total profiles
+  through the actual 317350 and 320E40 owners. All eight linked regressions
+  pass in v1483/10. The same visible rocket case advances to the distinct
+  3136A0 hull line-extension guard, and complete rocket acceptance stays
+  open. The two scoped 31F840 bindings are also applied to the canonical
+  headers. The canonical World translation unit passes syntax validation.
+  [Original registration comparison](../analysis/physics/native-contact-creation-extended-info-stage-20261103/physical-third/report.json),
+  [Rocket request](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/request-10.json).
+- [ ] Complete live Midship lift and Warthog rocket qualification after
+  the native 2F75F0 reversed transformed factory and 3136A0 hull line
+  extension. Both routes have exact component comparisons and guarded World
+  bindings. v1483/14 passes all eight linked tests. Midship reaches the
+  30DE60 wider first-count guard, and rockets reaches the AB4B0 class-24
+  getter in the contact creation listener. Both stop before frame recording.
+  Positive lift force and wake, rocket impact and actual camera coverage
+  are still due in this cohort.
+  [Factory verification](../analysis/physics/native-midship-reversed-transform-v1483-12-stage-20261103/verification.json),
+  [Combined test source](../analysis/physics/native-midship-rockets-combined-v1483-13-stage-20261103/preparation.json),
+  [Midship and rocket results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-14-outcome.json).
+- [x] Bind the sole native AB4B0 class-24 getter in the contact creation
+  listener. Both compilers match 28 complete original listener runs each,
+  including class 24 on either side, wrapped payloads and both early exits.
+  All 624 retained reads and FP match per compiler. The narrow canonical
+  binding passes syntax validation. The v1483/16 rocket run clears AB4B0
+  and reaches 281710 before recording any completed camera frames.
+  [Original listener comparison](../analysis/physics/native-rocket-class24-listener-v1483-14-stage-20261103/physical-second/report.json),
+  [Rocket retry](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-16-outcome.json).
+- [ ] Complete the producer's native 281710 body listener in the direct
+  publication and nested moving paths. The existing accepted listener
+  returns on genuine retained inputs in both routes. The producer can also
+  pass its private, initialized second-payload fields, which require a
+  separate typed read and lifetime proof before another rocket run.
+  [Retained-input World comparison](../analysis/physics/native-producer-accepted-body-world-v1483-16-stage-20261103/proof-fourth/report.json).
+- [ ] Qualify the native wider Midship simplex on the actual 4×1 path.
+  v1483/17 captures the pre-invalidation rows, original method identities
+  and FP at the first-count guard. The wider World patch preserves the
+  existing line, producer and guard diagnostics. Live lift force and wake
+  remain open.
+  [Live Midship input](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-17-midship-platform-native-gravity-lift/run/lan-movement/00-native-simplex-first-count-before.json),
+  [Wider source rebase](../analysis/physics/native-midship-first-count-wider-v1483-17-stage-20261103/preparation.json).
+- [x] Expose and wire the sole general20D8B0 sparse-request initializer and
+  22E0D0 visibility predicate, preserving existing callers. Both compilers pass
+  419 profiles/380 full returns/39 faults, all50+78 sites,2,776 ordered reads,
+  2,219 SourcePC stores,96 vector/descriptor aliases and four poststore mutations.
+  Three mutants fully return376 times without refusals and change12/107 banks
+  or48 visibility results. The existing specialized caller also passes16
+  rounding/depth cases per compiler against114,953,457 captured fixture bytes;
+  its lookup has zero candidates, with positive visibility proved separately.
+  Independent review passes and the five guarded source changes are canonical.
+  [General kernels](../analysis/physics/native-model-constraint-general-entries-qualified-20261103/source-pins.json),
+  [Positive caller regression](../analysis/physics/native-model-constraint-general-entries-qualified-20261103/positive-caller-regression-addendum.json),
+  [Canonical wiring](../analysis/physics/native-model-constraint-general-canonical-apply-20261103/report.json).
+- [x] Qualify the sole native1F66D0 material-index leaf, including numeric2B
+  stores and the same typed Host value without a reconstructed guest temporary.
+  Both compilers pass179 profiles/165 full returns/14 faults/all30 actual sites,
+  1,135 ordered reads and165 stores, exact DATA/FP/aliases/SourcePC. Three
+  mutants fully return165 times with zero refusals and change11/127/27 retained
+  results. Parent185A00/accepted-listener integration and review remain open.
+  [Material-index qualification](../analysis/physics/native-contact-material-index-qualified-20261103/source-pins.json).
+- [x] Independently qualify185A00 body/material selection with the sole1F66D0
+  leaf and existing property/type owners. Both compilers pass191 profiles/
+  121 full returns/70 fault prefixes, all164 parent sites and26 child sites,
+  3,047 ordered reads/391 attributed stores and full DATA/FP. Three mutants
+  fully return118 times without refusal and alter25/6/13 retained banks.
+  Accepted-contact composition and live coverage remain separate.
+  [Independent material-parent qualification](../analysis/physics/native-contact-material-parent-qualified-20261103/source-pins.json).
+- [x] Qualify the native BSP/object association setup graph2190C0,219150,
+  2191D0,2190F0 and sole BCEE0 iterator. Both compilers pass83 physical
+  profiles/all222 sites,9,946 ordered reads/1,736 typed stores,12 fault prefixes
+  and three rejected semantic mutants each. The same production32-byte native
+  sidecar passes retained-bank/event/FP checks and seven resource/padding
+  controls; its underlying RAM is unchanged and padding stays unavailable.
+  A real per-iteration REP mutation and observer-stop retained frontiers1/2/16
+  also pass. Raw private-stack observation/address-fault equivalence is outside
+  this bounded contract. Host wiring and live delivery remain separate.
+  [Frozen native setup qualification](../analysis/physics/native-bsp-object-association-qualified-20261103/source-pins.json).
+- [x] Wire that setup graph into the canonical BSP constructor with native
+  resource ownership,12 distinct counters/two JSON outputs and a positive gate
+  requiring iterator calls at least equal completed kernel calls. Both compilers
+  pass17 linked ownership/counter models, nine negative gates and four fresh
+  Host/Live contexts. A narrow patch preserves concurrent Gauss camera/steering
+  edits, with reverse reconstruction of the exact pre-apply source. The sole
+  static target uses strict flags and a PUBLIC link. This initial constructor
+  boundary explicitly refuses installed raw/read-only observers instead of
+  inferring permission to omit private stores.
+  [Canonical wiring and final qualification](../analysis/physics/native-bsp-object-association-host-stage-v5-20261103/source-pins.json).
+- [ ] Deliver the native BSP constructor visibly in strict imported-MCC
+  multiplayer with the actual vehicle camera and positive bootstrap gate;
+  wider retained-observer capability remains open.
+  The prepared1482 rebase now includes the missing read-only topology API
+  dependency. Both compilers pass exact linked models, independent gap and
+  metadata/PROT_NONE controls, four translation units and actual coordinator
+  source-application checks. Root review passes; source publication/live
+  launch waits for the corrected accepted-contact composition.
+  [Dependency-complete1482 BSP source](../analysis/physics/native-bsp-object-association-cohort1482-stage-v3-20261103/source-pins.json).
+- [ ] Resolve the new1481/00 moving-contact live refusal and finish all three
+  requested cases. Its freshly linked runtime passes eight official regressions,
+  but driving stops at native contact-creation owner281710. The subsequent
+  guarded01 capture confirms the actual event flag is0. The preliminary
+  initial Frame matches89,729,945 bytes and FP;
+  this is not the requested final450-frame result or actual-camera acceptance.
+  Grenade/rocket stop before Frame at the blast/phantom read-only observer
+  conflict. Capture genuine BEFORE DATA and compose the diagnostics without
+  changing event flags, relaxing admission or supplying child outcomes.
+  Both diagnostic repairs now pass both compilers, full contexts, independent
+  review and their observer/FP/exception/lifetime controls. The four-file Host
+  cohort passes eight regressions and captures the genuine event plus4033 banks
+  (89,795,481 bytes) and34 provided event bytes. Its12,006,395-byte required
+  archive is roundtrip-verified; duplicate raw banks are removed. The run still
+  ends at281710; neither diagnostic checks nor capture admit the native parent
+  or establish a completed final live frame/camera result.
+  Frozen runtime SHA256:bee75e3b64793646ccc4b2f8d11617da49c9c95b102a432c1bbc6370360768d2.
+  [Preserved1481 attempts](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-moving-shape-original-v1481-20261102/).
 - [x] Deliver native18A2A0 reorientation in1479/00: one native call and one
   yaw wrap per driving/grenade/rocket run, zero errors, strict original bytes/FP
   and231/250/268 actual seated camera frames. Native look/query gates also pass.
@@ -121,6 +535,83 @@ Latest live checks:
   retained contact producer304350/303EE0 and all true child services.
   Bounded fast returns, genuine child-entry prefixes and unconnected native
   publication components do not establish complete native closure.
+  - [x] Qualify selected native projection continuations in the three
+    304350-derived query inputs. Both compilers match retained DATA, defined
+    outputs and FP across 48 runs. The frozen 1482 producer rebase retains the
+    existing cache-store attribution.
+    [Physical projection proof](../analysis/physics/native-contact-query-simplex-continuation-qualified-actual1479-20261102/source-pins.json),
+    [Frozen rebase](../analysis/physics/native-contact-producer-world-rebase-after1482-20261103/qualification.json).
+  - [x] Capture the moving-contact projection input from the unchanged
+    1482/02 refusal and compare it against TU1.5. Both compilers match all
+    89,795,481 retained bytes, 68 ordered reads, five stores, result and FP
+    in all four rounding controls. The original grows the second simplex
+    from one vertex to two using the real swept support owners. Both
+    compilers reject four deliberate changes. The captured input is
+    preserved and its duplicate raw banks are removed.
+    [Protected live input](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-accepted-contact-original-v1482-20261103/iteration-02-readonly-simplex-projection-driving-vehicle-camera/required-native-simplex-projection-before/retention.json),
+    [Physical comparison](../analysis/physics/native-convex-projection-actual1482-bound-20261103-second/report.json).
+  - [ ] Qualify the shared native solver through the full imported-MCC
+    driving, grenade and rocket workloads with the actual seated camera.
+    The exact 1482/03 build passes eight regressions and all three cases
+    pass the former projection refusal. Each reaches the wider initial
+    simplex guard before a completed final frame or seated camera. The
+    1482/04 capture confirms a 1×2 cached simplex. Both compilers match the
+    actual original return, 89,795,481 retained bytes, 48 reads, five
+    stores and FP under four rounding controls each. The 1482/05 native
+    repair clears that guard in all three cases. Each now reaches a 3×1
+    simplex during the third support iteration before a final camera or
+    original-frame match.
+    [Initial-row physical proof](../analysis/physics/native-convex-initial-rows-actual1482-bound-20261103-first/report.json),
+    [Multiplayer outcomes](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-accepted-contact-original-v1482-20261103/matrix.json),
+    [Source and gate review](../analysis/physics/native-convex-projection-verified-candidate-v1482-03-20261103/root-technical-review.json).
+  - [x] Qualify the native 3×1 switch through 40 full original returns per
+    compiler. The proof covers both orientations, masks 4–7, direct return
+    and overlap, with exact retained bytes, ordered stores and FP. The
+    v1483/00 build passes eight regressions and runs all three visible
+    imported-MCC cases. They reach seat 0 at authority ticks 354, 356 and
+    354, then stop at a wider initial simplex before the final camera or
+    original-frame checks. The exact failing start count remains open.
+    [Physical proof](../analysis/physics/native-convex-first-triangle-v1482-05-stage-20261103/source-pins.json),
+    [Live results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/matrix.json).
+  - [x] Qualify native 1×4 and 4×1 dispatch using the shared face selector.
+    GCC and Clang each match 104 complete original returns covering direct
+    and refined face selection, negative reduction, retained DATA, ordered
+    stores and FP. Eight separate inventory inputs hit the original
+    observer cap. Wider initialization and visible delivery remain open.
+    [Physical proof](../analysis/physics/native-convex-tetrahedron-v1482-05-stage-20261103/source-pins.json).
+  - [x] Qualify cached 2×2 initialization and native 2×3 and 3×2 dispatch
+    through the same solver binding. Each compiler matches 384 standalone
+    and 80 complete bound returns across all four rounding modes. All three
+    child results are covered on both sides. The bound proof compares
+    327,680 retained bytes, 16,336 defined work bytes, ordered stores and
+    FP. The original inventory has 278 observer-cap stops. Wider starts,
+    mixed auxiliary ownership and current multiplayer remain open.
+    [Native triangle–edge source and results](../analysis/physics/native-simplex-triangle-edge-stage-20261103/source-pins.json).
+  - [x] Recheck the triangle–edge and tetrahedron continuations in one
+    native solver. Both compilers match all 184 selected original returns,
+    with 753,664 retained bytes, 10,644 reads and 1,048 attributed stores
+    per compiler. The two build variants preserve the same camera workloads
+    and can run before or after the separate lift layer.
+    [Combined source and comparison](../analysis/physics/native-convex-simplex-combined-stage-20261103/source-pins.json).
+  - [x] Qualify the cached 3×1 and 1×3 starts separately. The original
+    inventory completes all 312 profiles. Both compilers match 12 full
+    bound returns with exact reads, stores and FP. The layer has not run
+    in the live solver.
+    [Cached triangle comparison](../analysis/physics/native-convex-cached-triangle-stage-20261103/physical-first/report.json).
+  - [x] Qualify the wider 30DE60 row preparation up to the original hull
+    entry. Both compilers match 180 direct profiles and eight composed
+    tetrahedron prefixes, including ordered data, fault prefixes and FP.
+    In all eight, original 313BB0 enters its count-four polytope
+    constructor. That constructor and the subsequent hull path stay open.
+    [Preparation proof](../analysis/physics/native-distance-simplex-rows-v1483-00-stage-20261103/source-pins.json).
+  - [x] Qualify the count-four polytope constructor, the first support pair
+    and its projection through the existing native hull. Both compilers
+    match the eight composed original preparation inputs through those
+    phases. The remaining expansion, finalization and result publication
+    require separate proof.
+    [Constructor proof](../analysis/physics/native-hull-tetrahedron-constructor-v1483-00-stage-20261103/source-pins.json),
+    [Bound first support](../analysis/physics/native-hull-count4-bound-v1483-00-stage-20261103/source-pins.json),
+    [Projection proof](../analysis/physics/native-hull-count4-projection-v1483-00-stage-20261103/source-pins.json).
 - [x] Qualify native MOPP AABB30A1E0/2E9670 setup and309940 traversal:
   both compilers pass285 setup prefixes,819 traversal profiles (748 full returns,
  445/464 sites), and323 composed profiles through real original full returns.
@@ -188,16 +679,29 @@ Latest live checks:
   defect were corrected with their raw failures retained. This is selected
   component proof. The exact production helper now independently passes with
   all32KiB initially unavailable, zero unknown reads, eight admission controls
-  and six rejected compiler mutants. World wiring and visible delivery are next.
+  and six rejected compiler mutants. The typed retained-observer union also passes both compilers/four FP modes,
+  all64 SourcePC/preimage/value/order events and independent review. Nine
+  current admission controls and six integration mutants reject as required;
+  mutation rejection causes are recorded separately. World/visible delivery
+  remains open.
   [Frozen moving helper](../analysis/physics/native-moving-shape-process-qualified-actual1479-20261102/source-pins.json).
-- [ ] Qualify and wire that exact moving-contact production helper into the
-  frozen1480 World/Frame closure, then test visibly with actual vehicle cameras.
-  The isolated199-CPP dependency closure/three World models pass under both
-  compilers. Typed retained observation, complete contexts and actual live
-  delivery remain pending; raw observer callbacks may not be silently dropped.
-  Broader initial-simplex/projection/FP/listener and raw-private observer domains
-  remain refused. Preserve concurrent crash-repair solver projection work
-  separately; the selected flag0 baseline does not qualify its wider branches.
+- [x] Qualify and wire the selected moving-contact production helper into the
+  frozen1480 World/Frame source closure with explicit retained-observer consent.
+  Both compilers pass199 CPPs/three linked World models, all four complete
+  Host/LiveWorld/ObjectRuntime/World translation units,35 counters/two JSON
+  outputs and refusal gates. Final actual input matches all89,795,481 bytes,
+  538 reads,64 typed SourcePC events/stores and FP across four rounding modes;
+  nine admission controls and six integration mutants reject. Six injected
+  observer-allocation failures prove transactional setter behavior, and ten
+  witness models pass. The Spec/lifetime peer passes; final Standards review also passes. Visible1481 delivery remains separate.
+  [Final World source qualification](../analysis/physics/native-moving-shape-retained-world-stage-v2-20261102/source-pins.json).
+- [ ] Deliver that moving-contact World integration visibly in imported-MCC
+  driving450/grenade1200/rocket1200 with the actual vehicle camera, exact
+  host/peer checks, strict original frame/FP and every previous coverage gate.
+  The1481 cold build and eight official regressions pass; its initial live
+  cases expose281710 acceptance and diagnostic-observer blockers above. No
+  final-frame/camera result is claimed. Wider solver/shape/listener/FP domains remain
+  refused, and the historical strict heap failures remain red.
 - [x] Qualify all three genuine1479 native query continuations through the sole
   shared solver, native closest-segment and triangle kernels. Both compilers,
   four FP modes and two initially unavailable scratch backings pass48 full
@@ -212,10 +716,95 @@ Latest live checks:
   three components, runs three native queries, appends three records and
   publishes three distances, with zero original execution services. The
   authenticated candidate/query/constructor aliases remain live across the
-  complete call. This is selected component proof; typed production-helper,
-  ordered access/observer, mutation, World and visible live acceptance remain
-  open. Historical heap failures remain red.
+  complete call. This is selected component proof; the separately completed
+  helper and World checks below do not establish visible live acceptance.
+  Historical heap failures remain red.
   [Full native producer result](../analysis/physics/native-contact-producer-bound-actual1479-20261102-fourth/report.json).
+- [x] Qualify the selected same typed production304350 binding under both
+  compilers/four FP modes:1,229 exact semantic retained reads,239 exact typed
+  SourcePC/address/preimage/value/order events, all89,795,481 captured bytes
+  and FP. The observer performs host math and changes rounding without
+  affecting native FP. Eleven resource/FP/alias/native-only controls pass.
+  Numeric mutants fully return with3/14 retained-byte differences; the PC-only
+  mutation preserves DATA/FP and fails attribution. Public pair130/query42/
+  convex70 original profiles and three mutants each pass. Independent final
+  binding review and the shared dependency union pass. Live integration remains open.
+  [Frozen production helper](../analysis/physics/native-contact-producer-bound-qualified-actual1479-20261102/source-pins.json).
+- [x] Qualify the staged304350 World binding with a separately owned64KiB native
+  DATA arena, keeping World/moving/wake packets disjoint. Both compilers pass
+  216 source units through the faithful transitive library links, three World
+  models, full contexts,23 counters/two JSON outputs,15 resource and17 coverage
+  controls. Native sidecar stores leave the underlying captured bank unchanged;
+  relocated genuine inputs match every89,795,481 retained byte,1,229 ordered
+  reads,239 typed events and FP in four rounding modes. Final independent Spec
+  and Standards reviews pass. This source cohort has not been delivered live.
+  [Final World qualification](../analysis/physics/native-contact-producer-world-stage-v5-20261102/source-pins.json).
+- [ ] Deliver the qualified304350 World binding visibly in imported-MCC
+  multiplayer with actual vehicle cameras once the active solver passes.
+  v1483/12 wires the producer and pooled growth into the private live build.
+  All eight linked tests pass. Each of the five Cyclotron cases stops at the
+  retained-observer guard before recording frames. v1483/13 changes the test
+  support collector to use retained stores, with the independent full raw
+  World comparison unchanged. All eight tests pass again and all five cases
+  advance to the unbound 307E30 centered shape bounds owner. No current
+  Cyclotron support, pool-growth, or strict replay result was recorded.
+  v1483/15 binds 307E30 through the producer's guarded memory and observer.
+  All eight tests pass and all five Cyclotron runs advance to the 313790
+  triangle-basis guard before frame recording. In v1483/17 the observer
+  binds before the first support step and captures 636 listed bytes of
+  typed input from the actual tick-one call. Both support paths use
+  2E5DB0 over the same 3077F0 child. The guard and strict replay requirement
+  remain in place.
+  Candidate release/default-heap owners, wider simplex, activation/listener/fault
+  domains and historical heap failures stay open.
+  [Producer live outcome](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-12-outcome.json),
+  [Retained observer retry](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-13-outcome.json),
+  [Centered-bounds proof](../analysis/physics/native-cyclotron-centered-bounds-v1483-13-stage-20261103/verification.json),
+  [Cyclotron live retry](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-15-outcome.json),
+  [Live Cyclotron input](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-17-cyclotron-lower-body1-phase0-native-producer/run/lan-movement/00-native-hull-line-basis-before.json).
+- [x] Rebase the qualified native304350 World binding onto frozen1482 with
+  its guarded accepted-contact route. Both compilers pass222 source units in
+  eight production archives and three models. The producer matches all
+  89,795,481 retained bytes,1,229 reads and239 typed stores at its live address,
+  and the accepted-contact route retains its full comparison and scratch
+  guard. This checkpoint is ready for a separate visible multiplayer cohort.
+  [Producer rebase proof](../analysis/physics/native-contact-producer-world-rebase-after1482-20261103/qualification.json),
+  [Independent source and evidence review](../analysis/physics/native-contact-producer-world-rebase-after1482-20261103/root-technical-review.json).
+- [x] Qualify the same producer binding on the frozen 1482/05 source, with
+  its projection, 1×2 initial rows and FST fixes preserved. Both compilers
+  check 222 units and 177 archive members and link the imported-MCC
+  acceptance binary. The eight-context proof remains a separate source layer.
+  [Updated producer qualification](../analysis/physics/native-contact-producer-world-rebase-after1482-05-20261103/qualification.json).
+- [x] Verify current Cyclotron imported-MCC delivery. All 65,672 relocated
+  pointers, 34,075,703 owned bytes and 129 controls pass with unchanged
+  map and cache bytes. Three historical strict replays still differ in
+  freed contact records after the original copy at 2E2E43. The replay
+  comparison retains every byte.
+  [Cyclotron audit](../analysis/physics/native-cyclotron-import-world-blocker-audit-20261103/report.json).
+- [ ] Resolve original scratch ownership and fifth-record producer growth.
+  Keep the three Cyclotron strict comparisons open and qualify all five
+  moving-platform workloads on the current native World.
+  The physical trace identifies the call return-address write at 1D8ACD
+  and saved-register writes behind copied padding. It also confirms that
+  the sorter reads a scalar from records whose validity flag is clear.
+  [Original scratch provenance](../analysis/physics/native-cyclotron-import-world-blocker-audit-20261103/source-scratch-provenance.json).
+- [x] Qualify the native producer's pooled growth and unwind in the private
+  World layer. Both compilers pass the genuine World comparisons, six
+  pooled controls and 176 existing array comparisons. The source releases
+  unpublished replacement storage on failure and preserves initialized
+  bytes and attributed writes. Fresh strict Cyclotron and wider
+  filter-compaction coverage remain open.
+  [Pooled producer qualification](../analysis/physics/native-contact-producer-pool-record-growth-stage-20261103/qualification.json).
+- [x] Qualify one shared188-file moving-contact/candidate/query/producer source
+  union. Both compilers/four FP modes match all89,795,481 captured bytes and FP
+  for each genuine component: producer1,229 ordered reads/239 typed events and
+  moving-contact538 reads/64 typed events. Their admission and numeric/PC/scope
+  mutation controls pass, with rejection causes recorded. Independent source
+  review checks39 three-way merges and21 writer/include overlaps. The old424
+  input manifest is preserved byte-for-byte beside the later moving World
+  qualification; no active source was changed. The independent final proof peer
+  and faithful216-CPP archive World models pass. Live acceptance remains separate.
+  [Shared native source checkpoint](../analysis/physics/native-contact-shared-observed-union-qualified-actual1479-20261102/source-pins.json).
 - [x] Finish the selected guarded native2F36F0 Host closure's public/default/
   fault/alias controls and independent review. Final v6 returns under
   both compilers/four FP modes with all89,795,481 bytes,634 physics DATA reads,
@@ -280,9 +869,42 @@ Latest live checks:
 - [x] Replace the selected Host18A300 look route with the native controller and
   its qualified context/camera/query services in frozen1478. This path has
   positive native activity and actual vehicle-camera proof, as recorded above.
+- [x] Stage both local-player look constructor calls in the protected v1483
+  gameplay caller. Each compiler matches eight attach and eight detach
+  profiles against the original through the downstream boundaries. The
+  detach route matches XMM0 on both clearing and unchanged returns.
+  Six build contexts pass. The live gates require native calls and their
+  actual 14F67C and 14F76E continuations independently.
+  [Source and proof](../analysis/physics/native-look-detach-caller-stage-20261103/source-pins.json).
 - [ ] Close internal generated1088DC→18A300/18A0C0 caller handoffs, positive
   marker SourcePC observer correspondence, alternate CRT/acos policies and
   unsupported FP/query/lifetime domains. Canonical Root wiring remains above.
+- [x] Stage the ordinary on-foot 1088DC call on protected v1483. Both
+  compilers match the physical original continuation and compile its Host,
+  generated caller and acceptance contexts. A separate test-only source
+  layer selects a real Warthog passenger with a carried SMG in local
+  multiplayer to capture the seated call. Both live gates remain open.
+  [On-foot physical proof](../analysis/physics/native-look-weapon-frozen1483-stage-20261103/physical-first/integration-physical.json),
+  [Seated capture plan](../analysis/physics/native-look-seated-weapon-caller-v1483-stage-20261103/qualification.json).
+- [x] Qualify the native B8F40 object scheduler on declared slot maps and
+  callback order. GCC and Clang each match 32 full original returns and
+  four genuine 10E630 call prefixes, with 1,684 ordered reads and 68
+  attributed stores. The selected short BE4A0 child also passes through
+  the native binding. Its full child graph and live scheduling remain open.
+  [Bound scheduler comparison](../analysis/physics/native-object-update-scheduler-stage-20261103/physical-bound-first/report.json).
+- [x] Qualify selected active BE4A0 hierarchy updates through native
+  10DD10, region, damage and inactive-component children. Both compilers
+  match 48 full original returns, including recursive children, object
+  publication, timer writes and exact retained reads and stores. Native
+  10DD10 separately matches 16 complete returns and 52 method prefixes,
+  including the crate's typed lift arguments.
+  [Hierarchy comparison](../analysis/physics/native-object-hierarchy-dependencies-stage-20261103/physical-first/report.json),
+  [Type-method comparison](../analysis/physics/native-object-type-update-stage-20261103/physical-first/report.json).
+- [x] Qualify native 10E630 through the positive-radius BD080 portal
+  traversal. Both compilers match 58 full original returns, including
+  512 clusters, a 128-vertex portal, and live x87 values at depths 1–6.
+  The native World binding and visible qualification remain open.
+  [Phantom scheduler proof](../analysis/physics/native-object-phantom-portal-query-20261103/qualification.json).
 - [x] Deliver native317200 merge queue,320DA0 deferred pair queue,3232E0
   manager factory and the qualified282700→B1870→BA570→C0F60→spatial binding.
   v1472/03 driving450 and grenade1200 match all114,363,573/114,887,921 original

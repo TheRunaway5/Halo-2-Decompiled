@@ -8,6 +8,8 @@ placement/notification helpers are exported; full campaign behavior remains open
 """
 import argparse,json,re,struct
 from pathlib import Path
+from model_light_source_native_replacements import replace_model_light_source
+from model_vector_length_native_replacements import replace_model_vector_length
 from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
@@ -139,7 +141,7 @@ def main():
         ' || '.join(f'p==0x{p:x}u' for p in [0x1d0670,*exported_helpers])+';}',source);assert n==1
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    a.output.write_text(install_native_normalizer(install_native_difficulty_routes(add_hooks(source),'actual'),'Tu15Literal'))
+    a.output.write_text(replace_model_vector_length(replace_model_light_source(install_native_normalizer(install_native_difficulty_routes(add_hooks(source),'actual'),'Tu15Literal'))))
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),

@@ -492,6 +492,26 @@ emitted individually so implicit script commits cannot split migration rollback.
 The result namespace is private `native-matchmaking-v1`. The full native
 executable/map/authority chain remains unclosed.
 
+An acknowledgement retry now verifies the stored finalization hash and
+metadata against the frozen admission, digest, accepted votes and namespace.
+Both service paths previously acknowledged a stored result with a damaged
+hash. The Rust check also rejects changed votes and a changed admitted map.
+A valid retry uses the authority epoch and departure mask from the original
+SQL commit. Both paths recovered the original publication and applied XP
+once. The legacy adapter test also covered an owner departing before retry.
+This covers an existing room after SQL commits. Pending review recovery after
+a process restart remains open. See the
+[durable retry comparison](evidence/matchmaking-rust-parity-20261028/durable-result-retry-binding.json).
+
+The standalone Rust process was killed after three of four owners
+confirmed a constructed ranked report. A signal from each voter fenced
+its confirmation before the kill. On restart, SQLite integrity passed
+and result, XP, history and profile outbox writes were zero. The old
+account, queue and room grants were denied. Both durable parties kept
+their membership and formed a fresh room after fresh consent.
+Restoration of an interrupted review remains open. See the
+[abrupt restart control](evidence/matchmaking-rust-parity-20261028/pending-review-abrupt-restart.json).
+
 The [validation receipt](evidence/matchmaking-rust-parity-20261028/results-validation.json)
 records32 passing Rust checks and440 backend tests in one frozen cohort, plus11
 Rust checks and35 focused backend tests against a separate default-feature ABI.
@@ -572,7 +592,7 @@ local-seat/party/clan consent and request/failure state, remaining authenticated
 endpoint policy, QoS IO policy and gameplay room/world transitions still require
 Rust ownership. Whole original result/summary/service producers, historical
 profiles, pending-result process recovery, concurrent dispute/SQL IO and full
-native played/delivered acceptance remain open. All12 GAP records,53 algorithm
+native played/delivered acceptance remain open. All 12 GAP records,53 algorithm
 IDs and G01-G12 requirements retain their complete scope.
 
 ## Rust authentication session, local-seat and request authority
@@ -3654,6 +3674,15 @@ revision change retain canonical identities/ranks/signing keys and reject old
 grants/revisions; restoring the original catalog preserves those identities.
 Compose validates the namespace, state mounts and restart dependency.
 
+A later standalone process test reproduced a changed rotation served under
+its old playlist revision. Startup now records the normalized profile hash
+under the playlist ID and revision in SQLite. A conflicting revision stops
+startup before the listener and rolls back new bindings from the same
+attempt. Equivalent JSON, a new revision and exact rollback all passed
+against the same state. The first guarded startup recorded the configured
+catalog. See the
+[catalog revision restart comparison](evidence/matchmaking-rust-parity-20261028/catalog-revision-restart.json).
+
 All 20 Rust service tests and 18 directory/HTTP/registry tests pass in both build
 cohorts: 76 successful test executions. The final 354 frozen inputs match the
 current source. An initial checksum-format error, a wrong expected proxy status
@@ -4421,6 +4450,605 @@ new friends inputs and the existing Rust party-flow owner absent from that
 manifest. No selected runtime or production service was replaced in this work;
 controlled native checks and physical installed-client delivery stay separate.
 
+
+## Native clan caller and account/voice binding in Rust (2026-11-02)
+
+`matchmaking_frontend_clans` now owns the complete modern native clan caller,
+including clan roles, invitations, member targeting, commands and confirmation
+state, menu/text/column choices, message pagination, account/voice binding order
+and push-to-talk gating. The existing Rust party controller owns the target,
+kind, message-page counter and pending confirmation; their C++ fields are
+removed. The native caller supplies typed provider/device/navigation/resource
+IO and preserves shared-pointer lifetimes and opaque cached snapshots.
+
+Only the exact clan-page branch of `MenuState::auxiliary()` is replaced. Its
+preceding PCR/lobby routing and following login dispatch stay in their existing
+order. The regression generator authenticates the old full clan caller and
+that branch, checks the surrounding dispatcher prefix, and compares exact
+production native IO against the captured implementation. No original Xbox
+whole-caller or Live-provider equivalence follows from this modern comparison.
+
+The complete Rust cohort passes **749 tests**, including **27 new clan-flow
+controls**, with four existing ignores. The before/after native comparison
+matches **6,876 cases**, **5,071 callback-boundary observations and Rust-state
+reentries**, and **88 native exception controls**. It covers account/voice
+replacement and teardown, same-account renderer recovery, social-bind and local
+sign-out reentry, state changes before failure, confirmation default/cancel/take,
+voice switching, raw identity bytes, role/presence/mute precedence, resource
+lookup order, retained/detached frames and UTF-8 page boundaries. Former C++
+out-of-bounds command/role accesses, empty-message modulo zero and nonprogressing
+malformed page loops are excluded from equivalence; separate Rust controls
+require safe errors. Full-width page rollover is separately tested in Rust.
+Unknown scoped-enum presence values remain in the comparison: their fixed
+underlying `int` makes these defined C++ inputs. An initial plan to exclude
+them was corrected after checking the [C++ enum rules](https://eel.is/c++draft/dcl.enum#5),
+and the original corpus is restored byte for byte.
+
+All **12 focused CMake caller-comparison checks** pass with Debug C++ and Rust
+release defaults, without skips.
+Seven Rust bridge-staging checks pass. All four affected production C++ units
+also compile against the staged bridge; object and ABI imports reach the Rust
+clan owner. These are controlled component checks. The broader **36-check**
+native HTTP/SDL/Vulkan/lobby/Start/countdown run was interrupted during
+compilation without a completed test result; its owner and scratch are absent.
+Its old running status is stale and is not acceptance. The full native runtime
+cohort remains required. The prior friends migration's runtime checks are
+recorded in their own receipt and do not certify this new clan migration.
+
+The first full-cohort freeze aborted before validation because another owner
+kept editing an unrelated qualification helper; its scratch was removed. The
+focused cohort freezes the complete source tree, authenticates all declared
+matchmaking scope, records unrelated live drift and refreshes only declared
+inputs in its private tree. Original assets, references, shared-root work and
+selected runtimes are preserved. Owned builds are removed and only bounded
+reports/source pins are retained.
+
+[The receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-clans-flow-rust-validation.json)
+records exact sources, native linkage, comparisons and cleanup. A read-only
+`--launcher-info` observation timed out; direct selection JSON/executable/source-
+manifest inspection is recorded separately and does not qualify launcher
+resolution or installed execution. This change does not replace the selected
+runtime or activate the Rust service. All twelve GAP records, 53 algorithm IDs,
+G01-G12 gates and full exit criteria remain unchanged; the goal stays active.
+Remaining native signed-local/guest/team/postgame/login/keyboard/voice policy
+and every other matching-related non-Rust owner, complete original/historical/
+service recovery,
+natural played-world coverage and full delivery qualification remain open.
+
+
+## Signed-local/guest and controller callers in Rust (2026-11-02)
+
+`matchmaking_frontend_couch` now owns the complete modern native couch caller,
+including mutable-status gates, guest/sign-in actions, pending-provider ordering,
+duplicate subjects, per-profile worker admission, retained menu refresh and
+local-player projection. Complete controller slot/join/finish/leave and primary
+identity callers, the two exact couch/join Back branches and profile-list
+predicates also reach Rust. The existing party controller owns subjects,
+options, joining controller/online state, host profile and couch revision; all
+six former C++ fields are removed. Search reads that actual Rust revision.
+Actual login/account pointers, device/profile/preferences and frame IO stay
+native. Snapshot presence crosses the bridge; private authorization bytes do
+not. Held-login and current-slot reads remain distinct, including a replacement
+between profile-key binding and Start. Native exceptions and state changes
+before failure are preserved in the controlled comparison.
+
+The first comparison identified a real port ordering error: an unassigned
+primary input with no frame and an ineligible online identity returns slot0
+in the captured C++ caller, while Rust read the absent frame too early. The
+minimal comparison failed twice in under a second; one-frame, already-bound
+and negative-input controls agreed. The corrected Rust short-circuit and
+regression test pass, and the original corpus remains intact.
+
+The current cohort passes **787 Rust tests**, with **38 new controls** and
+four existing ignores. Exact captured/production comparisons match **2,638
+cases**, **4,507 callback observations and Rust-state reentries**, and **108
+native exception controls**. Actual selection/update actions initialize the
+comparison state. Scoped-enum unknown values remain in the defined domain.
+C++ out-of-range row/slot access, null factory/worker dereferences and options
+that disappear before the original dereference are excluded from C++ execution;
+separate Rust controls require safe errors. Back/profile branch wrappers are
+explicitly described and their original dispatcher positions are checked.
+
+All **13 focused CMake caller checks** pass without skips, with Debug C++ and
+Rust release defaults. Seven build-staging controls pass. All five affected
+production C++ units compile using the frozen CMake compilation database;
+object/ABI imports reach Rust, and search imports the Rust couch revision.
+These are component checks with controlled providers. The **37-check native
+runtime checklist**, including HTTP/SDL/Vulkan/lobby/Start/countdown, remains
+pending. The prior interrupted whole-runtime run is not counted as acceptance.
+Original Xbox/Live/historical recovery, genuine providers, natural played-world
+scope and installed delivery remain separate required work.
+
+[The receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-couch-flow-rust-validation.json)
+records the failed-before/passed-after case, sources, callback boundaries,
+linkage and cleanup. The new comparison JSON was omitted from the retention
+list; its complete success summary is recovered from retained CTest stdout,
+with binary identity and the empty-differences inference recorded explicitly.
+The receipt does not claim the original JSON file bytes were retained.
+Source/build/SDK/binary/object outputs are removed; only
+bounded reports and authenticated reference inputs remain. The selected runtime
+is observed read-only and has not received this migration; no service is
+activated. All 12 GAP records, 53 algorithm IDs, G01-G12 gates and complete exit
+criteria remain unchanged. The goal stays active. Generic profile/login,
+team editing, other postgame/keyboard/voice coordination and every other
+matching-related non-Rust owner, full original recovery and whole-runtime/
+delivery acceptance remain open.
+
+
+## Saved sign-in and navigation callers in Rust (2026-11-02)
+
+`matchmaking_frontend_signin` owns the complete modern native saved-key,
+primary-binding, login-update and online/lobby-return callers, plus the exact
+authentication portions of Open, Account acceptance and Back cancellation.
+The existing Rust party controller owns the saved-key map, bound namespace,
+restore suppression, awaiting flag and pending screen/context. All six former
+C++ fields are removed. Rust validates and generates the namespace bytes and
+owns load/serialization order, rename handoff and deletion. Native IO retains
+secure randomness, credentials, actual providers, preferences and frames.
+The surrounding generic dispatchers remain native.
+
+The captured caller comparison passes **8,507 defined cases**, **14,826 native
+callback observations/reentries**, and **208 native exception controls**. The
+increment's complete Rust suite passes **818 tests**, with **31 new controls**
+and four existing ignores. Bridge/staging and three production-unit syntax
+checks pass; these are not full native compile/link or runtime acceptance.
+
+The first comparison crashed in an invalid mock state: positive identity with
+no primary login reached the captured Sign Out dereference. It was reproduced
+twice, minimized and distinguished with single-variable controls. The actual
+identity producer already refuses identity without a primary login. Only the
+28 undefined mock inputs are excluded; all defined Sign Out paths remain, and
+no production rule changed for this fixture failure. This is not a reproduction
+of the user's Linux playlist/Start symptom.
+
+The [component checkpoint](evidence/matchmaking-rust-parity-20261028/native-frontend-signin-flow-rust-active-validation.json)
+records sources, calls, failure prefixes, native shared ownership and cleanup.
+The same private native build remains active; its first frozen version predates
+the test-domain correction and the following postgame increment. The declared
+current-source **42-check** refresh is prepared, not passed. Its HTTP/SDL/Vulkan,
+playlist/Start/countdown, played-match, party-return and multi-team results,
+actual delivery and all G01-G12 gates remain required.
+
+## Postgame/PCR caller decisions in Rust (2026-11-02)
+
+`matchmaking_frontend_postgame` owns the complete host/follower, postgame update,
+prior-statistics predicate, prior-review and review-close callers. It reuses the
+existing Rust party postgame predicates. The exact prior-report capture hook
+stays before native focus validation, and the exact navigation-clear hook stays
+after it. The regression generator authenticates the rest of the native PCR
+factory unchanged. Native code retains report/result resource objects, actual
+selection/session callbacks, rendering/input and generic factory operations.
+
+The controlled comparison passes **2,041 cases**, **67 callback observations
+and reentries**, and **12 native exception controls**. It uses native report
+and result types with controlled callbacks, observes shared-owner lifetimes,
+preserves the first online report even when it has no continuation callback,
+and opens the current prior report after a selection callback replaces it.
+Undefined old empty-stack/null-report dereferences are excluded; separate Rust
+controls cover safe owner errors. This is modern caller evidence, not original
+Xbox/Live service replay or a natural played-world result.
+
+The complete current Rust suite passes **841 tests**: 756 core, 65 bridge and
+20 service, with **23 new postgame controls** and four existing ignores. All
+289 frozen Rust inputs match the current source at this checkpoint. Seven
+staging tests, the bridge check and syntax checks for the two affected native
+units pass. Full compile/link/runtime qualification is pending in the same
+active cohort; its prepared refresh adds the postgame comparison and existing
+played-match, party-return and multi-team tests, for **42 checks** total.
+
+The [component checkpoint](evidence/matchmaking-rust-parity-20261028/native-frontend-postgame-flow-rust-active-validation.json)
+records source/callback/resource identity, bounds, cleanup and the live worker.
+Completed component/Cargo/syntax builds are removed. The active native tree is
+still needed and will be removed by its owner after validation. Final bounded
+archiving awaits that result. A separate publisher changed the selected Linux
+runtime during validation; that selection is preserved. Its observed source
+manifest lacks the new postgame inputs, so it does not qualify this migration's
+delivery. This work did not publish a runtime or activate a production service.
+
+Remaining matching-related keyboard/service-tag, team/voice and every other
+non-Rust owner, complete original/historical/service recovery, all required
+families/profiles/topologies/natural outcomes and installed restart/retry/
+configuration/rollback acceptance stay open. All twelve GAP records, 53
+algorithm IDs, G01-G12 gates and full exit criteria are unchanged. The goal
+remains active.
+
+
+## April 2006 workbook recovery and TU1.5 option replay (2026-11-02)
+
+The full 245,248-byte [April workbook](reference/halo2-gamevariants-20060428.xls)
+linked from [Bungie's April 28 update](https://halo.bungie.org/bwu/index.html?item=72)
+is now retained. The [primary recovery note](matchmaking-historical-primary-recovery-20261102.md)
+and [static receipt](reference/halo2-gamevariants-20060428.provenance.json)
+record the retrieval, BIFF8 integrity and all 162 named columns across six
+families, including six code defaults. This supersedes the October GAP-04
+table's workbook availability finding. The original GAP-04 criteria stay open.
+
+The [option replay](evidence/matchmaking-rust-parity-20261028/april2006-workbook-option-replay.json)
+independently reads the literal Team SWAT settings: no shields (`AP130=1`),
+motion sensor off (`AP134=0`), and team play on (`AP146=1`). The unchanged
+TU1.5 table, setter and getter confirm parameters 19, 20 and 91. Each write
+changes only its descriptor's field or bit. The original read-only validator
+and current Rust admission agree on all ten diagnostic Slayer buffers.
+All 500 executed instruction addresses were checked against the pinned Xbox
+image. The workbook, existing option receipt and Rust module are hash checked
+before and after; the compiled probe and reader were removed with their owned
+scratch. The bounded [replay source](evidence/matchmaking-rust-parity-20261028/april2006-variant-option-probe.py.txt)
+records the reproducible method.
+
+The Pit of Joy replay verifies nine additional King options against the
+same unmodified TU1.5 routines. The 300-second score target and 600-second
+round limit occupy separate fields. The workbook's disabled moving hill
+writes zero to the signed 16-bit field at `0xF4`. The Team Brutality
+resistance setting maps separately to the general player flag. Rust and
+TU1.5 agreed on 18 diagnostic buffers, including four invalid timer and
+score controls. The remaining bytes come from the original initializer.
+The deployed 304-byte variants and rotation weights remain open. See the
+[King and Team Brutality replay](evidence/matchmaking-rust-parity-20261028/april2006-king-brutality-workbook-replay.json).
+
+The three Team SWAT option mappings leave its serialized variant and
+historical rotation open. A separate
+[dated changelist receipt](evidence/matchmaking-rust-parity-20261028/april-june-2006-playlist-changelog-join.json)
+recovers the archived April Optimatch post and the June deployment notes.
+The April post removes three maps that the reconstructed final-era Team
+Snipers profile still includes. It corroborates Pit of Joy's 300-second King
+win target (distinct from its 600-second round limit) and Team Brutality's
+disabled damage resistance. The dated changes do not supply complete
+historical rotations, numeric weights, original 304-byte payloads, or final
+2010 hopper/network downloads. The August Team Carnage/HBO archive remains
+partial. Production settings and the seven-family requirement are unchanged.
+No GAP, algorithm ID or G01-G12 acceptance gate is closed.
+
+The [2007 Team SWAT receipt](evidence/matchmaking-rust-parity-20261028/february-2007-team-swat-membership.json)
+adds 22 announced pairs across nine maps and five variants, including five
+CTF pairs. Bungie confirmed the February 13 rollout. August game records
+show three named SWAT variants in play and include Desolation. The modern
+six-row Team SWAT profile uses a single Slayer variant. The dated profile
+still needs its original numeric weights and settings buffers.
+
+## Linux playlist eligibility check (2026-11-02)
+
+The first frozen Linux cohort passed the blocked, complete and rendered
+lobby tests against an isolated Rust service. The rendered test sends SDL
+mouse events to the visible chooser entry, playlist row and Start Game
+button. It verifies the countdown, search and lobby return across 23
+Vulkan frame phases. The broader test run and installed client replay are
+still open. See the [native validation checkpoint](evidence/matchmaking-rust-parity-20261028/native-frontend-postgame-flow-rust-active-validation.json).
+
+The original TU1.5 chooser callback and its unchanged datum lookup passed
+1,800 controls with declared synthetic rows. The callback reached activation
+in 36 cases. It returned directly for an invalid handle, a missing or stale
+datum, or a clear record bit. The probe verified the chooser pointer, controller
+argument and playlist key at the activation boundary. The Rust service frontend
+presents an explicit error for a blocked row so that the player can return to
+the chooser. See the [original callback replay](evidence/matchmaking-rust-parity-20261028/tu15-playlist-chooser-activation-probe.json).
+
+A follow-up replay ran the activation body through its first IO call in 6,000
+controls with enabled synthetic rows. The original requests dialog `0x7B`
+with the activating controller's mask for an empty or unready hopper header
+or a rejected descriptor. An accepted descriptor reaches the request to open
+`n:\multiplayer_hopper.dat` for reading. The 810 open requests and 5,190 dialog
+requests ran unchanged through the original getter, validator and applicable
+file-path preparation. The file read and dialog bodies, subsequent host setup
+and chooser close remain open. See the [activation replay](evidence/matchmaking-rust-parity-20261028/tu15-playlist-activation-first-io.json).
+
+The same list owner is wired to original screens 219 and 237. Its row builder
+passed 1,800 preflight controls. It clears stale data, scans 16 slots in order,
+validates each descriptor and checks either a descriptor bypass or a signed
+local-slot value against the descriptor floor. The override returns value 4
+for that comparison. The 270 controls that passed these gates reached the
+hopper file-open request. Original allocation and publication after a
+successful read remain open. See the [row builder replay](evidence/matchmaking-rust-parity-20261028/tu15-playlist-row-preflight.json).
+
+The local launcher reported its selected frontend and imported MCC map root.
+Its trailing status command did not finish in the bounded run. The separate
+[catalog diagnostic](evidence/matchmaking-rust-parity-20261028/linux-local-catalog-diagnostic.json)
+hashes that executable and capability, reads the local EOS transport flag
+and exact map stems, and runs the current Rust compatibility and eligibility
+owners on the checked-in canonical catalog. The local selection supplies all
+17 Team Snipers maps and lacks none of the maps in the canonical catalog.
+With a synthetic solo, authenticated non-guest seat and v16, Rust admits 12
+of 14 playlists. The two clan playlists remain gated. The v12 and v15
+controls reproduce all 14 rows being ineligible despite the same map
+inventory; a v16 guest remains ineligible for ranked Team Snipers.
+
+This establishes two diagnostic controls, not the facts of the reported party
+or installed build. The default public origin's [health route](https://master.halo2forever.net/v1/health)
+returned HTTP 200 and its playlist route returned 401 without a session.
+No authenticated production catalog or countdown was exercised. The local
+selected executable contains the newer availability text and the v16 marker;
+the screenshot's exact older availability string was absent. The source
+manifest does not pin the latest lobby, sign-in and postgame Rust files.
+Neither the public probe nor this local launcher selection identifies the
+user's Linux binary. The source/runtime shortlist and exact command are in the
+[launcher observation](evidence/matchmaking-rust-parity-20261028/linux-local-launcher-resolver-observation.json)
+and [diagnostic source](evidence/matchmaking-rust-parity-20261028/linux-local-catalog-diagnostic.py.txt).
+The [operator guide](matchmaking.md#native-menus-and-configuration) now records
+the separate selection and Start actions, v16 requirement, and current source
+datagram version. No installed acceptance gate is closed.
+
+## Confirmed Leave Matchmaking action in Rust (2026-11-02)
+
+The Rust search controller now handles the confirmed Leave Matchmaking action.
+It clears Quickmatch intent, cancels the active queue when present, resets
+progress and returns the online party to pregame. A standalone preview retains
+its root screen. The controller also supplies the blocked-playlist and missing
+service messages. The native menu still performs the frame, dialog, sound and
+transport operations.
+
+The component replay passed 3,923 cases, including 160 new controls for the
+confirmed cancellation. The controls compare the existing caller's state and
+callback order, including errors and reentry while opening the lobby. The
+changed native units pass syntax checks and the test adapter links the current
+Rust bridge. The temporary source, Cargo and compiler outputs were removed.
+See the [cancellation validation](evidence/matchmaking-rust-parity-20261028/native-frontend-search-cancel-rust-validation.json).
+
+The pinned TU1.5 callback at `0x25847E` set the cancellation flag before
+requesting either network transition in 512 controls. The replay followed
+unchanged request gates to a normal callback return or the next network
+owner entry. The live network owner bodies and original party return
+remain open. See the [TU1.5 replay](evidence/matchmaking-rust-parity-20261028/tu15-confirmed-search-cancel-callback.json).
+
+The preceding native run passed 37 of 38 tests. Its earlier sign-in fixture
+failed on an undefined mock login input. The follow-up initially failed to
+compile because the frozen Rust bridge declaration and implementation came
+from different source revisions. The 42-test run now uses the paired Rust
+files in the private build. The follow-up combines cancellation and postgame
+Leave Party in an 11-test request. Installed input and production service
+validation are open. See the [native checkpoint](evidence/matchmaking-rust-parity-20261028/native-frontend-postgame-flow-rust-active-validation.json).
+
+## Confirmed postgame Leave Party action in Rust (2026-11-02)
+
+Rust holds the first online report before asking the authenticated party
+service to leave. A refused request closes the confirmation dialog and
+keeps the report open. On acceptance, Rust closes the held match session,
+refreshes the account, and returns to ONLINE. The native menu retains the
+System Link callback, report pointers, dialog and navigation operations.
+
+The comparison passed 2,560 controls against the captured modern caller,
+including 519 for Leave Party. These exercise actual report ownership,
+replacement during the party callback, refusal and callback failures.
+The pinned TU1.5 replay ran 2,520 input controls and 48 confirmation
+controls. It verified dialog `0x98` and the request boundaries for the two
+session slots, including return when both are inactive. Active Xbox network
+owner bodies, a live follower confirmation and installed Linux delivery
+remain open. See the [component validation](evidence/matchmaking-rust-parity-20261028/native-frontend-postgame-leave-rust-validation.json)
+and [TU1.5 replay](evidence/matchmaking-rust-parity-20261028/tu15-postgame-leave-action.json).
+
+The broader Linux run reached native gameplay in its two-player launch test.
+The client observed 106 ticks against a requirement of more than 150, and
+the host's audible-frame counter stayed at 203 after unmute. The four-player
+party test reached the lobby after playlist selection, then failed before
+shared consent completed. An isolated replay identified 3,980 HTTP 429s
+from the legacy loopback service's prefix bucket, including 3,793 ticket
+polls. The fixture uses four clients with 20 ms queue polling. Raising only
+the prefix budget moved all 96 refusals in the second run to the global
+bucket. With both fixture budgets raised, the same frozen binary made 13,544
+requests without a 429. The rendered party reached shared Start, cancel,
+restart, countdown zero, search and a native match. The host then refused
+to publish postgame because the fixture's lightweight world lacks original
+accuracy counters. The other peers observed the host's departure. See the
+[baseline trace](evidence/matchmaking-rust-parity-20261028/native-party-loopback-rate-baseline.json),
+[prefix-budget control](evidence/matchmaking-rust-parity-20261028/native-party-loopback-rate-raised-prefix.json)
+and [aggregate-budget control](evidence/matchmaking-rust-parity-20261028/native-party-loopback-rate-raised-aggregates.json).
+
+The four-team fixture also recorded ticket 429s before native launch. The
+party and four-team test services now configure the aggregate budgets for
+their accelerated loopback workload. The party host fixture now uses the
+existing original-source world path when it publishes a completed result.
+The private Linux suite finished with 39 of 42 tests passing. The two-player,
+party and four-team launch tests failed. The combined follow-up passed 8 of 11
+tests and reproduced the three launch failures. The two-player retry reported
+the same timeout for both peers. Its stage label covered several distinct
+operations, so the owner of that timeout remains open. The four-player
+fixture reached countdown and refused world preparation because the host
+fixture omitted the admitted team. The fixture now forwards the admitted
+seats, profiles and teams. The four-team clients reached world setup and
+two returned the authenticated sky material mismatch before the remaining
+clients were stopped. The HTTP test now keeps the original failure when the
+database closes. The next launch run used separate loading, peer handshake
+and result wait labels. Both two-player peers stopped during shared loading.
+All four rendered party clients completed the lobby countdown and reached
+search, then timed out before native handoff. The four-team control again
+admitted twelve seats and stopped at the sky guard during world preparation.
+The two-player fixture now uses the ordinary client's 185-second wait for
+the Rust room owner's loading lease, reports per-peer preparation time and
+surfaces service failure immediately. The party fixture records queue state
+at its existing deadline. See the
+[second launch diagnostic](evidence/matchmaking-rust-parity-20261028/native-launch-handoff-iteration-6.json).
+With that wait, the two-player replica observed shared Start after 84.8
+seconds and all three party replicas observed it after about 63 seconds.
+Both tests entered native gameplay. The source hosts advanced 210 ticks
+while the earlier replica cutoff observed 112 ticks for the pair and 22
+for the party. Both hosts failed the post-unmute voice check. The next
+fixture run drives those observation windows from received source ticks,
+with its original input cadence and assertions. See the
+[loading wait diagnostic](evidence/matchmaking-rust-parity-20261028/native-launch-loading-wait-iteration-7.json).
+The frozen run's blocked,
+complete and rendered Rust service lobby tests passed alongside the native
+SDL mouse path through chooser, countdown, search and return. See the
+[unchanged retry](evidence/matchmaking-rust-parity-20261028/native-core-launch-unchanged-retry.json)
+and [Linux lobby checkpoint](evidence/matchmaking-rust-parity-20261028/linux-native-chooser-start-checkpoint.json).
+
+The same frozen Lockout loader reproduces the sky failure with the old test
+cache. Two corrected caches match the original Xbox sky's 654 vertices and
+seven complete material and texture records with the existing guard. The old
+cache passes the ONLINE fixture's independent UI layout check. The two
+corrected caches have a different UI layout identity, so the follow-up uses
+the fixture's existing split between authenticated menu assets and corrected
+gameplay assets via `HALO2_ONLINE_FLOW_GAMEPLAY_MAPS`. See the
+[Lockout cache comparison](evidence/matchmaking-rust-parity-20261028/native-lockout-sky-cache-differential.json).
+The corrected-cache replay passed the sky check and the host initialized its
+three-view renderer. Its last startup log reported waiting for matched
+players to load. It returned `online_disconnected` before observing a
+world tick, gameplay frame or bound view. The service recorded four verified
+owners and zero result or statistics writes. The exact disconnect stage
+and the played four-team gate remain open.
+See the [corrected-cache replay](evidence/matchmaking-rust-parity-20261028/native-lockout-corrected-cache-multiteam.json).
+
+## Game Setup rows and input in Rust (2026-11-02)
+
+Rust now supplies the Game Setup row order, semantic labels, destinations and
+focused row for every session enum. The same owner decides whether Accept opens
+the ONLINE chooser, opens another native screen, switches an offline session,
+or refuses the action. It also decides when auxiliary input opens privacy.
+The native menu applies the selected stack and loader operations and draws the
+authored presentation. The replacement service continues to supply the party
+and catalog capabilities used by the ONLINE checks.
+
+The pinned Xbox TU1.5 replay passed 1,809 controls. The original row builder
+allocated enum 6 datums in order 9, 6, 7. Row 9 reached the channel 3 playlist
+loader for screen 237, and the privacy input ran the original session enum
+gate. The Start callback reached the countdown request at status 9. The
+fixture's invalid hopper descriptor and unready-peer inputs returned statuses
+12 and 24.
+The replay stops at the external screen or network owner boundary. See the
+[TU1.5 replay](evidence/matchmaking-rust-parity-20261028/tu15-game-setup-and-start.json).
+
+The captured caller comparison passed 15,120 Accept and 1,440 auxiliary
+controls. It matched the old native stack and callback order, including
+1,053 simulated loader failures and 1,053 reentrant opens. The 118 retail
+fixture checks passed, with 65 row, label and focus checks running through
+Rust. The 13 Rust lobby tests and the changed native units also passed their
+component checks. The focused Linux suite passed all ten tests, including
+the rendered SDL mouse path through Choose Matchmaking Playlist, screen 237
+and Start Game, then countdown and search. It also passed the isolated Rust
+service lobby tests. Installed-client delivery, live service qualification
+and the broader played-match acceptance remain open. See the
+[component validation](evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-rust-validation.json)
+and [Linux validation](evidence/matchmaking-rust-parity-20261028/native-frontend-game-setup-linux-validation.json).
+
+The workspace selection observed after this test resolves to runtime
+`12f74b92d9c925f98036e1dbee2a877e3267be891cad9293c981844101cfd8d3`.
+The executable matches the selection digest. Its packaged source inventory
+pins a different `frontend_state.cpp` than the tested Game Setup build.
+The package qualification reports `qualified_candidate_only`. This
+observation identifies the workspace candidate; the executable from the
+reported Linux session still needs to be identified.
+
+## Native postgame confirmation retry (2026-11-02)
+
+The Linux source-tick tests reached tick 210 on every peer in the
+two-player and four-player party matches and passed gameplay voice.
+Both two-player peers validated the terminal report against the original
+accuracy bank. That host then reported a session error and the replica
+timed out at the postgame voice barrier. The four-player test timed out
+while waiting for the result publication and review. See the
+[source-tick replay](evidence/matchmaking-rust-parity-20261028/native-launch-replicated-ticks-iteration-8.json).
+
+Both the test and the ordinary native world observe Reviewing before
+validating and confirming the report. The socket worker can accept the
+service's completed receipt between that observation and the caller's
+repeat. The frozen Rust control rejected that repeat. Rust now accepts
+the local retry for a full report already confirmed in Postgame. It keeps
+the original confirmation and emits no additional message after completion.
+All 29 native-session Rust tests and the Linux C++/Rust session API
+test passed. Both real two-player peers passed postgame voice on the
+follow-up, then the loopback service rejected further requests with its
+rate limit. The core fixture now uses the same aggregate budgets as
+the accelerated party fixture. The four-player test again timed out
+before result publication and review completed. See the
+[red and green confirmation control](evidence/matchmaking-rust-parity-20261028/native-postgame-confirm-retry-rust.json)
+and [native confirmation replay](evidence/matchmaking-rust-parity-20261028/native-postgame-confirm-retry-linux.json).
+
+The next isolated ranked two-player run passed. Both native clients reached
+the matched countdown, played over direct UDP, validated the final report,
+passed postgame voice, returned through Done, opened prior stats and started
+a fresh matched room from the retained hopper. The service committed one
+unanimous result. One induced failed matched-countdown poll per player also
+recovered through the real client. This fixture uses an eight-second match,
+test identity grants and synthetic audio devices. The full party and
+four-team results, installed build and production service remain open.
+See the [two-player Linux acceptance](evidence/matchmaking-rust-parity-20261028/native-two-player-requeue-linux.json).
+
+The four-player review control used two accepted parties and four
+authenticated v12 peers over direct signaling. The standalone Rust service
+and legacy adapter both required the fourth distinct confirmation before
+committing one result, awarded 100 XP to each winner, and left both losing
+players at zero XP. Both retained parties could requeue into a fresh room.
+The standalone service returned the same public history record after
+restart. This test supplied the load signatures and team report. The
+separate played fixture still needs to reach and publish its own result.
+See the [four-player review comparison](evidence/matchmaking-rust-parity-20261028/four-player-ranked-review-adapter-differential.json).
+
+In a four-peer disputed review, a survivor who had already confirmed the
+report lost signaling and rejoined. Both service paths resent the report,
+then disconnected the survivor on the identical confirmation retry. The
+Rust result owner now accepts that replay from an active voter whose vote
+is already recorded. Both service paths replayed the noncompetitive
+completion with zero persisted results, XP awards or public history rows. Separate
+controls verified that a departing player's accepted vote survives, an
+unconfirmed departure blocks competitive recording, signaling loss permits
+the original voter to reconnect, and quarantine rejects new votes. The
+tests used a constructed report. Original Live arbitration remains open. See the
+[disputed review differential](evidence/matchmaking-rust-parity-20261028/four-player-disputed-review-reconnect.json).
+
+## Full-settings client and room admission
+
+The v15/v16 Rust client previously accepted a name-only stock match, and
+the server could advertise the corresponding legacy playlist as eligible.
+The client now requires the game row and a valid, digest-bound 304-byte
+buffer. The Rust service applies the same compatibility rule to playlist
+visibility, session admission, party seats and coordinator enqueue. It
+rejects an incompatible playlist as a whole, preserving its ordered draw
+and weights. The legacy protocol and the explicitly named modern Fiesta
+and Infection rules retain their declared profiles.
+
+The real Rust HTTP service showed the legacy stock playlist as eligible
+for v12. Both v15 and v16 received HTTP 409 for enqueue and retained no
+ticket. The source catalog still exposed all twelve non-clan rows to v16.
+The complete frozen run passed 766 protocol and 20 service tests, including
+the original-reference fixtures, and exercised the real catalog, failed
+queue commits, party countdown and restart through HTTP. See the
+[Rust protocol and service validation](evidence/matchmaking-rust-parity-20261028/native-full-settings-compatibility-rust.json).
+
+The Rust client also checks the EOS descriptor revision against the
+catalog, and the descriptor team flag against the admitted options. The
+installed connection can transfer only after its loading snapshot observes
+the shared countdown for the same playlist, map, variant, game row, option
+bytes and ordered roster. Its countdown view may omit display rank and
+appearance. Both baseline controls reproduced the incorrect handoff, and
+all 26 queue-client tests passed with the new guards. See the
+[handoff differential](evidence/matchmaking-rust-parity-20261028/native-matchmaking-handoff-identity-rust.json).
+
+The next Rust change bound the countdown to the room ID as well. The
+baseline transferred an installed connection on an unbound zero and
+selected a retired room when its loading observation was listed first.
+The service checks the physical owner's queue generation and admitted room,
+and cross-checks the current proposal while its ticket is live. The first
+native run found that the final acknowledgement consumes the proposal and
+its tickets on entry to Loading. The room now supplies the frozen playlist,
+game settings and ordered roster for the opted-in clock through that
+transition. An in-flight clock read is discarded if the admission changes.
+The client compares the room field and match data to its installed
+descriptor before using the countdown. A corrected receipt for the same
+room can retry without reinstalling the connection. The older scalar
+response retains its field shape. All 771 protocol and 20 service tests
+passed, including a v16 acknowledgement that retires both tickets before
+the two countdown responses are compared. See the
+[room countdown differential](evidence/matchmaking-rust-parity-20261028/native-room-countdown-binding-rust.json)
+and [loading admission tests](evidence/matchmaking-rust-parity-20261028/native-room-countdown-loading-rust.json).
+
+In a fresh isolated Linux run, both native v12 peers saw a positive clock
+and transferred after the bound zero. They reached Running over direct UDP
+with synthetic load signatures and published zero results. The real Rust
+service passed the relay and direct clock controls, and the legacy HTTP
+adapter passed the same clock check with the production Rust ABI. Its
+20 transport tests also passed with result fixture inputs enabled. The
+v16 EOS-disabled control validated the full options and refused handoff
+in both attempts. Played and configured-EOS validation remain open.
+See the [Linux room countdown evidence](evidence/matchmaking-rust-parity-20261028/native-room-countdown-binding-linux.json).
+
+The preceding full-settings build passed both focused native CTests,
+including the C++ queue client's Rust bridge. See the
+[native Linux handoff checks](evidence/matchmaking-rust-parity-20261028/native-full-settings-handoff-linux.json).
+
+The four-player fixture's option adapter matched the original Team Slayer
+buffer before applying its two test edits. It produced an eight-second
+single-round team game with a zero score limit. On a later result failure
+the fixture now reports the last observed tick, clock, round, game-over
+and publication state. The live timeout still needs a run with those
+observations. See the
+[party clock input check](evidence/matchmaking-rust-parity-20261028/native-party-validation-clock-input.json).
 
 ## Rust implementation boundary
 

@@ -1,0 +1,9 @@
+{
+  "accepted_iteration": 2,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-couch-component-worker-20261102/halo2-test-pm3p7a_7",
+  "regular_bytes": 5561798992,
+  "regular_files": 7281,
+  "comparison_passed": true,
+  "short_circuit_red_before_green_after": true,
+  "retained_large_artifacts": []
+}

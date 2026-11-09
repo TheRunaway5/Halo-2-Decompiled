@@ -104,6 +104,34 @@ class MccSandboxLauncherTests(unittest.TestCase):
         self.runtime.with_name(self.runtime.name + ".frontend-test.json").write_text(json.dumps(self.capability(True)))
         self.info = self.info.replace("Native MCC frontend: unavailable", "Native MCC frontend: available")
 
+    def publish_qualified_multiplayer(self):
+        # Genuine selection-reader inputs, independent of the old bounded
+        # native-test sidecar. Execution alone is mocked by this test class.
+        from gameplay_runtime_selection import SCHEMA
+        names = ('world_emblem.geom.spv', 'world_emblem.frag.spv', 'fog.vert.spv',
+            'fog.frag.spv', 'water_copy.frag.spv', 'bsp_patchy_noise.frag.spv',
+            'bsp_patchy_composite.frag.spv', 'patchy_noise.frag.spv', 'patchy_composite.frag.spv',
+            'bloom.vert.spv', 'bloom.frag.spv', 'crt_oled.frag.spv', 'display.frag.spv',
+            'overlay.vert.spv', 'overlay.frag.spv', 'ui.vert.spv', 'ui.frag.spv')
+        for name in names:
+            (self.shaders / name).write_bytes(name.encode())
+        inventory = self.runtime.parent / 'runtime-files.json'
+        inventory.write_text(json.dumps({'shaders/' + p.name:
+            dict(sha256=self.digest(p), bytes=p.stat().st_size) for p in self.shaders.iterdir()}))
+        proof = self.runtime.parent / 'qualification.json'
+        proof.write_text(json.dumps(dict(passed=True, runtime=self.runtime.relative_to(self.root).as_posix(),
+            runtime_sha256=self.digest(self.runtime), unresolved_case_failures=[])))
+        record = dict(schema=SCHEMA, runtime=self.runtime.relative_to(self.root).as_posix(),
+            runtime_sha256=self.digest(self.runtime), qualification=proof.relative_to(self.root).as_posix(),
+            qualification_sha256=self.digest(proof), inventory=inventory.relative_to(self.root).as_posix(),
+            inventory_sha256=self.digest(inventory), cache=self.cache.relative_to(self.root).as_posix(),
+            maps={'lockout.map':self.digest(self.maps/'lockout.map')},default_map='lockout.map',local_players=1)
+        (self.root/'gameplay-runtime-selection.json').write_text(json.dumps(record))
+        self.runtime.with_name(self.runtime.name + '.native-test.json').unlink(missing_ok=True)
+        self.info = self.info.replace('Native MCC gameplay test: available', 'Native MCC gameplay test: unavailable')
+        self.info += 'Qualified MCC multiplayer: available\n'
+        return record
+
     def call(self, *args):
         stdout, stderr = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
@@ -117,6 +145,53 @@ class MccSandboxLauncherTests(unittest.TestCase):
         self.execute.assert_called_once_with(str(self.launcher), [str(self.launcher), "--native-test",
             "--hidden", "--mute", "--frames", "6", "--viewport", "640", "480"])
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
+
+    def test_qualified_multiplayer_dispatches_lockout_through_regular_launcher(self):
+        self.publish_qualified_multiplayer()
+        before = {p:p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+        with self.assertRaises(Dispatched):
+            self.call('--mute', '--frames', '6')
+        self.execute.assert_called_once_with(str(self.launcher), [str(self.launcher), '--native-test',
+            '--map', str(self.maps/'lockout.map'), '--shared-maps', str(self.maps),
+            '--local-players', '1', '--mute', '--frames', '6'])
+        self.assertEqual(before, {p:p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
+
+    def test_check_reports_real_qualified_selection_without_old_sidecar(self):
+        self.publish_qualified_multiplayer()
+        status, output, error = self.call('--check')
+        self.assertEqual((status,error),(0,''))
+        report=json.loads(output)
+        self.assertTrue(report['qualified_multiplayer_available'])
+        self.assertFalse(report['native_test_available'])
+        self.assertFalse(report['runtime_launched'])
+        self.execute.assert_not_called()
+
+    def test_qualified_selection_corruption_and_launcher_mismatch_fail_closed(self):
+        record=self.publish_qualified_multiplayer()
+        selection=self.root/'gameplay-runtime-selection.json'
+        original=self.info
+        for key,value in (('qualification_sha256','0'*64),('inventory_sha256','0'*64),
+                          ('runtime_sha256','0'*64),('maps',{'lockout.map':'0'*64})):
+            with self.subTest(key=key):
+                selection.write_text(json.dumps({**record,key:value}))
+                self.assertEqual(self.call()[0],1)
+        selection.write_text(json.dumps(record))
+        self.info=original.replace('Qualified MCC multiplayer: available','Qualified MCC multiplayer: unavailable')
+        self.assertEqual(self.call()[0],1)
+        self.info=original.replace(f'Runtime: {self.runtime}',f'Runtime: {self.launcher}')
+        self.assertEqual(self.call()[0],1)
+        self.execute.assert_not_called()
+
+    def test_qualified_multiplayer_needs_lockout_and_explicit_launcher_action(self):
+        record=self.publish_qualified_multiplayer()
+        selection=self.root/'gameplay-runtime-selection.json'
+        record['maps']={'shared.map':self.digest(self.maps/'shared.map')};record['default_map']='shared.map'
+        selection.write_text(json.dumps(record))
+        self.assertEqual(self.call()[0],1)
+        record['maps']={'lockout.map':self.digest(self.maps/'lockout.map')};record['default_map']='lockout.map'
+        selection.write_text(json.dumps(record));self.help='--launch-game opens menus\n'
+        self.assertEqual(self.call()[0],1)
+        self.execute.assert_not_called()
 
     def test_separate_frontend_menu_keeps_original_native_test_owner(self):
         self.publish_frontend()

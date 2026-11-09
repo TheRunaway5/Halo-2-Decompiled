@@ -25,10 +25,16 @@ int main(int argc,char **argv)try {
     const SourceParticleRenderCameraTu15 view{vector(camera.at("position")),
         vector(camera.at("forward")),vector(camera.at("up")),{}};
     const auto bits=[](float value){return std::bit_cast<std::uint32_t>(value);};
-    for(const auto &row:fixture.at("cases")) {
+    struct ReadOnlyInput final:SourcePhysicsContactMemory {
+        const SourceRuntimeMemory &source;
+        explicit ReadOnlyInput(const SourceRuntimeMemory &value):source(value){}
+        void read(std::uint32_t at,std::span<std::byte> out)const override{source.read(at,out);}
+        void write(std::uint32_t,std::span<const std::byte>)override{throw FormatError("Readonly particle input mutated");}
+    } borrowed(memory);
+    for(bool generic:{false,true})for(const auto &row:fixture.at("cases")) {
         const auto system=row.at("system").get<std::uint32_t>();
         const auto location=row.at("location").get<std::uint32_t>();
-        const auto read=source_particle_render_state_tu15(cache,memory,system,location,view);
+        const auto read=generic?source_particle_render_state_tu15(cache,borrowed,system,location,view):source_particle_render_state_tu15(cache,memory,system,location,view);
         const auto sprite=cache.load_particle_sprite(read.definition.particle_datum);
         ParticleRenderValueCache values;values.system_identity=system;values.location_identity=location;
         const auto mask=sprite.required_values&0x107f0u;
@@ -58,16 +64,17 @@ int main(int argc,char **argv)try {
                 ++count;
             });
         if(cursor!=row.at("callbacks").size())throw FormatError("Original callback count differs");
+        const SourcePhysicsContactMemory &rejections=generic?static_cast<const SourcePhysicsContactMemory&>(borrowed):static_cast<const SourcePhysicsContactMemory&>(memory);
         bool stale{};
-        try{(void)source_particle_render_state_tu15(cache,memory,system^0x10000u,location,view);}
+        try{(void)source_particle_render_state_tu15(cache,rejections,system^0x10000u,location,view);}
         catch(const FormatError&){stale=true;}
         if(!stale)throw FormatError("Stale source particle system was admitted");
         const auto other=fixture.at("cases").at(1-(system&65535u)).at("location").get<std::uint32_t>();
         bool foreign{};
-        try{(void)source_particle_render_state_tu15(cache,memory,system,other,view);}
+        try{(void)source_particle_render_state_tu15(cache,rejections,system,other,view);}
         catch(const FormatError&){foreign=true;}
         if(!foreign)throw FormatError("Foreign source particle location was admitted");
     }
-    if(count!=14 || memory.checkpoint()!=saved)throw FormatError("Incomplete or mutating particle readback");
-    std::cout<<"PASS14 original Backwash particle render inputs, two source systems; stale/foreign rejection and unchanged pools\n";
+    if(count!=28 || memory.checkpoint()!=saved)throw FormatError("Incomplete or mutating particle readback");
+    std::cout<<"PASS14 original Backwash particle render inputs through each of Runtime and generic readonly storage, two source systems; stale/foreign rejection and unchanged pools\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

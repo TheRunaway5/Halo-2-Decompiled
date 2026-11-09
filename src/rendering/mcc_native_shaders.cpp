@@ -574,6 +574,12 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
                     supplemental_payloads.insert(vehicles.payloads.begin(),vehicles.payloads.end());
                     vehicle_payloads=vehicles.payloads;
                     vehicle_semantics=std::move(vehicles.semantic_names);
+                    const auto camouflage=supplement_mcc_native_pc_camouflage(bank,path_,tags_,globals_tag_,
+                        [&](std::uint32_t address,std::size_t size) {
+                            return Bytes(storage_).slice(metadata_offset(address,size),size);
+                        },[&](std::uint32_t handle,std::uint32_t frame){return frame<bitmap_count(handle);},
+                        root,binding.input_bytes,binding.input_sha256,library_snapshot);
+                    supplemental_payloads.insert(camouflage.begin(),camouflage.end());
                 }
             }
         }

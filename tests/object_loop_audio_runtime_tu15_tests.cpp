@@ -170,10 +170,40 @@ int main(int argc,char **argv) {
     auto &memory=native.memory();
     if(vehicle_spawn) {
       std::array<Controls,multiplayer_capacity> warmup{};
-      for(unsigned tick=0;tick<60;++tick)world.match.step(warmup);
-      const auto initial=world.match.state();const auto slot=world.local_slots.front();
+      const auto slot=world.local_slots.front();
+      if(owner=="ghost")for(unsigned tick=0;tick<60;++tick)world.match.step(warmup);
+      else for(unsigned tick=0;tick<3 && world.match.state().players[slot].source_unit==null_datum;++tick)
+        world.match.step(warmup);
+      const auto initial=world.match.state();
       check(world.match.source_engine_owned() && initial.players[slot].source_unit!=null_datum,
           "Vehicle controls require canonical source-engine birth before scene placement");
+      if(owner=="ghost") {
+        // The scenario approach misses the settled Ghost. Use its posed
+        // entrance as a scene input; the source still owns seat admission.
+        std::uint32_t vehicle=null_datum;float nearest=1e30f;
+        for(const auto& object:source.live_objects())if(object.definition==target_definition && object.parent==null_datum) {
+          const auto distance=length(source.object_transform(object.object).position-entry_point);
+          if(distance<nearest){nearest=distance;vehicle=object.object;}
+        }
+        check(vehicle!=null_datum,"Canonical scene did not naturally create the requested Ghost");
+        const auto& definition=world.content.unit_interactions->units.at(target_definition);
+        const auto nodes=source.world_nodes(vehicle);bool placed=false;
+        for(const auto& seat:definition.seats)if(seat.flags&4u) {
+          const auto marker=definition.markers.find(seat.entry_marker);if(marker==definition.markers.end())continue;
+          const auto points=pose_model_markers(marker->second,nodes,definition.permutations,{},1);
+          if(points.empty())continue;
+          auto point=points.front().world.position+points.front().world.basis[0]*(seat.radius*.5f);
+          const CollisionWorld terrain(world.content.collision);
+          const auto floor=terrain.raycast(point+Vec3{0,0,2*world.content.player.height},{0,0,-1},4*world.content.player.height);
+          if(!floor)continue;
+          point.z=floor->position.z+world.content.player.radius;
+          entry_point=points.front().world.position;vehicle_spawn->position=point;
+          const auto look=entry_point-(point+Vec3{0,0,world.content.player.camera_height});
+          vehicle_spawn->facing=std::atan2(look.y,look.x);placed=true;break;
+        }
+        check(placed,"Settled Ghost has no clear authored driver entrance");
+        report["settled_entry_point"]={entry_point.x,entry_point.y,entry_point.z};
+      }
       test::place_player(world.match,slot,*vehicle_spawn);
       native.set_object_position(initial.players[slot].source_unit,vehicle_spawn->position);
       std::array<Controls,multiplayer_capacity> neutral{};
@@ -390,7 +420,9 @@ int main(int argc,char **argv) {
               {"class_words",words(definition.sound_class)},{"pitch_intervals",intervals}});
         }
       }
-      report["packet_boundary_scope"]="Actual source frame requests and queued normal-loop PCM packets; entry/exit/alternate/detail scheduling and launcher gameplay are separate";
+      report["packet_boundary_scope"]=controls_mode?
+          "Actual source frame requests and authored start/loop PCM submissions through the native controller; manual audio delivery":
+          "Actual source frame requests and queued normal-loop PCM packets";
       report["packet_selection_seed_is_declared_component_input"]=true;
       report["native_local_views"]=options.local_players;
       if(object_mode) {
@@ -657,6 +689,23 @@ int main(int argc,char **argv) {
         }
       }
       if(controls_mode && player.source_parent!=null_datum) {
+        if(seated==1) {
+          check(player.source_parent==target_object,"Control input reached a different vehicle generation");
+          const auto& seats=world.content.unit_interactions->units.at(target_definition).seats;
+          check(player.source_seat>=0 && std::size_t(player.source_seat)<seats.size() &&
+              (seats[std::size_t(player.source_seat)].flags&4u),"Control input requires the actual driver seat");
+          if(owner=="warthog") {
+            const bool gauss=std::getenv("HALO2_TEST_GAUSS_HORN")!=nullptr;bool turret=false;
+            report["actual_vehicle_children"]=Json::array();
+            for(const auto& child:source.live_objects())if(child.parent==player.source_parent) {
+              const auto tag=world.cache->query_tag({.handle=TagHandle{child.definition}});
+              if(!tag)continue;
+              report["actual_vehicle_children"].push_back(tag->name);
+              turret|=tag->name.find(gauss?"\\turrets\\gauss\\":"\\turrets\\chaingun\\")!=std::string::npos;
+            }
+            check(turret,"Seated driver does not own the requested Warthog turret variant");
+          }
+        }
         SDL_Event button{};button.type=SDL_MOUSEBUTTONDOWN;
         button.button.button=owner=="warthog"?SDL_BUTTON_LEFT:SDL_BUTTON_RIGHT;
         const bool held=(tick>=90&&tick<150)||(tick>=180&&tick<210);
@@ -670,6 +719,8 @@ int main(int argc,char **argv) {
         if(!report.contains("actual_vehicle_audio_control_samples"))report["actual_vehicle_audio_control_samples"]=Json::array();
         report["actual_vehicle_audio_control_samples"].push_back({{"tick",tick},{"vehicle",target_object},
             {"body",body},{"source_control_word",word(memory,body+0x148)},
+            {"source_unit_flags",word(memory,body+0x134)},
+            {"ghost_boost_charge_bits",owner=="ghost"?Json(word(memory,body+0x2c4)):Json(nullptr)},
             {"source_driver_control_word",word(memory,driver+0x148)},
             {"source_parent",player.source_parent},{"source_seat",player.source_seat},
             {"player_position",{player.position.x,player.position.y,player.position.z}},
@@ -702,7 +753,8 @@ int main(int argc,char **argv) {
     report["native_loop_packet_peak"]=native_peak;report["native_loop_packet_submissions"]=native_packets;
     report["native_banshee_boost_sides"]=native_boost_sides;
     report["action_audio"]={{"packets",action_packets},{"starts",action_starts},{"loops",action_loops},
-        {"sides",action_sides},{"active_after_release",active_action_voices}};
+        {"sides",action_sides},{"active_after_release",active_action_voices},
+        {"expected_starts_for_two_presses",owner=="ghost"?4:2}};
     report["native_banshee_contrail_sides"]=native_contrail_sides;
     if(owner=="lift")report["lift_activation"]={{"initial_height",initial_height},{"peak_height",peak_height},
         {"positive_source_requests",lift_activation_requests},{"actual_native_packets",native_lift_activation_packets}};
@@ -713,20 +765,35 @@ int main(int argc,char **argv) {
     report["passed"]=(mode=="native-views-empty" || mode=="native-views-far")?target_requests==0:
         mode=="nonspatial-control"?control_requests>0:
         ((!vehicle||seated>0)&&(target_loops.empty()?requests>0:target_requests>0)&&!report["initial_loops"].empty());
-    const bool synchronized=std::ranges::any_of(target_loops,[&](auto tag){return world.cache->load_looping_sound(tag).flags&0x10u;});
-    report["controller_random_domain"]=synchronized?"actual native platform group seed and private track/voice words":"actual common secondary word";
+    bool synchronized=false,ordinary=false;
+    for(const auto tag:target_loops) {
+      const auto flags=world.cache->load_looping_sound(tag).flags;
+      if(flags&0x200u)continue;
+      if(flags&0x10u)synchronized=true;
+      else ordinary=true;
+    }
+    // A synchronized engine and an ordinary horn share one vehicle, not
+    // one random bank. Only a synchronized-only scene keeps common RNG fixed.
+    const bool uses_common_rng=object_mode&&(!synchronized || (controls_mode&&ordinary));
+    report["controller_random_domain"]=synchronized?
+        (controls_mode&&ordinary?"actual private synchronization and common secondary words":
+          "actual native platform group seed and private track/voice words"):"actual common secondary word";
+    report["expected_common_secondary_rng_advance"]=uses_common_rng;
     report["ordinary_controller_used_common_secondary_rng"]=object_mode&&packet_auxiliary!=packet_auxiliary_before;
     report["native_packet_observer_mutation_rejected"]=packet_mutation_rejected;
     if(packet_audio)report["passed"]=report["passed"].get<bool>()&&report["native_PCM_verified"].get<bool>()&&
-        (object_mode&&!synchronized?packet_auxiliary!=packet_auxiliary_before:packet_auxiliary==packet_auxiliary_before);
+        (uses_common_rng?packet_auxiliary!=packet_auxiliary_before:packet_auxiliary==packet_auxiliary_before);
     if(mode=="native-object-loop-retire")report["passed"]=report["passed"].get<bool>()&&report["native_loop_final_voices"]==0;
     if(object_mode)report["passed"]=report["passed"].get<bool>()&&packet_mutation_rejected;
     if(mode=="native-object-loop-maneuvers")report["passed"]=report["passed"].get<bool>()&&
         report.value("native_metadata_restore_rejected_without_target",false)&&native_boost_sides==3u&&native_contrail_sides==3u;
-    if(controls_mode)report["passed"]=report["passed"].get<bool>()&&action_packets>0&&action_starts>=2&&action_loops>0&&
+    if(controls_mode)report["passed"]=report["passed"].get<bool>()&&action_packets>0&&action_starts==(owner=="ghost"?4u:2u)&&action_loops>0&&
         active_action_voices==0&&(owner!="ghost"||action_sides==3u)&&
         (!report.contains("playback_errors")||report["playback_errors"].empty());
-    if(controls_mode && !report["passed"].get<bool>())report["error"]="Held mouse input produced no complete authored boost/horn audio";
+    if(controls_mode && !report["passed"].get<bool>())report["error"]=!seated?
+        "Scenario approach did not reach an actual vehicle seat":
+        action_starts!=(owner=="ghost"?4u:2u)?"Authored boost/horn entry count differs from two physical presses":
+        "Held/released mouse input did not complete the authored boost/horn audio lifecycle";
     if(owner=="lift" && packet_audio)report["passed"]=report["passed"].get<bool>()&&
         peak_height>initial_height && lift_activation_requests>0 && native_lift_activation_packets>0;
     report["ordinary_object_loop_profile_verified"]=object_mode&&report["passed"].get<bool>();

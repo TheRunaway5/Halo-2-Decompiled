@@ -1,4 +1,5 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
+include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15BspObjectAssociation.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15DataArrayAllocateSpecific.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15PageAllocator.cmake")
 # Keep new strict-FP owners in a small library: adding a per-source flag to
@@ -23,6 +24,7 @@ else()
     endif()
 endif()
 target_link_libraries(halo2_systems PUBLIC halo2_native_constraint_solver)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_geometry_resource)
 # Pair/point kernels consume these owners without pulling the World facade.
 # Keep their definitions below the consumers in the static-link dependency
 # graph, including binaries that instantiate only a typed native handoff.
@@ -46,9 +48,22 @@ if(HALO2_SANITIZERS AND NOT MSVC)
 endif()
 target_link_libraries(halo2_native_array_reserve PUBLIC halo2_native_array_storage)
 target_link_libraries(halo2_systems PUBLIC halo2_native_array_reserve)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_array_reserve)
+add_library(halo2_native_stack_arena STATIC src/physics/native_tu15_stack_arena.cpp)
+target_include_directories(halo2_native_stack_arena PUBLIC include)
+target_compile_features(halo2_native_stack_arena PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_stack_arena PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_stack_arena PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_stack_arena PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_stack_arena PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_stack_arena)
 add_library(halo2_native_pair_consumer STATIC src/physics/native_tu15_pair_consumer.cpp
     src/physics/native_tu15_pair_consumer_input_observer.cpp
-    src/physics/native_tu15_stack_arena.cpp
     src/physics/native_tu15_phantom_pair_delete.cpp
     src/physics/native_tu15_phantom_overlap_add.cpp
     src/physics/native_tu15_phantom_overlap_remove.cpp
@@ -71,13 +86,18 @@ else()
     target_compile_options(halo2_native_pair_consumer PRIVATE
         -fno-fast-math -ffp-contract=off -frounding-math)
 endif()
-target_link_libraries(halo2_native_pair_consumer PUBLIC Threads::Threads halo2_native_array_storage)
+target_link_libraries(halo2_native_pair_consumer PUBLIC Threads::Threads halo2_native_array_storage halo2_native_stack_arena)
 if(HALO2_SANITIZERS AND NOT MSVC)
     target_compile_options(halo2_native_pair_consumer PRIVATE
         -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(halo2_native_pair_consumer PUBLIC -fsanitize=address,undefined)
 endif()
 target_link_libraries(halo2_systems PUBLIC halo2_native_pair_consumer)
+# Custom rules retain the original shared player/item/fade scheduler. The
+# existing native target supplies its strict numerical compilation contract.
+target_sources(halo2_native_pair_consumer PRIVATE
+    src/gameplay/multiplayer/native_custom_mechanics_frame_tu15.cpp)
+target_link_libraries(halo2_native_pair_consumer PUBLIC halo2_native_tu15_data_array_delete)
 add_library(halo2_native_gameplay_deactivation STATIC
     src/physics/native_tu15_body_deactivation_policy.cpp
     src/physics/native_tu15_gameplay_deactivation_policy.cpp)
@@ -201,6 +221,7 @@ add_library(halo2_native_object_velocity STATIC
     src/physics/native_tu15_island_contact_merge.cpp
     src/physics/native_tu15_island_lifetime.cpp
     src/physics/native_tu15_object_motion.cpp
+    src/physics/native_tu15_phantom_body_velocity.cpp
     src/physics/native_tu15_object_publication.cpp
     src/physics/native_tu15_island_activation.cpp
     src/physics/native_tu15_activation_agents.cpp
@@ -257,6 +278,71 @@ target_link_libraries(halo2_native_object_velocity PUBLIC
     halo2_native_tu15_data_array_delete halo2_native_camera_projection halo2_native_shape_bounds
     halo2_native_array_reserve)
 target_link_libraries(halo2_systems PUBLIC halo2_native_object_velocity)
+
+# Qualified shared184EC0 support-carrier frame and point-motion composition.
+add_library(halo2_native_support_carrier STATIC
+    src/physics/native_tu15_support_carrier.cpp
+    src/physics/native_tu15_support_carrier_handoff.cpp)
+target_include_directories(halo2_native_support_carrier PUBLIC include)
+target_compile_features(halo2_native_support_carrier PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_support_carrier PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_support_carrier PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_support_carrier PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_support_carrier PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_native_support_carrier PUBLIC
+    halo2_native_object_velocity halo2_native_pair_consumer halo2_native_camera_projection)
+target_link_libraries(halo2_systems PUBLIC halo2_native_support_carrier)
+
+# Native unit inputs: real model vitality defaults and declared equipment rows.
+add_library(halo2_native_unit_inputs STATIC
+    src/physics/native_tu15_unit_vitality_input.cpp
+    src/physics/native_tu15_unit_equipment_profile.cpp)
+target_include_directories(halo2_native_unit_inputs PUBLIC include)
+target_compile_features(halo2_native_unit_inputs PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_unit_inputs PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_unit_inputs PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_unit_inputs PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_unit_inputs PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_native_unit_inputs)
+if(BUILD_TESTING)
+    add_executable(native_mcc_unit_equipment_profile_tu15_tests
+        tests/native_mcc_unit_equipment_profile_tu15_tests.cpp)
+    target_link_libraries(native_mcc_unit_equipment_profile_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME native_mcc_unit_equipment_profile_tu15
+        COMMAND native_mcc_unit_equipment_profile_tu15_tests
+            "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}/lockout.map"
+            "${CMAKE_CURRENT_BINARY_DIR}/native-unit-equipment-profile.json")
+    add_test(NAME native_mcc_unit_vitality_observer_tu15
+        COMMAND native_mcc_unit_equipment_profile_tu15_tests
+            "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}/lockout.map"
+            "${CMAKE_CURRENT_BINARY_DIR}/native-unit-vitality-observer.json"
+            --vitality-observer-only)
+    set_tests_properties(native_mcc_unit_equipment_profile_tu15 native_mcc_unit_vitality_observer_tu15
+        PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+    add_executable(native_mcc_custom_powerup_tu15_tests tests/native_mcc_custom_powerup_tu15_tests.cpp)
+    target_link_libraries(native_mcc_custom_powerup_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME native_mcc_custom_powerup_tu15 COMMAND native_mcc_custom_powerup_tu15_tests
+        "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}/headlong.map"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/data/tags/variants"
+        "${CMAKE_CURRENT_BINARY_DIR}/native-custom-powerup.json")
+    set_tests_properties(native_mcc_custom_powerup_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+endif()
 add_library(halo2_native_vehicle_flip STATIC
     src/physics/native_tu15_vehicle_flip.cpp
     src/physics/native_tu15_vehicle_flip_binding.cpp
@@ -434,6 +520,16 @@ if(BUILD_TESTING)
     add_executable(native_tu15_world_residuals_tests tests/native_tu15_world_residuals_tests.cpp)
     target_link_libraries(native_tu15_world_residuals_tests PRIVATE halo2_systems)
     add_test(NAME native_world_residuals_model_tu15 COMMAND native_tu15_world_residuals_tests)
+    set(_halo2_cli_route_arguments)
+    if(NOT EXISTS "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}/05b_deltatowers.map")
+        list(APPEND _halo2_cli_route_arguments --multiplayer-only)
+    endif()
+    add_test(NAME native_cli_gameplay_routes_tu15
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_native_gameplay_routes_tu15.py"
+            --runtime "$<TARGET_FILE:halo2_native>" --source "${CMAKE_CURRENT_SOURCE_DIR}"
+            --maps "${HALO2_MCC_GRAVLIFT_MAP_DIRECTORY}" ${_halo2_cli_route_arguments}
+            --report "${CMAKE_CURRENT_BINARY_DIR}/native-cli-gameplay-routes.json")
+    set_tests_properties(native_cli_gameplay_routes_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 800)
     foreach(owner IN ITEMS island world)
         add_executable(native_tu15_${owner}_integration_tests tests/native_tu15_${owner}_integration_tests.cpp)
         target_link_libraries(native_tu15_${owner}_integration_tests PRIVATE halo2_systems)
@@ -586,6 +682,14 @@ if(BUILD_TESTING)
         set_tests_properties(native_tu15_sound_${group} PROPERTIES TIMEOUT 300)
     endfunction()
     halo2_native_sound_group_test(resources binding cache_query chunk_readiness)
+    add_executable(native_tu15_sound_cache_request_tests EXCLUDE_FROM_ALL
+        tests/native_tu15_sound_stream_packets_tests.cpp src/audio/native_tu15_sound_kernels_resources.cpp)
+    target_include_directories(native_tu15_sound_cache_request_tests PRIVATE include src)
+    target_link_libraries(native_tu15_sound_cache_request_tests PRIVATE nlohmann_json::nlohmann_json)
+    set(HALO2_SOUND_CACHE_REQUEST_FIXTURE "" CACHE FILEPATH "Unchanged original binding/request/allocation call-chain fixture")
+    add_test(NAME native_tu15_sound_cache_request COMMAND native_tu15_sound_cache_request_tests
+        "${HALO2_SOUND_CACHE_REQUEST_FIXTURE}" "${CMAKE_CURRENT_BINARY_DIR}/native-sound-cache-request.json")
+    set_tests_properties(native_tu15_sound_cache_request PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_executable(native_tu15_sound_cache_pages_tests EXCLUDE_FROM_ALL
         tests/native_tu15_sound_stream_packets_tests.cpp src/audio/native_tu15_sound_kernels_resources.cpp)
     target_include_directories(native_tu15_sound_cache_pages_tests PRIVATE include src)
@@ -699,7 +803,7 @@ if(BUILD_TESTING)
         --output "${CMAKE_CURRENT_BINARY_DIR}/native-sound-stream-format.json")
     set_tests_properties(native_tu15_sound_stream_format PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
-    foreach(_h2_sound_resource_target IN ITEMS native_tu15_sound_cache_pages_tests native_tu15_sound_cache_datum_tests
+    foreach(_h2_sound_resource_target IN ITEMS native_tu15_sound_cache_request_tests native_tu15_sound_cache_pages_tests native_tu15_sound_cache_datum_tests
         native_tu15_sound_stream_packets_tests native_tu15_sound_stream_retirement_tests
         native_tu15_sound_stream_queue_tests native_tu15_sound_stream_payload_tests
         native_tu15_sound_cache_read_tests
@@ -754,6 +858,7 @@ target_sources(halo2_systems PRIVATE src/gameplay/camera/native_tu15_camera_pack
 target_sources(halo2_systems PRIVATE src/assets/native_tu15_prt_cache_data.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/renderer/native_tu15_main_view_data.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/campaign/scripting/native_mcc_script_builtin.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/physics/native_tu15_object_recovery.cpp)
 add_executable(verify_mcc_native_world tools/verify_mcc_native_world.cpp)
 target_link_libraries(verify_mcc_native_world PRIVATE halo2_systems)
 add_executable(verify_campaign_activation_tu15 tools/verify_campaign_activation_tu15.cpp)
@@ -2018,12 +2123,27 @@ target_sources(halo2_native_object_velocity PRIVATE
 )
 
 # Qualified native island regroup and its sole typed service builder.
+add_library(halo2_native_partition_temporary STATIC
+    src/physics/native_tu15_island_partition_temporary.cpp)
+target_include_directories(halo2_native_partition_temporary PUBLIC include)
+target_compile_features(halo2_native_partition_temporary PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_partition_temporary PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_partition_temporary PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_partition_temporary PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_partition_temporary PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_partition_temporary)
+target_link_libraries(halo2_native_object_velocity PUBLIC halo2_native_partition_temporary)
 target_sources(halo2_native_object_velocity PRIVATE
     src/physics/native_tu15_island_partition_graph.cpp
     src/physics/native_tu15_island_partition_build.cpp
-    src/physics/native_tu15_raw_allocator.cpp
     src/physics/native_tu15_island_partition_allocator_binding.cpp
-    src/physics/native_tu15_island_partition_temporary.cpp
     src/physics/native_tu15_island_partition_edges.cpp
     src/physics/native_tu15_island_construction.cpp
     src/physics/native_tu15_island_regroup.cpp
@@ -2074,8 +2194,40 @@ target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_look_i
 # Sole native282C10 semantic parent and known component-state children.
 target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_dirty_island_objects.cpp src/physics/native_tu15_component_state.cpp)
 
-# Sole source-authenticated232D20/232C80 main-heap release owner.
-target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_main_heap_release.cpp)
+# Shared source-authenticated fixed/secondary main-heap DATA owners.
+add_library(halo2_native_main_heap STATIC
+    src/physics/native_tu15_main_heap_release.cpp
+    src/physics/native_tu15_main_heap_allocate.cpp)
+target_include_directories(halo2_native_main_heap PUBLIC include)
+target_compile_features(halo2_native_main_heap PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_main_heap PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_main_heap PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_main_heap PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_main_heap PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_native_pair_consumer PUBLIC halo2_native_main_heap)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_main_heap)
+
+add_library(halo2_native_raw_allocator STATIC
+    src/physics/native_tu15_raw_allocator.cpp
+    src/physics/native_tu15_physical_epoch.cpp)
+target_include_directories(halo2_native_raw_allocator PUBLIC include)
+target_compile_features(halo2_native_raw_allocator PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_native_raw_allocator PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_native_raw_allocator PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS)
+        target_compile_options(halo2_native_raw_allocator PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(halo2_native_raw_allocator PUBLIC -fsanitize=address,undefined)
+    endif()
+endif()
+target_link_libraries(halo2_native_object_velocity PUBLIC halo2_native_raw_allocator)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_raw_allocator)
 
 # Source-authenticated native Host look/camera pipeline; unknown queries refuse.
 target_sources(halo2_native_pair_consumer PRIVATE

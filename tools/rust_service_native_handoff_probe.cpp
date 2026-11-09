@@ -1,6 +1,7 @@
-// Actual v16 native queue/descriptor/settings handoff. Provider handoff is a
-// private fixture; this probe does not construct or certify a played world.
+// Actual native queue and transport handoff with private provider fixtures.
+// The v12 bound-start control uses a synthetic loaded signature.
 #include "halo2/online_matchmaking.hpp"
+#include "halo2/frontend.hpp"
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -11,6 +12,7 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <thread>
 
 using namespace halo2;
@@ -24,12 +26,14 @@ std::string encode(const std::string &s){
   std::string result(p);curl_free(p);return result;
 }
 }
-int main(){
+int main(int argc,char **argv){
   Json report={{"full_settings_validated",false},{"native_session_taken",false},
     {"native_loading_reached",false},{"played_world",false},{"real_provider",false},
     {"sdk_available",online_protocol_bridge::eos_sdk_available()}};
   const char *stage="initialize";
   try {
+    const bool bound_start=argc==2 && std::string_view(argv[1])=="--bound-start";
+    require(argc==1 || bound_start,"Unexpected native handoff probe argument");
     require(curl_global_init(CURL_GLOBAL_DEFAULT)==CURLE_OK,"Native curl initialization failed");
     const auto base=input("H2_HANDOFF_URL"),token=input("H2_HANDOFF_TOKEN"),subject=input("H2_HANDOFF_SUBJECT");
     const auto expected=Json::parse(input("H2_HANDOFF_GAMES"));
@@ -44,7 +48,7 @@ int main(){
         {"identity",{{"id",subject},{"username","Native fixture"},{"display_name","Native fixture"}}}}.dump()};
     });
     OnlineMatchmakingOptions options;options.endpoint=base;options.allow_loopback_http=true;
-    options.compatibility="halo2-native-queue-v16";options.poll_interval=500ms;
+    options.compatibility=bound_start?"halo2-native-queue-v12":"halo2-native-queue-v16";options.poll_interval=500ms;
     std::istringstream maps(input("H2_HANDOFF_MAPS"));
     for(std::string map;std::getline(maps,map,',');)options.maps.push_back(map);
     OnlineMatchmaking matchmaking(login,options);login->start();
@@ -58,28 +62,47 @@ int main(){
       const auto state=matchmaking.snapshot();report["queue_status"]=unsigned(state.status);
       if(state.match){
         const auto &match=*state.match;
-        require(match.settings.has_value(),"Native handoff omitted complete authored settings");
-        const auto row=std::find_if(expected.begin(),expected.end(),[&](const auto &r){return r.at("id")==match.game_id;});
+        const auto row=std::find_if(expected.begin(),expected.end(),[&](const auto &r){
+          return r.at("map")==match.map && r.at("variant")==match.variant && (bound_start || r.at("id")==match.game_id);
+        });
         require(row!=expected.end(),"Native handoff selected an unknown source game");
-        require(row->at("map")==match.map&&row->at("variant")==match.variant,"Native handoff changed map/variant identity");
-        const auto raw=row->at("settings").template get<std::string>();require(raw.size()==608,"Expected settings extent changed");
-        for(unsigned i=0;i<304;++i)require(match.settings->bytes[i]==std::stoul(raw.substr(2*i,2),nullptr,16),"Native handoff changed authored settings bytes");
-        report["full_settings_validated"]=true;report["settings_bytes"]=304;
+        if(!bound_start){
+          require(match.settings.has_value(),"Native handoff omitted complete authored settings");
+          const auto raw=row->at("settings").template get<std::string>();require(raw.size()==608,"Expected settings extent changed");
+          for(unsigned i=0;i<304;++i)require(match.settings->bytes[i]==std::stoul(raw.substr(2*i,2),nullptr,16),"Native handoff changed authored settings bytes");
+          report["full_settings_validated"]=true;report["settings_bytes"]=304;
+        }
         report["game_id"]=match.game_id;report["map"]=match.map;report["variant"]=match.variant;
       }
       if(state.status==OnlineMatchmakingStatus::Failed){report["native_error"]=state.message;throw std::runtime_error("Native queue/handoff failed");}
       if(state.status==OnlineMatchmakingStatus::Ready&&!queued){
         const auto row=std::find_if(state.playlists.begin(),state.playlists.end(),[&](const auto &p){return p.id==playlist;});
-        require(row!=state.playlists.end()&&row->eligible,"Source playlist is unavailable to the native v16 client");
+        require(row!=state.playlists.end()&&row->eligible,"Fixture playlist is unavailable to the native client");
         matchmaking.join(playlist);queued=true;stage="native search/QoS/descriptor";
       }
-      if(!session)session=matchmaking.take_launch();
+      if(bound_start && state.status==OnlineMatchmakingStatus::Loading && state.start_countdown_ms.value_or(0)>0)
+        report["positive_countdown_observed"]=true;
+      if(!session){
+        session=matchmaking.take_launch();
+        if(session && bound_start){
+          require(matchmaking.snapshot().start_countdown_ms==0,"Native handoff lacked a published room-bound zero");
+          require(session->phase()==OnlineMatchSession::Phase::Loading,"Bound handoff escaped its loading phase");
+          report["bound_zero_observed"]=true;report["native_loading_reached"]=true;
+          session->loaded(0x0123456789abcdefull,UiVariant{"Slayer",0,{}});
+        }
+      }
       if(session){
         report["native_session_taken"]=true;report["transport_phase"]=unsigned(session->phase());
-        require(session->direct_udp(),"Full-settings handoff changed its admitted transport");
-        stage="native EOS/loading";
+        require(session->direct_udp(),"Native handoff changed its admitted transport");
+        stage=bound_start?"native bound start":"native EOS/loading";
         if(session->phase()==OnlineMatchSession::Phase::Failed){report["native_error"]=session->error();throw std::runtime_error("Native admitted transport failed");}
-        if(session->phase()==OnlineMatchSession::Phase::Loading){
+        if(bound_start && session->phase()==OnlineMatchSession::Phase::Running){
+          report["running_observed"]=true;report["stage"]=stage;
+          std::cout<<report.dump()<<std::endl;
+          std::this_thread::sleep_for(1s);
+          return 0;
+        }
+        if(!bound_start && session->phase()==OnlineMatchSession::Phase::Loading){
           require(report["full_settings_validated"]==true,"Native loading omitted immutable settings validation");
           report["native_loading_reached"]=true;report["stage"]=stage;
           std::cout<<report.dump()<<'\n';return 0;

@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_island_activation.hpp"
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include <bit>
 #include <stdexcept>
 namespace halo2 {
@@ -10,6 +11,7 @@ public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):memory_(m),observer_(o){}
     std::uint32_t word(std::uint32_t p,unsigned width=4)const{std::array<std::byte,4>b{};memory_.read(p,std::span(b).first(width));std::uint32_t value{};for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(b[n])<<(n*8u);return value;}
     void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width=4){std::array<std::byte,4>b{};for(unsigned n=0;n<width;++n)b[n]=std::byte(value>>(n*8u));SourcePhysicsContactRecordStore event{pc,p,{},{}};if(observer_){event.before.resize(width);memory_.read(p,event.before);event.written.assign(b.begin(),b.begin()+width);}memory_.write(p,std::span(b).first(width));if(observer_)observer_(event);}
+    void adjust(std::uint32_t pc,std::uint32_t p,unsigned width,std::uint32_t delta){native_tu15_adjust_retained_counter(memory_,pc,p,width,delta,observer_);}
 };
 template<class F>void require(const F&f,const char*message){if(!f)throw std::runtime_error(message);}
 // Both98-site notification owners have the same signed reverse/null-removal
@@ -77,11 +79,11 @@ void native_tu15_activate_physics_island(SourcePhysicsContactMemory&memory,Nativ
     const auto capacity=m.word(world.identity+0x10u)&0x7fffffffu,count=m.word(world.identity+0xcu);
     if(count==capacity){require(s.grow_array,"Native TU1.5 activation requires actual active-array growth");if(stats)++stats->growths;s.grow_array({world.identity+8u},4u,fp);}
     const auto current_count=m.word(world.identity+0xcu),active=m.word(world.identity+8u);
-    m.word(0x316d6bu,active+current_count*4u,island.identity);m.word(0x316d6eu,world.identity+0xcu,m.word(world.identity+0xcu)+1u);
+    m.word(0x316d6bu,active+current_count*4u,island.identity);m.adjust(0x316d6eu,world.identity+0xcu,4u,1u);
     const auto inactive=m.word(world.identity+0x14u),inactive_count=m.word(world.identity+0x18u),moved=m.word(inactive+inactive_count*4u-4u),index=m.word(island.identity+0x24u);
     m.word(0x316d7eu,inactive+index*4u,moved);
     const auto current_inactive=m.word(world.identity+0x14u),current_index=m.word(island.identity+0x24u),current_moved=m.word(current_inactive+current_index*4u);
-    m.word(0x316d8au,current_moved+0x24u,current_index);m.word(0x316d8du,world.identity+0x18u,m.word(world.identity+0x18u)-1u);
+    m.word(0x316d8au,current_moved+0x24u,current_index);m.adjust(0x316d8du,world.identity+0x18u,4u,0xffffffffu);
     const auto new_index=m.word(world.identity+0xcu)-1u;m.word(0x316d94u,island.identity+0x24u,new_index);
     m.word(0x316d97u,island.identity+0x29u,1,1);m.word(0x316d9fu,island.identity+0x34u,0);m.word(0x316da2u,island.identity+0x38u,0);
     native_tu15_notify_island_activation(memory,world,island,fp,s,observe,stats);
@@ -99,7 +101,7 @@ void native_tu15_remove_deferred_physics_body(SourcePhysicsContactMemory&memory,
             if(less(0,search_count)){const auto search_list=m.word(world.identity+0x108u);std::uint32_t candidate{};do{if(m.word(search_list+candidate*4u)==body.identity){found=candidate;break;}++candidate;}while(less(candidate,search_count));}
             const auto remaining=m.word(world.identity+0x10cu)-1u;m.word(0x316626u,world.identity+0x10cu,remaining);
             const auto current_list=m.word(world.identity+0x108u),moved=m.word(current_list+remaining*4u);m.word(0x316637u,current_list+found*4u,moved);
-            m.word(0x31663au,body.identity+6u,m.word(body.identity+6u,2)-1u,2);
+            m.adjust(0x31663au,body.identity+6u,2u,0xffffffffu);
             if(stats)++stats->deferred_removals;
             if(!m.word(body.identity+6u,2)){
                 if(native_tu15_reserved_body_reference(memory,body)){m.word(0x316652u,body.identity+6u,1,2);if(stats)++stats->protected_references;}

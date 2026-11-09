@@ -50,6 +50,14 @@ class EosConfigurationSelectionTests(unittest.TestCase):
         self.assertIsNone(engine.eos_client_configuration(self.root, None, self.prior))
 
 
+class QualificationMapPolicyTests(unittest.TestCase):
+    def test_additional_caches_cannot_escape_the_selected_map_owner(self):
+        for name in ('../midship.map', '/midship.map', 'dir/midship.map',
+                     'dir\\midship.map', '', 'midship.MAP', 'midship.map/extra', None):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                engine.qualification_maps(None, [name])
+
+
 class EnginePromotionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -85,6 +93,8 @@ class EnginePromotionTests(unittest.TestCase):
         custom_ui_fixture(self.root)
         empty_custom_map_fixture(self.root)
         controller_prompt_fixture(self.root)
+        from test_mcc_movies import bundle_fixture as movie_fixture
+        movie_fixture(self.root)
         asset_pins = custom_assets.inventory(self.root)
         self.addCleanup(lambda: self.assertEqual(custom_assets.inventory(self.root), asset_pins,
             'Engine promotion must preserve the original custom asset sources'))
@@ -1343,6 +1353,14 @@ class EnginePromotionTests(unittest.TestCase):
         metadata['map_sha256'] = engine.digest(maps / 'coagulation.map')
         self.smg_metadata.write_text(json.dumps(metadata))
         self.args.cache_candidate = candidate
+        self.args.baseline_selection = 'bin/engine-builds/baseline/selection.json'
+        self.args.baseline_cache = self.cache
+        self.args.native_reference_cache = self.cache
+        (self.cache / 'provenance.json').write_text('{}')
+        for name in ('coagulation', '01b_spacestation'):
+            library = self.cache / 'native-shaders' / name / 'library.json'
+            library.parent.mkdir(parents=True)
+            library.write_text('{}')
         registry = self.root / mcc_onboarding.REGISTRY
         registry.write_text(mcc_onboarding.SCHEMA + '\ncache\t' + self.cache.relative_to(self.root).as_posix() + '\n')
         (self.root / 'frontend-runtime-selection.json').write_text('previous menu owner')
@@ -1351,31 +1369,48 @@ class EnginePromotionTests(unittest.TestCase):
         before = {name: engine.publication_identity(self.root / name) for name in names}
         prior = dict(maps={'lockout.map': 'old', 'coagulation.map': 'old'},
                      default_map='coagulation.map', local_players=3, video_driver='x11')
+        self.args.qualify_map = ['midship.map', 'midship.map']
 
         def reader(root, **kwargs):
-            return selected_gameplay_runtime(root, **kwargs) if kwargs else prior
+            if kwargs.get('selection_name') == self.args.baseline_selection:
+                self.assertEqual(kwargs['cache_candidate'], self.cache)
+                return prior
+            self.assertEqual(kwargs['cache_candidate'], candidate)
+            return selected_gameplay_runtime(root, **kwargs)
 
         def menu(root, runtime, chosen, *_):
             self.assertEqual(chosen, candidate)
             return dict(runtime=runtime.relative_to(root).as_posix(), runtime_sha256=engine.digest(runtime))
 
-        with patch('mcc_onboarding.private_cache', return_value=(candidate, {})) as verify, \
+        commands = []
+        def build(command, **kwargs):
+            commands.append(command)
+            return self.build(command, **kwargs)
+
+        with patch('mcc_onboarding.private_cache', side_effect=lambda root, cache, **kwargs: (cache, {})) as verify, \
              patch('qualify_frontend_runtime.qualify', side_effect=menu), \
              patch.object(engine, 'publish_runtime_files') as publish:
-            self.attempt(dict(passed=True), reader=reader)
+            self.attempt(dict(passed=True), build, reader=reader)
         publish.assert_not_called()
         self.assertEqual({name: engine.publication_identity(self.root / name) for name in names}, before)
-        self.assertEqual(verify.call_count, 2)
+        self.assertEqual(verify.call_count, 3)
         self.assertTrue(all(call.kwargs['verify'] is True for call in verify.call_args_list))
         report = json.loads((self.args.output / 'report.json').read_text())
+        self.assertEqual(report['native_reference_cache']['path'], self.cache.relative_to(self.root).as_posix())
+        self.assertTrue(commands)
+        for command in commands:
+            self.assertIn('--cmake-arg=-DHALO2_MCC_NATIVE_LIBRARY_DIRECTORY=' + str(self.cache / 'native-shaders'), command)
+            self.assertIn('--cmake-arg=-DHALO2_WORKSHOP_TEST_CACHE=' + str(candidate), command)
         selection = self.root / report['runtime']
         record_path = selection.parent / 'selection.json'
         record = json.loads(record_path.read_text())
         self.assertEqual(record['cache'], candidate.relative_to(self.root).as_posix())
-        self.assertEqual(set(record['maps']), set(prior['maps']))
+        self.assertEqual(set(record['maps']), set(prior['maps']) | {'midship.map'})
         for name in ('default_map', 'local_players', 'video_driver'):
             self.assertEqual(record[name], prior[name])
         self.assertIn(dict(map='coagulation.map', local_players=3), report['requested_smoke_cases'])
+        self.assertEqual(report['requested_smoke_cases'].count(dict(map='midship.map', local_players=1)), 1)
+        self.assertEqual(report['requested_additional_maps'], ['midship.map'])
         self.assertIn('eos_worker', record)
         with patch('mcc_onboarding.selected', return_value=(self.cache, {})):
             with self.assertRaisesRegex(ValueError, 'qualified prepared MCC cache'):

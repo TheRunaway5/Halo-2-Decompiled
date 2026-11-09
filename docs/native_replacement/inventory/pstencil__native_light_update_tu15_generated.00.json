@@ -1,0 +1,69 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PStencil.cmake",
+      "line": 12,
+      "target": "halo2_systems"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "cf83f22271f177c5077bff69d6dd66aee25a123a267ea988c9f7c83c5b5cbead",
+      "selected_resolver_sha256": "c2312a8d902a3ff34f1010a7166614427933a56b8bcc172eb5ed5c93118625b1"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "cf83f22271f177c5077bff69d6dd66aee25a123a267ea988c9f7c83c5b5cbead",
+      "selected_resolver_sha256": "c2312a8d902a3ff34f1010a7166614427933a56b8bcc172eb5ed5c93118625b1"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "10f33b9f6bd9997cbf224ceaf86ddbaca870617219f280f3d2208cebbd571776",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_c3430",
+      "instruction_callback_sites": 134,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "c3430",
+        "tu15": "c3430"
+      },
+      "line": 349,
+      "literal_dispatch_required_targets": [
+        "c2cb0",
+        "c4d30",
+        "c5290",
+        "16ea60",
+        "1d30f0"
+      ],
+      "observed_entry": "c3430",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "c3430",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "c3430",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/pstencil/native_light_update_tu15_generated.cpp",
+  "source_bytes": 34651,
+  "source_filename_scope": "generated",
+  "source_sha256": "10fe9e6564888e022d56f82d8663dc69ebdee10a0f7220109335f3245a20603f"
+}

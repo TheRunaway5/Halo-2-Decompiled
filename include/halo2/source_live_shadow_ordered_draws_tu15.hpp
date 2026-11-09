@@ -14,8 +14,8 @@ struct SourceLiveShadowOrderedDrawsTu15 {
 };
 // Whole TU1.5 3BAA0 selection/sort on the existing source ABI stack. Accepted
 // routes are Generate/bank4CE298/category2/layer10 and Apply/4CE280/1/11.
-// The caller already owns the completed commands and phase inputs. This does
-// not bind a shader, submit GPU work or replace the original sorting owner.
+// The caller owns the completed commands and phase inputs. An observed call
+// executes the complete original entry with its original instruction stores.
 // The observer receives entry3BAA0 and the actual root owner. Copying records
 // completes before a later source call can reuse the caller's stack storage.
 SourceLiveShadowOrderedDrawsTu15 source_live_shadow_ordered_draws_tu15(

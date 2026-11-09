@@ -1,0 +1,122 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "CMakeLists.txt",
+      "line": 11218,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "7807beeb9c4036db80b6c54853c0098027d4bf79bb9408a13c1fcac7f020166f",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "7807beeb9c4036db80b6c54853c0098027d4bf79bb9408a13c1fcac7f020166f",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "e104a961d6fb266930048450b9f623ba14920eb07eb6def92f6153ce28289b2e",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1e9290"
+      ],
+      "function_name": "run_e89b0",
+      "instruction_callback_sites": 40,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "e89b0",
+        "tu15": "e89b0"
+      },
+      "line": 354,
+      "literal_dispatch_required_targets": [
+        "bbe00"
+      ],
+      "observed_entry": "e89b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "e89b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "e89b0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "admission_prefix_calls": [
+        "physics_world_runtime_detail::damage_record_native_tu15"
+      ],
+      "body_sha256": "7af4116ec230b3305ba1def85fc42f4da9aac37d63c24a8adf9f8fa82920ecea",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_105460",
+      "instruction_callback_sites": 0,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "105460",
+        "tu15": "105460"
+      },
+      "line": 398,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "physics_world_runtime_detail::damage_record_native_tu15"
+      ],
+      "observed_entry": null,
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": null,
+      "route_status": "no_callback_body_requires_audit",
+      "state_type": "WorldState",
+      "symbol": "105460",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "6eed29a035b67fd3f99c01612ceacf05ff70fac4287a3f2e928645a361c170df",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1e9290",
+      "instruction_callback_sites": 105,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1e9290",
+        "tu15": "1e9290"
+      },
+      "line": 402,
+      "literal_dispatch_required_targets": [
+        "e7e30",
+        "10eeb0",
+        "1e8b00",
+        "1e9460",
+        "209120",
+        "299ef0"
+      ],
+      "observed_entry": "1e9290",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1e9290",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1e9290",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/objects/source_damage_receiver_tu15_generated.cpp",
+  "source_bytes": 35854,
+  "source_filename_scope": "generated",
+  "source_sha256": "fe579b79bce2d2b011396f5561387501020ee6aac04840704fde07c30fb62731"
+}

@@ -207,6 +207,9 @@ def main():
         current['src/matchmaking_frontend_account_flow.hpp'] = (manifest.parent/'src/matchmaking_frontend_account_flow.hpp').read_bytes()
         current['src/matchmaking_frontend_friends.hpp'] = (manifest.parent/'src/matchmaking_frontend_friends.hpp').read_bytes()
         current['src/matchmaking_frontend_clans.hpp'] = (manifest.parent/'src/matchmaking_frontend_clans.hpp').read_bytes()
+        current['src/matchmaking_frontend_couch.hpp'] = (manifest.parent/'src/matchmaking_frontend_couch.hpp').read_bytes()
+        current['src/matchmaking_frontend_signin.hpp'] = (manifest.parent/'src/matchmaking_frontend_signin.hpp').read_bytes()
+        current['src/matchmaking_frontend_postgame.hpp'] = (manifest.parent/'src/matchmaking_frontend_postgame.hpp').read_bytes()
         current['src/matchmaking_frontend_lobby_view.hpp'] = (manifest.parent/'src/matchmaking_frontend_lobby_view.hpp').read_bytes()
         if headers is not None and current != headers:
             raise ValueError('Universal Rust slices disagree on their generated interface')

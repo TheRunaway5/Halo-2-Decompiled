@@ -58,6 +58,24 @@ struct NativeTu15PhysicsFrameExecutionStats {
   std::uint64_t native_look_update_fp_refusals{};
   std::uint64_t native_look_update_attempts{},native_look_update_calls{},native_look_update_refusals{},native_look_update_context_calls{},native_look_update_context_refusals{},native_look_update_camera_calls{},native_look_update_camera_completions{},native_look_update_camera_onfoot_calls{},native_look_update_camera_marker_calls{},native_look_update_marker_calls{},native_look_update_angle_calls{},native_look_update_angle_completions{},native_look_update_angle_refusals{},native_look_update_query_refusals{},native_look_update_marker_observer_refusals{};
   std::uint64_t native_look_reorientation_attempts{},native_look_reorientation_calls{},native_look_reorientation_refusals{},native_look_reorientation_kernel_calls{},native_look_reorientation_kernel_refusals{},native_look_reorientation_yaw_wraps{};
+  std::uint64_t native_bsp_association_attempts{};
+  std::uint64_t native_bsp_association_calls{};
+  std::uint64_t native_bsp_association_refusals{};
+  std::uint64_t native_bsp_association_kernel_entries{};
+  std::uint64_t native_bsp_association_kernel_refusals{};
+  std::uint64_t native_bsp_association_iterator_calls{};
+  std::uint64_t native_bsp_association_reset_objects{};
+  std::uint64_t native_bsp_association_association_records{};
+  std::uint64_t native_bsp_association_matched_objects{};
+  std::uint64_t native_bsp_association_excluded_objects{};
+  std::uint64_t native_bsp_association_resource_refusals{};
+  std::uint64_t native_bsp_association_observer_refusals{};
+  std::uint64_t native_look_initialization_remote_birth_attempts{};
+  std::uint64_t native_look_initialization_remote_birth_calls{};
+  std::uint64_t native_look_initialization_remote_birth_refusals{};
+  std::uint64_t native_look_initialization_input_collection_attempts{};
+  std::uint64_t native_look_initialization_input_collection_calls{};
+  std::uint64_t native_look_initialization_input_collection_refusals{};
   std::uint64_t native_look_initialization_attempts{},native_look_initialization_calls{},native_look_initialization_refusals{},native_look_initialization_cleared_records{},native_look_initialization_unit_directions{},native_look_initialization_unchanged{};
   std::uint64_t native_contact_body_attempts{},native_contact_body_calls{},native_contact_body_refusals{},native_contact_body_point_queries{},native_contact_body_property_queries{},native_contact_body_motion_type_queries{},native_contact_body_point_velocity_queries{},native_contact_body_impulse_requests{},native_contact_body_wake_attempts{},native_contact_body_wake_calls{},native_contact_body_wake_refusals{},native_contact_body_unqualified_owners{},native_contact_body_unsupported_fp_profiles{};
   std::map<std::uint32_t,std::uint64_t> native_contact_body_refused_owners;
@@ -159,6 +177,9 @@ struct NativeTu15PhysicsFrameExecutionStats {
   std::uint64_t native_solver_calls{},native_solver_initializations{},native_solver_iterations{},native_solver_primary_rows{},native_solver_secondary_rows{},native_solver_exported_rows{},native_solver_custom_refusals{};
   std::array<std::uint64_t,4> native_lift_scalar_calls{};
   std::uint64_t native_lift_power_calls{},native_lift_errno_writes{},native_lift_observation_refusals{};
+  std::array<std::uint64_t,2> native_lift_velocity_attempts{}, native_lift_velocity_completed{},
+      native_lift_velocity_observed_stores{};
+  std::uint64_t native_lift_velocity_refusals{};
   std::uint64_t native_vehicle_rate_acceleration_calls{},native_vehicle_rate_approach_calls{},
     native_vehicle_rate_cursor_calls{},native_vehicle_rate_refusals{};
   std::uint64_t native_object_velocity_handoff_attempts{},native_object_velocity_handoff_calls{},

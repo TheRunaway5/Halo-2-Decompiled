@@ -1,0 +1,146 @@
+"""Observe the request bucket that refuses the exact frozen party workload."""
+
+import argparse
+import asyncio
+from collections import Counter
+from contextvars import ContextVar
+from datetime import datetime, timezone
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import runpy
+import select
+import subprocess
+import sys
+import time
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--profile", choices=("baseline", "raised-prefix"), default="baseline")
+args = parser.parse_args()
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+owner = root / ".local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61"
+source = owner / "native-source"
+work = root / "build/test-results/frontend-postgame-leave-rust-20261102"
+binary = owner / "build/online_match_launch_tests"
+assets = root / "assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b"
+fixture = source / "tests/online_match_launch_http_test.py"
+assert binary.is_file() and fixture.is_file() and assets.is_dir()
+sys.path.insert(0, str(source))
+from aiohttp import web
+from multiplayer.master_server.protocol import Problem
+from multiplayer.master_server.request_admission import TokenBuckets
+
+
+def digest(path):
+    with path.open("rb") as stream:
+        return __import__("hashlib").file_digest(stream, "sha256").hexdigest()
+
+
+native = root / "build/test-results/frontend-signin-flow-rust-20261102/native"
+source_report = next(p for p in (native / "iteration-3-report.json", native / "iteration-3-running.json") if p.is_file())
+source_parts = json.loads(source_report.read_text())["source_pin_parts"]
+pins = {}
+for part in source_parts:
+    pins.update(json.loads((native / part).read_text()))
+checked = [fixture, source / "tests/online_match_launch_tests.cpp", source / "multiplayer/master_server/service.py",
+           source / "multiplayer/master_server/request_admission.py"]
+checked = {str(p.relative_to(source)): digest(p) for p in checked}
+assert all(pins.get(name) == value for name, value in checked.items())
+binary_pin = digest(binary)
+route = ContextVar("party_fixture_route", default="outside_request")
+calls, refusals, parameters = Counter(), Counter(), {}
+first = []
+begin = time.monotonic()
+
+@web.middleware
+async def route_scope(request, handler):
+    value = route.set(request.method + " " + request.path)
+    try:
+        return await handler(request)
+    finally:
+        route.reset(value)
+
+
+charge = TokenBuckets.charge
+
+
+def observe(self, key, refill, burst=None, interval=60, cost=1):
+    category = key.split(":", 1)[0]
+    calls[category] += 1
+    parameters.setdefault(category, set()).add((refill, burst if burst is not None else refill, interval, cost))
+    try:
+        return charge(self, key, refill, burst, interval, cost)
+    except Problem as error:
+        if error.status == 429:
+            kind = category + " " + route.get()
+            refusals[kind] += 1
+            if len(first) < 12:
+                first.append({"seconds": round(time.monotonic() - begin, 3), "kind": kind})
+        raise
+
+
+TokenBuckets.charge = observe
+module = runpy.run_path(str(fixture))
+fixture_main = module["main"]
+scope = fixture_main.__globals__
+original_app, original_settings = scope["create_app"], scope["Settings"]
+
+
+def observed_app(*args, **kwargs):
+    app = original_app(*args, **kwargs)
+    app.middlewares.insert(0, route_scope)
+    return app
+
+
+def raised_prefix(*args, **kwargs):
+    return original_settings(*args, **kwargs, prefix_rate_per_minute=100000)
+
+
+scope["create_app"] = observed_app
+if args.profile == "raised-prefix":
+    scope["Settings"] = raised_prefix
+sys.argv = [str(fixture), str(binary), "party", "--mcc-root", str(assets)]
+fd, send = os.pipe()
+log = scratch / "xvfb.log"
+display = None
+code = None
+error = None
+try:
+    with log.open("wb") as log_stream:
+        display = subprocess.Popen(["Xvfb", "-displayfd", str(send), "-screen", "0", "1280x720x24", "-nolisten", "tcp"],
+                                   pass_fds=(send,), stdout=log_stream, stderr=log_stream)
+    os.close(send)
+    send = None
+    assert select.select([fd], [], [], 10)[0], "Private display did not start"
+    number = os.read(fd, 32).decode().strip()
+    assert number.isdecimal() and display.poll() is None
+    os.environ["DISPLAY"] = ":" + number
+    code = asyncio.run(fixture_main())
+except Exception as failure:
+    error = f"{type(failure).__name__}: {failure}"
+    code = 1
+finally:
+    os.close(fd)
+    if send is not None:
+        os.close(send)
+    if display is not None and display.poll() is None:
+        display.terminate()
+        try:
+            display.wait(5)
+        except subprocess.TimeoutExpired:
+            display.kill()
+            display.wait()
+    report = dict(schema="H2_NATIVE_PARTY_RATE_DIAGNOSTIC_V1", profile=args.profile,
+                  exit_code=code, failure=error, observed_utc=datetime.now(timezone.utc).isoformat(),
+                  scratch=str(scratch), frozen_source_pins=checked, source_pin_parts=source_parts,
+                  native_binary_sha256=binary_pin, native_binary_unchanged=digest(binary) == binary_pin,
+                  private_display=True, fixture_only=True, request_charges=dict(calls),
+                  refusal_counts=dict(refusals), first_refusals=first,
+                  bucket_parameters={key: sorted(values) for key, values in parameters.items()},
+                  only_prefix_override=args.profile == "raised-prefix", large_artifacts_retained=[])
+    (work / f"party-rate-{args.profile}.json").write_text(json.dumps(report, indent=2) + "\n")
+    print(json.dumps(report), flush=True)
+raise SystemExit(code)

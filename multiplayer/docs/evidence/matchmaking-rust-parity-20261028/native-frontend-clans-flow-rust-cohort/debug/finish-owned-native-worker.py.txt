@@ -1,0 +1,19 @@
+import hashlib,json,os,re,stat
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-clans-flow-rust-20261102';iteration=json.loads((work/'accepted-native-iteration.json').read_text())['iteration'];record=json.loads((work/f'native/iteration-{iteration}-report.json').read_text());assert record['passed']and record['frozen_inputs_intact']and not(work/f'native/iteration-{iteration}-running.json').exists()
+log=(work/f'native/iteration-{iteration}/tests.log').read_text();passed=re.findall(r'Test\s+#\d+:\s+(\S+)\s+\.+\s+Passed\s+([\d.]+) sec',log);expected=json.loads((work/'focused-native-expected-tests.json').read_text());assert len(passed)==len(expected)==12 and {n for n,_ in passed}==set(expected);assert not any(word in log for word in('Skipped','Not Run','***Failed'))
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest();native={}
+for n in record['source_pin_parts']:native.update(json.loads((work/'native'/n).read_text()))
+names=json.loads((work/'declared-scope.json').read_text());assert all(sha(root/n)==native.get(n)for n in names)
+scratch=Path(record['scratch']);build=scratch/'build';objects=json.loads((work/'production-objects.json').read_text());assert objects['passed']and not Path(objects['scratch']).exists();archive=objects['cmake_abi_archive'];assert sha(build/archive['path'])==archive['sha256']
+for n,receipt in record['binaries'].items():assert sha(build/n)==receipt['sha256']
+total=count=0
+for current,dirs,files in os.walk(scratch,followlinks=False):
+ dirs[:]=[n for n in dirs if not(Path(current)/n).is_symlink()]
+ for n in files:
+  s=(Path(current)/n).lstat()
+  if stat.S_ISREG(s.st_mode):total+=s.st_size;count+=1
+report=dict(scratch=str(scratch),regular_bytes=total,regular_files=count,borrowed_symlinks_not_followed=True,accepted_iteration=iteration,passing_focused_cmake_checks=len(passed),whole_native_36_check_cohort_completed=False,scoped_sources_current=True,scoped_sources=len(names),validated_object_hashes_unchanged=True,actual_cmake_abi_archive=archive,production_probe_objects_removed=True,retained_large_artifacts=[])
+(work/'native-before-cleanup.json').write_text(json.dumps(report,indent=2)+'\n')
+with(scratch/'control.fifo').open('w')as stream:stream.write(json.dumps(dict(action='quit'))+'\n')
+print(json.dumps(dict(passing_focused_cmake_checks=len(passed),owned_regular_bytes_pending_cleanup=total,quit_sent=True)))

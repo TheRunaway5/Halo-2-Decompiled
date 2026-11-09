@@ -1,4 +1,5 @@
 #include "halo2/collision.hpp"
+#include <mutex>
 #include "halo2/math.hpp"
 #include "halo2/native_parallel.hpp"
 #include <limits>
@@ -102,13 +103,45 @@ std::pair<Vec3, Vec3> capsule_distance(Vec3 a, Vec3 b,
   return best;
 }
 } // namespace
+struct CollisionWorld::LazyAcceleration {
+  std::once_flag once;
+  std::shared_ptr<const Acceleration> value;
+  LazyAcceleration() = default;
+  explicit LazyAcceleration(std::shared_ptr<const Acceleration> built) : value(std::move(built)) {}
+};
+bool CollisionWorld::eager_builds() {
+  static const bool eager = [] {
+    const auto *e = std::getenv("HALO2_REFERENCE_EAGER_COLLISION_BUILDS");
+    return e && *e;
+  }();
+  return eager;
+}
+// A view's triangle prefix is immutable while the view lives: recomposition
+// rewrites a shared bank only when no other view retains it (copy-on-write in
+// compose). Building later therefore sees the same inputs as building here.
+const CollisionWorld::Acceleration &CollisionWorld::acceleration() const {
+  auto &lazy = *acceleration_;
+  std::call_once(lazy.once, [&] {
+    if (!lazy.value) lazy.value = accelerate(triangles());
+  });
+  return *lazy.value;
+}
 CollisionWorld::CollisionWorld(std::vector<CollisionTriangle> triangles)
     : geometry_(std::make_shared<std::vector<CollisionTriangle>>(std::move(triangles))),
-      count_(geometry_->size()), acceleration_(accelerate(this->triangles())) {}
+      count_(geometry_->size()), acceleration_(std::make_shared<LazyAcceleration>()) {
+  if (eager_builds()) acceleration();
+}
 CollisionWorld::CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>> geometry,
     std::size_t count, std::shared_ptr<const Acceleration> acceleration)
     : geometry_(std::move(geometry)), count_(count),
-      acceleration_(acceleration ? std::move(acceleration) : accelerate(triangles())) {}
+      acceleration_(std::make_shared<LazyAcceleration>(std::move(acceleration))) {
+  if (eager_builds()) this->acceleration();
+}
+CollisionWorld::CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>> geometry,
+    std::size_t count, std::shared_ptr<LazyAcceleration> acceleration)
+    : geometry_(std::move(geometry)), count_(count), acceleration_(std::move(acceleration)) {
+  if (eager_builds()) this->acceleration();
+}
 std::shared_ptr<const CollisionWorld::Acceleration> CollisionWorld::accelerate(
     std::span<const CollisionTriangle> triangles) {
   if(triangles.size()>std::numeric_limits<std::uint32_t>::max())
@@ -167,7 +200,9 @@ CollisionWorld::Composition CollisionWorld::compose(
   if (layers.props.size() > bsp->geometry_->max_size() - fixed_count)
     throw FormatError("Collision layer bank exceeds its capacity");
   const auto all_count = fixed_count + layers.props.size();
-  std::shared_ptr<const Acceleration> fixed_acceleration;
+  // An unchanged fixed prefix keeps its tree. A tree the previous view never
+  // built stays deferred: the new view builds it from identical triangles.
+  std::shared_ptr<LazyAcceleration> fixed_acceleration;
   if (!previous.fixed_changed && previous.fixed && previous.fixed->size() == fixed_count)
     fixed_acceleration = previous.fixed->acceleration_;
   // Release superseded views before testing exclusive ownership. A checkpoint
@@ -191,7 +226,8 @@ CollisionWorld::Composition CollisionWorld::compose(
   geometry->resize(base_count);
   for (const auto layer : {layers.scenery, layers.devices, layers.props})
     geometry->insert(geometry->end(), layer.begin(), layer.end());
-  const auto view = [&](std::size_t count, std::shared_ptr<const Acceleration> acceleration = {}) {
+  const auto view = [&](std::size_t count, std::shared_ptr<LazyAcceleration> acceleration = {}) {
+    if (!acceleration) acceleration = std::make_shared<LazyAcceleration>();
     return std::shared_ptr<const CollisionWorld>(
         new CollisionWorld(geometry, count, std::move(acceleration)));
   };
@@ -200,7 +236,7 @@ CollisionWorld::Composition CollisionWorld::compose(
   const auto* serial=std::getenv("HALO2_REFERENCE_SERIAL_COLLISION_BUILDS");
   // The two exact original partitions share immutable triangle inputs, but
   // neither consumes the other's BVH. Fork only when both need rebuilding.
-  if(!(serial && *serial) && !fixed_acceleration && fixed_count!=base_count && all_count!=fixed_count) {
+  if(eager_builds() && !(serial && *serial) && !fixed_acceleration && fixed_count!=base_count && all_count!=fixed_count) {
     native_parallel_for(2,[&](std::size_t index) {
       if(index==0)result.fixed=view(fixed_count);
       else result.all=view(all_count);
@@ -248,18 +284,19 @@ int CollisionWorld::build(std::span<const CollisionTriangle> triangles, Accelera
 }
 std::vector<std::size_t> CollisionWorld::query(Vec3 low, Vec3 high) const {
   std::vector<std::size_t> result;
-  if (acceleration_->nodes.empty())
+  const auto &tree = acceleration();
+  if (tree.nodes.empty())
     return result;
   std::vector<int> stack{0};
   while (!stack.empty()) {
-    const auto n = acceleration_->nodes[stack.back()];
+    const auto n = tree.nodes[stack.back()];
     stack.pop_back();
     if (n.high.x < low.x || n.low.x > high.x || n.high.y < low.y ||
         n.low.y > high.y || n.high.z < low.z || n.low.z > high.z)
       continue;
     if (n.left < 0)
-      result.insert(result.end(), acceleration_->order.begin() + n.begin,
-                    acceleration_->order.begin() + n.end);
+      result.insert(result.end(), tree.order.begin() + n.begin,
+                    tree.order.begin() + n.end);
     else {
       stack.push_back(n.left);
       stack.push_back(n.right);

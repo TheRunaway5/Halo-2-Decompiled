@@ -1,6 +1,8 @@
 #include "halo2/native_tu15_page_allocator.hpp"
 #include "halo2/native_tu15_data_array_allocate.hpp"
 #include "halo2/native_tu15_data_array_delete.hpp"
+#include "halo2/native_tu15_page_window_kernel.hpp"
+#include "halo2/native_tu15_page_retire_kernel.hpp"
 #include <array>
 #include <bit>
 #include <stdexcept>
@@ -39,31 +41,55 @@ void stack_probe(M& m,A& a){
 }
 
 void native_tu15_page_window_prefer_abi(M& m,A& a){
-    auto& g=a.gp;g[2]=read(m,g[1]+0x38u);push(m,a,0x13fe03u,g[3]);g[3]=read(m,g[6]+4u);
-    g[1]=g[2]-g[3];byte(g[0],0);if(g[1]>300u)g[1]=300u;
-    g[2]-=read(m,g[7]+4u);if(g[2]>300u)g[2]=300u;
-    g[3]=g[1]+150u;const bool too_recent=i(g[3])<i(g[2]);g[3]=pop(m,a);
-    if(!too_recent){g[2]+=150u;if(i(g[1])>i(g[2]))byte(g[0],1);
-        else{g[2]=read(m,g[6]+12u);if(i(g[2])<i(read(m,g[7]+12u)))byte(g[0],1);}}
-    (void)pop(m,a);
+    // Keep this legacy scratch-flags API while sharing the actual DATA
+    // policy with the independently qualified complete caller ABI adapter.
+    struct Access {
+        M &memory;A &abi;using P=NativeTu15PageWindowPhase;
+        std::uint32_t read(P phase,const NativeTu15PageWindow&,std::uint32_t at){
+            auto &g=abi.gp;
+            if(phase==P::candidate_tick)push(memory,abi,0x13fe03u,g[3]);
+            if(phase==P::best_tick){g[1]=std::min(g[2]-g[3],300u);byte(g[0],0);}
+            const auto value=halo2::read(memory,at);
+            if(phase==P::owner_tick||phase==P::candidate_count)g[2]=value;
+            else if(phase==P::candidate_tick)g[3]=value;
+            else if(phase==P::best_tick){g[2]=std::min(g[2]-value,300u);g[3]=g[1]+150u;g[3]=pop(memory,abi);}
+            return value;
+        }
+        void prepare(P,const NativeTu15PageWindow&){abi.gp[2]+=150u;}
+        void complete(P,const NativeTu15PageWindow &data){if(data.prefer)byte(abi.gp[0],1);(void)pop(memory,abi);}
+    }access{m,a};
+    NativeTu15PageWindow data;data.owner=a.gp[1];data.candidate=a.gp[6];data.best=a.gp[7];native_tu15_prefer_page_window(access,data);
 }
 
 void native_tu15_page_delete_abi(M& m,A& a,const S& s,const O& o){
-    auto& g=a.gp;g[1]=read(m,g[7]+0x64u);g[2]=read(m,g[1]+0x44u);g[0]=(g[3]&0xffffu)*3u;
-    push(m,a,0x140320u,g[6]);g[6]=g[2]+g[0]*8u;g[0]=read(m,g[7]+0x20u);
-    if(g[0]){push(m,a,0x14032bu,g[3]);callback(m,a,s,o,0x14032cu,0x14032eu);}
-    g[0]=read(m,g[6]+0x10u);
-    if(g[0]!=0xffffffffu){
-        g[1]=read(m,g[7]+0x64u);g[2]=read(m,g[1]+0x44u);g[1]=read(m,g[6]+12u);g[0]=(g[0]&0xffffu)*3u;
-        write(m,o,0x140347u,g[2]+g[0]*8u+12u,g[1]);
-    }else{g[2]=read(m,g[6]+12u);write(m,o,0x140350u,g[7]+0x3cu,g[2]);}
-    g[0]=read(m,g[6]+12u);
-    if(g[0]!=0xffffffffu){
-        g[1]=read(m,g[7]+0x64u);g[2]=read(m,g[1]+0x44u);g[1]=read(m,g[6]+0x10u);g[0]=(g[0]&0xffffu)*3u;
-        write(m,o,0x14036cu,g[2]+g[0]*8u+0x10u,g[1]);
-    }else{g[2]=read(m,g[6]+0x10u);write(m,o,0x14037eu,g[7]+0x40u,g[2]);}
-    g[2]=read(m,g[7]+0x64u);g[0]=g[3];g[6]=pop(m,a);
-    native_tu15_data_array_delete_abi(m,a,o); // source tail call
+    struct Access {
+        M &memory;A &abi;const O &observer;using P=NativeTu15PageRetirePhase;
+        std::uint32_t read(P phase,const NativeTu15PageRetirement&,std::uint32_t at){
+            auto &g=abi.gp;if(phase==P::callback){g[0]=(g[3]&0xffffu)*3u;push(memory,abi,0x140320u,g[6]);g[6]=g[2]+g[0]*8u;}
+            const auto value=halo2::read(memory,at);
+            switch(phase){
+            case P::pool:case P::previous_pool:case P::next_pool:g[1]=value;break;
+            case P::rows:case P::previous_rows:case P::next_rows:case P::next_for_head:case P::previous_for_tail:case P::delete_pool:g[2]=value;break;
+            case P::callback:case P::previous:case P::next:g[0]=value;break;
+            case P::next_for_previous:case P::previous_for_next:g[1]=value;g[0]=(g[0]&0xffffu)*3u;break;
+            default:break;
+            }
+            return value;
+        }
+        void write(P phase,const NativeTu15PageRetirement&,std::uint32_t at,std::uint32_t value){
+            const auto site=phase==P::previous_store?0x140347u:phase==P::head_store?0x140350u:phase==P::next_store?0x14036cu:0x14037eu;
+            halo2::write(memory,observer,site,at,value);
+        }
+        void prepare(P,const NativeTu15PageRetirement&){abi.gp[0]=abi.gp[3];abi.gp[6]=pop(memory,abi);}
+    }access{m,a,o};
+    struct Services {
+        M &memory;A &abi;const S &services;const O &observer;
+        NativeTu15PageRetireResume callback(std::uint32_t,std::uint32_t,const NativeTu15PageRetirement&){
+            push(memory,abi,0x14032bu,abi.gp[3]);halo2::callback(memory,abi,services,observer,0x14032cu,0x14032eu);return{abi.gp[7],abi.gp[3],abi.gp[6]};
+        }
+        void erase(std::uint32_t,std::uint32_t,const NativeTu15PageRetirement&){native_tu15_data_array_delete_abi(memory,abi,observer);}
+    }services{m,a,s,o};
+    NativeTu15PageRetirement data;data.owner=a.gp[7];data.datum=a.gp[3];native_tu15_retire_page(access,data,services);
 }
 
 void native_tu15_page_allocate_abi(M& m,A& a,const S& s,const O& o){

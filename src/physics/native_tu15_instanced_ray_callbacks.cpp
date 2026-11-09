@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_instanced_ray_child_value.hpp"
 #include "halo2/native_tu15_instanced_ray_host_callbacks.hpp"
 #include "native_tu15_joint_constraint_numeric_internal.hpp"
 namespace halo2 {
@@ -14,10 +15,12 @@ std::uint32_t native_tu15_resolve_instanced_ray_child(SourcePhysicsContactMemory
     const SourcePhysicsContactRecordObserver&observe,NativeTu15InstancedRayCallbackStats*stats){
     if(stats)++stats->provider_calls;if(!child){if(stats)++stats->provider_null;return 0;}
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    try{joint_constraint_numeric::Memory m(memory,observe);const auto scenario=m.word(collection+12u);
-        m.word(0x24decbu,child+12u,scenario);narrow(memory,observe,0x24ded2u,child+6u,1u,2u);
-        m.word(0x24ded8u,child+8u,0u);m.word(0x24dedfu,child,0x46625cu);
-        m.word(0x24dee5u,child+16u,key);return child;
+    try{joint_constraint_numeric::Memory words(memory,observe);
+        auto narrow_store=[&](std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width){
+            narrow(memory,observe,pc,address,value,width);
+        };
+        native_instanced_ray_child_value_detail::View view{words,narrow_store,collection,key,child};
+        native_instanced_ray_child_detail::Progress data;return native_instanced_ray_child_detail::resolve(view,data);
     }catch(...){if(stats)++stats->refusals;throw;}
 #else
     (void)memory;(void)collection;(void)key;(void)observe;throw std::runtime_error("Native instanced child backend unavailable");

@@ -1,3 +1,5 @@
+#include "halo2/native_tu15_camera_instance_bitmap_kernel.hpp"
+#include "halo2/native_tu15_camera_instance_admission_value.hpp"
 #include "halo2/native_tu15_camera_instanced_query.hpp"
 #include "halo2/native_tu15_camera_query_leaves.hpp"
 #include "halo2/native_tu15_camera_dynamic_query_leaves.hpp"
@@ -47,22 +49,14 @@ bool different_or_unordered(F a,F b){unsigned char different,unordered;asm volat
 bool native_tu15_admit_camera_query_instance(const SourcePhysicsContactMemory&memory,
  std::uint32_t instance,std::uint32_t definition,std::uint32_t mask){
  const SourcePhysicsContactRecordObserver none;Memory m(const_cast<SourcePhysicsContactMemory&>(memory),none);
- const auto count=m.word(definition+0x98u);
- if(std::int32_t(count)<=0)return false;
- const auto rows=m.word(definition+0x9cu);
- if(m.word(rows+count*8u-4u,1)&0x10u)return false;
- if(!(mask&0x40000u))return true;
- const auto scenario=m.word(0x4ecc18u),clusters=m.word(scenario+0xc4u);
- if(std::int32_t(clusters)<=0)return true;
- auto table=m.word(scenario+0xc8u);if(!table)return true;
- if(std::int32_t(instance)<0)return false;
- if(std::int32_t(instance)>=std::int32_t(m.word(table+0x40u)))return false;
- table=m.word(table+0x44u);return m.word(table+instance*4u,2)!=0xffffu;
+ native_camera_instance_admission_detail::Values view{m,instance,definition,mask};
+ native_camera_instance_admission_detail::Progress data;
+ return native_camera_instance_admission_detail::admit(view,data);
 }
 std::uint32_t native_tu15_camera_instance_collision_bitmap(const SourcePhysicsContactMemory&memory,std::uint32_t instance){
  const SourcePhysicsContactRecordObserver none;Memory m(const_cast<SourcePhysicsContactMemory&>(memory),none);
- const auto index=sign16(m.word(0x474c24u,2)),base=m.word(0x4f9b50u);
- return instance==0xffffffffu?base+(index<<5u)+1u:base+(index<<10u)+instance+0x201u;
+ native_camera_instance_bitmap_detail::Values view{m,instance};native_camera_instance_bitmap_detail::Progress data;
+ return native_camera_instance_bitmap_detail::locate(view,data);
 }
 bool native_tu15_query_camera_instance(SourcePhysicsContactMemory&memory,
  const NativeTu15CameraInstanceQuery&q,NativeTu15CameraInstanceQueryScratch scratch,

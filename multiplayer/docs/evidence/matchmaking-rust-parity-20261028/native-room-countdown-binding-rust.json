@@ -1,0 +1,135 @@
+{
+  "schema": "H2_RUST_ROOM_COUNTDOWN_BINDING_DIFFERENTIAL_V1",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-20261103/halo2-test-rn1l65nq",
+  "master_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+  "baseline_pins": {
+    "src/matchmaking_client.rs": "aae175faf1a94caea25bf2fc3a91c837654b84b6e8cd8205df5a08ddefa03de7",
+    "src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+    "tests/matchmaking_client_controller.rs": "73deb488484accc610da5caf53d0f3365df7b736a2d564f97c4fab9ce814afd2",
+    "tests/matchmaking_queue_api.rs": "2b31338c1e0c8dfe7af3c9f75103a3a664ba5f8be355811a1d01ec3c85073cdb"
+  },
+  "retained_generated_large_artifacts": [],
+  "red": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "matchmaking_client_controller",
+        "an_identical_unbound_countdown_cannot_transfer_an_installed_connection",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 101,
+      "passed_count": 0,
+      "test_result_lines": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s"
+      ],
+      "stdout_sha256": "620c3631f89bcfdc0bf2bbcf8a0192114d761f09b39a3f536788b85c6bc4c049",
+      "stderr_sha256": "649512a67f9603d2d4ec35bf0132c2a8f42b7855ccb597cb395fcb0ccba6abb1",
+      "failure_tail": "running 1 test\ntest an_identical_unbound_countdown_cannot_transfer_an_installed_connection ... FAILED\n\nfailures:\n\n---- an_identical_unbound_countdown_cannot_transfer_an_installed_connection stdout ----\n\nthread 'an_identical_unbound_countdown_cannot_transfer_an_installed_connection' (2317483) panicked at tests/matchmaking_client_controller.rs:464:5:\nassertion failed: !f.client.take_launch(launch(), &[])\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    an_identical_unbound_countdown_cannot_transfer_an_installed_connection\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s\n\n\n5519-dalek-derive v0.1.1\n   Compiling zeroize v1.9.1\n   Compiling sha2 v0.10.9\n   Compiling tinyvec v1.13.3\n   Compiling rand_core v0.6.4\n   Compiling memchr v2.8.3\n   Compiling adler2 v2.0.1\n   Compiling itoa v1.0.18\n   Compiling miniz_oxide v0.9.1\n   Compiling unicode-normalization v0.1.24\n   Compiling x25519-dalek v2.0.1\n   Compiling ed25519-dalek v2.2.0\n   Compiling getrandom v0.2.16\n   Compiling hmac v0.12.1\n   Compiling halo2-online-protocol v0.1.0 (/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-20261103/halo2-test-rn1l65nq/source/rust/online_protocol)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.53s\n     Running tests/matchmaking_client_controller.rs (/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-20261103/halo2-test-rn1l65nq/cargo/debug/deps/matchmaking_client_controller-06c2e48aec12c7d2)\nerror: test failed, to rerun pass `--test matchmaking_client_controller`"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "matchmaking_queue_api",
+        "start_view_uses_current_admitted_room_when_an_old_loading_observation_remains",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 101,
+      "passed_count": 0,
+      "test_result_lines": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s"
+      ],
+      "stdout_sha256": "7e3e9d401f5060e9bed7558099c13ffb5ac3da3bb2bfa6527675985d73b94098",
+      "stderr_sha256": "2d1bc0738e16649ca9c8eca375e4936a4f56b972443cf0744255e71c34baa3e1",
+      "failure_tail": "running 1 test\ntest start_view_uses_current_admitted_room_when_an_old_loading_observation_remains ... FAILED\n\nfailures:\n\n---- start_view_uses_current_admitted_room_when_an_old_loading_observation_remains stdout ----\n\nthread 'start_view_uses_current_admitted_room_when_an_old_loading_observation_remains' (2317580) panicked at tests/matchmaking_queue_api.rs:309:5:\nassertion `left == right` failed\n  left: String(\"d5f5c34e-c2c1-45ba-a554-6f4114f95e31\")\n right: String(\"8c27124c-328c-4cf9-9aa9-6ed2c546055c\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    start_view_uses_current_admitted_room_when_an_old_loading_observation_remains\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s\n\n\n   Compiling halo2-online-protocol v0.1.0 (/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-20261103/halo2-test-rn1l65nq/source/rust/online_protocol)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.28s\n     Running tests/matchmaking_queue_api.rs (/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-binding-20261103/halo2-test-rn1l65nq/cargo/debug/deps/matchmaking_queue_api-6c2bd33c9d50b0a0)\nerror: test failed, to rerun pass `--test matchmaking_queue_api`"
+    }
+  ],
+  "passed": true,
+  "candidate_pins": {
+    "src/matchmaking_client.rs": "f83e73c40822de4b7d813790f45e64043ac84c07061cf11c61631768fe8096c7",
+    "src/matchmaking_queue_api.rs": "4054bcd7de40b4c4ef48a8343e64cb812e93d659311d5e689f87ca15a7403c14",
+    "tests/matchmaking_client_controller.rs": "e73aa85ce3907b346ad104f815d538e31789d37c95bc480e313f99b5dd83e971",
+    "tests/matchmaking_queue_api.rs": "b85f69446432f43c3837790a568f970fc392522b0e0c15c39504bf3932367568"
+  },
+  "frozen_source_count": 220,
+  "frozen_source_sha256": "b584539602136874e253807fdb7ffd8975b44cc0607693af8d5c19e48199dfe0",
+  "green": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "passed_count": 770,
+      "test_result_lines": [
+        "test result: ok. 282 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.66s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s",
+        "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stdout_sha256": "73b601c87d13aaeba8e5ec5d235a696f32213091dd56bdc805715e6481deee49",
+      "stderr_sha256": "869a34ff3fd1ad99b8b4e19679ee22223568e6aba8a4fb49a588ace986d459ab"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "passed_count": 20,
+      "test_result_lines": [
+        "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.88s"
+      ],
+      "stdout_sha256": "c9e364074e976b1153a59988a261bcf9f40c7c023b2a7baa4d8a1d81371e1d35",
+      "stderr_sha256": "076339afee4c29d20dd340b61fb23b321c773c11d9472e5c0f64b4799525fc2c"
+    }
+  ],
+  "frozen_sources_unchanged": true
+}

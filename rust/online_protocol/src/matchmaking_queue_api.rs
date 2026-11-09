@@ -20,6 +20,22 @@ fn ticket(core: &Coordinator, who: &str) -> Option<Value> {
 fn idle() -> Value {
     json!({"state":"idle","playlist_id":"","queued_players":0,"match":null})
 }
+fn match_view(game: &Value, players: Vec<Value>, compatibility: &str) -> Result<Value> {
+    let mut view = json!({"map":game["map"],"variant":game["variant"],"players":players});
+    if crate::matchmaking_catalog::OPTIONS.contains(&compatibility) {
+        view["game_id"] = game["id"].clone();
+        view["settings"] = game["settings"].clone();
+        view["settings_sha256"] = if game["settings"].is_null() {
+            Value::Null
+        } else {
+            json!(format!(
+                "{:x}",
+                Sha256::digest(m::hex(&game["settings"], 304)?)
+            ))
+        };
+    }
+    Ok(view)
+}
 fn physical(p: &Value) -> &str {
     p["connection_owner"].as_str().unwrap_or(s(p, "id"))
 }
@@ -356,10 +372,12 @@ impl Registry {
             }
         }
         let mut response = idle();
+        let mut proposal_id = None;
         let mut group = Vec::new();
         let mut ordered = Vec::new();
         let mut section = "match";
-        if let Some(t) = ticket(core, who) {
+        let ticket = ticket(core, who);
+        if let Some(t) = &ticket {
             let status = call(core, json!({"op":"status","id":t["id"]}))?;
             response["state"] = status["state"].clone();
             response["playlist_id"] = t["playlist"].clone();
@@ -373,6 +391,7 @@ impl Registry {
             );
             if let Some(pid) = status["proposal_id"].as_str() {
                 let p = core.refresh(pid, false, &Value::Null)?;
+                proposal_id = Some(s(&p, "id").to_owned());
                 response["state"] =
                     call(core, json!({"op":"status","id":t["id"]}))?["state"].clone();
                 group = core.group(&super::strings(&p["tickets"])?)?;
@@ -381,20 +400,16 @@ impl Registry {
                     .flat_map(|team| team.as_array().unwrap().iter().cloned())
                     .collect();
                 let players = Coordinator::players(&group);
-                response["match"] = json!({"map":p["game"]["map"],"variant":p["game"]["variant"],"players":array(&p,"teams").iter().enumerate().flat_map(|(team,ids)|ids.as_array().unwrap().iter().map(move|id|(team,id))).map(|(team,id)|{
-                    let player=players.iter().find(|player|player["id"]==*id).unwrap();json!({"name":player["screen_name"],"team":team,"self":*id==actor["player"]})}).collect::<Vec<_>>()});
-                if crate::matchmaking_catalog::OPTIONS.contains(&s(&actor, "compatibility")) {
-                    response["match"]["game_id"] = p["game"]["id"].clone();
-                    response["match"]["settings"] = p["game"]["settings"].clone();
-                    response["match"]["settings_sha256"] = if p["game"]["settings"].is_null() {
-                        Value::Null
-                    } else {
-                        json!(format!(
-                            "{:x}",
-                            Sha256::digest(m::hex(&p["game"]["settings"], 304)?)
-                        ))
-                    };
-                }
+                let roster = array(&p, "teams")
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(team, ids)| ids.as_array().unwrap().iter().map(move |id| (team, id)))
+                    .map(|(team, id)| {
+                        let player = players.iter().find(|player| player["id"] == *id).unwrap();
+                        json!({"name":player["screen_name"],"team":team,"self":*id==actor["player"]})
+                    })
+                    .collect();
+                response["match"] = match_view(&p["game"], roster, s(&actor, "compatibility"))?;
             }
             if option(&work.query, "progress") {
                 response["progress"] = if response["state"] == "searching" {
@@ -406,7 +421,7 @@ impl Registry {
                     Value::Null
                 };
                 if !response["progress"].is_null() {
-                    group = core.gatherings.view_group(core, s(&t, "id"))?;
+                    group = core.gatherings.view_group(core, s(t, "id"))?;
                     ordered = Coordinator::players(&group)
                         .iter()
                         .map(|p| p["id"].clone())
@@ -426,12 +441,19 @@ impl Registry {
             };
         }
         if option(&work.query, "start") {
-            if let Some(room) = rooms
-                .iter()
-                .find(|room| active(room, who) && room["phase"] == "loading")
-            {
-                let rid = s(room, "id");
-                if work.start.as_ref().is_none_or(|(id, _)| id != rid) {
+            // Loading consumes the search tickets. The current admission
+            // remains authoritative until replacement, cancellation or close.
+            let admitted = self.latest.get(who).and_then(|(generation, id)| {
+                (*generation == work.generation
+                    && (ticket.is_none() || proposal_id.as_ref() == Some(id))
+                    && self.rooms.iter().any(|room| room.id == *id && !room.closed)
+                    && rooms.iter().any(|room| {
+                        room["id"] == *id && active(room, who) && room["phase"] == "loading"
+                    }))
+                .then_some(id.as_str())
+            });
+            let (countdown, binding) = match (admitted, &work.start) {
+                (Some(rid), None) => {
                     return self.suspend(
                         core,
                         Work::View(work, Step::Start(rid.to_owned())),
@@ -439,9 +461,20 @@ impl Registry {
                         json!({"room":rid}),
                     );
                 }
-                response["start_countdown_ms"] = work.start.as_ref().unwrap().1.clone();
-            } else {
-                response["start_countdown_ms"] = Value::Null;
+                (Some(rid), Some((observed, value))) if rid == observed && !value.is_null() => {
+                    (value.clone(), Some(rid))
+                }
+                _ => (Value::Null, None),
+            };
+            response["start_countdown_ms"] = countdown;
+            if option(&work.query, "start_room") {
+                response["start_room"] = json!(binding);
+                if let Some(id) = binding.filter(|_| ticket.is_none()) {
+                    let (playlist, game, roster) = core.setup.queue_match(id, who)?;
+                    response["state"] = json!("awaiting_transport");
+                    response["playlist_id"] = json!(playlist);
+                    response["match"] = match_view(game, roster, s(&actor, "compatibility"))?;
+                }
             }
         }
         let ranks = option(&work.query, "ranks");

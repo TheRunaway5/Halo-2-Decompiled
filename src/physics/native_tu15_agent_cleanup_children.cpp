@@ -105,7 +105,8 @@ NativeTu15ContactAgent native_tu15_destroy_contact_agent(SourcePhysicsContactMem
     NativeTu15PhysicsFrameFp&fp,const NativeTu15AgentCleanupChildrenServices&s,
     const SourcePhysicsContactRecordObserver&observer){
     if(kind==NativeTu15AgentDestructor::owner_2f8090)native_tu15_destroy_contact_agent_storage(memory,false,agent,fp,s.allocation,observer);
-    else if(kind==NativeTu15AgentDestructor::owner_3051a0)native_tu15_destroy_contact_agent_storage(memory,true,agent,fp,s.allocation,observer);
+    else if(kind==NativeTu15AgentDestructor::owner_3051a0||kind==NativeTu15AgentDestructor::owner_2f35f0)
+        native_tu15_destroy_contact_agent_storage(memory,true,agent,fp,s.allocation,observer);
     else if(kind==NativeTu15AgentDestructor::owner_2fc540)native_tu15_destroy_contact_agent_base(memory,agent,observer);
     else throw std::runtime_error("Unqualified native TU1.5 scalar deleting destructor");
     if(disposing&1u){

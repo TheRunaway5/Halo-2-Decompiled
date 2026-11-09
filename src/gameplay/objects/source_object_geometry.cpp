@@ -11,6 +11,8 @@
 #include <tuple>
 #include <cstdlib>
 #include <cstring>
+#include <atomic>
+#include <cstdio>
 
 namespace halo2 {
 void SourceObjectGeometry::load(const Cache&cache,const ScenarioObject&object,
@@ -25,7 +27,7 @@ void SourceObjectGeometry::load_union(const Cache &cache,const ScenarioObject &o
 void SourceObjectGeometry::load_impl(const Cache&cache,const ScenarioObject&object,
     const SourceInitialModelDefinition&initial,const SourceInitialModelSelection *selection,
     std::uint32_t render_model,bool prepare_region_variants){
-    invalidate_views();
+    pose_publications.fill({});invalidate_views();
     if(selection && !selection->resolved())throw FormatError("object geometry requires resolved source region bytes");
     lod_definition=cache.load_source_geometry_lod_definition(object.definition);
     prt=cache.load_source_prt_definition(render_model);
@@ -94,7 +96,7 @@ SourceObjectGeometry::ViewDraw SourceObjectGeometry::active_draw(unsigned lod)co
 SourceObjectGeometry::Stats SourceObjectGeometry::prepare(const Cache&cache,const ObjectColors&colors,
     std::span<const Transform>world_nodes,const SourcePrtLighting&sh,Mesh&mesh,
     std::optional<float> camouflage,std::optional<Vec3> retained_incident){
-    invalidate_views();
+    pose_publications.fill({});invalidate_views();
     Stats counts;std::array<std::vector<SourcePrtSectionBank>,6>banks;
     for(unsigned lod=0;lod<6;++lod)if(prt && !lods[lod].sections.empty()){
         banks[lod]=source_prt_section_banks(cache,lods[lod].model,*prt,lod,lods[lod].sections,world_nodes,sh,retained_incident);
@@ -195,7 +197,7 @@ SourceObjectGeometry::Stats SourceObjectGeometry::prepare(const Cache&cache,cons
     return counts;
 }
 void SourceObjectGeometry::pose_world(const std::function<std::vector<Vertex>(const RenderModel&)>&pose){
-    invalidate_views();
+    pose_publications.fill({});invalidate_views();
     for(auto&g:lods){g.vertices=pose(g.model);g.palette.clear();g.deferred=false;
         if(g.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
         if(!g.vertex_materials.empty())
@@ -203,6 +205,7 @@ void SourceObjectGeometry::pose_world(const std::function<std::vector<Vertex>(co
     }
 }
 void SourceObjectGeometry::pose_world_lod(unsigned lod,const std::function<ModelSkinWorldPose(const RenderModel&)>&pose){
+    pose_publications.at(lod)={};
     invalidate_views();
     auto&g=lods.at(lod);auto posed=pose(g.model);
     if(posed.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
@@ -211,6 +214,7 @@ void SourceObjectGeometry::pose_world_lod(unsigned lod,const std::function<Model
         for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
 }
 void SourceObjectGeometry::pose_world_lod_view(unsigned lod,const std::function<ModelSkinWorldPoseView(const RenderModel&)>&pose){
+    pose_publications.at(lod)={};
     invalidate_views();
     auto&g=lods.at(lod);const auto posed=pose(g.model);
     if(posed.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
@@ -218,6 +222,36 @@ void SourceObjectGeometry::pose_world_lod_view(unsigned lod,const std::function<
     g.palette.assign(posed.palette.begin(),posed.palette.end());g.deferred=posed.gpu;
     if(!g.vertex_materials.empty())
         for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
+}
+void SourceObjectGeometry::pose_world_lod_cached_view(unsigned lod,
+    const std::function<CachedWorldPose(const RenderModel&)>&producer,bool verify) {
+    auto &g=lods.at(lod);
+    CachedWorldPose result;
+    try {result=producer(g.model);}
+    catch(...) {pose_publications.at(lod)={};invalidate_views();throw;}
+    const PosePublication key{result.owner,result.publication};
+    if(key.owner && key.publication && pose_publications.at(lod)==key) {
+        if(verify) {
+            const auto &pose=result.pose;
+            bool same=g.deferred==pose.gpu && g.vertices.size()==pose.vertices.size() &&
+                g.palette.size()==pose.palette.size() && (g.palette.empty() ||
+                !std::memcmp(g.palette.data(),pose.palette.data(),pose.palette.size_bytes()));
+            for(std::size_t n=0;same&&n<g.vertices.size();++n) {
+                Vertex expected;std::memcpy(&expected,&pose.vertices[n],sizeof expected);
+                if(!g.vertex_materials.empty())expected.material=g.vertex_materials.at(n);
+                same=!std::memcmp(&expected,&g.vertices[n],sizeof expected);
+            }
+            if(!same)throw FormatError("Native cached WORLD publication differs from fresh material-remapped bank");
+            static std::atomic<std::uint64_t> verified{};
+            const auto count=verified.fetch_add(1,std::memory_order_relaxed)+1;
+            if(count==1||count%4096==0)
+                std::fprintf(stderr,"Native machine pose publication: verified=%llu complete banks\n",
+                    static_cast<unsigned long long>(count));
+        }
+        return;
+    }
+    pose_world_lod_view(lod,[&](const RenderModel&){return result.pose;});
+    pose_publications.at(lod)=key;
 }
 std::shared_ptr<ModelSkinGeometry> SourceObjectGeometry::view_skin(unsigned view_index,std::uint32_t owner,
     std::uint32_t definition,std::uint32_t render_model)const{
@@ -428,6 +462,7 @@ void SourceObjectGeometry::validate_material_rebase(unsigned before,unsigned aft
     for(const auto&view:views)for(const auto&vertex:view.vertices)validate(vertex.material);
 }
 void SourceObjectGeometry::rebase_materials(unsigned before,unsigned after) {
+    pose_publications.fill({});
     validate_material_rebase(before,after);if(!material_count)return;
     const auto translate=[&](unsigned value){return value-before+after;};
     first_material=translate(first_material);

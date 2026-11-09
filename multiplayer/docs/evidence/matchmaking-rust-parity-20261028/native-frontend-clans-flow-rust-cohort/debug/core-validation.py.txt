@@ -1,0 +1,22 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source';output=root/'build/test-results/frontend-clans-flow-rust-20261102/core-initial';output.mkdir(parents=True)
+ignore=shutil.ignore_patterns('target','__pycache__','*.so','*.dll','*.dylib')
+for name in('online_protocol','online_protocol_bridge','online_security_ffi','matchmaking_service'):shutil.copytree(root/'rust'/name,source/'rust'/name,ignore=ignore)
+for name in('include','tests/fixtures','src/ui'):shutil.copytree(root/name,source/name,ignore=ignore)
+for name in('data','examples','tests/fixtures'):shutil.copytree(root/'multiplayer/master_server'/name,source/'multiplayer/master_server'/name,ignore=ignore)
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.rglob('*')if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'target'),CARGO_BUILD_JOBS='2',CARGO_INCREMENTAL='0',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+report=dict(passed=False,scratch=str(scratch),source_pins=pins,steps=[],retained_large_artifacts=[])
+def save():(output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,command):
+ p=subprocess.run(command,cwd=source,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);(output/(name+'.log')).write_bytes(p.stdout[-1048576:]);report['steps'].append(dict(name=name,command=command,exit_code=p.returncode,log=name+'.log'));save();print(json.dumps(dict(step=name,exit_code=p.returncode,tail=p.stdout.decode(errors='replace')[-3800:])),flush=True)
+ if p.returncode:raise RuntimeError(name+' failed')
+try:
+ run('online_protocol',['cargo','test','--locked','--offline','--manifest-path','rust/online_protocol/Cargo.toml','--test','matchmaking_frontend_clans'])
+ run('bridge-check',['cargo','check','--locked','--offline','--manifest-path','rust/online_protocol_bridge/Cargo.toml','--lib'])
+ generated=list((scratch/'target/debug/build').glob('halo2-online-protocol-bridge-*/out/cxxbridge/include'));assert len(generated)==1
+ for name in('frontend_matchmaking_friends.cpp','frontend_clans.cpp'):
+  run(name+'-syntax',['c++','-std=c++20','-Iinclude','-Isrc','-Irust/online_protocol_bridge','-I'+str(generated[0]),'-fsyntax-only','src/ui/'+name])
+ report['frozen_inputs_intact']=all(hashlib.sha256((source/n).read_bytes()).hexdigest()==h for n,h in pins.items());assert report['frozen_inputs_intact'];report['passed']=True
+finally:save()

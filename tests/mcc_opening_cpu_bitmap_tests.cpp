@@ -1,5 +1,6 @@
 #include "halo2/cache.hpp"
 #include "halo2/mcc_cpu_bitmap_projection.hpp"
+#include "halo2/native_d5610_bitmap_row_tu15.hpp"
 #include "halo2/native_tu15_world_memory.hpp"
 #include "halo2/source_model_render_tu15.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
@@ -52,12 +53,35 @@ int main(int argc,char**argv)try {
   const auto x=std::bit_cast<unsigned>((pixel[0]+.5f)/512),y=std::bit_cast<unsigned>((pixel[1]+.5f)/128);
   put(bank,0x62000800u,0x63000000u);put(bank,0x62000804u,flags);put(bank,0x62000808u,x);put(bank,0x6200080cu,y);
   SourcePhysicsWorldRuntimeAbi abi{};abi.gp={t->datum,0x23456789u,0x3456789au,0x456789abu,0x62000800u,0x56789abcu,0x6789abcdu,0x62000c00u};abi.eflags=0x202;
+  const auto input=abi;
   FirstRow memory(bank,canonical_root+0x48u,projected);SourcePhysicsWorldRuntimeServices services;unsigned constructors{};
-  services.required_owner=[&](auto&m,const auto&c,auto&a,const auto&o){check(c.instruction==0x1d2eau&&c.target==0x407c00u&&!c.tail,"Unexpected bitmap constructor dependency");++constructors;source_native_cache_bitmap_view_tu15(m,a,{0x27f,0x1f80},services,o);};
+  services.required_owner=[&](auto&m,const auto&c,auto&a,const auto&o){
+   if(c.instruction==0xd56edu && c.target==0x1346c0u && !c.tail) {
+    source_run_model_render_tu15(m,c.target,a,{0x27f,0x1f80},services,o);return;
+   }
+   check(c.instruction==0x1d2eau&&c.target==0x407c00u&&!c.tail,"Unexpected bitmap constructor dependency");
+   ++constructors;source_native_cache_bitmap_view_tu15(m,a,{0x27f,0x1f80},services,o);
+  };
   source_run_model_render_tu15(memory,0xd5610u,abi,{0x27f,0x1f80},services,{});
   check(memory.reads==1&&constructors==1&&(abi.gp[0]&255)==1&&abi.gp[4]==0x62000810u,"Complete original DXT1 caller/constructor did not return");
   std::vector<unsigned> color;const Bytes out(bank.view(0x62000c00u,12));for(unsigned i=0;i<3;++i)color.push_back(out.u32(i*4));
   check(std::equal(color.begin(),color.end(),original_dxt1_colors[cases.size()]),"Native DXT1 color differs from complete original constructor/sample");
+  for(unsigned returned:{0xd45aau,0xd4ec4u}) {
+   put(bank,0x62000800u,returned);auto effect=input;unsigned projections{};
+   const NativeD5610BitmapRowBindingTu15 bind(bank,[&](auto bitmap,auto resident_root,auto resident_raw) {
+    check(bitmap==t->datum && resident_root==canonical_root &&
+        resident_raw==canonical.runtime_address(root.u32(0x48),168),
+        "Effect lightmap projection lost its full source bitmap identity");
+    ++projections;
+    return projection.first_row_for_canonical_root(TagHandle{bitmap},resident_root);
+   });
+   source_run_combat_action_tu15(bank,0xd5610u,effect,{0x27f,0x1f80},services,{});
+   check(projections==1 && (effect.gp[0]&255u)==1u && effect.gp[4]==0x62000810u,
+       "Effect lightmap bitmap projection did not complete the original call");
+   const Bytes actual(bank.view(0x62000c00u,12));
+   for(unsigned i=0;i<3;++i)
+    check(actual.u32(i*4u)==color[i],"Effect lightmap bitmap projection changed original DXT1 color");
+  }
   cases.push_back({{"flags",flags},{"pixel",pixel},{"x",x},{"y",y},{"color_bits",color}});
  }
  check(std::ranges::equal(bank.view(canonical_root,t->size),original_root),"Canonical bitmap metadata mutated");

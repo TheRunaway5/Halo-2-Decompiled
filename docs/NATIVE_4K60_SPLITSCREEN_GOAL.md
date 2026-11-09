@@ -952,6 +952,133 @@ other session's design call), (2) posing lane commit B (≈1.8 ms), (3) the
 nodes (0.5 ms), (5) HUD constant animation and dynamic-shader vertex copies
 (≈0.8 ms each, native code).
 
+## Posing lane commit B (2026-11-03)
+
+Landed in `src/gameplay/multiplayer/multiplayer_runtime.cpp` with the
+primitive change in `src/runtime/native_parallel.cpp`:
+
+- **Dispatch.** For each view, after the translated phase and the view
+  selector, `pose_vehicles`, `pose_corpses` and `pose_bodies` run as one job
+  on the persistent overlap thread (`native_overlap_run`) while the main
+  thread runs `main_objects` (the executor-asserted scene owners). The job's
+  first statement restores the dispatching thread's floating-point
+  environment (`std::fesetenv` of an environment taken just before dispatch),
+  because the overlap thread starts a job with clear sticky flags and GPU
+  skin admission requires the precision flag already set. `world_weapons`
+  runs on the main thread after the join, at the same bank position as
+  before (its three bank reads never leave the main thread).
+- **Staging and splice.** The lane writes vehicle draws, corpse draws, body
+  vertices and the secondary-weapon light binding into frame-local staging
+  containers. After the join the vehicle draws are inserted at the view's
+  pre-dispatch draw mark, the loose weapons run, the corpse draws are
+  appended, the body vertices are appended to the view's world bank and the
+  two records that carry world offsets (`model_depth_selections[i].first`,
+  `unit_skin_submissions[i].first`, both pushed only by `append_unit_base`)
+  are rebased by the world size at the splice. Light bindings follow. The
+  result is the sequential append order for every container; a size check
+  guards the assumption that the loose weapons never append to the world
+  bank or the bindings.
+- **Executor-bound inputs.** The body block's locomotion observations
+  (`facing`, `sample`) and the grenade action clip check the constructing
+  thread or cross an authority boundary; a lane dispatch takes them on the
+  main thread under the block's own conditions (`PosingLaneInputs`) before
+  the job starts. The sequential path keeps the direct calls.
+- **Gate (state-based, deterministic).** `posing_lane_allowed` = render
+  overlap allowed (no observers, no online/client, not
+  `HALO2_REFERENCE_SYNC_RENDER`) and not `HALO2_REFERENCE_SERIAL_POSING` and
+  `native_parallel_workers()>0` (so `HALO2_REFERENCE_SERIAL_NATIVE` keeps the
+  original order rather than an inline staging path). Per view the lane
+  additionally requires `source_render_world`, authoritative body poses and
+  `model_skin_gpu_host_effects_admitted()` already true on the main thread.
+  Startup prints `Posing lane: enabled/disabled`; the first skipped view of a
+  run prints its reason.
+- **Primitive.** `native_overlap_run` now rejects nesting from either side
+  with `std::logic_error` (unit-tested); the renderer's own use runs inside
+  `Renderer::draw`, never during the view loop.
+- **Oracle.** Byte-identical frames lane vs `HALO2_REFERENCE_SERIAL_POSING=1`
+  and vs the pre-change binary built from the same tree, plus the per-view
+  list identity under `HALO2_VERIFY_POSING_LANE=1` (`Posing lane lists:`
+  digests of the offset-bearing records, world/draw/binding counts, lane and
+  main milliseconds; `tools/perf_4k60/parity.py --keep-lines 'Posing lane'`
+  retains and compares those lines). Skin build/reuse counters are
+  informational only (the pose caches' effect gates and the primitive's errno
+  rule see a different status snapshot on the lane; bytes do not change).
+- **Timing columns.** Under the lane `host_view*_objects_ms` is the wall time
+  of the overlap window plus the loose weapons and `host_view*_body_ms` is the
+  splice; only their sum compares with a `HALO2_REFERENCE_SERIAL_POSING=1`
+  run. `HALO2_VERIFY_POSING_LANE=1` prints the per-block split
+  (`Posing lane timing:` wake, vehicles, corpses, bodies, main, weapons).
+- **Validated 2026-11-03.** Frames byte-identical lane vs serial on
+  4:90, 4:150 (firing), 2:150 and 1:150, and pre-change (same tree) vs lane on
+  the three default cases; offset-record lists identical; zero lane skips;
+  `native_parallel_tests` and the engines suite (39/39) pass. Measured at 4p
+  (medians, frames >= 30): vehicles 2.4-2.7 ms, bodies 1.1 ms, scene owners
+  0.9 ms, loose weapons 0.1 ms, lane wake 5 us. The lane hides the 0.9 ms
+  scene-owner share but vehicles run ~0.3 ms slower off-thread, so the wall
+  gain is ~0.4 ms/frame while main-thread CPU drops ~3 ms (the join wait is
+  idle time). The posing cost itself (vehicles) is the next target: its
+  per-section vertex scans are O(sections x vertices) per draw per view.
+
+## GPU vehicle skins (2026-11-04)
+
+Vehicle WORLD deformation now defers to the GPU skin pass on both vehicle
+routes (live source draws and the native LOD route), under the unit
+producers' exclusions (native shadow/reference frames, pStencil, upscaler,
+observers, BSP reference capture); admission stays per pose and refused poses
+arrive CPU-skinned. `HALO2_REFERENCE_CPU_VEHICLE_SKINS=1` restores the CPU
+skin. Admitted deferred and factory poses borrow the model's immutable mesh
+instead of copying it (`HALO2_REFERENCE_COPY_DEFERRED_POSES=1` copies), which
+also removes a full-bank copy from every GPU unit pose. Byte-identical with
+`HALO2_VERIFY_GPU_SKINNING=1` on four cases; vehicle posing 2.49 -> 1.43 ms
+per frame; `host_pre_render_ms` -0.6..-0.85 ms; render thread +0.3-0.6 ms,
+hidden behind the tick.
+
+## Split posing lane (2026-11-04)
+
+The posing lane ran vehicles (2.24 ms) and then corpses+bodies (1.08 ms) on one
+overlap thread, so the window was their sum. `native_overlap_run2`
+(src/runtime/native_parallel.cpp) runs two jobs on two persistent overlap
+threads while the caller runs a third closure; flags merge as the union and
+exceptions rethrow in the order first, second, overlap. The lane now runs
+vehicles on one thread and corpses+bodies on the other; the only state they
+share is the two lazily filled model maps, now under `source_world_lazy_mutex`,
+and the pStencil caster list, so pStencil keeps the single lane
+(`HALO2_REFERENCE_SINGLE_POSING_LANE=1` forces it). Byte-identical on four
+cases; `host_pre_render_ms` -0.8 ms in interleaved pairs.
+
+## Model section index (2026-11-04)
+
+Every "select the vertices of section S from a posed bank" site scanned the
+whole bank per section (O(sections x vertices) per draw per view): the two
+vehicle paths in the runtime, `source_live_model_selected_vertices_tu15`
+(third-person bodies) and `source_live_model_base_vertices_tu15` (source unit
+bases). `include/halo2/model_section_index.hpp` keeps a per-model index of
+ascending ordinals per section (built once per immutable bank, published on
+the `RenderModel` through the same lazy slot pattern as the skin-admission
+summary; copies start empty) and `model_section_select` gathers through it,
+producing the same records in the same order by construction.
+`HALO2_VERIFY_SECTION_INDEX=1` also runs the scan and rejects any difference;
+`model_section_index_tests` covers the index against the scan. Validated
+2026-11-04: pre-change (same tree, before commit B) vs index+lane
+byte-identical on 4:90, 4:150, 2:150, 1:150 with the verifier on; lane lists
+oracle identical. Vehicles on the lane went 2.70 -> 2.23 ms per frame at 4p
+(lane total 3.83 -> 3.32 ms); the remaining vehicle cost is shader part
+selection, pose-cache reuse and copies, profiled next in serial-posing mode.
+
+## Render thread: particle material lookup (2026-11-04)
+
+`ParticleRenderer::Impl::material` validated the immutable material on every
+lookup before consulting its cache (~0.85 ms of the render thread in the
+sync-render profile). The lookup is cache-first now;
+`HALO2_VERIFY_PARTICLE_MATERIALS=1` re-validates every hit and keeps the
+identity-changed rejection. Parity byte-identical (three default cases, verifier
+on); `renderer_ms` -1.2 ms in interleaved pairs. The global phase also scanned
+every material (105,601 x 4 stages) per frame for animated texture frames;
+`update_material_constants` now records the materials whose wanted frames
+changed and the bind visits only those (`HALO2_REFERENCE_ANIMATED_FRAME_SCAN=1`
+restores the scan): parity byte-identical, `renderer_ms` -0.3 ms. The render-thread attack plan
+and its measured breakdown live in `docs/RENDER_THREAD_OFFLOAD_PLAN.md`.
+
 ## Next structural step (proposed): split the per-view loop into phases
 
 The per-view loop (≈18 ms at 4p/4K) interleaves translated work that must run

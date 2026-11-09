@@ -1,0 +1,94 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsEarlyInitializer.cmake",
+      "line": 2,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "1236752d242215e9e1db08e9720165cde2904bd63921c03a311b8098982cc87e",
+      "selected_resolver_sha256": "851b22b90a19a7784fe1e2b507e9dc6b60efa2eb6ec4509fabc34458c94d3248"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "1236752d242215e9e1db08e9720165cde2904bd63921c03a311b8098982cc87e",
+      "selected_resolver_sha256": "851b22b90a19a7784fe1e2b507e9dc6b60efa2eb6ec4509fabc34458c94d3248"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "2df4044e8781b94cc88e263d391aa2587e9e1540e8648a9ae7703dfe3762ea72",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1f15b0"
+      ],
+      "function_name": "run_1c5f00",
+      "instruction_callback_sites": 24,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1c5f00",
+        "tu15": "1cb130"
+      },
+      "line": 73,
+      "literal_dispatch_required_targets": [
+        "149630",
+        "149680",
+        "166a80",
+        "1d6ee0",
+        "22cdc0"
+      ],
+      "observed_entry": "1c5f00",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1c5f00",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1c5f00",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "62ebf88d3fb02f52962e829d9ea357d5f55f8ece08381fdffc26801199372162",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1f15b0",
+      "instruction_callback_sites": 21,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1f15b0",
+        "tu15": "1f5ea0"
+      },
+      "line": 101,
+      "literal_dispatch_required_targets": [
+        "166a80"
+      ],
+      "observed_entry": "1f15b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1f15b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1f15b0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/physics_early_initializer_runtime_generated.cpp",
+  "source_bytes": 10821,
+  "source_filename_scope": "generated",
+  "source_sha256": "f209f4503ff91ff1909d5bc3a5fc1b778ff1b86c32150d406f9ed16f9c0f9da8"
+}

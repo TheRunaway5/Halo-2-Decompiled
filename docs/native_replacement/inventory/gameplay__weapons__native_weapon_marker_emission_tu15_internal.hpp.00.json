@@ -1,0 +1,80 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "_mm_castsi128_ps",
+        "_mm_cvtsi32_si128",
+        "_mm_getcsr",
+        "_mm_sub_ss",
+        "bool",
+        "call",
+        "emplace",
+        "increment",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "marker_emission",
+        "pop",
+        "push",
+        "read",
+        "reset",
+        "scalar",
+        "signed_less",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::int64_t",
+        "std::uint16_t",
+        "std::uint32_t",
+        "std::uint8_t",
+        "store",
+        "vector"
+      ],
+      "body_sha256": "cf8a0abe230a64058110ae7f0adc6965af9687592b154a7f4b4842d7bf06232a",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "marker_emission",
+      "instruction_callback_sites": 104,
+      "line": 3,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1e1200",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1e1200",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "marker_emission",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_marker_emission_tu15_internal.hpp",
+  "source_bytes": 7814,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1631,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "eb665ff50f9998110c2607ac68fa4f0b4618550f2530b7f71d7f5a05b5481194"
+}

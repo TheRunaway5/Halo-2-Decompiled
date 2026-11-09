@@ -100,22 +100,31 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         first = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
         self.assertIn("start_countdown_ms", first)
         self.assertEqual(first["start_countdown_ms"], 10000)
+        self.assertNotIn("start_room", first)
+        start_path = "/v1/matchmaking/ticket?start=1&start_room=1"
         # A late observer reads this room's original clock. Reading never
         # starts or extends the countdown and never exposes a platform clock.
         for elapsed, expected in ((0, 10000), (3001, 6999), (9999, 1), (10000, 0), (11000, 0)):
             now = room.start_clock + elapsed
-            for header in headers:
-                value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=header)).json()
+            for i, header in enumerate(headers):
+                value = await (await self.client.get(start_path, headers=header)).json()
                 self.assertEqual(value["start_countdown_ms"], expected)
+                self.assertEqual(value["start_room"], room.id)
+                self.assertEqual(value["state"], "awaiting_transport")
+                self.assertEqual(value["playlist_id"], "ranked")
+                self.assertEqual([slot for slot, p in enumerate(value["match"]["players"]) if p["self"]],
+                                 [descriptors[i]["slot"]])
         for socket in sockets:
             await socket.send_json({"loaded":"1234567890abcdef:000001a"})
         for queue in queues:
             self.assertEqual((await asyncio.wait_for(queue.get(), 2))["phase"], "running")
-        value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
+        value = await (await self.client.get(start_path, headers=headers[0])).json()
         self.assertIsNone(value["start_countdown_ms"])
+        self.assertIsNone(value["start_room"])
         outsider = await self.session("three")
-        value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=outsider)).json()
+        value = await (await self.client.get(start_path, headers=outsider)).json()
         self.assertIsNone(value["start_countdown_ms"])
+        self.assertIsNone(value["start_room"])
         await sockets[1].close()
         value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
         self.assertIsNone(value["start_countdown_ms"])

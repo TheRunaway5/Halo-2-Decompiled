@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Compare literal April 2006 workbook options with the unmodified TU1.5 setters and validator."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import struct
+import subprocess
+import sys
+
+root=Path.cwd()
+scratch=Path(os.environ["HALO2_TEST_SCRATCH"])
+out=Path(sys.argv[1]).resolve()
+sys.path.insert(0,str(root/"tools"))
+from oracle_game_variants import Source, RESULTS, VARIANT
+from oracle_multiplayer_engines_tu15 import VARIANT_SPEC
+from unicorn import UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_EAX
+
+book=Path("multiplayer/docs/reference/halo2-gamevariants-20060428.xls")
+options=Path("multiplayer/docs/evidence/playlist-hoppers-20261028/option-parameters.json")
+rust=Path("rust/online_protocol/src/matchmaking_variant.rs")
+sources=(book,options,rust,Path("tools/oracle_game_variants.py"),Path("tools/oracle_multiplayer_engines_tu15.py"))
+sha=lambda raw:hashlib.sha256(raw).hexdigest()
+pins={str(p):sha(p.read_bytes()) for p in sources}
+assert pins[str(book)]=="a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998"
+assert VARIANT_SPEC["pin"]=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"
+library=scratch/"xlrd"
+subprocess.run([sys.executable,"-m","pip","install","--no-deps","--no-cache-dir",
+    "--disable-pip-version-check","--target",str(library),"xlrd==2.0.2"],check=True,stdout=subprocess.DEVNULL)
+sys.path.insert(0,str(library))
+import xlrd
+
+sheet_book=xlrd.open_workbook(book,formatting_info=True,on_demand=True)
+sheet=sheet_book.sheet_by_name("Variants")
+native={p["parameter"]:p for p in json.loads(options.read_text())["parameters"]}
+# parameter, option group row, final choice row, selected cell row, workbook value, diagnostic alternate
+groups=[
+    ("Pit Of Joy",109,3,4,[
+        (4,44,50,50,300,120),(10,74,88,85,600,300),(91,145,147,146,1,0),
+        (38,293,295,295,0,1),(40,296,302,297,0,60),(39,303,305,304,1,0),
+        (41,306,308,307,0,1),(42,309,311,311,1,0),(101,312,314,313,0,1),
+    ]),
+    ("Team Brutality",17,0,2,[(105,141,143,143,0,1)]),
+]
+definitions=[]
+for label,column,engine,source_type,rows in groups:
+    assert sheet.cell_value(1,column)==label
+    extracted=[]
+    for parameter,heading,last,selected,expected,alternate in rows:
+        option=native[parameter]
+        descriptor=option["tu15_descriptor"]
+        title=sheet.cell_value(heading-1,1)
+        assert title.removesuffix(" (King)")==option["title"],(parameter,title)
+        choice=sheet.cell_value(selected-1,2)
+        assert {c["value"]:c["label"] for c in option["choices"]}[expected]==choice
+        assert sheet.cell_type(selected-1,column)==xlrd.XL_CELL_NUMBER
+        assert sheet.cell_value(selected-1,column)==expected
+        assert all(sheet.cell_type(r-1,column) in (xlrd.XL_CELL_EMPTY,xlrd.XL_CELL_BLANK)
+                   for r in range(heading+1,last+1) if r!=selected)
+        extracted.append(dict(parameter=parameter,option_cell=f"B{heading}",option_label=title,
+            choice_cell=f"C{selected}",choice=choice,cell=f"{xlrd.colname(column)}{selected}",
+            value=expected,diagnostic_alternate=alternate,descriptor=descriptor))
+    definitions.append(dict(variant=label,header=f"{xlrd.colname(column)}2",initializer=engine,
+        original_engine_type=source_type,settings=extracted))
+sheet_book.release_resources()
+
+source=Source(VARIANT_SPEC)
+table=0x47CF40
+validator=0x1A7140
+instructions={}
+invocations=0
+def verify(memory,address,size,unused):
+    global invocations
+    expected=source.image.read(address,size)
+    assert bytes(memory.mem_read(address,size))==expected,hex(address)
+    instructions[address]=expected
+    invocations+=1
+source.g.hook_add(UC_HOOK_CODE,verify)
+
+cases=[]
+buffers=[]
+def check(label,source_type,values,valid=True):
+    before=source.raw()
+    raw=bytes.fromhex(before)
+    assert len(raw)==304 and struct.unpack_from("<I",raw,0x44)[0]==source_type
+    assert all(source.get(p)==v for p,v in values.items()),(label,values)
+    assert source.raw()==before
+    observed=bool(source.call(validator,registers=((UC_X86_REG_EAX,VARIANT),))&255)
+    assert source.raw()==before
+    assert observed==valid,(label,observed,valid)
+    cases.append(dict(label=label,values=values.copy(),original_valid=observed,buffer_sha256=sha(raw)))
+    buffers.append(before)
+    return raw
+
+for group in definitions:
+    rows=group["settings"]
+    label=group["variant"]
+    engine=group["initializer"]
+    source_type=group["original_engine_type"]
+    for row in rows:
+        p=row["parameter"]
+        descriptor=row["descriptor"]
+        address=source.u(table+4*p)
+        assert address==int(descriptor["address"],16)
+        source.g.mem_write(RESULTS,bytes(12))
+        source.call(address,(RESULTS,RESULTS+4,RESULTS+8))
+        assert [source.u(RESULTS+4*i) for i in range(3)]==[descriptor[k] for k in ("kind","offset","operand")]
+    source.init(engine)
+    values={r["parameter"]:r["diagnostic_alternate"] for r in rows}
+    for p,value in values.items():
+        source.set(p,value)
+    before=check(label+"/alternates",source_type,values)
+    for row in rows:
+        p,value=row["parameter"],row["value"]
+        source.set(p,value)
+        values[p]=value
+        after=check(label+"/"+row["cell"],source_type,values)
+        offset=row["descriptor"]["offset"]
+        kind=row["descriptor"]["kind"]
+        mask={i:a^b for i,(a,b) in enumerate(zip(before,after)) if a!=b}
+        if kind==1:
+            bit=row["descriptor"]["operand"]
+            assert mask=={offset+bit//8:1<<(bit%8)},(p,mask)
+        else:
+            width={4:2,5:4}[kind]
+            assert mask and set(mask)<=set(range(offset,offset+width)),(p,mask)
+            assert int.from_bytes(after[offset:offset+width],"little",signed=True)==value
+        row["changed_byte_xor"]={hex(i):v for i,v in mask.items()}
+        before=after
+    final=before
+    source.init(engine)
+    for row in reversed(rows):
+        source.set(row["parameter"],row["value"])
+    assert check(label+"/reverse-order",source_type,values)==final
+    if source_type==4:
+        assert struct.unpack_from("<II",final,0x50)==(300,600)
+        assert struct.unpack_from("<h",final,0xf4)==(0,)
+        for offset,width,number in ((0xf4,2,-1),(0xf4,2,-32768),(0x50,4,32768),(0x54,4,-1)):
+            damaged=bytearray(final)
+            damaged[offset:offset+width]=number.to_bytes(width,"little",signed=True)
+            source.g.mem_write(VARIANT,bytes(damaged))
+            check(f"{label}/invalid-{offset:x}-{number}",source_type,{},False)
+
+module=scratch/"matchmaking_variant.rs"
+shutil.copyfile(rust,module)
+assert sha(module.read_bytes())==pins[str(rust)]
+driver=scratch/"validate.rs"
+driver.write_text('''#[path="matchmaking_variant.rs"]
+mod variant;
+use std::io::{self, BufRead};
+fn main() {
+    for line in io::stdin().lock().lines() {
+        let line = line.unwrap();
+        let raw: Vec<u8> = line.as_bytes().chunks_exact(2).map(|pair|
+            u8::from_str_radix(std::str::from_utf8(pair).unwrap(),16).unwrap()).collect();
+        println!("{}",u8::from(variant::valid(&raw)));
+    }
+}
+''')
+binary=scratch/"variant-admission"
+rustc=["rustup","run","1.96.0","rustc"]
+subprocess.run(rustc+["--edition=2024",str(driver),"-o",str(binary)],check=True)
+rust_results=subprocess.check_output([str(binary)],input="\n".join(buffers)+"\n",text=True).splitlines()
+assert rust_results==[str(int(case["original_valid"])) for case in cases]
+for case,valid in zip(cases,rust_results):
+    case["rust_valid"]=valid=="1"
+assert pins=={str(p):sha(p.read_bytes()) for p in sources}
+proof=dict(schema="H2_APRIL_2006_KING_WORKBOOK_REPLAY_V1",passed=True,scope="Literal workbook options, original defaults as diagnostic buffers",
+    xbe_sha256=VARIANT_SPEC["pin"],source_pins=pins,tool_sha256=sha(Path(__file__).read_bytes()),sheet="Variants",
+    reader=f"xlrd {xlrd.__version__} static BIFF8",definitions=definitions,cases=cases,
+    all_executed_instruction_bytes_verified=True,unique_instruction_addresses=len(instructions),executed_instruction_invocations=invocations,
+    instruction_pin=sha(b"".join(struct.pack("<IH",a,len(raw))+raw for a,raw in sorted(instructions.items()))),
+    descriptor_table=hex(table),original_validator=hex(validator),original_entries={key:hex(VARIANT_SPEC[key]) for key in ("init","getter","setter")},
+    historic_serialized_variant_recovered=False,weights_recovered=False,production_catalog_changed=False,scratch=str(scratch),
+    retained_generated_large_artifacts=[])
+out.write_text(json.dumps(proof,indent=2)+"\n")
+print(json.dumps({"passed":True,"options":sum(len(g["settings"]) for g in definitions),"controls":len(cases),"instructions":invocations}))

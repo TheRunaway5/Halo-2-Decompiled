@@ -11,6 +11,7 @@
 using namespace halo2;
 namespace {
 using J=nlohmann::json;
+unsigned current_case{};
 struct Fault {std::uint32_t address,bytes;};
 struct RequiredBoundary {};
 struct Memory final:SourcePhysicsContactMemory {
@@ -35,6 +36,7 @@ int main(int argc,char**argv)try{
  unsigned cases{},returns{},faults{},stores_count{},stopped_count{};std::map<std::uint32_t,unsigned> entries;
  while(std::getline(file,line)){
   if(line.empty())continue;const auto row=J::parse(line);const auto entry=row.at("entry").get<std::uint32_t>();
+  current_case=row.at("case");
   const auto table=native_tu15_sound::resource_kernels();
   const auto kernel=std::ranges::find(table,entry,&native_tu15_sound::Kernel::entry);need(kernel!=table.end(),"Original packet entry has no native kernel");
   Memory memory;for(const auto& q:header.at("regions"))memory.map(q[0],q[1]);
@@ -52,8 +54,8 @@ int main(int argc,char**argv)try{
    need(stop||std::ranges::find(allowed,call.target)!=allowed.end(),"Stream callee lacks its declared native CPU owner");
    const auto get=[&](std::uint32_t at){std::array<std::byte,4> b{};m.read(at,b);return value(b);};
    const unsigned count=call.target==0x1a3b70u?6u:call.target==0x21f260u?3u:
-       (call.target==0x2e4d60u||call.target==0x21f3b0u||call.target==0x21f3f0u)?1u:0u;
-   need(count!=0,"Stream CPU callee ABI is unavailable");J args=J::array();
+       (call.target==0x2e4d60u||call.target==0x21f3b0u||call.target==0x21f3f0u||call.target==0x21f420u)?1u:0u;
+   need(count!=0||call.target==0x2dbf74u,"Stream CPU callee ABI is unavailable");J args=J::array();
    for(unsigned n=0;n<count;++n)args.push_back(get(a.gp[4]+4u+n*4u));
    calls.push_back({{"target",call.target},{"gp",a.gp},{"return",get(a.gp[4])},{"args",args}});
    if(stop)throw RequiredBoundary{};
@@ -107,5 +109,6 @@ int main(int argc,char**argv)try{
   report["all_boundary_general_registers_checked"]=true;report["original_post_read_return_abi_qualified"]=false;
  }
  std::ofstream(argv[2])<<report.dump(2)<<'\n';std::cout<<report.dump()<<'\n';return 0;
-}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
+}catch(const Fault& f){std::cerr<<"Fixture case "<<current_case<<" unhandled memory fault "<<std::hex<<f.address<<" bytes "<<f.bytes<<'\n';return 1;}
+catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 

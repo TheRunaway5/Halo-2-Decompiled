@@ -1155,9 +1155,24 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if 0x18be00 in ENTRIES:
         from native_weapon_effect_integer_bridge_tu15 import install_native_sound_local
         generated=install_native_sound_local(generated)
+    if 0x16e860 in ENTRIES:
+        from native_datum_initialize_replacements import replace_datum_initialize
+        generated=replace_datum_initialize(generated)
+    if 0x16e770 in ENTRIES:
+        from native_datum_specific_replacements import replace_datum_specific
+        generated=replace_datum_specific(generated)
     if 0x16e6a0 in ENTRIES:
         from native_weapon_effect_datum_bridge_tu15 import install_native_effect_datum
         generated=install_native_effect_datum(generated)
+    if 0x16e8a0 in ENTRIES:
+        from native_datum_delete_replacements import install_native_datum_delete
+        generated=install_native_datum_delete(generated)
+    if 0x13fe00 in ENTRIES:
+        from native_page_window_replacements import install_native_page_window
+        generated=install_native_page_window(generated)
+    if 0x140310 in ENTRIES:
+        from native_page_retire_replacements import install_native_page_retire
+        generated=install_native_page_retire(generated)
     if 0x17dce0 in ENTRIES:
         from native_weapon_effect_iterator_bridge_tu15 import install_native_effect_iterator
         generated=install_native_effect_iterator(generated)
@@ -1179,9 +1194,126 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if all(entry in ENTRIES for entry in (0x15cb60,0x15cc70,0x15cd30,0x15cdf0)):
         from native_vehicle_choice_kernel_tu15 import install_native_vehicle_choice
         generated=install_native_vehicle_choice(generated)
+        from native_vehicle_choice_data_replacements import replace_vehicle_choice_data
+        generated=replace_vehicle_choice_data(generated)
     if 0x30bd0 in ENTRIES:
         from native_normalize_vector_bridge_tu15 import install_native_normalizer
         generated=install_native_normalizer(generated,'Tu15Literal')
+    if 0x14d0e0 in ENTRIES:
+        from native_bsp_cluster_replacements import install_native_bsp_cluster_flood
+        generated=install_native_bsp_cluster_flood(generated)
+    if 0x130980 in ENTRIES:
+        from native_geometry_request_replacements import install_native_geometry_request
+        generated=install_native_geometry_request(generated)
+    if 0x22a680 in ENTRIES:
+        from native_geometry_request_replacements import install_native_geometry_publish
+        generated=install_native_geometry_publish(generated)
+    if any(entry in ENTRIES for entry in (0xbc200,0xbcd80,0x1d8c80,0x1d8d80)):
+        from model_light_source_native_replacements import replace_model_light_source
+        generated=replace_model_light_source(generated)
+    if 0x2c390 in ENTRIES:
+        from model_default_lighting_native_replacements import replace_model_default_lighting
+        generated=replace_model_default_lighting(generated)
+    if 0x3dd00 in ENTRIES:
+        from model_color_publish_native_replacements import replace_model_color_publish
+        generated=replace_model_color_publish(generated)
+    if 0x3ddc0 in ENTRIES:
+        from model_light_cache_native_replacements import replace_model_light_cache
+        generated=replace_model_light_cache(generated)
+    if 0x1232c0 in ENTRIES:
+        from native_async_insert_replacements import install_native_async_insert
+        generated=install_native_async_insert(generated)
+    if 0x1236a0 in ENTRIES:
+        from native_async_promote_replacements import install_native_async_promote
+        generated=install_native_async_promote(generated)
+    if 0x1e5810 in ENTRIES:
+        from native_record_search_replacements import replace_record_search
+        generated=replace_record_search(generated)
+    if 0xbcee0 in ENTRIES:
+        from native_object_scan_replacements import replace_object_scan
+        generated=replace_object_scan(generated)
+    if 0x1e3270 in ENTRIES:
+        from native_record_lookup_replacements import replace_record_lookup
+        generated=replace_record_lookup(generated)
+    if 0x126190 in ENTRIES:
+        from native_resource_record_search_replacements import replace_resource_record_search
+        generated=replace_resource_record_search(generated)
+    if 0x1264e0 in ENTRIES:
+        from native_animation_resource_read_replacements import replace_animation_resource_read
+        generated=replace_animation_resource_read(generated)
+        from native_resource_page_replacements import replace_resource_page
+        generated=replace_resource_page(generated)
+        from native_resource_maintenance_replacements import replace_resource_maintenance
+        generated=replace_resource_maintenance(generated)
+    if 0x1262b0 in ENTRIES:
+        from native_animation_resource_wait_replacements import replace_animation_resource_wait
+        generated=replace_animation_resource_wait(generated)
+    if 0x126200 in ENTRIES:
+        from native_resource_touch_replacements import replace_resource_touch
+        generated=replace_resource_touch(generated)
+    if 0x126480 in ENTRIES:
+        from native_resource_record_count_replacements import replace_resource_record_count
+        generated=replace_resource_record_count(generated)
+    if 0x33b590 in ENTRIES:
+        from native_millisecond_clock_replacements import replace_millisecond_clock
+        generated=replace_millisecond_clock(generated)
+    if 0x2dbf74 in ENTRIES:
+        from native_kernel_yield_replacements import replace_kernel_yield
+        generated=replace_kernel_yield(generated)
+    if 0x1e5af0 in ENTRIES:
+        from native_node_resource_replacements import replace_node_resource
+        generated=replace_node_resource(generated)
+    if 0x1e5c80 in ENTRIES:
+        from native_node_resource_lifecycle_replacements import replace_node_resource_lifecycle
+        generated=replace_node_resource_lifecycle(generated)
+    if 0x1e3150 in ENTRIES and 0x1e5c80 in ENTRIES:
+        from native_node_descriptor_lookup_replacements import replace_node_descriptor_lookup
+        generated=replace_node_descriptor_lookup(generated)
+    if 0x1707a0 in ENTRIES:
+        from native_model_default_pose_replacements import replace_model_default_pose
+        generated=replace_model_default_pose(generated)
+    if 0x2a0230 in ENTRIES:
+        from native_bsp_surface_2d_replacements import replace_bsp_surface_2d
+        generated=replace_bsp_surface_2d(generated)
+    if 0x1e6e80 in ENTRIES:
+        from native_bsp_surface_polygon_replacements import replace_bsp_surface_polygon
+        generated=replace_bsp_surface_polygon(generated)
+    if 0x1e6cb0 in ENTRIES:
+        from native_bsp_leaf_surface_replacements import replace_bsp_leaf_surface
+        generated=replace_bsp_leaf_surface(generated)
+    if 0x1e6980 in ENTRIES:
+        from native_bsp_segment_replacements import replace_bsp_segment
+        generated=replace_bsp_segment(generated)
+    if 0x1e68e0 in ENTRIES:
+        from native_bsp_segment_setup_replacements import replace_bsp_segment_setup
+        generated=replace_bsp_segment_setup(generated)
+    if 0x32a660 in ENTRIES:
+        from native_stack_probe_replacements import install_native_stack_probe
+        generated=install_native_stack_probe(generated)
+    if 0xfa5d0 in ENTRIES:
+        from native_halfword_bit_query_replacements import replace_halfword_bit_query
+        generated=replace_halfword_bit_query(generated)
+    if any(entry in ENTRIES for entry in(0x12fcb0,0x4057f0)):
+        from native_resource_busy_replacements import install_native_resource_busy
+        generated=install_native_resource_busy(generated)
+    if 0x13fe50 in ENTRIES:
+        from native_page_allocate_replacements import install_native_page_allocate
+        generated=install_native_page_allocate(generated)
+    if all(entry in ENTRIES for entry in(0xbf0c0,0xbfb90,0xb8780,0xb87b0)):
+        from native_object_node_rebuild_replacements import install_native_object_nodes
+        generated=install_native_object_nodes(generated)
+    if all(entry in ENTRIES for entry in(0x184690,0x1770c0,0x1772c0,0x167ef0)):
+        from native_sphere_frustum_replacements import replace_sphere_frustum
+        generated=replace_sphere_frustum(generated)
+    if 0x24dec0 in ENTRIES:
+        from native_instanced_ray_child_replacements import replace_instanced_ray_child
+        generated=replace_instanced_ray_child(generated)
+    if 0x16b810 in ENTRIES:
+        from native_camera_instance_admission_replacements import replace_camera_instance_admission
+        generated=replace_camera_instance_admission(generated)
+    if 0x186e30 in ENTRIES:
+        from native_camera_instance_bitmap_replacements import replace_camera_instance_bitmap
+        generated=replace_camera_instance_bitmap(generated)
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(generated)

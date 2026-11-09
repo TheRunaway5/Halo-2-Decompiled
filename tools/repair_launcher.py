@@ -63,7 +63,8 @@ def repair(root, runtime=None, *, mcc_root=None, progress=print):
     except (OSError, ValueError, KeyError, TypeError) as error:
         progress('Rebuilding the private MCC cache from your MCC installation…')
         try:
-            cache, _ = mcc_onboarding.setup(root, mcc_root, progress=progress)
+            from rebuild_asset_cache import rebuild
+            cache, _ = rebuild(root, mcc_root=mcc_root, runtime=runtime, progress=progress)
         except (OSError, ValueError, KeyError, TypeError) as failure:
             raise ValueError('MCC cache repair failed: ' + str(failure) +
                              '. Choose your MCC folder and retry Repair.') from error
@@ -86,9 +87,7 @@ def repair(root, runtime=None, *, mcc_root=None, progress=print):
             try:
                 if _file_digest(root/'windows-package.json') != package_pin:
                     raise ValueError('Package inventory changed during Repair')
-                include_movie = (cache/'presentation/movies').exists() or (root/'resources/movies').exists()
-                qualify(root, runtime, cache, scratch/'reports', scratch, progress=progress,
-                        include_optional_movie=include_movie)
+                qualify(root, runtime, cache, scratch/'reports', scratch, progress=progress)
                 # Retain the bounded receipt, not native captures or state.
                 diagnostics = root/'diagnostics'
                 if diagnostics.is_symlink():

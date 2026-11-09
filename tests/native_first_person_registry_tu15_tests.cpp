@@ -298,16 +298,17 @@ int main(int argc,char **argv) {
                 [](const auto &a,const auto &b){return a.address<b.address;});
         };
         std::vector<std::pair<std::uint32_t,std::byte>> queued_flags;
-        std::uint32_t foreign_geometry{};
+        struct GeometryOwner {std::uint32_t header,tag;unsigned section;};
+        std::vector<GeometryOwner> authored_geometry;
         report["private_geometry_queued_flags"]=nlohmann::json::array();
         for(const auto &tag:world.cache->select_tags({.group=TagGroup::from_string("mode"),.require_address=true})) {
             const auto row=word(0x4f0414u)+(tag.datum&65535u)*16u,root=word(row+8u),bytes=word(row+12u);
             if(bytes<0x2cu)continue;
             const auto count=word(root+0x24u),sections=word(root+0x28u);
             if(!count || sections<root || std::uint64_t(sections)-root+std::uint64_t(count)*0x5cu>bytes)continue;
-            if(tag.name=="objects\\weapons\\rifle\\smg\\smg")foreign_geometry=sections+0x38u;
             for(unsigned section=0;section<count;++section) {
                 const auto at=sections+section*0x5cu+0x57u;
+                authored_geometry.push_back({at-0x1fu,tag.datum,section});
                 if(const auto value=private_byte(*cut.match.native_first_person->players[slot].context,at)) {
                     std::array<std::byte,1> fresh;resource_memory.read(at,fresh);
                     need(((*value^fresh[0])&std::byte{0xfb})==std::byte{},
@@ -367,28 +368,6 @@ int main(int argc,char **argv) {
         }
         unsigned geometry_attacks{};
         if(!queued_flags.empty()) {
-            need(foreign_geometry!=0,"Native geometry attack lacks the actual third-person SMG model");
-            const auto reject_geometry=[&](auto bad) {
-                bool rejected{};
-                try{auto staged_bad=authority.prepare(bad,binding);(void)staged_bad;}
-                catch(const FormatError&){rejected=true;}
-                need(rejected && encoded(match.state().players[slot])==before_rejection,
-                    "Native geometry continuation admitted unrelated asset bytes or changed its live owner");
-                ++geometry_attacks;
-            };
-            const auto [flag,value]=queued_flags.front();
-            const auto tag=report["private_geometry_queued_flags"].front()["tag"].get<std::uint32_t>();
-            const auto tag_row=word(0x4f0414u)+(tag&65535u)*16u;
-            for(const auto address:{flag-1u,flag+1u,foreign_geometry+0x1fu,word(tag_row+8u)+0x28u,
-                tag_row+8u,0x4ecc1cu}) {
-                auto bad=cut;std::array<std::byte,1> actual;resource_memory.read(address,actual);
-                replace_byte(*bad.match.native_first_person->players[slot].context,address,actual[0]|std::byte{4});
-                reject_geometry(std::move(bad));
-            }
-            auto other_bit=cut;replace_byte(*other_bit.match.native_first_person->players[slot].context,
-                flag,value^std::byte{2});reject_geometry(std::move(other_bit));
-            auto missing_flag=cut;replace_byte(*missing_flag.match.native_first_person->players[slot].context,
-                flag,value&std::byte{0xfb});reject_geometry(std::move(missing_flag));
             const auto queue=word(0x4f2d60u),rows=word(queue+0x44u),bitmap=word(queue+0x48u);
             const auto &context=*cut.match.native_first_person->players[slot].context;
             const auto retained_word=[&](std::uint32_t at) {
@@ -396,6 +375,66 @@ int main(int argc,char **argv) {
                 for(unsigned n=0;n<4u;++n)if(const auto value=private_byte(context,at+n))bytes[n]=*value;
                 return Bytes(bytes).u32(0);
             };
+            std::uint32_t foreign_geometry{};
+            for(const auto &owner:authored_geometry) {
+                const auto at=owner.header+0x1fu;
+                std::array<std::byte,1> actual;resource_memory.read(at,actual);
+                const auto retained=private_byte(context,at).value_or(actual[0]);
+                if(((actual[0]|retained)&std::byte{4})!=std::byte{})continue;
+                unsigned requests{};
+                for(unsigned index=0;index<0x15eu;++index)
+                    requests+=bool(retained_word(bitmap+(index/32u)*4u)&(1u<<(index%32u))) &&
+                        retained_word(rows+index*8u+4u)==owner.header;
+                if(requests)continue;
+                foreign_geometry=owner.header;
+                report["geometry_unpaired_authored_owner"]={{"header",owner.header},{"tag",owner.tag},
+                    {"section",owner.section},{"fresh",std::to_integer<unsigned>(actual[0])},
+                    {"private",std::to_integer<unsigned>(retained)},{"active_requests",requests}};
+                break;
+            }
+            need(foreign_geometry!=0,"Native geometry attack lacks an authored unqueued section without a request row");
+            const auto reject_geometry=[&](auto bad) {
+                nlohmann::json differences=nlohmann::json::array();
+                for(const auto &range:bad.match.native_first_person->players[slot].context->private_ranges)
+                    for(unsigned n=0;n<range.bytes.size();++n) {
+                        const auto at=range.address+n;
+                        auto previous=private_byte(context,at);
+                        if(!previous) {std::array<std::byte,1> actual;resource_memory.read(at,actual);previous=actual[0];}
+                        if(*previous!=range.bytes[n])differences.push_back({{"address",at},
+                            {"before",std::to_integer<unsigned>(*previous)},
+                            {"after",std::to_integer<unsigned>(range.bytes[n])}});
+                    }
+                need(!differences.empty(),"Native geometry attack did not change any actual continuation input byte");
+                bool rejected{};std::string reason;
+                try{auto staged_bad=authority.prepare(bad,binding);(void)staged_bad;}
+                catch(const FormatError &error){rejected=true;reason=error.what();}
+                const bool unchanged=encoded(match.state().players[slot])==before_rejection;
+                report["geometry_owner_attack_controls"].push_back({{"index",geometry_attacks},
+                    {"changed_bytes",differences},{"rejected",rejected},{"reason",reason},
+                    {"live_owner_unchanged",unchanged}});
+                need(rejected && unchanged,
+                    "Native geometry continuation admitted unrelated asset bytes or changed its live owner");
+                ++geometry_attacks;
+            };
+            const auto queued=std::find_if(queued_flags.begin(),queued_flags.end(),
+                [](const auto &flag){return (flag.second&std::byte{4})!=std::byte{};});
+            need(queued!=queued_flags.end(),"Native geometry attacks lack a genuine retained queued flag");
+            const auto [flag,value]=*queued;
+            const auto described=std::find_if(report["private_geometry_queued_flags"].begin(),
+                report["private_geometry_queued_flags"].end(),[&](const auto &entry){return entry["address"]==flag;});
+            need(described!=report["private_geometry_queued_flags"].end(),"Queued geometry flag lost its authored tag row");
+            const auto tag=(*described)["tag"].template get<std::uint32_t>();
+            const auto tag_row=word(0x4f0414u)+(tag&65535u)*16u;
+            for(const auto address:{flag-1u,flag+1u,foreign_geometry+0x1fu,word(tag_row+8u)+0x28u,
+                tag_row+8u,0x4ecc1cu}) {
+                auto bad=cut;std::array<std::byte,1> actual;resource_memory.read(address,actual);
+                replace_byte(*bad.match.native_first_person->players[slot].context,address,actual[0]^std::byte{4});
+                reject_geometry(std::move(bad));
+            }
+            auto other_bit=cut;replace_byte(*other_bit.match.native_first_person->players[slot].context,
+                flag,value^std::byte{2});reject_geometry(std::move(other_bit));
+            auto missing_flag=cut;replace_byte(*missing_flag.match.native_first_person->players[slot].context,
+                flag,value&std::byte{0xfb});reject_geometry(std::move(missing_flag));
             bool paired{};
             for(unsigned index=0;index<0x15eu;++index)if((retained_word(bitmap+(index/32u)*4u)&(1u<<(index%32u))) &&
                 retained_word(rows+index*8u+4u)==flag-0x1fu) {

@@ -141,6 +141,17 @@ preserve all literal bodies, and the [installed-route comparison](../analysis/ve
 passes with native counter assertions. Missing-page faults and executable
 performance are outside this selector component result.
 
+Native-replacement classification correction, November 9, 2026: those earlier
+selector comparisons validate the instruction-shaped
+`source_vehicle_choice_native_tu15_internal.hpp` adapter. Its register, flag and
+site-by-site execution remains translated work; the historical native name and
+call counters do not close migration of `15CB60`, `15CC70`, `15CDF0` or `15CD30`.
+A separate typed selection/LCG/retry kernel is now the guarded default, with
+[independent component evidence](native_replacement/15CB60_vehicle_choices.md).
+The existing adapter remains the explicit instruction-observing reference path.
+The [complete migration checklist](NATIVE_REPLACEMENT_CHECKLIST.md) tracks the
+remaining binding, independent proof and runtime gates.
+
 The current implementation prepares cold definition/variant candidates from
 the original runtime references without consuming RNG.15D4F0 and the native
 selectors retain actual per-birth choice. Scene publication then binds the

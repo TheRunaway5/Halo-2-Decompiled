@@ -432,6 +432,22 @@ if(BUILD_TESTING)
         "${HALO2_MCC_WEAPON_EFFECTS_MAP}" "${HALO2_MCC_WEAPON_EFFECTS_MAPS}"
         "${CMAKE_CURRENT_BINARY_DIR}/native-private-particle-phase.json")
     set_tests_properties(native_private_particle_phase_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    # Distinct Lockout firearm definitions from the authenticated zoom/effect
+    # catalog. Sword primary/melee has a separate lifecycle and is not claimed.
+    foreach(representation 2 3)
+        foreach(weapon 3 4 5 6 7 8 9 10 11 12 13 14 18 19)
+            set(name "native_private_particle_phase_tu15_r${representation}_w${weapon}")
+            add_test(NAME "${name}" COMMAND native_private_particle_phase_tu15_tests
+                "${HALO2_MCC_WEAPON_EFFECTS_MAP}" "${HALO2_MCC_WEAPON_EFFECTS_MAPS}"
+                "${CMAKE_CURRENT_BINARY_DIR}/${name}.json" "${weapon}" "${representation}" 1)
+            set_tests_properties("${name}" PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+        endforeach()
+        set(name "native_private_particle_phase_tu15_r${representation}_w6_charged")
+        add_test(NAME "${name}" COMMAND native_private_particle_phase_tu15_tests
+            "${HALO2_MCC_WEAPON_EFFECTS_MAP}" "${HALO2_MCC_WEAPON_EFFECTS_MAPS}"
+            "${CMAKE_CURRENT_BINARY_DIR}/${name}.json" 6 "${representation}" 120)
+        set_tests_properties("${name}" PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    endforeach()
     add_executable(native_weapon_zoom_fire_caller_tu15_tests tests/native_weapon_zoom_fire_caller_tu15_tests.cpp)
     target_link_libraries(native_weapon_zoom_fire_caller_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_weapon_zoom_fire_caller_tu15 COMMAND native_weapon_zoom_fire_caller_tu15_tests

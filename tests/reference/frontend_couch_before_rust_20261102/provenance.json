@@ -1,0 +1,24 @@
+{
+  "captured_at_utc": "2026-11-02T22:56:13.457439+00:00",
+  "scope": "Authenticated complete modern couch caller, exact local join/finish/leave/identity and back branches, state and bridge before Rust migration. Original Xbox/Live providers are separate requirements.",
+  "source_pins": {
+    "src/ui/frontend_couch.cpp": "4db846a86976a8a8ef0e0b9d2520060663348c029a2c377309bdb34d96c28736",
+    "src/ui/frontend_state.cpp": "2ce6989366d405cef139e49b21ed9c82b4d2b6c5470d8fd0ac24b8815e5dfae4",
+    "include/halo2/frontend.hpp": "d811143c1b3b0665b1e152ecb22c4c358ab23f43b7aa53460283d3e4df3b2813",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "071f09adff81afb79b9747f86655f98b180738acf71cd7112213c845d1c42bbc",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "11a29b7dfdfa6ec38e04f7a35bfbe440005fcfece4bd84951dc72a1fc460f535",
+    "src/ui/frontend_matchmaking_search.cpp": "523b00559a8a723b7dda9daa368e55c4c54c938e129397b2238da3bab4424ff8",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "6cf2bdff6fdcab3f2ad7a88da1c9aa2638c7c8219c751e33ee66b160082d800f",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "ed722cc4491d1c6c08cdf86b9fb1076ec16e111553ba828df53b6abf07c0b3a5"
+  },
+  "capture_names": {
+    "src/ui/frontend_couch.cpp": "src__ui__frontend_couch.cpp.reference",
+    "src/ui/frontend_state.cpp": "src__ui__frontend_state.cpp.reference",
+    "include/halo2/frontend.hpp": "include__halo2__frontend.hpp.reference",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "include__halo2__frontend_matchmaking_party_flow.hpp.reference",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "src__ui__frontend_matchmaking_party_flow_bridge.cpp.reference",
+    "src/ui/frontend_matchmaking_search.cpp": "src__ui__frontend_matchmaking_search.cpp.reference",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol__src__matchmaking_frontend_party_flow.rs.reference",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol_bridge__src__matchmaking_frontend_party_flow.rs.reference"
+  }
+}

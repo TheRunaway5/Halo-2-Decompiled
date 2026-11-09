@@ -1,0 +1,51 @@
+{
+  "schema": "H2_MATCHMAKING_NATIVE_POSTGAME_CONFIRM_RETRY_VALIDATION_V1",
+  "scope": "Frozen Linux build, native session CXX/Rust boundary and real native two-player postgame voice with synthetic audio devices. Full party result acceptance remained red.",
+  "passed": false,
+  "source_pin_sha256": "f408db7554e5ce06a20e630df085c1083a589f6fed5163e849711e4f636aa41e",
+  "refreshed": [
+    {
+      "path": "rust/online_protocol/src/matchmaking_native_session.rs",
+      "before": "d252b8bb38bc6d4c7bafb299f1c1b649ea49167bcf1554fe084b7c0d0e06e091",
+      "after": "6760866c43400f4f71721c1a4dfae8b8607af8ae97230a217bc3358529326b00"
+    },
+    {
+      "path": "rust/online_protocol/tests/matchmaking_native_session.rs",
+      "before": "c07ec44e33b384bb9de09ed9a7653395c9aca86c3b49c218f96fee61769a0d7c",
+      "after": "92c7a3c14e7226344de21544f9b81ed7261b7b9ff45e5f784bf228c6dcb06421"
+    }
+  ],
+  "binaries": {
+    "online_match_launch_tests": {
+      "sha256": "a772ecfa3483a5b4c534bda39a98ad10b3b395a3d6d01cbe5d1f51e3fa283e82",
+      "bytes": 1397827688
+    },
+    "native_session_api_tests": {
+      "sha256": "21c0c9a2554dd9597c6bbeeadfeea3dae4d9baf6742abcf0c9e3fffeb031bd0b",
+      "bytes": 30615528
+    }
+  },
+  "ctest_output_sha256": "ef0fda0b3c3a1ffcd7a5c33de9c6ce08b1952efcaf5708e4d2d5063a6c10fb92",
+  "ctest_output_bytes": 32513,
+  "ctest_results": [
+    "1/3 Test #107: native_session_api_cpp_rust ......   Passed   12.62 sec",
+    "2/3 Test #817: online_match_launch ..............***Failed   84.44 sec",
+    "3/3 Test #837: online_match_party_launch ........***Failed  154.87 sec"
+  ],
+  "native_session_cpp_rust_passed": true,
+  "two_player_postgame_voice": [
+    "PASS passive postgame voice across teams without world positions; mutual mute/unmute and actual talking state",
+    "PASS passive postgame voice across teams without world positions; mutual mute/unmute and actual talking state"
+  ],
+  "two_player_subsequent_errors": [
+    "Rate limit exceeded",
+    "Rate limit exceeded"
+  ],
+  "four_player_result_errors": [
+    "Native ONLINE handoff timed out: native result publication and review",
+    "Native ONLINE handoff timed out: native result publication and review",
+    "Native ONLINE handoff timed out: native result publication and review",
+    "Native ONLINE handoff timed out: native result publication and review"
+  ],
+  "retained_generated_large_artifacts": []
+}

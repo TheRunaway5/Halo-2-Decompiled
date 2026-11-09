@@ -71,11 +71,20 @@ private:
     std::vector<std::uint32_t> order;
     std::vector<Node> nodes;
   };
+  // The BVH is built on first query (or immediately with
+  // HALO2_REFERENCE_EAGER_COLLISION_BUILDS=1). Moving devices recompose the
+  // layers every tick while nothing may query them; the deferred tree is the
+  // same builder over the same immutable triangle prefix.
+  struct LazyAcceleration;
   std::shared_ptr<std::vector<CollisionTriangle>> geometry_;
   std::size_t count_{};
-  std::shared_ptr<const Acceleration> acceleration_;
+  std::shared_ptr<LazyAcceleration> acceleration_;
   CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>>, std::size_t,
                  std::shared_ptr<const Acceleration> = {});
+  CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>>, std::size_t,
+                 std::shared_ptr<LazyAcceleration>);
+  const Acceleration &acceleration() const;
+  static bool eager_builds();
   static std::shared_ptr<const Acceleration> accelerate(std::span<const CollisionTriangle>);
   static int build(std::span<const CollisionTriangle>, Acceleration &,
                    std::size_t begin, std::size_t end);

@@ -12,6 +12,10 @@ use std::{
 const CHUNK: usize = 1024;
 const HEADER: usize = 65;
 const PIPELINE: u32 = 128;
+// Complete paired archives include bounded preparation liveness. A Preparing
+// packet renews only delivered-byte idle time; Ready still requires the native
+// executor's explicit acknowledgement and the total lifetime never changes.
+pub const COMPLETE_HOST_ARCHIVE: u32 = 16384;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Error;
 impl std::fmt::Display for Error {
@@ -78,6 +82,7 @@ enum Kind {
     Ack,
     Ready,
     Reject,
+    Preparing,
 }
 fn member(c: Context, p: u32) -> bool {
     p < 16 && c.peers & (1u16 << p) != 0
@@ -226,6 +231,9 @@ struct State {
     accepted_offer: bool,
     completed: Option<Received>,
     delivered: VecDeque<Cut>,
+    preparing: Option<Cut>,
+    preparing_sent: bool,
+    preparing_at: u64,
     validated: Option<Cut>,
     ready_sent: bool,
     ready_at: u64,
@@ -256,6 +264,9 @@ impl State {
             accepted_offer: false,
             completed: None,
             delivered: VecDeque::new(),
+            preparing: None,
+            preparing_sent: false,
+            preparing_at: 0,
             validated: None,
             ready_sent: false,
             ready_at: 0,
@@ -278,6 +289,8 @@ impl State {
         self.incoming = None;
         self.completed = None;
         self.delivered.clear();
+        self.preparing = None;
+        self.preparing_sent = false;
         self.validated = None;
         self.rejected = None;
         self.receipts.clear();
@@ -664,6 +677,21 @@ impl Transfer {
                         progress = true;
                         continue;
                     }
+                    if let Some(seal) = s.preparing.filter(|seal| {
+                        s.delivered.contains(seal)
+                            && l.features & COMPLETE_HOST_ARCHIVE != 0
+                            && s.features[p] & COMPLETE_HOST_ARCHIVE != 0
+                            && (!s.preparing_sent || elapsed(now, s.preparing_at) >= l.offer_ms)
+                    }) {
+                        let mut b =
+                            header(self.protocol, s.binding, peer, Kind::Preparing, seal.id);
+                        put_seal(&mut b, seal);
+                        s.emit(&mut out, peer, b);
+                        s.preparing_sent = true;
+                        s.preparing_at = now;
+                        progress = true;
+                        continue;
+                    }
                     if s.validated.is_some()
                         && (!s.ready_sent || elapsed(now, s.ready_at) >= l.offer_ms)
                     {
@@ -746,7 +774,7 @@ impl Transfer {
                 && r.get(1)? == 1,
         )?;
         let kind = r.get(1)?;
-        need(kind <= Kind::Reject as u64)?;
+        need(kind <= Kind::Preparing as u64)?;
         let c = Context {
             session: r.raw(32)?.try_into().map_err(|_| Error)?,
             epoch: r.get(4)? as u32,
@@ -948,6 +976,25 @@ impl Transfer {
                     v.bytes = None;
                 }
             }
+            7 => {
+                need(
+                    self.self_peer == c.host
+                        && self.limits.features & COMPLETE_HOST_ARCHIVE != 0
+                        && s.features[p] & COMPLETE_HOST_ARCHIVE != 0,
+                )?;
+                let seal = r.seal(id)?;
+                need(r.done())?;
+                if let Some(v) = s.senders[p].as_mut().filter(|v| v.seal.id == id) {
+                    need(v.seal == seal)?;
+                    if !v.failed
+                        && !v.validated
+                        && v.sent_count == v.sent.len()
+                        && v.begin == v.acked.len()
+                    {
+                        v.progress = now;
+                    }
+                }
+            }
             _ => return Err(Error),
         }
         Ok(None)
@@ -1012,6 +1059,9 @@ impl Transfer {
             return Ok(false);
         };
         s.delivered.drain(..=at);
+        if s.preparing.is_some_and(|v| v.id <= seal.id) {
+            s.preparing = None;
+        }
         s.validated = Some(seal);
         s.ready_sent = false;
         Ok(true)
@@ -1028,7 +1078,29 @@ impl Transfer {
             return Ok(false);
         };
         s.delivered.remove(at);
+        if s.preparing == Some(seal) {
+            s.preparing = None;
+        }
         s.rejected = Some(seal.id);
+        Ok(true)
+    }
+    /// Called only while the native owner is constructing this delivered cut.
+    /// Polling emits bounded liveness until acknowledgement, rejection or reset;
+    /// it cannot create a native receipt or extend the sender's total lifetime.
+    pub fn begin_delivered_preparation(&self, c: Context, seal: Cut) -> Result<bool> {
+        let mut s = self.lock()?;
+        if s.binding != c
+            || self.self_peer == c.host
+            || self.limits.features & COMPLETE_HOST_ARCHIVE == 0
+            || s.features[c.host as usize] & COMPLETE_HOST_ARCHIVE == 0
+            || !s.delivered.contains(&seal)
+        {
+            return Ok(false);
+        }
+        if s.preparing != Some(seal) {
+            s.preparing = Some(seal);
+            s.preparing_sent = false;
+        }
         Ok(true)
     }
     pub fn validated_cuts(&self) -> Result<Vec<Validated>> {
@@ -1076,6 +1148,23 @@ mod tests {
         step(&a, &b, 1001);
         assert!(a.supported(4).unwrap() && b.supported(0).unwrap());
         (a, b)
+    }
+    fn complete_pair() -> (Transfer, Transfer) {
+        let l = Limits {
+            features: PIPELINE | COMPLETE_HOST_ARCHIVE,
+            ..limits()
+        };
+        let a = Transfer::new(0, 124, context(), l).unwrap();
+        let b = Transfer::new(4, 124, context(), l).unwrap();
+        step(&a, &b, 1000);
+        step(&a, &b, 1001);
+        (a, b)
+    }
+    fn preparing_packet(c: Context, seal: Cut) -> Vec<u8> {
+        let mut packet = header(124, c, 0, Kind::Reject, seal.id);
+        packet[8] = 7;
+        put_seal(&mut packet, seal);
+        packet
     }
     fn step(a: &Transfer, b: &Transfer, now: u64) {
         for p in a.poll(now, 16).unwrap() {
@@ -1130,7 +1219,16 @@ mod tests {
     }
     #[test]
     fn actual_hello_legacy_capabilities_and_generation_reset_are_exact() {
-        let a = Transfer::new(0, 124, context(), limits()).unwrap();
+        let a = Transfer::new(
+            0,
+            124,
+            context(),
+            Limits {
+                features: PIPELINE | 16384,
+                ..limits()
+            },
+        )
+        .unwrap();
         let b = Transfer::new(
             4,
             124,
@@ -1145,7 +1243,9 @@ mod tests {
         step(&a, &b, 1001);
         assert!(a.supported(4).unwrap());
         assert!(!a.feature_supported(4, PIPELINE).unwrap());
+        assert!(!a.feature_supported(4, 16384).unwrap());
         assert!(b.feature_supported(0, PIPELINE).unwrap());
+        assert!(b.feature_supported(0, 16384).unwrap());
         assert_eq!(a.feature_snapshot().unwrap().1, [0; 16]);
         for p in [16, 256, u32::MAX] {
             assert!(!a.supported(p).unwrap());
@@ -1335,6 +1435,182 @@ mod tests {
         assert!(b.take_completed().unwrap().is_none());
         assert!(!b.acknowledge_validated(context(), seal).unwrap());
         assert_eq!(b.context().unwrap(), next);
+    }
+    #[test]
+    fn complete_host_preparation_wire_keeps_only_the_delivery_lease() {
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        // The packet carries the exact delivered seal, never a native receipt.
+        // Use its wire value here so this regression also checks dispatch.
+        let preparing = preparing_packet(context(), seal);
+        a.receive_recognized(4, &preparing, now + 4000).unwrap();
+        assert!(!a.failed_to(context(), seal, 4, now + 6000).unwrap());
+        assert!(a.validated_cuts().unwrap().is_empty());
+        assert!(b.acknowledge_validated(context(), seal).unwrap());
+        step(&a, &b, now + 6001);
+        assert_eq!(
+            a.validated_cuts().unwrap(),
+            vec![Validated {
+                peer: 4,
+                context: context(),
+                seal
+            }]
+        );
+    }
+    #[test]
+    fn complete_preparation_poll_is_paced_and_stops_on_each_retirement() {
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        assert!(!a.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            !b.begin_delivered_preparation(
+                context(),
+                Cut {
+                    tick: seal.tick + 1,
+                    ..seal
+                }
+            )
+            .unwrap()
+        );
+        assert!(b.begin_delivered_preparation(context(), seal).unwrap());
+        let packets = b.poll(now, 64).unwrap();
+        let preparing = packets
+            .iter()
+            .filter(|p| p.bytes[8] == 7)
+            .collect::<Vec<_>>();
+        assert_eq!(preparing.len(), 1);
+        assert_eq!(preparing[0].bytes, preparing_packet(context(), seal));
+        assert!(b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            b.poll(now + limits().offer_ms - 1, 64)
+                .unwrap()
+                .iter()
+                .all(|p| p.bytes[8] != 7)
+        );
+        assert_eq!(
+            b.poll(now + limits().offer_ms, 64)
+                .unwrap()
+                .iter()
+                .filter(|p| p.bytes[8] == 7)
+                .count(),
+            1
+        );
+        assert!(a.validated_cuts().unwrap().is_empty());
+        assert!(b.reject_delivered(context(), seal).unwrap());
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            b.poll(now + 100, 64)
+                .unwrap()
+                .iter()
+                .all(|p| p.bytes[8] != 7)
+        );
+
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        assert!(b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(b.acknowledge_validated(context(), seal).unwrap());
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            b.poll(now + 100, 64)
+                .unwrap()
+                .iter()
+                .all(|p| p.bytes[8] != 7)
+        );
+
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        assert!(b.begin_delivered_preparation(context(), seal).unwrap());
+        let next = Context {
+            epoch: context().epoch + 1,
+            ..context()
+        };
+        assert!(b.replace_context(context(), next).unwrap());
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            b.poll(now + 100, 64)
+                .unwrap()
+                .iter()
+                .all(|p| p.bytes[8] != 7)
+        );
+
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        assert!(b.begin_delivered_preparation(context(), seal).unwrap());
+        let mut legacy = header(124, context(), 4, Kind::HelloAck, 0);
+        put(&mut legacy, limits().maximum_bytes, 8);
+        put(&mut legacy, PIPELINE.into(), 4);
+        b.receive_recognized(0, &legacy, now + 100).unwrap();
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            b.poll(now + 100, 64)
+                .unwrap()
+                .iter()
+                .all(|p| p.bytes[8] != 7)
+        );
+    }
+    #[test]
+    fn complete_preparation_never_revives_or_extends_total_lifetime() {
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        let preparing = preparing_packet(context(), seal);
+        for i in 1..=7 {
+            a.receive_recognized(4, &preparing, now + i * 4000).unwrap();
+            assert!(!a.failed_to(context(), seal, 4, now + i * 4000).unwrap());
+        }
+        a.receive_recognized(4, &preparing, now + 30001).unwrap();
+        assert!(a.failed_to(context(), seal, 4, now + 30001).unwrap());
+        assert!(b.acknowledge_validated(context(), seal).unwrap());
+        step(&a, &b, now + 30002);
+        assert!(a.validated_cuts().unwrap().is_empty());
+
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        a.receive_recognized(4, &preparing_packet(context(), seal), now + 6000)
+            .unwrap();
+        assert!(a.failed_to(context(), seal, 4, now + 6000).unwrap());
+        assert!(a.validated_cuts().unwrap().is_empty());
+    }
+    #[test]
+    fn complete_preparation_requires_negotiation_and_exact_delivered_bytes() {
+        let (a, b) = pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        assert!(
+            a.receive_recognized(4, &preparing_packet(context(), seal), now + 4000)
+                .is_err()
+        );
+        assert!(a.failed_to(context(), seal, 4, now + 6000).unwrap());
+
+        let (a, b) = complete_pair();
+        let seal = a
+            .publish(context(), 10, vec![0x39; 5003], &[4], 2000)
+            .unwrap();
+        assert!(!b.begin_delivered_preparation(context(), seal).unwrap());
+        a.receive_recognized(4, &preparing_packet(context(), seal), 6000)
+            .unwrap();
+        assert!(a.failed_to(context(), seal, 4, 8000).unwrap());
+
+        let (a, b) = complete_pair();
+        let (seal, _, now) = deliver(&a, &b, 10, 2000);
+        let mut wrong = seal;
+        wrong.digest[0] ^= 1;
+        assert!(
+            a.receive_recognized(4, &preparing_packet(context(), wrong), now + 4000)
+                .is_err()
+        );
+        let foreign = Context {
+            membership_revision: 6,
+            ..context()
+        };
+        assert!(
+            a.receive_recognized(4, &preparing_packet(foreign, seal), now + 4000)
+                .is_err()
+        );
+        let mut truncated = preparing_packet(context(), seal);
+        truncated.pop();
+        assert!(a.receive_recognized(4, &truncated, now + 4000).is_err());
+        assert!(a.failed_to(context(), seal, 4, now + 6000).unwrap());
+        assert!(a.validated_cuts().unwrap().is_empty());
     }
     #[test]
     fn synchronized_owner_is_send_sync_and_recognizes_only_the_prior_packet_family() {

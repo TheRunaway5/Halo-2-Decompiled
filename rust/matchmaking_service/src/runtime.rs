@@ -126,7 +126,67 @@ impl Runtime {
             Value::Null,
         )?;
         runtime.voice_schema()?;
+        runtime.bind_catalog_revisions()?;
         Ok(runtime)
+    }
+    fn bind_catalog_revisions(&mut self) -> Result<()> {
+        use halo2_online_protocol::matchmaking_catalog::Catalog;
+        use sha2::{Digest, Sha256};
+
+        let Some(queue) = self.queue else {
+            return Ok(());
+        };
+        let entries = self
+            .owners
+            .request(queue, &json!({"op":"catalog_get","id":null,"now":0.}))?;
+        let catalog = Catalog::new(&entries)?;
+        let tx = self
+            .db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database::failure)?;
+        tx.execute_batch(
+            "CREATE TABLE IF NOT EXISTS matchmaking_catalog_revisions (
+                playlist TEXT NOT NULL,
+                revision TEXT NOT NULL,
+                profile_sha256 TEXT NOT NULL CHECK(length(profile_sha256)=64),
+                PRIMARY KEY (playlist, revision)
+            );",
+        )
+        .map_err(database::failure)?;
+        for policy in catalog.policies() {
+            let playlist = policy["id"].as_str().unwrap();
+            let revision = policy["revision"].as_str().unwrap();
+            let profile = catalog.profile(&policy)?;
+            let pin = format!("{:x}", Sha256::digest(profile.to_string().as_bytes()));
+            let previous: Option<String> = tx
+                .query_row(
+                    "SELECT profile_sha256 FROM matchmaking_catalog_revisions WHERE playlist=? AND revision=?",
+                    [playlist, revision],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(database::failure)?;
+            match previous {
+                Some(previous) if previous != pin => {
+                    eprintln!(
+                        "Rust matchmaking catalog revision changed for {playlist} at {revision}"
+                    );
+                    return Err(Error(
+                        409,
+                        "Matchmaking playlist revision has different content",
+                    ));
+                }
+                Some(_) => {}
+                None => {
+                    tx.execute(
+                        "INSERT INTO matchmaking_catalog_revisions VALUES(?,?,?)",
+                        [playlist, revision, pin.as_str()],
+                    )
+                    .map_err(database::failure)?;
+                }
+            }
+        }
+        tx.commit().map_err(database::failure)
     }
     fn clock(&self) -> Result<Clock> {
         Ok(Clock {

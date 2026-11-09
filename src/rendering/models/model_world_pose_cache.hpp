@@ -20,6 +20,9 @@ class ModelWorldPoseCache {
     std::vector<Vertex> vertices_;
     std::vector<std::array<float,12>> palette_;
     bool gpu_{},deferred_{},factory_{};
+    // An admitted deferred pose borrows the model's immutable local bank
+    // instead of a full copy (HALO2_REFERENCE_COPY_DEFERRED_POSES=1 copies).
+    bool borrowed_{};
     int rounding_{};
     unsigned mxcsr_{};
     struct Effects {
@@ -30,6 +33,7 @@ class ModelWorldPoseCache {
     };
     Effects effects_{};
     bool effects_ready_{};
+    std::uint64_t publication_{};
     static Effects effects() {
         Effects out;
         const auto *scalar=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
@@ -58,6 +62,9 @@ class ModelWorldPoseCache {
             now.control==effects_.control && now.status==effects_.status && now.error==effects_.error;
     }
 public:
+    // Identifies the completed immutable result, including rebuilds caused by
+    // the arithmetic-effects gate even when the WORLD input is unchanged.
+    std::uint64_t publication()const noexcept {return publication_;}
     struct Result {std::span<const Vertex> vertices;bool reused{};};
     struct DeferredResult {ModelSkinWorldPoseView pose;bool reused{};};
     Result update(const RenderModel &model,std::span<const Transform> nodes) {
@@ -84,7 +91,9 @@ public:
         return update(model,nodes,true,allow_gpu,true);
     }
 private:
-    DeferredResult view(bool reused)const {return {{vertices_,palette_,gpu_},reused};}
+    DeferredResult view(bool reused)const {
+        return {{borrowed_?std::span<const Vertex>(model_->mesh.vertices):std::span<const Vertex>(vertices_),palette_,gpu_},reused};
+    }
     DeferredResult update(const RenderModel &model,std::span<const Transform> nodes,
                           bool preserve_effects,bool deferred,bool factory=false) {
         const auto rounding=std::fegetround();unsigned mxcsr=0;
@@ -103,15 +112,22 @@ private:
         if(same && preserve_effects && contains_effects(before))return view(true);
         // Publish only a complete successful skin; failed inputs leave the
         // preceding immutable result and its key together.
+        static const bool copy_deferred=[]{const auto *p=std::getenv("HALO2_REFERENCE_COPY_DEFERRED_POSES");return p && *p;}();
+        // Factory callers copy the returned span into their own bank, and
+        // deferred callers select from it, so neither needs a private copy
+        // of an admitted (undeformed) bank.
+        const bool borrow=(deferred || factory) && !copy_deferred;
         ModelSkinWorldPose pose;
-        if(factory||deferred)pose=model_skin_world_pose(model,nodes,deferred);
+        if(borrow)pose=model_skin_world_pose_borrowed(model,nodes,deferred);
+        else if(factory||deferred)pose=model_skin_world_pose(model,nodes,deferred);
         else pose.vertices=skin_model_world_nodes(model,nodes);
         std::vector<Transform> retained(nodes.begin(),nodes.end());
         vertices_=std::move(pose.vertices);palette_=std::move(pose.palette);
-        gpu_=pose.gpu;nodes_=std::move(retained);factory_=factory;
+        gpu_=pose.gpu;nodes_=std::move(retained);factory_=factory;borrowed_=borrow && pose.gpu;
         const auto after=effects();
         model_=&model;deferred_=deferred;rounding_=rounding;mxcsr_=mxcsr;
         effects_=after;effects_ready_=eligible(before,after);
+        if(++publication_==0)++publication_;
         return view(false);
     }
 };

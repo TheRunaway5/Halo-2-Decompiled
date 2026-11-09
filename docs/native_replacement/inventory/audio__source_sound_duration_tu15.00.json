@@ -1,0 +1,52 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 974,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "MccSoundLayoutRequirement",
+        "r"
+      ],
+      "body_sha256": "086186096769327e0c0d283b5912acb0cde456b9fec29db1c5d26c01e7d2d7b9",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_21f590",
+      "instruction_callback_sites": 67,
+      "line": 79,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "21f590",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "21f590",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "21f590",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_duration_tu15.cpp",
+  "source_bytes": 12563,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "c5099ee6a51476c33e25a6eba483067a5577ffa6d365fe8d0c3c351ff5d7355b"
+}

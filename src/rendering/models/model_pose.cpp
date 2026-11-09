@@ -358,6 +358,24 @@ ModelSkinWorldPose model_skin_world_pose(const RenderModel &model,
   if(!result.gpu)finish_skin(model,result.vertices,result.palette);
   return result;
 }
+ModelSkinWorldPose model_skin_world_pose_borrowed(const RenderModel &model,
+    std::span<const Transform> nodes,bool allow_gpu) {
+  ModelSkinWorldPose result;
+  result.palette=model_skin_world_palette(model,nodes);
+  const auto *scalar_switch=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
+  const auto *verify_switch=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
+  const bool scalar=scalar_switch && *scalar_switch,verify=verify_switch && *verify_switch;
+  // Same predicate and inputs as model_skin_world_pose: its local copy is
+  // byte-equal to the mesh bank, so admission reads the bank directly.
+  result.gpu=allow_gpu && !scalar && !verify &&
+      model_skin_gpu_host_effects_admitted() &&
+      model_skin_arithmetic_admitted_cached(model,model.mesh.vertices,result.palette);
+  if(!result.gpu) {
+    result.vertices=model.mesh.vertices;
+    finish_skin(model,result.vertices,result.palette);
+  }
+  return result;
+}
 bool model_skin_gpu_requested()noexcept {
   const auto *reference=std::getenv("HALO2_REFERENCE_CPU_SKINNING");
   if(reference && *reference)return false;

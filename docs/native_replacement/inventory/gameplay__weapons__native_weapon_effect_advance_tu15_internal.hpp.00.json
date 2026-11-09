@@ -1,0 +1,81 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_native_weapon_effect_dispatch_tu15"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "_mm_add_ss",
+        "_mm_castsi128_ps",
+        "_mm_cvtsi32_si128",
+        "_mm_sub_ss",
+        "advance_effect_event",
+        "and_effect_byte",
+        "bool",
+        "call",
+        "environment",
+        "instruction",
+        "iterator_flags",
+        "iterator_logic_flags",
+        "low",
+        "pop",
+        "push",
+        "read",
+        "scalar",
+        "shift_byte",
+        "state_product",
+        "state_scalar_compare",
+        "state_store_single",
+        "std::bit_cast",
+        "std::int32_t",
+        "std::uint16_t",
+        "std::uint32_t",
+        "store",
+        "vector"
+      ],
+      "body_sha256": "24680c45db93663e84427ba5767441af1175d0f57f0a6f189545ef9b950182ea",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "advance_effect_event",
+      "instruction_callback_sites": 141,
+      "line": 4,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "17c140",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "17c140",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "Services",
+      "symbol": "advance_effect_event",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/weapons/native_weapon_effect_advance_tu15_internal.hpp",
+  "source_bytes": 10387,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "line": 1632,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_native_weapon_effect_dispatch_tu15"
+      ],
+      "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
+    }
+  ],
+  "source_sha256": "986f2ca618e7734bcfa5e934dd107ed9c4a72b2f22daec64be78471f02dff0e0"
+}

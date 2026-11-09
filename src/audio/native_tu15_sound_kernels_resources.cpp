@@ -185,160 +185,84 @@ void sound_playable(M &m,Abi &a,FP,const O &,const Services &) {
     finish(u16(m,a.gp[1]+a.gp[2]*4u+0xau)?1u:0u);
 }
 
-// 21F260 body: request the cache entry of a chunk row (12 bytes, cache handle
-// at +8). Request bits: 0 wait until loaded, 1 allocate when absent, 2 lock.
-// Allocation (21F420: chunk row in EBX, the sound datum on the stack, ret 4)
-// and the wait's yield (2DBF74, no arguments) are original routines called
-// through Services. A present entry gets its block's last-use stamp; a loaded
-// one is marked used (+3); a lock increments +4. Returns the state in EAX and
-// EDX: bit 0 pending (a handle that is not ready), bit 1 ready, bit 2 locked.
-// ECX keeps the caller's upper bits with CL = request bit 0, unless a callee
-// returned another ECX. EBX, ESI, EDI are restored; EBP is not touched.
-//
-// frame is ESP at entry (the return address); ESP is left there for the
-// caller's RET 12. The callees are assumed to keep the ABI the compiled code
-// relies on: they preserve EBX, ESI, EDI, EBP and ESP (net of their own
-// argument pops) and do not touch this frame, so the values the original
-// reloads from its frame after a call (CL, BL, EDX) are kept here in C++.
-std::uint32_t request_chunk(M &m,Abi &a,const O &o,const Services &services,std::uint32_t frame,
-    std::uint32_t datum,std::uint32_t row,std::uint32_t request) {
-    // Retain private stack writes too: another source caller may reuse
-    // these bytes, as the completion-to-pump chain already demonstrates.
-    const auto push=[&](std::uint32_t pc,std::uint32_t value){a.gp[4]-=4u;store(m,{},pc,a.gp[4],value);};
-    const auto pop=[&](){const auto value=u32(m,a.gp[4]);a.gp[4]+=4u;return value;};
-    a.gp[4]=frame-8u;push(0x21f267u,a.gp[3]);push(0x21f268u,a.gp[6]);push(0x21f269u,a.gp[7]);
-    auto wait=request&1u,lock=(request>>2)&1u;
-    a.gp[0]=request;
-    a.gp[1]=low_byte(a.gp[1],wait);
-    a.gp[2]=0u;
-    a.gp[3]=low_byte(request>>2,lock);
-    a.gp[7]=row;
-    a.gp[6]=u32(m,row+8u);
-    store(m,{},0x21f283u,frame-4u,0u);store8(m,{},0x21f287u,frame+12u,wait);
-    store8(m,{},0x21f28bu,frame-5u,lock);
-    if(a.gp[6]==no_handle) {
-        a.gp[6]=datum;
-        if(datum!=no_handle) {
-            a.gp[0]=request>>1;
-            if(a.gp[0]&1u) {
-                // push esi (datum); mov ebx,edi; call 21F420.
-                a.gp[3]=row;
-                const std::uint32_t arguments[]{datum};
-                call_out(m,a,services,o,0x21f2a3u,0x21f420u,0x21f2a8u,arguments,true);
-                wait=u8(m,frame+12u);lock=u8(m,frame-5u);
-                a.gp[1]=low_byte(a.gp[1],wait);
-                a.gp[3]=low_byte(a.gp[3],lock);
-                a.gp[2]=u32(m,frame-4u);
+// Complete21F260 call/frame ABI. Saved registers, caller argument-byte
+// stores and reloaded state remain in actual source memory across calls.
+void request_chunk_entry(M& m,Abi& a,FP,const O& o,const Services& services) {
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t v){g[4]-=4u;store(m,{},pc,g[4],v);};
+    const auto pop=[&](){const auto v=u32(m,g[4]);g[4]+=4u;return v;};
+    g[4]-=8u;g[0]=u32(m,g[4]+0x14u);push(0x21f267u,g[3]);push(0x21f268u,g[6]);push(0x21f269u,g[7]);
+    g[7]=u32(m,g[4]+0x1cu);g[6]=u32(m,g[7]+8u);g[3]=g[0]>>2u;
+    g[1]=low_byte(g[1],g[0]);g[2]=0;g[1]=low_byte(g[1],g[1]&1u);g[3]=low_byte(g[3],g[3]&1u);
+    const bool absent=g[6]==no_handle;store(m,{},0x21f283u,g[4]+0x10u,g[2]);
+    store8(m,{},0x21f287u,g[4]+0x20u,g[1]);store8(m,{},0x21f28bu,g[4]+15u,g[3]);
+    if(absent){
+        g[6]=u32(m,g[4]+0x18u);
+        if(g[6]!=no_handle){
+            g[0]>>=1u;
+            if(g[0]&1u){
+                const std::uint32_t args[]{g[6]};g[3]=g[7];
+                call_out(m,a,services,o,0x21f2a3u,0x21f420u,0x21f2a8u,args,true);
+                g[1]=low_byte(g[1],u8(m,g[4]+0x20u));g[3]=low_byte(g[3],u8(m,g[4]+15u));g[2]=u32(m,g[4]+0x10u);
             }
         }
     }
-    std::uint32_t state=0u;
-    a.gp[0]=u32(m,row+8u);
-    if(a.gp[0]!=no_handle) {
-        const auto block=(a.gp[0]&0xffffu)*3u;
-        const auto allocator=u32(m,cache_allocator);
-        push(0x21f2c9u,a.gp[5]);
-        const auto blocks=u32(m,u32(m,allocator+0x64u)+0x44u);
-        const auto stamp=u32(m,allocator+0x38u);
-        store(m,o,0x21f2d3u,blocks+block*8u+0x14u,stamp);
-        const auto handle=u32(m,row+8u);
-        a.gp[0]=u32(m,sound_cache);
-        const auto entry=((handle&0xffffu)<<4)+u32(m,a.gp[0]+0x44u);
-        a.gp[6]=entry;a.gp[5]=pop();
-        // Each test of the entry's bytes goes through AL.
-        const auto al=[&](std::uint32_t at){const auto v=u8(m,at);a.gp[0]=low_byte(a.gp[0],v);return v!=0u;};
-        bool loaded;
-        if(wait) {
-            loaded=al(entry+2u) || al(entry+2u);
-            if(!loaded) {
-                do call_out(m,a,services,o,0x21f300u,0x2dbf74u,0x21f305u,{},false);
-                while(!al(entry+2u));
-                a.gp[2]=u32(m,frame-4u);          // EDX reloaded from the actual frame
-                loaded=al(entry+2u);
-            }
-        } else loaded=al(entry+2u);
-        if(loaded) {
-            if(!al(entry+3u))store8(m,o,0x21f31eu,entry+3u,1u);
-            state=2u;store(m,{},0x21f322u,frame-4u,2u);
+    g[0]=u32(m,g[7]+8u);
+    if(g[0]!=no_handle){
+        g[0]&=0xffffu;g[6]=g[0]*3u;g[0]=u32(m,cache_allocator);push(0x21f2c9u,g[5]);
+        g[5]=u32(m,g[0]+0x64u);g[5]=u32(m,g[5]+0x44u);g[0]=u32(m,g[0]+0x38u);
+        store(m,o,0x21f2d3u,g[5]+g[6]*8u+0x14u,g[0]);g[6]=u32(m,g[7]+8u);g[0]=u32(m,sound_cache);
+        g[5]=u32(m,g[0]+0x44u);g[6]=(g[6]&0xffffu)*16u+g[5];const bool wait=(g[1]&255u)!=0;g[5]=pop();
+        if(wait){
+            g[0]=low_byte(g[0],u8(m,g[6]+2u));if(g[0]&255u)goto ready;
+            g[0]=low_byte(g[0],u8(m,g[6]+2u));if(g[0]&255u)goto ready;
+            do{call_out(m,a,services,o,0x21f300u,0x2dbf74u,0x21f305u,{},false);g[0]=low_byte(g[0],u8(m,g[6]+2u));}while(!(g[0]&255u));
+            g[2]=u32(m,g[4]+0x10u);
         }
-        if(lock) {
-            store8(m,o,0x21f332u,entry+4u,u8(m,entry+4u)+1u);
-            state|=4u;
-        }
+        g[0]=low_byte(g[0],u8(m,g[6]+2u));if(!(g[0]&255u))goto lock;
+ready:
+        g[0]=low_byte(g[0],u8(m,g[6]+3u));if(!(g[0]&255u))store8(m,o,0x21f31eu,g[6]+3u,1u);
+        store(m,{},0x21f322u,g[4]+0x10u,2u);g[2]=u32(m,g[4]+0x10u);
+lock:
+        if(g[3]&255u){store8(m,o,0x21f332u,g[6]+4u,u8(m,g[6]+4u)+1u);g[2]|=4u;}
     }
-    if(!(state&2u) && u32(m,row+8u)!=no_handle)state|=1u;
-    a.gp[0]=a.gp[2]=state;
-    a.gp[7]=pop();a.gp[6]=pop();a.gp[3]=pop();a.gp[4]+=8u;
-    return state;
+    const bool pending=!(g[2]&2u)&&u32(m,g[7]+8u)!=no_handle;
+    g[7]=pop();g[2]=pending?g[2]|1u:g[2]&0xfffffffeu;g[6]=pop();g[0]=g[2];g[3]=pop();g[4]+=8u;pop_return(m,a,12);
 }
 
-// 21F260: request a chunk's cache entry. Stack: sound datum, chunk row,
-// request bits (ret 12). Returns the state in EAX (request_chunk).
-void request_chunk_entry(M &m,Abi &a,FP,const O &o,const Services &services) {
-    const auto frame=a.gp[4];
-    // The original reads the datum argument only when the row has no handle;
-    // all three sit beside the return address the RET reads, so reading it
-    // here faults no differently.
-    const auto request=argument(m,a,2),row=argument(m,a,1),datum=argument(m,a,0);
-    request_chunk(m,a,o,services,frame,datum,row,request);
-    pop_return(m,a,12);
-}
-
-// 1293F0 body: a binding (EAX) that holds no cache lock takes one: bit 1 of
-// +4 is set and its chunk's entry is locked through 21F260 (no datum,
-// request 4, which never calls out). CL takes the binding's +4 shifted right
-// once; when the lock is taken ECX ends as (chunk*3 with CL = 0) and EAX/EDX
-// as 21F260's state. ESI is pushed and popped. ESP points at the return
-// address on entry and is left there for the caller's RET.
-void lock_binding(M &m,Abi &a,const O &o,const Services &services,std::uint32_t binding) {
-    const auto frame=a.gp[4];
-    const auto held=std::uint8_t(u8(m,binding+4u)>>1);
-    a.gp[1]=low_byte(a.gp[1],held);
-    if(held&1u)return;
-    store8(m,o,0x1293fau,binding+4u,u8(m,binding+4u)|2u);
-    const auto definition=tag_data(m,u32(m,binding+0xcu));
-    const auto chunk=binding_chunk(m,binding,definition,true);
-    // push esi; push 4; push row; push -1; call 21F260; pop esi.
-    a.gp[1]=chunk.scaled;
-    request_chunk(m,a,o,services,frame-0x14u,no_handle,chunk.row,4u);
-    a.gp[4]+=16u+4u;
-}
-
-// 1293F0: lock a binding's chunk cache entry. EAX: binding. Returns nothing
-// (registers as lock_binding describes).
-void lock_binding_entry(M &m,Abi &a,FP,const O &o,const Services &services) {
-    lock_binding(m,a,o,services,a.gp[0]);
+// Complete1293F0. The request really receives its original call stack and
+// preserves every source scratch output rather than a C++ retained copy.
+void lock_binding_entry(M& m,Abi& a,FP fp,const O& o,const Services& services) {
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t v){g[4]-=4u;store(m,{},pc,g[4],v);};
+    g[1]=low_byte(g[1],u8(m,g[0]+4u));g[1]=low_byte(g[1],(g[1]&255u)>>1u);
+    if(!(g[1]&1u)){
+        store8(m,o,0x1293fau,g[0]+4u,u8(m,g[0]+4u)|2u);g[2]=u32(m,g[0]+12u);g[1]=u32(m,tag_instances);
+        g[2]=(g[2]&0xffffu)<<4u;g[2]=u32(m,g[2]+g[1]+8u);g[1]=s16(m,g[2]+8u);g[2]=s8(m,g[0]+0x9cu);g[1]+=g[2];
+        g[2]=u32(m,sound_gestalt);push(0x129427u,g[6]);g[6]=u32(m,g[2]+0x24u);g[1]*=3u;g[1]=s16(m,g[6]+g[1]*4u+8u);
+        g[6]=s8(m,g[0]+0x9du);g[0]=s16(m,g[0]+0x9eu);g[1]+=g[6];g[6]=u32(m,g[2]+0x2cu);g[2]=u32(m,g[2]+0x44u);
+        g[1]<<=4u;g[1]=s16(m,g[1]+g[6]+12u);g[1]+=g[0];g[1]*=3u;push(0x129456u,4u);g[0]=g[2]+g[1]*4u;
+        push(0x12945bu,g[0]);push(0x12945cu,no_handle);push(0x12945eu,0x129463u);request_chunk_entry(m,a,fp,o,services);
+        g[6]=u32(m,g[4]);g[4]+=4u;
+    }
     pop_return(m,a);
 }
 
-// 128970: whether a binding's chunk is ready. Stack: binding (ret 4).
-// Requests the chunk's entry with allocation (21F260 request 2, which may
-// call 21F420); when it is pending or ready the binding takes its lock
-// (1293F0). Returns EAX = the ready bit. EBX, ESI, EDI are restored; ECX and
-// EDX are what the last nested request leaves.
-void binding_ready(M &m,Abi &a,FP,const O &o,const Services &services) {
-    const auto tags=u32(m,tag_instances);       // read before the argument
-    const auto entry=a.gp[4];
-    const auto ebx=a.gp[3],esi=a.gp[6],edi=a.gp[7];
-    const auto binding=u32(m,entry+4u);
-    const auto datum=u32(m,binding+0xcu);
-    const auto definition=u32(m,((datum&0xffffu)<<4)+tags+8u);
-    const auto chunk=binding_chunk(m,binding,definition,false);
-    // push ebx/esi/edi; push 2; push row; push ecx (datum); call 21F260.
-    a.gp[1]=datum;
-    const auto state=request_chunk(m,a,o,services,entry-0x1cu,datum,chunk.row,2u);
-    a.gp[4]+=16u;
-    if(state&3u) {
-        // mov eax,esi; call 1293F0.
-        a.gp[0]=binding;
-        a.gp[4]-=4u;
-        lock_binding(m,a,o,services,binding);
-        a.gp[4]+=4u;
-    }
-    a.gp[0]=(state>>1)&1u;
-    a.gp[3]=ebx;a.gp[6]=esi;a.gp[7]=edi;
-    a.gp[4]+=12u;
-    pop_return(m,a,4);
+// Complete128970 binding-readiness caller, including native allocation via
+//21F260 and the actual1293F0 locking call when a cache datum was obtained.
+void binding_ready(M& m,Abi& a,FP fp,const O& o,const Services& services) {
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t v){g[4]-=4u;store(m,{},pc,g[4],v);};
+    const auto pop=[&](){const auto v=u32(m,g[4]);g[4]+=4u;return v;};
+    g[2]=u32(m,tag_instances);push(0x128976u,g[3]);push(0x128977u,g[6]);g[6]=u32(m,g[4]+12u);g[1]=u32(m,g[6]+12u);
+    g[0]=(g[1]&0xffffu)<<4u;g[0]=u32(m,g[0]+g[2]+8u);g[0]=s16(m,g[0]+8u);g[2]=s8(m,g[6]+0x9cu);g[0]+=g[2];
+    g[2]=u32(m,sound_gestalt);push(0x1289a0u,g[7]);g[7]=u32(m,g[2]+0x24u);g[0]*=3u;g[0]=s16(m,g[7]+g[0]*4u+8u);
+    g[7]=s8(m,g[6]+0x9du);g[0]+=g[7];g[7]=u32(m,g[2]+0x2cu);g[2]=u32(m,g[2]+0x44u);g[0]<<=4u;
+    g[0]=s16(m,g[0]+g[7]+12u);g[7]=s16(m,g[6]+0x9eu);g[0]+=g[7];g[0]*=3u;
+    push(0x1289cfu,2u);g[0]=g[2]+g[0]*4u;push(0x1289d4u,g[0]);push(0x1289d5u,g[1]);push(0x1289d6u,0x1289dbu);
+    request_chunk_entry(m,a,fp,o,services);g[3]=g[0];
+    if(g[3]&3u){g[0]=g[6];push(0x1289e4u,0x1289e9u);lock_binding_entry(m,a,fp,o,services);}
+    g[0]=g[3];g[7]=pop();g[0]>>=1u;g[6]=pop();g[0]&=1u;g[3]=pop();pop_return(m,a,4);
 }
 
 // 21F3B0: whether a cache entry must stay resident. Stack: cache handle

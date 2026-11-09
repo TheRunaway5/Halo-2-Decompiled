@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_model_region_state.hpp"
+#include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include <bit>
 
@@ -176,7 +177,7 @@ void model_region_state_native_tu15(State& s,Site site,Invoke invoke) {
             at(0x170668u);s.gp[0]=r(s.memory,s.gp[6]+0x14u,4);
             at(0x17066bu);s.gp[2]=r(s.memory,s.gp[4]+0x408u,4);
             w(s.memory,s.observe,at(0x170672u),s.gp[4]+0x54u,4,s.gp[0]);
-            at(0x170676u);s.gp[0]=0x30005a6u;
+            at(0x170676u);s.gp[0]=source_object_function_compiled_symbol_tu15(s.memory,0x170676u,0x30005a6u);
             at(0x17067bu);s.gp[1]=s.gp[4]+0x24u;
             s.push(at(0x17067fu),s.gp[1]);
             w(s.memory,s.observe,at(0x170680u),s.gp[4]+0x2cu,4,s.gp[7]);

@@ -113,6 +113,8 @@ struct MultiplayerFrameTiming {
     Stamp iteration_begin,timed_start,first_command_tail,last_command_tail,input_end,renderer_end;
     // client_send_calls counts returned send() calls, not emitted/arrived packets.
     unsigned command_tails{},client_send_calls{},input_observer_calls{},receive_calls{};
+    std::optional<std::uint32_t> client_input_sent,client_input_consumed;
+    std::uint32_t client_input_receipt_tick{};
     std::size_t bank_size{},cursor_begin{},cursor_end{},projected_states{};
     Work receive,projection;
   };
@@ -448,6 +450,7 @@ void observe_multiplayer_first_person(FirstPersonViewBinding &,
     const MultiplayerState::Player &,const FirstPersonBindingDefinition &);
 class MultiplayerMatch;
 class MultiplayerObjectRuntime;
+class SourceRuntimeResourcePreparation;
 class NativeLagCompensation;
 struct SourcePlayerEquipmentTu15;
 struct MultiplayerKingServices {
@@ -578,6 +581,7 @@ public:
   // actual attachment/PVS/event/particle state; a shot counter is insufficient.
   void configure_weapon_effect_owner(
       std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)>);
+  void weapon_effect_lighting(std::uint32_t unit,std::uint32_t weapon,SourceEffectColors);
   void weapon_effect_presentation(std::uint32_t unit,std::uint32_t weapon,
       const SourceWeaponEffectPresentation &,Vec3 velocity,std::span<const SourceEffectLocation> locations={});
   void publish_source_projectile_contact(const SourceProjectileDetonationTu15 &);
@@ -689,6 +693,7 @@ private:
   AuthorityDigest authority_configuration()const;
   std::uint32_t authority_service_roles()const;
   void bind_native_first_person_cache(std::shared_ptr<const Cache>);
+  std::unique_ptr<SourceRuntimeResourcePreparation> prepare_replica_world_resources(std::shared_ptr<const Cache>) const;
   NativeFirstPersonRegistryTu15::Bindings native_first_person_bindings()const;
   void adopt_source_prop_regions();
   void adopt_source_devices();

@@ -1,0 +1,7 @@
+{
+  "path": "cmake/OnlinePeers.cmake",
+  "before_sha256": "94151f497661e136a852761303017f1fd6622dc5f491fa77e8d014c54fcca7d9",
+  "after_sha256": "7cadd0c044151d425d7d14389fe01c66a6c25577bc37af52291e0173cfd95e16",
+  "reason": "Register both current and captured frontend_state.cpp as dependencies of the exact clan-page branch comparison generator.",
+  "changes_production_cpp_rust_policy": false
+}

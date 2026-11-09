@@ -4,7 +4,7 @@
 #include <string>
 namespace halo2::online_protocol_bridge {class NativeFrontendSearchIo;struct SearchSnapshot;}
 namespace halo2 {
-enum class FrontendSearchAction:unsigned {ResetClient,Prepare,Quickmatch,Refresh,Update,PartySearch,OpenedLobby,OpenedSearch,Select,Launch};
+enum class FrontendSearchAction:unsigned {ResetClient,Prepare,Quickmatch,Refresh,Update,PartySearch,OpenedLobby,OpenedSearch,Select,Launch,CancelAndReturn};
 class FrontendMatchmakingSearch {
 public:
  FrontendMatchmakingSearch();~FrontendMatchmakingSearch();

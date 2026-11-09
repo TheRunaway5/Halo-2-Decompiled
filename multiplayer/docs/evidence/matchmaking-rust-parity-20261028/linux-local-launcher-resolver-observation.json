@@ -1,0 +1,21 @@
+{
+  "schema": "H2_READONLY_LINUX_LAUNCHER_RESOLVER_OBSERVATION_V1",
+  "recorded_at_utc": "2026-11-03T01:59:22.068920+00:00",
+  "command": [
+    "timeout",
+    "--kill-after=5s",
+    "42s",
+    "./Halo2-Launcher",
+    "--launcher-info"
+  ],
+  "exit_code": 124,
+  "observed_frontend_runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+  "observed_cache": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-zanzibar-tu15-20261101-v9",
+  "observed_frontend_available": true,
+  "observed_qualified_mcc_multiplayer_available": true,
+  "observed_native_mcc_gameplay_ready": false,
+  "observed_after_launcher_frontend_admission": true,
+  "full_launcher_info_command_completed": false,
+  "native_runtime_started_for_matchmaking": false,
+  "scope": "Structured observations from flushed launcher stdout before timeout; no complete raw transcript retained."
+}

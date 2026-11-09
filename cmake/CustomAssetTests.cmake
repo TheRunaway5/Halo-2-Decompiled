@@ -1,5 +1,7 @@
 if(BUILD_TESTING)
     add_custom_target(custom_asset_tests)
+    add_test(NAME custom_asset_cache COMMAND ${Python3_EXECUTABLE} -B -m unittest discover
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_custom_asset_cache.py)
     add_test(NAME custom_asset_sources COMMAND ${Python3_EXECUTABLE} -B -m unittest discover
         -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_custom_assets.py)
     add_test(NAME custom_ui_assets COMMAND ${Python3_EXECUTABLE} -B -m unittest discover

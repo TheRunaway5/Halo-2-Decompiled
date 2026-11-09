@@ -1,0 +1,389 @@
+{
+  "schema": "H2_LOCAL_CANONICAL_CATALOG_DIAGNOSTIC_V1",
+  "completed_utc": "2026-11-03T01:59:48.172424+00:00",
+  "passed": true,
+  "scope": "Local declaration plus synthetic solo/guest replay; no authenticated production catalog or user party facts.",
+  "runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/e26c2de82603481aa262e219aa31761d/halo2_native",
+  "runtime_sha256": "7a3ee8d20aadf15caac6ad797ad2f83042fe3f19d0a5e87018ab7359e70c9e98",
+  "capability_sha256": "833f28173d1a31e26f6e59dd7c29fba7de7ca650bba3d7f8cfd66c7d37c3b7ae",
+  "selection_sha256": "9d24ad99d396483d532da66eaf5a7242325fe0c1eb751eefe12e1031caa33707",
+  "source_manifest_sha256": "19d80c3e0130b463f63699ae16a1f6986d8fa2177d4e872710cb3f163277a387",
+  "runtime_string_presence": {
+    "Unavailable for this party or installed maps.": false,
+    "Unavailable for this ONLINE client, party, or installed maps.": true,
+    "halo2-native-queue-v16": true,
+    "https://master.halo2forever.net": true
+  },
+  "published_input_comparison": {
+    "src/network/online_matchmaking.cpp": {
+      "current_sha256": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf",
+      "published_sha256": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf",
+      "matches": true
+    },
+    "rust/online_protocol/src/matchmaking_client.rs": {
+      "current_sha256": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+      "published_sha256": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+      "matches": true
+    },
+    "rust/online_protocol_bridge/src/matchmaking_client.rs": {
+      "current_sha256": "858ff7c7a1b300f7f7a667db5a0637a5a33ea8301ddc6166013375b8ce04dc49",
+      "published_sha256": "858ff7c7a1b300f7f7a667db5a0637a5a33ea8301ddc6166013375b8ce04dc49",
+      "matches": true
+    },
+    "rust/online_protocol_bridge/src/eos_config.rs": {
+      "current_sha256": "d45036160724ff92b085f91c61cd9b3e3ea0dcfc6cb6a41becdaa5a679afd107",
+      "published_sha256": "d45036160724ff92b085f91c61cd9b3e3ea0dcfc6cb6a41becdaa5a679afd107",
+      "matches": true
+    },
+    "rust/online_protocol/src/matchmaking_frontend_lobby.rs": {
+      "current_sha256": "2bd52f45c3f6caecbcde51ce7d74c455556b9e00d52403c6885ae7e79048f8bb",
+      "published_sha256": null,
+      "matches": false
+    },
+    "rust/online_protocol/src/matchmaking_frontend_search.rs": {
+      "current_sha256": "7b68b98e96912860d62e431de33ee4a3faabda7977a84c38f2e3037059d771a5",
+      "published_sha256": null,
+      "matches": false
+    },
+    "rust/online_protocol/src/matchmaking_frontend_presentation.rs": {
+      "current_sha256": "31f9d2e15037ce1682eafd2347a6cbe2c893cc4c7734d9770b1f9004e2a08885",
+      "published_sha256": null,
+      "matches": false
+    },
+    "rust/online_protocol/src/matchmaking_frontend_signin.rs": {
+      "current_sha256": "0bc1bf7e9d31ea7e9ea084a12dfeaa7a956a72a229c45e8fd4d6e148a2ce653d",
+      "published_sha256": null,
+      "matches": false
+    },
+    "rust/online_protocol/src/matchmaking_frontend_postgame.rs": {
+      "current_sha256": "8b0c6d0271918915d852bd9a82e6f85920c2cc7d9a7dbfecc1aeecde3449176a",
+      "published_sha256": null,
+      "matches": false
+    }
+  },
+  "eos_flag_defaults": {
+    "H2_EOS_ENABLED": true,
+    "H2_EOS_PROFILES": true
+  },
+  "task_shell_overrides": [],
+  "cache": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-zanzibar-tu15-20261101-v9",
+  "mcc_source_registry_sha256": "5546a234ad025e4394dd6ae8a0becae1ea6dd7d804e600ace6e739dd28f5ef73",
+  "advertised_map_stem_count": 43,
+  "canonical_catalog": "multiplayer/master_server/examples/matchmaking-online.json",
+  "canonical_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+  "canonical_required_compatibilities": [
+    "halo2-native-queue-v16"
+  ],
+  "canonical_maps_missing": [],
+  "team_snipers_canonical_map_count": 17,
+  "team_snipers_canonical_map_count_present": 17,
+  "replay": {
+    "local_transport_solo": [
+      {
+        "eligible": true,
+        "id": "rumble-pit"
+      },
+      {
+        "eligible": true,
+        "id": "double-team"
+      },
+      {
+        "eligible": true,
+        "id": "team-slayer"
+      },
+      {
+        "eligible": true,
+        "id": "team-skirmish"
+      },
+      {
+        "eligible": true,
+        "id": "team-training"
+      },
+      {
+        "eligible": true,
+        "id": "team-snipers"
+      },
+      {
+        "eligible": true,
+        "id": "team-hardcore"
+      },
+      {
+        "eligible": true,
+        "id": "team-swat"
+      },
+      {
+        "eligible": true,
+        "id": "big-team-battle"
+      },
+      {
+        "eligible": false,
+        "id": "minor-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "major-clan-match"
+      },
+      {
+        "eligible": true,
+        "id": "multi-team"
+      },
+      {
+        "eligible": true,
+        "id": "action-sack"
+      },
+      {
+        "eligible": true,
+        "id": "lab-test"
+      }
+    ],
+    "runtime_compatibility_from_transport_flag": "halo2-native-queue-v16",
+    "v12_solo": [
+      {
+        "eligible": false,
+        "id": "rumble-pit"
+      },
+      {
+        "eligible": false,
+        "id": "double-team"
+      },
+      {
+        "eligible": false,
+        "id": "team-slayer"
+      },
+      {
+        "eligible": false,
+        "id": "team-skirmish"
+      },
+      {
+        "eligible": false,
+        "id": "team-training"
+      },
+      {
+        "eligible": false,
+        "id": "team-snipers"
+      },
+      {
+        "eligible": false,
+        "id": "team-hardcore"
+      },
+      {
+        "eligible": false,
+        "id": "team-swat"
+      },
+      {
+        "eligible": false,
+        "id": "big-team-battle"
+      },
+      {
+        "eligible": false,
+        "id": "minor-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "major-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "multi-team"
+      },
+      {
+        "eligible": false,
+        "id": "action-sack"
+      },
+      {
+        "eligible": false,
+        "id": "lab-test"
+      }
+    ],
+    "v15_solo": [
+      {
+        "eligible": false,
+        "id": "rumble-pit"
+      },
+      {
+        "eligible": false,
+        "id": "double-team"
+      },
+      {
+        "eligible": false,
+        "id": "team-slayer"
+      },
+      {
+        "eligible": false,
+        "id": "team-skirmish"
+      },
+      {
+        "eligible": false,
+        "id": "team-training"
+      },
+      {
+        "eligible": false,
+        "id": "team-snipers"
+      },
+      {
+        "eligible": false,
+        "id": "team-hardcore"
+      },
+      {
+        "eligible": false,
+        "id": "team-swat"
+      },
+      {
+        "eligible": false,
+        "id": "big-team-battle"
+      },
+      {
+        "eligible": false,
+        "id": "minor-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "major-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "multi-team"
+      },
+      {
+        "eligible": false,
+        "id": "action-sack"
+      },
+      {
+        "eligible": false,
+        "id": "lab-test"
+      }
+    ],
+    "v16_guest": [
+      {
+        "eligible": true,
+        "id": "rumble-pit"
+      },
+      {
+        "eligible": false,
+        "id": "double-team"
+      },
+      {
+        "eligible": false,
+        "id": "team-slayer"
+      },
+      {
+        "eligible": false,
+        "id": "team-skirmish"
+      },
+      {
+        "eligible": true,
+        "id": "team-training"
+      },
+      {
+        "eligible": false,
+        "id": "team-snipers"
+      },
+      {
+        "eligible": false,
+        "id": "team-hardcore"
+      },
+      {
+        "eligible": true,
+        "id": "team-swat"
+      },
+      {
+        "eligible": true,
+        "id": "big-team-battle"
+      },
+      {
+        "eligible": false,
+        "id": "minor-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "major-clan-match"
+      },
+      {
+        "eligible": true,
+        "id": "multi-team"
+      },
+      {
+        "eligible": true,
+        "id": "action-sack"
+      },
+      {
+        "eligible": true,
+        "id": "lab-test"
+      }
+    ],
+    "v16_solo_no_common_maps": [
+      {
+        "eligible": false,
+        "id": "rumble-pit"
+      },
+      {
+        "eligible": false,
+        "id": "double-team"
+      },
+      {
+        "eligible": false,
+        "id": "team-slayer"
+      },
+      {
+        "eligible": false,
+        "id": "team-skirmish"
+      },
+      {
+        "eligible": false,
+        "id": "team-training"
+      },
+      {
+        "eligible": false,
+        "id": "team-snipers"
+      },
+      {
+        "eligible": false,
+        "id": "team-hardcore"
+      },
+      {
+        "eligible": false,
+        "id": "team-swat"
+      },
+      {
+        "eligible": false,
+        "id": "big-team-battle"
+      },
+      {
+        "eligible": false,
+        "id": "minor-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "major-clan-match"
+      },
+      {
+        "eligible": false,
+        "id": "multi-team"
+      },
+      {
+        "eligible": false,
+        "id": "action-sack"
+      },
+      {
+        "eligible": false,
+        "id": "lab-test"
+      }
+    ]
+  },
+  "frozen_core_input_count": 165,
+  "frozen_core_input_tree_sha256": "b9197fb2e7913974ec2b7c0ee36239d2cee87ce37704249d94a0bcd425c2b20f",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-installed-catalog-20261102/halo2-test-q2sud2fs",
+  "tool_sha256": "c6b4a6163806797327cb7af142fe300877527818c869dd8845447f43b7e744fa",
+  "toolchain": "1.96.0",
+  "command": [
+    "cargo",
+    "run",
+    "--locked",
+    "--offline",
+    "--example",
+    "installed_catalog_probe"
+  ],
+  "retained_generated_large_artifacts": [],
+  "physical_user_input": false,
+  "production_authenticated_catalog": false
+}

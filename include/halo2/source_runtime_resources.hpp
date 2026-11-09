@@ -32,6 +32,11 @@ public:
     using DescriptorAddress=std::function<std::uint32_t(std::uint32_t,std::size_t)>;
     SourceRuntimeResources(const Cache &,DescriptorAddress);
     ~SourceRuntimeResources();
+    // Retain this owner's already authenticated immutable inputs for the exact
+    // same Cache. No files are reopened, and no World metadata, descriptor
+    // translator, native memory, clocks or live sound state are transferred.
+    // The caller retains the Cache for the returned reader's lifetime.
+    std::shared_ptr<const SourceRuntimeResources> share_inputs(const Cache &expected_owner)const;
     const Identity &identity() const noexcept;
     // Require the same immutable original owner as canonical sound metadata
     // before publication. Construction fixes the resource identity; no later
@@ -53,6 +58,7 @@ private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
     SourceRuntimeResources(const Cache&,DescriptorAddress,const SourceRuntimeMccPreparation&);
+    explicit SourceRuntimeResources(std::unique_ptr<Impl>);
     friend class SourceRuntimeResourcePreparation;
 };
 }

@@ -9,6 +9,14 @@ struct NativeTu15ArrayReserveArguments {
   std::function<std::uint32_t()> capacity;
   std::function<NativeTu15ArrayHeader()> header;
 };
+// The storage factory is called only after the actual allocator returns and
+// header acquisition completes. Existing memory callers and retained ABI
+// bridges share the same complete reserve/copy/ownership/publication body.
+void native_tu15_reserve_array_in_storage(NativeTu15ArrayGrowthStorage& allocator_input,
+  const NativeTu15ArrayReserveArguments&,
+  const std::function<NativeTu15ArrayGrowthStorage&(NativeTu15ArrayHeader)>& storage,
+  NativeTu15PhysicsFrameFp&,const NativeTu15ArrayGrowthServices&,
+  NativeTu15ArrayGrowthActivity* = nullptr);
 void native_tu15_reserve_array(SourcePhysicsContactMemory&,
   const NativeTu15ArrayReserveArguments&,NativeTu15PhysicsFrameFp&,
   const NativeTu15ArrayGrowthServices&,const SourcePhysicsContactRecordObserver& = {},

@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import closing
 from dataclasses import replace
+import hashlib
 import json
 import sqlite3
 import threading
@@ -94,6 +95,57 @@ class RustResultOwnerTests(unittest.IsolatedAsyncioTestCase):
         self.api.results.commit(room)
         metadata = json.loads(store.db.execute('SELECT metadata FROM match_result_admission').fetchone()[0])
         self.assertEqual(metadata['finalization']['authority_epoch'], 0)
+
+    async def test_unacknowledged_result_retry_verifies_the_durable_binding(self):
+        room, _ = await self.ready()
+        store = self.api.directory.store
+        request = dict(source=self.api.core._handle, match=room.id, completed=store.now())
+        original = database(store.db, 'result_commit', **request)
+        self.assertFalse(original['already_committed'])
+        self.assertFalse(self.api.results.snapshot(room)['committed'])
+        envelope, metadata = store.db.execute(
+            'SELECT envelope_sha256,metadata FROM match_result_admission').fetchone()
+        def canonical(value):
+            return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+
+        row = json.loads(metadata)
+        row['finalization']['confirmations'].pop()
+        invalid_finalization = canonical(row)
+        invalid_pin = hashlib.sha256(canonical(row['finalization']).encode()).hexdigest()
+        row = json.loads(metadata)
+        row['admission']['proposal']['game']['map'] = 'ascension'
+        invalid_admission = canonical(row)
+        for damaged_envelope, damaged_metadata in [
+            ('0' * 64, metadata),
+            (envelope, invalid_finalization),
+            (invalid_pin, invalid_finalization),
+            (envelope, invalid_admission),
+        ]:
+            with store.db:
+                store.db.execute('UPDATE match_result_admission SET envelope_sha256=?,metadata=?',
+                                 (damaged_envelope, damaged_metadata))
+            with self.assertRaises(Problem) as caught:
+                self.api.results.commit(room)
+            self.assertEqual(caught.exception.status, 409)
+            self.assertFalse(self.api.results.snapshot(room)['committed'])
+        with store.db:
+            store.db.execute('UPDATE match_result_admission SET envelope_sha256=?,metadata=?',
+                             (envelope, metadata))
+
+        # SQL committed before this transport departure and the lost acknowledgement.
+        self.api.results.revoke(room, next(iter(room.tokens)))
+        retry = database(store.db, 'result_commit', **request)
+        self.assertTrue(retry['already_committed'])
+        for key in ('public', 'digest', 'admission_sha256', 'envelope_sha256'):
+            self.assertEqual(retry[key], original[key])
+        self.api.results.commit(room)
+        self.assertTrue(self.api.results.snapshot(room)['committed'])
+        self.assertEqual(tuple(store.db.execute(
+            'SELECT envelope_sha256,metadata FROM match_result_admission').fetchone()),
+            (envelope, metadata))
+        self.assertEqual(store.db.execute('SELECT count(*) FROM match_results').fetchone()[0], 1)
+        self.assertEqual(store.db.execute('SELECT sum(xp) FROM playlist_skill').fetchone()[0], 100)
+        self.assertEqual({row[0] for row in store.db.execute('SELECT revision FROM eos_profile_outbox')}, {1})
 
     async def test_unknown_and_departed_owners_cannot_mutate_votes_or_quarantine(self):
         room, raw = await self.ready()

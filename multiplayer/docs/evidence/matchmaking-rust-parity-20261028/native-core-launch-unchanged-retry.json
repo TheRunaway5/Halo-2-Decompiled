@@ -1,0 +1,28 @@
+{
+  "schema": "H2_MATCH_LAUNCH_CORE_UNCHANGED_RETRY_V1",
+  "exit_code": 1,
+  "observed_utc": "2026-11-03T03:06:11.439546+00:00",
+  "command": [
+    "/usr/bin/python3.14",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/native-source/tests/online_match_launch_http_test.py",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-signin-native-20261102/halo2-test-y2k9zm61/build/online_match_launch_tests",
+    "core",
+    "--asset-root",
+    "/home/eric/Developer/Halo-2-Decompiled"
+  ],
+  "native_binary_sha256": "9a2d83a66e7e19baea7a58836d99676dc49cafb0c6859dbd711581d96792504b",
+  "fixture_sha256": "18896870c480698df263a593bb39ebf457e3a3c74bdef8b4870198418a44e4b1",
+  "owned_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-core-retry-20261102/halo2-test-61us_yqn",
+  "same_iteration_three_binary": true,
+  "bounded_observations": [
+    "Native fixture one: exit 1",
+    "Native fixture two: exit 1"
+  ],
+  "retained_generated_large_artifacts": [],
+  "stage_errors_observed_in_tool_output": {
+    "one": "Native ONLINE handoff timed out: match handoff",
+    "two": "Native ONLINE handoff timed out: match handoff"
+  },
+  "root_cause_established": false
+}

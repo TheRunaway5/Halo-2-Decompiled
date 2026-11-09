@@ -124,6 +124,15 @@ struct State {
         instruction_cursor->service_sites[0]==0x38846eu &&
         instruction_cursor->service_sites[1]==0x21f590u &&
         instruction_cursor->service_sites[2]==0x33b595u;
+    const SourcePhysicsContactRuntimeServices::InstructionCursor *live_instruction_cursor()const {
+        // Services are referenced, not copied. A provider may replace their
+        // callback or policy after State cached its initial admission witness.
+        const auto *cursor=instruction_cursor;
+        return services.instruction && cursor==&services.instruction_cursor &&
+            cursor->position && cursor->callback_type &&
+            services.instruction.target_type()==*cursor->callback_type &&
+            cursor->executor==std::this_thread::get_id()?cursor:nullptr;
+    }
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((always_inline))
 #endif
@@ -131,8 +140,10 @@ struct State {
         // Generated callers supply a literal, so the compiler folds this
         // predicate without instantiating a separate function per source PC.
         if(pc!=0x38846eu && pc!=0x21f590u && pc!=0x33b595u) {
-            if(literal_service_sites) {
-                const auto *cursor=instruction_cursor;
+            if(const auto *cursor=live_instruction_cursor();literal_service_sites && cursor &&
+               cursor->literal_service_sites && cursor->service_sites.size()==3 &&
+               cursor->service_sites[0]==0x38846eu && cursor->service_sites[1]==0x21f590u &&
+               cursor->service_sites[2]==0x33b595u) {
                 if(!(cursor->first_trace && *cursor->first_trace) &&
                     !(cursor->second_trace && *cursor->second_trace)) {
                     *cursor->position=pc;return;
@@ -152,7 +163,7 @@ struct State {
     __declspec(noinline)
 #endif
     void instruction(std::uint32_t pc) {
-        const auto *cursor=instruction_cursor;
+        const auto *cursor=live_instruction_cursor();
         if(cursor && !(cursor->first_trace && *cursor->first_trace) &&
             !(cursor->second_trace && *cursor->second_trace) &&
             std::find(cursor->service_sites.begin(),cursor->service_sites.end(),pc)==cursor->service_sites.end()) {

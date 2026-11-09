@@ -1,0 +1,1607 @@
+{
+  "source_announcement_url": "https://halo.bungie.org/bwu/index.html?item=72",
+  "source_publication_date": "2006-04-28",
+  "response": {
+    "requested_url": "https://halo.bungie.org/bwu/images/gamevariants.xls",
+    "final_url": "https://halo.bungie.org/bwu/images/gamevariants.xls",
+    "status": 200,
+    "headers": {
+      "Date": "Tue, 03 Nov 2026 01:47:58 GMT",
+      "Last-Modified": "Fri, 28 Apr 2006 22:57:19 GMT",
+      "ETag": "\"3be00-41285a077d1c0\"",
+      "Content-Type": "application/vnd.ms-excel",
+      "Content-Length": "245248",
+      "Content-Encoding": null
+    },
+    "fetched_utc": "2026-11-03T01:47:58.109629+00:00"
+  },
+  "size_bytes": 245248,
+  "sha256": "a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998",
+  "cfb_magic": "d0cf11e0a1b11ae1",
+  "cfb_directory_entries": [
+    "\u0005DocumentSummaryInformation",
+    "\u0005SummaryInformation",
+    "Workbook"
+  ],
+  "workbook_stream_bytes": 231514,
+  "workbook_stream_sha256": "34592a0b9651f5ccced35f601e1309543d5baec5ef71f5cdf03dc66b2165d969",
+  "metadata": {
+    "title": null,
+    "subject": null,
+    "author": "Jeremiah Pieschl",
+    "last_saved_by": "Jeremiah Pieschl",
+    "create_time": "2006-04-18T16:14:29",
+    "last_saved_time": "2006-04-27T22:02:50",
+    "company": "Microsoft Corporation",
+    "application_name": null,
+    "revision_number": null,
+    "category": null
+  },
+  "static_reader": {
+    "xlrd": "2.0.2",
+    "olefile": "0.47"
+  },
+  "biff_version": 80,
+  "datemode": 0,
+  "global_records": 115,
+  "global_eof_end_offset": 10760,
+  "global_defined_name_records": 0,
+  "supbook_records": [
+    {
+      "offset": 2472,
+      "bytes": 4,
+      "reference_kind": "internal"
+    }
+  ],
+  "external_name_records": 0,
+  "sheets": [
+    {
+      "name": "Variants",
+      "visibility": 0,
+      "type": 0,
+      "bof_offset": 10760,
+      "biff_eof_end_offset": 231514,
+      "biff_records": 5280,
+      "biff_dimensions_zero_based_exclusive": [
+        [
+          0,
+          480,
+          0,
+          172
+        ]
+      ],
+      "parsed_rows": 480,
+      "parsed_columns": 172,
+      "cell_positions_traversed": 82560,
+      "cell_types": {
+        "text": 921,
+        "empty": 17956,
+        "formatted_blank": 56886,
+        "number": 6797
+      },
+      "nonempty_cells": 7718,
+      "nonempty_rows": 480,
+      "first_nonempty": "A1",
+      "last_nonempty": "ED480",
+      "cell_values_sha256": "0a7ebfe95ce1aa09bcdb29142b41511eca5e4b93f252e8d0224bca90a2fc7d14",
+      "hidden_rows_one_based": [],
+      "hidden_columns": [
+        "CC",
+        "DI"
+      ],
+      "merged_range_count": 296,
+      "formula_records": 0,
+      "formula_cells": [],
+      "array_shared_table_formula_records": 0,
+      "error_cells": [],
+      "hyperlink_records": 0,
+      "note_records": 0,
+      "nonempty_bounding_range": "A1:FM480",
+      "title_cell": {
+        "cell": "A1",
+        "value": "Matchmaking Game Variants"
+      },
+      "variant_name_header": {
+        "cell": "A2",
+        "value": "Variant Name"
+      },
+      "variant_families": [
+        {
+          "cell": "D1",
+          "name": "Slayer",
+          "first_column": "D",
+          "columns": 78,
+          "named_variants": 77,
+          "code_defaults": 1,
+          "hidden_columns": [
+            "CC"
+          ],
+          "last_column": "CC"
+        },
+        {
+          "cell": "CD1",
+          "name": "Oddball",
+          "first_column": "CD",
+          "columns": 13,
+          "named_variants": 13,
+          "code_defaults": 1,
+          "hidden_columns": [],
+          "last_column": "CP"
+        },
+        {
+          "cell": "CQ1",
+          "name": "King of the Hill",
+          "first_column": "CQ",
+          "columns": 17,
+          "named_variants": 17,
+          "code_defaults": 1,
+          "hidden_columns": [],
+          "last_column": "DG"
+        },
+        {
+          "cell": "DH1",
+          "name": "Capture the Flag",
+          "first_column": "DH",
+          "columns": 32,
+          "named_variants": 30,
+          "code_defaults": 1,
+          "hidden_columns": [
+            "DI"
+          ],
+          "last_column": "EM"
+        },
+        {
+          "cell": "EN1",
+          "name": "Assault",
+          "first_column": "EN",
+          "columns": 19,
+          "named_variants": 18,
+          "code_defaults": 1,
+          "hidden_columns": [],
+          "last_column": "FF"
+        },
+        {
+          "cell": "FG1",
+          "name": "Territories",
+          "first_column": "FG",
+          "columns": 10,
+          "named_variants": 7,
+          "code_defaults": 1,
+          "hidden_columns": [],
+          "last_column": "FP"
+        }
+      ],
+      "variant_column_headings": [
+        {
+          "cell": "D2",
+          "heading": "Slayer Code Default",
+          "hidden": false,
+          "settings_cells": 92
+        },
+        {
+          "cell": "E2",
+          "heading": "2v2 Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "F2",
+          "heading": "2v2 Duals Only",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "G2",
+          "heading": "2v2 Slayer Hum",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "H2",
+          "heading": "2v2 Rockets",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "I2",
+          "heading": "2v2 Shotguns",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "J2",
+          "heading": "2v2 Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "K2",
+          "heading": "2v2 Pistols",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "L2",
+          "heading": "Team Gulch Wars",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "M2",
+          "heading": "Team Plasma Wars",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "N2",
+          "heading": "Team Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "O2",
+          "heading": "Team Plasma Punchout",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "P2",
+          "heading": "Team Laser Blasters",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "Q2",
+          "heading": "Team Combo Training",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "R2",
+          "heading": "Team Brutality",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "S2",
+          "heading": "Team Slayer NoSnipe",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "T2",
+          "heading": "Team Slayer Pro",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "U2",
+          "heading": "Pro Team Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "V2",
+          "heading": "Pro Team Slayer No Sniping",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "W2",
+          "heading": "Pro Team Slayer Cov",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "X2",
+          "heading": "Team Slayer Human BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "Y2",
+          "heading": "Team Slayer Human",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "Z2",
+          "heading": "Team Slayer BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AA2",
+          "heading": "Team Slayer BR NoBanshee",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AB2",
+          "heading": "Big Team Slayer BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AC2",
+          "heading": "Big Team Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AD2",
+          "heading": "Big Team Slayer BR NoBanshee",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AE2",
+          "heading": "Team  Duals",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AF2",
+          "heading": "Team Swords",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AG2",
+          "heading": "Team Rockets",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AH2",
+          "heading": "Team Shotguns",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AI2",
+          "heading": "Team Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AJ2",
+          "heading": "Pro Team  Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AK2",
+          "heading": "Team Snipers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AL2",
+          "heading": "Pro Team Snipers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AM2",
+          "heading": "Team Pistols",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AN2",
+          "heading": "Team Brutes",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AO2",
+          "heading": "Team Showers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AP2",
+          "heading": "Team SWAT",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AQ2",
+          "heading": "Team SWAT Fiesta",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AR2",
+          "heading": "Team Shwatguns",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AS2",
+          "heading": "Fiesta Team Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AT2",
+          "heading": "Team Phantom Fiesta",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AU2",
+          "heading": "Team Phantoms",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AV2",
+          "heading": "Slayer Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AW2",
+          "heading": "Slayer Covenant Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AX2",
+          "heading": "Slayer Human Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AY2",
+          "heading": "Sword Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "AZ2",
+          "heading": "Brute Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BA2",
+          "heading": "Rifle Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BB2",
+          "heading": "Pistols Duel",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BC2",
+          "heading": "Rumble Slayer",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BD2",
+          "heading": "Rumble Duals",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BE2",
+          "heading": "Rumble Needlers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BF2",
+          "heading": "Rumble Plasma Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BG2",
+          "heading": "Rumble Beams",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BH2",
+          "heading": "Rumble Fiesta",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BI2",
+          "heading": "Rumble Slayer PRO",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BJ2",
+          "heading": "Rumble Slayer Human",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BK2",
+          "heading": "Rumble Slayer Human BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BL2",
+          "heading": "Pro Human BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BM2",
+          "heading": "Pro No Duals Carb",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BN2",
+          "heading": "Pro Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BO2",
+          "heading": "Pro Rifles Carb",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BP2",
+          "heading": "Pro Snipers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BQ2",
+          "heading": "Rumble Slayer Covenant",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BR2",
+          "heading": "Rumble Slayer BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BS2",
+          "heading": "Rumble Snipers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BT2",
+          "heading": "Rumble Rifles",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BU2",
+          "heading": "Rumble Rifles NoSnipe",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BV2",
+          "heading": "Rumble Pistols",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BW2",
+          "heading": "Rumble Showers",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BX2",
+          "heading": "Rumble SWAT",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BY2",
+          "heading": "Rumble Swords",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "BZ2",
+          "heading": "Rumble Rockets",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "CA2",
+          "heading": "Rumble Brutes",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "CB2",
+          "heading": "Rumble Shotguns",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "CC2",
+          "heading": "",
+          "hidden": true,
+          "settings_cells": 0
+        },
+        {
+          "cell": "CD2",
+          "heading": "Oddball Code Default",
+          "hidden": false,
+          "settings_cells": 92
+        },
+        {
+          "cell": "CE2",
+          "heading": "Oddball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CF2",
+          "heading": "Ball Duel",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CG2",
+          "heading": "Fiesta Ball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CH2",
+          "heading": "Team Ball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CI2",
+          "heading": "Lowball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CJ2",
+          "heading": "Invisiball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CK2",
+          "heading": "Dodgeball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CL2",
+          "heading": "Balltacular",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CM2",
+          "heading": "Pro Team Ball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CN2",
+          "heading": "2v2 Team Ball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CO2",
+          "heading": "Multi Team Ball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CP2",
+          "heading": "Team Multiball",
+          "hidden": false,
+          "settings_cells": 43
+        },
+        {
+          "cell": "CQ2",
+          "heading": "King of the Hill Code Default",
+          "hidden": false,
+          "settings_cells": 91
+        },
+        {
+          "cell": "CR2",
+          "heading": "King Duel",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CS2",
+          "heading": "Crazy King Duel",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CT2",
+          "heading": "King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CU2",
+          "heading": "Phantom King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CV2",
+          "heading": "Crazy King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CW2",
+          "heading": "Team Crazy King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CX2",
+          "heading": "Crazy King Tactics",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CY2",
+          "heading": "Team Crazy King Snipers",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "CZ2",
+          "heading": "Pro Team Crazy King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DA2",
+          "heading": "2v2 Crazy King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DB2",
+          "heading": "Multi Team Crazy King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DC2",
+          "heading": "Multi Team Crazy King BR",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DD2",
+          "heading": "Team King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DE2",
+          "heading": "Pit Of Doom",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DF2",
+          "heading": "Pit Of Joy",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DG2",
+          "heading": "2v2 Team King",
+          "hidden": false,
+          "settings_cells": 42
+        },
+        {
+          "cell": "DH2",
+          "heading": "CTF Code Default",
+          "hidden": false,
+          "settings_cells": 92
+        },
+        {
+          "cell": "DI2",
+          "heading": "",
+          "hidden": true,
+          "settings_cells": 0
+        },
+        {
+          "cell": "DJ2",
+          "heading": "Multi Flag CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DK2",
+          "heading": "Shwatgun CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DL2",
+          "heading": "Multi Flag Rockets",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DM2",
+          "heading": "Multi Flag Snipers",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DN2",
+          "heading": "Pro Multi Flag CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DO2",
+          "heading": "Neutral Flag CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DP2",
+          "heading": "Neutral Flag Snipers",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DQ2",
+          "heading": "Multi Team Neutral Flag",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DR2",
+          "heading": "Multi Flag CTF Human",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DS2",
+          "heading": "2v2 Multi Flag CTF Human",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DT2",
+          "heading": "CTF Classic",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DU2",
+          "heading": "Pro CTF Classic 3",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DV2",
+          "heading": "Pro CTF Classic 5",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DW2",
+          "heading": "2v2 CTF Classic",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DX2",
+          "heading": "Multi Team CTF Classic",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DY2",
+          "heading": "Multi Flag CTF Cov",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "DZ2",
+          "heading": "Multi Flag CTF Cov Carb",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EA2",
+          "heading": "Multi Flag CTF BR",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EB2",
+          "heading": "Shotgun CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EC2",
+          "heading": "1 Flag CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "ED2",
+          "heading": "2v2 1 Flag CTF",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EE2",
+          "heading": "1 Flag CTF NoBanshee",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EF2",
+          "heading": "1 Flag CTF Covenant",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EG2",
+          "heading": "1 Flag CTF Covenant Carb",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EH2",
+          "heading": "1 Flag CTF Covenant NoBanshee",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EI2",
+          "heading": "1 Flag CTF BR",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EJ2",
+          "heading": "1 Flag CTF Fast",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EK2",
+          "heading": "1 Flag CTF Fast BR",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EL2",
+          "heading": "CTF Wraiths",
+          "hidden": false,
+          "settings_cells": 46
+        },
+        {
+          "cell": "EM2",
+          "heading": "",
+          "hidden": false,
+          "settings_cells": 0
+        },
+        {
+          "cell": "EN2",
+          "heading": "Assault Code Default",
+          "hidden": false,
+          "settings_cells": 92
+        },
+        {
+          "cell": "EO2",
+          "heading": "Multi Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EP2",
+          "heading": "Ninja Multi Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EQ2",
+          "heading": "Multi Bomb NoBanshee",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "ER2",
+          "heading": "Multi Bomb Assault BR",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "ES2",
+          "heading": "Assault",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "ET2",
+          "heading": "Assault Covenant",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EU2",
+          "heading": "Assault Covenant NoBanshee",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EV2",
+          "heading": "Assault BR",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EW2",
+          "heading": "Assault NoBanshee",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EX2",
+          "heading": "Rapid Assault",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EY2",
+          "heading": "Neut. Bomb Fast",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "EZ2",
+          "heading": "Neutral Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FA2",
+          "heading": "Shotgun Neutral Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FB2",
+          "heading": "Pro Neutral Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FC2",
+          "heading": "Multi Team Neutral Bomb",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FD2",
+          "heading": "Neutral Bomb NoBanshee",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FE2",
+          "heading": "Neutral Bomb BR",
+          "hidden": false,
+          "settings_cells": 47
+        },
+        {
+          "cell": "FF2",
+          "heading": "",
+          "hidden": false,
+          "settings_cells": 0
+        },
+        {
+          "cell": "FG2",
+          "heading": "Territories Code Default",
+          "hidden": false,
+          "settings_cells": 92
+        },
+        {
+          "cell": "FH2",
+          "heading": "3 Plots",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FI2",
+          "heading": "Multi Team 3 Plots",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FJ2",
+          "heading": "Multi Team 3 Plots BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FK2",
+          "heading": "Land Grab",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FL2",
+          "heading": "Multi Team Land Grab",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FM2",
+          "heading": "Multi Team Land Grab BR",
+          "hidden": false,
+          "settings_cells": 39
+        },
+        {
+          "cell": "FN2",
+          "heading": "",
+          "hidden": false,
+          "settings_cells": 0
+        },
+        {
+          "cell": "FO2",
+          "heading": "",
+          "hidden": false,
+          "settings_cells": 0
+        },
+        {
+          "cell": "FP2",
+          "heading": "",
+          "hidden": false,
+          "settings_cells": 0
+        }
+      ],
+      "section_headings": [
+        {
+          "cell": "A3",
+          "heading": "Match Settings"
+        },
+        {
+          "cell": "A98",
+          "heading": "Player Settings"
+        },
+        {
+          "cell": "A144",
+          "heading": "Team Settings"
+        },
+        {
+          "cell": "A173",
+          "heading": "Game Settings"
+        },
+        {
+          "cell": "A363",
+          "heading": "Vehicle Settings"
+        },
+        {
+          "cell": "A406",
+          "heading": "Equipment Settings"
+        }
+      ],
+      "option_group_headings": [
+        {
+          "cell": "B4",
+          "heading": "Number of Rounds"
+        },
+        {
+          "cell": "B12",
+          "heading": "Score to Win Round (Slayer)"
+        },
+        {
+          "cell": "B25",
+          "heading": "Score to Win Round (CTF)"
+        },
+        {
+          "cell": "B31",
+          "heading": "Score to Win Round (Assault)"
+        },
+        {
+          "cell": "B37",
+          "heading": "Score to Win Round (Oddball)"
+        },
+        {
+          "cell": "B44",
+          "heading": "Score to Win Round (King)"
+        },
+        {
+          "cell": "B51",
+          "heading": "Score to Win Round (Territories)"
+        },
+        {
+          "cell": "B62",
+          "heading": "Score to Win Round (Juggernaut)"
+        },
+        {
+          "cell": "B74",
+          "heading": "Round Time Limit"
+        },
+        {
+          "cell": "B92",
+          "heading": "Rounds Reset Map"
+        },
+        {
+          "cell": "B95",
+          "heading": "Resolve Ties"
+        },
+        {
+          "cell": "B99",
+          "heading": "Max Active Players"
+        },
+        {
+          "cell": "B108",
+          "heading": "Lives Per Round"
+        },
+        {
+          "cell": "B116",
+          "heading": "Respawn Time"
+        },
+        {
+          "cell": "B123",
+          "heading": "Suicide Penalty"
+        },
+        {
+          "cell": "B128",
+          "heading": "Shield Type"
+        },
+        {
+          "cell": "B132",
+          "heading": "Motion Sensor"
+        },
+        {
+          "cell": "B135",
+          "heading": "Active Camo (always invisible)"
+        },
+        {
+          "cell": "B138",
+          "heading": "Extra Damage"
+        },
+        {
+          "cell": "B141",
+          "heading": "Damage Resistance"
+        },
+        {
+          "cell": "B145",
+          "heading": "Team Play"
+        },
+        {
+          "cell": "B148",
+          "heading": "Team Scoring"
+        },
+        {
+          "cell": "B152",
+          "heading": "Team Changing"
+        },
+        {
+          "cell": "B155",
+          "heading": "Friendly Fire"
+        },
+        {
+          "cell": "B158",
+          "heading": "Respawn Time Modifier (team respawn setting)"
+        },
+        {
+          "cell": "B162",
+          "heading": "Betrayal Penalty"
+        },
+        {
+          "cell": "B170",
+          "heading": "Force Even Teams"
+        },
+        {
+          "cell": "B174",
+          "heading": "Bonus Points (Slayer)"
+        },
+        {
+          "cell": "B177",
+          "heading": "Suicide Point Loss (Slayer)"
+        },
+        {
+          "cell": "B180",
+          "heading": "Death Point Loss (Slayer)"
+        },
+        {
+          "cell": "B183",
+          "heading": "Flag Type (CTF)"
+        },
+        {
+          "cell": "B187",
+          "heading": "Sudden Death (CTF)"
+        },
+        {
+          "cell": "B190",
+          "heading": "Flag Home To Score (CTF)"
+        },
+        {
+          "cell": "B193",
+          "heading": "Flag Touch Return (CTF) (flag can be returned)"
+        },
+        {
+          "cell": "B196",
+          "heading": "Flag Reset Time (CTF)"
+        },
+        {
+          "cell": "B203",
+          "heading": "Slow With Flag (CTF)"
+        },
+        {
+          "cell": "B206",
+          "heading": "Flag Hit Damage (CTF)"
+        },
+        {
+          "cell": "B209",
+          "heading": "Damage Resistance (CTF)"
+        },
+        {
+          "cell": "B212",
+          "heading": "Active Camo (CTF)"
+        },
+        {
+          "cell": "B215",
+          "heading": "Vehicle Operation (CTF)"
+        },
+        {
+          "cell": "B218",
+          "heading": "Flag Indicator (CTF)"
+        },
+        {
+          "cell": "B223",
+          "heading": "Bomb Type (Assault) (game type)"
+        },
+        {
+          "cell": "B227",
+          "heading": "Enemy Bomb Indicator (Assault)"
+        },
+        {
+          "cell": "B232",
+          "heading": "Sudden Death (Assault)"
+        },
+        {
+          "cell": "B235",
+          "heading": "Bomb Reset Time (Assault)"
+        },
+        {
+          "cell": "B243",
+          "heading": "Bomb Arm Time (Assault)"
+        },
+        {
+          "cell": "B247",
+          "heading": "Sticky Arming (Assault)"
+        },
+        {
+          "cell": "B250",
+          "heading": "Bomb Touch Return (Assault)"
+        },
+        {
+          "cell": "B253",
+          "heading": "Slow With Bomb (Assault)"
+        },
+        {
+          "cell": "B256",
+          "heading": "Bomb Hit Damage (Assault)"
+        },
+        {
+          "cell": "B259",
+          "heading": "Damage Resistance (Assault)"
+        },
+        {
+          "cell": "B262",
+          "heading": "Active Camo (Assault)"
+        },
+        {
+          "cell": "B265",
+          "heading": "Vehicle Operation (Assault)"
+        },
+        {
+          "cell": "B268",
+          "heading": "Ball Count (Oddball)"
+        },
+        {
+          "cell": "B272",
+          "heading": "Ball Hit Damage (Oddball)"
+        },
+        {
+          "cell": "B275",
+          "heading": "Speed With Ball (Oddball)"
+        },
+        {
+          "cell": "B279",
+          "heading": "Active Camo With Ball (Oddball)"
+        },
+        {
+          "cell": "B282",
+          "heading": "Toughness With Ball (Oddball)"
+        },
+        {
+          "cell": "B285",
+          "heading": "Vehicle Operation (Oddball)"
+        },
+        {
+          "cell": "B288",
+          "heading": "Ball Indicator (Oddball)"
+        },
+        {
+          "cell": "B293",
+          "heading": "Uncontested Hill (King)"
+        },
+        {
+          "cell": "B296",
+          "heading": "Moving Hill (King)"
+        },
+        {
+          "cell": "B303",
+          "heading": "Team Time Multiplier (King)"
+        },
+        {
+          "cell": "B306",
+          "heading": "Extra Damage (King)"
+        },
+        {
+          "cell": "B309",
+          "heading": "Damage Resistance (King)"
+        },
+        {
+          "cell": "B312",
+          "heading": "Active Camo On Hill (King)"
+        },
+        {
+          "cell": "B315",
+          "heading": "Betrayal Point Loss (Juggernaut)"
+        },
+        {
+          "cell": "B318",
+          "heading": "Juggernaut Extra Damage (Juggernaut)"
+        },
+        {
+          "cell": "B321",
+          "heading": "Juggernaut Infinite Ammo (Juggernaut)"
+        },
+        {
+          "cell": "B324",
+          "heading": "Juggernaut Overshields (Juggernaut)"
+        },
+        {
+          "cell": "B327",
+          "heading": "Juggernaut Active Camo (Juggernaut)"
+        },
+        {
+          "cell": "B330",
+          "heading": "Juggernaut Damage Resistance (Juggernaut)"
+        },
+        {
+          "cell": "B333",
+          "heading": "Juggernaut Motion Sensor (Juggernaut)"
+        },
+        {
+          "cell": "B336",
+          "heading": "Juggernaut Movement (Juggernaut)"
+        },
+        {
+          "cell": "B340",
+          "heading": "Territory Count (Territories)"
+        },
+        {
+          "cell": "B349",
+          "heading": "Contest Time (Territories)"
+        },
+        {
+          "cell": "B356",
+          "heading": "Control Time (Territories) (capture time)"
+        },
+        {
+          "cell": "B364",
+          "heading": "Vehicle Respawn"
+        },
+        {
+          "cell": "B368",
+          "heading": "Primary Light Vehicle"
+        },
+        {
+          "cell": "B376",
+          "heading": "Secondary Light Vehicle"
+        },
+        {
+          "cell": "B384",
+          "heading": "Heavy Vehicle"
+        },
+        {
+          "cell": "B390",
+          "heading": "Banshee"
+        },
+        {
+          "cell": "B394",
+          "heading": "Primary Turret"
+        },
+        {
+          "cell": "B400",
+          "heading": "Secondary Turret"
+        },
+        {
+          "cell": "B407",
+          "heading": "Starting Weapon"
+        },
+        {
+          "cell": "B425",
+          "heading": "Secondary Weapon"
+        },
+        {
+          "cell": "B444",
+          "heading": "Starting Grenades"
+        },
+        {
+          "cell": "B447",
+          "heading": "Weapons On Map"
+        },
+        {
+          "cell": "B467",
+          "heading": "Weapon Respawn Time"
+        },
+        {
+          "cell": "B472",
+          "heading": "Grenades On Map"
+        },
+        {
+          "cell": "B475",
+          "heading": "Overshields"
+        },
+        {
+          "cell": "B478",
+          "heading": "Active Camouflage"
+        }
+      ],
+      "variant_value_text_cells": 295,
+      "duplicate_variant_headings": {},
+      "hbo_header_search_matches": []
+    }
+  ],
+  "workbook_biff_substream_coverage": {
+    "global": {
+      "bof_offset": 0,
+      "eof_end_offset": 10760
+    },
+    "worksheet": {
+      "bof_offset": 10760,
+      "eof_end_offset": 231514
+    },
+    "untraversed_stream_bytes": 0
+  },
+  "source_announcement_original_url": "https://www.bungie.net/News/content.aspx?link=april28update&type=topnews",
+  "retained_relative_path": "multiplayer/docs/reference/halo2-gamevariants-20060428.xls",
+  "scope": "Complete bytes of the current HBO-hosted attachment linked by the preserved Bungie announcement; digest pins this copy. HTTP and embedded dates are corroborating provenance, not an original cryptographic digest or evidence of Live deployment.",
+  "formula_policy": "Static parsing of BIFF8 cell values and records; no macros, formulas, external links, embedded objects, or spreadsheet application executed.",
+  "cell_hash_definition": "SHA-256 of UTF-8 JSON lines [zero-based row,zero-based column,xlrd cell type,cached/literal value] over every parsed grid position, including blank/empty positions; ensure_ascii=False, separators comma/colon."
+}

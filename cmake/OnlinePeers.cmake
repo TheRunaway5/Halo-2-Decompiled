@@ -34,7 +34,7 @@ target_compile_features(halo2_frontend_lobby_view PUBLIC cxx_std_20)
 target_link_libraries(halo2_frontend_lobby_view PRIVATE halo2_online_protocol halo2_game_variant)
 add_dependencies(halo2_frontend_lobby_view halo2_online_protocol_rust_build)
 target_link_libraries(halo2_systems PRIVATE halo2_frontend_lobby_view)
-# These two legacy registrations occur after this module is included. Finalize
+# Some legacy targets are registered after this module is included. Finalize
 # their ownership after the parent directory finishes declaring its targets.
 # Keep the migration local to this module, including frozen validation cohorts.
 function(halo2_finalize_frontend_lobby_view)
@@ -43,6 +43,9 @@ function(halo2_finalize_frontend_lobby_view)
     set_property(TARGET halo2_systems PROPERTY SOURCES "${lobby_view_system_sources}")
     if(TARGET frontend_lobby_game_tests)
         target_link_libraries(frontend_lobby_game_tests PRIVATE halo2_frontend_lobby_view)
+    endif()
+    if(TARGET frontend_lobby_setup_tests)
+        target_link_libraries(frontend_lobby_setup_tests PRIVATE halo2_frontend_lobby)
     endif()
 endfunction()
 cmake_language(DEFER CALL halo2_finalize_frontend_lobby_view)
@@ -89,6 +92,15 @@ target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_lobby_query.cpp
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_account_flow.cpp)
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_friends.cpp)
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_clans.cpp)
+target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_couch.cpp)
+set_property(SOURCE src/ui/frontend_matchmaking_couch.cpp APPEND PROPERTY
+    INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_signin.cpp)
+set_property(SOURCE src/ui/frontend_matchmaking_signin.cpp APPEND PROPERTY
+    INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_postgame.cpp)
+set_property(SOURCE src/ui/frontend_matchmaking_postgame.cpp APPEND PROPERTY
+    INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
 set_property(SOURCE src/ui/frontend_matchmaking_clans.cpp APPEND PROPERTY
     INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
 set_property(SOURCE src/ui/frontend_matchmaking_friends.cpp APPEND PROPERTY
@@ -312,6 +324,75 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_clans_rust.py" $<TARGET_FILE:native_frontend_clans_rust_tests>
         --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-clans-policy.json")
     set_tests_properties(frontend_clans_cpp_rust PROPERTIES TIMEOUT 240)
+    set(_couch_before "${CMAKE_CURRENT_BINARY_DIR}/frontend_couch_before.inc")
+    set(_couch_after "${CMAKE_CURRENT_BINARY_DIR}/frontend_couch_after.inc")
+    add_custom_command(OUTPUT "${_couch_before}" "${_couch_after}"
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_couch_reference.py"
+            --reference "${CMAKE_CURRENT_SOURCE_DIR}/tests/reference/frontend_couch_before_rust_20261102"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}" --before "${_couch_before}" --after "${_couch_after}"
+        DEPENDS tests/generate_frontend_couch_reference.py src/ui/frontend_couch.cpp
+            include/halo2/frontend.hpp
+            tests/reference/frontend_couch_before_rust_20261102/include__halo2__frontend.hpp.reference
+            src/ui/frontend_matchmaking_couch.cpp src/ui/frontend_state.cpp
+            tests/reference/frontend_couch_before_rust_20261102/src__ui__frontend_couch.cpp.reference
+            tests/reference/frontend_couch_before_rust_20261102/src__ui__frontend_state.cpp.reference
+            tests/reference/frontend_couch_before_rust_20261102/provenance.json
+        VERBATIM)
+    add_executable(native_frontend_couch_rust_tests tests/native_frontend_couch_rust_tests.cpp
+        "${_couch_before}" "${_couch_after}")
+    target_include_directories(native_frontend_couch_rust_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+    target_compile_features(native_frontend_couch_rust_tests PRIVATE cxx_std_20)
+    target_link_libraries(native_frontend_couch_rust_tests PRIVATE halo2_frontend_party_flow nlohmann_json::nlohmann_json)
+    add_test(NAME frontend_couch_cpp_rust COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_couch_rust.py" $<TARGET_FILE:native_frontend_couch_rust_tests>
+        --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-couch-policy.json")
+    set_tests_properties(frontend_couch_cpp_rust PROPERTIES TIMEOUT 240)
+    set(_signin_before "${CMAKE_CURRENT_BINARY_DIR}/frontend_signin_before.inc")
+    set(_signin_after "${CMAKE_CURRENT_BINARY_DIR}/frontend_signin_after.inc")
+    add_custom_command(OUTPUT "${_signin_before}" "${_signin_after}"
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_signin_reference.py"
+            --reference "${CMAKE_CURRENT_SOURCE_DIR}/tests/reference/frontend_signin_before_rust_20261102"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}" --before "${_signin_before}" --after "${_signin_after}"
+        DEPENDS tests/generate_frontend_signin_reference.py
+            include/halo2/frontend.hpp
+            tests/reference/frontend_signin_before_rust_20261102/include__halo2__frontend.hpp.reference
+            src/ui/frontend_matchmaking_signin.cpp src/ui/frontend_state.cpp
+            tests/reference/frontend_signin_before_rust_20261102/src__ui__frontend_state.cpp.reference
+            tests/reference/frontend_signin_before_rust_20261102/provenance.json
+        VERBATIM)
+    add_executable(native_frontend_signin_rust_tests tests/native_frontend_signin_rust_tests.cpp
+        "${_signin_before}" "${_signin_after}")
+    target_include_directories(native_frontend_signin_rust_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+    target_compile_features(native_frontend_signin_rust_tests PRIVATE cxx_std_20)
+    target_link_libraries(native_frontend_signin_rust_tests PRIVATE halo2_frontend_party_flow nlohmann_json::nlohmann_json)
+    add_test(NAME frontend_signin_cpp_rust COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_signin_rust.py" $<TARGET_FILE:native_frontend_signin_rust_tests>
+        --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-signin-policy.json")
+    set_tests_properties(frontend_signin_cpp_rust PROPERTIES TIMEOUT 240)
+    set(_postgame_before "${CMAKE_CURRENT_BINARY_DIR}/frontend_postgame_before.inc")
+    set(_postgame_after "${CMAKE_CURRENT_BINARY_DIR}/frontend_postgame_after.inc")
+    set(_postgame_helpers "${CMAKE_CURRENT_BINARY_DIR}/frontend_postgame_helpers.inc")
+    add_custom_command(OUTPUT "${_postgame_before}" "${_postgame_after}" "${_postgame_helpers}"
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_postgame_reference.py"
+            --reference "${CMAKE_CURRENT_SOURCE_DIR}/tests/reference/frontend_postgame_before_rust_20261102"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}" --before "${_postgame_before}" --after "${_postgame_after}" --helpers "${_postgame_helpers}"
+        DEPENDS tests/generate_frontend_postgame_reference.py
+            include/halo2/frontend.hpp
+            tests/reference/frontend_postgame_before_rust_20261102/include__halo2__frontend.hpp.reference
+            src/ui/frontend_matchmaking_postgame.cpp src/ui/frontend_state.cpp src/network/online_account.cpp
+            tests/reference/frontend_postgame_before_rust_20261102/src__ui__frontend_state.cpp.reference
+            tests/reference/frontend_postgame_before_rust_20261102/src__network__online_account.cpp.reference
+            tests/reference/frontend_postgame_before_rust_20261102/provenance.json
+        VERBATIM)
+    add_executable(native_frontend_postgame_rust_tests tests/native_frontend_postgame_rust_tests.cpp
+        "${_postgame_before}" "${_postgame_after}" "${_postgame_helpers}")
+    target_include_directories(native_frontend_postgame_rust_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+    target_compile_features(native_frontend_postgame_rust_tests PRIVATE cxx_std_20)
+    target_link_libraries(native_frontend_postgame_rust_tests PRIVATE halo2_frontend_party_flow nlohmann_json::nlohmann_json)
+    add_test(NAME frontend_postgame_cpp_rust COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_postgame_rust.py" $<TARGET_FILE:native_frontend_postgame_rust_tests>
+        --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-postgame-policy.json")
+    set_tests_properties(frontend_postgame_cpp_rust PROPERTIES TIMEOUT 240)
     set(_frontend_presentation_reference "${CMAKE_CURRENT_BINARY_DIR}/frontend_presentation_reference.inc")
     add_custom_command(OUTPUT "${_frontend_presentation_reference}"
         COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_presentation_reference.py"

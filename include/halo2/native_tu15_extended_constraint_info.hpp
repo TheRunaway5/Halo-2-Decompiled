@@ -7,4 +7,9 @@ namespace halo2 {
 std::uint32_t native_tu15_get_extended_constraint_info(SourcePhysicsContactMemory&,
   std::uint32_t constraint,NativeTu15IslandConstraintInfo,
   const SourcePhysicsContactRecordObserver& = {});
+// Entire public31F740. The conveyor constraint extends the same325E90
+// current info+8 by0x28, retaining its source store site and RET4 contract.
+std::uint32_t native_tu15_get_conveyor_constraint_info(SourcePhysicsContactMemory&,
+  std::uint32_t constraint,NativeTu15IslandConstraintInfo,
+  const SourcePhysicsContactRecordObserver& = {});
 } // namespace halo2

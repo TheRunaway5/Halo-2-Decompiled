@@ -45,7 +45,6 @@ NativeActionPrompt MultiplayerMatch::action_prompt(unsigned id)const {
   if(!weapon_pickups_configured_ || id>=players_.size() || !players_[id].connected ||
       players_[id].source_current_object==null_datum || finished_)return result;
   const auto &u=unit(id);
-  NativeWeaponPromptChoice selected{};
   if(simulation_.source_physics_movement_) {
     const auto target=source_object_world_->tu15_world().player_action_target(players_[id].source_datum,u.source_datum);
     if(target && (target->action==1 || target->action==7) && target->object!=null_datum) {
@@ -55,9 +54,24 @@ NativeActionPrompt MultiplayerMatch::action_prompt(unsigned id)const {
       }catch(const FormatError&){} // A completed source phase may retire that generation.
       return {};
     }
-    // Other existing control/unit presentation keeps its own typed producer.
-    // A source weapon never falls back to legacy pickup registrations.
-  }else selected=native_weapon_action_prompt(u,content_,simulation_.collision(),weapon_pickups_,
+    // The native command uses the completed 153BA0 target. A second
+    // control ray from the raw input angles can disagree with the native
+    // look controller, whose yaw starts at the authored spawn facing.
+    NativeActionPrompt control;
+    Vec3 control_root{};
+    if(target && target->action==3 && target->object!=null_datum) {
+      const auto *owner=simulation_.devices().find(target->object);
+      if(owner && !owner->bsp_hidden) {
+        const auto &definition=content_.devices.at(owner->placement)->control;
+        if(definition && definition->action_string) {
+          control={*target,definition->datum,definition->action_string};
+          control_root=owner->root.position;
+        }
+      }
+    }
+    return simulation_.unit_action_prompt(u,control,control_root);
+  }
+  const auto selected=native_weapon_action_prompt(u,content_,simulation_.collision(),weapon_pickups_,
       std::uint32_t(simulation_.ticks()));
   const auto control=native_control_action_prompt(u,content_,simulation_.devices(),selected.prompt,selected.root);
   return simulation_.unit_action_prompt(u,control,selected.root);
@@ -66,7 +80,9 @@ void MultiplayerMatch::step_weapon_pickups(const std::array<Controls,multiplayer
   std::vector<std::pair<Unit*,std::uint32_t>> ready_animations;
   if(!weapon_pickups_configured_)return;
   const auto tick=std::uint32_t(simulation_.ticks());
-  for(unsigned row=0;row<pickup_rows_.size();++row) {
+  // A retained physical World runs genuine15D890 over its own row bank.
+  // The synthetic/reference adapter retains its separate native timer seam.
+  if(!simulation_.source_physics_movement_)for(unsigned row=0;row<pickup_rows_.size();++row) {
     if(rules_.defusal)break; // Fixed round loadouts; dropped weapons remain usable.
     const auto &d=content_.netgame_equipment[row];
     if(d.classification || d.items.size()!=1 || source_netgame_equipment_selector(d,true,rules_.source_engine)<0)continue;

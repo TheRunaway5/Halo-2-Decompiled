@@ -1,0 +1,22 @@
+{
+  "schema": "H2_FRONTEND_POSTGAME_BEFORE_RUST_V1",
+  "captured_at_utc": "2026-11-03T00:50:04.256112+00:00",
+  "modern_native_caller": true,
+  "not_original_xbox_live_service": true,
+  "source_pins": {
+    "src/ui/frontend_state.cpp": "e438e71c8f3cf3c5040c1d0accc97a545a20b01ad9c6d0259c40b9817d454c18",
+    "include/halo2/frontend.hpp": "2bb3949c22458c2dcdd9bf7a1e467cc0e3f9f851dff61f2f05865576f1947281",
+    "src/network/online_account.cpp": "62074185ff45d2473dd90d7d829e51edf7809770b88eb0daa4b98f658e3f8cac",
+    "rust/online_protocol/src/matchmaking_account_client.rs": "8e0e7b157b48d2017ba21d80d1aafbe41e979a56488ae81e581cc6554d106a89",
+    "rust/online_protocol_bridge/src/matchmaking_account_client.rs": "6aee3fa1af494f4f756164dc51b20ef589866e6c94e923f256d85eb4e959034a"
+  },
+  "capture_names": {
+    "src/ui/frontend_state.cpp": "src__ui__frontend_state.cpp.reference",
+    "include/halo2/frontend.hpp": "include__halo2__frontend.hpp.reference",
+    "src/network/online_account.cpp": "src__network__online_account.cpp.reference",
+    "rust/online_protocol/src/matchmaking_account_client.rs": "rust__online_protocol__src__matchmaking_account_client.rs.reference",
+    "rust/online_protocol_bridge/src/matchmaking_account_client.rs": "rust__online_protocol_bridge__src__matchmaking_account_client.rs.reference"
+  },
+  "predecessor": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-signin-flow-rust-active-validation.json",
+  "all80_predecessor_scoped_pins_current": true
+}

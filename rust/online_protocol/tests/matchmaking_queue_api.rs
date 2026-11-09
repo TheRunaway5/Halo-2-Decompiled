@@ -5,9 +5,16 @@ use halo2_online_protocol::{
 };
 use serde_json::{Value, json};
 fn owner(raw: bool) -> Coordinator {
+    owner_with_settings(raw, Value::Null)
+}
+fn owner_with_settings(raw: bool, settings: Value) -> Coordinator {
     let mut entry = json!({"id":"native","revision":"v1","name":"Native API test","description":"Declared native authorization","ranked":false,"quickmatch":true,
         "team_size":0,"minimum_players":2,"maximum_players":4,"maximum_party":4,"games":[{"id":"slayer","map":"lockout","variant":"Slayer","weight":1}],
         "stages":[{"after_seconds":0,"rank_numerator":1,"rank_denominator":1,"minimum_connection":50}],"skill":{"kind":"custom","radius":6},"provenance":"Native API test"});
+    if !settings.is_null() {
+        entry["required_compatibility"] = json!("halo2-native-queue-v15");
+        entry["games"][0]["settings"] = settings;
+    }
     if raw {
         entry["rank_configuration"] = json!(halo2_online_protocol::matchmaking_skill::RETAIL);
     }
@@ -27,7 +34,19 @@ fn send(c: &mut Coordinator, mut r: Value) -> Result<Value> {
     c.execute(&r)
 }
 fn session(c: &mut Coordinator, who: &str, guest: bool) -> Value {
-    let mut body = json!({"screen_name":"Same Pilot","maps":["lockout"],"language":0,"compatibility":if guest{"halo2-native-queue-v9"}else{"test-v1"}});
+    session_with_compat(
+        c,
+        who,
+        guest,
+        if guest {
+            "halo2-native-queue-v9"
+        } else {
+            "test-v1"
+        },
+    )
+}
+fn session_with_compat(c: &mut Coordinator, who: &str, guest: bool, compatibility: &str) -> Value {
+    let mut body = json!({"screen_name":"Same Pilot","maps":["lockout"],"language":0,"compatibility":compatibility});
     let mut identities = vec![json!({"owner":["discord",who],"player":who,"separate_party":false})];
     let mut resolved = vec![json!(who)];
     if guest {
@@ -273,6 +292,7 @@ fn cancellation_and_start_observation_are_native_owner_scoped() {
     assert_eq!(event["room"], id);
     let result=send(&mut c,json!({"op":"api_resume","frame":event["frame"],"generation":a["generation"],"result":6999,"rooms":[r]})).unwrap();
     assert_eq!(result["value"]["start_countdown_ms"], 6999);
+    assert!(result["value"].get("start_room").is_none());
     let idle = send(
         &mut c,
         json!({"op":"api_cancel","generation":a["generation"],"query":{"cancel":"1"},"rooms":[r]}),
@@ -289,6 +309,127 @@ fn cancellation_and_start_observation_are_native_owner_scoped() {
         "search_failed"
     );
 }
+
+#[test]
+fn start_view_uses_current_admitted_room_when_an_old_loading_observation_remains() {
+    let mut c = owner(false);
+    let a = session(&mut c, "a", false);
+    let b = session(&mut c, "b", false);
+    let first = proposal(&mut c, &a, &b, 1);
+    let mut old = room(&mut c, &first);
+    old["phase"] = json!("loading");
+    close(&mut c, &first);
+    let second = proposal(&mut c, &a, &b, 3);
+    let mut current = room(&mut c, &second);
+    current["phase"] = json!("loading");
+    let query = json!({"start":"1","start_room":"1"});
+    let view = |rooms: Value| json!({"op":"api_view_begin","generation":a["generation"],"query":query,"heartbeat":false,"rooms":rooms});
+    let event = send(&mut c, view(json!([old, current]))).unwrap();
+    assert_eq!(event["action"], "room_start");
+    assert_eq!(event["room"], second);
+    let result = send(
+        &mut c,
+        json!({"op":"api_resume","frame":event["frame"],"generation":a["generation"],
+            "result":6999,"rooms":[old,current]}),
+    )
+    .unwrap();
+    assert_eq!(result["value"]["start_countdown_ms"], 6999);
+    assert_eq!(result["value"]["start_room"], second);
+}
+
+#[test]
+fn start_read_is_discarded_when_its_room_is_replaced_during_io() {
+    let mut c = owner(false);
+    let a = session(&mut c, "a", false);
+    let b = session(&mut c, "b", false);
+    let first = proposal(&mut c, &a, &b, 1);
+    let mut old = room(&mut c, &first);
+    old["phase"] = json!("loading");
+    let query = json!({"start":"1","start_room":"1"});
+    let view = |rooms: Value| json!({"op":"api_view_begin","generation":a["generation"],"query":query,"heartbeat":false,"rooms":rooms});
+    let event = send(&mut c, view(json!([old]))).unwrap();
+    assert_eq!(event["room"], first);
+    close(&mut c, &first);
+    let second = proposal(&mut c, &a, &b, 3);
+    let mut current = room(&mut c, &second);
+    current["phase"] = json!("loading");
+    let stale = send(
+        &mut c,
+        json!({"op":"api_resume","frame":event["frame"],"generation":a["generation"],
+            "result":0,"rooms":[current]}),
+    )
+    .unwrap();
+    assert_eq!(stale["kind"], "done");
+    assert_eq!(stale["value"]["start_countdown_ms"], Value::Null);
+    assert_eq!(stale["value"]["start_room"], Value::Null);
+    let fresh = send(&mut c, view(json!([current]))).unwrap();
+    assert_eq!(fresh["room"], second);
+}
+
+#[test]
+fn loading_room_keeps_full_match_and_clock_after_final_ack_consumes_the_proposal() {
+    let stock: Value =
+        serde_json::from_str(include_str!("../data/tu15-result-presets.json")).unwrap();
+    let options = stock["variants"][0]["settings"].clone();
+    let mut c = owner_with_settings(false, options.clone());
+    let a = session_with_compat(&mut c, "a", false, "halo2-native-queue-v16");
+    let b = session_with_compat(&mut c, "b", false, "halo2-native-queue-v16");
+    let id = proposal(&mut c, &a, &b, 1);
+    let mut r = room(&mut c, &id);
+    let read = |query: Value, generation: &Value, rooms: Value| {
+        json!({
+            "op":"api_view_begin","generation":generation,"query":query,"heartbeat":false,"rooms":rooms
+        })
+    };
+    let generation = &a["generation"];
+    let queued = send(&mut c, read(json!({}), generation, json!([r]))).unwrap()["value"].clone();
+    assert_eq!(queued["match"]["settings"], options);
+    for (host, peer) in [("a", "b"), ("b", "a")] {
+        send(
+            &mut c,
+            json!({"op":"connection","host":host,"player":peer,"score":100}),
+        )
+        .unwrap();
+    }
+    for who in ["a", "b"] {
+        send(
+            &mut c,
+            json!({"op":"acknowledge","id":id,"player":who,"optimize":false,"quality":null}),
+        )
+        .unwrap();
+    }
+    r["phase"] = json!("loading");
+    assert!(
+        send(&mut c, json!({"op":"api_ticket","player":"a"}))
+            .unwrap()
+            .is_null()
+    );
+    let finish = |c: &mut Coordinator, query: Value| {
+        let event = send(c, read(query, generation, json!([r]))).unwrap();
+        assert_eq!(event["action"], "room_start");
+        assert_eq!(event["room"], id);
+        send(
+            c,
+            json!({"op":"api_resume","frame":event["frame"],"generation":generation,
+            "result":0,"rooms":[r]}),
+        )
+        .unwrap()["value"]
+            .clone()
+    };
+    let bound = finish(&mut c, json!({"start":"1","start_room":"1"}));
+    assert_eq!(bound["start_room"], id);
+    assert_eq!(bound["start_countdown_ms"], 0);
+    assert_eq!(bound["state"], "awaiting_transport");
+    assert_eq!(bound["playlist_id"], queued["playlist_id"]);
+    assert_eq!(bound["match"], queued["match"]);
+    let scalar = finish(&mut c, json!({"start":"1"}));
+    assert_eq!(
+        scalar,
+        json!({"state":"idle","playlist_id":"","queued_players":0,
+        "match":null,"start_countdown_ms":0})
+    );
+}
+
 #[test]
 fn database_bank_frames_are_monotonic_and_cannot_admit_other_sql_work() {
     assert!(

@@ -46,6 +46,7 @@ enum Stage {
 #[derive(Clone)]
 struct Setup {
     playlist: String,
+    game: Value,
     life: lifecycle::Life,
     wire: wire::Wire,
     packets: packets::Packets,
@@ -326,6 +327,21 @@ pub(super) struct Registry {
     rows: HashMap<String, Setup>,
 }
 impl Registry {
+    pub(super) fn queue_match(&self, id: &str, who: &str) -> Result<(&str, &Value, Vec<Value>)> {
+        let room = self
+            .rows
+            .get(id)
+            .filter(|room| !room.life.closed)
+            .ok_or(Error(409, "Native room setup retired"))?;
+        room.actor(who)?;
+        let roster = room
+            .players
+            .iter()
+            .map(|p| json!({"name":p.name,"team":p.team,"self":p.id==who}))
+            .collect();
+        Ok((&room.playlist, &room.game, roster))
+    }
+
     pub(super) fn service_rows(
         &mut self,
         now: f64,
@@ -456,6 +472,7 @@ impl Registry {
             .contains(&compatibility);
         let state = Setup {
             playlist: s(proposal, "playlist").to_owned(),
+            game: proposal["game"].clone(),
             wire: wire::Wire::new(&owners, compatibility)?,
             packets: packets::Packets::new(&owners)?,
             life: lifecycle::Life::new(

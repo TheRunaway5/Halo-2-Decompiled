@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -64,23 +65,33 @@ def log_tail(path):
 
 def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch,
             map_name='coagulation', maps=MAPS, size=SIZE, timeout_seconds=600,
-            extra_arguments=(), script_text=None):
+            extra_arguments=(), script_text=None, display=None, auxiliary_seed=1,
+            keep_lines=None, lines_path=None, render_fraction='0', motion=False):
     runtime = Path(runtime).resolve()
     scratch = Path(scratch).resolve()
     maps = Path(maps).resolve()
     script = scratch / f'{name}.tsv'
-    script.write_text(script_text if script_text is not None else '# tick player fire reload\n' + ''.join(
-        f'{t} {p} {int(first <= t < last and last > 0)} 0\n' for t in range(tick) for p in range(players)))
+    def row(t, p):
+        fire = int(first <= t < last and last > 0)
+        if not motion:
+            return f'{t} {p} {fire} 0\n'
+        # Moving, turning, jumping players and periodic grenades, so presented
+        # roots differ from the simulation endpoint (vehicles, bodies, projectiles).
+        grenade = int(t % 45 == 20)
+        jump = ' jump' if t % 60 == 30 else ''
+        return f'{t} {p} {fire} 0 {grenade} {0.015 * t + 1.5 * p:.4f} 0 move 0.0 1.0{jump}\n'
+    script.write_text(script_text if script_text is not None else '# tick player fire reload [grenade yaw pitch move x y jump]\n' + ''.join(
+        row(t, p) for t in range(tick) for p in range(players)))
     image = scratch / f'{name}.ppm'
     # A repeated helper invocation may reuse a case name inside one owner.
     image.unlink(missing_ok=True)
-    command = ['xvfb-run', '--auto-servernum', '--server-args', f'-screen 0 {size[0]}x{size[1]}x24',
-               str(runtime), '--multiplayer', '--graphics-mode', 'Original',
+    display_command = [] if display else ['xvfb-run', '--auto-servernum', '--server-args', f'-screen 0 {size[0]}x{size[1]}x24']
+    command = [*display_command, str(runtime), '--multiplayer', '--graphics-mode', 'Original',
                '--map', str(maps / f'{map_name}.map'), '--shared-maps', str(maps),
                '--local-players', str(players), '--viewport', *map(str, size), '--render-size', *map(str, size),
                '--mp-input-script', str(script), '--mp-capture-tick', str(tick),
-               '--mp-reference-tick-cadence', '--mp-reference-render-fraction', '0',
-               '--mp-reference-auxiliary-seed', '1', '--screenshot', str(image), '--mute']
+               '--mp-reference-tick-cadence', '--mp-reference-render-fraction', str(render_fraction),
+               '--mp-reference-auxiliary-seed', str(auxiliary_seed), '--screenshot', str(image), '--mute']
     command.extend(extra_arguments)
     log = scratch / f'{name}.log'
     timeout_status = scratch / f'{name}.timeout'
@@ -113,6 +124,7 @@ def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch
                          '__GL_SHADER_DISK_CACHE_PATH': str(scratch / 'nvidia-cache'),
                          'XDG_DATA_HOME': str(scratch / 'xdg-data'),
                          'XDG_CONFIG_HOME': str(scratch / 'xdg-config'),
+                         **({'DISPLAY': display} if display else {}),
                          **(role_env or {})}).returncode
             except subprocess.TimeoutExpired:
                 result['error'] = f'capture timed out after {timeout_seconds} seconds'
@@ -145,6 +157,15 @@ def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch
             result.setdefault('error', 'capture image was not produced')
         if not result['valid']:
             result['log_tail'] = log_tail(log)
+        if keep_lines and lines_path is not None and log.exists():
+            # Retained oracle lines (small): their digest joins the comparison.
+            matcher = re.compile(keep_lines)
+            lines = [line for line in log.read_bytes().decode(errors='replace').splitlines(keepends=True)
+                     if matcher.search(line)]
+            Path(lines_path).write_text(''.join(lines))
+            result['lines_count'] = len(lines)
+            result['lines_sha256'] = hashlib.sha256(''.join(lines).encode()).hexdigest()
+            result['lines_path'] = str(lines_path)
         return result
     finally:
         result['seconds'] = round(time.monotonic() - started, 1)
@@ -188,8 +209,14 @@ def compare_runs(entry):
         entry['reference_deterministic'] = hashes['reference'] is not None and hashes['reference'] == hashes['reference-repeat']
     if 'candidate-repeat' in hashes:
         entry['candidate_deterministic'] = hashes['candidate'] is not None and hashes['candidate'] == hashes['candidate-repeat']
+    lines = {r['role']: r.get('lines_sha256') for r in entry['runs'] if 'lines_sha256' in r}
+    if 'reference' in lines and 'candidate' in lines:
+        entry['lines_identical'] = lines['reference'] == lines['candidate']
+        if 'reference-repeat' in lines:
+            entry['lines_deterministic'] = lines['reference'] == lines['reference-repeat']
     entry['passed'] = (entry['captures_valid'] and entry['identical'] and
-                       entry.get('reference_deterministic', True) and entry.get('candidate_deterministic', True))
+                       entry.get('reference_deterministic', True) and entry.get('candidate_deterministic', True) and
+                       entry.get('lines_identical', True) and entry.get('lines_deterministic', True))
 
 
 def main(argv=None):
@@ -200,6 +227,13 @@ def main(argv=None):
     parser.add_argument('cases', nargs='*')
     parser.add_argument('--maps', type=Path, default=Path(os.environ.get('H2_MAPS') or MAPS),
                         help='MCC map directory (default: H2_MAPS or the legacy imported cache)')
+    parser.add_argument('--keep-lines', default=os.environ.get('H2_PARITY_KEEP_LINES'),
+                        help='regex: matching log lines of every run are kept beside the report '
+                             '(<report>.<case>.<role>.lines.txt) and their digests must agree too')
+    parser.add_argument('--render-fraction', default='0',
+                        help='fixed diagnostic interpolation fraction 0..1 (default 0 = simulation endpoint)')
+    parser.add_argument('--motion', action='store_true',
+                        help='scripted players move, turn, jump and throw grenades')
     args = parser.parse_intermixed_args(argv)
     if 'HALO2_TEST_SCRATCH' not in os.environ:
         parser.error('run through tools/run_test.py to own capture storage')
@@ -218,6 +252,7 @@ def main(argv=None):
     report_path = args.report.resolve()
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report = {'reference': str(reference), 'reference_env': reference_env, 'candidate': str(candidate),
+              'keep_lines': args.keep_lines, 'render_fraction': args.render_fraction, 'motion': args.motion,
               'candidate_env': candidate_env, 'map': map_name, 'native_size': list(SIZE),
               'maps': str(maps), 'map_path': str(map_path), 'map_sha256': file_sha256(map_path),
               'reference_sha256': file_sha256(reference), 'candidate_sha256': file_sha256(candidate),
@@ -233,7 +268,9 @@ def main(argv=None):
         entry = {'case': case, 'runs': []}
         for role, runtime, role_env in runs:
             result = capture(runtime, f'c{index}-{role}', *values, role_env,
-                             scratch=os.environ['HALO2_TEST_SCRATCH'], map_name=map_name, maps=maps)
+                             scratch=os.environ['HALO2_TEST_SCRATCH'], map_name=map_name, maps=maps,
+                             keep_lines=args.keep_lines, render_fraction=args.render_fraction, motion=args.motion,
+                             lines_path=report_path.with_name(f'{report_path.stem}.c{index}-{role}.lines.txt'))
             result['role'] = role
             entry['runs'].append(result)
             print(case, role, result.get('sha256', 'FAILED'), result.get('bytes'), result.get('header'), result['seconds'], 's', flush=True)

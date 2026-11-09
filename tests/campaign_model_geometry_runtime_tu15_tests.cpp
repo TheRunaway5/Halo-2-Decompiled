@@ -267,7 +267,7 @@ int cairo_scenery_lighting(const Cache &cache,const std::filesystem::path &xbe) 
                 };
                 reject([](auto &d,auto &){d.override_slot=0;});
                 reject([](auto &d,auto &){d.unit.words[0]&=~1u;});
-                reject([](auto &d,auto &){d.lighting_class=3;d.unit.words[0]=(d.unit.words[0]&0x1fffffffu)|(3u<<29);});
+                reject([](auto &d,auto &){d.lighting_class=3;}); // Packed source class still says 1.
                 reject([](auto &d,auto &){d.object^=0x10000u;});
                 reject([](auto &,auto &l){l.structure_matches=false;});
                 reject([](auto &,auto &l){l.scenery.at(146).checksum^=1;});

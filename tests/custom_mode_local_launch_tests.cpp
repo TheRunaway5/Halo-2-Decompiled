@@ -1,12 +1,16 @@
 #include "halo2/frontend.hpp"
 #include "halo2/multiplayer_world.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/native_vista_flow.hpp"
+#include "halo2/source_object_emblem.hpp"
+#include "halo2/source_execution_inputs.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <chrono>
+#include <bit>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -71,6 +75,12 @@ MultiplayerOptions requested(const FrontendLaunch &launch,const std::filesystem:
   return options;
 }
 void local_views(MultiplayerPreparedWorld &world) {
+  if(world.source_objects && world.source_objects->owns_physics()) {
+    for(unsigned view=0;view<world.local_slots.size();++view)
+      need(world.match.first_person_view(view).unit==world.match.player(world.local_slots[view]).source_current_object,
+           "Custom native local view lost its actual source unit");
+    return;
+  }
   std::vector<FirstPersonBindingDefinition> definitions;
   for(const auto &[datum,weapon]:world.content.weapons)if(!weapon.first_person_models.empty())
     for(unsigned representation:source_session_player_representations(world.content,2))
@@ -94,16 +104,24 @@ Json exercise(const FrontendContent &content,unsigned custom,unsigned players,bo
   auto options=requested(launch,maps);
   const auto expected=source_game_variant(variant);
   select_multiplayer_mode_authority(options);
-  need(!options.source_object_world && source_game_variant(options.variant).bytes==expected.bytes &&
+  need(options.source_object_world && source_game_variant(options.variant).bytes==expected.bytes &&
        options.variant.values==variant.values,"Mode routing changed the defining custom rules");
   MultiplayerPreparedWorld world(options);
-  need(!world.source_objects && !world.source_savegames && !world.match.source_engine_owned() &&
+  need(world.source_objects && world.source_objects->owns_physics() && world.source_savegames && !world.match.source_engine_owned() &&
        !world.rules.requires_source_engine && world.rules.custom==custom_kind && bool(world.rules.defusal)==defusal,
-       "MCC custom launch did not retain its intended native custom authority");
+       "MCC custom launch lost its native physical World or independent custom rules");
   need(world.matches(options) && world.local_slots.size()==players && world.match.session_configuration() &&
        world.match.session_configuration()->values==variant.values &&
        source_game_variant(*world.match.session_configuration()).bytes==expected.bytes,
        "Custom prepared world lost its exact mode marker, settings or roster");
+  // Runtime visual preparation repeats the same physical role selection.
+  // It must preserve genuine native inputs even when a custom round supplied
+  // a new body after the most recent completed first-person phase.
+  const auto retained_locals=world.local_slots;
+  {
+    SourceExecutionObserverScope read_only(world.source_objects->memory());
+    world.bind_source_local_views(retained_locals);
+  }
   local_views(world);
   std::array<Controls,multiplayer_capacity> controls{};
   for(unsigned tick=0;tick<(defusal?161u:3u);++tick)world.match.step(controls);
@@ -129,6 +147,7 @@ Json exercise(const FrontendContent &content,unsigned custom,unsigned players,bo
       "Defusal changed its defining timings or failed to start both committed sides");
   Json result={{"name",variant.name},{"local_players",players},{"lan",lan},{"exact_settings",true},
       {"native_custom_authority",true},{"local_presentation_views",players},{"ticks",state.tick}};
+  result["same_native_roles_preserved_without_source_writes"]=true;
   if(lan) {
     const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(options.map,maps,0,
         world.network_starting_weapon_identity()),variant);
@@ -152,10 +171,15 @@ Json exercise(const FrontendContent &content,unsigned custom,unsigned players,bo
       need(std::chrono::steady_clock::now()<deadline,"Custom LAN peer admission timed out");
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    if(defusal)for(unsigned tick=0;tick<120;++tick) {
+      world.match.step(controls);client.send(input);host.receive(controls);host.broadcast();client.receive();
+      need(world.match.player(client.slots()[0]).source_current_object==null_datum,
+          "Native one-life Defusal admitted a late joiner before its custom round");
+    }
     const auto &received=client.state();
     need(unsigned(std::ranges::count_if(received.players,[](const auto &p){return p.connected;}))==players+1 &&
-         received.defusal.has_value()==defusal && !received.source_body_poses_authoritative,
-         "Custom LAN snapshot lost its roster or switched to the stock source-world contract");
+         received.defusal.has_value()==defusal && received.source_body_poses_authoritative,
+         "Custom LAN snapshot lost its roster or actual native body contract");
     auto replica_options=options;replica_options.host_port=0;replica_options.join=host.join_address();
     replica_options.local_players=1;replica_options.selected_profiles.assign(profiles.begin(),profiles.end());
     replica_options.selected_teams.assign(teams.begin(),teams.end());replica_options.input_instances={-1};
@@ -164,9 +188,39 @@ Json exercise(const FrontendContent &content,unsigned custom,unsigned players,bo
     MultiplayerPreparedWorld replica(replica_options);
     need(!replica.source_objects && replica.local_slots.empty() && replica.rules.custom==custom_kind &&
          bool(replica.rules.defusal)==defusal,"MCC custom peer prepared another authority or invented local units");
+    const auto origins=client.received_origins();
+    need(!origins.empty() && origins.back().tick()==received.tick && origins.back().encoded_body_bytes()>0 &&
+        received.source_scene_roots_authoritative,
+        "Custom LAN snapshot lost its actual decoded origin or source scene contract");
+    // Use the ordinary accepted-snapshot presentation consumers. A replica
+    // adopts completed source handles/poses; it never creates another World.
+    replica.match.replicate_devices(received.devices);
+    replica.match.replicate_source_scene(received.source_scene_roots,received.source_body_poses);
+    replica.match.replicate_prop_removals(received.prop_removals);
+    replica.match.replicate_prop_regions(received.prop_regions);
+    const auto &scene=replica.match.simulation().scene();
+    need(scene.source_replica() && scene.objects().size()==received.source_scene_roots.size(),
+        "Custom LAN replica did not consume the actual source root bank");
+    for(const auto &root:received.source_scene_roots) {
+      const auto &object=scene.get(root.object);
+      need(object.placement==root.placement && object.solved_transform &&
+          std::bit_cast<std::array<std::uint32_t,3>>(object.position)==
+              std::bit_cast<std::array<std::uint32_t,3>>(root.transform.position),
+          "Custom LAN replica changed a full source generation/placement/pose");
+    }
+    bool refused_step=false;
+    try {replica.match.step({});} catch(const FormatError &error) {
+      refused_step=std::string_view(error.what())=="Source replica cannot advance a locally invented physical world";
+    }
+    need(refused_step,"Custom source replica advanced a second physical authority");
     result["authenticated_lan_roundtrip"]=true;result["peer_slot"]=client.slots()[0];
     result["authenticated_map"]=description.map;
     result["custom_client_prepared"]=true;
+    result["defusal_native_late_join_waited_for_round"]=defusal;
+    result["accepted_snapshot_origin_bytes"]=origins.back().encoded_body_bytes();
+    result["applied_source_roots"]=received.source_scene_roots.size();
+    result["applied_authoritative_source_snapshot"]=true;
+    result["snapshot_scope"]="Authenticated ordinary LAN packet decode and replica presentation application; continuity/native-checkpoint qualification is separate";
   }
   return result;
 }
@@ -176,10 +230,16 @@ Json runtime_smoke(const FrontendContent &content,unsigned custom,const std::fil
   const auto expected=source_game_variant(launch.variant);
   const bool defusal=bomb_defusal_variant(launch.variant);
   unsigned loaded{},updates{},submitted{};std::array<unsigned,2> view_calls{};
+  std::uint32_t loaded_tick{};
   std::array<UiRect,2> rectangles{};
   Json defusal_startup=Json::array();
+  Json armor_rgb=Json::array();std::array<unsigned,multiplayer_capacity> armor_calls{};
+  std::array<std::optional<SourcePlayerConfiguration>,multiplayer_capacity> armor_profiles;
+  std::array<std::int16_t,multiplayer_capacity> armor_memberships{};
+  bool armor_team_mode{};
+  const auto color_assets=Cache(options.map,maps).load_full_scoreboard_assets();
   const auto verify=[&](const MultiplayerMatch &match) {
-    need(!match.source_engine_owned() && match.session_configuration() &&
+    need(!match.source_engine_owned() && match.source_object_world_bound() && match.session_configuration() &&
          match.session_configuration()->values==launch.variant.values &&
          source_game_variant(*match.session_configuration()).bytes==expected.bytes &&
          custom_slayer(*match.session_configuration())==custom_slayer(launch.variant) &&
@@ -187,17 +247,16 @@ Json runtime_smoke(const FrontendContent &content,unsigned custom,const std::fil
          "Actual runtime changed the selected custom authority or defining settings");
     const auto state=match.state();
     need(unsigned(std::ranges::count_if(state.players,[](const auto &p){return p.connected;}))==2 &&
-         state.defusal.has_value()==defusal && !state.source_body_poses_authoritative,
+         state.defusal.has_value()==defusal && state.source_body_poses_authoritative,
          "Actual runtime changed the two selected local participants or custom snapshot contract");
   };
   options.session_world_loaded=[&](const MultiplayerMatch &match,std::span<const unsigned> slots) {
     need(slots.size()==2,"Actual runtime did not insert both menu-selected local participants");
-    verify(match);++loaded;
+    verify(match);loaded_tick=match.state().tick;++loaded;
   };
   options.session_world_update=[&](const MultiplayerMatch &match) {verify(match);++updates;return false;};
-  options.source_world_observer=[](const SourceRuntimeMemory &) {
-    throw FormatError("Actual custom runtime constructed a stock source object world");
-  };
+  unsigned source_worlds{};
+  options.source_world_observer=[&](const SourceRuntimeMemory &) {++source_worlds;};
   if(render) {
     options.frames=2;options.width=640;options.height=480;options.hidden=true;
     if(defusal) {
@@ -214,8 +273,13 @@ Json runtime_smoke(const FrontendContent &content,unsigned custom,const std::fil
       rectangles[view]=rect;++view_calls[view];
     };
     options.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &) {
-      need(view<2 && state.defusal.has_value()==defusal && !state.source_body_poses_authoritative,
+      need(view<2 && state.defusal.has_value()==defusal && state.source_body_poses_authoritative,
            "Rendered custom view received another mode's presentation contract");
+      armor_team_mode=state.team_mode;
+      for(unsigned slot=0;slot<state.players.size();++slot) {
+        armor_profiles[slot]=state.players[slot].source_configuration;
+        armor_memberships[slot]=state.players[slot].source_membership;
+      }
       if(defusal) {
         const auto &bomb=*state.defusal;
         const Json diagnostic={{"view",view},{"tick",state.tick},{"has_rules",bool(state.defusal_rules)},
@@ -235,12 +299,28 @@ Json runtime_smoke(const FrontendContent &content,unsigned custom,const std::fil
             "Rendered Defusal view has invalid startup state: "+diagnostic.dump());
       }
     };
+    options.player_armor_observer=[&](unsigned slot,const Material &material) {
+      need(slot<armor_profiles.size() && armor_profiles[slot] && material.object_render_colors,
+          "Actual armor material lost its accepted profile or source draw-color bank");
+      const auto expected=source_object_render_colors(source_multiplayer_player_colors(*armor_profiles[slot],
+          armor_team_mode,armor_memberships[slot],color_assets.palette,color_assets.team_palette));
+      for(unsigned channel=0;channel<expected.size();++channel)
+        need(std::bit_cast<std::array<std::uint32_t,3>>((*material.object_render_colors)[channel])==
+            std::bit_cast<std::array<std::uint32_t,3>>(expected[channel]),
+            "Actual submitted armor bank differs from the original selected personal/team color inputs");
+      if(!armor_calls[slot]++) {
+        const auto rgb=(*material.object_render_colors)[0];
+        armor_rgb.push_back({{"slot",slot},{"profile_primary",(*armor_profiles[slot])[0x40]},
+            {"source_membership",armor_memberships[slot]},{"advertised_team_mode",armor_team_mode},
+            {"draw_primary_rgb",{rgb.x,rgb.y,rgb.z}}});
+      }
+    };
   } else options.ticks=3;
   // Deliberately retain the MCC application's stock source-world request.
   // The public runtime must resolve the selected custom mode itself.
   MultiplayerRuntimeOutcome outcome;
   need(run_multiplayer(options,outcome)==0,"Actual custom multiplayer runtime returned an error");
-  need(options.source_object_world && loaded==1 && outcome.authority==MultiplayerOutcomeAuthority::local &&
+  need(options.source_object_world && source_worlds==1 && loaded==1 && outcome.authority==MultiplayerOutcomeAuthority::local &&
        outcome.reason==(render?MultiplayerExitReason::frame_limit:MultiplayerExitReason::headless_limit) &&
        outcome.state && unsigned(std::ranges::count_if(outcome.state->players,
            [](const auto &p){return p.connected;}))==2 && outcome.state->defusal.has_value()==defusal,
@@ -248,11 +328,18 @@ Json runtime_smoke(const FrontendContent &content,unsigned custom,const std::fil
   if(render)need(submitted==2 && view_calls[0]==2 && view_calls[1]==2 &&
       (rectangles[0].top!=rectangles[1].top || rectangles[0].left!=rectangles[1].left),
       "Custom runtime did not submit both split-screen views for both frames");
-  else need(updates==3 && outcome.state->tick==3,"Custom headless runtime did not advance its three actual ticks");
+  if(render && custom_slayer(launch.variant)==CustomSlayer::infection)
+    need(armor_calls[0]>0 && armor_calls[1]>0 && !armor_team_mode,
+        "Rendered Infection did not observe both personal-color material owners");
+  if(!render)need(updates==3 && outcome.state->tick==loaded_tick+3u,
+      "Custom headless runtime did not advance three actual ticks after native setup");
   return { {"name",launch.variant.name},{"local_players",2},{"source_world_requested",true},
       {"native_custom_authority",true},{"exact_settings",true},{"mode",render?"render":"headless"},
       {"ticks",outcome.state->tick},{"runtime_updates",updates},{"submitted_frames",submitted},
+      {"native_setup_tick",loaded_tick},{"runtime_ticks_after_setup",outcome.state->tick-loaded_tick},
       {"view_submissions",view_calls},{"defusal_startup",defusal_startup},
+      {"armor_material_observations",armor_calls},{"armor_draw_colors",armor_rgb},
+      {"color_scope","Actual original draw-color material banks in submitted rendered views; framebuffer/pixel parity is separate"},
       {"stock_objective_presentation",false},{"capture_files",0} };
 }
 }

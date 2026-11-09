@@ -1,0 +1,38 @@
+{
+  "schema": "H2_TU15_POSTGAME_LEAVE_ACTION_V1",
+  "passed": true,
+  "observed_utc": "2026-11-03T02:38:27.705506+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "handler": "0x23a177",
+  "confirm": "0x23a16b",
+  "close_both_entry": "0x19462d",
+  "primary_close": "0x5a000",
+  "secondary_close": "0x5a040",
+  "dialog_arguments_verified": true,
+  "confirm_passes_zero": true,
+  "original_session_predicate": "0x59f90",
+  "handler_controls": 2520,
+  "confirm_controls": 48,
+  "handler_outcomes": {
+    "unhandled": 1800,
+    "leave_dialog": 216,
+    "host_continue": 24,
+    "review_close": 480
+  },
+  "confirm_outcomes": {
+    "both_inactive_return": 3,
+    "first_active_secondary": 9,
+    "first_active_primary": 36
+  },
+  "original_addresses": 74,
+  "code_sha256": "e7d1b85832768161e484199bef125c89a73f9c6fba4e4a450628ee9d1af11a72",
+  "controls_sha256": "2f017535026c64a06bd55de1dfef07ebdb9f7344cb23f7e4468c33498d31e659",
+  "tool_sha256": "8b4a7d50d72294bb29798852082c631c683db926d7b673efcd01601a82e780d1",
+  "all_executed_bytes_verified": true,
+  "original_writes_stack_only": true,
+  "synthetic_session_inputs": true,
+  "active_network_owner_body_executed": false,
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-leave-oracle-20261102/halo2-test-9n_l0an5"
+}

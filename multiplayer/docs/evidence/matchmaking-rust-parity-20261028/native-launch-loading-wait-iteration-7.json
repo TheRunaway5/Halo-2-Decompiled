@@ -1,0 +1,60 @@
+{
+  "schema": "H2_MATCHMAKING_NATIVE_ROOM_LOADING_WAIT_DIAGNOSTICS_V1",
+  "scope": "Native Linux Debug, real shared loading and direct peer gameplay in both tests. The remaining test failures are gameplay progress at the replica cutoff and host voice unmute recovery.",
+  "passed": false,
+  "source_pin_sha256": "6d71a2f0e9b6c7f0f71aa91a0e85621fb131b4e07e8b1e160ed1e7734933b38d",
+  "refreshed": [
+    {
+      "path": "tests/online_match_launch_tests.cpp",
+      "before": "fdbec7a91283af59c2c167440514d2f564ba5945697e09f59b16117cdbf4043d",
+      "after": "bfe1d5845a615fecc128c445e6f5793dc08ea90208bffcb64e83280d2a6570bb"
+    }
+  ],
+  "binaries": {
+    "online_match_launch_tests": {
+      "sha256": "b261514ca2a12ef48d5bc83b758e0b005f723fb04b5f6e50e9a342bd70ef82a1",
+      "bytes": 1397826304
+    }
+  },
+  "ctest_output_sha256": "1256b602c6285a240d2c294400e9ea7a10d7570e2e5a205fb79c49c5fd36d012",
+  "ctest_output_bytes": 31312,
+  "ctest_results": [
+    "1/2 Test #817: online_match_launch ..............***Failed  151.77 sec",
+    "2/2 Test #837: online_match_party_launch ........***Failed  224.43 sec"
+  ],
+  "cases": {
+    "two_player": {
+      "preparation_and_shared_start": [
+        "ONLINE fixture one prepared source authority in 125315 ms",
+        "ONLINE fixture one observed shared start after 0 ms",
+        "ONLINE fixture two prepared replica in 40449 ms",
+        "ONLINE fixture two observed shared start after 84834 ms"
+      ],
+      "gameplay_and_voice": [
+        "Observed native host roster=2 tick=210 moved=1 minimum_loaded=0 audible=185 before_unmute=185 captures=448",
+        "Observed native client roster=2 tick=112 moved=1 minimum_loaded=0 audible=230 before_unmute=101 captures=268"
+      ]
+    },
+    "four_player_party": {
+      "preparation_and_shared_start": [
+        "ONLINE fixture one prepared replica in 22879 ms",
+        "ONLINE fixture one observed shared start after 63043 ms",
+        "ONLINE fixture two prepared replica in 22818 ms",
+        "ONLINE fixture two observed shared start after 63073 ms",
+        "ONLINE fixture three prepared replica in 23115 ms",
+        "ONLINE fixture three observed shared start after 63066 ms",
+        "ONLINE fixture four prepared source authority in 86112 ms",
+        "ONLINE fixture four observed shared start after 0 ms"
+      ],
+      "gameplay_and_voice": [
+        "Observed native client roster=4 tick=22 moved=1 minimum_loaded=0 audible=79 before_unmute=25 captures=261",
+        "Observed native client roster=4 tick=22 moved=1 minimum_loaded=0 audible=79 before_unmute=25 captures=262",
+        "Observed native client roster=4 tick=22 moved=1 minimum_loaded=0 audible=77 before_unmute=25 captures=261",
+        "Observed native host roster=4 tick=210 moved=1 minimum_loaded=0 audible=95 before_unmute=95 captures=1129"
+      ]
+    }
+  },
+  "client_wait_seconds": 185,
+  "ordinary_native_client_uses_same_wait": true,
+  "retained_generated_large_artifacts": []
+}

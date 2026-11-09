@@ -1,0 +1,247 @@
+{
+  "schema": "H2_NATIVE_FULL_SETTINGS_HANDOFF_LINUX_V1",
+  "scope": "Frozen native CXX/Rust queue client and real isolated Rust service. Two v16 full-options attempts with declared missing EOS setup; no played-world or installed-client certification.",
+  "passed": true,
+  "source_count": 22777,
+  "source_sha256": "246d62c33857a67d516c26acf2fca91211aa0c60e22d94849cfdaa29dd4bcb59",
+  "candidate_pins": {
+    "rust/online_protocol/src/matchmaking_catalog.rs": "18cc72d701d102037be6d009dfe5f97d7bcb03c5bb645e12cb10bf230003e3c2",
+    "rust/online_protocol/src/matchmaking_client.rs": "aae175faf1a94caea25bf2fc3a91c837654b84b6e8cd8205df5a08ddefa03de7",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "a2d68e2ae7ab81b60a75588d17c79e6bfc302b956eeb3e7f6a00acacce7a4678",
+    "rust/online_protocol/src/matchmaking_results.rs": "ddfb4a6020c39f74c03e606aa6bfcf53e681b98947d65a756f2ea26176088015",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "ed7b047c00880bef2e4e4bd90612326666ac6009568c58280887ab9904406079",
+    "rust/online_protocol/tests/matchmaking_catalog.rs": "3ef621d50c7e4645a8a6a9645cb259a5e710eed1df342fbc84cfdedb05809f29",
+    "rust/online_protocol/tests/matchmaking_client_controller.rs": "affc2dd3b807d8e37a9b4cb911ffcddb23372addb6df72064966bc9a363f2034",
+    "tests/online_match_launch_tests.cpp": "5ea2416d941088bd7f54bca21a0df9a7c2b05bea5f1b6814d41ed6cb4804b330"
+  },
+  "commands": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-full-settings-native-20261102/halo2-test-gmjcx__x/source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-full-settings-admission-20261102/native",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--config",
+    "Debug",
+    "--target",
+    "online_matchmaking_tests",
+    "--target",
+    "rust_service_native_handoff_probe",
+    "--filter",
+    "^(online_matchmaking_client|rust_native_handoff_failclosed_http)$",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Debug/build-report.json",
+    "--retain-report",
+    "test-artifacts/rust-native-handoff/report.json"
+  ],
+  "binaries": {
+    "online_matchmaking_tests": "32b52e2b1608be5008a4f391ae076ac675f44b54c679f252c86598eedc81bd3e",
+    "rust_service_native_handoff_probe": "eab307fa5243c6e89ac09e2da324cd0f220c27cea84d4f91f9e53d03b007aa47"
+  },
+  "service_binary": "84a45b04a65e4dbf7ebbf10dcdd1b5deee8092f822c9d15bd054bff7c5f45490",
+  "ctest_results": [
+    "1/2 Test #801: rust_native_handoff_failclosed_http ...   Passed   93.38 sec",
+    "2/2 Test #803: online_matchmaking_client .............   Passed    1.53 sec"
+  ],
+  "ctest_log_sha256": "426fc3cf55121002b2dcebcf95d7e511dcfe9bc8b9ee86992dc7fc2f4a8cf37f",
+  "handoff_fixture_report_sha256": "978c0f56fb54ac71ca77704ae9545d8b00235617de2c56660beee90c77a45ba0",
+  "native_handoff": {
+    "qualified": false,
+    "positive_handoff_qualified": false,
+    "negative_control_passed": true,
+    "attempts": [
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-081",
+            "map": "coagulation",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team King"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-081",
+            "map": "coagulation",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team King"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      },
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-039",
+            "map": "foundation",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Multi Flag CTF"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-039",
+            "map": "foundation",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Multi Flag CTF"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      }
+    ],
+    "configured_client": false,
+    "negative_control": "Missing EOS client configuration must refuse v16 without changing its transport.",
+    "native_clients_restarted_between_attempts": true,
+    "same_process_native_retry_verified": false,
+    "same_service_and_provider_grants": true,
+    "source_catalog_edited": false,
+    "source_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "installed_map_admission_verified": false,
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  },
+  "positive_played_handoff_qualified": false,
+  "scratch_dirs_empty": [
+    "matchmaking-full-settings-admission-20261102",
+    "matchmaking-full-settings-service-20261102",
+    "matchmaking-party-clock-20261102",
+    "matchmaking-native-handoff-identity-20261102",
+    "matchmaking-full-settings-native-20261102",
+    "matchmaking-native-handoff-report-20261102"
+  ],
+  "retained_generated_large_artifacts": []
+}

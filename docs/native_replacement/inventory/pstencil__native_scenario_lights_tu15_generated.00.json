@@ -1,0 +1,92 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PStencil.cmake",
+      "line": 3,
+      "target": "halo2_systems"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "a7f96e70bd521e44bc2f03176136c4eeb211109193d8b4c98b17a7e664c01cee",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "a7f96e70bd521e44bc2f03176136c4eeb211109193d8b4c98b17a7e664c01cee",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "0dd82c75403888350fea5864f95171a37d1f0ab8ecbad85e0c5edaf5ca050781",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_c2550",
+      "instruction_callback_sites": 198,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "c2550",
+        "tu15": "c2550"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [
+        "30bd0",
+        "c2cb0",
+        "c3a20",
+        "1447e0",
+        "16e6a0"
+      ],
+      "observed_entry": "c2550",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "c2550",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "c2550",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "bfe01272a287365c13f9b45e93ed093338289e53e77c8b646f4d57a04f143655",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "c2550"
+      ],
+      "function_name": "run_c29f0",
+      "instruction_callback_sites": 50,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "c29f0",
+        "tu15": "c29f0"
+      },
+      "line": 552,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "c29f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "c29f0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "c29f0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/pstencil/native_scenario_lights_tu15_generated.cpp",
+  "source_bytes": 47035,
+  "source_filename_scope": "generated",
+  "source_sha256": "028081640393dedddb4cd6f8e21bbf06e3ca225b6ce9dc39b491a623e731336b"
+}

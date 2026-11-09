@@ -1,0 +1,65 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1146,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "dba2f8970243bb693e2790528c499ba739fc7f2942bba1c5ba35d995ed9d4b3b",
+      "selected_resolver_sha256": "356263d223317ae7d46e55b74693aafe9882fa57b447ed20550a9f7c3bcfbb29"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "dba2f8970243bb693e2790528c499ba739fc7f2942bba1c5ba35d995ed9d4b3b",
+      "selected_resolver_sha256": "356263d223317ae7d46e55b74693aafe9882fa57b447ed20550a9f7c3bcfbb29"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "d04ffeba5c8bd9f237f0e948a5d8bc929025da4980095cfa1d90842c7dea67ae",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_219080",
+      "instruction_callback_sites": 18,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "219080",
+        "tu15": "219080"
+      },
+      "line": 314,
+      "literal_dispatch_required_targets": [
+        "166a80"
+      ],
+      "observed_entry": "219080",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "219080",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "219080",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/collision/source_collision_instance_storage_tu15_generated.cpp",
+  "source_bytes": 18538,
+  "source_filename_scope": "generated",
+  "source_sha256": "7f21b4eff4cd8f636dcddeb9d04647d87aaf5dd3f1b007adca63b4ab77e2558f"
+}

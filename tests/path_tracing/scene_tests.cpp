@@ -20,6 +20,39 @@ void triangle(std::vector<Vertex> &vertices,float x,float z,unsigned material=0)
         Vertex v;v.position=p;v.normal={0,0,1};v.color={1,1,1};v.uv={.25f,.25f};v.material=material;vertices.push_back(v);
     }
 }
+void large_source_material_bank() {
+    // Actual four-view Coagulation preload size from ECR-006. IDs remain the
+    // source renderer's uint32 slots; only geometry-referenced images reside.
+    constexpr std::uint32_t count=77668;
+    std::vector<Material> materials(count);
+    auto scene=pt::build_scene({},materials);
+    require(scene.materials.size()==count && scene.texture_texel_count==1 &&
+        std::all_of(scene.material_texel_capacities.begin(),scene.material_texel_capacities.end(),
+            [](auto capacity){return capacity==0;}),
+        "Large source namespace lost preloaded slots or decoded unused images");
+    const std::array<std::uint32_t,3> slots{65535,65536,count-1};
+    std::vector<Vertex> vertices;
+    for(unsigned n=0;n<slots.size();++n){
+        materials[slots[n]]=white();triangle(vertices,float(n)*3,0,slots[n]);
+    }
+    // An unreferenced malformed UI image must remain untouched, including
+    // during later refresh of a material above the old 16-bit boundary.
+    materials[3].diffuse={65536,65536,11,{}};
+    pt::refresh_materials_for_geometry(scene,materials,vertices);pt::update_geometry(scene,vertices);
+    require(scene.triangles.size()==3 && scene.material_texel_capacities[3]==0,
+        "Large source namespace admitted an unrelated image or lost geometry");
+    for(unsigned n=0;n<slots.size();++n){
+        pt::Hit hit;require(pt::intersect(scene,{float(n)*3+.2f,.2f,1},{0,0,-1},2,hit) &&
+            scene.triangles.at(hit.triangle).metadata[0]==slots[n],
+            "Large source material ID was truncated or remapped");
+    }
+    const auto last=slots.back(),offset=scene.materials[last].texture[0];
+    materials[last].diffuse.pixels={std::byte{17},std::byte{34},std::byte{51},std::byte{255}};
+    pt::refresh_materials_for_geometry(scene,materials,vertices);pt::update_geometry(scene,vertices);
+    require(scene.materials.size()==count && scene.materials[last].texture[0]==offset &&
+        scene.pixels.at(offset)==0xff332211u && scene.material_texel_capacities[3]==0,
+        "Late high-ID material refresh changed namespace/residency or retained stale image bytes");
+}
 std::vector<std::uint32_t> permutation(const pt::Scene& scene) {
     std::vector<std::uint32_t> result;
     for(const auto& t:scene.triangles)result.push_back(std::bit_cast<std::uint32_t>(t.p0[3]));
@@ -239,6 +272,7 @@ void refit_regressions() {
 }
 }
 int main()try {
+    large_source_material_bank();
     native_needle_self_shadow();
     std::vector<Material> materials{white()};std::vector<Vertex> vertices;
     for(unsigned n=0;n<24;++n)triangle(vertices,float(n)*2,0);

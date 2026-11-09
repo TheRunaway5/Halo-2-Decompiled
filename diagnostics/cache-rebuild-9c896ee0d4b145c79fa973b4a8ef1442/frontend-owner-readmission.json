@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "maximum_attempts": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "passed": true
+    }
+  ],
+  "runtime_sha256": "7a3ee8d20aadf15caac6ad797ad2f83042fe3f19d0a5e87018ab7359e70c9e98",
+  "frame_report_sha256": "155c5c91b2cdb3845eafb8bd96318719ae1f7270785e5ab6319f5aec3ef2c1fe",
+  "capability_sha256": "445ca0201e82a7d069eb3b98fe4912b60ce32d9206f4b9c573f859cdf4d79215",
+  "identity_fields": [
+    "device",
+    "inode",
+    "bytes",
+    "mtime_ns",
+    "ctime_ns"
+  ]
+}

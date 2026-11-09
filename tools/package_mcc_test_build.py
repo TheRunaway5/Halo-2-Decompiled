@@ -55,15 +55,13 @@ def qualified_frontend(runtime, cache):
     if cache.parent.name != "imported" or cache.parent.parent.name != "assets":
         raise ValueError("Qualified frontend cache must be under assets/imported")
     runtime = Path(runtime).resolve(strict=True)
-    _check(cache.parents[2], runtime, cache, frontend=True)
-    sidecar = runtime.with_name(runtime.name + ".frontend-test.json")
-    before = sha(sidecar)
-    report = json.loads(sidecar.read_text())
+    admitted = _check(cache.parents[2], runtime, cache, frontend=True)
+    report = admitted['report']
     if (report["shaders"].get("binding") != "compiled-default" or
-            report["runtime"].get("sha256") != sha(runtime) or sha(sidecar) != before):
+            report["runtime"].get("sha256") != sha(runtime)):
         raise ValueError("Portable frontend requires the qualified raw binary and its compiled shader owner")
     runtime_adjacent_data(runtime, report)
-    return dict(report=report, source_capability_sha256=before, cache=cache)
+    return dict(report=report, source_capability_sha256=admitted['capability_sha256'], cache=cache)
 
 
 RUNTIME_BANK_SCHEMA = "H2_RUNTIME_ADJACENT_SLAYER_BANK_V1"
@@ -362,6 +360,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
     packaged_presentation = (copy_presentation_sources(root, stage, presentation)
                              if decoder_source is None else {})
     packaged_presentation['controller_prompts'] = custom_assets['groups']['controller_prompts']
+    packaged_presentation.setdefault('bundled_movies', custom_assets['groups']['bundled_movies'])
     # Ship the interpreter, Tk and Pillow used by onboarding. No compiler,
     # development checkout, local cache or credentials. Loading media is
     # imported only from the user's MCC installation during setup.
@@ -452,8 +451,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
         "Setup reconstructs the V2 loading mask from MCC and uses the approved bundled original tone.\n"
         "The retained four-voice loading animation/audio policy is unchanged.\n"
         if decoder_source is None else
-        "Intro, credits and attract remain unavailable until authentic MCC movie roles are qualified.\n"
-        "No separate supplied intro/credits movie bank is included or required by setup.\n"
+        "Setup copies the bundled 4K60 intro and credits into the private cache without transcoding.\n"
         "Controller artwork files are included.\n"
         "Menus use imported MCC fonts.\n"
         "Setup imports the genuine MCC loading track into presentation/loading-v3 using the bundled decoder/codebook.\n"
@@ -480,7 +478,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
         "To update this precompiled package, extract a newer test ZIP. No compilation is needed.\n")
     files = sorted(p for p in stage.rglob("*") if p.is_file())
     (stage / "SHA256SUMS").write_text("".join(f"{sha(p)}  {p.relative_to(stage).as_posix()}\n" for p in files))
-    write_archive(stage, pending, presentation.get("bundled_movies"))
+    write_archive(stage, pending, packaged_presentation['bundled_movies'])
     return {"zip": str(output), "bytes": pending.stat().st_size, "sha256": sha(pending),
             "stage_retained": False,
             "zip64_enabled": True, "frontend_capability": frontend_owner,

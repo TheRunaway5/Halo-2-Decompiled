@@ -1,0 +1,78 @@
+{
+  "schema": "H2_RUST_NATIVE_HANDOFF_IDENTITY_DIFFERENTIAL_V1",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-native-handoff-identity-20261102/halo2-test-62t9mx8u",
+  "baseline_pins": {
+    "src/matchmaking_client.rs": "6cd9500bdaf6dea2cf0affdece530486180ada08dbbacf8bde5a71790f0c05ea",
+    "tests/matchmaking_client_controller.rs": "b49531418709d2cd6e2783f271da3acd5a965fb565f7380d9326a622a36af687"
+  },
+  "master_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+  "red": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_client_controller",
+        "countdown_for_changed_match_cannot_transfer_installed_connection",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "stdout_sha256": "34b9e6fe27d21255b8aecb8eb06eeee79f995d6e9af105fc0ac695f70816b44f",
+      "stderr_sha256": "beafadf4700e9e6992cd0320040bfecacecfd7122d3c3d70e17a94187545fcb7",
+      "details": [
+        "test countdown_for_changed_match_cannot_transfer_installed_connection ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s"
+      ],
+      "failure_tail": "\nrunning 1 test\ntest countdown_for_changed_match_cannot_transfer_installed_connection ... FAILED\n\nfailures:\n\n---- countdown_for_changed_match_cannot_transfer_installed_connection stdout ----\n\nthread 'countdown_for_changed_match_cannot_transfer_installed_connection' (2265828) panicked at tests/matchmaking_client_controller.rs:486:9:\nassertion `left == right` failed: 0\n  left: Loading\n right: Failed\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    countdown_for_changed_match_cannot_transfer_installed_connection\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s\n\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--test",
+        "matchmaking_client_controller",
+        "transport_refuses_a_changed_catalog_revision_or_team_mode",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "stdout_sha256": "c903ca628f6ee3bc56fba8839d8475cf7b100d3102854a5df3bc6d046ac82b64",
+      "stderr_sha256": "d014440a220f310bde0917cd7926e6aa220584d0d774c249a634ecfc18ae99d2",
+      "details": [
+        "test transport_refuses_a_changed_catalog_revision_or_team_mode ... FAILED",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s"
+      ],
+      "failure_tail": "\nrunning 1 test\ntest transport_refuses_a_changed_catalog_revision_or_team_mode ... FAILED\n\nfailures:\n\n---- transport_refuses_a_changed_catalog_revision_or_team_mode stdout ----\n\nthread 'transport_refuses_a_changed_catalog_revision_or_team_mode' (2265841) panicked at tests/matchmaking_client_controller.rs:638:5:\nassertion `left == right` failed\n  left: [(CheckingConnections, 1), (CheckingConnections, 1)]\n right: [(Failed, 0), (Failed, 0)]\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    transport_refuses_a_changed_catalog_revision_or_team_mode\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s\n\n"
+    }
+  ],
+  "retained_generated_large_artifacts": [],
+  "candidate_pins": {
+    "src/matchmaking_client.rs": "aae175faf1a94caea25bf2fc3a91c837654b84b6e8cd8205df5a08ddefa03de7",
+    "tests/matchmaking_client_controller.rs": "affc2dd3b807d8e37a9b4cb911ffcddb23372addb6df72064966bc9a363f2034"
+  },
+  "green": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--test",
+      "matchmaking_client_controller"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "4c70d4fd8d3f73bf707958a21b36f1ae503900274f98024ba1dd05b1b94dfe35",
+    "stderr_sha256": "a5c163c60c358600d78390f6ee4959a5d41f2a68e51b7266ec2128646319ef51",
+    "details": [
+      "test transport_refuses_a_changed_catalog_revision_or_team_mode ... ok",
+      "test countdown_for_changed_match_cannot_transfer_installed_connection ... ok",
+      "test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s"
+    ],
+    "failure_tail": null
+  },
+  "passed": true
+}

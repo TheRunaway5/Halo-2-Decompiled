@@ -61,6 +61,9 @@ class WorkerBuildTests(unittest.TestCase):
             (module/'src/matchmaking_frontend_account_flow.hpp').write_text('// native account flow IO fixture\n')
             (module/'src/matchmaking_frontend_friends.hpp').write_text('// native friends flow IO fixture\n')
             (module/'src/matchmaking_frontend_clans.hpp').write_text('// native clans flow IO fixture\n')
+            (module/'src/matchmaking_frontend_couch.hpp').write_text('// native couch flow IO fixture\n')
+            (module/'src/matchmaking_frontend_signin.hpp').write_text('// native signin flow IO fixture\n')
+            (module/'src/matchmaking_frontend_postgame.hpp').write_text('// native postgame flow IO fixture\n')
             (module/'src/matchmaking_frontend_lobby_view.hpp').write_text('// native lobby view IO fixture\n')
             output = root/'build'
             calls = []
@@ -152,6 +155,12 @@ class WorkerBuildTests(unittest.TestCase):
                              (module/'src/matchmaking_frontend_friends.hpp').read_bytes())
             self.assertEqual((output/'include/src/matchmaking_frontend_clans.hpp').read_bytes(),
                              (module/'src/matchmaking_frontend_clans.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_couch.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_couch.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_signin.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_signin.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_postgame.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_postgame.hpp').read_bytes())
             self.assertEqual((output/'include/src/matchmaking_frontend_lobby_view.hpp').read_bytes(),
                              (module/'src/matchmaking_frontend_lobby_view.hpp').read_bytes())
             worker = output/'eos_sdk_worker'

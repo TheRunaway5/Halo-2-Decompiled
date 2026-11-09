@@ -273,7 +273,7 @@ struct MultiplayerAudio::State {
     std::optional<CompanionCompletion> companion;VoiceReceipt voice;};
   struct Ambient {float gain{},linear_db{};MultiplayerAmbientTarget target;std::vector<std::uint64_t> voices;};
   struct ObjectLoopTrack {float control{};std::uint64_t voice{};};
-  struct ObjectLoopDetailVoice {std::uint64_t voice{};Vec3 offset;};
+  struct ObjectLoopDetailVoice {std::uint64_t voice{};Vec3 offset;bool attached=true;};
   struct ObjectLoop {
     LoopingSound definition;std::uint32_t owner=none;
     std::array<std::byte,68> location{};
@@ -948,15 +948,19 @@ bool MultiplayerAudio::queue_loop_packet_phase(const VoiceReceipt& receipt,std::
   if(voice.position)(void)state->bank(sound,0);
   if(permutation>=next.definition.permutations.size())
     throw FormatError("Native loop phase lost its selected authored permutation");
-  //222BA0 changes the source sound/range in place. This output port admits
-  //the exact-equivalent controls used by the actual Banshee boost phases.
-  //It does not infer a new driver rate, gain, curve or spatial predicate.
+  //222C17 uses the retained voice+90 pitch; a phase change does not draw
+  //the new sound's initial pitch bounds.222D37 publishes its new definition
+  //and the following222E10 frame applies that definition's gain control.
+  //Both are already retained by this controller/voice. Different source
+  //rates, classes, pitch-control shapes or routing still need a new owner.
   const auto& a=previous.definition;const auto& b=next.definition;
+  const auto same_playback=std::equal(a.playback.begin(),a.playback.begin()+0x18,b.playback.begin()) &&
+      std::equal(a.playback.begin()+0x1c,a.playback.end(),b.playback.begin()+0x1c);
+  const auto same_scale=std::equal(a.scale.begin()+8,a.scale.end(),b.scale.begin()+8);
   if(previous.rate_index!=next.rate_index || previous.sound_class!=next.sound_class ||
-      Bytes(a.sound).u16(0)!=Bytes(b.sound).u16(0) || a.playback!=b.playback ||
-      a.scale!=b.scale || a.sound_class!=b.sound_class ||
-      a.pitch_ranges.at(voice.pitch_range).interval!=b.pitch_ranges.at(pitch_range).interval ||
-      voice.permutation_gain_db!=std::bit_cast<std::int8_t>(b.permutations.at(permutation)[4]))
+      Bytes(a.sound).u16(0)!=Bytes(b.sound).u16(0) || !same_playback ||
+      !same_scale || a.sound_class!=b.sound_class ||
+      a.pitch_ranges.at(voice.pitch_range).interval!=b.pitch_ranges.at(pitch_range).interval)
     throw FormatError("Native loop phase requires its differing in-place driver-control owner");
   voice.sound=sound;voice.pitch_range=pitch_range;voice.forced_script_permutation=permutation;
   try{state->packet(voice,false);}catch(...){state->erase(receipt.id_);state->complete();throw;}
@@ -1037,19 +1041,8 @@ void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& inp
   if((args[6]&1u) && std::ranges::any_of(loop.definition.tracks,[](const auto& track){return track.flags&0x14u;}))
     throw FormatError("Object loop requires its authored alternate controller");
   if(!(std::to_integer<unsigned>(input.location[0])&2u)) {
-    // The same owner's loop can move between centered first-person output
-    // and a spatial world emitter (a held weapon leaving the first-person
-    // view during a grenade throw, a dropped or thrown object). A centered
-    // voice owns no emitter, so retire its voices; the next frame recreates
-    // them in the new mode from the loop's retained gain control.
-    if((std::to_integer<unsigned>(loop.location[3])&15u)!=type) {
-      for(auto& track:loop.tracks)if(auto voice=state->voices.find(track.voice);voice!=state->voices.end()){
-        state->erase(voice->first);track.voice=0;
-      }
-      for(const auto& detail:loop.detail_voices)if(auto voice=state->voices.find(detail.voice);voice!=state->voices.end())
-        state->erase(voice->first);
-      loop.detail_voices.clear();
-    }
+    //220D89 copies a new location into the same channel. Moving between
+    //centered and spatial output does not restart its streams or RNG bank.
     loop.location=input.location;
   }
   loop.seen=true;loop.retain=(args[6]&2u)!=0;
@@ -1118,7 +1111,9 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
     //spatial parent. They do not contribute to the group's track count.
     std::erase_if(loop.detail_voices,[&](const auto& detail){
       const auto voice=state->voices.find(detail.voice);if(voice==state->voices.end())return true;
-      if(position)emitter(state->receipt(voice->second),*position+detail.offset);
+      //223670 gives a callback only to details born from spatial parents.
+      //A centered detail keeps its independently selected listener point.
+      if(detail.attached)emitter(state->receipt(voice->second),position.value_or(Vec3{})+detail.offset);
       return false;
     });
     //223670 follows spatial parents, or selects a genuine local listener
@@ -1140,7 +1135,7 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
         if(!spatial)continue;
         const auto voice=state->play(detail.sound,spatial->gain_db,MultiplayerAudioKind::Ambient,
             loop.owner,0,false,none,0,1,{},spatial->control,spatial->position);
-        if(voice)loop.detail_voices.push_back({voice,spatial->offset});
+        if(voice)loop.detail_voices.push_back({voice,spatial->offset,position.has_value()});
         //222166 reschedules a spatial detail even if native PCM admission
         //failed. Never invent a successful source submission or voice.
         if(voice || position)loop.detail_deadlines[n]=source_loop_detail_deadline_tu15(detail.period,detail.flags,

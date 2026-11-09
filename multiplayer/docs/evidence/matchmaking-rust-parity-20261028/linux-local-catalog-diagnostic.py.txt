@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Check the canonical catalog with the local launcher-declared MCC map inventory."""
+from datetime import datetime, timezone
+from pathlib import Path
+import hashlib
+import json
+import mmap
+import os
+import shutil
+import subprocess
+
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+work = root / "build/test-results/frontend-postgame-flow-rust-20261102"
+source = root / "rust/online_protocol"
+frozen = scratch / "online_protocol"
+sha = lambda b: hashlib.sha256(b).hexdigest()
+def file_hash(p):
+    with p.open("rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+def inventory(p):
+    return {str(f.relative_to(p)): file_hash(f) for f in sorted(p.rglob("*"))
+            if f.is_file() and "target" not in f.relative_to(p).parts}
+
+selection_path = root / "frontend-runtime-selection.json"
+selection_bytes = selection_path.read_bytes()
+selection = json.loads(selection_bytes)
+assert selection["schema"] == "H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1"
+runtime = (root / selection["runtime"]).resolve(strict=True)
+assert runtime.is_relative_to(root / "bin/engine-builds") and not (root / selection["runtime"]).is_symlink()
+published_path = runtime.parent / "source-hashes.json"
+published_bytes = published_path.read_bytes()
+published = json.loads(published_bytes)
+with runtime.open("rb") as f, mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as contents:
+    assert sha(contents) == selection["runtime_sha256"]
+    strings = {value: contents.find(value.encode()) >= 0 for value in (
+        "Unavailable for this party or installed maps.",
+        "Unavailable for this ONLINE client, party, or installed maps.",
+        "halo2-native-queue-v16", "https://master.halo2forever.net")}
+capability = runtime.with_name(runtime.name + ".frontend-test.json")
+assert file_hash(capability) == selection["capability_sha256"]
+runtime_config = runtime.parent / "eos-client.env"
+config_bytes = runtime_config.read_bytes()
+assert len(config_bytes) <= 16384
+flags = {}
+for line in config_bytes.decode().splitlines():
+    line = line.strip()
+    if line.startswith("#") or not line:
+        continue
+    name, sep, value = line.partition("=")
+    if name in ("H2_EOS_ENABLED", "H2_EOS_PROFILES"):
+        assert sep and name not in flags and value in ("0", "1")
+        flags[name] = value == "1"
+assert set(flags) == {"H2_EOS_ENABLED", "H2_EOS_PROFILES"}
+overrides = [key for key in ("H2_EOS_CONFIG", "H2_EOS_ENABLED", "H2_EOS_PROFILES", "H2_ONLINE_TRANSPORT", "H2_MATCHMAKING_URL")
+             if key in os.environ]
+assert not overrides
+admitted = {}
+for name in ("src/network/online_matchmaking.cpp", "rust/online_protocol/src/matchmaking_client.rs",
+             "rust/online_protocol_bridge/src/matchmaking_client.rs",
+             "rust/online_protocol_bridge/src/eos_config.rs",
+             "rust/online_protocol/src/matchmaking_frontend_lobby.rs",
+             "rust/online_protocol/src/matchmaking_frontend_search.rs",
+             "rust/online_protocol/src/matchmaking_frontend_presentation.rs",
+             "rust/online_protocol/src/matchmaking_frontend_signin.rs",
+             "rust/online_protocol/src/matchmaking_frontend_postgame.rs"):
+    current = file_hash(root / name)
+    admitted[name] = dict(current_sha256=current, published_sha256=published.get(name),
+                          matches=published.get(name) == current)
+
+registry_path = root / "assets/mcc-source.tsv"
+registry = registry_path.read_bytes()
+lines = registry.decode().splitlines()
+assert len(lines) == 2 and lines[0] == "H2_MCC_ASSET_SOURCE_V1" and lines[1].startswith("cache\t")
+cache = (root / lines[1].split("\t", 1)[1]).resolve(strict=True)
+assert cache.parent == root / "assets/imported"
+map_dir = cache / "halo2/h2_maps_win64_dx11"
+maps = sorted(p.stem for p in map_dir.glob("*.map") if p.is_file())
+assert "lockout" in maps and len(maps) == len(set(maps))
+canonical = root / "multiplayer/master_server/examples/matchmaking-online.json"
+catalog_bytes = canonical.read_bytes()
+catalog = json.loads(catalog_bytes)["playlists"]
+missing = sorted({game["map"] for row in catalog for game in row["games"]} - set(maps))
+team_snipers = next(row for row in catalog if row["id"] == "team-snipers")
+snipers_maps = set(g["map"] for g in team_snipers["games"])
+pins = inventory(source)
+shutil.copytree(source, frozen, ignore=shutil.ignore_patterns("target"))
+assert inventory(frozen) == pins
+(frozen / "examples/installed_catalog_probe.rs").write_text(r'''
+use halo2_online_protocol::{matchmaking_catalog as catalog, matchmaking_client as client};
+use serde_json::{Value, json};
+use std::io::{self, Read};
+
+fn main() {
+    let mut raw = String::new();
+    io::stdin().read_to_string(&mut raw).unwrap();
+    let input: Value = serde_json::from_str(&raw).unwrap();
+    let entries = catalog::parse(input["catalog"].as_str().unwrap().as_bytes()).unwrap();
+    let runtime = client::runtime_compatibility(input["eos_transport"].as_bool().unwrap());
+    let test = |compatibility: &str, maps: Value, guest: bool| {
+        let connections = json!([{"id":"fixture-connection","compatibility":compatibility,
+            "maps":maps,"seats":[{"id":"fixture-player","guest":guest,"clan":null}]}]);
+        entries.iter().map(|entry| json!({
+            "id": entry["policy"]["id"],
+            "eligible": catalog::eligible(entry,compatibility,&connections).unwrap()
+        })).collect::<Vec<Value>>()
+    };
+    let v16 = "halo2-native-queue-v16";
+    println!("{}",json!({
+        "runtime_compatibility_from_transport_flag":runtime,
+        "local_transport_solo":test(runtime,input["maps"].clone(),false),
+        "v15_solo":test("halo2-native-queue-v15",input["maps"].clone(),false),
+        "v12_solo":test(client::runtime_compatibility(false),input["maps"].clone(),false),
+        "v16_solo_no_common_maps":test(v16,json!(["fixture_missing_map"]),false),
+        "v16_guest":test(v16,input["maps"].clone(),true)
+    }));
+}
+''')
+command = ["cargo", "run", "--locked", "--offline", "--example", "installed_catalog_probe"]
+env = dict(os.environ, RUSTUP_TOOLCHAIN="1.96.0", RUSTUP_AUTO_INSTALL="0",
+           CARGO_TARGET_DIR=str(scratch / "target"), CARGO_INCREMENTAL="0", CARGO_BUILD_JOBS="1")
+data = json.dumps(dict(catalog=catalog_bytes.decode(), maps=maps, eos_transport=flags["H2_EOS_ENABLED"]))
+run = subprocess.run(command, cwd=frozen, input=data, env=env, text=True, stdout=subprocess.PIPE)
+run.check_returncode()
+controls = json.loads(run.stdout)
+assert controls["runtime_compatibility_from_transport_flag"] == "halo2-native-queue-v16"
+assert len(controls["local_transport_solo"]) == 14
+disabled = [row["id"] for row in controls["local_transport_solo"] if not row["eligible"]]
+assert sorted(disabled) == ["major-clan-match", "minor-clan-match"]
+for name in ("v15_solo", "v12_solo", "v16_solo_no_common_maps"):
+    assert not any(row["eligible"] for row in controls[name]), name
+assert not next(row["eligible"] for row in controls["v16_guest"] if row["id"] == "team-snipers")
+assert inventory(source) == pins
+assert all(p.read_bytes() == initial for p, initial in ((registry_path, registry),
+    (canonical, catalog_bytes), (selection_path, selection_bytes), (published_path, published_bytes)))
+assert file_hash(runtime) == selection["runtime_sha256"]
+# Record only the two booleans from the adjacent EOS config.
+assert runtime_config.read_bytes() == config_bytes
+proof = dict(schema="H2_LOCAL_CANONICAL_CATALOG_DIAGNOSTIC_V1",
+             completed_utc=datetime.now(timezone.utc).isoformat(), passed=True,
+             scope="Local declaration plus synthetic solo/guest replay; no authenticated production catalog or user party facts.",
+             runtime=str(runtime), runtime_sha256=selection["runtime_sha256"], capability_sha256=selection["capability_sha256"],
+             selection_sha256=sha(selection_bytes), source_manifest_sha256=sha(published_bytes),
+             runtime_string_presence=strings, published_input_comparison=admitted,
+             eos_flag_defaults=flags, task_shell_overrides=overrides, cache=str(cache),
+             mcc_source_registry_sha256=sha(registry), advertised_map_stem_count=len(maps),
+             canonical_catalog=str(canonical.relative_to(root)), canonical_catalog_sha256=sha(catalog_bytes),
+             canonical_required_compatibilities=sorted({row["required_compatibility"] for row in catalog}),
+             canonical_maps_missing=missing, team_snipers_canonical_map_count=len(snipers_maps),
+             team_snipers_canonical_map_count_present=len(snipers_maps & set(maps)),
+             replay=controls, frozen_core_input_count=len(pins),
+             frozen_core_input_tree_sha256=sha(json.dumps(pins,sort_keys=True).encode()),
+             scratch=str(scratch), tool_sha256=file_hash(Path(__file__)),
+             toolchain="1.96.0", command=command, retained_generated_large_artifacts=[],
+             physical_user_input=False, production_authenticated_catalog=False)
+encoded = json.dumps(proof, indent=2) + "\n"
+assert len(encoded) < 16384
+(work / "installed-catalog-probe.json").write_text(encoded)
+print(json.dumps(dict(passed=True, solo_admitted=12, rejected_compatibility_controls=["v15","v12"],
+    team_snipers_maps_present=len(snipers_maps & set(maps)), receipt_sha256=sha(encoded.encode()))))

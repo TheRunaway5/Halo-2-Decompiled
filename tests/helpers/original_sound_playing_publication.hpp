@@ -27,16 +27,28 @@ inline nlohmann::json original_sound_playing_publication(const std::shared_ptr<c
         need(voice&&packets.size()==1&&packets.front().frames>1,"Admitted original Audio failed actual queued voice creation");
         const auto first=packets.front();const auto encoded=original->bank()->encoded(binding.sound,first.pitch_range,first.permutation);
         const auto retained=provider.encoded(*cache,binding.sound,first.pitch_range,first.permutation);
+        const auto decoded=decode_sound(encoded);
         need(retained.data==encoded.data&&retained.codec==encoded.codec&&retained.sample_rate==encoded.sample_rate&&
-            retained.channels==encoded.channels&&first.frames==decode_sound(encoded).frames(),"Original Audio source used different resource data");
+            retained.channels==encoded.channels&&first.frames==decoded.frames(),"Original Audio source used different resource data");
         (void)audio.render(std::min<std::size_t>(137,first.frames/2));audio.update();
         const auto position=audio.playback_position(*voice);const auto parameters=audio.voice_parameters(*voice);
         const auto rows=clock->rows();const auto checkpoint=audio.checkpoint();
         need(checkpoint.voices()==1&&position.output_frames&&position.source_frames>0,"Original Audio cut omitted playing PCM consumption");
+        // Some original cues have a long silent lead-in. Preserve it in the
+        // replay and render through the decoded onset at the actual voice rate.
+        const auto onset=std::ranges::find_if(decoded.stereo,[](float sample){return sample!=0.f;});
+        need(onset!=decoded.stereo.end(),"Original Audio selected a cue with no decoded signal");
+        const auto onset_frame=std::size_t(onset-decoded.stereo.begin())/2;
+        const auto rate=std::bit_cast<float>(parameters.relative_rate_bits);
+        need(std::isfinite(rate)&&rate>0.f,"Original Audio lost its valid playback rate");
+        const auto remaining=std::max(0.0,double(onset_frame)-position.source_frames);
+        const auto tail_extent=std::ceil(remaining/rate)+4096;
+        need(std::isfinite(tail_extent)&&tail_extent<=480000,"Original Audio onset escapes the bounded replay window");
+        const auto tail_frames=std::size_t(tail_extent);
         struct Branch {std::vector<float> pcm;std::vector<MultiplayerAudioSubmission> packets;MultiplayerAudio::VoiceReceipt created;};
         const auto branch=[&]{Branch b;const auto begin=packets.size();b.pcm=audio.render(512);audio.update();
             const auto next=audio.play_impulse_receipt(binding.sound.value,.8f);need(bool(next),"Original Audio suffix lost its actual subsequent cue");b.created=*next;
-            const auto tail=audio.render(4096);b.pcm.insert(b.pcm.end(),tail.begin(),tail.end());audio.update();
+            const auto tail=audio.render(tail_frames);b.pcm.insert(b.pcm.end(),tail.begin(),tail.end());audio.update();
             b.packets.assign(packets.begin()+std::ptrdiff_t(begin),packets.end());audio.stop();return b;};
         const auto expected=branch();double peak{};for(float p:expected.pcm){need(std::isfinite(p),"Original Audio emitted nonfinite PCM");peak=std::max(peak,std::abs(double(p)));}
         need(peak>0&&!expected.packets.empty(),"Original Audio suffix did not mix nonzero actual PCM");audio.master_volume(.125f);
@@ -66,6 +78,7 @@ inline nlohmann::json original_sound_playing_publication(const std::shared_ptr<c
                 a.rng_before==b.rng_before&&a.rng_after==b.rng_after&&a.source_pitch_bits==b.source_pitch_bits,"Original Audio changed PCM selection/RNG history");}
         need(replay.created.id()==expected.created.id()&&!replay.created.same(expected.created),"Original Audio reused an outgoing publication record");
         cases.push_back({{"sound",binding.sound.value},{"name",binding.bank->metadata().name},{"initial_pcm_frames",first.frames},
+            {"decoded_first_nonzero_frame",onset_frame},{"rendered_tail_frames",tail_frames},
             {"saved_output_frames",position.output_frames},{"branch_stereo_samples",replay.pcm.size()},{"branch_pcm_fnv64",hash},{"branch_peak",peak},
             {"original_bank",true},{"genuine_native_timing_sdl_publication",true},{"saved_playing_voice_restored",true},{"exact_pcm_rng_replay",true},
             {"fresh_voice_receipts",true},{"physical_output_clock_not_rewound",true},{"passed",true}});

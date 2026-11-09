@@ -35,9 +35,9 @@ def _family(report):
         if (relative.is_absolute() or str(relative) != name or '\\' in name or
                 any(p in ('', '.', '..') for p in name.split('/')) or
                 (relative.parts[0] not in ('halo2', 'ui') and
-                 name != 'presentation/ui/native-layout.json' and
+                 name not in ('presentation/ui/native-layout.json', 'frontend-map-bindings.json') and
                  name not in contract['allowed_presentation'])):
-            raise FormatError('Unsupported frontend presentation resource owner')
+            raise FormatError('Unsupported frontend presentation resource owner: ' + name)
         _digest(digest)
     if not contract['loading_files'] <= resources.keys():
         raise FormatError('Explicit V3 capability omits its loading resources')
@@ -126,7 +126,8 @@ def recheck(value):
 
 def required_bytes(root, value):
     _require_v3(value)
-    return 0
+    from mcc_movies import required_bytes as movie_bytes
+    return movie_bytes(root)
 
 
 def preflight(root, source, value):
@@ -139,7 +140,9 @@ def preflight(root, source, value):
 def prepare(root, stage, source, value, *, progress=print):
     _require_v3(value)
     import mcc_loading_presentation as loading
-    return dict(native_loading_presentation=loading.prepare_v3(root, stage, source, progress=progress))
+    import mcc_movies
+    return dict(native_loading_presentation=loading.prepare_v3(root, stage, source, progress=progress),
+                port_bundled_movies=mcc_movies.prepare(root, stage, progress=progress))
 
 
 def compatible(report, value):

@@ -1,0 +1,18 @@
+{
+  "schema": "H2_CTEST_STDOUT_COMPARISON_RECOVERY_V1",
+  "original_json_report_retained": false,
+  "reason": "New report was omitted from the retain-report list. The passed test printed every report field except differences; its pinned builder sets passed=not differences.",
+  "source": "native/iteration-1/evidence/Testing/Temporary/LastTest.log",
+  "source_sha256": "1f3602f5f7fa3159afbab4a8c3215f410bff68979c26a89e241d352022c85481",
+  "summary_line_number": 138,
+  "summary_line_sha256": "fd9aa9f230bef750ae23334b540e5804f7e9186b86ccb7c899b09a1cfdc1d28c",
+  "summary_fields_preserved": true,
+  "only_reconstructed_field": {
+    "name": "differences",
+    "value": [],
+    "justification": "Pinned test source sets passed=not differences and the actual CTest summary reports passed=true."
+  },
+  "native_binary_sha256_verified_against_worker_record": true,
+  "recovered_report": "recovered-native-couch-policy.json",
+  "not_claimed_original_file_bytes": true
+}

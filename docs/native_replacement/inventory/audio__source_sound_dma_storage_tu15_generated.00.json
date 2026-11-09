@@ -1,0 +1,219 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundAc97ChannelReset.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_ac97_channel_reset_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundAc97Output.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_ac97_output_pages_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundAc97PageRelease.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_ac97_page_release_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundCodecEvents.cmake",
+      "line": 9,
+      "target": "native_tu15_sound_codec_events_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundCodecInitialization.cmake",
+      "line": 7,
+      "target": "native_tu15_sound_codec_initialization_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundEpOutput.cmake",
+      "line": 4,
+      "target": "native_tu15_sound_ep_output_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundEventPort.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_event_port_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundFrontendDpc.cmake",
+      "line": 4,
+      "target": "native_tu15_sound_frontend_dpc_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundFrontendEvents.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_frontend_events_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundInterruptPolicy.cmake",
+      "line": 5,
+      "target": "native_tu15_sound_interrupt_policy_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundPcmBuffers.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_pcm_buffers_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundPcmPreparedRange.cmake",
+      "line": 5,
+      "target": "native_tu15_sound_pcm_prepared_range_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundPioResources.cmake",
+      "line": 20,
+      "target": "native_tu15_sound_pio_resources_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundResources.cmake",
+      "line": 15,
+      "target": "native_tu15_sound_dma_storage_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundResources.cmake",
+      "line": 31,
+      "target": "native_tu15_sound_gp_scratch_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundResources.cmake",
+      "line": 43,
+      "target": "native_tu15_sound_ep_scratch_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundResources.cmake",
+      "line": 59,
+      "target": "native_tu15_sound_gp_upload_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundSdkPrefix.cmake",
+      "line": 3,
+      "target": "native_tu15_sound_sdk_prefix_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundTableLimits.cmake",
+      "line": 4,
+      "target": "native_tu15_sound_table_limits_tests"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/NativeTu15SoundTimedNotifications.cmake",
+      "line": 6,
+      "target": "native_tu15_sound_timed_notifications_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_systems::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "550b68156ebf6de00996d49b47d90f643255633d3588ba77a325ea44f3578446",
+      "selected_resolver_sha256": "aa99462febfd910c223b26f4760b41f9c3bb4ab8ffba85a6e9924da2af5aeb5c"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "550b68156ebf6de00996d49b47d90f643255633d3588ba77a325ea44f3578446",
+      "selected_resolver_sha256": "aa99462febfd910c223b26f4760b41f9c3bb4ab8ffba85a6e9924da2af5aeb5c"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [],
+  "production_scope": "registered_outside_static_production_closure",
+  "reference_verification_gate_names": [],
+  "routine_count": 3,
+  "routines": [
+    {
+      "body_sha256": "b89c2169d5d927659b0c2a6ea0cc2d4a25deb7294109422d186d93df9c8fb37e",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_3879cb",
+      "instruction_callback_sites": 32,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "3879cb",
+        "tu15": "3879cb"
+      },
+      "line": 332,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "3879cb",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "3879cb",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "3879cb",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "6d6d10083e235277c5a9c97e06485686759c77358bba598370197cce94e68ee9",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_387bb5",
+      "instruction_callback_sites": 2,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "387bb5",
+        "tu15": "387bb5"
+      },
+      "line": 366,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "387bb5",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "387bb5",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "387bb5",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "caec4cad37937d147275483693534c5fe6998761ff4771fba7f40589ae6e35ad",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "3879cb"
+      ],
+      "function_name": "run_38e71c",
+      "instruction_callback_sites": 22,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "38e71c",
+        "tu15": "38e71c"
+      },
+      "line": 372,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "38e71c",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "38e71c",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "38e71c",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/audio/source_sound_dma_storage_tu15_generated.cpp",
+  "source_bytes": 24810,
+  "source_filename_scope": "generated",
+  "source_sha256": "46f2be7b3d103af1052c36977393125ed6f78351059a6c2e2e85a72323dcee04"
+}

@@ -1,0 +1,92 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/CampaignAiPlacementSettings.cmake",
+      "line": 1,
+      "target": "halo2_physics_world_runtime"
+    },
+    {
+      "command": "add_executable",
+      "file": "cmake/CampaignAiPlacementSettings.cmake",
+      "line": 3,
+      "target": "campaign_ai_placement_settings_tu15_tests"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "7b2ae572170c55db5522e487fa2600232db2469da6a586f14806f6de8bfbd384",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "7b2ae572170c55db5522e487fa2600232db2469da6a586f14806f6de8bfbd384",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "4096244f18879389efc201a110e3b71e96610cd019c8134bcea95ffdf27620f3",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1ecc80",
+      "instruction_callback_sites": 20,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1ecc80",
+        "tu15": "1ecc80"
+      },
+      "line": 349,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "1ecc80",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1ecc80",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1ecc80",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "11d627f2573709dc090a7d21118d392dbd40989905081cbb1587d822989bb2f4",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "1ecc80"
+      ],
+      "function_name": "run_20b980",
+      "instruction_callback_sites": 54,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "20b980",
+        "tu15": "20b980"
+      },
+      "line": 373,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "20b980",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "20b980",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "20b980",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/ai/source_campaign_ai_placement_settings_tu15_generated.cpp",
+  "source_bytes": 26731,
+  "source_filename_scope": "generated",
+  "source_sha256": "5c78959ec03b99ce551ae1e2728ce5c6378c4829aa800d73f39399c38e4b98cb"
+}

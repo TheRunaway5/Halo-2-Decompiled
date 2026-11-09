@@ -1,0 +1,50 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+root = Path.cwd()
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+source = root / "rust/online_protocol"
+cohort = scratch / "online_protocol"
+shutil.copytree(source, cohort, ignore=shutil.ignore_patterns("target"))
+paths = ["src/matchmaking_native_session.rs", "tests/matchmaking_native_session.rs"]
+pin = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+pins = {path: pin(cohort / path) for path in paths}
+assert pins == {path: pin(source / path) for path in paths}
+destination = Path(sys.argv[1])
+out = dict(schema="H2_MATCHMAKING_POSTGAME_CONFIRM_RETRY_RUST_DIFFERENTIAL_V1",
+           scratch=str(scratch), baseline_pins=pins, retained_generated_large_artifacts=[])
+env = os.environ | {"CARGO_TARGET_DIR": str(scratch / "target"), "CARGO_BUILD_JOBS": "2",
+                    "RUSTUP_AUTO_INSTALL": "0"}
+base = ["cargo", "test", "--locked", "--offline", "--test", "matchmaking_native_session"]
+name = "full_result_receipt_requires_review_confirmation_and_matching_digest"
+def run(args):
+    outcome = subprocess.run(args, cwd=cohort, env=env, capture_output=True, text=True)
+    print(outcome.stdout + outcome.stderr[-2400:], flush=True)
+    return dict(command=args, exit_code=outcome.returncode, stdout=outcome.stdout,
+                stderr_sha256=hashlib.sha256(outcome.stderr.encode()).hexdigest())
+
+out["red"] = run(base + [name, "--", "--exact"])
+destination.with_suffix(".red.json").write_text(json.dumps(out,indent=2)+"\n")
+assert out["red"]["exit_code"]==101 and f"{name} ... FAILED" in out["red"]["stdout"]
+assert "called `Result::unwrap()` on an `Err` value" in out["red"]["stdout"]
+go = destination.with_suffix(".green-request.json")
+deadline = time.monotonic()+300
+while not go.is_file():
+    if time.monotonic()>deadline:
+        raise TimeoutError("Rust retry repair did not publish its source pin")
+    time.sleep(1)
+expected=json.loads(go.read_text())
+assert pin(source / paths[0])==expected["sha256"] and pin(source / paths[1])==pins[paths[1]]
+shutil.copyfile(source / paths[0],cohort / paths[0])
+assert pin(cohort / paths[0])==expected["sha256"]
+out["candidate_pins"]={path:pin(cohort/path) for path in paths}
+out["green"]=run(base)
+out["passed"]=out["green"]["exit_code"]==0 and out["candidate_pins"][paths[0]]!=pins[paths[0]]
+destination.write_text(json.dumps(out,indent=2)+"\n")
+assert out["passed"]

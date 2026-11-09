@@ -32,6 +32,9 @@ fn main() {
     println!("cargo:rerun-if-changed=src/matchmaking_frontend_account_flow.hpp");
     println!("cargo:rerun-if-changed=src/matchmaking_frontend_friends.hpp");
     println!("cargo:rerun-if-changed=src/matchmaking_frontend_clans.hpp");
+    println!("cargo:rerun-if-changed=src/matchmaking_frontend_couch.hpp");
+    println!("cargo:rerun-if-changed=src/matchmaking_frontend_signin.hpp");
+    println!("cargo:rerun-if-changed=src/matchmaking_frontend_postgame.hpp");
     println!("cargo:rerun-if-changed=src/matchmaking_frontend_lobby_view.hpp");
     println!("cargo:rerun-if-env-changed=HALO2_EOS_SDK_ROOT");
 }

@@ -668,6 +668,45 @@ void SourceRuntimeMemory::write(std::uint32_t p,
     done += count;
   }
 }
+NativeTu15RetainedCounterUpdate SourceRuntimeMemory::adjust_counter(
+    std::uint32_t p, unsigned width, std::uint32_t adjustment) {
+  if (width != 2u && width != 4u)
+    throw std::invalid_argument("Native counter operand width is not qualified");
+  validate(p, width, true);
+  // The same owner that serializes ordinary writes owns the whole update.
+  // Gather current byte spans only after all policies, so a rejected update
+  // cannot read one part of a cross-region operand before checking the rest.
+  std::array<std::span<std::byte>, 4> parts{};
+  unsigned filled = 0, count = 0;
+  while (filled < width) {
+    const auto at = p + filled;
+    const auto found = locate(at);
+    auto &region = const_cast<Region &>(found->second);
+    if (region.access != Access::ReadWrite)
+      throw std::runtime_error("Native counter update lost its writable owner");
+    const auto offset = std::size_t(at - found->first);
+    const auto bytes = std::min<std::size_t>(width - filled, region.storage().size() - offset);
+    validate_committed(found, at, std::uint64_t(at) + bytes);
+    parts[count++] = region.storage().subspan(offset, bytes);
+    filled += unsigned(bytes);
+  }
+  std::array<std::byte, 4> before{};
+  unsigned offset = 0;
+  for (const auto part : parts) {
+    if (part.empty()) break;
+    std::memcpy(before.data() + offset, part.data(), part.size());
+    offset += unsigned(part.size());
+  }
+  const auto result = native_tu15_adjust_counter_value(before, width, adjustment);
+  offset = 0;
+  for (const auto part : parts) {
+    if (part.empty()) break;
+    std::memcpy(part.data(), result.written.data() + offset, part.size());
+    offset += unsigned(part.size());
+  }
+  return result;
+}
+
 std::span<const std::byte> SourceRuntimeMemory::view(std::uint32_t p,
                                                      std::size_t n) const {
   // A complete committed direct page already proves the extent, single

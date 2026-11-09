@@ -1,0 +1,50 @@
+#include "halo2/frontend.hpp"
+#include "halo2/source_game_variant.hpp"
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+int main(int argc, char** argv) {
+    if (argc != 2) return 1;
+    std::ifstream fixture(argv[1]);
+    for (std::string line; std::getline(fixture, line);) {
+        if (!line.starts_with("V ")) continue;
+        std::istringstream row(line);
+        halo2::UiVariant variant;
+        unsigned index, count;
+        char kind;
+        row >> kind >> index >> variant.engine >> std::quoted(variant.name) >> count;
+        if (!variant.name.starts_with("Team Slayer ")) continue;
+        for (unsigned n = 0; n < count; ++n) {
+            unsigned parameter;
+            int value;
+            row >> parameter >> value;
+            variant.values.append(parameter, value);
+        }
+        std::string expected;
+        row >> expected;
+        const auto authored = halo2::source_game_variant(variant);
+        if (expected.size() != authored.bytes.size() * 2) return 2;
+        for (size_t i = 0; i < authored.bytes.size(); ++i)
+            if (authored.bytes[i] != std::stoul(expected.substr(i * 2, 2), nullptr, 16)) return 3;
+        variant.values.set(10, 8);
+        variant.values.set(2, 0);
+        const auto edited = halo2::source_game_variant(variant);
+        const auto get = halo2::source_game_variant_get;
+        if (!halo2::source_game_variant_valid(edited) || get(edited, 0) != 0 ||
+            get(edited, 2) != 0 || get(edited, 10) != 8 || get(edited, 91) != 1) return 4;
+        for (size_t i = 0; i < edited.bytes.size(); ++i)
+            if ((i < 0x50 || i >= 0x58) && authored.bytes[i] != edited.bytes[i]) return 5;
+        std::cout << "{\"stock_seconds\":" << get(authored, 10)
+                  << ",\"stock_score_limit\":" << get(authored, 2)
+                  << ",\"validation_seconds\":" << get(edited, 10)
+                  << ",\"validation_score_limit\":" << get(edited, 2)
+                  << ",\"round_selector\":" << get(edited, 0)
+                  << ",\"teams\":" << get(edited, 91) << "}\n";
+        return 0;
+    }
+    return 6;
+}

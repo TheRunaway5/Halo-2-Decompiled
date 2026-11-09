@@ -32,6 +32,11 @@ def inspect_launcher(root, runtime=None):
     if source is None:
         return LauncherHealth(False, 'MCC game files have not been prepared.', 'assets')
     try:
+        from custom_asset_cache import verify as verify_custom_bundle
+        verify_custom_bundle(root, *source)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return LauncherHealth(False, 'Custom assets need Rebuild Cache.', 'assets', str(error))
+    try:
         owner = selected_frontend_owner(root, runtime)
         if owner is None:
             return LauncherHealth(False, 'The menu runtime is missing. Select Repair to check the installation.', 'runtime')

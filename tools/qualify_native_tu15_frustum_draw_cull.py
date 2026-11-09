@@ -16,6 +16,7 @@ NAMES=['tests/native_tu15_frustum_draw_cull_tests.cpp','cmake/NativeTu15FrustumD
        'src/rendering/world/source_bsp_accelerator.cpp','src/rendering/world/source_portal_visibility.cpp',
        'src/rendering/world/source_visibility.cpp','src/core/transform.cpp','src/assets/cache.cpp',
        'tools/native_tu15_frustum_draw_cull_cases.py','tools/validate_native_tu15_frustum_draw_cull.py',
+       'tools/native_tu15_zanzibar_frustum_inputs.py','tools/oracle_effect_light_snapshot.py',
        'tools/qualify_native_tu15_frustum_draw_cull.py','tools/oracle_native_tu15_model_mask_order.py',
        'tools/observe_native_campaign_ai_vector_math_tu15.cpp','tools/oracle_native_campaign_screen_lifecycle_tu15.py',
        'tools/reference/halo2-decompiled/tools/xbe.py','tools/reference/halo2-decompiled/tools/functions.py',
@@ -25,10 +26,12 @@ NAMES=['tests/native_tu15_frustum_draw_cull_tests.cpp','cmake/NativeTu15FrustumD
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--gcc-only',action='store_true');parser.add_argument('--mutations',action='store_true');a=parser.parse_args()
+    parser.add_argument('--gcc-only',action='store_true');parser.add_argument('--mutations',action='store_true')
+    parser.add_argument('--genuine-zanzibar',action='store_true');a=parser.parse_args()
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source';source.mkdir();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=True)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     shutil.copytree(ROOT/'include',source/'include')
+    if a.genuine_zanzibar:(source/'analysis').symlink_to(ROOT/'analysis',target_is_directory=True)
     for name in NAMES:
         target=source/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
     (source/'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.20)
@@ -57,6 +60,7 @@ include(cmake/NativeTu15FrustumDrawCull.cmake)
             '--jobs','2','--test-jobs','1','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,'--retain-report','native-tu15-frustum-draw-cull.json',
             '--retain-report','Testing/Temporary/LastTest.log']
         if sanitizers:command.append('--sanitizers')
+        if a.genuine_zanzibar:command.append('--cmake-arg=-DHALO2_FRUSTUM_GENUINE_ZANZIBAR=ON')
         result=subprocess.run(command);receipt=json.loads((a.output/kind/'report.json').read_text())
         return dict(kind=kind,command=command,exit_code=result.returncode,steps={s['name']:s['exit_code']for s in receipt['steps']})
     for kind,compiler,sanitizers in [('gcc','g++',False)]+([]if a.gcc_only else[('clang-sanitizers','clang++',True)]):

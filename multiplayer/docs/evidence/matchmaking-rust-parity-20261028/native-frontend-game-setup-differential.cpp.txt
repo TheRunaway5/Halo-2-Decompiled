@@ -1,0 +1,128 @@
+#include "halo2/frontend_lobby_setup.hpp"
+#include <array>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include "setup-legacy-table.hpp"
+
+struct Frame {
+  unsigned screen{}, context{}, selected{};
+  bool retained_lobby_backdrop{};
+  std::shared_ptr<const Frame> previous_lobby_setup;
+};
+using MenuFrame = Frame;
+struct Lobby {
+  struct Input { int session_enum{}; } input;
+  unsigned protocol{};
+};
+struct Party { bool leader{}; std::optional<int> privacy; };
+struct Map { int map_id{}; std::string scenario_path; };
+struct State {
+  std::vector<Frame> stack_;
+  struct Account { std::optional<Party> party; bool busy{}; } account_;
+  struct Content { std::vector<Map> campaign_maps{{104,"test/first"},{105,"test/second"}}; } content_;
+  const std::array<std::string, 2> campaign_files{"first","second"};
+  unsigned mode_{}, revision{91}, lobby_protocol_{0xFF}, level_{0xFF}, category_{17};
+  std::optional<Lobby> lobby;
+  unsigned open_behavior{};
+  mutable std::ostringstream trace;
+
+  const Frame &frame() const { return stack_.back(); }
+  std::optional<Lobby> lobby_view() const {
+    trace << "query(" << frame().screen << ")|";
+    return lobby;
+  }
+  void unavailable(const std::string &error) {
+    trace << "refuse(" << error << ")|";
+    stack_.push_back(Frame{1001});
+    ++revision;
+  }
+  Frame build(unsigned screen, unsigned context) const {
+    trace << "build(" << screen << ',' << context << ")|";
+    return Frame{screen,context};
+  }
+  void open(unsigned screen, unsigned context = 0) {
+    trace << "open(" << screen << ',' << context << ',' << frame().screen << ")|";
+    if (open_behavior == 1) throw std::runtime_error("native loader failed");
+    if (open_behavior == 2) stack_.push_back(Frame{1002,73,0,true,std::make_shared<const Frame>(Frame{77})});
+    else stack_.push_back(Frame{screen,context});
+    ++revision;
+  }
+  std::string observed() const {
+    std::ostringstream out;
+    out << trace.str() << mode_ << ',' << revision << ',' << lobby_protocol_ << ',' << level_ << ',' << category_ << '|';
+    for (const auto &frame : stack_) {
+      out << frame.screen << ',' << frame.context << ',' << frame.selected << ',' << frame.retained_lobby_backdrop;
+      if (frame.previous_lobby_setup)
+        out << ',' << frame.previous_lobby_setup->screen << ',' << frame.previous_lobby_setup->selected;
+      out << '|';
+    }
+    return out.str();
+  }
+};
+
+namespace legacy_setup {
+struct MenuState : State { void accept(const Frame &); void auxiliary(); };
+#include "setup-before.inc"
+}
+namespace candidate {
+using namespace halo2;
+struct MenuState : State { void accept(const Frame &); void auxiliary(); };
+#include "setup-after.inc"
+}
+
+template <typename Menu>
+std::string run(bool accept, unsigned mode, std::optional<int> session, unsigned protocol,
+    unsigned selected, std::optional<Party> party, bool busy, unsigned open_behavior) {
+  Menu menu;
+  menu.mode_ = mode;
+  menu.stack_ = {Frame{14,2}, Frame{23,0,selected}};
+  menu.account_ = {party,busy};
+  if (session) menu.lobby = Lobby{{*session},protocol};
+  menu.open_behavior = open_behavior;
+  try {
+    if (accept) {
+      const auto frame = menu.frame();
+      menu.accept(frame);
+    }
+    else menu.auxiliary();
+  } catch (const std::runtime_error &e) {
+    menu.trace << "exception(" << e.what() << ")|";
+  }
+  return menu.observed();
+}
+
+int main() {
+  const std::array<std::optional<int>, 12> sessions{std::nullopt, std::numeric_limits<int>::min(),
+      -1,0,1,2,3,4,5,6,7,std::numeric_limits<int>::max()};
+  const std::array<std::optional<Party>, 5> parties{std::nullopt,Party{false,std::nullopt},
+      Party{true,std::nullopt},Party{false,0},Party{true,0}};
+  const std::array<unsigned, 7> positions{0,1,2,3,4,5,std::numeric_limits<unsigned>::max()};
+  unsigned accepts{}, auxiliary{}, exceptions{}, reentries{};
+  for (const auto mode : {1u,2u,3u,4u}) for (const auto session : sessions)
+    for (const auto &party : parties) for (const auto behavior : {0u,1u,2u}) {
+      for (const auto protocol : {0u,1u,2u}) for (const auto selected : positions) {
+        const auto old = run<legacy_setup::MenuState>(true,mode,session,protocol,selected,party,false,behavior);
+        const auto now = run<candidate::MenuState>(true,mode,session,protocol,selected,party,false,behavior);
+        if (old != now) { std::cerr << "accept mismatch\n" << old << '\n' << now << '\n'; return 1; }
+        ++accepts;
+        exceptions += now.find("exception(") != std::string::npos;
+        reentries += behavior == 2 && now.find("open(") != std::string::npos;
+      }
+      for (const bool busy : {false,true}) {
+        const auto old = run<legacy_setup::MenuState>(false,mode,session,0,0,party,busy,behavior);
+        const auto now = run<candidate::MenuState>(false,mode,session,0,0,party,busy,behavior);
+        if (old != now) { std::cerr << "auxiliary mismatch\n" << old << '\n' << now << '\n'; return 1; }
+        ++auxiliary;
+        exceptions += now.find("exception(") != std::string::npos;
+        reentries += behavior == 2 && now.find("open(") != std::string::npos;
+      }
+    }
+  std::cout << "{\"accept_controls\":" << accepts << ",\"auxiliary_controls\":" << auxiliary
+            << ",\"exception_controls\":" << exceptions << ",\"reentrant_open_controls\":" << reentries << "}\n";
+}

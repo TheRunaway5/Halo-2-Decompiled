@@ -1,0 +1,51 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/NativeTu15NetworkLink.cmake",
+      "line": 10,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "run"
+      ],
+      "body_sha256": "3b437e2ffb3f8b10d9948723f96072a5f5eee04bad18544e31ee11cc12664d83",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run",
+      "instruction_callback_sites": 70,
+      "line": 10,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "6e010",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "6e010",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "run",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/network/source_network_connection_startup_tu15.cpp",
+  "source_bytes": 6491,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "fb3818f080fbc427baa17ad4fa534dc692607c544efde56ebfafc53c884f172b"
+}

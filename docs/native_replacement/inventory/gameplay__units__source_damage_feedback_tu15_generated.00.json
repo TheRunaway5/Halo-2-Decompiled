@@ -1,0 +1,104 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1097,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "556d83e07aaa639c66eca2894221eafef396dcb1dd64d32155325a2dd755c478",
+      "selected_resolver_sha256": null
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "556d83e07aaa639c66eca2894221eafef396dcb1dd64d32155325a2dd755c478",
+      "selected_resolver_sha256": null
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 2,
+  "routines": [
+    {
+      "body_sha256": "d1863194f54ee4d34493cc62b19e8ce102551ec1a9410b7f8f5157087a4e8ecb",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_e3e20",
+      "instruction_callback_sites": 119,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "e3e20",
+        "tu15": "e3e20"
+      },
+      "line": 350,
+      "literal_dispatch_required_targets": [
+        "30bd0",
+        "b95d0",
+        "bbbc0",
+        "bc200",
+        "bc380",
+        "c1a70",
+        "c7940",
+        "e1b40",
+        "111b10",
+        "1cc310"
+      ],
+      "observed_entry": "e3e20",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "e3e20",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "e3e20",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "8098bfd0b6e8ea97ab45a4f36cec64c1ac272611b813a58f507da0809c06e1c8",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_1f5620",
+      "instruction_callback_sites": 72,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "1f5620",
+        "tu15": "1f5620"
+      },
+      "line": 473,
+      "literal_dispatch_required_targets": [
+        "b9390",
+        "b9770",
+        "ba8c0",
+        "bbbc0",
+        "bda50",
+        "10eeb0",
+        "1cd6a0",
+        "1d9f10"
+      ],
+      "observed_entry": "1f5620",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "1f5620",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "1f5620",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/gameplay/units/source_damage_feedback_tu15_generated.cpp",
+  "source_bytes": 40604,
+  "source_filename_scope": "generated",
+  "source_sha256": "279741e77a4fd80d3d8904662bad3f095bdfc9655a750d7676f107754c4348c3"
+}

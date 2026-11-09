@@ -31,7 +31,14 @@ using namespace std::chrono_literals;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw FormatError(why);}
 const char *wait_stage="OAuth authorization";
-template<class F>void wait(F f){const auto end=std::chrono::steady_clock::now()+30s;while(std::chrono::steady_clock::now()<end){if(f())return;std::this_thread::sleep_for(5ms);}throw FormatError(std::string("Native ONLINE handoff timed out: ")+wait_stage);}
+template<class F>void wait(F ready,std::chrono::seconds timeout=30s) {
+  const auto end=std::chrono::steady_clock::now()+timeout;
+  while(std::chrono::steady_clock::now()<end) {
+    if(ready())return;
+    std::this_thread::sleep_for(5ms);
+  }
+  throw FormatError(std::string("Native ONLINE handoff timed out: ")+wait_stage);
+}
 std::size_t discard(char *,std::size_t a,std::size_t b,void *){return a*b;}
 struct Synthetic:VoiceDevices {
   std::atomic<unsigned> starts{},audible{},captures{};bool transmitting{};unsigned phase{},noise=12345;
@@ -289,10 +296,22 @@ int main(int argc,char **argv)try {
         };
         options.session_update=[&](MenuState &actual,std::uint32_t clock,const auto &) {
           observed_ui_clock=clock;
-          if(std::chrono::steady_clock::now()-started>90s)throw FormatError("Rendered shared lobby countdown timed out at phase "+std::to_string(phase));
           const auto s=account->snapshot();
+          const auto queue_state=queue.snapshot();
+          if(std::chrono::steady_clock::now()-started>90s) {
+            const auto diagnostics=nlohmann::json{
+                {"phase",phase},{"screen",actual.frame().screen},
+                {"search_state",int(actual.online_matchmaking_ui())},
+                {"queue_status",int(queue_state.status)},{"queue_message",queue_state.message},
+                {"match_present",queue_state.match.has_value()},
+                {"matched_countdown_supported",queue_state.start_countdown_supported},
+                {"matched_countdown_ms",queue_state.start_countdown_ms?
+                    nlohmann::json(*queue_state.start_countdown_ms):nlohmann::json(nullptr)},
+                {"account_busy",s.busy}};
+            throw FormatError("Rendered party Start and search timed out: "+diagnostics.dump());
+          }
           if(!s.party || s.party->version!=version_before)throw FormatError("Shared countdown changed the accepted party or its consent version");
-          if(queue.snapshot().status==OnlineMatchmakingStatus::Failed)throw FormatError(queue.snapshot().message);
+          if(queue_state.status==OnlineMatchmakingStatus::Failed)throw FormatError(queue_state.message);
           const auto left=actual.online_lobby_countdown();
           const auto &bound=actual.online_party_observation();
           for(const auto cue:actual.ui_sound_observation())if(cue==FrontendUiSound::PregameCountdown || cue==FrontendUiSound::MatchmakingAdvance) {
@@ -842,20 +861,26 @@ int main(int argc,char **argv)try {
     std::cout<<"PASS rendered ONLINE host/client handoff players="<<players<<" ticks="<<ticks<<"\n";
     std::this_thread::sleep_for(2s);return 0;
   }
+  const auto preparation_started=std::chrono::steady_clock::now();
   const Cache cache(maps/"lockout.map",maps);const auto content=cache.load_content(0,true);
   UiVariant variant=group?party_launch->variant:UiVariant{team?"Team Slayer":"Slayer",0,{}};
   if(!group){variant.values.set(10,mode=="mismatch" && owner=="one"?9:8);variant.values.set(2,0);variant.values.set(91,int(team));}
   auto rules=slayer_rules(variant,team);
   rules.weapon=cache.slayer_starting_weapon(rules.starting_weapon);
-  // Core/blocks publish a real completed ONLINE result, whose accuracy must
-  // come from the original source bank. A bounded Match has no such owner.
-  const bool canonical_headless=mode=="core" || mode=="blocks";
+  // Core, blocks and the party flow publish a completed ONLINE
+  // result with accuracy from the admitted original source bank.
+  const bool canonical_headless=mode=="core" || mode=="blocks" || mode=="party";
   std::unique_ptr<MultiplayerPreparedWorld> native_world;
   std::unique_ptr<MultiplayerMatch> bounded_match;
   if(canonical_headless && session->self()==session->host()) {
     MultiplayerOptions options;options.map=maps/"lockout.map";options.shared_maps=maps;
     options.online_match=session;options.variant=variant;options.source_object_world=true;
     options.source_object_savegame_directory=output/(owner+"-headless-native-world");
+    if (party_launch) {
+      options.local_players=party_launch->local_players;
+      options.selected_profiles=party_launch->selected_profiles;
+      options.selected_teams=party_launch->selected_teams;
+    }
     native_world=std::make_unique<MultiplayerPreparedWorld>(options);
     check(native_world->cache->is_mcc() && native_world->cache->original_data() &&
       native_world->cache->original_data()->image==OriginalData::Image::TitleUpdate15 && native_world->source_objects &&
@@ -870,7 +895,21 @@ int main(int argc,char **argv)try {
     check(session->postgame().empty(),"Mismatched game rules produced a completed result");
     std::cout<<"PASS differing authored Slayer settings refused before native simulation\n";return 0;
   }
-  wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
+  wait_stage="native room loading and shared start";
+  const auto loaded_at=std::chrono::steady_clock::now();
+  std::cout<<"ONLINE fixture "<<owner<<" prepared "<<(native_world?"source authority":"replica")
+           <<" in "<<std::chrono::duration_cast<std::chrono::milliseconds>(loaded_at-preparation_started).count()
+           <<" ms"<<std::endl;
+  // Match the ordinary native runtime's wait for the service's loading lease.
+  // A peer that prepares first must keep its real session while the host loads.
+  wait([&]{
+    const auto phase=session->phase();
+    if(phase==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
+    return phase==OnlineMatchSession::Phase::Running;
+  },185s);
+  std::cout<<"ONLINE fixture "<<owner<<" observed shared start after "
+           <<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-loaded_at).count()
+           <<" ms"<<std::endl;
   const auto self=session->self(),other=(self+1)%participants;const bool hosting=self==session->host();
   check(session->direct_udp()==(o.compatibility=="halo2-native-queue-v12"),"Match did not use the admitted transport");
   if(mode=="blocks"){
@@ -902,7 +941,9 @@ int main(int argc,char **argv)try {
     std::cout<<"PASS native host session survives actual nonhost DTLS/signaling closure\n";return 0;
   }
   std::unique_ptr<LanHost> host;std::unique_ptr<LanClient> client;
-  std::array<std::uint8_t,9> appearance{};const auto profile=native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[self].team:-1);
+  std::array<std::uint8_t,9> appearance{};
+  const auto profile=mode=="party"?party_launch->selected_profiles.at(0):
+      native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[self].team:-1);
   if(hosting){
     const auto joined=match.join("Same Pilot",team?session->roster()[self].team:-1,profile,self);
     if(native_world){
@@ -913,7 +954,9 @@ int main(int argc,char **argv)try {
   }
   else {const std::int8_t selected=std::int8_t(session->roster()[self].team);client=std::make_unique<LanClient>(session,session->host(),fingerprint,team?std::span(&selected,1):std::span<const std::int8_t>{},std::span(&profile,1));}
   std::array<Controls,16> controls{};std::array<Controls,1> local{};
+  wait_stage="native gameplay peer handshake";
   wait([&]{if(host){host->receive(controls);host->broadcast();std::this_thread::sleep_for(30ms);return host->peers()==participants-1;}client->send(local);client->receive();return client->ready();});
+  if(native_world)check(match.state().tick==0,"Headless ONLINE gameplay advanced before peer admission");
   auto devices=std::make_unique<Synthetic>();auto *audio=devices.get();auto retained=std::make_shared<GameVoice>(std::move(devices));session->retain_voice(retained);auto &voice=*retained;
   std::unique_ptr<DiscordVoiceBlocks> blocks;
   if(mode=="blocks") {
@@ -929,6 +972,8 @@ int main(int argc,char **argv)try {
   std::vector<std::byte> authority_fixture;
   bool authority_published=false,authority_received=false;
   if(mode=="authority"){authority_fixture.resize(512*1024);for(unsigned i=0;i<authority_fixture.size();++i)authority_fixture[i]=std::byte((i*37+i/13)&255);}
+  auto next_client_input=start;
+  wait_stage="native gameplay and voice";
   for(unsigned n=0;n<210;++n) {
     const auto now=std::chrono::steady_clock::now();
     if(mode=="authority"){
@@ -968,7 +1013,22 @@ int main(int argc,char **argv)try {
     if(n==194){check(audio->captures==capture_checkpoint && !voice.snapshot().transmitting,"Disabled match voice continued capture");voice.enable(true);voice.radio(true,true);}
     if(n==198)voice.radio(false,true);
     local[0].forward=.5f;local[0].fire=n%20<10;
-    if(client){client->send(local);client->receive();}
+    if(client && canonical_headless) {
+      // The source authority can take longer than the nominal 30 Hz in this
+      // Debug fixture. Observe the same match ticks on both peers while
+      // keeping the replica's input sends paced by its own clock.
+      wait([&]{
+        const auto input_time=std::chrono::steady_clock::now();
+        if(input_time>=next_client_input) {
+          client->send(local);
+          next_client_input=input_time+33333us;
+        }
+        client->receive();
+        if(session->phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
+        return client->state().tick>=n+1;
+      });
+    }
+    else if(client){client->send(local);client->receive();}
     else {controls[self]=local[0];host->receive(controls);match.step(controls);host->broadcast();}
     const auto state=client?client->state():match.state();tick=state.tick;
     if(std::getenv("HALO2_TEST_MASTER_OUTAGE") && !session->master_connected()) {
@@ -1005,7 +1065,8 @@ int main(int argc,char **argv)try {
     std::cout<<"PASS master signaling outage: direct gameplay advanced "<<offline_ticks<<" ticks and voice delivered "<<offline_audible<<" audible frames\n";
   }
   bool published{};
-  wait([&]{
+  wait_stage="native result publication and review";
+  const auto poll_result=[&]{
     if(host && session->phase()==OnlineMatchSession::Phase::Running){host->receive(controls);match.step(controls);host->broadcast();
       std::this_thread::sleep_for(28ms); // Retain the real 30Hz simulation cadence.
       if(!published && match.state().game_over_complete()) {
@@ -1047,7 +1108,20 @@ int main(int argc,char **argv)try {
     }
     if(session->phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
     return session->phase()==OnlineMatchSession::Phase::Postgame;
-  });
+  };
+  try {
+    wait(poll_result);
+  } catch(const FormatError&) {
+    const auto last=client?client->state():match.state();
+    std::cerr<<"ONLINE result state "<<owner<<" authority="<<hosting<<" tick="<<last.tick
+             <<" limit_ticks="<<last.time_ticks<<" clock_seconds="<<last.clock_seconds
+             <<" round_mode="<<last.round_mode<<" round_phase="<<last.round_phase
+             <<" round_index="<<last.round_index<<" round_countdown="<<last.round_countdown
+             <<" finished="<<last.finished<<" game_over_countdown="<<last.game_over_countdown
+             <<" finalized="<<last.results_finalized<<" published="<<published
+             <<" session_phase="<<unsigned(session->phase())<<'\n';
+    throw;
+  }
   host.reset();client.reset();native_world.reset();
   barrier("postgame-voice-ready");
   const auto before_postgame=audio->audible.load();unsigned muted_postgame{};

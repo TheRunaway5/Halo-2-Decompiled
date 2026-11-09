@@ -5,22 +5,23 @@ from setup_assets_ui import SetupProcess
 
 
 class LauncherRepairWindow:
-    def __init__(self, parent):
+    def __init__(self, parent, *, rebuild=False):
         self.parent, self.closed, self.finished = parent, False, False
         self.events = queue.Queue()
         arguments = ('--runtime', str(parent.runtime_executable)) if parent.runtime_executable else ()
-        self.process = SetupProcess(parent.root, self.events, tool='repair_launcher.py',
+        self.rebuild = rebuild
+        self.process = SetupProcess(parent.root, self.events, tool=('rebuild_asset_cache.py' if rebuild else 'repair_launcher.py'),
                                     extra_arguments=arguments)
         tk = parent.tk
         self.window = tk.Toplevel(parent.window)
         window = self.window
-        window.title('Forever Launcher — Repair')
+        window.title('Forever Launcher — ' + ('Rebuild Cache' if rebuild else 'Repair'))
         window.transient(parent.window)
         window.configure(background='#06101c', padx=24, pady=24)
         window.resizable(False, False)
-        tk.Label(window, text='Repair game files', background='#06101c', foreground='#c8edff',
+        tk.Label(window, text='Rebuild asset cache' if rebuild else 'Repair game files', background='#06101c', foreground='#c8edff',
                  font=parent.font(22), anchor='w').pack(fill='x', pady=(0, 18))
-        self.status = tk.Label(window, text='Checking the installed game and imported MCC files…',
+        self.status = tk.Label(window, text=('Preparing a fresh cache with custom maps, game modes, buttons and ranks. Your previous cache is kept.' if rebuild else 'Checking the installed game and imported MCC files…'),
                                background='#06101c', foreground='#9baec3', font=parent.font(13),
                                anchor='nw', justify='left', wraplength=parent.px(520), width=60, height=6)
         self.status.pack(fill='x', pady=(0, 12))
@@ -70,7 +71,7 @@ class LauncherRepairWindow:
             elif kind == 'error':
                 self.bar.stop()
                 detail = str(value)
-                at = detail.rfind('Repair failed: ')
+                at = detail.rfind('Cache rebuild failed: ' if self.rebuild else 'Repair failed: ')
                 detail = detail[at:at+900] if at >= 0 else detail[-900:]
                 self.status.configure(text=detail, foreground='#e7ba8f')
                 self.back.configure(text='Back')
@@ -106,5 +107,6 @@ class LauncherRepairWindow:
             self.bar.stop()
             self.window.destroy()
             self.parent.repair_dialog = None
+            self.parent.rebuild_button.configure(state='normal')
             if recheck and not self.parent.closed:
                 self.parent.check_readiness()

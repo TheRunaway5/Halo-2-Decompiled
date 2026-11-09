@@ -33,6 +33,7 @@ public:
     void prepare_materials(const Cache &,Mesh &destination,bool per_vertex_scenery=false);
     void rebase_materials(unsigned previous_geometry_count,unsigned next_geometry_count);
     bool section_materials()const{return section_materials_;}
+    bool admits_ordinary_draw(const SourceLiveModelBaseDrawTu15&)const;
     std::vector<SourcePrtMaterialBank> prt_banks(std::uint32_t owner,
         std::span<const SourceLiveModelBaseDrawTu15>)const;
     const RenderModel &hierarchy()const{return *lods_[5];}

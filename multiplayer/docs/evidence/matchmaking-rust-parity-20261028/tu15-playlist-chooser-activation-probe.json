@@ -1,0 +1,101 @@
+{
+  "schema": "H2_TU15_PLAYLIST_CHOOSER_ACTIVATION_V1",
+  "passed": true,
+  "completed_utc": "2026-11-03T02:14:23.598533+00:00",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "callback_entry": "0x2bbe4b",
+  "executed_datum_getter": "0x16e940",
+  "stop_before_activation_body": "0x2bbe83",
+  "observed_source_instructions": 45,
+  "source_instruction_invocations": 49680,
+  "original_controls": 1800,
+  "activation_gate_results": {
+    "index_outside_table": 1260,
+    "vacant_record": 90,
+    "stale_salt": 288,
+    "record_flag_clear": 36,
+    "activation_call": 36,
+    "invalid_handle_sentinel": 90
+  },
+  "controls_sha256": "cf47ff0d5483bcf30bf878697edc03a423d0a069fc6d6528370a9b500d1f3c3a",
+  "sample_by_result": {
+    "index_outside_table": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      "index_outside_table",
+      null
+    ],
+    "vacant_record": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      "vacant_record",
+      null
+    ],
+    "stale_salt": [
+      0,
+      0,
+      1,
+      0,
+      1,
+      4275878552,
+      "stale_salt",
+      null
+    ],
+    "record_flag_clear": [
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      "record_flag_clear",
+      null
+    ],
+    "activation_call": [
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      "activation_call",
+      {
+        "playlist": 2771661328,
+        "row": 17833984,
+        "chooser": 17825792,
+        "controller": 0,
+        "caller_return": 2866815
+      }
+    ],
+    "invalid_handle_sentinel": [
+      65535,
+      65535,
+      0,
+      0,
+      0,
+      3,
+      "invalid_handle_sentinel",
+      null
+    ]
+  },
+  "original_executed_bytes_sha256": "e6234bcfe863e2f296e9cd5f9717eb61bffab2957f7cba24f1035b8fe8043343",
+  "patched_instructions": [],
+  "replaced_callees": [],
+  "all_instruction_bytes_verified": true,
+  "source_code_emulated_writes_stack_only": true,
+  "synthetic_table_inputs": true,
+  "original_row_selectability_producer_executed": false,
+  "original_activation_body_executed": false,
+  "production_catalog_changed": false,
+  "retained_generated_large_artifacts": [],
+  "tool_sha256": "0cbbb7db6fc1eb3f93ef1621a4b6062806174ec3dba290deb466ab07034f3fc2",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-chooser-oracle-20261102/halo2-test-ackdpklo"
+}

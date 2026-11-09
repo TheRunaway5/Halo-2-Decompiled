@@ -88,7 +88,7 @@ class Partitions(unittest.TestCase):
                     dir=os.environ.get('HALO2_TEST_SCRATCH')) as folder:
                 path = Path(folder); project = path/'project'; project.mkdir()
                 (project/'tools').mkdir(); (project/'cmake').mkdir()
-                for name in ('NativeTranslationUnits.cmake', 'NativeOperandSpecialization.cmake'):
+                for name in ('NativeTranslationUnits.cmake', 'NativeOperandSpecialization.cmake', 'NativeExecutionAccounting.cmake'):
                     shutil.copyfile(ROOT/'cmake'/name, project/'cmake'/name)
                 # Count actual invocations while executing the real splitter.
                 # This fixture does not change its generated source bytes.
@@ -168,6 +168,47 @@ halo2_partition_native_translation(partitioned "${CMAKE_CURRENT_SOURCE_DIR}/nati
             source.write_text(SOURCE.replace('struct WorldState', 'static int unowned;\nstruct WorldState'))
             with self.assertRaisesRegex(ValueError, 'namespace static state'):
                 partition.split(source, path/'split', 2)
+
+    def test_embedded_inline_header_keeps_one_function_local_static(self):
+        helper = '''namespace halo2::embedded {
+inline int next() {
+static int count{};
+return ++count;
+}
+}
+'''
+        value = helper + SOURCE.replace(
+            'int native_count() { static int count{}; return ++count; }',
+            'int native_count() { return embedded::next(); }')
+        with tempfile.TemporaryDirectory(dir=os.environ.get('HALO2_TEST_SCRATCH')) as folder:
+            path = Path(folder); source = path/'native.cpp'; source.write_text(value)
+            report = partition.split(source, path/'split', 2)
+            self.assertTrue(report['body_bytes_unchanged'])
+            chunks = [path/'split/router.cpp', *sorted((path/'split').glob('body_*.cpp'))]
+            for compiler in ('clang++', 'g++'):
+                if not shutil.which(compiler):
+                    continue
+                exe = path/(compiler.replace('+', 'p'))
+                subprocess.run([compiler, '-std=c++20', '-O1', *map(str, chunks), '-o', str(exe)],
+                               check=True, capture_output=True)
+                subprocess.run([str(exe)], check=True, capture_output=True)
+
+    def test_nested_namespace_state_still_requires_an_owner(self):
+        for state in ('static int count{};', 'thread_local int count{};'):
+            with self.subTest(state=state):
+                self.assertIsNotNone(partition.namespace_static_state(
+                    'namespace halo2::embedded {\n  '+state+'\n}\n'))
+                self.assertIsNotNone(partition.namespace_static_state(
+                    'namespace {\nnamespace nested {\n  '+state+'\n}\n}\n'))
+
+    def test_directives_and_raw_strings_cannot_hide_namespace_state(self):
+        for prefix in ('#define OPEN {\n', '#define OPEN \\\n{\n',
+                       '#define OPEN "a\\\nb" {\n',
+                       'inline constexpr auto text=R"xx(" { )xx";\n',
+                       'inline constexpr auto text=u8R"(\" { )";\n'):
+            with self.subTest(prefix=prefix):
+                self.assertIsNotNone(partition.namespace_static_state(
+                    'namespace n {\n'+prefix+'static int shared;\n}\n'))
 
 
 if __name__ == '__main__':

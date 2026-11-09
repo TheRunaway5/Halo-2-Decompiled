@@ -1,5 +1,6 @@
 #include "halo2/death_startup_native.hpp"
 #include "halo2/native_threads.hpp"
+#include "halo2/native_kernel_yield.hpp"
 #include "platform/native_startup_resources.hpp"
 #include "halo2/source_runtime_host_storage.hpp"
 #include <atomic>
@@ -12,7 +13,6 @@
 #include <thread>
 #if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
-#include <sched.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #elif defined(_WIN32)
@@ -227,18 +227,8 @@ struct SourceDeathStartupNative::Impl {
       // sched_yield maps to status0; original2D84CA..2D84D6 retains its own
       // status-to-BOOL conversion. This does not reproduce Xbox scheduling.
       if(config.schedule.before_main_yield)config.schedule.before_main_yield();
-#if defined(__linux__) || defined(__APPLE__)
-      if(::sched_yield()!=0)throw std::system_error(errno,std::generic_category(),"Native source yield");
-#elif defined(_WIN32)
-      using Yield=LONG (NTAPI*)();
-      static const auto yield=reinterpret_cast<Yield>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtYieldExecution"));
-      if(!yield)throw std::runtime_error("Native Windows kernel-yield entry point unavailable");
-      const auto status=std::uint32_t(yield());
+      const auto status=native_kernel_yield_status();
       check_worker();finish(0,status);return true;
-#else
-      throw std::runtime_error("Native source kernel-yield status owner unavailable");
-#endif
-      check_worker();finish(0,0);return true;
     }
     if (call.tail) return false;
     switch(call.target) {

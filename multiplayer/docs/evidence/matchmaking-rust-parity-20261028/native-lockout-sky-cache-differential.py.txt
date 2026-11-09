@@ -1,0 +1,71 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+root = Path.cwd()
+build = Path(sys.argv[1]).resolve(strict=True)
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+obj = scratch / "probe.o"
+binary = scratch / "probe"
+source_suffix = "/tests/ctf_assault_sky_projection_tests.cpp"
+commands = json.loads((build / "compile_commands.json").read_text())
+[entry] = [entry for entry in commands if entry["file"].endswith(source_suffix)]
+compile_cmd = shlex.split(entry["command"])
+compile_cmd[compile_cmd.index("-o") + 1] = str(obj)
+link_file = build / "CMakeFiles/ctf_assault_sky_projection_tests.dir/link.txt"
+link_cmd = shlex.split(link_file.read_text())
+link_cmd = [arg for arg in link_cmd if not arg.startswith("-Wl,--dependency-file")]
+link_cmd[link_cmd.index("-o") - 1] = str(obj)
+link_cmd[link_cmd.index("-o") + 1] = str(binary)
+
+def digest(path):
+    with Path(path).open("rb") as file:
+        return hashlib.file_digest(file, "sha256").hexdigest()
+
+pins = {
+    arg: digest(build / arg) for arg in link_cmd if arg.startswith("libhalo2_") and arg.endswith(".a")
+}
+subprocess.run(compile_cmd, cwd=build, check=True)
+subprocess.run(link_cmd, cwd=build, check=True)
+sys.path.insert(0, str(root))
+from tests.helpers.mcc_online_ui import validate_cache
+
+selected = (root / "assets/mcc-source.tsv").read_text().splitlines()[1].split("\t")[1]
+cases = dict(
+    prior_cmake_cache="assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+    qualified_v7_cache="assets/imported/mcc-sky-water-tu15-20261025-v7",
+    workspace_selected_cache=selected,
+)
+report = dict(
+    schema="H2_MATCHMAKING_FROZEN_LOCKOUT_SKY_ASSET_DIFFERENTIAL_V1",
+    scope="Actual textured sky loader from the same frozen native build, plus independent original Xbox material and geometry comparison. No network or GPU here.",
+    archive_sha256=pins,
+    probe_source_sha256=digest(entry["file"]),
+    probe_binary_sha256=digest(binary),
+    commands=[compile_cmd, link_cmd],
+    cases={},
+    retained_generated_large_artifacts=[],
+)
+for label, relative in cases.items():
+    cache = root / relative
+    map_path = cache / "halo2/h2_maps_win64_dx11/lockout.map"
+    result_path = scratch / (label + ".json")
+    result = subprocess.run([str(binary), str(map_path), str(result_path), str(root)],
+                            capture_output=True, text=True, timeout=120, cwd=root)
+    observation = json.loads(result_path.read_text())
+    observation.update(exit_code=result.returncode, map_sha256=digest(map_path), stderr=result.stderr,
+                       cache_provenance_sha256=digest(cache / "provenance.json"))
+    try:
+        validate_cache(root, cache)
+        observation["online_ui_import_admitted"] = True
+    except (ValueError, OSError) as error:
+        observation["online_ui_import_admitted"] = False
+        observation["online_ui_import_error"] = str(error)
+    report["cases"][label] = observation
+assert pins == {arg: digest(build / arg) for arg in pins}
+Path(sys.argv[2]).write_text(json.dumps(report, indent=2) + "\n")
+print(json.dumps(report["cases"], indent=2))

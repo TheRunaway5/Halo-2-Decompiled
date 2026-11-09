@@ -313,6 +313,8 @@ void custom_ranks(const std::filesystem::path &root) {
   rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted changed logical geometry");
   metadata["pages"]=pages;metadata["pages"].erase(0);save();
   rejects([&]{load_frontend_ui_assets(source,{});},"Custom bank admitted an incomplete celestial selection");
+  std::filesystem::remove(bank/"manifest.json");
+  rejects([&]{load_frontend_ui_assets(source,{});},"Missing celestial art fell back to MCC ranks");
   std::filesystem::remove_all(root/"cache");
 }
 void real_pack(const std::filesystem::path &map,const std::filesystem::path &directory) {

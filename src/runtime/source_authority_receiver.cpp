@@ -1,4 +1,5 @@
 #include "halo2/source_authority_receiver.hpp"
+#include "halo2/source_host_archive_policy.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_authority_delta.hpp"
@@ -110,23 +111,35 @@ struct SourceAuthorityReceiver::Impl {
     const std::thread::id executor=std::this_thread::get_id();bool enabled=true,receiving=true;
     std::optional<AuthorityTransferContext> context;std::optional<AuthorityArchiveImage> base;
     std::optional<SourceReplayBinding> replay;
-    bool paired{};std::optional<LanHost::Continuation> host;
+    bool paired{},complete_host_archive{};std::optional<LanHost::Continuation> host;
     std::unique_ptr<MultiplayerPreparedWorld> target,workspace;
     std::unique_ptr<SourceMatchAuthority> authority;
     std::unique_ptr<SourceAdmittedCameraBank> admitted_cameras;
     std::optional<SourceMatchAuthority::ExecutionBoundary> validated_boundary;
     SourceAuthorityReceiverState stats;
     std::vector<std::weak_ptr<const SourceAuthorityEndpoint>> endpoints;
+    struct PreparationLease {
+        std::shared_ptr<OnlineMatchSession> session;
+        AuthorityTransferContext context;AuthorityCutSeal seal;
+        PreparationLease(std::shared_ptr<OnlineMatchSession> s,const ReceivedAuthorityCut &cut)
+            :session(std::move(s)),context(cut.context),seal(cut.seal){}
+        // ACK has already removed a successful cut. Every other destruction,
+        // including queued cancellation, ends its preparation liveness too.
+        ~PreparationLease(){try{session->reject_authority(context,seal);}catch(...) {}}
+    };
     struct Job {std::uint64_t generation;ReceivedAuthorityCut cut;AcceptedSourcePlayers admitted;std::optional<AuthorityArchiveImage> base;
-        std::optional<SourceReplayBinding> replay;bool after_replay{};};
+        std::optional<SourceReplayBinding> replay;bool after_replay{},complete_host_archive{};
+        std::unique_ptr<PreparationLease> preparation;};
     struct Result {std::uint64_t generation{},decode_us{};ReceivedAuthorityCut cut;AcceptedSourcePlayers admitted;
         std::unique_ptr<NetworkCutReservation> memory;
+        std::unique_ptr<PreparationLease> preparation;
         std::optional<SourceMatchAuthority::Checkpoint> checkpoint;std::optional<AuthorityArchiveImage> image;
-        std::optional<SourceReplayBatch> replay;std::optional<LanHost::Continuation> host;bool delta{};std::string error;};
+        std::optional<SourceReplayBatch> replay;std::optional<LanHost::Continuation> host;bool delta{},complete_host_archive{};std::string error;};
     struct ActiveReplay {Result output;std::size_t at{};Clock::time_point started=Clock::now();};
     std::optional<ActiveReplay> active_replay;
     std::atomic<bool> replay_busy=false;
     mutable std::mutex mutex;std::condition_variable_any condition;std::uint64_t generation{};bool working{};
+    std::optional<std::uint64_t> active_complete_archive_generation;
     std::optional<Job> job;std::optional<Result> result;
     std::jthread worker;
     Impl(const MultiplayerOptions &o,SourceAuthorityStreamMode m,std::shared_ptr<PhysicsLiveClockSource> c,std::shared_ptr<PhysicsLiveClockSource> w)
@@ -138,7 +151,7 @@ struct SourceAuthorityReceiver::Impl {
     }
     ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
     void own()const{need(std::this_thread::get_id()==executor);}
-    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();replay_busy=false;host.reset();paired=false;clear_ready(stats);stats.rejected.reset();stats.endpoint.reset();stats.endpoint_error.clear();endpoints.clear();admitted_cameras.reset();authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;condition.notify_all();}
+    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();active_replay.reset();replay_busy=false;host.reset();paired=complete_host_archive=false;clear_ready(stats);stats.rejected.reset();stats.endpoint.reset();stats.endpoint_error.clear();endpoints.clear();admitted_cameras.reset();authority.reset();target.reset();workspace.reset();stats.warmed=stats.workspace_warmed=false;condition.notify_all();}
     void reject_failed(const ReceivedAuthorityCut &cut){
         stats.rejected=ValidatedAuthorityCut{session->self(),cut.context,cut.seal};
         session->reject_authority(cut.context,cut.seal);
@@ -189,8 +202,16 @@ struct SourceAuthorityReceiver::Impl {
     void decode(std::stop_token stop){
         while(!stop.stop_requested()){
             std::optional<Job> item;
-            {std::unique_lock lock(mutex);condition.wait(lock,stop,[&]{return job&&(!job->after_replay||!replay_busy.load());});if(stop.stop_requested())return;item=std::move(job);job.reset();working=true;}
+            {
+                std::unique_lock lock(mutex);
+                condition.wait(lock,stop,[&]{return job&&(!job->after_replay||!replay_busy.load());});
+                if(stop.stop_requested())return;
+                item=std::move(job);job.reset();working=true;
+                if(item->preparation)active_complete_archive_generation=item->generation;
+            }
             Result out;out.generation=item->generation;out.cut=item->cut;out.admitted=std::move(item->admitted);const auto started=Clock::now();
+            out.complete_host_archive=item->complete_host_archive;
+            out.preparation=std::move(item->preparation);
             try {
                 need(out.cut.bytes&&out.cut.bytes->size()<=authority_network_encoded_bytes&&
                     out.cut.peer==out.cut.context.host&&out.cut.context==out.admitted.context);
@@ -204,7 +225,8 @@ struct SourceAuthorityReceiver::Impl {
                     need(out.cut.seal.tick==out.replay->steps.back().after_tick);
                 }else {
                 out.memory=NetworkCutReservation::acquire(stop);need(bool(out.memory));
-                const auto limits=source_authority_network_codec_limits();
+                need(!item->complete_host_archive||source_host_continuation_payload(*out.cut.bytes));
+                const auto limits=source_host_archive_network_codec_limits(item->complete_host_archive);
                 if(source_host_continuation_payload(*out.cut.bytes)){
                     need(mode==SourceAuthorityStreamMode::Replay);const auto fingerprint=session->loaded_fingerprint();need(fingerprint.has_value());
                     auto cut=decode_source_host_continuation(*out.cut.bytes,out.cut.context,*fingerprint,roster,out.admitted.players,limits);
@@ -226,7 +248,7 @@ struct SourceAuthorityReceiver::Impl {
             }catch(const std::exception &e){out.error=e.what();out.checkpoint.reset();out.image.reset();out.host.reset();out.memory.reset();}
             out.decode_us=micros(started);
             bool rejected=false;
-            {std::lock_guard lock(mutex);working=false;
+            {std::lock_guard lock(mutex);working=false;active_complete_archive_generation.reset();
                 if(out.generation==generation&&!stop.stop_requested())result=std::move(out);
                 else rejected=true;}
             if(rejected)session->reject_authority(out.cut.context,out.cut.seal);
@@ -245,10 +267,17 @@ void SourceAuthorityReceiver::prefetch(){update(false);}
 void SourceAuthorityReceiver::update(bool advance_replay){
     auto &s=*impl_;s.own();s.stats.replay_paused=!advance_replay;
     if(!s.enabled)return;s.sync();if(!s.eligible())return;
-    // Metadata alone does not start a cold load in ordinary gameplay. An
-    // explicit loading warm or a successfully decoded cut can construct one
-    // executor per call, leaving a network/input pump boundary between them.
-    bool pending_world=false;{std::lock_guard lock(s.mutex);pending_world=s.result&&s.result->checkpoint&&s.result->error.empty();}
+    const bool complete_allowed=s.session->authority_complete_host_archive_supported(s.context->host);
+    // A registered complete archive can warm from independent admissions
+    // while its decoder waits for the shared archive reservation. The warm
+    // Worlds already have their own owners and budgets. This keeps one
+    // receiver's cold construction from serializing another's work.
+    bool pending_world=false;{std::lock_guard lock(s.mutex);
+        if(s.result&&s.result->complete_host_archive&&!complete_allowed)
+            s.result->error="Complete host archive capability changed while decoding";
+        const bool preparing=complete_allowed&&
+            (s.active_complete_archive_generation==s.generation||(s.job&&s.job->preparation));
+        pending_world=preparing||(s.result&&s.result->checkpoint&&s.result->error.empty());}
     if(pending_world&&(!s.target||!s.workspace)){try{s.warm();}catch(const std::exception &e){s.stats.error=e.what();}return;}
     std::optional<Impl::Result> output;{std::lock_guard lock(s.mutex);if(!s.active_replay){output=std::move(s.result);s.result.reset();}}
     if(output){
@@ -272,7 +301,8 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                 auto prepared=s.mode==SourceAuthorityStreamMode::Replay?
                     s.authority->prepare(*output->checkpoint,source_authority_binding(output->cut.context),accepted->players):
                     s.authority->prepare_with_local_views(*output->checkpoint,source_authority_binding(output->cut.context),locals,staging,accepted->players,s.workspace->local_slots);
-                need(s.session->authority_context()==s.context&&s.admissions()==accepted);
+                need(s.session->authority_context()==s.context&&s.admissions()==accepted&&
+                    (!output->complete_host_archive||s.session->authority_complete_host_archive_supported(output->cut.context.host)));
                 clear_ready(s.stats);s.host.reset();commit_attempted=true;
                 need(s.authority->commit(std::move(prepared)));s.stats.prepare_microseconds=micros(started);
                 if(s.session->terminal_recovery_enabled()){
@@ -290,8 +320,11 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                 std::optional<SourceAuthorityHostProof> proof;
                 if(output->host)proof=SourceAuthorityHostProof(validated,*output->host);
                 const auto boundary=s.authority->execution_boundary();
-                need(s.session->authority_context()==s.context&&s.session->acknowledge_authority(output->cut.context,output->cut.seal));
+                need(s.session->authority_context()==s.context&&
+                    (!output->complete_host_archive||s.session->authority_complete_host_archive_supported(output->cut.context.host))&&
+                    s.session->acknowledge_authority(output->cut.context,output->cut.seal));
                 s.base=std::move(output->image);s.host=std::move(output->host);s.paired=s.host.has_value();s.stats.host_ready=s.paired;
+                s.complete_host_archive=output->complete_host_archive;
                 s.stats.ready=validated;s.stats.host_proof=std::move(proof);s.stats.rejected.reset();
                 s.validated_boundary=boundary;
                 if(s.mode==SourceAuthorityStreamMode::Replay){s.replay=SourceReplayBinding{output->cut.context,output->cut.seal,output->cut.seal,1};s.stats.replay_sequence=0;}
@@ -343,7 +376,17 @@ void SourceAuthorityReceiver::update(bool advance_replay){
         // the current replay's dynamic values have retired. Only its bounded
         // encoded transfer slot can overlap the full-cut reservation.
         const bool defer=s.active_replay&&!source_replay_batch_payload(*cut->bytes)&&!source_host_replay_payload(*cut->bytes);
-        {std::lock_guard lock(s.mutex);s.job.emplace(Impl::Job{s.generation,std::move(*cut),std::move(*accepted),s.base,expected,defer});}
+        const bool complete=source_host_continuation_payload(*cut->bytes)&&
+            s.session->authority_complete_host_archive_supported(cut->peer);
+        // The actual queued native construction may outlast byte-transfer idle
+        // time. Keep only that delivered cut's bounded lease alive; complete
+        // world validation and its explicit ACK remain below the decoder.
+        auto preparation=complete?std::make_unique<Impl::PreparationLease>(s.session,*cut):nullptr;
+        if(complete&&!s.session->begin_authority_preparation(cut->context,cut->seal)){
+            s.stats.error="Complete host archive preparation lease could not start";
+            s.reject_failed(*cut);return;
+        }
+        {std::lock_guard lock(s.mutex);s.job.emplace(Impl::Job{s.generation,std::move(*cut),std::move(*accepted),s.base,expected,defer,complete,std::move(preparation)});}
         ++s.stats.received;s.condition.notify_one();
     }
 }
@@ -362,8 +405,9 @@ void SourceAuthorityReceiver::retain_endpoint(){
     auto world=std::make_shared<const SourceAuthorityRetainedWorld>(checkpoint_paired(*s.stats.ready));
     std::uint64_t bytes{};for(const auto &region:world->checkpoint.world.world.bank.regions)bytes+=region.bytes.size();
     s.stats.endpoint_bank_bytes=bytes;
-    if(bytes>authority_network_native_bytes)throw FormatError("Terminal endpoint native bank bytes "+std::to_string(bytes)+
-        " exceed local retention image limit "+std::to_string(authority_network_native_bytes));
+    const auto bank_limit=source_host_archive_retained_bank_limit(s.complete_host_archive);
+    if(bytes>bank_limit)throw FormatError("Terminal endpoint native bank bytes "+std::to_string(bytes)+
+        " exceed local retention image limit "+std::to_string(bank_limit));
     auto endpoint=std::shared_ptr<const SourceAuthorityEndpoint>(new SourceAuthorityEndpoint(*s.stats.host_proof,std::move(world)));
     s.endpoints.push_back(endpoint);s.stats.endpoint=std::move(endpoint);
     ++s.stats.endpoint_copies;s.stats.endpoint_copy_microseconds+=micros(begin);s.stats.endpoint_bank_bytes=bytes;s.stats.endpoint_error.clear();
@@ -516,10 +560,17 @@ struct SourceAuthorityReplayWorker::Impl {
                         retention.reset();exporting=false;}
                 }
                 if(stop.stop_requested())break;
-                // These are private worlds. Warm only from the independently
-                // admitted peer roster, while the render/input thread proceeds.
+                // Complete archives register their delivered preparation lease
+                // before either cold World is constructed. An optional warm
+                // here could otherwise span byte completion and its idle
+                // deadline before update() gets to register that actual cut.
+                // Once negotiated, legacy peers retain admitted-roster warm.
                 const auto before=receiver.state();
-                if(!holding&&!before.received&&(!before.warmed||!before.workspace_warmed))receiver.warm();
+                if(!holding&&!before.received&&(!before.warmed||!before.workspace_warmed)){
+                    const auto context=options.online_match->authority_context();
+                    if(context&&options.online_match->authority_supported(context->host)&&
+                        !options.online_match->authority_complete_host_archive_supported(context->host))receiver.warm();
+                }
                 if(paused)receiver.prefetch();else receiver.update();
                 auto state=receiver.state();
                 {std::unique_lock lock(mutex);if(cancelled)break;stats=std::move(state);

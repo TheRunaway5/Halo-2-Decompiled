@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_object_activation_residuals.hpp"
+#include "halo2/native_tu15_phantom_body_velocity.hpp"
 #include "halo2/native_tu15_array_allocator.hpp"
 #include "halo2/native_tu15_contact_agent_factory.hpp"
 #include "halo2/native_tu15_centered_shape_bounds.hpp"
@@ -356,5 +357,38 @@ void native_tu15_activate_body_with_native_services(SourcePhysicsContactMemory&m
         native_tu15_activate_physics_body(memory,body,fp,activation,observer,
             activity?&activity->activation:nullptr);
     });
+}
+void native_tu15_deliver_lift_body_velocity(SourcePhysicsContactMemory &memory,
+    const NativeTu15LiftVelocityDelivery &request, NativeTu15PhysicsFrameFp &fp,
+    NativeTu15ObjectActivationScratch scratch, const NativeTu15ObjectActivationNativeServices &native,
+    const NativeTu15RetainedStoreObserver &observer, NativeTu15ObjectActivationBindingActivity *activity) {
+    const auto refuse = [](auto owner, auto, auto, unsigned, auto &) -> std::uint32_t {
+        throw std::runtime_error("Native lift velocity requires native wake child=" + std::to_string(owner));
+    };
+    const NativeTu15VelocityWords lanes = [&](unsigned lane) {
+        if (lane >= 3u || std::uint64_t(request.caller_vector) + 12u > 0x100000000ull)
+            throw std::runtime_error("Native lift velocity caller vector escapes its DATA");
+        const auto address = request.caller_vector + 4u * lane;
+        if (const auto *domain = dynamic_cast<const NativeTu15RetainedStoreObservationDomain *>(&memory))
+            domain->require_retained_extent(address, 4u);
+        std::array<std::byte, 4> bytes{};
+        memory.read(address, bytes);
+        std::uint32_t value{};
+        for (unsigned i = 0; i < bytes.size(); ++i)
+            value |= std::to_integer<std::uint32_t>(bytes[i]) << (8u * i);
+        return value;
+    };
+    with_activation_services(memory, request.incoming_x87_depth, scratch, refuse,
+        observer.callback(), activity, &native, [&](const auto &activation) {
+            auto *counts = activity ? &activity->activation : nullptr;
+            if (request.phase == NativeTu15LiftVelocityPhase::add_linear)
+                native_tu15_add_phantom_body_linear_velocity(memory, request.component, request.slot,
+                    lanes, fp, request.incoming_x87_depth, activation, observer, counts);
+            else if (request.phase == NativeTu15LiftVelocityPhase::set_angular)
+                native_tu15_set_phantom_body_velocity(memory, request.component, request.slot,
+                    NativeTu15PhantomVelocityKind::angular, lanes, fp, activation, observer, counts);
+            else
+                throw std::runtime_error("Native lift velocity phase is unavailable");
+        });
 }
 } // namespace halo2

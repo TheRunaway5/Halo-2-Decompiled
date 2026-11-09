@@ -41,6 +41,7 @@ def bundle_fixture(root):
     controller_prompt_fixture(root)
     custom_ui_fixture(root)
     empty_custom_map_fixture(root)
+    movie_fixture(root)
 
 
 def cache_bytes():
@@ -391,8 +392,8 @@ class TransactionTests(unittest.TestCase):
             self.assertTrue(result["handler_restored"])
             self.assertFalse(result["report"]["runtime_active"])
             self.assertFalse(result["report"]["full_tu15_parity"])
-            self.assertNotIn("port_bundled_movies", result["report"])
-            self.assertFalse((final / "presentation/movies").exists())
+            self.assertTrue(result["report"]["port_bundled_movies"]["complete"])
+            self.assertTrue((final / "presentation/movies/manifest.json").is_file())
             self.assertNotIn("port_authored_prompts", result["report"])
             self.assertFalse((final / "presentation/prompts").exists())
             self.assertEqual(json.loads((final / "provenance.json").read_text()), result["report"])
@@ -536,29 +537,20 @@ class TransactionTests(unittest.TestCase):
             self.assertEqual(list(prior.parent.iterdir()), [prior])
             self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected})
 
-    def assert_preparation_without_reference_movie_bank(self, *, invalid_bank=False):
+    def test_success_publishes_inactive_hashed_cache_without_iso_or_registry(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
             bundle_fixture(project)
-            if invalid_bank:
-                movie_fixture(project)
-                (project / "resources/movies/manifest.json").write_bytes(b"invalid preserved reference metadata")
-                (project / "resources/movies/credits_60.mp4").write_bytes(b"invalid preserved reference payload")
-            sources = list((project / "resources/movies").glob("*"))
-            source_manifest = project / "resources/movie-manifest.json"
-            if source_manifest.exists():
-                sources.append(source_manifest)
+            sources = [*(project / "resources/movies").iterdir(), project / "resources/movie-manifest.json"]
             before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in sources}
             def converted(maps, output, progress):
                 rows = [dict(map=p.name, source_sha256=preparation.file_sha(p),
                              output_sha256=preparation.file_sha(p)) for p in sorted(maps.glob('*.map'))]
                 preparation.write_json(output / 'tag-conversion.json', dict(profile=preparation.PROFILE, maps=rows))
                 return dict(maps=len(rows))
-            with patch('mcc_movies.required_bytes', side_effect=AssertionError('Reference movie preflight selected')), \
-                 patch('mcc_movies.prepare', side_effect=AssertionError('Reference movie importer selected')), \
-                 patch('mcc_prompts.required_bytes', side_effect=AssertionError('Reference prompt preflight selected')), \
+            with patch('mcc_prompts.required_bytes', side_effect=AssertionError('Reference prompt preflight selected')), \
                  patch('mcc_prompts.prepare', side_effect=AssertionError('Reference prompt importer selected')), \
                  patch.object(preparation, "prepare_maps", side_effect=converted), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_presentation, "preflight_v3"), patch.object(loading_presentation, "prepare_v3", side_effect=lambda root, cache, source, **kwargs: v3_summary_fixture(cache)), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
@@ -574,14 +566,21 @@ class TransactionTests(unittest.TestCase):
             self.assertTrue(report['controller_prompts']['complete'])
             self.assertEqual(len(report['controller_prompts']['files']),18)
             self.assertNotIn("port_bundled_loading_ambience", report)
-            self.assertNotIn("port_bundled_movies", report)
-            self.assertEqual((project / "resources/movies").exists(), invalid_bank)
+            movies = report["port_bundled_movies"]
+            self.assertTrue(movies["complete"])
+            self.assertEqual(set(movies["roles"]), {"intro", "credits"})
+            self.assertEqual(preparation.file_sha(final / movies["path"]), movies["sha256"])
+            for row in movies["roles"].values():
+                self.assertEqual((final / "presentation/movies" / row["path"]).read_bytes(),
+                                 (project / "resources/movies" / row["path"]).read_bytes())
             self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in sources})
-            self.assertFalse((final / "presentation/movies").exists())
             self.assertNotIn("port_authored_prompts", report)
             self.assertFalse((project / "resources/presentation/prompts").exists())
             self.assertFalse((final / "presentation/prompts").exists())
-            self.assertIn("verified MCC fonts", report["policy"]["prompt_artwork"])
+            self.assertIn("Port-owned Xbox/PlayStation", report["policy"]["prompt_artwork"])
+            self.assertIn("ordinary text and logical metrics only", report["policy"]["prompt_artwork"])
+            self.assertFalse(report["controller_prompts"]["mcc_button_glyphs_used"])
+            self.assertEqual(report["controller_prompts"]["families"], ["xbox", "playstation"])
             self.assertTrue(report['conversion_coverage']['stock_conversion_results_complete'])
             self.assertEqual(report['conversion_coverage']['stock_map_owners'],
                              ['h2_maps_win64_dx11/mainmenu.map', 'h2_maps_win64_dx11/shared.map'])
@@ -590,11 +589,17 @@ class TransactionTests(unittest.TestCase):
             self.assertFalse((project / "assets/asset-sources.tsv").exists())
             self.assertFalse(list((project / "assets/imported").glob(".staging-*")))
 
-    def test_success_publishes_inactive_hashed_cache_without_iso_or_registry(self):
-        self.assert_preparation_without_reference_movie_bank()
-
-    def test_fresh_import_preserves_and_ignores_invalid_reference_movie_bank(self):
-        self.assert_preparation_without_reference_movie_bank(invalid_bank=True)
+    def test_missing_bundled_movie_stops_preparation_before_copying_mcc(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            donor = source(root / "donor")
+            project = root / "port"
+            bundle_fixture(project)
+            (project / "resources/movies/credits_60.mp4").unlink()
+            with patch.object(preparation, "copy_verified") as copy:
+                with self.assertRaisesRegex(ValueError, "Bundled movie extent differs"):
+                    preparation.prepare(project, donor, lambda _: None)
+            copy.assert_not_called()
 
     def test_missing_unchanged_map_conversion_result_prevents_fresh_publication(self):
         with tempfile.TemporaryDirectory() as temp:

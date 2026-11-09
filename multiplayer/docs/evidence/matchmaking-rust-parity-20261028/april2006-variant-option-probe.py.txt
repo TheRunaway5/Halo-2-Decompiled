@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Replay three literal April 2006 Team SWAT options on diagnostic Slayer buffers."""
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import struct
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+sys.path.insert(0, str(ROOT / "tools"))
+from oracle_game_variants import Source, VARIANT, RESULTS
+from oracle_multiplayer_engines_tu15 import VARIANT_SPEC
+from unicorn import UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_EAX
+
+BOOK = "multiplayer/docs/reference/halo2-gamevariants-20060428.xls"
+BOOK_PIN = "a5efd4c183744811dea3a9356b559595b9cc22dafd1e2dd99e20e73455fb7998"
+OPTIONS = "multiplayer/docs/evidence/playlist-hoppers-20261028/option-parameters.json"
+RUST = "rust/online_protocol/src/matchmaking_variant.rs"
+TABLE, VALIDATOR = 0x47CF40, 0x1A7140
+# (parameter, group row, first choice row, final choice row, selected row, selected value)
+ROWS = [(19, 128, 129, 131, 130, 1), (20, 132, 133, 134, 134, 0),
+        (91, 145, 146, 147, 146, 1)]
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--report-output", type=Path, required=True)
+    args = parser.parse_args()
+    scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+    sources = (BOOK, OPTIONS, RUST, "tools/oracle_game_variants.py",
+               "tools/oracle_multiplayer_engines_tu15.py")
+    pins = {p: sha(Path(p).read_bytes()) for p in sources}
+    assert pins[BOOK] == BOOK_PIN and Path(BOOK).stat().st_size == 245248
+    lib = scratch / "xls-reader"
+    subprocess.run([sys.executable, "-m", "pip", "install", "--no-deps",
+                    "--no-cache-dir", "--disable-pip-version-check", "--target",
+                    str(lib), "xlrd==2.0.2"], check=True)
+    sys.path.insert(0, str(lib))
+    import xlrd
+    wb = xlrd.open_workbook(BOOK, formatting_info=True, on_demand=True)
+    sheet = wb.sheet_by_name("Variants")
+    option_rows = {r["parameter"]: r for r in json.loads(Path(OPTIONS).read_text())["parameters"]}
+    assert sheet.cell_value(0, 3) == "Slayer"
+    assert sheet.cell_value(1, 41) == "Team SWAT"
+    rows = []
+    for p, group, first, last, selected, value in ROWS:
+        option = option_rows[p]
+        labels = {c["value"]: c["label"] for c in option["choices"]}
+        heading = sheet.cell_value(group - 1, 1)
+        assert heading.strip().casefold() == option["title"].casefold(), (p, heading, option["title"])
+        choice = sheet.cell_value(selected - 1, 2)
+        if p == 19:
+            assert [sheet.cell_value(i - 1, 2) for i in range(first, last + 1)] == [
+                f"{label} ({code})" for code, label in labels.items()]
+            assert choice == f"{labels[value]} ({value})", (p, choice)
+        else:
+            assert choice == labels[value], (p, choice, labels[value])
+        group_cells = {f"AP{i}": {"type": sheet.cell_type(i-1, 41),
+                                 "value": sheet.cell_value(i-1, 41)}
+                       for i in range(first, last + 1)}
+        cell = group_cells[f"AP{selected}"]
+        assert cell == {"type": xlrd.XL_CELL_NUMBER, "value": value}, (p, cell)
+        assert all(other["type"] in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK)
+                   for addr, other in group_cells.items() if addr != f"AP{selected}"), (p, group_cells)
+        rows.append(dict(parameter=p, option_cell=f"B{group}", option_label=heading,
+                         choice_cell=f"C{selected}", choice_label=choice,
+                         variant_cell=f"AP{selected}", value=int(cell["value"]),
+                         group_cells=group_cells, descriptor=option["tu15_descriptor"]))
+    wb.release_resources()
+    source = Source(VARIANT_SPEC)
+    assert VARIANT_SPEC["pin"] == "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"
+    instructions = {}
+    count = 0
+
+    def verify(memory, address, size, unused):
+        nonlocal count
+        original = source.image.read(address, size)
+        assert bytes(memory.mem_read(address, size)) == original, hex(address)
+        instructions[address] = original
+        count += 1
+
+    source.g.hook_add(UC_HOOK_CODE, verify)
+    for row in rows:
+        addr = source.u(TABLE + 4 * row["parameter"])
+        assert addr == int(row["descriptor"]["address"], 16)
+        source.g.mem_write(RESULTS, bytes(12))
+        source.call(addr, (RESULTS, RESULTS + 4, RESULTS + 8))
+        assert [source.u(RESULTS + i * 4) for i in range(3)] == [
+            row["descriptor"][k] for k in ("kind", "offset", "operand")]
+
+    cases = []
+    buffers = []
+    original_results = []
+    def check_buffer(label, values):
+        encoded = source.raw()
+        raw = bytes.fromhex(encoded)
+        assert len(raw) == 304 and struct.unpack_from("<I", raw, 0x44)[0] == 2
+        for param, expected in values.items():
+            assert source.get(param) == expected, (label, param, expected)
+        assert source.raw() == encoded, (label, "getter changed caller bytes")
+        valid = bool(source.call(VALIDATOR, registers=((UC_X86_REG_EAX, VARIANT),)) & 255)
+        assert source.raw() == encoded, (label, "validator changed caller bytes")
+        assert valid, label
+        original_results.append(valid)
+        buffers.append(encoded)
+        cases.append(dict(label=label, values=values.copy(), buffer_sha256=sha(raw),
+                          original_valid=valid))
+        return raw
+
+    for selected in ([row] for row in rows):
+        source.init(0)
+        row = selected[0]
+        p, v = row["parameter"], row["value"]
+        source.set(p, 1 - v)
+        check_buffer(f"individual-{p}-opposite", {p: 1 - v})
+        source.set(p, v)
+        check_buffer(f"individual-{p}-selected", {p: v})
+    source.init(0)
+    values = {row["parameter"]: 1 - row["value"] for row in rows}
+    for p, v in values.items():
+        source.set(p, v)
+    before = check_buffer("combined-opposite", values)
+    for row in rows:
+        p, v = row["parameter"], row["value"]
+        source.set(p, v)
+        values[p] = v
+        after = check_buffer(f"combined-after-{p}", values)
+        diff = {i: a ^ b for i, (a, b) in enumerate(zip(before, after)) if a != b}
+        descriptor = row["descriptor"]
+        offset = descriptor["offset"]
+        if descriptor["kind"] == 1:
+            assert diff == {offset: 1 << descriptor["operand"]}, (p, diff)
+        else:
+            assert descriptor["kind"] == 5 and diff and set(diff) <= set(range(offset, offset + 4))
+        row["combined_changed_bytes"] = [
+            {"offset": hex(i), "before": before[i], "after": after[i], "xor": xor}
+            for i, xor in diff.items()
+        ]
+        before = after
+    module = scratch / "matchmaking_variant.rs"
+    shutil.copyfile(RUST, module)
+    assert sha(module.read_bytes()) == pins[RUST]
+    driver = scratch / "probe.rs"
+    driver.write_text('#[path="matchmaking_variant.rs"] mod variant;\n' + r'''
+use std::io::{self, BufRead};
+fn main() {
+    for line in io::stdin().lock().lines() {
+        let line = line.unwrap();
+        let raw: Vec<u8> = line.as_bytes().chunks_exact(2).map(|pair|
+            u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap()).collect();
+        println!("{}", u8::from(variant::valid(&raw)));
+    }
+}
+''')
+    rustc = ["rustup", "run", "1.96.0", "rustc"]
+    version = subprocess.check_output(rustc + ["--version"], text=True).strip()
+    assert version.startswith("rustc 1.96.0 ")
+    binary = scratch / "variant-probe"
+    subprocess.run(rustc + ["--edition=2024", str(driver), "-o", str(binary)], check=True)
+    rust = subprocess.check_output([str(binary)], input="\n".join(buffers) + "\n", text=True).splitlines()
+    assert rust == [str(int(original)) for original in original_results]
+    for case, result in zip(cases, rust):
+        case["rust_valid"] = result == "1"
+    assert pins == {p: sha(Path(p).read_bytes()) for p in sources}
+    proof = dict(schema="H2_APRIL_2006_WORKBOOK_OPTION_REPLAY_V1", passed=True,
+                 completed_utc=datetime.now(timezone.utc).isoformat(),
+                 source_pins=pins, tool_sha256=sha(Path(__file__).read_bytes()),
+                 reader=f"xlrd {xlrd.__version__}, static BIFF8",
+                 workbook_sheet="Variants", workbook_family_cell="D1",
+                 workbook_variant_cell="AP2", source_family="Slayer", workbook_variant="Team SWAT",
+                 option_cells=rows, original_xbe_sha256=VARIANT_SPEC["pin"],
+                 original_entries={k: hex(VARIANT_SPEC[k]) for k in ("globals", "init", "setter", "getter")},
+                 original_descriptor_table=hex(TABLE), original_validator=hex(VALIDATOR),
+                 all_executed_instruction_bytes_verified=True, instruction_count=len(instructions),
+                 instruction_invocations=count, executed_instruction_sha256=sha(b"".join(
+                     struct.pack("<IH", at, len(raw)) + raw for at, raw in sorted(instructions.items()))),
+                 patched_instructions=[], replaced_callees=[], getters_and_validator_leave_buffers_unchanged=True,
+                 rustc=version, controls=cases, scratch=str(scratch),
+                 diagnostic_only=True, historic_304_byte_payload_recovered=False,
+                 historical_membership_or_weights_recovered=False,
+                 production_catalog_changed=False, retained_generated_large_artifacts=[])
+    encoded = json.dumps(proof, indent=2) + "\n"
+    assert len(encoded.encode()) <= 16384
+    args.report_output.write_text(encoded)
+    print(json.dumps(dict(passed=True, options=len(rows), original_rust_controls=len(cases),
+                          instructions=len(instructions), instruction_invocations=count,
+                          receipt_sha256=sha(encoded.encode()))), flush=True)
+
+
+if __name__ == "__main__":
+    main()

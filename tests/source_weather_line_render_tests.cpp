@@ -16,6 +16,9 @@ int main(){try{
     std::vector<std::byte> code(std::size_t(in.tellg()));in.seekg(0);
     require(bool(in.read(reinterpret_cast<char*>(code.data()),code.size())),"short original VS22");
     Gpu g;if(!g.initialize(true))return 77;
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(g.physical,&properties);
+    const float unsupported_width=std::nextafter(properties.limits.lineWidthRange[1],INFINITY);
     const VkExtent2D extent{640,480};
     const auto pass=g.scene_pass(true);
     SourceWeatherLineRender renderer({g.physical,g.device,pass,HALO2_WEATHER_POINT_SHADER_DIR,true,true,true});
@@ -42,6 +45,7 @@ int main(){try{
         renderer.prepare(p);
         if(retained){auto bad=p;bad.vertices=std::span(vertices).first(1);reject(bad);
             bad=p;bad.raster.line_width=0;reject(bad);bad=p;bad.pixel=source_weather_pixel_program(false);reject(bad);
+            bad=p;bad.raster.line_width=unsupported_width;reject(bad);
             bad=p;bad.raster.depth_factor=1;reject(bad);bad=p;bad.raster.stencil_enabled=true;reject(bad);}
         g.begin();VkClearValue clear[2]{};clear[0].color={{.0627451f,.09411765f,.1254902f,.25f}};
         clear[1].depthStencil={clear_depth,0};VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
@@ -68,6 +72,8 @@ int main(){try{
     const float middle=std::bit_cast<float>(std::bit_cast<unsigned>(384.f/16777216.f)+1u);
     const auto partial=count(render(packet,middle));require(partial>100&&partial<full-100,"rain lost perspective W-depth occlusion");
     auto wide=packet;wide.raster.line_width=2;require(count(render(wide,1))>full,"authored wide rain has no coverage response");
+    auto empty=packet;empty.vertices={};empty.raster.line_width=unsupported_width;
+    require(render(empty,1)==hidden,"empty rain retained an earlier Vulkan draw");
     auto clipped=packet;clipped.raster.clip_range[2]=1024;require(render(clipped,1)==hidden,"rain bypassed source W clip");
     auto transparent=vertices;for(auto &v:transparent)v.color&=0xffffff;
     auto zero=packet;zero.vertices=transparent;require(render(zero,1)==hidden,"rain zero alpha blend changed color");

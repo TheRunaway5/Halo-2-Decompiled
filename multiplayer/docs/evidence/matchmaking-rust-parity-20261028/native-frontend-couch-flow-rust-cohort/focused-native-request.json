@@ -1,0 +1,25 @@
+{
+  "action": "validate",
+  "baseline": false,
+  "refresh": [
+    "rust/online_protocol/src/matchmaking_frontend_couch.rs",
+    "rust/online_protocol/tests/matchmaking_frontend_couch.rs"
+  ],
+  "targets": [
+    "native_frontend_party_rust_tests",
+    "native_frontend_lobby_view_rust_tests",
+    "native_frontend_lobby_query_rust_tests",
+    "native_frontend_party_view_rust_tests",
+    "native_frontend_party_flow_rust_tests",
+    "native_frontend_account_flow_rust_tests",
+    "native_frontend_friends_rust_tests",
+    "native_frontend_clans_rust_tests",
+    "native_frontend_presentation_rust_tests",
+    "native_frontend_progress_rust_tests",
+    "native_frontend_search_rust_tests",
+    "frontend_matchmaking_lobby_rust_tests",
+    "native_frontend_couch_rust_tests"
+  ],
+  "filter": "^(frontend_couch_cpp_rust|frontend_party_cpp_rust|frontend_lobby_view_cpp_rust|frontend_lobby_query_cpp_rust|frontend_party_view_cpp_rust|frontend_party_flow_cpp_rust|frontend_account_flow_cpp_rust|frontend_friends_cpp_rust|frontend_clans_cpp_rust|frontend_presentation_cpp_rust|frontend_progress_cpp_rust|frontend_search_cpp_rust|frontend_lobby_cpp_rust)$",
+  "config": "Debug"
+}

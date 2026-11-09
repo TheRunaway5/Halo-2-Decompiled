@@ -70,8 +70,23 @@ def specifications():
      for tick in [300,1000]:specs.append(dict(entry=0x13fe50,policy=policy,count=count,capacity=count,layout='packed',need=need,callbacks=callbacks,tick=tick))
  return specs
 
+def request_specifications():
+ specs=[]
+ for df in [False,True]:
+  for request in range(256):
+   for present,loaded in [(False,False),(True,False),(True,True)]:
+    for locks in [0,255]:specs.append(dict(entry=0x21f260,df=df,request=request,present=present,loaded=loaded,locks=locks,count=1))
+  for entry in [0x128970,0x1293f0]:
+   for present,loaded in [(False,False),(True,False),(True,True)]:
+    for held in range(8):
+     for selector in [-1,0,1]:specs.append(dict(entry=entry,df=df,present=present,loaded=loaded,held=held,selector=selector,count=1))
+  for entry in [0x21f260,0x128970,0x1293f0]:
+   for fault in ['pool','rows','bitmap','allocator','stack','tags','binding']:
+    specs.append(dict(entry=entry,df=df,count=1,present=False,fault=fault,request=2))
+ return specs
+
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--request-chain',action='store_true');args=p.parse_args()
  owner=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True);args.output=args.output.resolve()
  if not args.output.is_relative_to(owner):raise ValueError('Original fixture must stay in its disposable owner')
  args.output.mkdir(parents=True,exist_ok=False);image=Xbe(NEW_DEFAULT)
@@ -79,13 +94,16 @@ def main():
  regions=[[0x50e000,4096],[0x2000000,0x10000]]+[[base,0x10000 if base in [ROWS,CROWS,CHUNKS]else 4096]for base in [ALLOC,POOL,BITS,ROWS,CACHE,CBITS,CROWS,CHUNKS,WINDOWS]]
  header=dict(original_xbe_sha256=NEW_PIN,raw_abi_only=True,platform_results_supplied=[],source_stack_stores_observed=True,
   required_entries=ENTRIES,minimum_cases=2500,caller_direction_preserved=True,native_cpu_callees=CALLBACKS,required_boundary_callees=[0x1a3b70],regions=regions)
+ if args.request_chain:
+  regions.extend([[0x4f0000,4096],[0x52d000,4096],[0x4900000,0x10000],[0x4a00000,0x10000],[0x4b00000,0x10000],[0x4c00000,0x10000]])
+  header.update(required_entries=[0x21f260,0x128970,0x1293f0],native_cpu_callees=CALLBACKS+[0x21f420],required_boundary_callees=[0x1a3b70,0x2dbf74],minimum_cases=3000)
  counts=collections.Counter();sites=collections.Counter();branches=collections.Counter();total=collections.Counter();digest=hashlib.sha256()
  fixture=args.output/'cases.jsonl'
  with fixture.open('wb')as out:
   def emit(row):
    raw=(json.dumps(row,separators=(',',':'))+'\n').encode();out.write(raw);digest.update(raw)
   emit(header)
-  for ordinal,spec in enumerate(specifications()):
+  for ordinal,spec in enumerate(request_specifications()if args.request_chain else specifications()):
    rng=random.Random(0x13fe50+ordinal);fields=[]
    def w(at,n,value):fields.append([at,n,value&((1<<(8*n))-1)])
    count=spec.get('count',4);entry=spec['entry'];index=spec.get('index',ordinal%max(1,count));stride=spec.get('stride',24)
@@ -139,12 +157,31 @@ def main():
    elif entry==0x21f3f0:w(STACK+4,4,handle)
    elif entry==0x21f420:
     gp[3]=CHUNKS+0x9000;w(gp[3],4,rng.getrandbits(32));w(gp[3]+4,4,spec.get('size',513));w(gp[3]+8,4,0xffffffff);w(STACK+4,4,0xabcd1234)
+   if args.request_chain:
+    w(ALLOC+0x34,4,9)
+    binding=0x4900000;tags=0x4a00000;definition=0x4a08000;gestalt=0x4b00000;ranges=0x4b08000;permutations=0x4c00000
+    chunk=CHUNKS+0x1000;datum=0xabcd0000;selector=spec.get('selector',0)
+    for at,v in [(0x4f0414,tags),(tags+8,definition),(0x52d664,gestalt),(gestalt+0x24,ranges),(gestalt+0x2c,permutations),(gestalt+0x44,chunk),
+                 (binding+12,datum),(chunk,0x80001000),(chunk+4,513),(chunk+8,0x80000000 if spec.get('present')else 0xffffffff),(CROWS+0x1000+12,chunk)]:w(at,4,v)
+    w(definition+8,2,0);w(ranges+8,2,0);w(permutations+12,2,0)
+    w(binding+4,1,spec.get('held',0));w(binding+0x9c,1,selector);w(binding+0x9d,1,0);w(binding+0x9e,2,0)
+    w(CROWS+0x1000+2,1,int(spec.get('loaded',False)));w(CROWS+0x1000+4,1,spec.get('locks',0))
+    if entry==0x21f260:
+     w(STACK+4,4,datum);w(STACK+8,4,chunk);w(STACK+12,4,spec['request'])
+    elif entry==0x128970:w(STACK+4,4,binding)
+    else:gp[0]=binding
+    if not spec.get('present'):
+     for pool in [POOL,CACHE]:
+      w(pool+0x34,4,0);w(pool+0x38,4,0);w(pool+0x3c,4,0)
+     w(ROWS+0x1000,4,0);w(CROWS+0x1000,4,0);w(BITS,4,0);w(CBITS,4,0);w(ALLOC+0x3c,4,0xffffffff);w(ALLOC+0x40,4,0xffffffff)
    fault=spec.get('fault')
    if fault=='pool':w(ALLOC+0x64,4,0);gp[2]=0
    elif fault=='rows':w(POOL+0x44,4,0);w(CACHE+0x44,4,0)
    elif fault=='bitmap':w(POOL+0x48,4,0);w(CACHE+0x48,4,0)
    elif fault=='allocator':w(STACK+4,4,0);gp[1]=0;gp[7]=0
    elif fault=='stack':gp[4]=0x2000000
+   elif fault=='tags':w(0x4f0414,4,0)
+   elif fault=='binding':w(STACK+4,4,0);gp[0]=0
    xmm=[rng.getrandbits(128)for _ in range(8)];fp=[[0x27f,0x37f,0x77f,0xb7f,0xf7f][ordinal%5],[0x1f80,0x3f80,0x5f80,0x7f80,0x9fc0][ordinal%5],((ordinal%8)<<11)|(ordinal&0x3f)|0x4500]
    flags=0x202|(0x400 if spec.get('df',False)else 0);g=Uc(UC_ARCH_X86,UC_MODE_32);g.mem_map(0x10000,0x800000)
    for section in image.sections:g.mem_write(section.va,image.section_bytes(section))
@@ -161,11 +198,12 @@ def main():
    def u(at,n=4):return int.from_bytes(g.mem_read(at,n),'little')
    def code(_g,at,n,_):
     assert image.read(at,n)==bytes(g.mem_read(at,n))
-    if at!=0x1a3b70:executed.add(at)
-    if at in CALLBACKS+[0x1a3b70] and at!=entry:
-     sp=g.reg_read(UC_X86_REG_ESP);count=6 if at==0x1a3b70 else 1
+    stops=header['required_boundary_callees']
+    if at not in stops:executed.add(at)
+    if at in header['native_cpu_callees']+stops and at!=entry:
+     sp=g.reg_read(UC_X86_REG_ESP);count=6 if at==0x1a3b70 else 0 if at==0x2dbf74 else 1
      calls.append(dict(target=at,gp=[g.reg_read(reg)for reg in REGS],return_=u(sp),args=[u(sp+4+n*4)for n in range(count)]));calls[-1]['return']=calls[-1].pop('return_')
-     if at==0x1a3b70:stopped.append(at);g.emu_stop()
+     if at in stops:stopped.append(at);g.emu_stop()
    def write(_g,kind,at,n,v,_):
     try:before=u(at,n)
     except UcError:return
@@ -185,7 +223,7 @@ def main():
    counts[f'{entry:08x}']+=1;sites.update(executed);total.update(dict(cases=1,returns=not bad and not stopped,faults=bool(bad),backwards=bool(flags&0x400),stores=len(stores),stack_stores=len(stack_stores),callbacks=len(calls)-len(stopped),read_boundaries=len(stopped)))
    if ordinal%512==511:print(json.dumps(dict(completed=ordinal+1)),flush=True)
  md=Cs(CS_ARCH_X86,CS_MODE_32);functions={}
- for start,end in [(0x13fe00,0x13fe4d),(0x13fe50,0x14030d),(0x140310,0x14038c),(0x16e6a0,0x16e761),(0x16e770,0x16e7ea),(0x16e860,0x16e892),(0x16e8a0,0x16e932),(0x21f3b0,0x21f3e4),(0x21f3f0,0x21f41d),(0x21f420,0x21f4c8),(0x32a660,0x32a6a1)]:
+ for start,end in [(0x128970,0x1289f6),(0x1293f0,0x129465),(0x21f260,0x21f35f)]if args.request_chain else [(0x13fe00,0x13fe4d),(0x13fe50,0x14030d),(0x140310,0x14038c),(0x16e6a0,0x16e761),(0x16e770,0x16e7ea),(0x16e860,0x16e892),(0x16e8a0,0x16e932),(0x21f3b0,0x21f3e4),(0x21f3f0,0x21f41d),(0x21f420,0x21f4c8),(0x32a660,0x32a6a1)]:
   raw=image.read(start,end-start);instructions=list(md.disasm(raw,start));missing=[f'{q.address:08x}'for q in instructions if q.address not in sites]
   functions[f'{start:08x}']=dict(bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),static_sites=len(instructions),exercised=len(instructions)-len(missing),unexercised=missing)
  report=dict(passed=True,scope=__doc__,original_xbe_sha256=NEW_PIN,counts=dict(total),entries=dict(counts),instruction_sites=len(sites),executed_instructions_lower_bound=sum(sites.values()),

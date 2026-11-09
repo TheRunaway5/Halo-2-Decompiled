@@ -6,27 +6,21 @@
 namespace halo2 {
 struct FirstPersonIkDefinition;
 struct ModelSkinAdmissionCache;
+struct ModelSectionIndex;
 // Copying an immutable model may race with a pose publishing its lazy cache.
 // A new owner starts empty without reading the source owner's mutable slot.
-class ModelSkinAdmissionCacheSlot {
-  mutable std::atomic<std::shared_ptr<const ModelSkinAdmissionCache>> state_;
+template<class T> class ModelLazySlot {
+  mutable std::atomic<std::shared_ptr<const T>> state_;
 public:
-  ModelSkinAdmissionCacheSlot()=default;
-  ModelSkinAdmissionCacheSlot(const ModelSkinAdmissionCacheSlot &)noexcept {}
-  ModelSkinAdmissionCacheSlot(ModelSkinAdmissionCacheSlot &&)noexcept {}
-  ModelSkinAdmissionCacheSlot &operator=(const ModelSkinAdmissionCacheSlot &)noexcept {
-    publish({});return *this;
-  }
-  ModelSkinAdmissionCacheSlot &operator=(ModelSkinAdmissionCacheSlot &&)noexcept {
-    publish({});return *this;
-  }
-  std::shared_ptr<const ModelSkinAdmissionCache> load()const noexcept {
-    return state_.load(std::memory_order_acquire);
-  }
-  void publish(std::shared_ptr<const ModelSkinAdmissionCache> state)const noexcept {
-    state_.store(std::move(state),std::memory_order_release);
-  }
+  ModelLazySlot()=default;
+  ModelLazySlot(const ModelLazySlot &)noexcept {}
+  ModelLazySlot(ModelLazySlot &&)noexcept {}
+  ModelLazySlot &operator=(const ModelLazySlot &)noexcept {publish({});return *this;}
+  ModelLazySlot &operator=(ModelLazySlot &&)noexcept {publish({});return *this;}
+  std::shared_ptr<const T> load()const noexcept {return state_.load(std::memory_order_acquire);}
+  void publish(std::shared_ptr<const T> state)const noexcept {state_.store(std::move(state),std::memory_order_release);}
 };
+using ModelSkinAdmissionCacheSlot=ModelLazySlot<ModelSkinAdmissionCache>;
 struct Transform;
 struct BonePose {
   Vec3 translation;
@@ -68,6 +62,8 @@ struct RenderModel {
   // Immutable arithmetic summaries belong to this model's lifetime. Copies
   // and moves start empty and bind lazily to their own bank storage.
   ModelSkinAdmissionCacheSlot skin_admission_cache;
+  // Per-section vertex ordinals of this bank (model_section_index.hpp).
+  ModelLazySlot<ModelSectionIndex> section_index;
 };
 // 1CAA0 chooses transparent influences for raw part types4/5; 1CB20 maps
 // section modes0/1/2 directly and mode3 active counts0..4 to classes2..6.

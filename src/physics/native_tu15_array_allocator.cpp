@@ -31,7 +31,7 @@ std::uint32_t native_tu15_pool_allocate(NativeTu15PoolStorage&s,std::uint32_t by
         if(signed_word(batch)>=0x100)break;
       }
     }
-    s.counter(Counter::in_use,index,in_use,0x23336d);
+    s.counter(Counter::in_use,index,s.restore_in_use_count(index,in_use),0x23336d);
   }else{
     const auto pages=s.counter(Counter::pages);if(signed_word(pages)>=0x76)return 0;
     const auto reservations=s.counter(Counter::reservations);const auto page_offset=pages<<13u;
@@ -45,28 +45,35 @@ std::uint32_t native_tu15_pool_allocate(NativeTu15PoolStorage&s,std::uint32_t by
         batch+=size;next+=size;
       }while(signed_word(batch)<0x2000);
     }
-    s.counter(Counter::in_use,index,in_use,0x23336d);
+    s.counter(Counter::in_use,index,s.restore_in_use_count(index,in_use),0x23336d);
   }
   change(s,Counter::total_blocks,index,1,0x23337e);return result;
 }
-bool native_tu15_pool_release(NativeTu15PoolStorage&s,std::uint32_t data,std::uint32_t bytes){
+bool native_tu15_pool_release_delayed_data(NativeTu15PoolStorage&s,const std::function<std::uint32_t()>&acquire_data,std::uint32_t bytes){
   if(signed_word(bytes)>0x2000)return false;
   const auto index=signed_word(bytes)<=0x200?s.small_class(bytes):s.large_class(bytes);
   const auto in_use=s.counter(Counter::in_use,index);const auto available=s.counter(Counter::free_blocks,index);
   s.counter(Counter::free_blocks,index,available+1u,0x233458);const auto head=s.free_head(index);
-  s.counter(Counter::in_use,index,in_use-1u,0x233463);s.link(data,head,0x23346e);s.free_head(index,data,0x233470);return true;
+  s.counter(Counter::in_use,index,in_use-1u,0x233463);const auto data=acquire_data();s.link(data,head,0x23346e);s.free_head(index,data,0x233470);return true;
 }
-std::uint32_t native_tu15_route_array_allocation(NativeTu15ArrayAllocatorStorage&s,std::uint32_t bytes,std::uint32_t memory_class,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
-  const auto call=[&](std::uint32_t receiver){const auto owner=s.owner(receiver,false);if(!services.allocate_owner)throw std::runtime_error("Native TU1.5 allocator requires its current allocation owner");return services.allocate_owner({receiver,owner,bytes,memory_class},fp);};
-  if(s.mode()==1u)return call(s.heap(NativeTu15ArrayHeap::fixed));
+bool native_tu15_pool_release(NativeTu15PoolStorage&s,std::uint32_t data,std::uint32_t bytes){
+  return native_tu15_pool_release_delayed_data(s,[data]{return data;},bytes);
+}
+std::uint32_t native_tu15_route_array_allocation_delayed(NativeTu15ArrayAllocatorStorage&s,const NativeTu15ArrayAllocatorArguments&arguments,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
+  std::uint32_t bytes{},memory_class{};bool acquired=false;
+  const auto call=[&](std::uint32_t receiver){const auto owner=s.owner_with_inputs(receiver,false,{{},[&]{if(!acquired){memory_class=arguments.memory_class();bytes=arguments.bytes();acquired=true;}}});if(!services.allocate_owner)throw std::runtime_error("Native TU1.5 allocator requires its current allocation owner");return services.allocate_owner({receiver,owner,bytes,memory_class},fp);};
+  if(s.mode()==1u){const auto heap=s.heap(NativeTu15ArrayHeap::fixed);if(services.allocate_tail_owner)return services.allocate_tail_owner(heap,s.owner(heap,false),fp);return call(heap);}
   if(const auto result=call(s.heap(NativeTu15ArrayHeap::primary)))return result;
   if(const auto result=call(s.heap(NativeTu15ArrayHeap::secondary)))return result;
   if(!services.default_heap)throw std::runtime_error("Native TU1.5 allocator requires actual default-heap owner149930");
   return call(services.default_heap(fp));
 }
-void native_tu15_route_array_release(NativeTu15ArrayAllocatorStorage&s,std::uint32_t data,std::uint32_t bytes,std::uint32_t memory_class,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
+std::uint32_t native_tu15_route_array_allocation(NativeTu15ArrayAllocatorStorage&s,std::uint32_t bytes,std::uint32_t memory_class,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
+  return native_tu15_route_array_allocation_delayed(s,{[memory_class]{return memory_class;},[bytes]{return bytes;}},fp,services);
+}
+void native_tu15_route_array_release_delayed(NativeTu15ArrayAllocatorStorage&s,std::uint32_t data,const NativeTu15ArrayAllocatorArguments&arguments,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
   if(!data)return;
-  const auto call=[&](std::uint32_t receiver){const auto owner=s.owner(receiver,true);if(!services.release_owner)throw std::runtime_error("Native TU1.5 allocator requires its current release owner");services.release_owner({receiver,owner,data,bytes,memory_class},fp);};
+  const auto call=[&](std::uint32_t receiver){std::uint32_t bytes{},memory_class{};const auto owner=s.owner_with_inputs(receiver,true,{[&]{memory_class=arguments.memory_class();},[&]{bytes=arguments.bytes();}});if(!services.release_owner)throw std::runtime_error("Native TU1.5 allocator requires its current release owner");services.release_owner({receiver,owner,data,bytes,memory_class},fp);};
   const auto primary=s.heap(NativeTu15ArrayHeap::primary);
   if(signed_word(primary+0x4340u)<=signed_word(data)&&signed_word(primary+0xf0340u)>=signed_word(data)){call(primary);return;}
   const auto fixed=s.heap(NativeTu15ArrayHeap::fixed);
@@ -74,6 +81,9 @@ void native_tu15_route_array_release(NativeTu15ArrayAllocatorStorage&s,std::uint
   const auto secondary=s.heap(NativeTu15ArrayHeap::secondary);const auto first=s.secondary_start(secondary);
   if(signed_word(first)<=signed_word(data)&&signed_word(first+s.secondary_size(secondary))>=signed_word(data)){call(secondary);return;}
   if(!services.default_heap)throw std::runtime_error("Native TU1.5 allocator requires actual default-heap owner149930");call(services.default_heap(fp));
+}
+void native_tu15_route_array_release(NativeTu15ArrayAllocatorStorage&s,std::uint32_t data,std::uint32_t bytes,std::uint32_t memory_class,NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayAllocatorServices&services){
+  native_tu15_route_array_release_delayed(s,data,{[memory_class]{return memory_class;},[bytes]{return bytes;}},fp,services);
 }
 NativeTu15PoolMemory::NativeTu15PoolMemory(SourcePhysicsContactMemory&m,std::uint32_t pool,const SourcePhysicsContactRecordObserver&o):memory_(m),pool_(pool),observer_(o){}
 std::uint32_t NativeTu15PoolMemory::read(std::uint32_t p,unsigned bytes)const{std::array<std::byte,4>raw{};memory_.read(p,std::span(raw).first(bytes));std::uint32_t n{};for(unsigned i=0;i<bytes;++i)n|=std::to_integer<unsigned>(raw[i])<<(i*8u);return n;}

@@ -1,3 +1,4 @@
+#include "halo2/native_weapon_effect_birth_color_observer.hpp"
 #include "halo2/mcc_sound_duration_tu15.hpp"
 #include "halo2/mcc_sound_dat_resources_tu15.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
@@ -55,11 +56,15 @@
 #include "halo2/native_tu15_look_reorientation_input_observer.hpp"
 #include "halo2/native_tu15_look_reorientation_binding.hpp"
 #include "halo2/native_tu15_look_initialization_binding.hpp"
+#include "halo2/native_tu15_bsp_object_association_binding.hpp"
 #include "halo2/native_tu15_look_pipeline_binding.hpp"
 #include "halo2/native_tu15_object_velocity_handoff.hpp"
 #include "halo2/native_tu15_contact_features_handoff.hpp"
 #include "halo2/native_tu15_simplex_helpers_handoff.hpp"
 #include "halo2/native_tu15_overlap_query_handoff.hpp"
+#include "halo2/native_tu15_support_carrier_handoff.hpp"
+#include "halo2/native_tu15_unit_vitality_input.hpp"
+#include "halo2/native_custom_mechanics_frame_tu15.hpp"
 #include "halo2/native_tu15_vehicle_flip_binding.hpp"
 #include "halo2/native_tu15_vehicle_flip_handoff.hpp"
 #include "halo2/native_tu15_object_velocity_transport.hpp"
@@ -71,7 +76,11 @@
 #include "halo2/source_vehicle_compiled_symbols_tu15.hpp"
 #include "halo2/source_vehicle_bv_agent_tu15.hpp"
 #include "halo2/mcc_cpu_bitmap_projection.hpp"
+#include "halo2/native_d5610_bitmap_row_tu15.hpp"
+#include "halo2/native_tu15_object_recovery.hpp"
 #include "rendering/models/source_model_inline_cpu_bitmap_tu15.hpp"
+#include "rendering/mcc_cpu_bitmap_owner.hpp"
+#include "rendering/source_texture_cache_io_tu15.hpp"
 #include "halo2/source_ratio_threshold_crt_tu15.hpp"
 #include "halo2/source_environment_crt_pair_tu15.hpp"
 #include "audio/mcc_sound_variation_provider_internal.hpp"
@@ -123,6 +132,7 @@
 #include "halo2/source_weapon_hud_tu15.hpp"
 #include "halo2/source_crt_float_tu15.hpp"
 #include "campaign/campaign_bsp_callbacks_tu15.hpp"
+#include "halo2/native_campaign_bsp_player_reset_tu15.hpp"
 #include "halo2/source_physics_deactivation_tu15.hpp"
 #include "halo2/source_vehicle_auxiliary_tu15.hpp"
 #include "halo2/source_cloth_tu15.hpp"
@@ -183,6 +193,7 @@
 #include "halo2/source_physics_store_observers_tu15.hpp"
 #include "halo2/native_tu15_physics_frame_observation.hpp"
 #include "halo2/native_lift_scalar_consumer_tu15.hpp"
+#include "halo2/native_campaign_object_marker_request_tu15.hpp"
 #include "halo2/native_vehicle_rate_consumer_tu15.hpp"
 #include "halo2/native_constraint_schema_emitter_consumer_tu15.hpp"
 #include "halo2/native_tu15_world_integration_residuals.hpp"
@@ -241,6 +252,8 @@
 #include "halo2/source_sound_dma_storage_tu15.hpp"
 #include "halo2/source_sound_hardware_storage_tu15.hpp"
 #include "halo2/source_sound_cache_io_tu15.hpp"
+#include "halo2/source_animation_cache_io_tu15.hpp"
+#include "halo2/source_kernel_yield_tu15.hpp"
 #include "halo2/source_sound_cache_query_tu15.hpp"
 #include "halo2/source_sound_scalar_tu15.hpp"
 #include "halo2/native_tu15_sound_manager.hpp"
@@ -266,6 +279,7 @@
 #include "physics/physics_live_entries_tu15.hpp"
 #include "platform/native_startup_memory_hints.hpp"
 #include <algorithm>
+#include <optional>
 #include <bit>
 #include <chrono>
 #include <iostream>
@@ -423,6 +437,33 @@ const SourceMainCameraOperandsTu15& SourceMainCameraRasterUseTu15::operands()con
     return data_;
 }
 
+namespace {
+// Live entry lookup: the generated table's keys are unique (checked at compile
+// time), so a binary search over a sorted copy returns the linear scan's row.
+// HALO2_REFERENCE_LIVE_ENTRY_SCAN=1 keeps the linear scan.
+struct LiveEntryKey {std::uint32_t actual;std::uint16_t index;};
+constexpr auto live_entry_index=[] {
+    std::array<LiveEntryKey,physics_live_entries_tu15::entries.size()> out{};
+    for(std::size_t i=0;i<out.size();++i)out[i]={physics_live_entries_tu15::entries[i].actual,std::uint16_t(i)};
+    std::sort(out.begin(),out.end(),[](const LiveEntryKey &a,const LiveEntryKey &b){return a.actual<b.actual;});
+    return out;
+}();
+static_assert(physics_live_entries_tu15::entries.size()<65536);
+static_assert([] {
+    for(std::size_t i=1;i<live_entry_index.size();++i)if(!(live_entry_index[i-1].actual<live_entry_index[i].actual))return false;
+    return true;
+}(),"live entry keys must be unique for the sorted lookup to equal the linear scan");
+const physics_live_entries_tu15::Entry *live_entry(std::uint32_t target) {
+    static const bool reference=[]{const auto *p=std::getenv("HALO2_REFERENCE_LIVE_ENTRY_SCAN");return p && *p;}();
+    if(reference) {
+        for(const auto &e:physics_live_entries_tu15::entries)if(target==e.actual)return &e;
+        return nullptr;
+    }
+    const auto at=std::lower_bound(live_entry_index.begin(),live_entry_index.end(),target,
+        [](const LiveEntryKey &key,std::uint32_t value){return key.actual<value;});
+    return at!=live_entry_index.end() && at->actual==target?&physics_live_entries_tu15::entries[at->index]:nullptr;
+}
+}
 struct PhysicsLiveWorldTu15::Impl {
     struct GeometryRequestStats {
         std::uint64_t calls{},acquire{},promote{},yield{},pump{},lighting{},lighting_reference{},bank_bsp{},bank_bsp_reference{};
@@ -520,6 +561,10 @@ struct PhysicsLiveWorldTu15::Impl {
     struct BuiltServices{std::thread::id main_thread;SourcePhysicsWorldRuntimeServices services;};
     std::atomic<const BuiltServices*> built_services{nullptr};
     std::mutex built_services_mutex;std::vector<std::unique_ptr<BuiltServices>> built_services_retained;
+    // The lock services capture only this owner, so one instance serves every
+    // call (consumers take const&). Declared here so it outlives the owners
+    // whose translated teardown may still ask for it.
+    std::once_flag lock_services_once;std::optional<PhysicsPlatformLockServices> lock_services_cached;
     const SourcePhysicsWorldRuntimeServices &services() {
         if(const auto *built=built_services.load(std::memory_order_acquire);built && built->main_thread==main_thread)
             return built->services;
@@ -638,6 +683,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::unique_ptr<SourceWeaponAnimationQuerySymbolsTu15> weapon_animation_query_symbols;
     std::unique_ptr<SourceUnitSpeechChannelSymbolsTu15> unit_speech_channel_symbols;
     std::unique_ptr<private_cpu_bitmap::WorldProjection> cpu_bitmap_projection;
+    private_cpu_bitmap::PredictionRows bitmap_prediction_rows;
     std::unique_ptr<SourceRuntimeDspSection> dsp_section;
     std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk_resources;
     std::unique_ptr<NativeTu15AudioPreference> sound_preference;
@@ -695,11 +741,15 @@ struct PhysicsLiveWorldTu15::Impl {
     SourcePhysicsContactRecordObserver physics_store_observer;
     bool physics_store_observer_read_only{};
     NativeLiftScalarActivityTu15 native_lift_activity;
+    NativeTu15ObjectActivationBindingActivity native_lift_body_wake_activity;
     NativeVehicleRateActivityTu15 native_vehicle_rate_activity;
     NativeTu15ObjectVelocityHandoffActivity native_object_velocity_handoffs;
     NativeTu15ContactFeaturesHandoffActivity native_contact_features_handoffs;
     NativeTu15SimplexHelpersHandoffActivity native_simplex_helpers_handoffs;
     NativeTu15OverlapQueryHandoffActivity native_overlap_query_handoffs;
+    NativeTu15SupportCarrierHandoffActivity native_support_carrier_handoffs;
+    NativeTu15UnitMaximumVitalityStats native_unit_maximum_vitality_inputs;
+    NativeTu15UnitEquipmentProfileStats native_unit_equipment_profiles;
     NativeTu15SmallContactFactoryActivity native_small_contact_factories;
     NativeTu15SphereCleanupHandoffActivity native_sphere_cleanups;
     NativeTu15VehicleFlipHandoffActivity native_vehicle_flip_handoffs;
@@ -1152,7 +1202,7 @@ struct PhysicsLiveWorldTu15::Impl {
         // Actual44B7BC is the BSP-load slot (constructor+10), not a
         // substituted all-visible mask. Complete2190C0 owns initialization,
         // existing object associations and authored noncollidable exclusions.
-        call_actual(0x2190c0u);
+        initialize_native_bsp_object_associations();
         call_actual(0x213260u); // Actual44B52C new-map availability reset.
         call_actual(0x10e410u);
         call_actual(0x178ab0u);
@@ -1290,7 +1340,14 @@ struct PhysicsLiveWorldTu15::Impl {
         put(bank,0x4f3218u,game);
         const std::array none{std::byte{0xff},std::byte{0xff}};bank.write(game+2u,none);
     }
-    PhysicsPlatformLockServices lock_services() {
+    // HALO2_REFERENCE_LOCK_SERVICES=1 builds a fresh instance per call, as before.
+    const PhysicsPlatformLockServices &lock_services() {
+        static const bool reference=[]{const auto *p=std::getenv("HALO2_REFERENCE_LOCK_SERVICES");return p && *p;}();
+        if(reference){thread_local std::optional<PhysicsPlatformLockServices> fresh;fresh.emplace(build_lock_services());return *fresh;}
+        std::call_once(lock_services_once,[this]{lock_services_cached.emplace(build_lock_services());});
+        return *lock_services_cached;
+    }
+    PhysicsPlatformLockServices build_lock_services() {
         const auto event=[this](std::uint32_t p) {
             std::lock_guard guard(mutex);
             const auto at=lock_events.find(p);if(at!=lock_events.end())return at->second;
@@ -1322,6 +1379,25 @@ struct PhysicsLiveWorldTu15::Impl {
         static constexpr std::array<std::uint32_t,3> instruction_service_sites{
             0x38846eu,0x21f590u,0x33b595u};
         s.instruction=[this](auto p) {
+            // HALO2_INSTRUCTION_CENSUS=<file>: count main-thread instruction
+            // observations by source PC and write "pc count" lines at exit.
+            // Diagnostic only; complete delivery needs
+            // HALO2_REFERENCE_INSTRUCTION_CALLBACKS=1 (the literal cursor
+            // otherwise stores the PC without calling this callback).
+            static const char *census_path=[]{const auto *e=std::getenv("HALO2_INSTRUCTION_CENSUS");return e && *e?e:nullptr;}();
+            if(census_path && std::this_thread::get_id()==main_thread) {
+                struct Census {
+                    std::vector<std::uint32_t> counts=std::vector<std::uint32_t>(0x400000u);
+                    ~Census() {
+                        if(auto *out=std::fopen(census_path,"w")) {
+                            for(std::size_t pc=0;pc<counts.size();++pc)if(counts[pc])std::fprintf(out,"%zx %u\n",pc,counts[pc]);
+                            std::fclose(out);
+                        }
+                    }
+                };
+                static Census census;
+                if(p<census.counts.size())++census.counts[p];
+            }
             //38846E publishes work for the actual GP and then polls its
             // request word. This graph has no native GP request owner yet;
             // stop before publishing work which no processor can consume.
@@ -1831,6 +1907,14 @@ struct PhysicsLiveWorldTu15::Impl {
     void required_entry_original(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(c.target==0xc1270u) {
+            last_instruction=0xc1270u;
+            native_tu15_collect_object_recovery_candidates(m,c,a,o);return;
+        }
+        if(c.target==0xc12f0u) {
+            last_instruction=0xc12f0u;
+            native_tu15_finish_empty_object_recovery(m,c,a,o);return;
+        }
         if(native_campaign_ai_path_distance_tu15_owns_call(c)) {
             native_campaign_ai_path_distance_tu15_run(m,c,a);return;
         }
@@ -2050,11 +2134,28 @@ struct PhysicsLiveWorldTu15::Impl {
             required(m,{c.target,c.target,false},a,o);
             effect_damage_observer(false,event,bank);return;
         }
-        if(c.target==0x108a70u && c.instruction!=c.target && !c.tail && (weapon_effect_observer || weapon_effect_phase_observer)) {
+        const bool scheduled_weapon_dispatch=c.target==0x108a70u && c.instruction!=c.target &&
+            !c.tail && (weapon_effect_observer || weapon_effect_phase_observer);
+        std::optional<std::uint32_t> direct_weapon_request;
+        if(c.instruction==0x1798c8u && c.target==0x178e30u && !c.tail && weapon_effect_observer) {
+            const auto sp=a.gp[4],request=word(m,sp+4u);
+            // The native108A1F call reaches179800 with the firing weapon in
+            // EDI. Its local request lies below the actual108A24 return.
+            if(request==sp+8u && word(m,request+0x60u)==0x108a24u) {
+                if(word(m,sp)!=0x1798cdu)
+                    throw FormatError("TU1.5 direct weapon effect lost its original caller");
+                direct_weapon_request=request;
+            }
+        }
+        if(scheduled_weapon_dispatch || direct_weapon_request) {
             const auto sp=a.gp[4];
-            if(word(m,sp)!=c.instruction+5u)
+            if(scheduled_weapon_dispatch && word(m,sp)!=c.instruction+5u)
                 throw FormatError("TU1.5 scheduled weapon effect lost its original caller");
-            const WeaponEffectInput input{a.gp[0],a.gp[1],word(m,sp+4u),word(m,sp+8u),word(m,sp+12u)};
+            const auto request=direct_weapon_request.value_or(0);
+            const WeaponEffectInput input=request?
+                WeaponEffectInput{word(m,request+4u),a.gp[7],0xffffffffu,
+                    word(m,request+0x40u),word(m,request+0x44u)}:
+                WeaponEffectInput{a.gp[0],a.gp[1],word(m,sp+4u),word(m,sp+8u),word(m,sp+12u)};
             const auto tag=input.effect==0xffffffffu?nullptr:cache_owner.query_tag({.handle=TagHandle{input.effect}});
             if(tag && tag->group=="effe") {
                 const auto body=object_body(input.weapon),unit=word(m,body+0x14u);
@@ -2064,17 +2165,9 @@ struct PhysicsLiveWorldTu15::Impl {
                 // scratch. Observing this request cannot write gameplay stack
                 // bytes, alter the outer ABI or enter another live call scope.
                 event.velocity=source_object_linear_velocity_read_only_tu15(bank,input.weapon,fp);
-                const SourcePhysicsContactRecordObserver observed=[&](const auto &store) {
-                    if(o)o(store);
-                    const auto pc=store.instruction;
-                    const bool ca=pc==0x17b0a3u || pc==0x17e484u || pc==0x17e4d2u || pc==0x17e58eu;
-                    const bool cb=pc==0x17b0a9u || pc==0x17e48du || pc==0x17e4dbu || pc==0x17e594u;
-                    if((!ca && !cb) || store.written.size()!=4)return;
-                    const auto color=Bytes(store.written).u32(0);
-                    (ca?event.presentation.colors.a:event.presentation.colors.b)=color;
-                    event.presentation.colors_observed=true;
-                };
-                const bool capture=weapon_effect_phase_observer && !weapon_effect_phase_callback_active;
+                NativeWeaponEffectBirthColorCollector birth_colors{event.presentation,o};
+                const auto&observed=birth_colors.observer();
+                const bool capture=scheduled_weapon_dispatch && weapon_effect_phase_observer && !weapon_effect_phase_callback_active;
                 if(capture) {
                     weapon_effect_phase_trace.clear();weapon_effect_phase_cpu.clear();
                     weapon_effect_phase_observer(true,a,bank,{},{});weapon_effect_phase_callback_active=true;
@@ -2092,8 +2185,9 @@ struct PhysicsLiveWorldTu15::Impl {
                     }
                 };
                 try {
-                    weapon_effect_captures.push_back({&event,{},{}});
+                    weapon_effect_captures.push_back({&event,direct_weapon_request,{}});
                     CaptureLifetime lifetime{*this};
+                    auto readonly_stores=birth_colors.borrow();
                     required(m,{c.target,c.target,false},a,observed);
                 }
                 catch(...) {if(capture){weapon_effect_phase_active=false;weapon_effect_phase_callback_active=false;}throw;}
@@ -2324,6 +2418,7 @@ struct PhysicsLiveWorldTu15::Impl {
             }
             projectile_detonations.push_back(std::move(event));return;
         }
+        if(source_try_kernel_yield_tu15(m,c,a))return;
         if(source_try_native_process_heap_memory_call(bank,c,a,image,virtual_memory))return;
         // The complete Process memmove owns this shared entry. Other generated
         // closures contain private copies with incomplete indirect branches;
@@ -2358,26 +2453,15 @@ struct PhysicsLiveWorldTu15::Impl {
             if(source_try_sound_cache_io_tu15(m,c,a,io))return;
         }
         if(c.instruction==0x1301b0u && c.target==0x1a3b70u && !c.tail) {
-            // Actual1300B0 has allocated the original texture cache block and
-            // produced its hardware descriptor. Native file I/O fills that
-            // block; Vulkan presentation owns its separate GPU resources.
-            const auto sp=a.gp[4],tracking=a.gp[6];
-            const auto descriptor=word(m,tracking+0x10u),level=word(m,tracking+4u);
-            const auto size=word(m,sp+4u),destination=word(m,sp+8u);
-            const auto pool=word(m,0x4f2d24u),rows=word(m,pool+0x44u);
-            if(std::this_thread::get_id()!=main_thread || word(m,sp)!=0x1301b5u ||
-                level>=3u || tracking<rows || (tracking-rows)%0x28u ||
-                (tracking-rows)/0x28u>=word(m,pool+0x38u) ||
-                word(m,sp+12u)!=0 || word(m,sp+16u)!=tracking+3u || word(m,sp+20u)!=3u ||
-                a.gp[1]!=word(m,descriptor+0x1cu+level*4u) ||
-                size!=((word(m,descriptor+0x34u+level*4u)+511u)&~511u) ||
-                destination!=word(m,descriptor+0x40u+level*4u))
-                throw FormatError("TU1.5 texture resource I/O differs from its actual source cache block");
-            const auto bytes=resources.load(a.gp[1],size);
-            bank.write(destination,bytes);
-            const auto job=retain_resource_read({descriptor,destination,size});
-            const std::array done{std::byte{1}};bank.write(tracking+3u,done);
-            a.gp[0]=job;a.gp[4]+=28u;return;
+            if(std::this_thread::get_id()!=main_thread)
+                throw FormatError("TU1.5 texture resource I/O requires its World thread");
+            if(source_try_texture_cache_io_tu15(m,bank,c,a,
+                [this](const SourceTextureCacheReadTu15& read){
+                    if(auto bytes=bitmap_prediction_rows.read(bank,cache_owner,read.descriptor,
+                            read.partition,read.encoded_offset,read.bytes))return std::move(*bytes);
+                    return resources.load(read.encoded_offset,read.bytes);},
+                [this](const SourceTextureCacheReadTu15& read){
+                    return retain_resource_read({read.descriptor,read.destination,read.bytes});}))return;
         }
         if(c.instruction==0x130f68u && c.target==0x1a3b70u && !c.tail) {
             // Complete130EB0 has reserved its actual geometry-cache pages and
@@ -2407,27 +2491,11 @@ struct PhysicsLiveWorldTu15::Impl {
             const std::array done{std::byte{1}};bank.write(tracking+2u,done);
             a.gp[0]=job;a.gp[4]+=28u;return;
         }
-        if(c.instruction==0x126139u && c.target==0x1a3b70u && !c.tail) {
-            // Explicit native file-I/O boundary of the original1260C0 cache
-            // owner. It has already allocated the real cache block and job
-            // tracking record. Deliver actual sector bytes, retain a native
-            // completed request identity, and signal its I/O completion only
-            // after the read and destination write succeed. Xbox async queue
-            // scheduling is not asserted by this synchronous native policy.
-            const auto sp=a.gp[4],tracking=a.gp[7];
-            const auto descriptor=word(m,tracking+0xcu),size=word(m,sp+4),destination=word(m,sp+8);
-            const auto resource=resources.animation(descriptor);
-            if(std::this_thread::get_id()!=main_thread || word(m,sp)!=0x12613eu ||
-                word(m,sp+12)!=0 || word(m,sp+16)!=tracking+4u || word(m,sp+20)!=6u ||
-                !std::ranges::equal(bank.view(descriptor,12),std::span(resource.descriptor).first(12)) ||
-                a.gp[1]!=word(m,descriptor+8u) || size!=((resource.bytes.size()+511u)&~511u))
-                throw FormatError("TU1.5 animation resource I/O differs from its actual cache descriptor");
-            auto bytes=resources.load(a.gp[1],size);
-            bank.write(destination,bytes);
-            const auto job=retain_resource_read({descriptor,destination,size},true);
-            const std::array done{std::byte{1}};bank.write(tracking+4u,done);
-            a.gp[0]=job;a.gp[4]+=28;return;
-        }
+        if(source_try_animation_cache_io_tu15(m,bank,c,a,main_thread,
+            [this](auto descriptor){return resources.animation(descriptor);},
+            [this](auto descriptor){return bank.view(descriptor,12);},
+            [this](const SourceAnimationCacheReadTu15& read){return resources.load(read.encoded_offset,read.bytes);},
+            [this](const SourceAnimationCacheReadTu15& read){return retain_resource_read({read.descriptor,read.destination,read.bytes},true);}))return;
         // Keep the existing external XAPI wrapper's platform/correspondence
         // owner. The special module calls its own complete wrapper internally
         // only from the authenticated2131F9 sound-bank constructor.
@@ -2572,6 +2640,18 @@ struct PhysicsLiveWorldTu15::Impl {
             source_run_contrail_geometry_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_combat_action_tu15_owns_entry(c.target)) {
+            if(canonical_cache && c.target==0x17e460u && c.instruction==0x179012u && !c.tail) {
+                if(&m!=&bank || word(m,a.gp[4])!=0x179017u)
+                    throw FormatError("D5610 bitmap projection lost its retained 17E460 caller");
+                const NativeD5610BitmapRowBindingTu15 binding(bank,[this](auto bitmap,auto root,auto raw) {
+                    if(word(bank,root+0x48u)!=raw)
+                        throw FormatError("D5610 bitmap projection lost its canonical first row");
+                    if(!cpu_bitmap_projection)
+                        cpu_bitmap_projection=std::make_unique<private_cpu_bitmap::WorldProjection>(cache_owner,bank,*canonical_cache);
+                    return cpu_bitmap_projection->first_row_for_canonical_root(TagHandle{bitmap},root);
+                });
+                source_run_combat_action_tu15(m,c.target,a,fp,services(),o);return;
+            }
             source_run_combat_action_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(pstencil_native_light_portal_tu15_owns_entry(c.target)) {
@@ -2989,7 +3069,17 @@ struct PhysicsLiveWorldTu15::Impl {
             const auto result=virtual_memory.allocate({word(m,bp),0,word(m,np),f.type,4});
             put(m,bp,result.base);put(m,np,result.bytes);a.gp[0]=result.status;a.gp[4]+=24;return;
         }
-        if(c.target==0x2f73c0u&&image==SourcePhysicsContactImage::TitleUpdate15) {
+        if(c.target==0x184ec0u&&image==SourcePhysicsContactImage::TitleUpdate15) {
+            if(sp<0x600c1000u||sp>0x600fffc0u)
+                throw FormatError("Native support carrier has no retained caller DATA arena");
+            const NativeTu15SupportCarrierHandoffPolicy policy{
+                0x600c0000u,0x60100000u,(sp-0x1000u)&~15u,0x100u,
+                !o&&(!physics_store_observer||physics_store_observer_read_only),
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}};
+            if(native_tu15_handoff_support_carrier(m,c,a,policy,o,&native_support_carrier_handoffs))return;
+        }
+        if((c.target==0x2f73c0u||c.target==0x2f9ca0u||c.target==0x2fab70u)&&image==SourcePhysicsContactImage::TitleUpdate15) {
             if(sp<0x600c2000u||sp>0x600fffc0u)
                 throw FormatError("Native overlap query has no retained caller DATA arena");
             const NativeTu15OverlapQueryHandoffPolicy policy{
@@ -3018,7 +3108,8 @@ struct PhysicsLiveWorldTu15::Impl {
             if(native_tu15_handoff_sphere_cleanup(m,c,a,policy,(sp-0x100u)&~15u,
                 native_tu15_make_pool_array_services(m,o),o,&native_sphere_cleanups))return;
         }
-        for(const auto&e:physics_live_entries_tu15::entries)if(c.target==e.actual) {
+        if(const auto *entry=live_entry(c.target)) {
+            const auto &e=*entry;
             using Module=physics_live_entries_tu15::Module;
             switch(e.module) {
             case Module::Damage:source_run_damage_delivery_runtime_selected_observations(m,e.canonical,a,image,fp,services(),o);return;
@@ -3098,6 +3189,12 @@ struct PhysicsLiveWorldTu15::Impl {
             SourceExecutionObserverScope read_only(bank);gameplay_fade_activation_observer(event);return;
         }
         if(!gameplay_fade_observer)return;
+        capture_gameplay_fade_frame(parent.floating_point);
+    }
+    // Native frame owners publish this actual bank/FP boundary directly.
+    // No original CPU register or stack image is reconstructed for observation.
+    void capture_gameplay_fade_frame(const std::optional<SourcePhysicsFactoryFloatingPoint>& floating_point) {
+        if(!gameplay_fade_observer)return;
         const auto engine=word(bank,0x4f63b8u),game=word(bank,0x4f3218u),clock=word(bank,0x51df54u);
         SourceGameplayFadeFrameTu15 out;
         const auto kind=word(bank,engine+0xc14u);out.engine_present=kind<=10u && word(bank,0x56dfa0u+kind*4u)!=0;
@@ -3108,8 +3205,8 @@ struct PhysicsLiveWorldTu15::Impl {
         out.phase_counter_before=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,engine+0xfau,2)));
         out.pending_phase=std::bit_cast<std::int32_t>(word(bank,engine+0xc04u));
         out.life_limit=std::bit_cast<std::int32_t>(word(bank,game+0x1b8u));
-        if(!parent.floating_point)throw FormatError("Original gameplay fade observation omitted its active FP context");
-        out.x87_control_word=parent.floating_point->x87_control_word;out.mxcsr=parent.floating_point->mxcsr;
+        if(!floating_point)throw FormatError("Original gameplay fade observation omitted its active FP context");
+        out.x87_control_word=floating_point->x87_control_word;out.mxcsr=floating_point->mxcsr;
         const auto pool=word(bank,0x4f54f4u),rows=word(bank,pool+0x44u);
         if(word(bank,pool+0x20u)!=16u || word(bank,pool+0x24u)!=0x21cu)
             throw FormatError("Original gameplay fade player pool schema differs");
@@ -3155,6 +3252,9 @@ struct PhysicsLiveWorldTu15::Impl {
         SourceExecutionObserverScope read_only(bank);player_scoreboard_observer({player,gate});
     }
     void capture_player_status_phase(const SourcePhysicsWorldRuntimeAbi& parent) {
+        capture_player_status_bank(parent.gp[4]);
+    }
+    void capture_player_status_bank(std::optional<std::uint32_t> caller_stack) {
         if(!player_status_observer)return;
         const auto engine=word(bank,0x4f63b8u),game=word(bank,0x4f3218u);
         const auto kind=word(bank,engine+0xc14u);
@@ -3169,7 +3269,7 @@ struct PhysicsLiveWorldTu15::Impl {
         const auto options_state=std::uint8_t(word(bank,game+0xcu,1));
         const auto engine_status=std::bit_cast<std::int32_t>(word(bank,engine+0xc04u));
         SourcePlayerStatusPhaseTu15 event{word(bank,word(bank,0x51df54u)+8u),{}};
-        CallerFrame caller(*this,parent.gp[4]);
+        CallerFrame caller(*this,caller_stack.value_or(0u));
         for(unsigned i=0;i<16;++i)if(occupied&(1u<<i)) {
             const auto row=rows+i*0x21cu;
             const auto player=(word(bank,row,2)<<16u)|i;
@@ -3218,9 +3318,42 @@ struct PhysicsLiveWorldTu15::Impl {
         auto a=frame(args);
         run_actual(entry,a);return a.gp[0];
     }
+    void initialize_native_bsp_object_associations() {
+        ++native_bsp_association_dispatches;
+        try {
+            source_execution_untracked(bank,0x2190c0u);Execution execution(*this);
+            // This canonical bootstrap boundary has no retained-observer
+            // capability yet. Read-only alone never consents to private DATA
+            // omission; refuse instead of discarding an installed callback.
+            if(physics_store_observer) {
+                ++native_bsp_association_observer_refusals;
+                throw FormatError("Native BSP association requires absent observer or qualified retained capability");
+            }
+            const auto first=bank.find_unowned_range(0x70000000u,0x100000000ull,32u,16u);
+            if(!first) {
+                ++native_bsp_association_resource_refusals;
+                throw FormatError("Native BSP association requires disjoint logical iterator DATA");
+            }
+            std::vector<NativeTu15ContactPrivateRange> retained;
+            bank.visit_region_metadata([&](const auto&region) {
+                // Complete reservations are retained owners too. Copy scalar
+                // topology only; no bank payload or borrowed span escapes.
+                if(region.bytes>0xffffffffull) {
+                    ++native_bsp_association_resource_refusals;
+                    throw FormatError("Native BSP association retained extent exceeds32-bit range");
+                }
+                retained.push_back({region.address,std::uint32_t(region.bytes)});
+            });
+            native_tu15_initialize_bound_bsp_object_associations(bank,{*first,32u},retained,{},&native_bsp_associations);
+        } catch(...) {++native_bsp_association_refusals;throw;}
+    }
+    NativeTu15BspObjectAssociationStats native_bsp_associations;
+    std::uint64_t native_bsp_association_dispatches{},native_bsp_association_refusals{},
+        native_bsp_association_resource_refusals{},native_bsp_association_observer_refusals{};
     NativeTu15PhysicsFrameExecutionStats native_physics_frames;
     NativeTu15WorldIntegrationStats native_physics_integrations;
     NativeTu15LookInitializationBindingActivity native_look_initialization;
+    NativeTu15LookInitializationBindingActivity native_remote_look_birth_initialization, native_input_collection_look_initialization;
     NativeTu15LookReorientationBindingActivity native_look_reorientation;
     NativeTu15LookPipelineActivity native_look_pipeline;
     std::uint64_t native_world_residual_calls{};
@@ -3294,7 +3427,25 @@ struct PhysicsLiveWorldTu15::Impl {
             [this](const auto& parent){capture_player_scoreboard_gate(parent);});
         NativeLiftScalarConsumerScopeTu15 lift_consumer(bank,{0x60000000u,0x60100000u,
             [this](auto pc){last_instruction=pc;},&first_person_phase_active,&weapon_effect_phase_active,
-            !o&&(!physics_store_observer||physics_store_observer_read_only),&native_lift_activity});
+            !o&&(!physics_store_observer||physics_store_observer_read_only),&native_lift_activity,
+            [this](auto &memory, const auto &delivery, auto &state, const auto &observer) {
+                if (&memory != &bank)
+                    throw FormatError("Native lift velocity requires its current world bank");
+                // The activation service owns temporary DATA only. Its
+                // logical range stays disjoint from every mapped bank and
+                // is never mounted in retained memory.
+                const auto resource = bank.find_unowned_range(0x60100000u, 0x61000000u, 0x900u, 16u);
+                if (!resource)
+                    throw FormatError("Native lift velocity has no disjoint wake DATA range");
+                const auto base = *resource;
+                const std::array<NativeTu15ContactPrivateRange, 1> owned{{{base, 0x900u}}};
+                NativeTu15ContactCandidatePrivateData view(memory, owned, {});
+                const NativeTu15ObjectActivationScratch scratch{
+                    base+0x20u,base+0x24u,base+0x40u,base+0x80u,0x800u};
+                const NativeTu15ObjectActivationNativeServices factories;
+                native_tu15_deliver_lift_body_velocity(view,delivery,state,scratch,factories,observer,
+                                                      &native_lift_body_wake_activity);
+            }, native_campaign_object_marker_request_tu15});
         NativeVehicleRateConsumerScopeTu15 rate_consumer(bank,{0x60000000u,0x60100000u,
             [this](auto pc){last_instruction=pc;},&first_person_phase_active,&weapon_effect_phase_active,
             !o&&(!physics_store_observer||physics_store_observer_read_only),&native_vehicle_rate_activity});
@@ -3490,7 +3641,15 @@ struct PhysicsLiveWorldTu15::Impl {
                 ~Restore(){bank.write(address,bytes);}
             } restore{bank,input,{}};
             bank.read(input,restore.bytes);put(bank,input,0xffffffffu);
-            auto a=frame({});a.gp[0]=0;a.gp[1]=unit;run_actual(0x18a0c0u,a);
+            auto a=frame({});
+            source_execution_untracked(bank,0x18a0c0u);Execution execution(*this);
+            SourcePhysicsContactRecordObserver observed;
+            if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+                last_instruction=store.instruction;collector(store);
+            };
+            native_tu15_initialize_bound_look_controller(bank,0u,unit,
+                {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+                !physics_store_observer||physics_store_observer_read_only,observed,&native_remote_look_birth_initialization);
             bank.write(retained,bank.view(input,0x94));put(bank,retained+0x94u,0xffffffffu);
         }
     }
@@ -4221,8 +4380,77 @@ struct PhysicsLiveWorldTu15::Impl {
             " ranges="<<tick_digest.ranges.size()<<" physical_pages="<<tick_digest.physical_pages.size()<<
             " sequence="<<std::hex<<sequence<<" last="<<tick_digest.digests.back()<<std::dec<<'\n';
     }
+    NativeCustomMechanicsFrameStats native_custom_frames;
+    void step_custom_mechanics() {
+        source_execution_untracked(bank,0x15eba0u);Execution execution(*this);
+        NativeTu15PhysicsFrameFp numerical{fp.x87_control_word,0,fp.mxcsr};
+        const auto invoke=[&](std::uint32_t owner,auto& abi,NativeTu15PhysicsFrameFp& active) {
+            abi.x87_status=active.status;
+            abi.floating_point=SourcePhysicsFactoryFloatingPoint{active.control_word,active.mxcsr};
+            const auto completed=[&] {
+                active={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+            };
+            try {run_actual(owner,abi);}catch(...) {completed();throw;}
+            completed();
+            if(abi.x87_depth || abi.active_mmx)
+                throw FormatError("Custom shared mechanics child left an unbalanced numerical context");
+        };
+        NativeCustomMechanicsFrameServices actions;
+        actions.shared=[&](auto owner,std::uint32_t argument,auto& active) {
+            const auto entry=std::uint32_t(owner);
+            if(owner==NativeCustomMechanicsSharedOwner::netgame_rows_15d890) {
+                auto abi=frame(std::array{argument});invoke(entry,abi,active);return;
+            }
+            auto abi=frame({});
+            if(owner==NativeCustomMechanicsSharedOwner::team_lifetime_15e4b0)abi.gp[7]=argument;
+            if(owner==NativeCustomMechanicsSharedOwner::teleporters_1a6830 && multiplayer_teleporter_observer) {
+                // This typed parent keeps its locals in C++. There is no
+                // active original caller stack to protect after RET; the
+                // standalone child's completed ESP is above the entry frame.
+                const auto events=capture_teleporters([&]{invoke(entry,abi,active);return 0u;},true,true);
+                SourceExecutionObserverScope read_only(bank);multiplayer_teleporter_observer(events);
+            }else invoke(entry,abi,active);
+        };
+        actions.player=[&](auto owner,std::uint32_t player,auto& active) {
+            const auto entry=std::uint32_t(owner);
+            if(owner==NativeCustomMechanicsPlayerOwner::lifecycle_15e540) {
+                auto abi=frame(std::array{player});invoke(entry,abi,active);return;
+            }
+            auto abi=frame({});
+            if(owner==NativeCustomMechanicsPlayerOwner::camouflage_15dc90)abi.gp[6]=player;
+            else abi.gp[0]=player;
+            invoke(entry,abi,active);
+        };
+        actions.roster_mask=[&](const NativeCustomRosterMaskRequest& input) {
+            const auto engine=word(bank,0x4f63b8u);
+            if(input.address!=engine+0xc10u ||
+                !((input.instruction==0x15ecd0u && input.width==2u && input.and_bits==0xffffu && input.or_bits==1u) ||
+                  (input.instruction==0x15ecd9u && input.width==1u && input.and_bits==0xfeu && input.or_bits==0u)))
+                throw FormatError("Custom roster mask requires its exact native storage operand");
+            // The writable owner admits the entire operand before DATA is
+            // read. One committed view owns both sides of the native RMW.
+            auto bytes=bank.mutable_view(input.address,input.width);
+            NativeTu15RetainedCounterUpdate result;
+            std::copy(bytes.begin(),bytes.end(),result.before.begin());
+            std::uint32_t value{};
+            for(unsigned n=0;n<input.width;++n)value|=std::to_integer<std::uint32_t>(bytes[n])<<(8u*n);
+            value=(value&input.and_bits)|input.or_bits;
+            for(unsigned n=0;n<input.width;++n)result.written[n]=bytes[n]=std::byte(value>>(8u*n));
+            return result;
+        };
+        actions.phase=[&](auto phase,auto& active) {
+            if(phase==NativeCustomMechanicsPhase::player_status_completed)capture_player_status_bank({});
+            else capture_gameplay_fade_frame(SourcePhysicsFactoryFloatingPoint{active.control_word,active.mxcsr});
+        };
+        SourcePhysicsContactRecordObserver observed;
+        if(physics_store_observer)observed=[this](const auto& store) {
+            last_instruction=store.instruction;physics_store_observer(store);
+        };
+        native_custom_mechanics_frame_tu15(bank,numerical,0,actions,observed,&native_custom_frames);
+    }
     void step_objects(SourceEngineFrameOwnerTu15 engine_owner) {
-        if(engine_owner!=SourceEngineFrameOwnerTu15::World && engine_owner!=SourceEngineFrameOwnerTu15::MatchAdapter)
+        if(engine_owner!=SourceEngineFrameOwnerTu15::World && engine_owner!=SourceEngineFrameOwnerTu15::MatchAdapter &&
+           engine_owner!=SourceEngineFrameOwnerTu15::CustomRules)
             throw FormatError("TU1.5 world tick requires one engine frame owner");
         main_receipts.retire();
         if(!session_configured || !word(bank,0x52be48u))
@@ -4242,9 +4470,10 @@ struct PhysicsLiveWorldTu15::Impl {
         // admits campaign work and returns immediately for an inactive bank.
         call_actual(0x1d0670u);
         // Literal13AB1C runs the selected engine before PVS/object updates.
-        // Existing match adapters explicitly retain this interval until their
-        // score/lifecycle/current-unit consumers use the source world bank.
+        // Custom modes replace rule policy while retaining the same shared
+        // native mechanics and genuine lifecycle children.
         if(engine_owner==SourceEngineFrameOwnerTu15::World)call_actual(0x15eba0u);
+        else if(engine_owner==SourceEngineFrameOwnerTu15::CustomRules)step_custom_mechanics();
         for(auto entry:{0x13b6f0u,0xb8f40u,0x1cc8d0u,0xb9090u,0xb9180u}) {
             // Store census of one translated tick owner (HALO2_TICK_OWNER_CENSUS=
             // <hex entry>): the write set a native kernel must reproduce.
@@ -4275,7 +4504,8 @@ struct PhysicsLiveWorldTu15::Impl {
             call_actual(0x15f450u);call_actual(0x1503d0u);
             // Literal13AB67 owns the game-over countdown and fade request.
             call_actual(0x13b990u);
-        }
+        } else if(engine_owner==SourceEngineFrameOwnerTu15::CustomRules)
+            call_actual(0x1503d0u); // Shared original13AB58 player actions/powerup timers.
         // Engine birth follows this tick's command delivery. Construct only
         // missing current-unit inputs before private FP publication; do not
         // invent a command, a look delta or another gameplay/animation tick.
@@ -4346,10 +4576,11 @@ struct PhysicsLiveWorldTu15::Impl {
         if(!(a.gp[0]&255u))throw FormatError("Original campaign BSP resource publication failed");
         a=frame({});a.gp[0]=bsp.bsp;run_actual(0x171120u,a);
         source_bind_runtime_cache_bsp_tu15(bank,bsp);
-        const std::array ordinal{std::byte(selected),std::byte(selected>>8)};
-        bank.write(game+2u,ordinal); // Literal13A851..13A857 native selected-BSP input.
-        for(const auto &entry:campaign_bsp_callbacks_tu15)
-            if(entry.load && entry.load!=0x31d400u)call_actual(entry.load);
+        native_campaign_bsp_reset_visibility_tu15(bank);
+        for(const auto &entry:campaign_bsp_callbacks_tu15) {
+            if(entry.row==60u)native_campaign_bsp_reset_players_tu15(bank);
+            else if(entry.load && entry.load!=0x31d400u)call_actual(entry.load);
+        }
         rendered_model_nodes.clear();
     }
     std::uint32_t create_biped(std::uint32_t definition,const Vec3&position,const Vec3&forward,std::uint32_t player) {
@@ -4394,6 +4625,95 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0xcf5a0u,std::array{unit,weapon,1u});
         const auto inventory=player_equipment(unit);
         return std::find(inventory.weapons.begin(),inventory.weapons.end(),weapon)!=inventory.weapons.end()?weapon:0xffffffffu;
+    }
+    SourcePlayerEquipmentTu15 apply_equipment_profile(std::uint32_t unit,
+        const SourceUnitEquipmentProfileInputTu15& input) {
+        if(!session_configured || !std::isfinite(input.health_damage) || !std::isfinite(input.shield_damage) ||
+            input.grenades[0]>4u || input.grenades[1]>4u)
+            throw FormatError("Equipment profile requires its source session, finite scalars and grenade counts0..4");
+        const auto body=object_body(unit); // Validate full generation before any loadout mutation.
+        if((word(bank,body+0xaau)&255u)>1u)
+            throw FormatError("Equipment profile requires a live source unit body");
+        for(const auto& weapon:input.weapons) {
+            if(weapon.definition==0xffffffffu)continue;
+            if(weapon.rounds_loaded<0 || weapon.rounds_total<weapon.rounds_loaded ||
+                !cache_owner.query_tag({.handle=TagHandle{weapon.definition},.group=tag_groups::weapon,.require_address=true}))
+                throw FormatError("Equipment profile requires resident weapon definitions and declared loaded/total ammo inputs");
+        }
+        // Declared content is ordinary INPUT, never an immutable scenario-row
+        // edit. This bank is disjoint from public scalar/position requests.
+        constexpr std::uint32_t request=0x60060100u;
+        const auto bytes=source_unit_equipment_profile_bytes_tu15(input);
+        bank.write(request,bytes);
+        struct DeclaredProfile final:NativeTu15UnitEquipmentProfileInput {
+            explicit DeclaredProfile(std::uint32_t at):address(at){}
+            bool selected()const override{return true;}
+            std::uint32_t data()const override{return address;}
+            std::uint32_t address;
+        } profile(request);
+        SourcePhysicsContactRecordObserver observed;
+        if(physics_store_observer)observed=[this](const auto& store){
+            last_instruction=store.instruction;physics_store_observer(store);
+        };
+        const auto invoke=[&](auto owner,auto& abi,NativeTu15PhysicsFrameFp& arithmetic) {
+            abi.x87_status=arithmetic.status;
+            abi.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
+            try{run_actual(owner,abi,observed,true);}
+            catch(...){arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};throw;}
+            arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+        };
+        NativeTu15UnitEquipmentProfileServices actions;
+        actions.clear=[&](auto object,auto& arithmetic){
+            auto abi=frame(std::array{object});invoke(0xcf4d0u,abi,arithmetic);
+        };
+        actions.create=[&](auto object,auto weapon_input,bool garbage,auto& arithmetic){
+            auto abi=frame(std::array{object,std::uint32_t(garbage)});abi.gp[3]=weapon_input;
+            // Real CF240 owns B9960/B9B70 and106A50. Its request+C is not
+            // overwritten with the different1A8CAB runtime-item caller input.
+            invoke(0xcf240u,abi,arithmetic);return abi.gp[0];
+        };
+        actions.carry=[&](auto object,auto weapon,auto& arithmetic){
+            auto abi=frame(std::array{object,weapon,1u});invoke(0xcf5a0u,abi,arithmetic);return (abi.gp[0]&255u)!=0;
+        };
+        actions.retire=[&](auto weapon,auto& arithmetic){
+            auto abi=frame(std::array{weapon});invoke(0xba570u,abi,arithmetic);
+        };
+        NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+        native_tu15_apply_unit_equipment_profile(bank,unit,profile,true,input.mark_garbage,
+            arithmetic,actions,observed,&native_unit_equipment_profiles);
+        return player_equipment(unit);
+    }
+    void set_unit_maximum_vitality(std::uint32_t unit,std::optional<float> health,
+                                  std::optional<float> shield) {
+        if(!session_configured || (health&&!std::isfinite(*health)) || (shield&&!std::isfinite(*shield)))
+            throw FormatError("Unit maximum vitality input requires its configured source world and finite scalars");
+        if(unit==0xffffffffu)return;
+        const auto body=object_body(unit); // Full source generation must still be alive.
+        if((word(bank,body+0xaau)&255u)>1u)
+            throw FormatError("Unit maximum vitality input requires a live source unit body");
+        constexpr std::uint32_t request=0x60060020u;
+        if(health)put(bank,request,std::bit_cast<std::uint32_t>(*health));
+        if(shield)put(bank,request+4u,std::bit_cast<std::uint32_t>(*shield));
+        SourcePhysicsContactRecordObserver observed;
+        if(physics_store_observer)observed=[this](const auto& store){
+            last_instruction=store.instruction;physics_store_observer(store);
+        };
+        NativeTu15PhysicsFrameFp numerical{fp.x87_control_word,0,fp.mxcsr};
+        native_tu15_set_live_unit_maximum_vitality(bank,unit,
+            {health?request:0u,shield?request+4u:0u},numerical,observed,&native_unit_maximum_vitality_inputs);
+    }
+    std::uint32_t create_weapon(std::uint32_t definition,Vec3 position) {
+        if(!session_configured || !std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z))
+            throw FormatError("Runtime weapon input requires its configured source world and finite point");
+        const auto tag=cache_owner.query_tag({.handle=TagHandle{definition},.group=tag_groups::weapon,.require_address=true});
+        if(!tag)throw FormatError("Runtime weapon input requires a resident weapon definition");
+        constexpr std::uint32_t request=0x60010000u;
+        auto a=frame(std::array{definition,0xffffffffu,0u});a.gp[6]=request;
+        run_actual(0xb9960u,a);
+        put(bank,request+0xcu,0u); // Original1A8CAB runtime item caller input.
+        const auto weapon=call_actual(0xb9b70u,std::array{request});
+        if(weapon!=0xffffffffu)set_object_position(weapon,position);
+        return weapon;
     }
     void set_object_position(std::uint32_t object,Vec3 position) {
         if(!session_configured || !word(bank,0x52be48u) ||
@@ -4821,6 +5141,31 @@ struct PhysicsLiveWorldTu15::Impl {
                     std::to_string(word(bank,header+0x20u)));
         }
     }
+    void request_custom_match_completion() {
+        if(public_calls!=1u || execution_depth || continuation_fault ||
+            first_person_phase_active || weapon_effect_phase_active || !session_configured)
+            throw FormatError("Custom match completion requires a completed healthy World boundary");
+        const auto game=word(bank,0x4f3218u),engine=word(bank,0x4f63b8u);
+        if(!game || !engine || !word(bank,0x52be48u) || word(bank,game+8u)!=2u ||
+            word(bank,game+0xcu,1)==4u || word(bank,engine+0xc14u)!=2u ||
+            word(bank,engine+0x24u)!=0xffffffffu)
+            throw FormatError("Custom match completion requires its admitted multiplayer mechanics owner");
+        SourceGameVariant variant;
+        bank.read(game+0x13cu,std::as_writable_bytes(std::span(variant.bytes)));
+        if(!source_game_variant_valid(variant) || source_game_variant_type(variant)!=2 || source_game_variant_get(variant,2)!=0)
+            throw FormatError("Custom match completion requires the private unlimited Slayer input");
+        const auto requested=word(bank,engine+0xc04u),applied=word(bank,engine+0x6cu,2);
+        if((requested!=1u && requested!=2u) || (applied!=1u && applied!=2u))
+            throw FormatError("Custom match completion requires an active or completed source phase");
+        // Actual13B4A0 supplies the game-over intent. Actual1628D0 is the
+        // original phase-input owner; phase2 is requested by15DDC0 itself.
+        // Whole15EFA0 applies that input and the genuine mode+90 callback.
+        // The stock15F450 score/result finalizer is a separate rule owner.
+        call_actual(0x13b4a0u);
+        auto transition=frame({});transition.gp[2]=2u;
+        run_actual(0x1628d0u,transition);
+        call_actual(0x15efa0u);
+    }
     void configure_session(const SourceGameVariant&variant,std::uint16_t mode,
         std::int16_t rate,std::uint32_t seed,std::uint32_t kind=2,
         std::optional<std::int16_t> difficulty={}) {
@@ -5144,13 +5489,32 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_look_reorientation_kernel_calls=look_reorientation.reorientation.calls;
     result.native_look_reorientation_kernel_refusals=look_reorientation.reorientation.refusals;
     result.native_look_reorientation_yaw_wraps=look_reorientation.reorientation.yaw_wraps;
+    const auto&bsp_associations=impl_->native_bsp_associations;
+    result.native_bsp_association_attempts=impl_->native_bsp_association_dispatches;
+    result.native_bsp_association_calls=bsp_associations.completed;
+    result.native_bsp_association_refusals=impl_->native_bsp_association_refusals;
+    result.native_bsp_association_kernel_entries=bsp_associations.attempts;
+    result.native_bsp_association_kernel_refusals=bsp_associations.refusals;
+    result.native_bsp_association_iterator_calls=bsp_associations.iterator_calls;
+    result.native_bsp_association_reset_objects=bsp_associations.reset_objects;
+    result.native_bsp_association_association_records=bsp_associations.association_records;
+    result.native_bsp_association_matched_objects=bsp_associations.matched_objects;
+    result.native_bsp_association_excluded_objects=bsp_associations.excluded_objects;
+    result.native_bsp_association_resource_refusals=impl_->native_bsp_association_resource_refusals;
+    result.native_bsp_association_observer_refusals=impl_->native_bsp_association_observer_refusals;
     const auto&look_initialization=impl_->native_look_initialization;
-    result.native_look_initialization_attempts=look_initialization.attempts;
-    result.native_look_initialization_calls=look_initialization.completed;
-    result.native_look_initialization_refusals=look_initialization.refusals;
-    result.native_look_initialization_cleared_records=look_initialization.initialization.cleared_records;
-    result.native_look_initialization_unit_directions=look_initialization.initialization.unit_directions;
-    result.native_look_initialization_unchanged=look_initialization.initialization.unchanged;
+    result.native_look_initialization_attempts=look_initialization.attempts+impl_->native_remote_look_birth_initialization.attempts+impl_->native_input_collection_look_initialization.attempts;
+    result.native_look_initialization_calls=look_initialization.completed+impl_->native_remote_look_birth_initialization.completed+impl_->native_input_collection_look_initialization.completed;
+    result.native_look_initialization_refusals=look_initialization.refusals+impl_->native_remote_look_birth_initialization.refusals+impl_->native_input_collection_look_initialization.refusals;
+    result.native_look_initialization_cleared_records=look_initialization.initialization.cleared_records+impl_->native_remote_look_birth_initialization.initialization.cleared_records+impl_->native_input_collection_look_initialization.initialization.cleared_records;
+    result.native_look_initialization_unit_directions=look_initialization.initialization.unit_directions+impl_->native_remote_look_birth_initialization.initialization.unit_directions+impl_->native_input_collection_look_initialization.initialization.unit_directions;
+    result.native_look_initialization_unchanged=look_initialization.initialization.unchanged+impl_->native_remote_look_birth_initialization.initialization.unchanged+impl_->native_input_collection_look_initialization.initialization.unchanged;
+    result.native_look_initialization_remote_birth_attempts=impl_->native_remote_look_birth_initialization.attempts;
+    result.native_look_initialization_remote_birth_calls=impl_->native_remote_look_birth_initialization.completed;
+    result.native_look_initialization_remote_birth_refusals=impl_->native_remote_look_birth_initialization.refusals;
+    result.native_look_initialization_input_collection_attempts=impl_->native_input_collection_look_initialization.attempts;
+    result.native_look_initialization_input_collection_calls=impl_->native_input_collection_look_initialization.completed;
+    result.native_look_initialization_input_collection_refusals=impl_->native_input_collection_look_initialization.refusals;
     result.world_integrations=impl_->native_physics_integrations.world_integrations;
     result.island_integrations=impl_->native_physics_integrations.island.islands;
     result.native_force_calls=impl_->native_physics_integrations.island.native_force_calls;
@@ -5806,6 +6170,10 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_lift_power_calls=impl_->native_lift_activity.power_calls;
     result.native_lift_errno_writes=impl_->native_lift_activity.errno_writes;
     result.native_lift_observation_refusals=impl_->native_lift_activity.observation_refusals;
+    result.native_lift_velocity_attempts=impl_->native_lift_activity.velocity_attempts;
+    result.native_lift_velocity_completed=impl_->native_lift_activity.velocity_completed;
+    result.native_lift_velocity_observed_stores=impl_->native_lift_activity.velocity_observed_stores;
+    result.native_lift_velocity_refusals=impl_->native_lift_activity.velocity_refusals;
     result.native_vehicle_rate_acceleration_calls=impl_->native_vehicle_rate_activity.acceleration_calls;
     result.native_vehicle_rate_approach_calls=impl_->native_vehicle_rate_activity.approach_calls;
     result.native_vehicle_rate_cursor_calls=impl_->native_vehicle_rate_activity.live_cursor_calls;
@@ -5890,6 +6258,23 @@ void PhysicsLiveWorldTu15::run(std::uint32_t p,SourcePhysicsWorldRuntimeAbi&a,
 SourcePhysicsWorldRuntimeAbi PhysicsLiveWorldTu15::prepare_source_call(std::span<const std::uint32_t> args){
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::PrepareSourceCall,[&]{return source_execution_arguments(args);});
     Impl::PublicCall active(*impl_);auto a=impl_->frame(args);journal.complete([&]{return source_execution_result(a);});return a;
+}
+
+void PhysicsLiveWorldTu15::predict_mcc_bitmap_frame(TagHandle bitmap, unsigned frame) {
+    Impl::PublicCall active(*impl_);
+    auto& bank=impl_->bank;
+    if(!impl_->canonical_cache || !word(bank,0x52be48u) || !word(bank,0x4f2d24u) ||
+        !word(bank,0x4f2d34u) || !word(bank,0x4f2d30u))
+        throw FormatError("Bitmap prediction requires the initialized MCC World texture cache");
+    const auto row=impl_->bitmap_prediction_rows.bind(bank,impl_->cache_owner,bitmap,frame);
+    auto call=impl_->frame(std::array{row,0u,0u,0u,0u,0u,0u});
+    const auto sp=call.gp[4];
+    put(bank,sp+16u,sp+24u);
+    put(bank,sp+20u,sp+28u);
+    call.gp[0]=0; // 12F4A0 partition 0.
+    call.gp[1]=1; // Allocation permitted, no wait in the stack flags above.
+    call.gp[3]=2; // Original mode-2 priority.
+    impl_->run_actual(0x12f4a0u,call);
 }
 
 void PhysicsLiveWorldTu15::stop_campaign_screen() {
@@ -5981,6 +6366,14 @@ NativeTu15PhysicsFrameFp PhysicsLiveWorldTu15::run_native_command_frame_tu15(std
     active.writes=impl_->mutations.serial.load();
     if(main && observer)publish_completed_main_camera_tu15();
     return fp;
+}
+
+void PhysicsLiveWorldTu15::run_command_selection_tu15(SourcePhysicsWorldRuntimeAbi& a) {
+    if(!source_execution_inputs(impl_->bank)) {
+        Impl::PublicCall active(*impl_);
+        if(source_native_command_selection_3baa0(*this,a,&impl_->main_receipts))return;
+    }
+    run_actual(0x3baa0u,a);
 }
 
 void PhysicsLiveWorldTu15::publish_completed_main_camera_tu15() {
@@ -6381,8 +6774,15 @@ std::array<std::byte,0x5c> PhysicsLiveWorldTu15::collect_native_input(std::uint3
         (word(bank,retained+0x94u)==player || word(bank,retained+0x94u)==0xffffffffu))
         bank.write(input,bank.view(retained,0x94));
     else if(word(bank,input)!=unit) {
-        auto a=impl_->frame({});a.gp[0]=view;a.gp[1]=unit;
-        impl_->run_actual(0x18a0c0u,a);
+        auto a=impl_->frame({});
+        source_execution_untracked(bank,0x18a0c0u);Impl::Execution execution(*impl_);
+        SourcePhysicsContactRecordObserver observed;
+        if(impl_->physics_store_observer)observed=[this,collector=impl_->physics_store_observer](const auto&store){
+            impl_->last_instruction=store.instruction;collector(store);
+        };
+        native_tu15_initialize_bound_look_controller(bank,view,unit,
+            {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+            !impl_->physics_store_observer||impl_->physics_store_observer_read_only,observed,&impl_->native_input_collection_look_initialization);
     }
     bank.write(source_controller,std::as_bytes(std::span(controller)));
     bank.write(source_observer,std::as_bytes(std::span(observer)));
@@ -6801,6 +7201,9 @@ std::uint32_t PhysicsLiveWorldTu15::source_object_body(std::uint32_t d)const{Imp
 NativeRuntimeAddress PhysicsLiveWorldTu15::object_body(std::uint32_t d)const{Impl::PublicCall active(*impl_,false);return impl_->bank.native_address(source_object_body(d),4);}
 std::uint32_t PhysicsLiveWorldTu15::create_biped(std::uint32_t d,const Vec3&p,const Vec3&f,std::uint32_t player){Impl::PublicCall active(*impl_);return impl_->create_biped(d,p,f,player);}
 std::uint32_t PhysicsLiveWorldTu15::equip_weapon(std::uint32_t u,std::uint32_t d){Impl::PublicCall active(*impl_);return impl_->equip_weapon(u,d);}
+SourcePlayerEquipmentTu15 PhysicsLiveWorldTu15::apply_equipment_profile(std::uint32_t unit,const SourceUnitEquipmentProfileInputTu15& input){Impl::PublicCall active(*impl_);return impl_->apply_equipment_profile(unit,input);}
+void PhysicsLiveWorldTu15::set_unit_maximum_vitality(std::uint32_t u,std::optional<float> h,std::optional<float> s){Impl::PublicCall active(*impl_);impl_->set_unit_maximum_vitality(u,h,s);}
+std::uint32_t PhysicsLiveWorldTu15::create_weapon(std::uint32_t d,Vec3 p){Impl::PublicCall active(*impl_);return impl_->create_weapon(d,p);}
 std::uint32_t PhysicsLiveWorldTu15::create_scenario_object(const ScenarioObject&p,SourceScenarioBirth birth){Impl::PublicCall active(*impl_);return impl_->create_scenario_object(p,birth);}
 std::uint32_t PhysicsLiveWorldTu15::create_netgame_object(unsigned r){Impl::PublicCall active(*impl_);return impl_->create_netgame_object(r);}
 std::uint32_t PhysicsLiveWorldTu15::netgame_object(unsigned r)const{Impl::PublicCall active(*impl_,false);return impl_->netgame_object(r);}
@@ -6808,6 +7211,7 @@ std::uint32_t PhysicsLiveWorldTu15::child_object(std::uint32_t p,std::uint32_t d
 std::uint32_t PhysicsLiveWorldTu15::model_child_object(std::uint32_t p,std::uint32_t d,std::uint32_t pm,std::uint32_t cm)const{Impl::PublicCall active(*impl_,false);return impl_->model_child_object(p,d,pm,cm);}
 void PhysicsLiveWorldTu15::destroy_object(std::uint32_t object){Impl::PublicCall active(*impl_);impl_->destroy_object(object);}
 void PhysicsLiveWorldTu15::configure_session(const SourceGameVariant&v,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(v,m,r,s);}
+void PhysicsLiveWorldTu15::request_custom_match_completion(){Impl::PublicCall active(*impl_);impl_->request_custom_match_completion();}
 void PhysicsLiveWorldTu15::configure_campaign_session(std::int16_t d,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(source_game_variant_default(0),m,r,s,1u,d);}
 std::optional<std::string> PhysicsLiveWorldTu15::next_campaign_scenario()const {
     Impl::PublicCall active(*impl_,false);
@@ -6911,6 +7315,7 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
     };
     std::optional<Barrier> barrier;
     SourceRuntimeMemory replacement;
+    private_cpu_bitmap::PredictionRows bitmap_prediction_rows;
     std::shared_ptr<MccSoundTimingMemoryOwner> prepared_sound_timing;
     std::optional<SourceRuntimeCacheBspImage> campaign_bsp;
     AuthorityCheckpoint fields;
@@ -6983,6 +7388,7 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
         native_tu15_validate_type_runtime_restore(owner.bank,saved.bank);
         replacement.restore(saved.bank);
         if(owner.canonical_cache) {
+            bitmap_prediction_rows=private_cpu_bitmap::PredictionRows::restore(replacement,owner.cache_owner);
             const auto& canonical=*owner.canonical_cache;
             const auto& index=canonical.index();
             const auto& selected=campaign_bsp?*campaign_bsp:owner.bsp;
@@ -7234,6 +7640,7 @@ bool PhysicsLiveWorldTu15::commit_authority(PreparedAuthority &&prepared) noexce
     // A successful real bank swap stales only the outgoing derived owner.
     // Keep it through every failed/cancelled prepare and denied swap.
     impl_->cpu_bitmap_projection.reset();
+    impl_->bitmap_prediction_rows.swap(state.bitmap_prediction_rows);
     if(impl_->sound_timing_plan)impl_->sound_timing_memory.swap(state.prepared_sound_timing);
     impl_->main_receipts.retire();
     if(state.campaign_bsp)std::swap(impl_->bsp,*state.campaign_bsp);

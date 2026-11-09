@@ -1,4 +1,4 @@
-"""Exercise the actual single-button launcher and its menu admission."""
+"""Exercise the launcher actions and their menu admission."""
 import os
 from pathlib import Path
 import sys
@@ -41,10 +41,11 @@ class LauncherHomeTests(unittest.TestCase):
     def destroy(self):
         self.home.close()
 
-    def test_only_play_is_exposed(self):
+    def test_play_and_rebuild_are_exposed(self):
         buttons = [child for child in self.window.winfo_children()
                    if child.winfo_class() == "Button" and child.winfo_ismapped()]
-        self.assertEqual([str(button.cget("text")) for button in buttons], ["Play"])
+        self.assertEqual([str(button.cget("text")) for button in buttons], ["Play", "Rebuild Cache"])
+        self.assertGreater(self.home.rebuild_button.winfo_x(), self.home.play_button.winfo_x())
         self.assertFalse(any(child.winfo_class() == "TCombobox" for child in self.window.winfo_children()))
         self.assertEqual(self.status_text(), 'Ready to play')
 
@@ -85,6 +86,32 @@ class LauncherHomeTests(unittest.TestCase):
             self.home.repair_button.invoke()
         self.window.update()
         return self.home.repair_dialog
+
+    def test_rebuild_is_available_when_ready_and_never_launches(self):
+        class Child:
+            def __init__(self, root, events, **options):
+                self.options, self.stopped = options, False
+            def start(self, selected):
+                pass
+            def poll(self):
+                pass
+            def shutdown(self):
+                self.stopped = True
+        with patch('launcher_repair_ui.SetupProcess', Child):
+            self.home.rebuild_button.invoke()
+        dialog = self.home.repair_dialog
+        self.assertEqual(dialog.process.options['tool'], 'rebuild_asset_cache.py')
+        self.assertEqual(str(self.home.play_button.cget('state')), 'disabled')
+        self.home.play()
+        self.assertFalse(self.home.closed)
+        dialog.events.put(('done', None))
+        dialog.window.after_cancel(dialog.poll_id)
+        dialog.poll()
+        self.wait_for_check()
+        self.assertTrue(dialog.process.stopped)
+        self.assertEqual(str(self.home.rebuild_button.cget('state')), 'normal')
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertEqual(self.home.result, CANCELLED)
 
     def test_repair_success_rechecks_without_automatically_playing(self):
         self.home.close()

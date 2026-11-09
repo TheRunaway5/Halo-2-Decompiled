@@ -1,0 +1,14 @@
+{
+  "observed_at_utc": "2026-11-02T22:30:27.509110+00:00",
+  "owner_pids": [
+    4115124,
+    4109132
+  ],
+  "owner_pids_absent": true,
+  "scratch_absent": true,
+  "accepted_test_result": false,
+  "full_36_check_validation_pending": true,
+  "termination_cause": "Unknown: no terminal coordinator/runner result was retained.",
+  "status_files_are_stale": true,
+  "scope": "Authoritative process/scratch check after the old tool handle became unavailable. The active goal remains unchanged."
+}

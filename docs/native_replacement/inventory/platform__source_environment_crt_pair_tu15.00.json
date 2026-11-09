@@ -1,0 +1,99 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/MccCpuBitmapProjection.cmake",
+      "line": 8,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 4,
+  "routines": [
+    {
+      "body_sha256": "8ff7936bbd09f2ff204a5a2bb212a3e9ae62416a30d94fc803563208b9d5572a",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_380d50",
+      "instruction_callback_sites": 3,
+      "line": 7,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "380d50",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "380d50",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "380d50",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "41c0a9381e351d2b19efb469060a15e8942ad591010d701c0976709418acb4b3",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_380d30",
+      "instruction_callback_sites": 3,
+      "line": 13,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "380d30",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "380d30",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "380d30",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "f940221a2a287af02cc6fe65996018f5316aac290b294a42d5d5be86c4a26e72",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_381010",
+      "instruction_callback_sites": 3,
+      "line": 19,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "381010",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "381010",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "381010",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "60b3578c798f52ed9dee83a904982a249eaf1cfecceebf1e7d9e745e1f0257ef",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_3811b0",
+      "instruction_callback_sites": 3,
+      "line": 25,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "3811b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "3811b0",
+      "route_status": "literal_instruction_shape_candidate_requires_native_ownership_review",
+      "state_type": "WorldState",
+      "symbol": "3811b0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_environment_crt_pair_tu15.cpp",
+  "source_bytes": 2817,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "d6ae5d8f82cfc7a7de6ce56af6321b7cedca9343e866bba0b51c46f0d5bcff61"
+}

@@ -131,7 +131,7 @@ impl core::Io for Io<'_> {
         use ffi::SearchUiKind as K;
         let (kind, number, text) = match e {
             U::ClearSnapshot => (K::ClearSnapshot, 0, vec![]),
-            U::NoService => (K::NoService, 0, vec![]),
+            U::NoService(text) => (K::NoService, 0, text),
             U::Failure(v) => (K::Failure, 0, v),
             U::ClearFailure => (K::ClearFailure, 0, vec![]),
             U::ModeOnline => (K::ModeOnline, 0, vec![]),
@@ -147,7 +147,7 @@ impl core::Io for Io<'_> {
             U::Sound(n) => (K::Sound, n, vec![]),
             U::Render(n) => (K::Render, n, vec![]),
             U::Unavailable(v) => (K::Unavailable, 0, v),
-            U::PlaylistError => (K::PlaylistError, 0, vec![]),
+            U::PlaylistError(text) => (K::PlaylistError, 0, text),
         };
         io(self.0.search_ui(&ffi::SearchUi { kind, number, text }))
     }
@@ -254,6 +254,7 @@ pub fn frontend_search_run(
             7 => c.0.opened(true, &io)?,
             8 => c.0.select(index, &io)?,
             9 => return c.0.launch(&io),
+            10 => c.0.cancel_and_return(&io)?,
             _ => {
                 return Err(core::Error::Policy(
                     "Invalid native frontend search operation",

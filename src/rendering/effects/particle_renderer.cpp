@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "halo2/particle_renderer.hpp"
 #include "halo2/sampler.hpp"
 #include "halo2/texture.hpp"
@@ -263,15 +264,23 @@ struct ParticleRenderer::Impl {
   }
   MaterialGpu &material(std::shared_ptr<const ParticleMaterial> source) {
     if(!source)throw ParticleResourceError("Particle program has no material owner");
-    const auto validated=validate_particle_material(*source);
+    // Materials are immutable owners; a cached entry is returned by identity.
+    // HALO2_VERIFY_PARTICLE_MATERIALS=1 re-validates every hit and rejects a
+    // changed identity (the former per-call validation cost ~0.85 ms/frame).
+    static const bool verify=[]{const auto *p=std::getenv("HALO2_VERIFY_PARTICLE_MATERIALS");return p && *p;}();
     if(auto entry=materials.find(source.get());entry!=materials.end()) {
-      auto& gpu=entry->second;const auto& old=gpu.validation;
-      if(!gpu.pipeline || old.fragment_kernel!=validated.fragment_kernel || old.program_hash!=validated.program_hash ||
-         old.raster!=validated.raster || old.blend!=validated.blend || old.source_blend!=validated.source_blend ||
-         old.destination_blend!=validated.destination_blend || old.external_scene_texture!=validated.external_scene_texture)
-        throw FormatError("Particle material identity changed after native pipeline admission");
+      auto& gpu=entry->second;
+      if(!gpu.pipeline)throw FormatError("Particle material identity changed after native pipeline admission");
+      if(verify) {
+        const auto validated=validate_particle_material(*source);const auto& old=gpu.validation;
+        if(old.fragment_kernel!=validated.fragment_kernel || old.program_hash!=validated.program_hash ||
+           old.raster!=validated.raster || old.blend!=validated.blend || old.source_blend!=validated.source_blend ||
+           old.destination_blend!=validated.destination_blend || old.external_scene_texture!=validated.external_scene_texture)
+          throw FormatError("Particle material identity changed after native pipeline admission");
+      }
       return gpu;
     }
+    const auto validated=validate_particle_material(*source);
     // Do not make a failed shader/image upload visible to the cache. Its owner
     // may repair or finish loading the same immutable material and retry it.
     MaterialGpu gpu{};

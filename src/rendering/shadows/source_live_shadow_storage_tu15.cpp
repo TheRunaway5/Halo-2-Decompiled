@@ -94,6 +94,9 @@ void source_live_shadow_storage_validate_tu15(PhysicsLiveWorldTu15& world,
     if(inspect(world.memory())!=retained)
         throw std::invalid_argument("TU1.5 shadow storage no longer belongs to its retained BSP activation");
 }
+SourceLiveShadowStorageTu15 source_live_shadow_storage_frame_tu15(PhysicsLiveWorldTu15& world) {
+    return inspect(world.memory());
+}
 SourceLiveShadowStorageTu15 source_live_shadow_storage_rebind_tu15(PhysicsLiveWorldTu15& world,
     const SourceLiveShadowStorageTu15& retained) {
     const auto rebound=inspect(world.memory());

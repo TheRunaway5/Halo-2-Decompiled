@@ -211,8 +211,12 @@ async def main():
             assert application == "1558522073272426519"
             verified.append(token)
             return VerifiedOwner("discord", str(123456789012345678 + owners.index(token)), token)
+        fixture_rates = {"rate_per_minute": 100000}
+        if mode in ("core", "party"):
+            # Two or four native peers poll every 20 ms from one loopback prefix.
+            fixture_rates.update(prefix_rate_per_minute=100000, global_rate_per_minute=100000)
         app = create_app(Settings(state=Path(temp), public_url="http://127.0.0.1:8080", allow_http=True,
-                                  rate_per_minute=100000, matchmaking_catalog=str(path)), verify)
+                                  matchmaking_catalog=str(path), **fixture_rates), verify)
         countdown_outages = set()
         if mode == "core":
             @web.middleware

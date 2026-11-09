@@ -1,0 +1,1148 @@
+{
+  "parity_passed": true,
+  "minimal_defined_original_case": {
+    "op": "controller",
+    "authenticated": false,
+    "frames": [],
+    "inputs": [
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  },
+  "comparisons": [
+    {
+      "before": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      },
+      "rust": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      }
+    },
+    {
+      "before": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [
+            [
+              9,
+              0,
+              0,
+              18446744073709551615,
+              99,
+              [
+                111,
+                108,
+                100,
+                32,
+                116,
+                105,
+                116,
+                108,
+                101
+              ],
+              [
+                111,
+                108,
+                100,
+                32,
+                100,
+                101,
+                115,
+                99,
+                114,
+                105,
+                112,
+                116,
+                105,
+                111,
+                110
+              ],
+              []
+            ]
+          ],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      },
+      "rust": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [
+            [
+              9,
+              0,
+              0,
+              18446744073709551615,
+              99,
+              [
+                111,
+                108,
+                100,
+                32,
+                116,
+                105,
+                116,
+                108,
+                101
+              ],
+              [
+                111,
+                108,
+                100,
+                32,
+                100,
+                101,
+                115,
+                99,
+                114,
+                105,
+                112,
+                116,
+                105,
+                111,
+                110
+              ],
+              []
+            ]
+          ],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      }
+    },
+    {
+      "before": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      },
+      "rust": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            9,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": 0
+      }
+    },
+    {
+      "before": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": null
+      },
+      "rust": {
+        "calls": [],
+        "reentries": 0,
+        "state": {
+          "couch_revision": 0,
+          "host_profile": 0,
+          "joining": null,
+          "joining_online": false,
+          "options": null,
+          "subjects": [
+            [],
+            [],
+            [],
+            []
+          ]
+        },
+        "storage": {
+          "account": 1,
+          "accounts": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "authenticated": false,
+          "detached": [
+            31,
+            1129272643,
+            0,
+            18446744073709551615,
+            99,
+            [
+              111,
+              108,
+              100,
+              32,
+              116,
+              105,
+              116,
+              108,
+              101
+            ],
+            [
+              111,
+              108,
+              100,
+              32,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              116,
+              105,
+              111,
+              110
+            ],
+            []
+          ],
+          "edits": [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              8
+            ]
+          ],
+          "frames": [],
+          "inputs": [
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "live_logins": [
+            [
+              2,
+              1
+            ],
+            [
+              90,
+              0
+            ]
+          ],
+          "logins": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "mode": 3,
+          "next_actor": 100,
+          "primary": 2,
+          "profile": 2,
+          "profiles": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "revision": 0,
+          "signed_in": [
+            104,
+            111,
+            115,
+            116
+          ],
+          "status": 3,
+          "teams": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "value": null
+      }
+    }
+  ],
+  "one_frame_control_equal": true,
+  "known_input_control_equal": true,
+  "negative_input_control_equal": true,
+  "native_sha256": "44e35861d6ea93b8cff8ae33c5701817c33cd4f14e657515fcaf99ebd080e819",
+  "hypotheses": [
+    {
+      "rank": 1,
+      "prediction": "If Rust reads the absent frame before the host rebind, adding one frame makes the difference disappear; the unassigned empty-frame case differs."
+    },
+    {
+      "rank": 2,
+      "prediction": "If account identity differs, the provider/cached account observations differ even with one frame."
+    },
+    {
+      "rank": 3,
+      "prediction": "If input-slot mapping differs, the already-bound input case differs too."
+    }
+  ]
+}

@@ -112,6 +112,8 @@ def source_maps(root):
         preview = profile_name.parent / _relative(profile['preview'])
         _owned(package / preview, root)
         _require((package / preview).is_file(), 'missing map preview')
+        if 'source_receipt' in row:
+            _json(package / _relative(row['source_receipt']), root)
         aliases = row.get('resource_aliases')
         _require(isinstance(aliases, list) and len(aliases) <= 16 and len(set(aliases)) == len(aliases),
                  'invalid custom resource aliases')
@@ -137,6 +139,8 @@ def source_bundle(root):
         source = row['source']
         files[source + '/' + row['profile']] = root / source / row['profile']
         files[source + '/' + row['preview']] = root / source / row['preview']
+        if 'source_receipt' in row:
+            files[source + '/' + row['source_receipt']] = root / source / row['source_receipt']
         for name, path in _files(root / source / 'content').items():
             files[source + '/content/' + name] = path
     pins, inodes = {}, {}

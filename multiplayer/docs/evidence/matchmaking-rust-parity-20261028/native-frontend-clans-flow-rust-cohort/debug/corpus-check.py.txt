@@ -1,0 +1,5 @@
+import hashlib,json,runpy
+from pathlib import Path
+root=Path.cwd();source=root/'tests/test_native_frontend_clans_rust.py';module=runpy.run_path(str(source));cases=module['corpus']();assert len(cases)==6876
+result=dict(passed=True,cases=len(cases),scoped_presence_enum_fixed_int_domain_preserved=True,source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),runtime_validation_not_run=True)
+(root/'build/test-results/frontend-clans-flow-rust-20261102/corpus-check.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

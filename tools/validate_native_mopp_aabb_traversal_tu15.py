@@ -15,6 +15,11 @@ ROOT=Path(__file__).resolve().parents[1]
 BACKEND='unchanged-tu15-native-mopp-aabb-traversal-v1'
 OWNERS=(0x309940,)
 VARS,CACHE,CODE,KEYS,DATA=0x1002000,0x1000100,0x1001000,0x1000300,0x1000400
+def expanded_source():
+ projection=(ROOT/'include/halo2/native_tu15_mopp_aabb_projection_kernel.hpp').read_text().removeprefix('#pragma once\n')
+ core=(ROOT/'include/halo2/native_tu15_mopp_aabb_traversal_kernel.hpp').read_text().removeprefix('#pragma once\n')
+ core=core.replace('#include "halo2/native_tu15_mopp_aabb_projection_kernel.hpp"\n',projection)
+ return(ROOT/'src/physics/native_tu15_mopp_aabb_traversal.cpp').read_text().replace('#include "halo2/native_tu15_mopp_aabb_traversal_kernel.hpp"\n',core)
 def metadata(image):
  support.OWNERS=OWNERS;support.BOUNDARIES=()
  text=inspect.getsource(support.metadata).replace('assert counts==[276,38,20];','assert counts==[464];')
@@ -80,6 +85,10 @@ def main():
  # twelve initialized semantic words; compare all persistent banks unchanged.
  text=text.replace("    for e in seed[category]:\n", "    for e in seed[category]:\n     if VARS<=e['address']<VARS+56:continue\n")
  text=text.replace("source=ROOT/'src/physics/native_tu15_contact_pressure.cpp'","source=ROOT/'src/physics/native_tu15_mopp_aabb_traversal.cpp'")
+ # Compile the shared projection core into each owned positive/mutant source.
+ # This keeps a changed numerical header under the same genuine oracle rather
+ # than allowing copied mutants to use an unmodified external implementation.
+ text=text.replace("text=source.read_text();", "text=expanded_source();")
  injected='''driver=(ROOT/'tests/native_tu15_contact_pressure_tests.cpp').read_text()
   driver=driver.replace('#include "halo2/native_tu15_contact_pressure.hpp"','#include "halo2/native_tu15_mopp_aabb_traversal.hpp"').replace('#include "halo2/native_tu15_contact_pressure_binding.hpp"','').replace('unchanged-tu15-native-contact-pressure-v1',BACKEND).replace('J::array({220,2,2,2})','J::array({464})').replace('auto services=native_tu15_contact_pressure_native_services();','NativeTu15MoppAabbTraversalServices services;').replace('NativeTu15ContactPressureStats stats;','NativeTu15MoppAabbTraversalStats stats;').replace('native_tu15_prune_contact_pressure(m,fp,services,observer,&stats);',CALLS)
   begin=driver.index('   services.select_candidate=');end=driver.index('   const auto cw=',begin);driver=driver[:begin]+driver[end:]
@@ -88,13 +97,13 @@ def main():
   (project/'driver.cpp').write_text(driver);variants={}'''
  text=text.replace("shutil.copyfile(ROOT/'tests/native_tu15_contact_pressure_tests.cpp',project/'driver.cpp');variants={}",injected)
  begin=text.index('  for name,needle,replacement in [');end=text.index("\n  shutil.copyfile(ROOT/'src/physics/native_tu15_activation_services.cpp'",begin)
- text=text[:begin]+'''  for name,needle,replacement in [('leaf_base','key+=v.translation_and_properties[3]','key+=v.translation_and_properties[3]+1u'),('scale_shift','16u-fields[4]','15u-fields[4]'),('split_inclusive','signed32(lower)>=signed32(low)','signed32(lower)>signed32(low)')]:
+ text=text[:begin]+'''  for name,needle,replacement in [('leaf_base','d_.key+=d_.base','d_.key+=d_.base+1u'),('scale_shift','d_.shift=16u-d_.quantization','d_.shift=15u-d_.quantization'),('split_inclusive','signed_word(d_.lower)>=signed_word(d_.low)','signed_word(d_.lower)>signed_word(d_.low)'),('projection_sign','d.lower-=d.upper;d.lower-=upper(1);','d.lower+=d.upper;d.lower-=upper(1);')]:
    assert needle in text;variants[name]=text.replace(needle,replacement);(project/(name+'.cpp')).write_text(variants[name])
 '''+text[end:]
  text=text.replace("shutil.copyfile(ROOT/'src/physics/native_tu15_activation_services.cpp',project/'types.cpp')","shutil.copyfile(ROOT/'src/physics/native_tu15_array_growth.cpp',project/'types.cpp')")
- text=text.replace("ROOT/'include/halo2/native_tu15_contact_pressure.hpp',ROOT/'include/halo2/native_tu15_contact_pressure_binding.hpp',ROOT/'src/physics/native_tu15_activation_services.cpp'","ROOT/'include/halo2/native_tu15_mopp_aabb_traversal.hpp',ROOT/'include/halo2/native_tu15_mopp_aabb_setup.hpp',ROOT/'src/physics/native_tu15_array_growth.cpp'")
+ text=text.replace("ROOT/'include/halo2/native_tu15_contact_pressure.hpp',ROOT/'include/halo2/native_tu15_contact_pressure_binding.hpp',ROOT/'src/physics/native_tu15_activation_services.cpp'","ROOT/'include/halo2/native_tu15_mopp_aabb_traversal.hpp',ROOT/'include/halo2/native_tu15_mopp_aabb_setup.hpp',ROOT/'include/halo2/native_tu15_mopp_aabb_projection_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_aabb_traversal_kernel.hpp',ROOT/'src/physics/native_tu15_array_growth.cpp'")
  calls='native_tu15_traverse_mopp_aabb(m,c.at("receiver"),c.at("code"),variables,fp,0,services,observer,&stats);'
  setup='''auto m=before;m.fault=J{};m.write_fault=J{};NativeTu15MoppAabbVariables variables;const auto vp=c.at("variables").get<std::uint32_t>();const auto word=[&](std::uint32_t p){std::array<std::byte,4>b{};m.read(p,b);std::uint32_t value{};for(unsigned k=0;k<4;++k)value|=std::to_integer<unsigned>(b[k])<<(k*8u);return value;};for(unsigned k=0;k<3;++k){variables.upper[k]=word(vp+k*4u);variables.lower[k]=word(vp+16u+k*4u);}for(unsigned k=0;k<6;++k)variables.translation_and_properties[k]=word(vp+32u+k*4u);m.fault=before.fault;m.write_fault=before.write_fault;m.log_reads=read_pass;'''
- env=dict(base.__dict__,__file__=__file__,CALLS=calls,SETUP=setup,VARS=VARS);exec(text,env);result=env['main']()
+ env=dict(base.__dict__,__file__=__file__,CALLS=calls,SETUP=setup,VARS=VARS,expanded_source=expanded_source);exec(text,env);result=env['main']()
  path=Path(base.sys.argv[base.sys.argv.index('--output')+1])/'report.json';r=json.loads(path.read_text());code=_Code(base.Xbe(base.NEW_DEFAULT),'.text');sites=set(complete_body(code,0x309940).code);r.update(scope=__doc__,physically_executed_sites=len(sites&support.parent.EXECUTED),unexecuted_sites=sorted(sites-support.parent.EXECUTED),production_native_only_closure=False,remaining=['Positive array-growth composition and real allocator ownership','Actual caller/native setup composition and visible native key-query delivery','Malformed-program diagnostics, private input-address faults, recursion capacity and wider lifetime domains']);base.save(path,r);return result
 if __name__=='__main__':raise SystemExit(main())

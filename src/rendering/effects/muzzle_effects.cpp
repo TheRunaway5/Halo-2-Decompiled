@@ -326,9 +326,7 @@ bool NativeMuzzleEffects::commit_restore(PreparedRestore &&prepared)noexcept {
   impl_.swap(prepared.replacement_);prepared.owner_.reset();return true;
 }
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick) {
-  if(impl_->definition(input.effect).flags&0x18u)
-    throw FormatError("Muzzle effect requires completed original17E460 lighting colors");
-  return request(input,tick,SourceEffectColors{});
+  return request_with_lighting(input,tick,{});
 }
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors) {
   return request(input,tick,colors,{});
@@ -340,6 +338,15 @@ std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::u
   return request(input,tick,colors,velocity,light_parts_owned,false);
 }
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors,Vec3 velocity,bool light_parts_owned,bool source_gameplay_parts_owned) {
+  return request_owned(input,tick,colors,nullptr,velocity,light_parts_owned,source_gameplay_parts_owned);
+}
+std::uint32_t NativeMuzzleEffects::request_with_lighting(const WeaponEffectInput &input,std::uint32_t tick,
+    const std::function<SourceEffectColors()> &lighting,Vec3 velocity,bool light_parts_owned,bool source_gameplay_parts_owned) {
+  return request_owned(input,tick,{},&lighting,velocity,light_parts_owned,source_gameplay_parts_owned);
+}
+std::uint32_t NativeMuzzleEffects::request_owned(const WeaponEffectInput &input,std::uint32_t tick,
+    SourceEffectColors colors,const std::function<SourceEffectColors()> *lighting,
+    Vec3 velocity,bool light_parts_owned,bool source_gameplay_parts_owned) {
   auto &i=*impl_;const auto &d=i.definition(input.effect);
   if((d.damage_parts || d.acceleration_parts) && !source_gameplay_parts_owned)throw FormatError("FP effect requires its original gameplay-part owner");
   if(d.light_parts && !light_parts_owned)throw FormatError("Muzzle light parts require their live world owner");
@@ -352,6 +359,10 @@ std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::u
     return e.handle;
   }
   const auto handle=i.effect_pool.allocate();if(handle==DatumPool::none)return handle;
+  if(lighting&&(d.flags&0x18u))try {
+    if(!*lighting)throw FormatError("Muzzle effect requires completed original17E460 lighting colors");
+    colors=(*lighting)();
+  }catch(...) {i.effect_pool.release_unchecked(handle);throw;}
   auto &e=i.effects.emplace(handle,Impl::Effect{handle,input.effect,input.weapon,tick,input.a_bits,input.b_bits,true,false,{}}).first->second;
   e.colors=colors;e.velocity=velocity;
   source_effect_event_select(e.event,d.clocks,0,i.random_streams.event(d.flags),{[] {}});
@@ -373,6 +384,10 @@ void NativeMuzzleEffects::source_request(const SourceMuzzleEffectRequest &input)
   i.source_requests.push_back(input);
 }
 std::uint32_t NativeMuzzleEffects::marker_name(std::uint32_t effect) const {return impl_->definition(effect).marker;}
+std::optional<SourceEffectColors> NativeMuzzleEffects::lighting_colors(std::uint32_t instance) const {
+  const auto found=impl_->effects.find(instance);
+  return found==impl_->effects.end()?std::nullopt:std::optional{found->second.colors};
+}
 std::vector<std::uint32_t> NativeMuzzleEffects::marker_names(std::uint32_t effect) const {
   std::vector<std::uint32_t> out;for(const auto &system:impl_->definition(effect).systems)
     if(std::find(out.begin(),out.end(),system.marker)==out.end())out.push_back(system.marker);

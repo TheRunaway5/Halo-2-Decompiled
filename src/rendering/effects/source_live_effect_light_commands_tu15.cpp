@@ -6,9 +6,20 @@
 #include <bit>
 #include <cstring>
 #include <limits>
+#include <atomic>
+#include <cstdlib>
+#include <iostream>
 
 namespace halo2 {
 namespace {
+struct CommandStats {
+    std::atomic<std::uint64_t> native{},reference{};
+    ~CommandStats() {
+        if(const auto* p=std::getenv("HALO2_NATIVE_LIGHT_COMMANDS_STATS");p&&*p)
+            std::cerr<<"Light40E80 stats: native="<<native<<" reference="<<reference<<'\n';
+    }
+};
+CommandStats& command_stats(){static CommandStats stats;return stats;}
 constexpr std::uint32_t main_context=0x556e18u,secondary=0x5598f8u,
     main_arena=main_context+0x25cu,light_arena=secondary+0x25cu;
 std::uint32_t word(const SourceRuntimeMemory& m,std::uint32_t p){return Bytes(m.view(p,4)).u32(0);}
@@ -195,7 +206,13 @@ SourceLiveEffectLightCommandsTu15 source_live_effect_light_commands_tu15(
         [&](auto p,auto raw){world.write_source_call_input(p,raw);});
     auto a=world.prepare_source_call();a.gp[0]=0;
     if(observe)observe(true,a,world.memory());
-    world.run_actual(0x40e80u,a);
+    static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_LIGHT_COMMANDS");return p&&*p&&*p!='0';}();
+    if(reference){world.run_actual(0x40e80u,a);++command_stats().reference;}
+    else {
+        const auto fp=world.run_native_command_frame_tu15(0);
+        a.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};a.x87_status=fp.status;
+        ++command_stats().native;
+    }
     if(observe)observe(false,a,world.memory());
     auto result=source_live_effect_light_private_commands_tu15(world.memory());result.handoff=handoff;return result;
 }

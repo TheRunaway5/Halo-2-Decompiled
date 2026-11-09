@@ -125,9 +125,53 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(report['optional_intro_movie'], 'not-packaged')
         self.assertTrue(all(c['visible_frame'] for c in report['cases']))
 
+    def test_cache_scoped_qualification_keeps_existing_executable_proof(self):
+        from custom_asset_cache import MANIFEST
+        self.sidecar.write_bytes(b'original executable proof retained')
+        (self.cache/MANIFEST).write_text('{}')
+        (self.cache/'provenance.json').write_text('{}')
+        with patch('custom_asset_cache.verify', return_value={}):
+            self.qualify(include_optional_movie=False, cache_scoped=True)
+        self.assertEqual(self.sidecar.read_bytes(), b'original executable proof retained')
+        capability=json.loads((self.cache/'frontend-runtime-capability.json').read_bytes())
+        self.assertEqual(capability['validation']['custom_asset_cache_profile'], 'H2_PORT_CUSTOM_ASSET_CACHE_V1')
+
+    def test_cache_requalification_preserves_portable_executable_bindings_and_runtime_banks(self):
+        from custom_asset_cache import MANIFEST
+        base=dict(runtime=self.runtime,runtime_sha256=qualification.digest(self.runtime),capability_sha256='1'*64,
+            report=dict(runtime={'path':'bin/halo2_native','payload':{'path':'bin/halo2_native.real'}},
+                        shaders={'binding':'packaged-compiled-default','directory':'bin/shaders'},
+                        eos_worker={'owned':'worker-fixture'},runtime_adjacent_data={'owned':'modes-fixture'}))
+        (self.cache/MANIFEST).write_text('{}')
+        (self.cache/'provenance.json').write_text('{}')
+        with patch('native_gameplay_test._runtime_owner',return_value=base), \
+             patch('custom_asset_cache.verify',return_value={}):
+            self.qualify(include_optional_movie=False,cache_scoped=True,executable_owner=base)
+        capability=json.loads((self.cache/'frontend-runtime-capability.json').read_bytes())
+        for key in ('runtime','shaders','eos_worker','runtime_adjacent_data'):
+            self.assertEqual(capability[key],base['report'][key])
+
     def test_existing_optional_bank_cannot_bypass_its_movie_check(self):
         (self.cache/'presentation/movies').mkdir()
         with self.assertRaisesRegex(ValueError, 'remains required'):
+            self.qualify(include_optional_movie=False)
+        self.assertFalse(self.sidecar.exists())
+
+    def test_fresh_cache_ignores_legacy_movie_references_outside_its_owner(self):
+        from custom_asset_cache import MANIFEST
+        (self.root/'resources/movies').mkdir(parents=True)
+        (self.root/'resources/movie-manifest.json').write_text('{}')
+        (self.cache/'provenance.json').write_text('{}')
+        (self.cache/MANIFEST).write_text('{}')
+        with patch('custom_asset_cache.verify',return_value={}):
+            self.qualify(cache_scoped=True)
+        report=json.loads((self.output/'report.json').read_bytes())
+        self.assertEqual([row['name'] for row in report['cases']],['title','main-menu','online-sign-in'])
+        self.assertEqual(report['optional_intro_movie'],'not-packaged')
+
+    def test_declared_but_missing_cache_movie_cannot_bypass_its_movie_check(self):
+        (self.cache/'provenance.json').write_text(json.dumps(dict(port_bundled_movies={'complete':True})))
+        with self.assertRaisesRegex(ValueError,'remains required'):
             self.qualify(include_optional_movie=False)
         self.assertFalse(self.sidecar.exists())
 
@@ -150,6 +194,7 @@ class QualificationTests(unittest.TestCase):
             qualification.loading_owner(self.cache, self.runtime)
 
     def test_menus_wait_for_actual_clear_before_four_visible_frames(self):
+        (self.cache/'presentation/movies').mkdir()
         self.qualify()
         self.assertEqual(len(self.commands), 4)
         self.assertNotIn('--menu-wait-intro-clear', self.commands[0])
@@ -178,6 +223,7 @@ class QualificationTests(unittest.TestCase):
 
     def test_wrong_loading_bank_cannot_publish_a_frontend_capability(self):
         self.loading_log = 'An unrelated loading track was selected\n'
+        (self.cache/'presentation/movies').mkdir()
         with self.assertRaisesRegex(RuntimeError, 'intro'):
             self.qualify()
         self.assertFalse(self.sidecar.exists())

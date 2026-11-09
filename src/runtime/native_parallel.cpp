@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
+#include <stdexcept>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -151,6 +152,7 @@ class OverlapThread {
     unsigned control_sse_{};std::uint16_t control_x87_{};int errno_before_{};
     unsigned sse_flags_{};std::uint16_t x87_flags_{};int errno_after_{};bool errno_changed_{};
     std::exception_ptr error_;
+    std::atomic<bool> running_{false};
     std::thread thread_;
     void work() {
         for(;;) {
@@ -174,6 +176,9 @@ public:
     OverlapThread():thread_([this]{work();}){}
     ~OverlapThread(){{std::lock_guard lock(mutex_);stopping_=true;}wake_.notify_all();thread_.join();}
     void run(const std::function<void()>& job,const std::function<void()>& overlap) {
+        // One job at a time: a nested call from either side would wait on itself.
+        if(running_.exchange(true))throw std::logic_error("native_overlap_run cannot nest");
+        struct Release{std::atomic<bool>& flag;~Release(){flag.store(false);}} release{running_};
         {
             std::lock_guard lock(mutex_);
             job_=&job;control_sse_=sse_csr()&~0x3fu;control_x87_=x87_control();errno_before_=errno;
@@ -195,11 +200,21 @@ public:
         if(overlap_error)std::rethrow_exception(overlap_error);
     }
 };
+OverlapThread& overlap_thread(unsigned index) {
+    static OverlapThread first,second;
+    return index?second:first;
+}
 }
 void native_overlap_run(const std::function<void()>& job,const std::function<void()>& overlap) {
     if(reference_serial || !host_fp_state){job();overlap();return;}
-    static OverlapThread shared;
-    shared.run(job,overlap);
+    overlap_thread(0).run(job,overlap);
+}
+void native_overlap_run2(const std::function<void()>& first,const std::function<void()>& second,
+                         const std::function<void()>& overlap) {
+    if(reference_serial || !host_fp_state){first();second();overlap();return;}
+    // first on thread 0 while the caller runs [second on thread 1 | overlap];
+    // flags merge as the union, exceptions in the order first, second, overlap.
+    overlap_thread(0).run(first,[&]{overlap_thread(1).run(second,overlap);});
 }
 unsigned native_parallel_workers()noexcept {
     return reference_serial || !host_fp_state?0u:pool().workers();

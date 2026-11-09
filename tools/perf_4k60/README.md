@@ -9,7 +9,9 @@ afterwards. Only the small reports you direct elsewhere remain.
 |---|---|
 | `profile_run.sh` | One 4K-internal multiplayer run; timing summary, optional main-thread profile (`SAMPLE_DELAY` argument) or CPU ms/frame (`H2_CPUMON=1`) |
 | `ab.sh`, `ab_env.sh` | Interleaved A/B of two runtimes, or one runtime with/without one or more environment assignments; reports main-thread CPU ms/frame (`H2_PERF_REPORTS` = report directory) |
-| `parity.py` | Byte comparison of deterministic 3840×2160 captures between two runtimes (`VAR=VALUE,...@runtime` adds role environment) |
+| `parity.py` | Byte comparison of deterministic 3840×2160 captures between two runtimes (`VAR=VALUE,...@runtime` adds role environment; `--keep-lines REGEX` keeps matching log lines of every run beside the report and compares their digests too) |
+| `census_roots.py`, `census_map.py` | Rank translated TU1.5 entry points / routines by executed instructions per frame from two `HALO2_INSTRUCTION_CENSUS` runs of different length (see docs/NATIVE_REPLACEMENT_GOAL.md) |
+| `selflines.py` | Source-line attribution of one function's self samples (`PREFIX BINARY PATTERN [TOP]`); needs a binary configured with `-DHALO2_PROFILE_LINE_INFO=ON` (line tables only, no codegen change) |
 | `analyze.py`, `buckets.py`, `callees.py`, `callers.py`, `callers_inc.py`, `children.py`, `diffprof.py` | Self/inclusive profiles, cost buckets, caller/child breakdowns and profile diffs from `sampler.c` output |
 
 ```bash
@@ -71,7 +73,40 @@ qualification.
 Reference (restore the translated/original route): `HALO2_REFERENCE_MAIN_CULL`,
 `HALO2_REFERENCE_MAIN_COMMANDS`, `HALO2_REFERENCE_CPU_SKINNING`,
 `HALO2_REFERENCE_SERIAL_NATIVE`, `HALO2_REFERENCE_SEAT_CANDIDATES`,
-`HALO2_REFERENCE_OBJECT_LOD_SKINS`, `HALO2_REFERENCE_SYNC_RENDER`.
+`HALO2_REFERENCE_OBJECT_LOD_SKINS`, `HALO2_REFERENCE_SYNC_RENDER`,
+`HALO2_REFERENCE_SERIAL_POSING` (the per-view posing lane: vehicles, corpses and
+bodies back in the sequential order on the main thread; `HALO2_REFERENCE_SINGLE_POSING_LANE`
+keeps the lane but runs vehicles and bodies on one thread instead of two; `profile_run.sh` keeps
+the startup line as `<label>.lane.txt`). `HALO2_VERIFY_POSING_LANE=1` prints a
+`Posing lane lists:` line per view and frame (digests of the records that carry
+world offsets) and a `Posing lane timing:` line (lane/main milliseconds) for the
+lane-vs-serial list oracle: `parity.py ... --keep-lines 'Posing lane (lists|skipped)'`.
+`HALO2_REFERENCE_PHANTOM_REMAP=1`, `HALO2_REFERENCE_LIVE_ENTRY_SCAN=1`,
+`HALO2_REFERENCE_LOCK_SERVICES=1` and `HALO2_REFERENCE_PRESENTED_STORE_INDEX=1` restore
+the per-call remap search, linear entry scan, per-call lock services and per-scope
+journal vector. `HALO2_REFERENCE_EAGER_COLLISION_BUILDS=1` builds every host collision BVH when its layer view is
+composed (moving devices recompose every tick) instead of on the view's first query.
+`HALO2_REFERENCE_PRESENTED_RELOCATION=1` relocates every presented root through B95D0 (default:
+childless, attachment-free roots within 1e-4 of their simulation placement are presented in place).
+`HALO2_REFERENCE_MACHINE_LOD_SKINS=1` skins every machine LOD slot (default: skin-identical slots
+share one skin); `HALO2_VERIFY_MACHINE_LOD_SKINS=1` checks every shared slot against its own skin.
+`HALO2_REFERENCE_SCENERY_VIEW_SKINS=1` skins retained scenery views per section draw (default: one
+exact pose-cache skin per scenery LOD).
+`HALO2_RELOCATION_CHANGE_CENSUS=1` prints, every 120 frames, which memory owners the presented-pose
+relocation (B95D0) actually changed; `HALO2_EXPERIMENT_RELOCATION_RESTORE=owner,...` (`*` = all) puts
+the original bytes back after the relocation (keeping the scope's root and sphere words) and
+`HALO2_EXPERIMENT_RELOCATION_POISON=<hex byte>` writes that byte instead, for consumption tests.
+`parity.py --render-fraction F` fixes another interpolation fraction and `--motion` scripts moving,
+turning, jumping, grenade-throwing players.
+`HALO2_REFERENCE_MATRIX_LEAVES=1` runs the translated 145560/144CF0 bodies instead of the
+native leaf kernels; `HALO2_VERIFY_MATRIX_LEAVES=1` checks every admitted call against them.
+`HALO2_INSTRUCTION_CENSUS=<file>` (with `HALO2_REFERENCE_INSTRUCTION_CALLBACKS=1`) writes
+executed TU1.5 instruction counts. `HALO2_REFERENCE_WORLD_MEMORY_CALLS=1` restores per-use
+world accessor calls in the command walk. `HALO2_REFERENCE_CPU_VEHICLE_SKINS=1` keeps vehicle skinning on the CPU;
+`HALO2_REFERENCE_COPY_DEFERRED_POSES=1` copies admitted deferred poses instead of
+borrowing the mesh. `HALO2_VERIFY_SECTION_INDEX=1` makes every model section selection (vehicles,
+third-person bodies, source unit bases) also run the original linear scan and
+reject any difference from the per-model section index.
 The model-owned skin-admission cache is enabled by default
 (`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` or an empty value restores full per-pose
 admission). The banded cull is opt-in (`HALO2_NATIVE_BANDED_CULL=1`): it is

@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Replay the unchanged TU1.5 cancellation callback to real network-owner entry."""
+from collections import Counter
+from datetime import datetime, timezone
+from hashlib import sha256
+from itertools import product
+from pathlib import Path
+import json
+import os
+import struct
+import sys
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import (
+    UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_EDX, UC_X86_REG_EIP, UC_X86_REG_ESP,
+)
+
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+mem = source.g
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+ENTRY, FLAG, MANAGER_REQUEST, SESSION_REQUEST = 0x25847E, 0x52D729, 0x5A280, 0x195135
+SESSION, OWNER, QUEUE = 0x1100000, 0x1109000, 0x110A000
+INITIALIZED, MODE, SESSION_PTR, OWNER_PTR, QUEUE_PTR = 0x535F00, 0x535F04, 0x535F34, 0x5360D8, 0x51D018
+ACK, SUBMIT, LIVE_REQUEST = 0x77AB0, 0x5B390, 0x5BEA0
+boundaries = {ACK: "first_manager_call", SUBMIT: "manager_request", LIVE_REQUEST: "session_request"}
+instructions = {}
+stats = Counter()
+trace = []
+writes = []
+stopped = None
+case_hash = sha256()
+mem.mem_map(SESSION, 0x10000)
+
+def put(address, *values):
+    mem.mem_write(address, struct.pack("<" + "I" * len(values), *values))
+
+def read(address):
+    return struct.unpack("<I", mem.mem_read(address, 4))[0]
+
+def code(g, at, size, unused):
+    global stopped
+    original = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == original
+    if at in (MANAGER_REQUEST, SESSION_REQUEST):
+        assert bytes(g.mem_read(FLAG, 1)) == b"\1"
+        trace.append(at)
+    if at in boundaries:
+        assert bytes(g.mem_read(FLAG, 1)) == b"\1"
+        stopped = at
+        g.emu_stop()
+        return
+    instructions[at] = original
+
+def on_write(g, access, at, size, value, unused):
+    if at == FLAG:
+        assert size == value == 1
+        writes.append(value)
+    else:
+        assert STACK - 0x100 <= at and at + size <= STACK + 8
+
+mem.hook_add(UC_HOOK_CODE, code)
+mem.hook_add(UC_HOOK_MEM_WRITE, on_write)
+put(SESSION_PTR, SESSION)
+put(OWNER_PTR, OWNER)
+put(OWNER + 0x30, 0xA1B2C3D4)
+for mode, initialized, phase, local_equal, queue_present in product(
+    range(8), (False, True), (0, 1, 2, 3, 4, 7, 8, 9), (False, True), (False, True),
+):
+    put(MODE, mode)
+    put(QUEUE_PTR, QUEUE if queue_present else 0)
+    mem.mem_write(INITIALIZED, bytes([initialized]))
+    mem.mem_write(FLAG, b"\0")
+    put(SESSION + 0x741C, phase)
+    put(SESSION + 0x72D8, 3)
+    put(SESSION + 0x50, 3 if local_equal else 2)
+    put(STACK, STOP, 0x85E33)
+    mem.reg_write(UC_X86_REG_ESP, STACK)
+    mem.reg_write(UC_X86_REG_EAX, 0xA5A50000)
+    mem.reg_write(UC_X86_REG_EBX, 0x87563421)
+    trace.clear()
+    writes.clear()
+    stopped = None
+    mem.emu_start(ENTRY, STOP, count=500)
+    assert bytes(mem.mem_read(FLAG, 1)) == b"\1" and writes == [1]
+    assert trace == ([MANAGER_REQUEST] if mode == 6 else [MANAGER_REQUEST, SESSION_REQUEST])
+    expected = (ACK if queue_present else SUBMIT) if mode == 6 else (
+        LIVE_REQUEST if mode > 1 and initialized and 3 <= phase <= 8 and local_equal else None
+    )
+    assert stopped == expected, (mode, initialized, phase, local_equal, queue_present, stopped)
+    if stopped == ACK:
+        assert read(mem.reg_read(UC_X86_REG_ESP) + 4) == 1
+    elif stopped == SUBMIT:
+        assert mem.reg_read(UC_X86_REG_EDX) == 0xA1B2C3D4
+    elif stopped == LIVE_REQUEST:
+        assert mem.reg_read(UC_X86_REG_EAX) == SESSION and mem.reg_read(UC_X86_REG_EBX) == 1
+    else:
+        assert mem.reg_read(UC_X86_REG_EIP) == STOP
+        assert mem.reg_read(UC_X86_REG_EAX) & 255 == 1
+        assert mem.reg_read(UC_X86_REG_ESP) == STACK + 8
+    name = boundaries[stopped] if stopped else "returned_success"
+    stats[name] += 1
+    case_hash.update(json.dumps([mode, initialized, phase, local_equal, queue_present, name]).encode() + b"\n")
+
+assert sum(stats.values()) == 512
+assert set(stats) == {*boundaries.values(), "returned_success"}
+receipt = dict(schema="H2_TU15_CONFIRMED_SEARCH_CANCEL_CALLBACK_V1", passed=True,
+    observed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+    callback=hex(ENTRY), cancellation_flag=hex(FLAG), manager_request_gate=hex(MANAGER_REQUEST),
+    session_request_gate=hex(SESSION_REQUEST), confirmed_dialog_callback_pointer_push="0x258502",
+    original_cases=sum(stats.values()), original_endpoints=dict(stats), original_addresses=len(instructions),
+    original_code_digest=sha256(b"".join(struct.pack("<IH", at, len(raw)) + raw
+        for at, raw in sorted(instructions.items()))).hexdigest(), controls_sha256=case_hash.hexdigest(),
+    flag_set_before_both_request_gates=True, manager_or_session_boundaries=[hex(n) for n in boundaries],
+    network_owner_bodies_executed=False, all_executed_instruction_bytes_verified=True,
+    patched_instructions=[], replaced_callees=[], declared_synthetic_session_banks=True,
+    tool_sha256=sha256(Path(__file__).read_bytes()).hexdigest(), scratch=str(scratch))
+out = root / "build/test-results/frontend-search-exit-rust-20261102/tu15-confirm-cancel.json"
+out.write_text(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(dict(passed=True, endpoints=dict(stats), addresses=len(instructions))), flush=True)

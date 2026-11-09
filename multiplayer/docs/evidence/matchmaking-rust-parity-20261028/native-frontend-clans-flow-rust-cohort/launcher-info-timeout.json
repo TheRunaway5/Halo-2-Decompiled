@@ -1,0 +1,12 @@
+{
+  "command": [
+    "Halo2-Launcher",
+    "--launcher-info"
+  ],
+  "timeout_seconds": 60,
+  "completed": false,
+  "status": "timeout",
+  "captured_stdout_available": false,
+  "inference": "No launcher-resolved-runtime or gameplay claim follows from this timeout. Direct selection-file observation is used separately.",
+  "retained_large_artifacts": []
+}

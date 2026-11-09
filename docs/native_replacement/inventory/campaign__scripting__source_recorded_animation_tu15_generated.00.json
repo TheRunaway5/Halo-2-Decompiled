@@ -1,0 +1,287 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [
+    {
+      "command": "target_sources",
+      "file": "cmake/PhysicsLiveWorldTu15.cmake",
+      "line": 1098,
+      "target": "halo2_physics_world_runtime"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {
+    "map-pack11": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "0898b88a59248bd9a41c07640d2fd789325199c4886c20002495a36e5f6e7fab",
+      "selected_resolver_sha256": "09bdd505b3c95a76f775c42d72652c00d100e0485a0bcaba8c244e9e67580218"
+    },
+    "tu15": {
+      "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
+      "dispatcher_sha256": "0898b88a59248bd9a41c07640d2fd789325199c4886c20002495a36e5f6e7fab",
+      "selected_resolver_sha256": "09bdd505b3c95a76f775c42d72652c00d100e0485a0bcaba8c244e9e67580218"
+    }
+  },
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 11,
+  "routines": [
+    {
+      "body_sha256": "0fb4be78b5f8eeeca671e78df25f08d6013ba9c01ff271a8871ad464d13674c7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "166a80"
+      ],
+      "function_name": "run_127210",
+      "instruction_callback_sites": 19,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "127210",
+        "tu15": "127210"
+      },
+      "line": 359,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "127210",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "127210",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "127210",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "a062a1ebe410e29d2334d2ade6825ad40f63f57031c13cd83674e23146b20a49",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "166ae0"
+      ],
+      "function_name": "run_166a80",
+      "instruction_callback_sites": 29,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "166a80",
+        "tu15": "166a80"
+      },
+      "line": 382,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "166a80",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "166a80",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "166a80",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "c45415c8744c3395163289d3aa75850e64115f863b82b6ec2c72334de53a59e1",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_166ae0",
+      "instruction_callback_sites": 23,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "166ae0",
+        "tu15": "166ae0"
+      },
+      "line": 415,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "166ae0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "166ae0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "166ae0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "61f9418faa540e2b8b25157861b1885e1073dd25c2e17de14aaf9dc23127106a",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "16e4b0"
+      ],
+      "function_name": "run_16e450",
+      "instruction_callback_sites": 39,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "16e450",
+        "tu15": "16e450"
+      },
+      "line": 442,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "16e450",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "16e450",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "16e450",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "655077c6819f7da03ea670fbbc342f52a3c540177c82724aef02b1f847c77ad8",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "32a4e0"
+      ],
+      "function_name": "run_16e4b0",
+      "instruction_callback_sites": 30,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "16e4b0",
+        "tu15": "16e4b0"
+      },
+      "line": 483,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "16e4b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "16e4b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "16e4b0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "be7e59c67a0db5f208b71dd30b060eae394730519f1c268a5cb36a9fec56f08f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "32a4e0"
+      ],
+      "function_name": "run_16e600",
+      "instruction_callback_sites": 56,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "16e600",
+        "tu15": "16e600"
+      },
+      "line": 516,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "16e600",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "16e600",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "16e600",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "cbc239cf34a636355b8727c225fdf9d3f2598cf613241f7feade7af05a6e0b63",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "16e450"
+      ],
+      "function_name": "run_2035b0",
+      "instruction_callback_sites": 24,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2035b0",
+        "tu15": "2035b0"
+      },
+      "line": 572,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2035b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2035b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2035b0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b3330c01f2beed28cd53c6ee7fba62fcb85245fee92d3ff64f0dbb840bb6388c",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [
+        "16e600"
+      ],
+      "function_name": "run_2035f0",
+      "instruction_callback_sites": 6,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2035f0",
+        "tu15": "2035f0"
+      },
+      "line": 600,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2035f0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2035f0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2035f0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "b0ed250c803b296cbf53ccd757fea2573c3aef09d6a38923d6eb2cabd81a2c1f",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_203610",
+      "instruction_callback_sites": 3,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "203610",
+        "tu15": "203610"
+      },
+      "line": 610,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "203610",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "203610",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "203610",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "69b48df5fe8168437902deb0c3ce40b94e6482d0eb8a55713e8823f3f918b2af",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_2039b0",
+      "instruction_callback_sites": 46,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "2039b0",
+        "tu15": "2039b0"
+      },
+      "line": 617,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "2039b0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2039b0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "2039b0",
+      "symbol_kind": "address-named"
+    },
+    {
+      "body_sha256": "d45ad28fe6caa2f079c9cb7464285be508bed4cb2c502e75951d7c5abbd250a7",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_32a4e0",
+      "instruction_callback_sites": 109,
+      "internal_dispatch_owner_entries": {
+        "map-pack11": "32a4e0",
+        "tu15": "32a4e0"
+      },
+      "line": 667,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "32a4e0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "32a4e0",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "32a4e0",
+      "symbol_kind": "address-named"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/campaign/scripting/source_recorded_animation_tu15_generated.cpp",
+  "source_bytes": 66663,
+  "source_filename_scope": "generated",
+  "source_sha256": "19deaf6069aa180b44b487e60eae4edd7c426f39850286068a96613d4e8ba25e"
+}

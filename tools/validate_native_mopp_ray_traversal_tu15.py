@@ -6,7 +6,7 @@ Private arithmetic variables/bounds are a complete typed 32-byte projection,
 not a CPU frame. Every persistent bank and FP field is compared unchanged.
 Shape/filter services stop at real original entries; no result is supplied.
 """
-import argparse,copy,hashlib,json,os,shutil,struct,subprocess,sys
+import argparse,re,copy,hashlib,json,os,shutil,struct,subprocess,sys
 from pathlib import Path
 from capstone import CS_AC_READ,CS_AC_WRITE
 from capstone.x86_const import X86_OP_MEM
@@ -19,6 +19,26 @@ BASE,CACHE,CODE,VARS,BOUNDS,CODE_OBJECT,COLLECTION,TABLE,FILTER=0x1000000,0x1000
 BOUNDARIES=(0x2e8cf0,0x31edf0)
 def sha(p):return hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
 def save(p,j):p.write_text(json.dumps(j,indent=2,sort_keys=True)+'\n')
+def expanded_source():
+ # Expand the real shared-header DAG once for compiled mutation controls.
+ # In particular, Plane includes Projection, which Traversal also includes.
+ names={'native_tu15_mopp_ray_traversal_kernel.hpp','native_tu15_mopp_ray_projection_kernel.hpp',
+        'native_tu15_mopp_integer_program_kernel.hpp','native_tu15_mopp_ray_scale_kernel.hpp',
+        'native_tu15_mopp_primitive_key_kernel.hpp','native_tu15_mopp_ray_plane_kernel.hpp',
+        'native_tu15_mopp_ray_branch_kernel.hpp','native_tu15_mopp_ray_crossing_kernel.hpp','native_tu15_mopp_ray_resume_kernel.hpp','native_tu15_mopp_ray_slab_kernel.hpp'}
+ seen=set()
+ pattern=re.compile(r'#include "halo2/([^"\n]+)"\n')
+ def expand(text):
+  def include(match):
+   name=match.group(1)
+   if name not in names:return match.group(0)
+   if name in seen:return ''
+   seen.add(name)
+   return expand((ROOT/'include/halo2'/name).read_text().removeprefix('#pragma once\n'))
+  return pattern.sub(include,text)
+ source=expand((ROOT/'src/physics/native_tu15_mopp_ray_traversal.cpp').read_text())
+ assert seen==names,(seen,names)
+ return source
 def metadata(image):
  code=_Code(image,'.text');registers={n:i for i,n in enumerate(('eax','ecx','edx','ebx','esp','ebp','esi','edi'))};sites=[]
  listing=ROOT/'analysis/physics/native-camera-query-dependency-inventory-20261102/0030aa70.txt'
@@ -100,9 +120,13 @@ def cases(image):
  return rows
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--limit',type=int);p.add_argument('--pattern');a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[])
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--xbe',type=Path,default=NEW_DEFAULT);p.add_argument('--limit',type=int);p.add_argument('--pattern');a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[])
+ source=ROOT/'src/physics/native_tu15_mopp_ray_traversal.cpp'
+ files=[source,ROOT/'include/halo2/native_tu15_mopp_ray_slab_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_resume_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_crossing_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_branch_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_plane_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_primitive_key_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_scale_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_integer_program_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_traversal_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_projection_kernel.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_traversal.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_setup.hpp',ROOT/'tests/native_tu15_mopp_ray_traversal_tests.cpp',Path(__file__),ROOT/'tools/observe_native_constraint_step_tu15.cpp',ROOT/'tools/validate_native_island_agent_phase_tu15.py']
+ report['source_before']={str(f.relative_to(ROOT)):sha(f)for f in files}
  try:
-  assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);meta=metadata(image);rows=cases(image)
+  if not a.xbe.is_file():report['skipped']='Original TU1.5 reference image is unavailable';return 77
+  assert sha(a.xbe)==NEW_PIN;image=Xbe(a.xbe);meta=metadata(image);rows=cases(image)
   if a.pattern:rows=[r for r in rows if a.pattern in r['name']]
   if a.limit:rows=rows[:a.limit]
   def boundary(c,o):
@@ -126,9 +150,9 @@ def main():
     if e['instruction']in seen:continue
     seen.add(e['instruction']);c=copy.deepcopy(seed);c.update(name=seed['name']+'_read_'+hex(e['instruction']),stop_pc=e['instruction'],fault=dict(address=p,bytes=n,occurrence=occurrences[key]));prefixes.append(c)
   save(a.output/'fault-prefix-inputs.json',[dict(name=r['name'],stop_pc=r['stop_pc'],fault=r['fault'])for r in prefixes]);rows+=physical.physical(image,meta,prefixes,scratch)
-  fixture=scratch/'fixture.json';save(fixture,dict(image_sha256=NEW_PIN,required_backend=BACKEND,body_sites=meta['body_sites'],cases=rows));project=scratch/'project';project.mkdir();shutil.copytree(ROOT/'include',project/'include');source=ROOT/'src/physics/native_tu15_mopp_ray_traversal.cpp';(project/'native.cpp').write_bytes(source.read_bytes());shutil.copyfile(ROOT/'tests/native_tu15_mopp_ray_traversal_tests.cpp',project/'driver.cpp')
-  variants={};source_text=source.read_text()
-  for name,needle,replacement in [('scale','std::int32_t(1u<<opcode)','std::int32_t(1u<<(opcode+1u))'),('base','key+=variables.fields10_1c[2]','key+=variables.fields10_1c[2]+1u'),('clip','if(reverse)bounds.start=value;else bounds.end=value','if(!reverse)bounds.start=value;else bounds.end=value')]:
+  fixture=scratch/'fixture.json';save(fixture,dict(image_sha256=NEW_PIN,required_backend=BACKEND,body_sites=meta['body_sites'],cases=rows));project=scratch/'project';project.mkdir();shutil.copytree(ROOT/'include',project/'include');source=ROOT/'src/physics/native_tu15_mopp_ray_traversal.cpp';source_text=expanded_source();(project/'native.cpp').write_text(source_text);shutil.copyfile(ROOT/'tests/native_tu15_mopp_ray_traversal_tests.cpp',project/'driver.cpp')
+  variants={}
+  for name,needle,replacement in [('scale','const auto scale_integer=1u<<opcode','const auto scale_integer=1u<<(opcode+1u)'),('base','key+=variables.fields10_1c[2]','key+=variables.fields10_1c[2]+1u'),('clip','if(d.reverse!=bool(d.clipping))bounds.start=value;else bounds.end=value','if(d.reverse==bool(d.clipping))bounds.start=value;else bounds.end=value'),('projection_sign','{{1,2,0},2,{false,true, false}}','{{1,2,0},2,{false,false,false}}'),('provider_fp','environment_.io([&]{memory_.read(p,std::span(b).first(width));});','memory_.read(p,std::span(b).first(width));'),('encoded_order','d.encoded=(d.encoded<<8u)+d.value','d.encoded=(d.encoded>>8u)+d.value'),('primitive_key','d.encoded=(d.encoded<<8u)+value','d.encoded=(d.encoded<<7u)+value'),('plane_boundary','triple?3*(value-bias):2*value-bias','triple?4*(value-bias):2*value-bias'),('branch_direction','if(start_high.less())','if(!start_high.less())'),('crossing_fraction','frame.reverse_divide(frame.scalar(Scalar::fraction_numerator,d));','frame.reverse_divide(frame.scalar(Scalar::fraction_end,d));'),('resume_direction','if(increasing?relation.less():relation.greater())return true;','if(increasing?relation.greater():relation.less())return true;')]:
    assert needle in source_text;variants[name]=source_text.replace(needle,replacement);(project/(name+'.cpp')).write_text(variants[name])
   (project/'negative.py').write_text('import subprocess,sys\nr=subprocess.run(sys.argv[1:],capture_output=True,text=True)\nassert r.returncode!=0,(r.stdout,r.stderr)\nprint(r.stderr[-4096:])\n')
   cmake='cmake_minimum_required(VERSION 3.20)\nproject(MoppTraversal LANGUAGES CXX)\ninclude(CTest)\nadd_library(driver OBJECT driver.cpp)\ntarget_include_directories(driver PRIVATE "'+str(project/'include')+'")\ntarget_compile_features(driver PRIVATE cxx_std_20)\n'
@@ -139,7 +163,9 @@ def main():
    cmd=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/compiler),'--jobs','2','--test-jobs','1','--filter','^mopp_','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler]
    for name in('native',*variants):cmd+=['--target','mopp_'+name]
    r=subprocess.run(cmd);results.append(dict(compiler=compiler,exit_code=r.returncode,command=cmd))
-  executed=set().union(*(set(r['executed_sites'])for r in rows));sites={r['instruction']for r in meta['sites']};files=[source,ROOT/'include/halo2/native_tu15_mopp_ray_traversal.hpp',ROOT/'include/halo2/native_tu15_mopp_ray_setup.hpp',ROOT/'tests/native_tu15_mopp_ray_traversal_tests.cpp',Path(__file__),ROOT/'tools/observe_native_constraint_step_tu15.cpp',ROOT/'tools/validate_native_island_agent_phase_tu15.py']
+  executed=set().union(*(set(r['executed_sites'])for r in rows));sites={r['instruction']for r in meta['sites']}
+  report['source_after']={str(f.relative_to(ROOT)):sha(f)for f in files};assert report['source_before']==report['source_after'],'Ray proof inputs changed during validation'
+  report.update(native_provider_modes=['ordinary','deliberately-clobbered-x87-and-mxcsr'],native_comparisons_per_compiler=2*len(rows),native_provider_exception_fp_preservation=True)
   report.update(passed=all(r['exit_code']==0 for r in results),compiler_results=results,cases=len(rows),full_returns=sum(r['boundary']is None and not r.get('fault')for r in rows),read_fault_prefixes=len(prefixes),negative_controls=list(variants),real_first_child_boundaries=sum(r['boundary']is not None for r in rows),physically_executed_parent_sites=len(sites&executed),unexecuted_parent_sites=sorted(sites-executed),source_hashes={str(f.relative_to(ROOT)):sha(f)for f in files},original_sha256=NEW_PIN,listing_sha256=meta['listing_sha256'],instruction_patches=[],supplied_child_results=False,typed_arithmetic_projection='All32 variable and32 input/output bounds bytes; nativecomputes currentoutputs, neverconsumes originalafter; no savedCPU/control bytes are inputs.',remaining=['Malformed MOPP diagnostic domain and private arithmetic input-address faults','Returned native filter/shape/collector services and actual30B890 caller composition','Whole16C620 query and visible multiplayer camera acceptance'])
  except BaseException as e:report['error']=str(e)or repr(e);raise
  finally:report['temporary_allocated_bytes_before_cleanup']=sum(p.stat().st_blocks*512 for p in scratch.rglob('*')if p.is_file());save(a.output/'report.json',report)

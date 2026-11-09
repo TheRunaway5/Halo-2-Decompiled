@@ -1,0 +1,105 @@
+{
+  "owned_scratch_removed": true,
+  "parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-core-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-component-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-rust-full-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-stager-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-retry-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-focused-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-production-objects-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-scope-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-corpus-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-helper-syntax-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-delivery-initial-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-delivery-direct-initial-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-delivery-final-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-scope-final-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-linkage-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-finish-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-cleanup-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-evidence-20261102",
+      "empty": true,
+      "children": []
+    }
+  ],
+  "completed_native_removed_regular_bytes": 4418672730,
+  "first_aborted_freeze_scratch_removed": true,
+  "retained_large_artifacts": [],
+  "original_assets_existing_references_other_owners_and_selected_runtimes_preserved": true,
+  "final_metadata_runner_parents_empty": true
+}

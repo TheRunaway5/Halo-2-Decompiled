@@ -152,8 +152,10 @@ async def main():
             if token not in owners:raise Problem(401,'Fixture authorization denied')
             assert application=='1558522073272426519';verified.append(token)
             return VerifiedOwner('discord',str(123456789012345678+owners.index(token)),token)
+        # All four physical test peers poll every 20 ms on the loopback prefix.
         app=create_app(Settings(state=Path(temp),public_url='http://127.0.0.1:8080',allow_http=True,
-            rate_per_minute=100000,matchmaking_catalog=str(config)),verify)
+            rate_per_minute=100000,prefix_rate_per_minute=100000,global_rate_per_minute=100000,
+            matchmaking_catalog=str(config)),verify)
         @web.middleware
         async def trace(request,handler):
             response=await handler(request)
@@ -200,7 +202,6 @@ async def main():
                 if p.returncode is None:p.kill();await p.wait()
             for log in logs:
                 if not log.closed:log.close()
-            if not destination:receipt(output,None,processes,verified,app)
     return 0
 
 

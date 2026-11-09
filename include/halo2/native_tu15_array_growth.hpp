@@ -28,6 +28,11 @@ public:
   virtual std::uint8_t copy_byte(std::uint32_t source)const=0;
   virtual void copy_word(std::uint32_t destination,std::uint32_t value)=0;
   virtual void copy_byte(std::uint32_t destination,std::uint8_t value)=0;
+  // Typed copy-phase boundaries for retained caller ABI adapters. Ordinary
+  // storage owners have no work at either boundary.
+  virtual void copy_words_complete(std::uint32_t) {}
+  virtual void copy_complete() {}
+  virtual std::int32_t copy_direction()const {return 1;}
 };
 class NativeTu15ArrayGrowthStorage:public NativeTu15ArrayCopyStorage {
 public:
@@ -39,8 +44,12 @@ public:
   virtual std::uint32_t release_owner(NativeTu15ArrayAllocator)const=0;
   virtual void publish_data(std::uint32_t)=0;
   virtual void publish_capacity(std::uint32_t)=0;
+  virtual void publish_data_at(std::uint32_t,std::uint32_t value){publish_data(value);}
+  virtual void publish_capacity_at(std::uint32_t,std::uint32_t value){publish_capacity(value);}
 };
-// Actual2E2E30 under its admitted C/C++ forward-copy ABI (DF clear). Preserve
+// Actual2E2E30; ordinary typed storage uses its C/C++ forward-copy ABI. A
+// retained caller adapter can expose the original direction through storage.
+// Preserve
 // four-byte transfers followed by byte transfers, 32-bit address wrapping,
 // overlap behavior and each read-before-write/fault boundary. No libc memcpy,
 // temporary complete-buffer snapshot or guest execution is used.
@@ -55,6 +64,11 @@ void native_tu15_copy_array_bytes(NativeTu15ArrayCopyStorage&,
 void native_tu15_grow_array(NativeTu15ArrayGrowthStorage&,std::uint32_t stride,
   NativeTu15PhysicsFrameFp&,const NativeTu15ArrayGrowthServices&,
   NativeTu15ArrayGrowthActivity* = nullptr);
+// Retained caller input is acquired after the initial count, before allocator
+// ownership. This shares the complete DATA algorithm with the value API.
+void native_tu15_grow_array_delayed_stride(NativeTu15ArrayGrowthStorage&,
+  const std::function<std::uint32_t()>& stride,NativeTu15PhysicsFrameFp&,
+  const NativeTu15ArrayGrowthServices&,NativeTu15ArrayGrowthActivity* = nullptr);
 class NativeTu15ArrayGrowthMemory final:public NativeTu15ArrayGrowthStorage {
   SourcePhysicsContactMemory&memory_;NativeTu15ArrayHeader header_;
   SourcePhysicsContactRecordObserver observer_;
@@ -75,5 +89,7 @@ public:
   void copy_byte(std::uint32_t,std::uint8_t)override;
   void publish_data(std::uint32_t)override;
   void publish_capacity(std::uint32_t)override;
+  void publish_data_at(std::uint32_t,std::uint32_t)override;
+  void publish_capacity_at(std::uint32_t,std::uint32_t)override;
 };
 } // namespace halo2

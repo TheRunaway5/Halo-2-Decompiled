@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_physics_frame.hpp"
+#include "halo2/native_tu15_unit_equipment_profile.hpp"
 #include "halo2/source_hud_messages.hpp"
 #include "halo2/source_player_status.hpp"
 #include "halo2/source_gameplay_fade_tu15.hpp"
@@ -52,6 +53,7 @@ struct PlayerScreenFlash;
 // coverage counters from recompiling unrelated live-world users.
 struct NativeTu15PhysicsFrameExecutionStats;
 class Cache;
+struct TagHandle;
 struct SourceTextureCameraScenePrefixTu15;
 class SdlSoundPlatform;
 class MccSoundVariationProvider;
@@ -130,7 +132,7 @@ struct SourceTeleporterEventsTu15 {
 // The source world owns its engine/player phases by default. Existing native
 // match adapters own that interval until their state and consumers migrate;
 // callers select exactly one owner for a tick, without checkpointed policy.
-enum class SourceEngineFrameOwnerTu15 { World, MatchAdapter };
+enum class SourceEngineFrameOwnerTu15 { World, MatchAdapter, CustomRules };
 // Completed original engine bank, read without advancing any owner.
 struct SourceMultiplayerEngineStateTu15 {
     SourceRoundLifecycle round;
@@ -183,7 +185,7 @@ struct SourceBodyImpulseTu15 {
     std::array<std::byte,0x100> before,after;
     std::array<std::byte,16> impulse,point;
 };
-// Completed original108A70 request made by the live source weapon scheduler.
+// Completed 108A70 or direct 179800 request from the live weapon scheduler.
 // Observers receive presentation data after the original callee returns.
 struct SourceWeaponEffectEventTu15 {
     std::uint32_t tick{},unit=0xffffffffu;
@@ -285,9 +287,13 @@ public:
     // Native original-ABI caller frame using this world's actual retained
     // stack/TLS/floating-point owner. Does not execute or admit a source entry.
     SourcePhysicsWorldRuntimeAbi prepare_source_call(std::span<const std::uint32_t> arguments={});
+    // Original mode-2 cache request for a frame of a map-owned MCC bitmap.
+    void predict_mcc_bitmap_frame(TagHandle, unsigned frame);
     // Ordered native40E80/44AB0/460C0 with genuine named residual services.
     // Publishes the same completed main-camera borrow after all producers.
     NativeTu15PhysicsFrameFp run_native_command_frame_tu15(std::uint32_t selector=0);
+    // The 3BC20 callers consume count, stack position and complete descriptors.
+    void run_command_selection_tu15(SourcePhysicsWorldRuntimeAbi&);
     // A separately typed source2B770/2B9F0 CPU-prefix scope. The genuine
     //132B0 boundary yields a retained packet/ABI; no completed graphics call
     // or GPU result is supplied. Whole13C00 restores source context afterward.
@@ -468,6 +474,17 @@ public:
     // Explicit native/debug equipment input through the same complete
     // CF4D0/B9960/B9B70/CF5A0 owners used by original1A8B50.
     std::uint32_t equip_weapon(std::uint32_t unit,std::uint32_t definition);
+    // Complete CF2E0 selected-profile action over declared runtime INPUT.
+    // Clear/drop, real birth, carry and failed-carry retirement remain original owners.
+    SourcePlayerEquipmentTu15 apply_equipment_profile(std::uint32_t unit,
+        const SourceUnitEquipmentProfileInputTu15&);
+    // NativeD81E0 with real model defaults for absent scalar inputs.
+    // Original HS admission leaves NONE/dead units unchanged.
+    void set_unit_maximum_vitality(std::uint32_t unit,std::optional<float> health,
+                                  std::optional<float> shield);
+    // Declared runtime item input through the original B9960/B9B70 factory
+    // and B95D0 position owner. This is not an authored scenario placement.
+    std::uint32_t create_weapon(std::uint32_t definition,Vec3 position);
     // Native controls queue the original command record in14FEC0's frame.
     // The complete player scheduler applies actions and153070/C92C0 once,
     // before PVS and the same source world's object/physics update.
@@ -563,6 +580,10 @@ public:
     NativeRuntimeAddress object_body(std::uint32_t full_datum) const;
     void configure_session(const SourceGameVariant &,std::uint16_t simulation_mode,
                            std::int16_t tick_rate,std::uint32_t random_seed);
+    // Complete the private unlimited-Slayer mechanics world after its custom
+    // rule owner ends the match. Deliver the original end/phase inputs only
+    // at a completed World boundary; custom scoring/results stay caller-owned.
+    void request_custom_match_completion();
     // Deliver campaign kind1 and its actual signed difficulty field. The
     // source clock/cache/engine owners consume the same native session inputs.
     void configure_campaign_session(std::int16_t difficulty,

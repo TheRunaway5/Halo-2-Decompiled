@@ -3,7 +3,6 @@
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_workshop_script_builtins_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
-#include "halo2/source_object_attachment_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -343,10 +342,12 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     if(n==2)return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(x))));
     throw std::runtime_error("Unverified contact sign-extension width");
 }
-std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x8u:return 0x8u;case 0xcu:return 0xcu;case 0xeu:return 0xeu;case 0x10u:return 0x10u;case 0x14u:return 0x14u;case 0x18u:return 0x18u;case 0x1cu:return 0x1cu;case 0x1eu:return 0x1eu;case 0x20u:return 0x20u;case 0x24u:return 0x24u;case 0x2cu:return 0x2cu;case 0x38u:return 0x38u;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x74u:return 0x74u;case 0x98u:return 0x98u;case 0xbfu:return 0xbfu;case 0xfdu:return 0xfdu;case 0x10au:return 0x10au;case 0x134u:return 0x134u;case 0x1000u:return 0x1000u;case 0xffffu:return 0xffffu;case 0xbaba0u:return 0xbaba0u;case 0xbe130u:return 0xbe130u;case 0xbe167u:return 0xbe167u;case 0xbe178u:return 0xbe178u;case 0x100000u:return 0x100000u;case 0x10f710u:return 0x10f710u;case 0x11db00u:return 0x11db00u;case 0x16edd0u:return 0x16edd0u;case 0x20d070u:return 0x20d070u;case 0x20d0d0u:return 0x20d0d0u;case 0x211da0u:return 0x211da0u;case 0x212010u:return 0x212010u;case 0x27ca60u:return 0x27ca60u;case 0x27f760u:return 0x27f760u;case 0x27f782u:return 0x27f782u;case 0x27f7b7u:return 0x27f7b7u;case 0x2abca0u:return 0x2abca0u;case 0x2abcc5u:return 0x2abcc5u;case 0x2abd00u:return 0x2abd00u;case 0x2abd11u:return 0x2abd11u;case 0x2abea0u:return 0x2abea0u;case 0x2abec5u:return 0x2abec5u;case 0x2abed6u:return 0x2abed6u;case 0x2abedfu:return 0x2abedfu;case 0x2accf0u:return 0x2accf0u;case 0x2acd15u:return 0x2acd15u;case 0x2acd30u:return 0x2acd30u;case 0x2acd39u:return 0x2acd39u;case 0x2ad6e0u:return 0x2ad6e0u;case 0x2ad705u:return 0x2ad705u;case 0x2ad716u:return 0x2ad716u;case 0x2ad71fu:return 0x2ad71fu;case 0x2af4c0u:return 0x2af4c0u;case 0x2af4e5u:return 0x2af4e5u;case 0x2af4f6u:return 0x2af4f6u;case 0x2af4ffu:return 0x2af4ffu;case 0x2b27b0u:return 0x2b27b0u;case 0x2b27d5u:return 0x2b27d5u;case 0x2b27e8u:return 0x2b27e8u;case 0x2b27f1u:return 0x2b27f1u;case 0x2b63c0u:return 0x2b63c0u;case 0x2b63e5u:return 0x2b63e5u;case 0x2b63fdu:return 0x2b63fdu;case 0x2b64b0u:return 0x2b64b0u;case 0x2b64d5u:return 0x2b64d5u;case 0x2b64edu:return 0x2b64edu;case 0x2b6550u:return 0x2b6550u;case 0x2b6575u:return 0x2b6575u;case 0x2b658du:return 0x2b658du;case 0x480c00u:return 0x480c00u;case 0x4ecbd0u:return 0x4ecbd0u;case 0x5020a8u:return 0x5020a8u;case 0x515ec4u:return 0x515ec4u;case 0x52be7cu:return 0x52be7cu;case 0x52be80u:return 0x52be80u;case 0xffefffffu:return 0xffefffffu;case 0xffffefffu:return 0xffffefffu;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
+std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x8u:return 0x8u;case 0xau:return 0xau;case 0xcu:return 0xcu;case 0xeu:return 0xeu;case 0x10u:return 0x10u;case 0x14u:return 0x14u;case 0x18u:return 0x18u;case 0x1cu:return 0x1cu;case 0x1eu:return 0x1eu;case 0x20u:return 0x20u;case 0x24u:return 0x24u;case 0x2cu:return 0x2cu;case 0x38u:return 0x38u;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x58u:return 0x58u;case 0x74u:return 0x74u;case 0x98u:return 0x98u;case 0xbfu:return 0xbfu;case 0xfdu:return 0xfdu;case 0x10au:return 0x10au;case 0x134u:return 0x134u;case 0x1000u:return 0x1000u;case 0xffffu:return 0xffffu;case 0xbaba0u:return 0xbaba0u;case 0xbe130u:return 0xbe130u;case 0xbe167u:return 0xbe167u;case 0xbe178u:return 0xbe178u;case 0x100000u:return 0x100000u;case 0x10f710u:return 0x10f710u;case 0x11db00u:return 0x11db00u;case 0x128a20u:return 0x128a20u;case 0x128a7du:return 0x128a7du;case 0x16edd0u:return 0x16edd0u;case 0x18d1d0u:return 0x18d1d0u;case 0x18d203u:return 0x18d203u;case 0x20d070u:return 0x20d070u;case 0x20d0d0u:return 0x20d0d0u;case 0x211da0u:return 0x211da0u;case 0x212010u:return 0x212010u;case 0x21f260u:return 0x21f260u;case 0x27ca60u:return 0x27ca60u;case 0x27f760u:return 0x27f760u;case 0x27f782u:return 0x27f782u;case 0x27f7b7u:return 0x27f7b7u;case 0x2abca0u:return 0x2abca0u;case 0x2abcc5u:return 0x2abcc5u;case 0x2abd00u:return 0x2abd00u;case 0x2abd11u:return 0x2abd11u;case 0x2abea0u:return 0x2abea0u;case 0x2abec5u:return 0x2abec5u;case 0x2abed6u:return 0x2abed6u;case 0x2abedfu:return 0x2abedfu;case 0x2accf0u:return 0x2accf0u;case 0x2acd15u:return 0x2acd15u;case 0x2acd30u:return 0x2acd30u;case 0x2acd39u:return 0x2acd39u;case 0x2ad6e0u:return 0x2ad6e0u;case 0x2ad705u:return 0x2ad705u;case 0x2ad716u:return 0x2ad716u;case 0x2ad71fu:return 0x2ad71fu;case 0x2af4c0u:return 0x2af4c0u;case 0x2af4e5u:return 0x2af4e5u;case 0x2af4f6u:return 0x2af4f6u;case 0x2af4ffu:return 0x2af4ffu;case 0x2b27b0u:return 0x2b27b0u;case 0x2b27d5u:return 0x2b27d5u;case 0x2b27e8u:return 0x2b27e8u;case 0x2b27f1u:return 0x2b27f1u;case 0x2b3e10u:return 0x2b3e10u;case 0x2b3e35u:return 0x2b3e35u;case 0x2b3e40u:return 0x2b3e40u;case 0x2b3e49u:return 0x2b3e49u;case 0x2b63c0u:return 0x2b63c0u;case 0x2b63e5u:return 0x2b63e5u;case 0x2b63fdu:return 0x2b63fdu;case 0x2b64b0u:return 0x2b64b0u;case 0x2b64d5u:return 0x2b64d5u;case 0x2b64edu:return 0x2b64edu;case 0x2b6550u:return 0x2b6550u;case 0x2b6575u:return 0x2b6575u;case 0x2b658du:return 0x2b658du;case 0x480c00u:return 0x480c00u;case 0x4ecbd0u:return 0x4ecbd0u;case 0x4f0414u:return 0x4f0414u;case 0x5020a8u:return 0x5020a8u;case 0x515ec4u:return 0x515ec4u;case 0x52be7cu:return 0x52be7cu;case 0x52be80u:return 0x52be80u;case 0x52d664u:return 0x52d664u;case 0xffefffffu:return 0xffefffffu;case 0xffffefffu:return 0xffffefffu;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
 std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}
 static void run_be130(WorldState &);
 static void run_11db00(WorldState &);
+static void run_128a20(WorldState &);
+static void run_18d1d0(WorldState &);
 static void run_20d070(WorldState &);
 static void run_20d0d0(WorldState &);
 static void run_27ca60(WorldState &);
@@ -357,10 +358,11 @@ static void run_2accf0(WorldState &);
 static void run_2ad6e0(WorldState &);
 static void run_2af4c0(WorldState &);
 static void run_2b27b0(WorldState &);
+static void run_2b3e10(WorldState &);
 static void run_2b63c0(WorldState &);
 static void run_2b64b0(WorldState &);
 static void run_2b6550(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0xbe130u:run_be130(s);return;case 0x11db00u:run_11db00(s);return;case 0x20d070u:run_20d070(s);return;case 0x20d0d0u:run_20d0d0(s);return;case 0x27ca60u:run_27ca60(s);return;case 0x27f760u:run_27f760(s);return;case 0x2abca0u:run_2abca0(s);return;case 0x2abea0u:run_2abea0(s);return;case 0x2accf0u:run_2accf0(s);return;case 0x2ad6e0u:run_2ad6e0(s);return;case 0x2af4c0u:run_2af4c0(s);return;case 0x2b27b0u:run_2b27b0(s);return;case 0x2b63c0u:run_2b63c0(s);return;case 0x2b64b0u:run_2b64b0(s);return;case 0x2b6550u:run_2b6550(s);return;default:s.required(site,target,tail);return;}}
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0xbe130u:run_be130(s);return;case 0x11db00u:run_11db00(s);return;case 0x128a20u:run_128a20(s);return;case 0x18d1d0u:run_18d1d0(s);return;case 0x20d070u:run_20d070(s);return;case 0x20d0d0u:run_20d0d0(s);return;case 0x27ca60u:run_27ca60(s);return;case 0x27f760u:run_27f760(s);return;case 0x2abca0u:run_2abca0(s);return;case 0x2abea0u:run_2abea0(s);return;case 0x2accf0u:run_2accf0(s);return;case 0x2ad6e0u:run_2ad6e0(s);return;case 0x2af4c0u:run_2af4c0(s);return;case 0x2b27b0u:run_2b27b0(s);return;case 0x2b3e10u:run_2b3e10(s);return;case 0x2b63c0u:run_2b63c0(s);return;case 0x2b64b0u:run_2b64b0(s);return;case 0x2b6550u:run_2b6550(s);return;default:s.required(site,target,tail);return;}}
 static void run_be130(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0xbe130u);} s.push(0xbe130u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0xbe131u);} s.set(6,s.reg(0,4,0),4,0);
@@ -408,6 +410,70 @@ if(s.services.instruction){s.services.instruction(0x11db31u);} s.pop();s.gp[4]+=
 L11db34: if(s.services.instruction){s.services.instruction(0x11db34u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0xffffefffu),4),4,0);
 if(s.services.instruction){s.services.instruction(0x11db3au);} w(s.memory,s.observe,0x11db3au,(0x0u+s.gp[0]),4,s.reg(1,4,0));
 L11db3c: if(s.services.instruction){s.services.instruction(0x11db3cu);} s.pop();s.gp[4]+=4u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_128a20(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x128a20u);} s.flags.minus(s.reg(2,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0x128a23u);} if(s.flags.zf)goto L128a7e;
+if(s.services.instruction){s.services.instruction(0x128a25u);} s.set(1,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a2bu);} s.set(0,s.reg(2,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x128a2du);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a32u);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a35u);} s.set(0,r(s.memory,(0x8u+s.gp[0]+s.gp[1]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a39u);} s.set(1,r(s.memory,(0xau+s.gp[0]),1),1,0);
+if(s.services.instruction){s.services.instruction(0x128a3cu);} s.flags.logic((s.reg(1,1,0))&(s.reg(1,1,0)),1);
+if(s.services.instruction){s.services.instruction(0x128a3eu);} if(s.flags.zf)goto L128a7e;
+if(s.services.instruction){s.services.instruction(0x128a40u);} s.set(0,sign_extend(r(s.memory,(0x8u+s.gp[0]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0x128a44u);} s.set(1,r(s.memory,(0x52d664u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a4au);} s.push(0x128a4au,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x128a4bu);} s.set(6,r(s.memory,(0x24u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a4eu);} s.set(0,(0x0u+s.gp[0]+s.gp[0]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0x128a51u);} s.flags.minus(r(s.memory,(0xau+s.gp[6]+s.gp[0]*4u),2),0x0u,2);
+if(s.services.instruction){s.services.instruction(0x128a57u);} s.set(0,(0x0u+s.gp[6]+s.gp[0]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x128a5au);} if(s.flags.zf)goto L128a7d;
+if(s.services.instruction){s.services.instruction(0x128a5cu);} s.set(0,sign_extend(r(s.memory,(0x8u+s.gp[0]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0x128a60u);} s.set(6,r(s.memory,(0x2cu+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a63u);} s.set(1,r(s.memory,(0x44u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a66u);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x128a69u);} s.set(0,sign_extend(r(s.memory,(0xcu+s.gp[0]+s.gp[6]*1u),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0x128a6eu);} s.set(0,(0x0u+s.gp[0]+s.gp[0]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0x128a71u);} s.push(0x128a71u,0x2u);
+if(s.services.instruction){s.services.instruction(0x128a73u);} s.set(0,(0x0u+s.gp[1]+s.gp[0]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x128a76u);} s.push(0x128a76u,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x128a77u);} s.push(0x128a77u,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x128a78u);} {const auto target=0x21f260u;s.push(0x128a78u,0x128a7du);dispatch(s,target,0x128a78u,false);}
+L128a7d: if(s.services.instruction){s.services.instruction(0x128a7du);} s.set(6,s.pop(),4,0);
+L128a7e: if(s.services.instruction){s.services.instruction(0x128a7eu);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_18d1d0(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x18d1d0u);} s.flags.minus(s.reg(0,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0x18d1d3u);} if(s.flags.zf)goto L18d210;
+if(s.services.instruction){s.services.instruction(0x18d1d5u);} s.set(1,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1dbu);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1e0u);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1e3u);} s.push(0x18d1e3u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x18d1e4u);} s.set(6,r(s.memory,(0x8u+s.gp[0]+s.gp[1]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1e8u);} s.set(0,r(s.memory,(0x1cu+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1ebu);} s.push(0x18d1ebu,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x18d1ecu);} s.set(7,s.flags.logic((s.reg(7,4,0))^(s.reg(7,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1eeu);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x18d1f0u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L18d20e;
+if(s.services.instruction){s.services.instruction(0x18d1f2u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
+L18d1f4: if(s.services.instruction){s.services.instruction(0x18d1f4u);} s.set(2,r(s.memory,(0x20u+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1f7u);} s.set(0,s.flags.product(s.reg(0,4,0),0x58u),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1fau);} s.set(2,r(s.memory,(0x20u+s.gp[0]+s.gp[2]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d1feu);} s.push(0x18d1feu,0x18d203u);run_128a20(s);
+if(s.services.instruction){s.services.instruction(0x18d203u);} s.set(1,r(s.memory,(0x1cu+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x18d206u);} s.set(7,s.flags.increment(s.reg(7,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x18d207u);} s.set(0,sign_extend(s.reg(7,2,0),2),4,0);
+if(s.services.instruction){s.services.instruction(0x18d20au);} s.flags.minus(s.reg(0,4,0),s.reg(1,4,0),4);
+if(s.services.instruction){s.services.instruction(0x18d20cu);} if(s.flags.sf!=s.flags.of)goto L18d1f4;
+L18d20e: if(s.services.instruction){s.services.instruction(0x18d20eu);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x18d20fu);} s.set(6,s.pop(),4,0);
+L18d210: if(s.services.instruction){s.services.instruction(0x18d210u);} s.pop();s.gp[4]+=0u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
@@ -759,6 +825,31 @@ if(s.services.instruction){s.services.instruction(0x2b27f3u);} s.pop();s.gp[4]+=
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
+static void run_2b3e10(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x2b3e10u);} s.set(0,sign_extend(r(s.memory,(0x4u+s.gp[4]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e15u);} s.set(0,r(s.memory,(0x480c00u+s.gp[0]*4u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e1cu);} s.set(1,r(s.memory,(0xcu+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e20u);} s.push(0x2b3e20u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x2b3e21u);} s.set(6,r(s.memory,(0xcu+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e25u);} s.push(0x2b3e25u,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x2b3e26u);} s.set(2,(0xeu+s.gp[0]),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e29u);} s.set(0,sign_extend(r(s.memory,(0xcu+s.gp[0]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e2du);} s.push(0x2b3e2du,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x2b3e2eu);} s.push(0x2b3e2eu,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x2b3e2fu);} s.push(0x2b3e2fu,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x2b3e30u);} {const auto target=0x212010u;s.push(0x2b3e30u,0x2b3e35u);dispatch(s,target,0x2b3e30u,false);}
+if(s.services.instruction){s.services.instruction(0x2b3e35u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x2b3e37u);} if(s.flags.zf)goto L2b3e49;
+if(s.services.instruction){s.services.instruction(0x2b3e39u);} s.set(0,r(s.memory,(0x0u+s.gp[0]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e3bu);} s.push(0x2b3e3bu,0x2b3e40u);run_18d1d0(s);
+if(s.services.instruction){s.services.instruction(0x2b3e40u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e42u);} s.set(1,s.reg(6,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e44u);} {const auto target=0x211da0u;s.push(0x2b3e44u,0x2b3e49u);dispatch(s,target,0x2b3e44u,false);}
+L2b3e49: if(s.services.instruction){s.services.instruction(0x2b3e49u);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x2b3e4au);} s.pop();s.gp[4]+=12u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
 static void run_2b63c0(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x2b63c0u);} s.set(0,sign_extend(r(s.memory,(0x4u+s.gp[4]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x2b63c5u);} s.set(0,r(s.memory,(0x480c00u+s.gp[0]*4u),4),4,0);
@@ -846,6 +937,8 @@ void source_run_workshop_script_builtins_tu15(M &m,std::uint32_t entry,
         switch(entry) {
 case 0xbe130u:run_be130(s);break;
 case 0x11db00u:run_11db00(s);break;
+case 0x128a20u:run_128a20(s);break;
+case 0x18d1d0u:run_18d1d0(s);break;
 case 0x20d070u:run_20d070(s);break;
 case 0x20d0d0u:run_20d0d0(s);break;
 case 0x27ca60u:run_27ca60(s);break;
@@ -856,6 +949,7 @@ case 0x2accf0u:run_2accf0(s);break;
 case 0x2ad6e0u:run_2ad6e0(s);break;
 case 0x2af4c0u:run_2af4c0(s);break;
 case 0x2b27b0u:run_2b27b0(s);break;
+case 0x2b3e10u:run_2b3e10(s);break;
 case 0x2b63c0u:run_2b63c0(s);break;
 case 0x2b64b0u:run_2b64b0(s);break;
 case 0x2b6550u:run_2b6550(s);break;
@@ -865,5 +959,5 @@ case 0x2b6550u:run_2b6550(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_workshop_script_builtins_tu15_owns_entry(std::uint32_t p) {switch(p){case 0xbe130u:case 0x11db00u:case 0x20d070u:case 0x20d0d0u:case 0x27ca60u:case 0x27f760u:case 0x2abca0u:case 0x2abea0u:case 0x2accf0u:case 0x2ad6e0u:case 0x2af4c0u:case 0x2b27b0u:case 0x2b63c0u:case 0x2b64b0u:case 0x2b6550u:return true;default:return false;}}
+bool source_workshop_script_builtins_tu15_owns_entry(std::uint32_t p) {switch(p){case 0xbe130u:case 0x11db00u:case 0x128a20u:case 0x18d1d0u:case 0x20d070u:case 0x20d0d0u:case 0x27ca60u:case 0x27f760u:case 0x2abca0u:case 0x2abea0u:case 0x2accf0u:case 0x2ad6e0u:case 0x2af4c0u:case 0x2b27b0u:case 0x2b3e10u:case 0x2b63c0u:case 0x2b64b0u:case 0x2b6550u:return true;default:return false;}}
 } // namespace halo2

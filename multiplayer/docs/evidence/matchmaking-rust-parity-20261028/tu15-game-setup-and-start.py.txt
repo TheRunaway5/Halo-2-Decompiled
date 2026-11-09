@@ -1,0 +1,259 @@
+"""Replay TU1.5 Game Setup through its original controller/loader boundary."""
+
+from collections import Counter
+from datetime import datetime, timezone
+from hashlib import sha256
+from itertools import product
+from pathlib import Path
+import json
+import os
+import struct
+import sys
+
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBP, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDI,
+                              UC_X86_REG_EDX, UC_X86_REG_EFLAGS, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP)
+
+root = Path.cwd()
+sys.path.insert(0, str(root / "tools"))
+from oracle_game_variants import Source, STACK, STOP
+from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
+
+
+CLICK, AUX, LOAD_PLAYLIST, ENUM, PARAMS = 0x2C536E, 0x2C5A6B, 0x2C5AA1, 0x19409F, 0x14CA86
+DIRECT, SAVED, PRIVACY, BASE = 0x237729, 0x237807, 0x239026, 0x236B8B
+CONSTRUCT, ALLOCATE, REGISTER = 0x2C50C9, 0x16E6A0, 0x2C2343
+START, START_HANDLER, START_COMMAND, COUNTDOWN_REQUEST, ERROR_SOUND = 0x2572C1, 0x25737A, 0x194F81, 0x65980, 0x23CC7E
+SOURCE_DISPATCH = {0: 0x2C4E7A, 1: 0x2BB891, 2: 0x2BB07D, 3: 0x2C4FD1,
+                   4: 0x2C54E5, 6: 0x2C556E, 7: 0x2C55D3, 8: 0x240157, 9: DIRECT}
+SCREEN, POOL, BANK, REF, CONTROLLER, EVENT = (0x1100000 + 0x1000 * i for i in range(6))
+SESSION = 0x1110000
+BITMAP = EVENT + 0x100
+scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
+source = Source(dict(path=str(NEW_DEFAULT), pin=NEW_PIN, globals=0x4ECC1C))
+g = source.g
+g.mem_map(SCREEN, 0x20000)
+
+
+def put(address, *values):
+    g.mem_write(address, struct.pack("<" + "I" * len(values), *(v & 0xFFFFFFFF for v in values)))
+
+
+def read(address, n=1):
+    return struct.unpack("<" + "I" * n, g.mem_read(address, 4 * n))
+
+
+stop_loaders = {DIRECT, SAVED, PRIVACY, SOURCE_DISPATCH[0], SOURCE_DISPATCH[1], SOURCE_DISPATCH[2], SOURCE_DISPATCH[3]}
+stop_owners = {BASE, *(SOURCE_DISPATCH[i] for i in (4, 6, 7, 8))}
+seen, visits = {}, Counter()
+counts = Counter()
+controls = sha256()
+constructing = False
+
+
+def code(g, at, size, _):
+    global outcome, parameter_hits, original_enum, original_start_status
+    original = source.image.read(at, size)
+    assert bytes(g.mem_read(at, size)) == original, hex(at)
+    sp = g.reg_read(UC_X86_REG_ESP)
+    if at in stop_loaders:
+        parameter_hits += visits[PARAMS] - before_params
+        _, pointer = read(sp, 2)
+        assert STACK - 256 <= pointer <= STACK - 24
+        assert read(pointer, 8) == ((1 << (controller & 31)) << 16 & 0xFFFFFFFF, 3, 4, 0,
+                                     0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, at)
+        outcome = f"loader_{at:x}"
+    elif at == REGISTER:
+        assert constructing and g.reg_read(UC_X86_REG_ECX) == SCREEN + 0x84
+        assert g.reg_read(UC_X86_REG_EDX) == SCREEN + 0x408
+        outcome = "register_rows"
+    elif at == COUNTDOWN_REQUEST:
+        assert read(sp, 4) == (0x194FCF, 1, 10, 0)
+        assert g.reg_read(UC_X86_REG_EDX) == controller
+        outcome = "countdown_request"
+    elif at == ERROR_SOUND:
+        assert g.reg_read(UC_X86_REG_EAX) == 2
+        outcome = "error_sound"
+    elif at in stop_owners:
+        outcome = f"owner_{at:x}"
+    else:
+        if at == 0x1941BA:
+            original_enum = g.reg_read(UC_X86_REG_EAX)
+        if at == 0x257364:
+            original_start_status = g.reg_read(UC_X86_REG_EAX)
+        if at == START_COMMAND:
+            assert g.reg_read(UC_X86_REG_EAX) == controller and read(sp + 4, 2) == (10, 3)
+        seen[at] = original
+        visits[at] += 1
+        return
+    g.emu_stop()
+
+
+def guard(g, kind, at, size, value, _):
+    if STACK - 512 <= at and at + size <= STACK + 16:
+        return
+    allowed = ((POOL + 0x34, POOL + 0x44), (BANK, BANK + 40), (BITMAP, BITMAP + 4))
+    assert constructing and any(lo <= at and at + size <= hi for lo, hi in allowed), (hex(at), size)
+
+
+g.hook_add(UC_HOOK_CODE, code)
+g.hook_add(UC_HOOK_MEM_WRITE, guard)
+put(SCREEN + 0x70, POOL)
+put(POOL + 0x44, BANK)
+put(REF, CONTROLLER)
+put(0x535F34, SESSION)
+
+
+def execute(entry, argv, expected):
+    global outcome, before_params, parameter_hits, original_enum, original_start_status
+    before_params = visits[PARAMS]
+    parameter_hits = 0
+    outcome = None
+    original_enum = None
+    original_start_status = None
+    put(STACK, STOP, *argv)
+    g.reg_write(UC_X86_REG_ESP, STACK)
+    g.reg_write(UC_X86_REG_ECX, controller if entry == LOAD_PLAYLIST else SCREEN)
+    g.reg_write(UC_X86_REG_EFLAGS, 0x202)
+    g.emu_start(entry, STOP, count=20000)
+    assert outcome == expected, (hex(entry), outcome, expected)
+    assert parameter_hits == int(expected is not None and expected.startswith("loader"))
+    if expected is None:
+        assert g.reg_read(UC_X86_REG_EIP) == STOP
+        assert g.reg_read(UC_X86_REG_ESP) == STACK + 4 + 4 * len(argv)
+
+
+def record(case, kind):
+    counts[kind] += 1
+    controls.update(json.dumps([case, kind, outcome, original_enum, original_start_status]).encode() + b"\n")
+
+
+controllers = (0, 1, 2, 3, 15, 31, 32, 0x1234567F)
+for semantic, controller, index, salt in product(SOURCE_DISPATCH, controllers, (0, 3, 7), (0, 0x1234, 0xFFFF)):
+    put(CONTROLLER + 4, controller)
+    put(BANK + 4 * index, (semantic << 16) | 0x4242)
+    put(EVENT, (salt << 16) | index)
+    target = SOURCE_DISPATCH[semantic]
+    expected = ("loader" if target in stop_loaders else "owner") + f"_{target:x}"
+    execute(CLICK, (REF, EVENT), expected)
+    record([semantic, controller, index, salt], f"setup_row_{semantic}")
+for controller in controllers:
+    put(EVENT, 0xFFFFFFFF)
+    execute(CLICK, (REF, EVENT), None)
+    record([controller], "missing_datum")
+
+for alternate, controller in product((0, 1, 2, 0x100), controllers):
+    target = DIRECT if alternate & 0xFF else SAVED
+    execute(LOAD_PLAYLIST, (alternate,), f"loader_{target:x}")
+    record([alternate, controller], "saved_loader" if target == SAVED else "direct_loader")
+
+# The original enum producer reads a session protocol, type and variant, with
+# the active saved-campaign fields producing the even session cases.
+session_cases = [(0, 1, 1, True, 0), (0, 1, 1, False, 1), (1, 1, 1, True, 2),
+                 (1, 1, 1, False, 3), (2, 1, 1, True, 4), (2, 1, 1, False, 5),
+                 (2, 2, 1, False, 6), (0, 1, 0, False, 0xFFFFFFFF)]
+for (protocol, kind, variant, saved, expected_enum), controller, event_type, component in product(
+        session_cases, controllers, (0, 5, 6), (0, 2, 3)):
+    g.mem_write(0x535F00, b"\1")
+    put(0x535F04, 1)
+    put(SESSION + 0x741C, 3)
+    put(SESSION + 0x18, protocol)
+    put(SESSION + 0x49A4, kind)
+    put(SESSION + 0x4DF4, variant)
+    put(SESSION + 0x4D08, 0, 0, int(saved))
+    put(EVENT, event_type, controller, component)
+    aux = event_type == 5 and component == 2
+    opens = aux and expected_enum not in (0, 1)
+    execute(AUX, (EVENT,), f"loader_{PRIVACY:x}" if opens else f"owner_{BASE:x}")
+    assert original_enum == (expected_enum if aux else None), (protocol, kind, variant, saved, original_enum)
+    record([protocol, kind, variant, saved, controller, event_type, component], "privacy_loader" if opens else "base_input")
+
+rows = {0:[2,3,7], 1:[0,1,4,6], 2:[2,3,7], 3:[0,1,4,6], 4:[2,3,7,8], 5:[0,1,4,6,8], 6:[9,6,7]}
+constructing = True
+for session, salt in product((-2147483648, -1, *rows, 7, 2147483647), (0x8000, 0x9000, 0xFFFE)):
+    put(POOL + 0x20, 10, 4)
+    put(POOL + 0x34, 0, 0, 0, salt, BANK, BITMAP)
+    put(BITMAP, 0)
+    put(BANK, *([0x41410000] * 10))
+    put(STACK - 0x18, session)
+    g.reg_write(UC_X86_REG_EBP, STACK - 0x20)
+    g.reg_write(UC_X86_REG_ESI, SCREEN)
+    g.reg_write(UC_X86_REG_EDI, 0)
+    g.reg_write(UC_X86_REG_EBX, SCREEN + 0x408)
+    before_alloc = visits[ALLOCATE]
+    execute(CONSTRUCT, (), "register_rows")
+    expected = rows.get(session, [])
+    assert [x >> 16 for x in read(BANK, len(expected))] == expected
+    assert read(POOL + 0x34, 3) == (len(expected),) * 3 and read(BITMAP)[0] == (1 << len(expected)) - 1
+    assert visits[ALLOCATE] - before_alloc == len(expected)
+    actual_salts = [value & 0xFFFF for value in read(BANK,len(expected))]
+    assert actual_salts == [(salt + n) if salt + n < 0xFFFF else 0x8000 + salt + n - 0xFFFF for n in range(len(expected))]
+    record([session, salt, expected, actual_salts], "constructed_rows")
+constructing = False
+
+# Real pregame Start through status evaluation and the first countdown/sound
+# owner. The prepared bank declares one physical host and one active seat.
+g.mem_write(0x535F00, b"\1")
+g.mem_write(0x4DC3E8, b"\1")
+put(0x535F04, 1)
+put(SESSION + 0x741C, 3)
+put(SESSION + 0x18, 2)
+put(SESSION + 0x49A4, 2)
+put(SESSION + 0x49C8, 0)
+put(SESSION + 0x4D08, 0, 0, 0)
+put(SESSION + 0x54, 1)
+put(SESSION + 0x1118, 1, 1)
+put(SESSION + 0x4DF4, 1)
+g.mem_write(0x48A0C8, b"\1\0")
+g.mem_write(0x48A0C4, b"\2")
+put(0x560988 + 0x5EC, 1, 16)
+g.mem_write(0x560988 + 0x51C, bytes(range(128)))
+for controller, signed_in, is_host, lobby_ready, valid_hopper, peer_ready, running, member in product(
+        range(4), (False, True), (False, True), (False, True), (False, True), (False, True), (False, True), (False, True)):
+    put(CONTROLLER + 4, controller)
+    put(EVENT, 0)
+    put(0x55D770 + 0xC74 * controller, 0x10 if signed_in else 0, controller if member else -1)
+    put(SESSION + 0x72D8, 0)
+    put(SESSION + 0x50, 0 if is_host else 1)
+    put(SESSION + 0x4980, int(lobby_ready))
+    put(SESSION + 0x104, int(peer_ready))
+    put(SESSION + 0x49A8, int(running), 7)
+    put(0x560988, int(valid_hopper), 0, 1)
+    status = None
+    if signed_in and is_host and lobby_ready:
+        status = 12 if not valid_hopper else 24 if not peer_ready else 10 if running else 9
+    expected = ("countdown_request" if member else "error_sound") if status == 9 else None
+    execute(START, (REF, EVENT), expected)
+    assert original_start_status == status, (original_start_status, status)
+    kind = expected or (f"status_{status}" if status is not None else "start_ignored_before_status")
+    record([controller,signed_in,is_host,lobby_ready,valid_hopper,peer_ready,running,member], kind)
+
+# Verify the loader IDs and list-mode bytes in the authenticated XBE. Native
+# allocation, loaded-file enumeration, and the eventual draw are separate.
+static = {0x237731:"837d0403560f95c0576880e902004883e01205db000000",
+          0x23777A:"c6865ce8020001889e5de80200889e5ee80200",
+          0x237838:"bfdc000000", 0x237841:"c6865ce8020000c6865de8020001c6865ee8020000",
+          0x239049:"e816000000", 0x23907A:"6a19"}
+for address, expected in static.items():
+    assert source.image.read(address, len(bytes.fromhex(expected))) == bytes.fromhex(expected)
+proof = dict(schema="H2_TU15_GAME_SETUP_INPUT_V1", passed=True,
+             completed_utc=datetime.now(timezone.utc).isoformat(), original_xbe_sha256=NEW_PIN,
+             click=hex(CLICK), auxiliary=hex(AUX), session_enum=hex(ENUM), playlist_loader_helper=hex(LOAD_PLAYLIST),
+             original_screen_parameter_builder=hex(PARAMS), original_game_setup_row9_loader=hex(DIRECT),
+             original_game_setup_row9_screen=237, direct_playlist_loader=hex(DIRECT), direct_playlist_screens=[219,237],
+             original_privacy_loader=hex(PRIVACY), original_privacy_screen=25,
+             row_constructor_entry_after_widget_and_pool_init=hex(CONSTRUCT), original_datum_allocator=hex(ALLOCATE),
+             produced_rows=rows,
+             pregame_start=hex(START), pregame_start_handler=hex(START_HANDLER),
+             original_countdown_request=hex(COUNTDOWN_REQUEST), original_error_sound=hex(ERROR_SOUND),
+             declared_start_bank_one_host_and_one_seat=True, active_network_countdown_body_executed=False,
+             saved_file_loader=hex(SAVED), saved_file_screen=220, static_loader_instructions={hex(k):v for k,v in static.items()},
+             counts=dict(counts), all_controls=sum(counts.values()), controls_sha256=controls.hexdigest(),
+             verified_executed_addresses=len(seen), verified_instruction_invocations=sum(visits.values()),
+             code_sha256=sha256(b"".join(struct.pack("<IH", a, len(raw)) + raw for a,raw in sorted(seen.items()))).hexdigest(),
+             all_executed_instruction_bytes_verified=True, writes_limited_to_stack_and_declared_constructor_pool=True,
+             synthetic_input_facts=True, patched_instructions=[], replaced_callees=[], loader_bodies_executed=False,
+             tool_sha256=sha256(Path(__file__).read_bytes()).hexdigest(), scratch=str(scratch))
+out = root / "build/test-results/frontend-game-setup-rust-20261102/tu15-game-setup.json"
+out.write_text(json.dumps(proof, indent=2)+"\n")
+print(json.dumps(dict(passed=True, controls=sum(counts.values()), counts=counts, source_addresses=len(seen))))

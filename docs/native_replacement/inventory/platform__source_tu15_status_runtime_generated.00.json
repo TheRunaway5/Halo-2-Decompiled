@@ -1,0 +1,48 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [
+    {
+      "command": "add_library",
+      "file": "cmake/SourceTu15Status.cmake",
+      "line": 1,
+      "target": "halo2_source_tu15_status"
+    }
+  ],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_source_tu15_status::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_source_tu15_status"
+  ],
+  "production_scope": "static_production_candidate",
+  "reference_verification_gate_names": [],
+  "routine_count": 1,
+  "routines": [
+    {
+      "body_sha256": "365817e998212eac64aded5cb1d0f56ef41adcb78000f6757da8f3e8d6f0c62a",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run_status",
+      "instruction_callback_sites": 59,
+      "line": 6,
+      "literal_dispatch_required_targets": [],
+      "observed_entry": "80023653",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "80023653",
+      "route_status": "retained_translation_no_native_admission_proven",
+      "state_type": "WorldState",
+      "symbol": "run_status",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/source_tu15_status_runtime_generated.cpp",
+  "source_bytes": 7407,
+  "source_filename_scope": "generated",
+  "source_sha256": "f256873b3ed77210ae005cd334ed2b53aeafece7fdcd4dda2e4619a2acb9ad6c"
+}

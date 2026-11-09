@@ -5,7 +5,9 @@
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
+#include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/source_effect_particle_frame_tu15.hpp"
+#include "halo2/source_map_world_support_tu15.hpp"
 #include "halo2/source_particle_swarm_tu15.hpp"
 #include <cmath>
 #include <cstring>
@@ -81,9 +83,20 @@ struct PrivateMemory final : Memory {
     data.write(at, bytes);
   }
 };
+struct Use {
+  bool &active;
+  explicit Use(bool &value) : active(value) {
+    if (active)
+      throw FormatError("Private particle state already has an active call");
+    active = true;
+  }
+  ~Use() { active = false; }
+};
 struct Borrow {
   PrivateMemory &memory;
-  Borrow(PrivateMemory &m, const Memory &inputs) : memory(m) {
+  SourceEffectCompiledSymbolsTu15 symbols;
+  Borrow(PrivateMemory &m, const Memory &inputs)
+      : memory(m), symbols(m, inputs) {
     memory.data.borrow(&inputs);
   }
   ~Borrow() { memory.data.borrow(nullptr); }
@@ -92,8 +105,8 @@ struct Borrow {
 struct SourcePrivateParticlePhaseTu15::Impl {
   PrivateMemory memory;
   std::array<std::uint32_t, 6> roots{};
-  std::uint32_t random{}, clock{}, tick{}, game{}, kind{}, tags{};
-  bool faulted{};
+  std::uint32_t random{}, clock{}, tick{}, game{}, kind{}, tags{}, root_symbol{};
+  bool faulted{}, active{};
   void pin(std::uint32_t at, std::uint32_t bytes, bool writable) {
     memory.data.pin_range(at, bytes, true);
     if (writable)
@@ -101,6 +114,7 @@ struct SourcePrivateParticlePhaseTu15::Impl {
   }
   explicit Impl(const Memory &source) {
     Borrow borrow(memory, source);
+    root_symbol = source_effect_compiled_symbol_tu15(source, 0x0400054fu);
     clock = word(source, 0x51df54);
     tick = word(source, clock + 8);
     game = word(source, 0x4f3218);
@@ -153,11 +167,12 @@ struct SourcePrivateParticlePhaseTu15::Impl {
     if (faulted)
       throw FormatError(
           "Private particle owner stopped inside a previous native call");
-    if (word(source, 0x51df54) != clock || word(source, clock + 8) != tick ||
+    if (source_effect_compiled_symbol_tu15(source, 0x0400054fu) != root_symbol ||
+        word(source, 0x51df54) != clock || word(source, clock + 8) != tick ||
         word(source, 0x4f3218) != game || word(source, game + 8) != kind ||
         word(source, 0x4f0414) != tags || word(source, 0x4f3cd8) != random)
       throw FormatError("Private particle inputs require their same admitted "
-                        "native tick/layout");
+                        "native tick/layout/namespace");
     unsigned n{};
     for (const auto [global, stride] : pools) {
       const auto pool = roots[n++];
@@ -185,6 +200,7 @@ void SourcePrivateParticlePhaseTu15::advance(
     const SourcePhysicsWorldRuntimeServices &cpu,
     const SourcePhysicsContactRecordObserver &observe) {
   auto &owner = *impl_;
+  Use use(owner.active);
   Borrow borrow(owner.memory, inputs);
   owner.validate(inputs);
   if (abi.gp[4] < 0x10000 || abi.gp[4] > 0xfffeffffu)
@@ -243,6 +259,13 @@ void SourcePrivateParticlePhaseTu15::advance(
       source_run_physics_world_runtime_selected_observations(
           memory, 0x2e5ce0u, a, SourcePhysicsContactImage::TitleUpdate15, fp,
           services, o);
+    else if (call.target == 0x18c1f0u || call.target == 0x144090u)
+      // Actual18B0AB's authored material-sound request uses the World's
+      // complete map-support owner before its overlapping object-sound body.
+      // The collision branch16C06F ->144090 has the same earlier map owner;
+      // the later World-table alias is not the actual dispatch composition.
+      source_run_map_world_support_tu15(memory, call.target, a, fp, services,
+                                        o);
     else if (call.target == 0x18b1d0u) {
       // Actual18B017's material/event selection follows the World's Phantom
       // composition, including its returned native floating-point controls.
@@ -264,6 +287,33 @@ void SourcePrivateParticlePhaseTu15::advance(
     owner.faulted = true;
     throw;
   }
+}
+void SourcePrivateParticlePhaseTu15::with_state_inputs(
+    const SourcePhysicsContactMemory &inputs,
+    const std::function<void(const SourcePhysicsContactMemory &)> &consume)
+    const {
+  auto &owner = *impl_;
+  Use use(owner.active);
+  Borrow borrow(owner.memory, inputs);
+  owner.validate(inputs);
+  if (!consume)
+    throw FormatError("Private particle state requires its readonly consumer");
+  struct ReadOnlyState final : Memory {
+    const first_person_context_detail::ContextMemory &data;
+    explicit ReadOnlyState(
+        const first_person_context_detail::ContextMemory &value)
+        : data(value) {}
+    void read(std::uint32_t at, std::span<std::byte> bytes) const override {
+      data.read(at, bytes);
+    }
+    void write(std::uint32_t, std::span<const std::byte>) override {
+      throw FormatError("Private particle render inputs are readonly");
+    }
+  } state(owner.memory.data);
+  SourceEffectCompiledSymbolsTu15 symbols(state, owner.memory);
+  // Persistent particle bytes overlay current readonly inputs. Transient native
+  // caller-stack and SEH copies are execution scratch, never render-state data.
+  consume(state);
 }
 std::vector<SourcePrivateParticlePhaseTu15::Range>
 SourcePrivateParticlePhaseTu15::state() const {

@@ -233,7 +233,13 @@ void source_run_physics_contact_runtime(M &m,std::uint32_t entry,
 }
 } // namespace halo2
 '''
-    a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(preamble+'\n\n'.join(bodies)+ending)
+    from native_mopp_aabb_canonical_replacements import replace_mopp_aabb_canonical
+    generated=replace_mopp_aabb_canonical(preamble+'\n\n'.join(bodies)+ending)
+    from native_polygon_support_replacements import replace_polygon_support
+    generated=replace_polygon_support(generated)
+    from native_polygon_features_replacements import replace_polygon_features
+    generated=replace_polygon_features(generated)
+    a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(generated)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),
         complete_native_entries=[f'{p:08x}' for p in ENTRIES],lowered_instructions=lowered,

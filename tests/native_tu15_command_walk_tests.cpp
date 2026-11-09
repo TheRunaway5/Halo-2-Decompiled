@@ -40,9 +40,10 @@ void controls() {
         m.put(0x4cd398u,0);m.put(0x4cd3a4u,0);m.put(unit+32+12,0);calls.push_back(0x449d0);return geom;};
     s.prepare_45cd0=[&](auto u,auto p,auto matrix,auto&){check(u==1&&matrix==7,"44AB0 failed to pin matrix");
         calls.push_back(p);m.put(packet,0x12345678);if(p==0)m.put(geom,3);return p!=1;};
-    s.emit_41030=[&](auto mode,auto coverage,auto shader,bool grouped,auto u,auto p,auto&){
-        check(mode==1&&coverage==0x99&&shader==0x12345678&&!grouped&&u==1,"44AB0 lost pinned inputs");
-        calls.push_back(0x100+p);if(p==2)m.put(geom,0xffffffffu);};
+    s.emit_41030=[&](const auto& a,auto&){
+        check(a.mode==1&&a.coverage==0x99&&a.shader==0x12345678&&!a.grouped&&a.unit==1&&a.mask==0xffffffffu&&!a.add,
+            "44AB0 lost pinned inputs");
+        calls.push_back(0x100+a.part);if(a.part==2)m.put(geom,0xffffffffu);};
     native_tu15_command_parts_44ab0(m,1,0xffffffffu,31,fp,s);
     check(calls==std::vector<std::uint32_t>{0x449d0,0,0x100,1,2,0x102},"44AB0 lost live signed geometry count or call order");
     // The override is pinned before geometry/part services, even at slot255's
@@ -51,7 +52,7 @@ void controls() {
     m.put(0x4cd6f6u,254);m.put(0x4cda48u+254*4u,0xaabbccdd);m.put(geom,1);
     s.geometry_449d0=[&](auto,auto,auto&){m.put(0x4cda48u+254*4u,0);return geom;};
     s.prepare_45cd0=[&](auto,auto,auto,auto&){m.put(packet,0xffffffffu);return true;};
-    unsigned emitted{};s.emit_41030=[&](auto,auto,auto shader,bool,auto,auto,auto&){check(shader==0xaabbccdd,"44AB0 reloaded pinned override");++emitted;};
+    unsigned emitted{};s.emit_41030=[&](const auto& a,auto&){check(a.shader==0xaabbccdd,"44AB0 reloaded pinned override");++emitted;};
     native_tu15_command_parts_44ab0(m,0,0xffffffffu,31,fp,s);check(emitted==1,"44AB0 skipped overridden NONE shader");
     // Special rows bypass all ordinary filtering and retain signed counts.
     m.put(unit,0x400);m.put(0x515f1cu,0xffffffffu);

@@ -1,0 +1,82 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "included",
+  "configured_production_target_ids": [
+    "halo2_input_startup_tu15::@6890427a1f51a3e7e1df",
+    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
+  ],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_input_startup_tu15",
+    "halo2_physics_world_runtime"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_MILLISECOND_CLOCK"
+  ],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "instruction_literal",
+        "native_tu15_sample_millisecond_clock",
+        "pop"
+      ],
+      "body_sha256": "b0e91442cbb27567178d157700fc06f1ab8989d2d99fa1734808c52b75066919",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "run_admitted",
+      "instruction_callback_sites": 3,
+      "line": 11,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_tu15_sample_millisecond_clock"
+      ],
+      "observed_entry": "33b590",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "33b590",
+      "route_status": "hash_qualified_native_service_observation_boundary",
+      "state_type": "State",
+      "symbol": "run_admitted",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/platform/native_tu15_millisecond_clock.hpp",
+  "source_bytes": 1113,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/gameplay/units/source_combat_action_tu15_generated.cpp",
+      "line": 1,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_physics_world_runtime"
+      ],
+      "registered_source": "src/gameplay/units/source_combat_action_tu15_generated.cpp"
+    },
+    {
+      "including_source": "src/input/source_input_startup_tu15_generated.cpp",
+      "line": 1,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_input_startup_tu15"
+      ],
+      "registered_source": "src/input/source_input_startup_tu15_generated.cpp"
+    },
+    {
+      "including_source": "src/physics/physics_live_support_tu15_generated.cpp",
+      "line": 20,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_physics_world_runtime"
+      ],
+      "registered_source": "src/physics/physics_live_support_tu15_generated.cpp"
+    }
+  ],
+  "source_sha256": "b2f42e0586cfb5aef4eba5a822a6a43c0b39bc33c0872f0d84ffc9f1d29a637a"
+}

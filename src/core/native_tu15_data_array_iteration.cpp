@@ -49,10 +49,8 @@ std::uint32_t native_tu15_data_array_next(const SourcePhysicsContactMemory &memo
     const auto limit=std::bit_cast<std::int32_t>(read(memory,pool+0x38u));
     if(first>=limit)return 0xffffffffu;
     const auto bitmap=read(memory,pool+0x48u);
-    for(auto index=std::uint32_t(first);std::bit_cast<std::int32_t>(index)<limit;++index) {
-        if(read(memory,bitmap+(index>>5u)*4u)&(1u<<(index&31u)))return index;
-    }
-    return 0xffffffffu;
+    const auto result=native_tu15_scan_bitmap_slots(memory,bitmap,std::uint32_t(first),std::uint32_t(limit));
+    return result.found?result.index:0xffffffffu;
 }
 bool native_tu15_bit_array_test(const SourcePhysicsContactMemory &memory,
     std::uint32_t words,std::int32_t index) {

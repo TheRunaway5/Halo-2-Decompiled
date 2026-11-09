@@ -1,0 +1,43 @@
+{
+  "schema": "H2_MATCHMAKING_POSTGAME_CONFIRM_RETRY_RUST_DIFFERENTIAL_V1",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-postgame-confirm-retry-20261102/halo2-test-zp0ndw4p",
+  "baseline_pins": {
+    "src/matchmaking_native_session.rs": "d252b8bb38bc6d4c7bafb299f1c1b649ea49167bcf1554fe084b7c0d0e06e091",
+    "tests/matchmaking_native_session.rs": "92c7a3c14e7226344de21544f9b81ed7261b7b9ff45e5f784bf228c6dcb06421"
+  },
+  "retained_generated_large_artifacts": [],
+  "red": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--test",
+      "matchmaking_native_session",
+      "full_result_receipt_requires_review_confirmation_and_matching_digest",
+      "--",
+      "--exact"
+    ],
+    "exit_code": 101,
+    "stdout": "\nrunning 1 test\ntest full_result_receipt_requires_review_confirmation_and_matching_digest ... FAILED\n\nfailures:\n\n---- full_result_receipt_requires_review_confirmation_and_matching_digest stdout ----\n\nthread 'full_result_receipt_requires_review_confirmation_and_matching_digest' (2182740) panicked at tests/matchmaking_native_session.rs:590:17:\ncalled `Result::unwrap()` on an `Err` value: Error\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    full_result_receipt_requires_review_confirmation_and_matching_digest\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.02s\n\n",
+    "stderr_sha256": "9bb18a63296c887cef829db16e79916cdb670238f8d519fb3d95e68eaa401df9"
+  },
+  "candidate_pins": {
+    "src/matchmaking_native_session.rs": "6760866c43400f4f71721c1a4dfae8b8607af8ae97230a217bc3358529326b00",
+    "tests/matchmaking_native_session.rs": "92c7a3c14e7226344de21544f9b81ed7261b7b9ff45e5f784bf228c6dcb06421"
+  },
+  "green": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--test",
+      "matchmaking_native_session"
+    ],
+    "exit_code": 0,
+    "stdout": "\nrunning 29 tests\ntest candidate_cannot_bypass_the_actual_fixed_survivor_selection ... ok\ntest admitted_constructor_preserves_signed_ffa_teams_and_rejects_invalid_ownership ... ok\ntest continuation_requires_whole_couch_groups_and_clears_old_media ... ok\ntest bounded_gameplay_queue_host_role_epoch_and_audio_generation ... ok\ntest exchange_session_projects_authoritative_phase_host_and_fixed_configuration ... ok\ntest direct_readiness_and_terminal_retirement_use_real_observation_sets ... ok\ntest decoded_duplicate_fields_and_partial_controls_cannot_mutate_session ... ok\ntest host_candidate_uses_only_actual_ready_and_same_generation_reciprocal_quality ... ok\ntest initial_transfer_feature_contract_distinguishes_terminal_and_peer_candidates ... ok\ntest peer_phase_plan_does_not_turn_capabilities_into_world_readiness ... ok\ntest native_session_phase_ignores_late_master_and_refuses_stale_fence_atomically ... ok\ntest peer_capability_barrier_keeps_every_physical_member_and_exact_resource_context ... ok\ntest peer_worker_config_excludes_couch_seats_and_preserves_epoch_negotiation ... ok\ntest reconnect_preserves_admitted_direct_world_but_never_revives_failed_session ... ok\ntest preparation_authorization_uses_exact_native_contexts_and_retained_identity_rows ... ok\ntest worker::complete_fragmented_room_control_survives_interleaved_ping ... ok\ntest sole_survivor_requires_its_exact_ready_without_inventing_a_quality_row ... ok\ntest loaded_admission_hashes_exact_full_variant_and_sorted_signed_extensions ... ok\ntest worker::empty_pong_again_keeps_the_unacknowledged_zero_length_write ... ok\ntest worker::mixed_fragment_kinds_oversize_control_and_duplicate_json_stop_before_admission ... ok\ntest worker::relay_binary_reaches_the_rust_host_role_queue_and_loaded_replays_once_per_connection ... ok\ntest worker::terminal_close_reason_is_bounded_and_direct_only ... ok\ntest worker::relay_drain_rechecks_actual_audio_generation_immediately_before_write ... ok\ntest world_request_uses_owned_epoch_selected_world_and_refuses_wrap_or_foreign_outcomes ... ok\ntest worker::actual_idle_budget_and_reconnect_are_distinct_from_cancel ... ok\ntest immutable_local_seats_physical_peers_and_presence_views_keep_native_owner_groups ... ok\ntest signed_voice_is_bound_to_actual_recipient_and_epoch_without_an_audio_device ... ok\ntest postgame_passive_voice_uses_membership_actual_preferences_sequence_and_credit ... ok\ntest full_result_receipt_requires_review_confirmation_and_matching_digest ... ok\n\ntest result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n",
+    "stderr_sha256": "839b9000cf0d62c80614b408c9d347c57c199054245c5b937793b66dac77fe9f"
+  },
+  "passed": true
+}

@@ -1,12 +1,75 @@
 # Physics native-kernel migration audit
 
-November2 selected component update: all three genuine1479 query continuations
-and the full304350 native provider graph now pass both compilers/four rounding
-modes/two unavailable scratch backings, matching all89,795,481 captured bytes
-and FP without original execution services. The query has18 rejected numeric
-mutant runs and independent review. Typed producer-helper/observer/World/live
-acceptance remains open; the latest visible cohort still has2E5320/304350 Frame
-residuals. Historical heap mismatches are not waived.
+November2 selected native contact update: all three genuine1479 query
+continuations and the full typed304350 production helper pass both compilers/
+four rounding modes with exact89,795,481-byte banks and FP. The producer also
+matches1,229 ordered semantic reads and239 typed retained SourcePC/preimage/
+value/order events, with hostile observer FP math,11 admission models, numeric/
+PC/native-scope mutants, public pair/query/convex defaults and independent peer.
+The moving-contact World integration passes199-CPP, full Host/LiveWorld/object/
+World contexts, counters, observer transaction/witness and original-input proofs;
+its frozen1481 runtime links and passes eight official regressions. Initial
+driving refuses281710 on an event flag not1; grenade/rocket stop before Frame
+at a blast/phantom read-only observer conflict. Initial driving Frame bytes/FP
+pass, but requested final-frame/actual-camera delivery remains unqualified.
+The corrected281710 listener and its native-only helper pass both compilers
+on the captured event and separate asymmetric material controls, including
+exact retained DATA, FP, read order and attributed stores. The full parent
+also reaches the sole native31F460/3200B0 continuation on two separately
+declared inverse-mass cases. Those comparisons do not qualify the wider
+World resource roles or constitute visible multiplayer results.
+The separately staged304350 World route owns disjoint64KiB native DATA and
+passes216-source real-library models, relocated genuine-input and independent
+final reviews under both compilers; its visible delivery remains pending.
+Historical heap mismatches, wider native domains and the full outside-Frame
+player/object/controller inventory remain open; no live native-only closure is
+claimed from these component results.
+
+The protected v1483 source adds native 3×1 dispatch. Its three visible
+imported-MCC cases reach the Warthog seat before the wider starting simplex
+guard. They have no completed final camera or original-frame checks.
+A separate solver layer combines cached 2×2 admission,
+triangle–edge reduction and the tetrahedron face selector. Both compilers
+match 184 full original returns on that combined layer. Its three v1483/02
+live cases pass the previous simplex guard and reach BC200. Native BC200 is
+bound in v1483/03 and passes all eight linked regressions. All three visible
+cases advance to the contact-point removal constraint-info owner 31F840.
+After that native binding and cached triangle starts, v1483/08 driving and
+frag pass their exact camera and World frame checks. Driving has 18 native
+BC200 queries and two overrides. Both still execute lifted 304350, and
+their deferred delete/update and island step listener gates remain open.
+The rocket case reaches 31F840 at the separate contact creation callback.
+Wider distance
+preparation matches the original through the count-four hull entry, where
+the production constructor still needs integration.
+[Combined solver](../analysis/physics/native-convex-simplex-combined-stage-20261103/source-pins.json),
+[Live matrix](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/matrix.json),
+[Hull handoff](../analysis/physics/native-distance-simplex-rows-v1483-00-stage-20261103/source-pins.json).
+
+The producer's pooled-record growth layer preserves defined data and
+attributed stores during growth and releases unpublished allocations on
+failure. The existing World comparisons and 176 public array cases pass
+under both compilers. The v1483/12 multiplayer build links the native producer
+and passes eight regressions. The five Cyclotron cases stop at its observer
+guard. v1483/13 uses the retained-store observer for support collection,
+retains the raw original comparison, and reaches the unbound 307E30 centered
+shape bounds owner in all five cases before any recorded gameplay. Physical
+tracing identifies copied stack residue in the historical freed records
+and confirms a sorter read from a record with its validity flag clear.
+[Growth qualification](../analysis/physics/native-contact-producer-pool-record-growth-stage-20261103/qualification.json),
+[Live Cyclotron retry](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-simplex-continuation-original-v1483-20261103/iteration-13-outcome.json),
+[Cyclotron provenance](../analysis/physics/native-cyclotron-import-world-blocker-audit-20261103/source-scratch-provenance.json).
+
+The native BSP/body association setup graph now passes83 original-code profiles,
+all222 sites,12 operand-fault prefixes and three semantic mutants per compiler.
+The same32-byte unavailable native iterator sidecar passes resource/padding and
+retained-output alias controls without touching underlying RAM. Actual REP
+per-iteration mutation and modeled observer-stop retained frontiers are pinned.
+The initial canonical Host constructor now uses the native graph, with a disjoint
+32-byte native sidecar,12 distinct counters/two JSON outputs and positive
+iterator coverage. Both compilers pass17 linked models/nine negative gates and
+full Host/Live contexts. Positive visible coverage is still open; installed raw
+or read-only observers are explicitly refused at this bounded constructor seam.
 
 The [physics goal](PHYSICS_PLAYERS_VEHICLES_OBJECTS_GOAL.md#required-end-state-native-kernels-with-unchanged-tu15-behavior)
 requires native semantic kernels and 1:1 English Xbox TU1.5 behavior together.

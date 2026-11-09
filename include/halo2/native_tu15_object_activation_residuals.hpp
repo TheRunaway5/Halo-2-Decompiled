@@ -15,6 +15,7 @@
 #include "halo2/native_tu15_model_constraint_creation.hpp"
 #include "halo2/native_tu15_constraint_runtime_update.hpp"
 #include "halo2/native_tu15_constraint_effect_selector.hpp"
+#include "halo2/native_lift_scalar_consumer_tu15.hpp"
 #include <map>
 #include <optional>
 #include <span>
@@ -96,4 +97,10 @@ void native_tu15_activate_body_with_native_services(SourcePhysicsContactMemory&,
     NativeTu15ObjectActivationScratch,const NativeTu15ObjectActivationNativeServices&,
     const NativeTu15ObjectActivationResidualCall&,
     const SourcePhysicsContactRecordObserver& = {},NativeTu15ObjectActivationBindingActivity* = nullptr);
+// Native1D92C0/1D9100 for the actual1DA750 caller. The same body wake owner
+// handles required growth/listeners; an unavailable child is a named refusal.
+void native_tu15_deliver_lift_body_velocity(SourcePhysicsContactMemory &,
+    const NativeTu15LiftVelocityDelivery &, NativeTu15PhysicsFrameFp &,
+    NativeTu15ObjectActivationScratch, const NativeTu15ObjectActivationNativeServices &,
+    const NativeTu15RetainedStoreObserver &, NativeTu15ObjectActivationBindingActivity * = nullptr);
 } // namespace halo2

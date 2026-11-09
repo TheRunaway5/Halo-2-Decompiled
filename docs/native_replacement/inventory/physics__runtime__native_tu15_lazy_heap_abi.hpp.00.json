@@ -1,0 +1,59 @@
+{
+  "callback_image_scope": "image-selected-or-unresolved",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+  "configured_production_target_ids": [],
+  "gate_sources": {
+    "src/physics/runtime/native_tu15_partition_temporary_abi.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_PARTITION_TEMPORARIES"
+      ],
+      "sha256": "57e702029dbe5accfd917759f397f1f202bf1a902164a6e38db09c7b3e122dee"
+    }
+  },
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [],
+  "production_scope": "no_literal_cmake_registration_found_requires_audit",
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_LAZY_HEAP",
+    "HALO2_REFERENCE_PARTITION_TEMPORARIES"
+  ],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "activity",
+        "instruction_literal",
+        "native_partition_temporary_detail::admitted",
+        "physics_step_detail::r",
+        "pop",
+        "read_milliseconds",
+        "reference_mode"
+      ],
+      "body_sha256": "7233e454552d0e5be2c749d097a1c0a7de7c11d057c356a7b079ee2857c87e60",
+      "callback_image_scope": "image-selected-or-unresolved",
+      "direct_run_symbols": [],
+      "function_name": "read_milliseconds",
+      "instruction_callback_sites": 3,
+      "line": 9,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_partition_temporary_detail::admitted"
+      ],
+      "observed_entry": "33b590",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "33b590",
+      "route_status": "literal_observer_boundary_requires_semantic_review",
+      "state_type": "State",
+      "symbol": "read_milliseconds",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/physics/runtime/native_tu15_lazy_heap_abi.hpp",
+  "source_bytes": 7195,
+  "source_filename_scope": "nongenerated",
+  "source_sha256": "c20e50cfd573eeeefa1bc653e4532aed8e05e0f1f86fe687a382495e42ff9538"
+}

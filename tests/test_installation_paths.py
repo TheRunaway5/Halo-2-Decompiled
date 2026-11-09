@@ -19,6 +19,7 @@ from test_mcc_ui_layout import layout_fixture
 from native_variant_test_support import variant_fixture
 from native_variant_assets import LAYOUTS
 from custom_ui_test_support import custom_ui_fixture, custom_ui_menu_fixture, empty_custom_map_fixture
+from test_controller_prompt_assets import controller_prompt_fixture
 
 
 class InstallationOwnershipTests(unittest.TestCase):
@@ -89,7 +90,9 @@ class InstallationOwnershipTests(unittest.TestCase):
         self.assertEqual(shadow.read_text(), 'not an authorized UI profile')
 
     def test_mcc_selection_registry_stays_with_mutable_cache(self):
+        bundle_fixture(self.resources)
         variant_fixture(self.resources)
+        controller_prompt_fixture(self.resources)
         custom_ui_fixture(self.resources)
         empty_custom_map_fixture(self.resources)
         cache = self.data / 'assets/imported/mcc-fixture'

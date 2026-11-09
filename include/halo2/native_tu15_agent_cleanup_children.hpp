@@ -2,7 +2,7 @@
 #include "halo2/native_tu15_agent_cleanup.hpp"
 #include "halo2/native_tu15_array_growth.hpp"
 namespace halo2 {
-enum class NativeTu15AgentDestructor {owner_2f8090,owner_3051a0,owner_2fc540};
+enum class NativeTu15AgentDestructor {owner_2f8090,owner_3051a0,owner_2fc540,owner_2f35f0};
 struct NativeTu15AgentCleanupChildrenServices {
     NativeTu15AgentCleanupServices agents;
     NativeTu15ArrayGrowthServices allocation;

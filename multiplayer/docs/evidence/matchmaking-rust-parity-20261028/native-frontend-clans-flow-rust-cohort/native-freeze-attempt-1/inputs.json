@@ -1,0 +1,114 @@
+{
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-20261102/halo2-test-e5alqmxa/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-clans-native-20261102/halo2-test-e5alqmxa",
+  "frozen_files": 20379,
+  "initial_source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json",
+    "source-pins-12.json",
+    "source-pins-13.json",
+    "source-pins-14.json",
+    "source-pins-15.json",
+    "source-pins-16.json",
+    "source-pins-17.json",
+    "source-pins-18.json",
+    "source-pins-19.json",
+    "source-pins-20.json",
+    "source-pins-21.json",
+    "source-pins-22.json",
+    "source-pins-23.json",
+    "source-pins-24.json",
+    "source-pins-25.json",
+    "source-pins-26.json",
+    "source-pins-27.json",
+    "source-pins-28.json",
+    "source-pins-29.json",
+    "source-pins-30.json",
+    "source-pins-31.json",
+    "source-pins-32.json",
+    "source-pins-33.json",
+    "source-pins-34.json",
+    "source-pins-35.json",
+    "source-pins-36.json",
+    "source-pins-37.json",
+    "source-pins-38.json",
+    "source-pins-39.json",
+    "source-pins-40.json",
+    "source-pins-41.json",
+    "source-pins-42.json",
+    "source-pins-43.json",
+    "source-pins-44.json",
+    "source-pins-45.json",
+    "source-pins-46.json",
+    "source-pins-47.json",
+    "source-pins-48.json",
+    "source-pins-49.json",
+    "source-pins-50.json"
+  ],
+  "drift_during_freeze": [
+    "tools/qualify_native_tu15_frustum_draw_cull.py"
+  ],
+  "freeze_refreshes_before_build": [
+    {
+      "attempt": 1,
+      "path": "cmake/NativeTu15FrustumDrawCull.cmake",
+      "before": "305c03f99b09e62c2758222f114e3c44e0e5d35a3ca6c35278925eab72831f64",
+      "after": "8123bcd825d09ef5a15bcc1947bb584ef3627520e27b20c2c34c3732f80bd4da"
+    },
+    {
+      "attempt": 1,
+      "path": "tests/object_loop_audio_runtime_tu15_tests.cpp",
+      "before": "5cb31db1d11c55ba22b0580c3a496fe1be213ce81572b4fd1300cba77f4e9ebe",
+      "after": "5f01826e6b580c82bca70b70eee359951af82809523ecda0c8e277ba66cb51c7"
+    },
+    {
+      "attempt": 1,
+      "path": "tools/qualify_native_tu15_frustum_draw_cull.py",
+      "before": "85bf711aad76dbf0f0b50407696d8632e2ef1dbc844c1abe613913d014481adc",
+      "after": "8c42eea2ee588c9ec217d0afdddbaa3ea4ee7ad474c59995531634f41de3334c"
+    },
+    {
+      "attempt": 2,
+      "path": "include/halo2/native_player_effect_tick_tu15.hpp",
+      "before": "80763f75285da2d202fcacbd2e59f9c39fd38851fc5053690a8422ebb181495f",
+      "after": "b661996bb90e033238c0ae3ef7fb68e5fed25b22b1e93ec1dd9c358b21fed6b2"
+    },
+    {
+      "attempt": 3,
+      "path": "tools/validate_native_contact_query_actual_tu15.py",
+      "before": "051abbba9fe418de10a7078f74a0b5d14ab75e1660243b771b200abcc8b9fe2f",
+      "after": "aa17a11b9cc94710ead56b85fd96900ec232190d15813eb05dd5adae5df11874"
+    },
+    {
+      "attempt": 4,
+      "path": "tools/observe_native_contact_query_actual_tu15.cpp",
+      "before": "81803cf483f5f76ba9b040ddf409b8880de2dd68c52cd8948072d9acdc88b55a",
+      "after": "151ab623749c76d0107cb131c75c24ff4a58ebaeb8a02f3b89b2f0bc0457356d"
+    },
+    {
+      "attempt": 5,
+      "path": "tests/overshield_live_feedback.cpp",
+      "before": "bdb8352eaad9f1f1dae859f2ac5a901a714ceabdf3c777da3a2f0772a688be36",
+      "after": "6edf1833ddb80a1b6a8a4d29b6a66bd80e382e8cea6774edb53ff2f9dc1334d7"
+    }
+  ],
+  "baseline_overrides": [],
+  "frozen_unused_tool_live_drift_exemptions": [],
+  "sdk_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "sha256": "56a3bd805df426606946d74ba662f25223ffe24159e7884a625225ba80b582fb",
+    "bytes": 587617718,
+    "borrowed_read_only": true
+  },
+  "retained_large_artifacts": []
+}

@@ -4,7 +4,7 @@
 //! Live wire implementation. Original readiness and full-variant predicates
 //! remain shared with their separately authenticated original comparisons.
 pub use crate::matchmaking_origin::UrlParts;
-use crate::{matchmaking_json, matchmaking_readiness, matchmaking_variant};
+use crate::{matchmaking_catalog, matchmaking_json, matchmaking_readiness, matchmaking_variant};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -12,6 +12,7 @@ use std::sync::Mutex;
 
 const LIMIT: usize = 65_536;
 const PROGRESS: &str = "/v1/matchmaking/ticket?progress=1&ranks=1&start=1&failure=1&appearance=1";
+const BOUND_START: &str = "/v1/matchmaking/ticket?start=1&failure=1&start_room=1";
 const TICKET: &str = "/v1/matchmaking/ticket";
 const SESSION: &str = "/v1/matchmaking/session";
 
@@ -84,6 +85,21 @@ pub struct Match {
     pub game_id: String,
     pub settings: Option<[u8; 304]>,
     pub players: Vec<Player>,
+}
+
+impl Match {
+    fn matches_countdown(&self, observed: &Self) -> bool {
+        self.map == observed.map
+            && self.variant == observed.variant
+            && self.game_id == observed.game_id
+            && self.settings == observed.settings
+            && self.players.len() == observed.players.len()
+            && self
+                .players
+                .iter()
+                .zip(&observed.players)
+                .all(|(a, b)| a.name == b.name && a.team == b.team && a.is_self == b.is_self)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -387,10 +403,13 @@ fn player(v: &Value, team: bool) -> Result<Player> {
     })
 }
 
-fn ticket(root: &Value, s: &mut Snapshot) -> Result<()> {
+fn ticket(root: &Value, s: &mut Snapshot, compatibility: &str) -> Result<()> {
     object(
         root,
-        4 + optional_fields(root, &["progress", "start_countdown_ms", "failure"]),
+        4 + optional_fields(
+            root,
+            &["progress", "start_countdown_ms", "start_room", "failure"],
+        ),
     )?;
     s.start_supported = root.get("start_countdown_ms").is_some();
     s.start_ms = root
@@ -398,6 +417,13 @@ fn ticket(root: &Value, s: &mut Snapshot) -> Result<()> {
         .filter(|v| !v.is_null())
         .map(|v| number(v, 0, 10000))
         .transpose()?;
+    if let Some(room) = root.get("start_room") {
+        if s.start_ms.is_some() {
+            string(room, 64, false)?;
+        } else {
+            check(s.start_supported && room.is_null())?;
+        }
+    }
     s.failure_state = None;
     if let Some(failure) = root.get("failure").filter(|v| !v.is_null()) {
         let (code, message) = match string(failure, 64, false)?.as_str() {
@@ -453,6 +479,7 @@ fn ticket(root: &Value, s: &mut Snapshot) -> Result<()> {
     check(state == "checking_connections" || state == "awaiting_transport")?;
     let v = field(root, "match")?;
     let complete = v.get("game_id").is_some();
+    check(complete || !matchmaking_catalog::OPTIONS.contains(&compatibility))?;
     object(v, if complete { 6 } else { 3 })?;
     let mut game = Match {
         map: text(v, "map")?,
@@ -472,6 +499,10 @@ fn ticket(root: &Value, s: &mut Snapshot) -> Result<()> {
             check(field(v, "settings_sha256")?.is_null())?;
         }
     }
+    check(
+        game.settings.is_some()
+            || !matchmaking_catalog::requires_variant_settings(compatibility, &game.variant),
+    )?;
     let rows = array(field(v, "players")?)?;
     check((2..=16).contains(&rows.len()))?;
     game.players = rows
@@ -526,6 +557,11 @@ fn admission(
     snapshot: &Snapshot,
 ) -> Result<Admission> {
     let game = snapshot.game.as_ref().ok_or(Error::Invalid)?;
+    let policy = snapshot
+        .playlists
+        .iter()
+        .find(|p| p.id == snapshot.playlist_id)
+        .ok_or(Error::Invalid)?;
     let is_direct = direct(&config.compatibility);
     let is_eos = is_direct && config.compatibility != "halo2-native-queue-v12";
     let couch = root.get("local_slots").is_some();
@@ -543,6 +579,15 @@ fn admission(
             4
         },
     )?;
+    let team_mode = root
+        .get("team_mode")
+        .map(|v| v.as_bool().ok_or(Error::Invalid))
+        .transpose()?;
+    check(
+        game.settings
+            .as_ref()
+            .is_none_or(|settings| team_mode == Some(settings[0x48] & 1 != 0)),
+    )?;
     let mut out = Admission {
         endpoint: config.endpoint.clone(),
         room: text(root, "id")?,
@@ -550,6 +595,7 @@ fn admission(
         loopback: config.loopback,
         terminal_recovery: config.terminal_recovery,
         direct: is_direct,
+        team_mode,
         ..Default::default()
     };
     if is_direct {
@@ -574,6 +620,7 @@ fn admission(
             };
             check(
                 eos.playlist == snapshot.playlist_id
+                    && eos.revision == policy.revision
                     && eos.map == game.map
                     && eos.variant == game.variant,
             )?;
@@ -596,11 +643,6 @@ fn admission(
     check(profile.locals.is_empty() || couch)?;
     let rows = array(field(root, "players")?)?;
     check(rows.len() == game.players.len())?;
-    let policy = snapshot
-        .playlists
-        .iter()
-        .find(|p| p.id == snapshot.playlist_id)
-        .ok_or(Error::Invalid)?;
     for (i, row) in rows.iter().enumerate() {
         object(row, if couch { 5 } else { 3 })?;
         let seat = Seat {
@@ -649,10 +691,6 @@ fn admission(
             check((seat.peer == out.current) == local.contains(&seat.slot))?;
         }
     }
-    out.team_mode = root
-        .get("team_mode")
-        .map(|v| v.as_bool().ok_or(Error::Invalid))
-        .transpose()?;
     Ok(out)
 }
 
@@ -875,7 +913,8 @@ impl Client {
         observation.transferred = s.transferred;
         observation.start_supported = s.snapshot.start_supported;
         observation.start_ms = s.snapshot.start_ms;
-        if s.room.is_empty()
+        if s.snapshot.status != Status::Loading
+            || s.room.is_empty()
             || s.connected.is_none()
             || !matchmaking_readiness::native_launch_ready(observation, seats)
         {
@@ -1181,6 +1220,7 @@ impl Client {
             ticket(
                 &self.call(io, version, w, "GET", PROGRESS, &Value::Null)?,
                 next,
+                &self.config.compatibility,
             )?;
             if next.status != Status::Ready {
                 w.queued = true;
@@ -1210,19 +1250,24 @@ impl Client {
             }
             let body = json!({"playlist_id":intent.playlist,"revision":entry.revision,"request_id":w.request_id});
             w.queued = true;
-            ticket(&self.call(io, version, w, "POST", TICKET, &body)?, next)?;
+            ticket(
+                &self.call(io, version, w, "POST", TICKET, &body)?,
+                next,
+                &self.config.compatibility,
+            )?;
             w.accepted = true;
             if next.game.is_some() {
                 ticket(
                     &self.call(io, version, w, "GET", PROGRESS, &Value::Null)?,
                     next,
+                    &self.config.compatibility,
                 )?;
             }
         } else {
             self.ensure(io, version)?;
-            let (transferred, connected) = {
+            let (transferred, connected, installed_room) = {
                 let s = self.shared.lock().unwrap();
-                (s.transferred, s.connected.clone())
+                (s.transferred, s.connected.clone(), s.room.clone())
             };
             if transferred {
                 return Ok(());
@@ -1242,6 +1287,7 @@ impl Client {
                             &Value::Null,
                         )?,
                         &mut outcome,
+                        &self.config.compatibility,
                     )?;
                     self.disconnect(io, version);
                     self.cleanup(io, version, w, TICKET);
@@ -1260,30 +1306,33 @@ impl Client {
                 }
                 .into();
                 next.gathering = None;
+                let receipt = self.call(io, version, w, "GET", BOUND_START, &Value::Null)?;
                 let mut progress = Snapshot::default();
-                ticket(
-                    &self.call(
-                        io,
-                        version,
-                        w,
-                        "GET",
-                        "/v1/matchmaking/ticket?start=1&failure=1",
-                        &Value::Null,
-                    )?,
-                    &mut progress,
-                )?;
+                ticket(&receipt, &mut progress, &self.config.compatibility)?;
                 next.start_supported = progress.start_supported;
                 next.start_ms = progress.start_ms;
-                if next.status == Status::Loading && !next.start_supported {
-                    return Err(Error::UnsupportedCountdown);
-                }
-                if next.status != Status::Loading {
+                if next.status == Status::Loading {
+                    let binding = receipt.get("start_room");
+                    if !next.start_supported || binding.is_none() {
+                        return Err(Error::UnsupportedCountdown);
+                    }
+                    if next.start_ms.is_some() {
+                        check(
+                            binding.and_then(Value::as_str) == Some(installed_room.as_str())
+                                && next.playlist_id == progress.playlist_id
+                                && next.game.as_ref().zip(progress.game.as_ref()).is_some_and(
+                                    |(installed, observed)| installed.matches_countdown(observed),
+                                ),
+                        )?;
+                    }
+                } else {
                     next.start_ms = None;
                 }
             } else {
                 ticket(
                     &self.call(io, version, w, "GET", PROGRESS, &Value::Null)?,
                     next,
+                    &self.config.compatibility,
                 )?;
             }
             if next.status == Status::Ready {
@@ -1353,7 +1402,8 @@ impl Client {
                 Self::reset_queue(w);
                 w.unsupported_countdown = Some(version);
                 next.start_supported = false;
-                "Update the matchmaking service to support the game-start countdown.".into()
+                "Update the matchmaking service to support the room-bound game-start countdown."
+                    .into()
             }
             Error::Status(status, message) => {
                 if status == 401 {

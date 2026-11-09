@@ -33,6 +33,27 @@ SHA-256 in health. Queue responses use the existing session/catalog/party/rank/
 gathering owners. Missing search sockets cannot produce successful QoS facts or
 a match. HTTP cannot supply a roster, rank, consent receipt or source handle.
 
+Startup records a hash of each normalized playlist profile in
+`registry.sqlite3` under its playlist ID and revision. Change the revision
+when changing a rotation, compatibility rule, rank table or other bound
+profile field. Equivalent JSON formatting can reuse the revision, and an
+exact rollback can reuse the original binding. The first startup with this
+check records the profiles supplied by the configured catalog.
+
+Clients using the full-settings v15/v16 profiles can select a stock playlist
+only when every stock row supplies its complete original settings. A legacy
+name-only rotation is ineligible as a whole, so its weights are never changed
+to fit a newer client. Fiesta Slayer and Infection Slayer are explicitly
+named modern extensions with separate rules ownership.
+
+The game-start countdown comes from the current admitted loading room for
+the authenticated queue generation. Native loaders opt in with
+`start=1&start_room=1` and check the room ID against their installed
+descriptor before accepting a shared zero. The opted-in response retains
+the admitted playlist and match data after the search tickets are consumed.
+Older requests retain the scalar response format. Deployments that upgrade
+the native loader need a service that supplies the opt-in room field.
+
 Search WebSockets use the existing Rust relay QoS owner. The socket adapter
 supplies actual connection generations, closure and received bytes; the shared
 owner checks grants again after upgrade and owns challenges, heartbeat expiry,

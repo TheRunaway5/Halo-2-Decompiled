@@ -1,11 +1,12 @@
 #include "halo2/native_tu15_contact_point_create.hpp"
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include "native_tu15_joint_constraint_numeric_internal.hpp"
 #include <bit>
 #include <stdexcept>
 
 namespace halo2 {
 namespace {
-class EventMemory final:public SourcePhysicsContactMemory {
+class EventMemory final:public SourcePhysicsContactMemory,public NativeTu15RetainedCounterStorage {
     SourcePhysicsContactMemory&storage_;std::uint32_t event_;
     bool current_body_initialized_{};NativeTu15ContactPointCreateStats*stats_;
     static bool overlaps(std::uint32_t p,std::size_t n,std::uint32_t first,unsigned size){
@@ -20,6 +21,12 @@ class EventMemory final:public SourcePhysicsContactMemory {
 public:
     EventMemory(SourcePhysicsContactMemory&m,std::uint32_t event,NativeTu15ContactPointCreateStats*s)
         :storage_(m),event_(event),stats_(s){}
+    NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t p,unsigned width,std::uint32_t delta)override{
+        check(p,width);
+        auto*storage=dynamic_cast<NativeTu15RetainedCounterStorage*>(&storage_);
+        if(!storage)throw std::runtime_error("Native contact event counter requires checked outer storage");
+        return storage->adjust_counter(p,width,delta);
+    }
     void read(std::uint32_t p,std::span<std::byte>b)const override{check(p,b.size());storage_.read(p,b);}
     void read_vector(std::uint32_t p,std::span<std::byte,16>b)const override{check(p,b.size());storage_.read_vector(p,b);}
     void write(std::uint32_t p,std::span<const std::byte>b)override{

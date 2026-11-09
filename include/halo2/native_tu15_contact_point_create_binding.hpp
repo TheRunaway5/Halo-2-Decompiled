@@ -3,6 +3,7 @@
 #include "halo2/native_tu15_contact_point_storage.hpp"
 #include "halo2/native_tu15_contact_constraint_registration.hpp"
 #include "halo2/native_tu15_contact_collector_info.hpp"
+#include "halo2/native_tu15_extended_constraint_info.hpp"
 #include "halo2/native_tu15_contact_body_update.hpp"
 #include "halo2/native_tu15_contact_point_removal.hpp"
 #include "halo2/native_tu15_pair_deletion_native_scope.hpp"
@@ -79,9 +80,15 @@ inline std::uint16_t native_tu15_create_bound_contact_point(
         NativeTu15ContactConstraintRegistrationServices registration;
         registration.allocation=allocation(view);
         registration.get_info=[&](auto constraint,auto owner,auto output,auto&){
-            if(owner.identity!=0x325e90u)
-                throw std::runtime_error("Native contact creation requires its collector info owner="+std::to_string(owner.identity));
-            native_tu15_get_contact_collector_info(view,constraint,{output});
+            if(owner.identity==0x325e90u){
+                native_tu15_get_contact_collector_info(view,constraint,{output});
+                return;
+            }
+            if(owner.identity==0x31f840u){
+                (void)native_tu15_get_extended_constraint_info(view,constraint,{output});
+                return;
+            }
+            throw std::runtime_error("Native contact creation requires its collector info owner="+std::to_string(owner.identity));
         };
         registration.add_info=[&](auto island,auto owner,auto,auto output,auto&){metadata(view,island,owner,output);};
         registration.activate_island=[&](auto w,auto island,auto&state){

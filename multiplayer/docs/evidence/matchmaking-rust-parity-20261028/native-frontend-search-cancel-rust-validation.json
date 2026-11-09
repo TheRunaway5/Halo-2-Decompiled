@@ -1,0 +1,153 @@
+{
+  "schema": "H2_FRONTEND_SEARCH_CANCEL_RUST_V1",
+  "recorded_utc": "2026-11-03T02:30:56.818831+00:00",
+  "component": {
+    "schema": "H2_FRONTEND_SEARCH_CANCEL_PRIVATE_CANDIDATE_V1",
+    "passed": true,
+    "observed_utc": "2026-11-03T02:26:13.392377+00:00",
+    "before": {
+      "rust/online_protocol/src/matchmaking_frontend_search.rs": "7b68b98e96912860d62e431de33ee4a3faabda7977a84c38f2e3037059d771a5",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs": "7a67a96164c139398ed3a9a2092777b89b18f161923c2deb844133c3dfb4aff6",
+      "src/ui/frontend_matchmaking_search.cpp": "c6f34a8a12e271d00b7e30fecfbd112f857c1b84f6d0ded17b5832b4198ece34",
+      "include/halo2/frontend_matchmaking_search.hpp": "8977da0421a0fecc67891f65da69efdac716cf401aeffa6cb1793c87931c79ed",
+      "src/ui/frontend_state.cpp": "3c92b03de8855b38bfbb6afe8dea4ba9211cde191166060a611f378d4f1b345d",
+      "tests/native_frontend_search_rust_tests.cpp": "4d86c22d8404cf3ad80a235accd271426ceb927db3d11db7be6a06437c06e479",
+      "tests/test_native_frontend_search_rust.py": "b8901e53a99020a0ee6e35504d8f5e708b8f9b9c518da293ced82787bc70e824"
+    },
+    "after": {
+      "rust/online_protocol/src/matchmaking_frontend_search.rs": "4b9709a974f654a5395efebe556bed1a8f6a4cc73f5cc2f60b49e91af488123f",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs": "65ee4d45e6705b9a7b425db51fe28cdaa3a3105da9702d32d36c7ae06d7e4062",
+      "src/ui/frontend_matchmaking_search.cpp": "f66f03e53cfca94aeeb8439af6637a434864de62658c4eaae06dcc773fe2d0b6",
+      "include/halo2/frontend_matchmaking_search.hpp": "491b413fb366f6c52883ae97b73b285214cb96f100e4b111ffa85988fcf3f8ce",
+      "src/ui/frontend_state.cpp": "1154fc1050e685963859c934fae6425243b68e14470cf8931b91dc6ffdef7757",
+      "tests/native_frontend_search_rust_tests.cpp": "668e12c2d3d5f6c253a3cb5a6da8b14bb705475da6a2c397438ed3462b9eb6f2",
+      "tests/test_native_frontend_search_rust.py": "df3c1630a671a8028b03e8f82395eea66b8fc814463d193c58f6542f0e703b5a"
+    },
+    "input_count": 2561,
+    "input_sha256": "4baf4d304edfe5a424708ef3aeaa2d62e39b5bbdf0586d16db5f7e081e0cda93",
+    "patch_sha256": "525f4316fa8273d02de8a67d765d9947e48505832068235586fa444dbb1ffd1b",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol",
+    "steps": [
+      {
+        "name": "bridge-build",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          "rust/online_protocol_bridge/Cargo.toml",
+          "--lib"
+        ],
+        "exit_code": 0,
+        "log": "bridge-build.log"
+      },
+      {
+        "name": "production-syntax",
+        "command": [
+          "c++",
+          "-std=c++20",
+          "-O1",
+          "-Iinclude",
+          "-Isrc",
+          "-Itests",
+          "-Irust/online_protocol_bridge",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+          "-I/usr/include/SDL2",
+          "-D_GNU_SOURCE=1",
+          "-D_REENTRANT",
+          "-fsyntax-only",
+          "src/ui/frontend_matchmaking_search.cpp",
+          "src/ui/frontend_state.cpp"
+        ],
+        "exit_code": 0,
+        "log": "production-syntax.log"
+      },
+      {
+        "name": "native-compile",
+        "command": [
+          "c++",
+          "-std=c++20",
+          "-O1",
+          "-Iinclude",
+          "-Isrc",
+          "-Itests",
+          "-Irust/online_protocol_bridge",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol/target/debug/build/halo2-online-protocol-bridge-edeed2a117bc4586/out/cxxbridge/include",
+          "tests/native_frontend_search_rust_tests.cpp",
+          "src/ui/frontend_matchmaking_search_bridge.cpp",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol/target/debug/libhalo2_online_protocol_bridge.a",
+          "-lcurl",
+          "-lssl",
+          "-lcrypto",
+          "-ldl",
+          "-lpthread",
+          "-lm",
+          "-lrt",
+          "-o",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol/native-search-candidate"
+        ],
+        "exit_code": 0,
+        "log": "native-compile.log"
+      },
+      {
+        "name": "native-differential",
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "tests/test_native_frontend_search_rust.py",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-exit-rust-20261102/halo2-test-tdig68ol/native-search-candidate",
+          "--report",
+          "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-search-exit-rust-20261102/search-cancel-differential.json"
+        ],
+        "exit_code": 0,
+        "log": "native-differential.log"
+      }
+    ],
+    "expected_confirmed_search_cancel_controls": 160,
+    "retained_large_artifacts": [],
+    "frozen_inputs_intact": true
+  },
+  "differential": {
+    "passed": true,
+    "scope": "Exact captured modern C++ search controller versus production Rust/CXX over declared native IO; original service and installed runtime are not certified",
+    "cases": 3923,
+    "commands": 5883,
+    "native_refusals": 113,
+    "callback_observations": 27231,
+    "wrapper_clones": 3923,
+    "wrapper_reentry_identity_controls": 3923,
+    "variant_controls": 532,
+    "mismatches": [],
+    "input_sha256": "9101601eb7cfac4ff3ae9771e7526a825b31f92881b65de81803ae1d613e0ae6",
+    "output_sha256": "df33920872d970e1ebdb2a746c1301fdb92e45c34d64eb583e50693500b81944",
+    "native_preamble": [],
+    "binary_sha256": "b582f34502d51e5dd68dfa50f378c09f778b6f83be1b15ddfdfd4ef8f5ceebc0"
+  },
+  "applied_to_worktree": true,
+  "applied_pins_match": true,
+  "source_comparison_scope": "Existing native cancellation action and observed callback order, with declared synthetic IO.",
+  "component_scratch_removed": true,
+  "cancel_cases": 160,
+  "full_native_after_change": false,
+  "installed_client_verified": false,
+  "production_activated": false,
+  "full_goal_complete": false,
+  "retained_generated_large_artifacts": [],
+  "applied_pins": {
+    "rust/online_protocol/src/matchmaking_frontend_search.rs": "3e3bae5a9885b8153f8c2808275d2d81095c7d436d3ff48dc178b1a026d7cecc",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs": "65ee4d45e6705b9a7b425db51fe28cdaa3a3105da9702d32d36c7ae06d7e4062",
+    "src/ui/frontend_matchmaking_search.cpp": "f66f03e53cfca94aeeb8439af6637a434864de62658c4eaae06dcc773fe2d0b6",
+    "include/halo2/frontend_matchmaking_search.hpp": "491b413fb366f6c52883ae97b73b285214cb96f100e4b111ffa85988fcf3f8ce",
+    "src/ui/frontend_state.cpp": "1154fc1050e685963859c934fae6425243b68e14470cf8931b91dc6ffdef7757",
+    "tests/native_frontend_search_rust_tests.cpp": "668e12c2d3d5f6c253a3cb5a6da8b14bb705475da6a2c397438ed3462b9eb6f2",
+    "tests/test_native_frontend_search_rust.py": "df3c1630a671a8028b03e8f82395eea66b8fc814463d193c58f6542f0e703b5a"
+  },
+  "post_component_changes": {
+    "path": "rust/online_protocol/src/matchmaking_frontend_search.rs",
+    "source_callback": "0x25847E",
+    "comment_and_format_only": true
+  },
+  "original_boundary_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/tu15-confirmed-search-cancel-callback.json",
+  "original_probe_scratch_removed": true
+}

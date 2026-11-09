@@ -1,0 +1,491 @@
+{
+  "schema": "H2_ROOM_COUNTDOWN_BINDING_LINUX_REPLAY_V1",
+  "passed": true,
+  "scope": "Real isolated native queue and direct UDP handoff with test provider grants and synthetic load signatures, actual Rust HTTP room controls, production legacy HTTP adapter countdown, and an EOS-disabled v16 refusal.",
+  "before_loading_fix": {
+    "cohort_sha256": "76b2820b96754259211a415f7e23a541745f237126a9947b76dd918af1d30541",
+    "candidate_pins": {
+      "rust/online_protocol/src/matchmaking_client.rs": "f83e73c40822de4b7d813790f45e64043ac84c07061cf11c61631768fe8096c7",
+      "rust/online_protocol/src/matchmaking_queue_api.rs": "4054bcd7de40b4c4ef48a8343e64cb812e93d659311d5e689f87ca15a7403c14",
+      "rust/online_protocol/tests/matchmaking_client_controller.rs": "e73aa85ce3907b346ad104f815d538e31789d37c95bc480e313f99b5dd83e971",
+      "rust/online_protocol/tests/matchmaking_queue_api.rs": "b85f69446432f43c3837790a568f970fc392522b0e0c15c39504bf3932367568",
+      "tools/rust_service_room_controls.py": "8ea3ea7a9c93291b526269f1f236c5a6a74f093fcd9412f908e2838bc65f0444",
+      "tools/rust_service_native_handoff_probe.cpp": "5ae5b5abebf3f4959edea7938e7de8c6cb178374992f0e4cd2a6ca358a65412b",
+      "multiplayer/master_server/tests/test_match_transport.py": "75b19c517507ea61c59228471291ffc099e176d14ba66e838185175f3cad3e81"
+    },
+    "result": {
+      "clients": [
+        {
+          "exit_code": 1,
+          "receipt": {
+            "error": "Native handoff deadline expired",
+            "full_settings_validated": false,
+            "game_id": "",
+            "map": "lockout",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 8,
+            "real_provider": false,
+            "sdk_available": true,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Slayer"
+          }
+        },
+        {
+          "exit_code": 1,
+          "receipt": {
+            "error": "Native handoff deadline expired",
+            "full_settings_validated": false,
+            "game_id": "",
+            "map": "lockout",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 8,
+            "real_provider": false,
+            "sdk_available": true,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Slayer"
+          }
+        }
+      ],
+      "catalog_sha256": "39f84e070f6671cc875b17e1aefc61b845ca9b45fca7924a97c443025c0ee05a",
+      "synthetic_loaded_signature": true
+    }
+  },
+  "frozen_linux_source_count": 22777,
+  "frozen_linux_source_sha256": "a7c9ca94e05da1569f1676f9d6d470b62abcf25a7105d108d727752dd0b729f2",
+  "frozen_linux_candidate_pins": {
+    "rust/online_protocol/src/matchmaking_client.rs": "f83e73c40822de4b7d813790f45e64043ac84c07061cf11c61631768fe8096c7",
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "930110023f7e2ff0c1c2cf5123a89bf4af22f87a0fe41bfba3b6d12727731d8c",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "5b7c8aad332866eb6601c2e3b1cce495bc8bc019dc9f350da0fe315ad2c566f9",
+    "rust/online_protocol/tests/matchmaking_client_controller.rs": "e73aa85ce3907b346ad104f815d538e31789d37c95bc480e313f99b5dd83e971",
+    "rust/online_protocol/tests/matchmaking_queue_api.rs": "e6f3d953f157f6dad2c7869786bab6d1b0318aa720752709ccc723c01b9ee70c",
+    "tools/rust_service_room_controls.py": "d12e9fcca87636b231f50f7a56eb65ac2dd0b2d3f9c212f893b5596b8a67082d",
+    "tools/rust_service_native_handoff_probe.cpp": "5ae5b5abebf3f4959edea7938e7de8c6cb178374992f0e4cd2a6ca358a65412b",
+    "multiplayer/master_server/tests/test_match_transport.py": "05b4d0090afe32bd2ae69a175ef9aa1a3bad10d87cc9772cdf3289433cd12cbf"
+  },
+  "binaries": {
+    "rust_service_native_handoff_probe": "4abb9e748a69b8a81e3d76650f231af4cd55bb31e1dd62b86976a7a6286560bd",
+    "libhalo2_online_security_ffi.so": "6e476fb0dd6d362e9978430ec258276a49d902029bd94530181c9a991cdeb9ae",
+    "online_matchmaking_tests": "c76787e8f00a3c2c8e7c7dc7f84aee99b97cf518d1f88180cfba1e6c175aaa57",
+    "halo2-matchmaking-service": "d6cbf22847dc61aa035b7a31c7c43ba48d6532ec20ea7bec40d5ca5ce456a2dc"
+  },
+  "commands": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-native-final-20261103/halo2-test-dkfcom5b/source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-room-countdown-binding-20261103/final/cmake",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--config",
+        "Debug",
+        "--target",
+        "online_matchmaking_tests",
+        "--target",
+        "rust_service_native_handoff_probe",
+        "--filter",
+        "^online_matchmaking_client$",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+        "--retain-report",
+        "Testing/Temporary/LastTest.log",
+        "--retain-report",
+        "online-protocol/Debug/build-report.json"
+      ],
+      "cwd": "/home/eric/Developer/Halo-2-Decompiled",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline"
+      ],
+      "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-native-final-20261103/halo2-test-dkfcom5b/source/rust/matchmaking_service",
+      "exit_code": 0,
+      "output_sha256": "3d3155cbf24a996d7c8bd0737ab5f28b16ee827e46803013eb1836e44b5d8d14",
+      "output_bytes": 3974
+    }
+  ],
+  "linux_client_ctest": {
+    "tests_passed": 1,
+    "output_sha256": "83eadc96612de6a5632749cac82eba029331b08df99959ebe39c96ef906d1db5"
+  },
+  "positive_native_v12": {
+    "clients": [
+      {
+        "exit_code": 0,
+        "receipt": {
+          "bound_zero_observed": true,
+          "full_settings_validated": false,
+          "game_id": "",
+          "map": "lockout",
+          "native_loading_reached": true,
+          "native_session_taken": true,
+          "played_world": false,
+          "positive_countdown_observed": true,
+          "queue_status": 8,
+          "real_provider": false,
+          "running_observed": true,
+          "sdk_available": true,
+          "stage": "native bound start",
+          "transport_phase": 2,
+          "variant": "Slayer"
+        }
+      },
+      {
+        "exit_code": 0,
+        "receipt": {
+          "bound_zero_observed": true,
+          "full_settings_validated": false,
+          "game_id": "",
+          "map": "lockout",
+          "native_loading_reached": true,
+          "native_session_taken": true,
+          "played_world": false,
+          "positive_countdown_observed": true,
+          "queue_status": 8,
+          "real_provider": false,
+          "running_observed": true,
+          "sdk_available": true,
+          "stage": "native bound start",
+          "transport_phase": 2,
+          "variant": "Slayer"
+        }
+      }
+    ],
+    "catalog_sha256": "39f84e070f6671cc875b17e1aefc61b845ca9b45fca7924a97c443025c0ee05a",
+    "synthetic_loaded_signature": true,
+    "persisted_results": 0,
+    "passed": true
+  },
+  "rust_service": {
+    "checks": [
+      "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+    ],
+    "relay": {
+      "checks": [
+        "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+        "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+        "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+        "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+        "real anonymous population follows loading/running/postgame room owners and the transient guest, retaining active playing seats after frontend logout",
+        "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+      ],
+      "observed": {
+        "start_countdown_ms": 9996,
+        "real_start_elapsed_seconds": 10.043218131002504,
+        "physical_connections": 2,
+        "logical_seats": 3,
+        "countdown_room_binding": true,
+        "legacy_clock_shape_preserved": true,
+        "running_clock_retired": true,
+        "persistent_xp_total": 100
+      },
+      "fixture": {
+        "compatibility": "halo2-native-queue-v10",
+        "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+        "declared": true,
+        "original_profile": false,
+        "real_gameplay": false
+      },
+      "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+    },
+    "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate.",
+    "direct": {
+      "checks": [
+        "actual signal route drains a buffered candidate, validates physical peer reports and reaches running through the real ten-second gate; test RTT claims come from real local UDP exchanges",
+        "live direct socket replacement closes the old generation with its native reason; its late detach cannot remove the replacement, and frontend logout leaves the transferred bearer valid",
+        "explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room"
+      ],
+      "observed": {
+        "physical_connections": 2,
+        "udp_probe_exchanges": 6,
+        "client_reported_rtt_ms": [
+          1,
+          1
+        ],
+        "replaced_close_code": 1001,
+        "countdown_room_binding": true
+      },
+      "scope": "Actual Rust direct signaling/clock/generation/departure IO on a declared v12 legacy fixture, private grants and real local UDP client RTT probes. No native peer/gameplay/world promotion, original XNet or delivered acceptance."
+    },
+    "content_failure": {
+      "checks": [
+        "actual loading-content rejection requires the current grant/room, closes the real streams, preserves actor/other-party failure codes after teardown and fences stale receipts after requeue"
+      ],
+      "scope": "Real Rust HTTP/room-close/failure IO on a declared legacy fixture; no rendered map-load or played-world acceptance."
+    }
+  },
+  "production_legacy_adapter": {
+    "command": [
+      "/usr/bin/python3",
+      "-B",
+      "-m",
+      "unittest",
+      "-v",
+      "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss"
+    ],
+    "exit_code": 0,
+    "output": "test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss (multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.541s\n\nOK\n"
+  },
+  "production_abi_diagnostic_fixture_limit": {
+    "test": "test_original_objective_report_families_keep_admission_checks",
+    "outcomes": "20 test methods executed; one fixture method reported two errors because diagnostic input was disabled",
+    "output_sha256": "4c6c67578a6846a673030e5e1ca5a89c7a6416f81e144bae353fb236cb9088b8"
+  },
+  "legacy_fixture_suite": {
+    "tests_passed": 20,
+    "run": {
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-suite-20261103/halo2-test-t0302rq1/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_match_transport"
+          ],
+          "returncode": 0
+        }
+      ],
+      "passed": true,
+      "retained_large_artifacts": [],
+      "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-suite-20261103/halo2-test-t0302rq1/master-source",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-suite-20261103/halo2-test-t0302rq1",
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "compiler": {
+        "returncode": 0,
+        "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+      },
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-suite-20261103/halo2-test-t0302rq1/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "363c1874d7e9ba4c1d4c9b0c2f16c0e401c8054e594d1ce13bcfef7ba789b750",
+        "bytes": 5027440,
+        "retained": false,
+        "borrowed_external": false
+      }
+    },
+    "source_manifest_sha256": "23835aa5e56a4bfb53aec09cb4b92472529872ec48f1a6e8d9adfc2857d5608e",
+    "output_sha256": "281a6b0dff1fd1b92d1a489931bf173b33b306cebaca2b3835d55a92afa8ca55"
+  },
+  "v16_missing_eos": {
+    "qualified": false,
+    "positive_handoff_qualified": false,
+    "negative_control_passed": true,
+    "attempts": [
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-059",
+            "map": "waterworks",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-059",
+            "map": "waterworks",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      },
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-094",
+            "map": "triplicate",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "3 Plots"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-094",
+            "map": "triplicate",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "3 Plots"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      }
+    ],
+    "configured_client": false,
+    "negative_control": "Missing EOS client configuration must refuse v16 without changing its transport.",
+    "native_clients_restarted_between_attempts": true,
+    "same_process_native_retry_verified": false,
+    "same_service_and_provider_grants": true,
+    "source_catalog_edited": false,
+    "source_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "installed_map_admission_verified": false,
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  },
+  "configured_eos_verified": false,
+  "installed_linux_verified": false,
+  "played_world_verified": false,
+  "test_only_source_pin_note": "The Rust v16 regression fixture was corrected after the native source freeze. Production Rust and native/HTTP probe pins match the final current source.",
+  "runners": {
+    "native.py": "4f534889198f753384db6a45f302f548b8f6f6a4d71aae1175e9201943ea8921",
+    "adapter-and-eos.py": "ec76f800d11d9449a5cfbaf0b6b2424b3e9ef2be6a62a6f4031a999878f2e33e"
+  },
+  "owned_work_trees": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-native-20261103/halo2-test-y84bm9da",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-native-final-20261103/halo2-test-dkfcom5b",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-final-20261103/halo2-test-96sis34x",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-room-countdown-legacy-suite-20261103/halo2-test-t0302rq1"
+  ],
+  "retained_generated_large_artifacts": []
+}

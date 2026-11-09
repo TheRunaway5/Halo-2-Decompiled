@@ -14,20 +14,25 @@ void check(bool b,const std::string&s){if(!b)throw std::runtime_error(s);}
 std::vector<std::byte>bytes(const std::string&s){std::vector<std::byte>b;for(std::size_t n=0;n<s.size();n+=2)b.push_back(std::byte(std::stoul(s.substr(n,2),nullptr,16)));return b;}
 std::string hex(std::span<const std::byte>b){const char*d="0123456789abcdef";std::string s;for(auto v:b){auto n=std::to_integer<unsigned>(v);s+=d[n>>4];s+=d[n&15];}return s;}
 struct Fault{};
+void disturb_provider_fp(){
+ const std::uint16_t control=0x0b7f;
+ asm volatile("fninit;fld1;fldpi;fldz;fldcw %0"::"m"(control):"memory","st","st(1)","st(2)");
+ _mm_setcsr(0x9fc0u);
+}
 struct Memory:SourcePhysicsContactMemory{
- std::map<std::uint32_t,std::vector<std::byte>>banks;bool log{};mutable J reads=J::array();J fault;mutable unsigned occurrence{};
+ std::map<std::uint32_t,std::vector<std::byte>>banks;bool log{},hostile_fp{};mutable J reads=J::array();J fault;mutable unsigned occurrence{};
  auto at(std::uint32_t p,std::size_t n)const{auto i=banks.upper_bound(p);check(i!=banks.begin(),"Missing MOPP bank");--i;check(std::uint64_t(p-i->first)+n<=i->second.size(),"Missing MOPP extent");return i;}
- void read(std::uint32_t p,std::span<std::byte>b)const override{if(log&&!fault.is_null()&&p==fault.at("address")&&b.size()==fault.at("bytes")&&++occurrence==fault.at("occurrence"))throw Fault{};if(log)reads.push_back(J::array({p,b.size()}));auto i=at(p,b.size());std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
+ void read(std::uint32_t p,std::span<std::byte>b)const override{if(log&&hostile_fp)disturb_provider_fp();if(log&&!fault.is_null()&&p==fault.at("address")&&b.size()==fault.at("bytes")&&++occurrence==fault.at("occurrence"))throw Fault{};if(log)reads.push_back(J::array({p,b.size()}));auto i=at(p,b.size());std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
  void read_vector(std::uint32_t p,std::span<std::byte,16>b)const override{read(p,b);}
- void write(std::uint32_t p,std::span<const std::byte>b)override{auto i=at(p,b.size());std::copy(b.begin(),b.end(),banks.at(i->first).begin()+p-i->first);}
+ void write(std::uint32_t p,std::span<const std::byte>b)override{if(log&&hostile_fp)disturb_provider_fp();auto i=at(p,b.size());std::copy(b.begin(),b.end(),banks.at(i->first).begin()+p-i->first);}
 };
 std::uint16_t control(){std::uint16_t value;asm volatile("fnstcw %0":"=m"(value));return value;}
 std::uint16_t status(){std::uint16_t value;asm volatile("fnstsw %0":"=a"(value));return value;}
 }
 int main(int argc,char**argv){try{
  check(argc==2,"MOPP fixture missing");std::ifstream file(argv[1]);const auto fixture=J::parse(file);check(fixture.at("image_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"&&fixture.at("required_backend")=="unchanged-tu15-native-mopp-ray-traversal-v1"&&fixture.at("body_sites")==J::array({896}),"Wrong MOPP authority");std::size_t count{},reads{};
- for(const auto&c:fixture.at("cases")){
-  const auto name=c.at("name").get<std::string>();Memory m;for(const auto&b:c.at("banks"))m.banks.emplace(b.at("address"),bytes(b.at("before")));m.fault=c.value("fault",J{});
+ for(const auto&c:fixture.at("cases"))for(const bool hostile_fp:{false,true}){
+  const auto name=c.at("name").get<std::string>()+(hostile_fp?" provider-FP-clobber":"");Memory m;m.hostile_fp=hostile_fp;for(const auto&b:c.at("banks"))m.banks.emplace(b.at("address"),bytes(b.at("before")));m.fault=c.value("fault",J{});
   NativeTu15MoppTraversalVariables v;NativeTu15MoppTraversalBounds bounds;
   std::array<std::byte,32>vb{},bb{};m.read(c.at("variables"),vb);m.read(c.at("bounds"),bb);std::memcpy(&v,vb.data(),32);std::memcpy(&bounds,bb.data(),32);m.log=true;
   NativeTu15PhysicsFrameFp fp{c.at("before_fp")[0],c.at("before_fp")[1],c.at("before_fp")[2]};NativeTu15MoppRayTraversalServices services;bool boundary_hit{};

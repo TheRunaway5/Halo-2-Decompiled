@@ -28,6 +28,10 @@ SourceLiveShadowStorageTu15 source_live_shadow_storage_activate_tu15(
 void source_live_shadow_storage_validate_tu15(
     PhysicsLiveWorldTu15&,const SourceLiveShadowStorageTu15&);
 
+// Borrow the already activated storage for a synchronous renderer frame.
+// Performs the same read-only identity/backing admission, with no activation.
+SourceLiveShadowStorageTu15 source_live_shadow_storage_frame_tu15(PhysicsLiveWorldTu15&);
+
 // Rebind borrowed native addresses after an independently admitted same-world
 // restore. Source BSP/allocation identities, counts, allocator and extents must
 // still match. This neither authenticates an imported bank nor activates it.

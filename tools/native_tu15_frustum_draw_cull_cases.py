@@ -25,9 +25,9 @@ def model(parts=(0,),bounds=((0,0,-2,.5,0),),mask_offset=0,nodes=None,inverse=No
         nodes=nodes if nodes is not None else[matrix()],inverse=inverse if inverse is not None else[matrix()],flags=flags,association=association)
 
 
-def cases(image):
+def cases(image,genuine=()):
     rows=[]
-    def add(name,items,*,initial=None,associations=None,entries=1,frustums=None,walk=False,prefix=0,total=None,mode=1,entry=0,fp=None):
+    def add(name,items,*,initial=None,associations=None,entries=1,frustums=None,walk=False,prefix=0,total=None,mode=1,entry=0,fp=None,visibility_ranges=None,groups=1):
         items=copy.deepcopy(items);mask=[0]*512 if initial is None else initial[:]
         frustums=frustums or[dict(bounds=list(map(bits,[-5,5,-5,5,-5,5])),planes=[list(map(bits,p))for p in
             ((1,0,0,5),(-1,0,0,5),(0,1,0,5),(0,-1,0,5),(0,0,1,5),(0,0,-1,5))])]
@@ -43,11 +43,19 @@ def cases(image):
         put(0x4ecbd0,POOL);put(POOL+0x44,HEADERS);put(0x4f0414,TAGS);put(0x4ecc18,BSP)
         put(0x4cd3a0,CONTEXT);put(CONTEXT,COLLECT);put(CONTEXT+0x2a78,mode);put(CONTEXT+0x2a7c,0)
         put(0x4cd39c,prefix);put(0x4cd398,len(items)if total is None else total)
-        put(COLLECT,1,2);put(COLLECT+0xa6c,entries,2)
+        put(COLLECT,groups,2);put(COLLECT+0xa6c,entries,2)
         ranges=[]
         for i in range(entries):
             first=i%len(frustums);put(COLLECT+0xa6e+i*26,i,2);put(COLLECT+0xa70+i*26,1,2);put(COLLECT+0xa7c+i*26,first,2)
             ranges.append(dict(cluster=i,counts=[1,0,0,0,0,0],first=[first,0,0,0,0,0]))
+        if visibility_ranges is not None:
+            ranges=copy.deepcopy(visibility_ranges)
+            assert len(ranges)==entries
+            for i,r in enumerate(ranges):
+                put(COLLECT+0xa6e+i*26,r['cluster'],2)
+                for j in range(6):
+                    put(COLLECT+0xa70+i*26+j*2,r['counts'][j],2)
+                    put(COLLECT+0xa7c+i*26+j*2,r['first'][j],2)
         for i,f in enumerate(frustums):
             words(COLLECT+0x1974+i*0x108+0x60,f['bounds'])
             for j,plane in enumerate(f['planes']):words(COLLECT+0x1974+i*0x108+0x78+j*16,plane)
@@ -74,7 +82,7 @@ def cases(image):
             if item.get('transform'):
                 w[7]=context+0x20;words(w[7],item['transform'])
             item.update(words=w,owner=owner);words(0x4c6958+i*32,w)
-        spec=dict(units=items,arena=mask,arena_address=MASK,arena_used=511,groups=1,ranges=ranges,frustums=frustums,
+        spec=dict(units=items,arena=mask,arena_address=MASK,arena_used=511,groups=groups,ranges=ranges,frustums=frustums,
             associations=associations,mode=mode,prefix=prefix,total=len(items)if total is None else total,entry=entry,walk=walk)
         row=dict(id=len(rows),name=name,entry=0x44710 if walk else 0x44e80,stop_pc=STOP,max_steps=100000,
             gp=[0,0,0,0,SP,0,0,0],matrix=0,source=entry,before_fp=fp or[0x27f,0,0x1f80],live_x87=[],spec=spec,
@@ -126,4 +134,10 @@ def cases(image):
         item=model(parts=[rng.randrange(4)for _ in range(1+n%65)],bounds=bounds,nodes=nodes,inverse=inverse)
         initial=[rng.getrandbits(32)&rng.getrandbits(32)for _ in range(512)]
         add('controlled literal model/frustum bank '+str(n),[item],initial=initial,fp=[0x27f|((n%4)<<10),0,0x1f80|((n%4)<<13)])
+    for fixture in genuine:
+        row=add(fixture['name'],fixture['units'],initial=fixture['arena'],associations=fixture['associations'],
+            entries=len(fixture['ranges']),frustums=fixture['frustums'],visibility_ranges=fixture['ranges'],
+            groups=fixture['groups'],walk=True,mode=fixture.get('mode',0),
+            prefix=0 if fixture.get('mode',0)else len(fixture['units']),fp=fixture.get('fp'))
+        row['genuine_expected']=fixture['expected']
     return rows

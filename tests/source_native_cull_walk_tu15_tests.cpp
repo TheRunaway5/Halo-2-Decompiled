@@ -2,6 +2,7 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/source_bsp_ranges.hpp"
+#include "halo2/source_main_frustum_cull_tu15.hpp"
 #include "halo2/detail/native_tu15_arithmetic_environment.hpp"
 #include <bit>
 #include <cstring>
@@ -34,6 +35,8 @@ int main(int argc,char** argv)try {
     const auto save=[&](auto at,auto size){const auto bytes=m.view(at,size);saved.emplace_back(at,std::vector(bytes.begin(),bytes.end()));};
     for(auto at:{0x4ecbd0u,0x4f0414u,0x4ecc18u,0x4cd3a0u,0x4cd39cu,0x4cd398u})save(at,4);
     save(units,128);
+    constexpr auto main_context=0x556e18u,main_mask=main_context+0x25cu;
+    save(main_context,4);save(main_mask,8);save(main_context+0x2a78u,8);
     struct Restore {PhysicsLiveWorldTu15& world;decltype(saved)& entries;~Restore(){for(const auto& [at,bytes]:entries)world.write_source_call_input(at,bytes);world.memory().release(data);}} restore{world,saved};
     const auto put=[&](std::uint32_t at,std::uint32_t value,unsigned size=4) {
         std::array<std::byte,4> b{};for(unsigned n=0;n<4;++n)b[n]=std::byte(value>>(n*8));world.write_source_call_input(at,std::span(b).first(size));
@@ -113,6 +116,50 @@ int main(int argc,char** argv)try {
         check(native_calls==1&&residual_calls==2&&actual.status==original.x87_status&&actual.mxcsr==original.floating_point->mxcsr,
             "Mixed native/residual cull lost service order or FP");++compared;
     }
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    // The shared campaign/MP entry owns real resident model/pose bytes and
+    // leaves an ineligible entry to the original before writing any mask.
+    put(tags,0x6d6f6465u);put(tags+4,0);put(model+0x24u,1);put(model+0x48u,1);
+    put(pool+0x24u,12);put(pool+0x38u,1);put(rows,0xe777u,2);put(draw,0xe7770000u);
+    put(geometry+0x10u,1);
+    SourceBspRangeGeometry model_ranges;model_ranges.subpart_count=1;model_ranges.subparts.resize(1);
+    model_ranges.bounds.push_back({{0,0,-2},.5f,0});
+    unsigned shared_histories{};
+    for(bool bsp_first:{false,true})for(unsigned initial_mask:{0u,1u})for(unsigned variant=0;variant<4;++variant) {
+        const auto context=variant==3?ctx:main_context;
+        const auto shared=variant==3?mask:main_mask;
+        const auto setup=[&] {
+            put(0x4cd3a0u,context);put(context,collect);put(context+0x2a78u,0);put(context+0x2a7cu,0);
+            put(0x4cd39cu,3);put(0x4cd398u,3);put(shared,initial_mask);put(shared+4u,0);
+            for(unsigned i=0;i<3;++i) {
+                put(units+32u*i,0x40u);put(units+32u*i+4u,i==(bsp_first?0u:1u)?0xffffffffu:0);
+                put(units+32u*i+0x10u,draw);put(units+32u*i+0x14u,i==2?shared+4u:shared);
+                put(units+32u*i+0x18u,0);put(units+32u*i+0x1cu,0);
+            }
+        };
+        setup();auto original=world.prepare_source_call();world.run_actual(0x44710,original);const auto expected=m.checkpoint();
+        check(Bytes(m.view(shared+4u,4)).u32(0)==1u,"Original shared owner did not write its independent model mask");
+        setup();unsigned bsp_calls{};
+        SourceMainFrustumCullTu15 cull([&](auto datum,auto section){
+            check(!datum&&!section,"Shared cull requested a different declared model");
+            auto ranges=model_ranges;if(variant==2)ranges.bounds[0].radius=1.f;return ranges;
+        },"declared-world");
+        SourceMainFrustumCullTu15::BspEntry bsp_entry;
+        if(variant==1)bsp_entry=[&](auto& unit,auto& arena,auto base,auto entry,auto& arithmetic) {
+            detail::NativeTu15ArithmeticEnvironment environment(arithmetic);
+            source_bsp_frustum_cull_entry(unit,{&bsp_native,true,{}},arena,{0,0,0,0,base},visibility,entry);
+            ++bsp_calls;return true;
+        };
+        const auto actual=cull.run(world,&visibility,bsp_entry);
+        equal(expected,m.checkpoint());
+        check(cull.native_model_entries()==(variant<2?2u:0u)&&bsp_calls==(variant==1?1u:0u),
+            "Shared cull lost the positive model entries or accepted a negative control");
+        check(actual.status==original.x87_status&&actual.control_word==original.floating_point->x87_control_word&&
+            actual.mxcsr==original.floating_point->mxcsr,"Shared main cull changed complete FP state");
+        ++shared_histories;
+    }
+    std::cout<<"PASS "<<shared_histories<<" shared campaign/MP cull histories with positive model and residual controls\n";
+#endif
     // Independent physical2E79A0 row: scale3, Y bounds3..7, terminal1,
     // no planes. FSTP rounds upward: x87 PE|C1, SSE remains untouched.
     constexpr auto query_tree=data+0x18000u,query_planes=data+0x18100u,
