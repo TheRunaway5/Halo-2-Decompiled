@@ -156,6 +156,18 @@ def legacy_quaternion_layout(source):
     return source[:match.start()]+'static '+spill_helper+body+source[match.end():],True
 
 def observation_baseline(source):
+    from native_simplex_face_select_replacements import remove_simplex_face_select,replace_simplex_face_select,INCLUDE as FACE_SELECT_INCLUDE,PREFIX as FACE_SELECT_PREFIX
+    if FACE_SELECT_PREFIX in source or FACE_SELECT_INCLUDE in source:
+        if replace_simplex_face_select(source)!=source:raise ValueError('Incomplete native simplex-face-select observation owner')
+        source=remove_simplex_face_select(source)
+    from native_affine_inverse_replacements import remove_affine_inverse,replace_affine_inverse,INCLUDE as INVERSE_INCLUDE,WORLD_PREFIX as INVERSE_PREFIX
+    if INVERSE_PREFIX in source or INVERSE_INCLUDE in source:
+        if replace_affine_inverse(source)!=source:raise ValueError('Incomplete native affine-inverse observation owner')
+        source=remove_affine_inverse(source)
+    from native_simplex_triangle_replacements import remove_simplex_triangle,replace_simplex_triangle,PREFIX as TRIANGLE_PREFIX,INCLUDE as TRIANGLE_INCLUDE
+    if TRIANGLE_PREFIX in source or TRIANGLE_INCLUDE in source:
+        if replace_simplex_triangle(source)!=source:raise ValueError('Incomplete native simplex-triangle observation owner')
+        source=remove_simplex_triangle(source)
     from native_polygon_features_replacements import remove_polygon_features,replace_polygon_features,PREFIX as FEATURES_PREFIX,INCLUDE as FEATURES_INCLUDE
     if FEATURES_PREFIX in source or FEATURES_INCLUDE in source:
         if replace_polygon_features(source)!=source:
@@ -242,6 +254,12 @@ def main():
     output=replace_polygon_support(output)
     from native_polygon_features_replacements import replace_polygon_features
     output=replace_polygon_features(output)
+    from native_simplex_triangle_replacements import replace_simplex_triangle
+    output=replace_simplex_triangle(output)
+    from native_affine_inverse_replacements import replace_affine_inverse
+    output=replace_affine_inverse(output)
+    from native_simplex_face_select_replacements import replace_simplex_face_select
+    output=replace_simplex_face_select(output)
     assert canonical(output)==source
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(output)
     report=dict(scope=__doc__,source_sha256=sha(args.source),canonical_baseline_sha256=BASELINE_SHA256,

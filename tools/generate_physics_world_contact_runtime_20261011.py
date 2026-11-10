@@ -239,6 +239,10 @@ void source_run_physics_contact_runtime(M &m,std::uint32_t entry,
     generated=replace_polygon_support(generated)
     from native_polygon_features_replacements import replace_polygon_features
     generated=replace_polygon_features(generated)
+    from native_simplex_triangle_replacements import replace_simplex_triangle
+    generated=replace_simplex_triangle(generated)
+    from native_simplex_face_select_replacements import replace_simplex_face_select
+    generated=replace_simplex_face_select(generated)
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(generated)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),

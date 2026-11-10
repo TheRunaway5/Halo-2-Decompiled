@@ -1,3 +1,6 @@
+#include "halo2/native_tu15_geometry_visibility_value.hpp"
+#include "halo2/native_tu15_visibility_association_value.hpp"
+#include "halo2/native_tu15_id_search_kernel.hpp"
 #include "halo2/source_object_admission.hpp"
 #include "halo2/source_object_spatial_pool.hpp"
 #include <algorithm>
@@ -5,9 +8,7 @@
 
 namespace halo2 {
 const SourceBspAdmissionRecord *SourceObjectAdmission::object(std::uint32_t id) const {
-    const auto found=std::find_if(objects.begin(),objects.end(),
-        [&](const auto &r){return r.id==id;});
-    return found==objects.end()?nullptr:&*found;
+    return native_id_search_detail::record(objects,id);
 }
 namespace {
 template<class Lists>
@@ -49,25 +50,10 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
         if(in.context_2a78 && !object.lighting_sphere)
             throw FormatError("source object light admission lacks its retained lighting sphere");
         const auto &sphere=in.context_2a78?*object.lighting_sphere:object.rendering_sphere;
-        SourceClusterFrustumResult result;
-        if(in.mode==1) {
-            // TU1.5 135970: SSE overlap, then x87 PC53 containment.
-            const float z=sphere.center.z-in.sphere_center.z,
-                x=sphere.center.x-in.sphere_center.x,y=sphere.center.y-in.sphere_center.y,
-                r=sphere.radius+in.sphere_radius;
-            result.visible=!(r*r<(z*z+x*x)+y*y);
-            if(result.visible) {
-                const double dx=double(in.sphere_center.x)-sphere.center.x,
-                    dy=double(in.sphere_center.y)-sphere.center.y,
-                    dz=double(in.sphere_center.z)-sphere.center.z;
-                result.contained=!(double(in.sphere_radius)<std::sqrt((dz*dz+dy*dy)+dx*dx)+sphere.radius);
-            }
-        } else result=skip?SourceClusterFrustumResult{true,false}:
-            source_cluster_frustum_visibility(spheres,ordinal,sphere.center,sphere.radius);
+        const auto result=native_geometry_visibility_detail::geometry(spheres,ordinal,sphere.center,sphere.radius,in.mode,skip,in.context_2a78!=0,in.sphere_center,in.sphere_radius);
         if(!result.visible && !(in.flags&0x80))return;
         //132E60 only reaches the small-sphere shortcut after successful
         // frustum admission (or the explicit sky skip), before plane flags.
-        if(in.mode==0 && in.context_2a78==0 && result.visible && !result.contained && sphere.radius<=2.5f)result.contained=true;
         bool negative=true,positive=true;
         if(in.flags&0x200) {
             const auto &p=in.clipping_plane;
@@ -84,11 +70,7 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
         std::uint16_t association=0xffff;
         if(!result.contained && (object.flags&0x80000000u)) {
             if(ordinal>=128)throw FormatError("source sky bypass requires negative association-bank write");
-            if(out.associations.size()==512){association=0;out.association_capacity_reached=true;}
-            else {
-                association=std::uint16_t(out.associations.size());out.associations.push_back({});
-                associate(association,ordinal);
-            }
+            association=native_visibility_association_detail::reserve_mask(out.associations,out.association_capacity_reached,ordinal);
         }
         //163C80 reserves the last queue slot. Allocation happens first and
         // survives failure; BEC70 stamps only a successful append.

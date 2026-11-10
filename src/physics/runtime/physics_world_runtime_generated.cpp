@@ -1,3 +1,6 @@
+#include "physics/runtime/native_tu15_simplex_face_select_source_owner.hpp"
+#include "physics/runtime/native_tu15_affine_inverse.hpp"
+#include "physics/runtime/native_tu15_simplex_triangle_source_owner.hpp"
 #include "physics/runtime/native_tu15_polygon_features_abi.hpp"
 #include "physics/runtime/native_tu15_polygon_support_frame.hpp"
 #include "physics/runtime/native_tu15_mopp_aabb_traversal.hpp"
@@ -967,6 +970,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_142d00(ObservedWorldState &s) {
+    if(halo2::native_affine_inverse_detail::bridge(s,halo2::native_affine_inverse_detail::Observation::world))return;
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x142d00u,0x144090u,s));} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x0u+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x142d04u,0x144094u,s));} s.xmm[3]=_mm_xor_ps(s.xmm[3],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x142d07u,0x144097u,s));} s.push(world_observation_pc(0x142d07u,0x144097u,s),s.reg(7,4,0));
@@ -20589,6 +20593,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_309900(ObservedWorldState &s) {
+    if(halo2::native_simplex_triangle_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309900u,0x30d3f0u,s));} s.push(world_observation_pc(0x309900u,0x30d3f0u,s),s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309901u,0x30d3f1u,s));} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309903u,0x30d3f3u,s));} s.set(4,s.flags.logic((s.reg(4,4,0))&(0xfffffff0u),4),4,0);
@@ -20730,6 +20735,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_309ae0(ObservedWorldState &s) {
+    if(halo2::native_simplex_face_select_owner_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site){dispatch(v,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309ae0u,0x30d5d0u,s));} s.push(world_observation_pc(0x309ae0u,0x30d5d0u,s),s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309ae1u,0x30d5d1u,s));} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x309ae3u,0x30d5d3u,s));} s.set(4,s.flags.logic((s.reg(4,4,0))&(0xfffffff0u),4),4,0);

@@ -180,3 +180,26 @@ configured generated/nongenerated units with zero source/preparation drift:
 `5c927a7df780ddfdda648124eb8a514522d7d6bc3f33de5b4de9162647e4dd0f`.
 Later module registrations are outside this catalog. It authenticates configured
 bindings and identities, without proving runtime execution or native admission.
+
+The complete r18 engine cohort passes 158 component tests, the full engine and
+all eight selected 90-tick Coagulation/Zanzibar static/moving 1p/4p runs. Its
+source inventory is `4a2bd5b5f5301402619cd0b1e00d788b27ce43f16d4feb01dae261e94d681394`;
+the 329,988,984-byte runtime has SHA-256
+`d6414a4a9752ad17452cc36d3e10b67f7f5e7feb2ec55980c79bd11e0a252460`.
+It records 21,192,779 entries and 739,656,383 raw literal observations, with
+2,758 observed fallback functions. The strict r14 comparison verifies identical
+maps, normalized commands, exact input scripts and all eight frame hashes.
+Literal observations fall by 12,965,847. The same 66 unresolved owner identities
+and 1,796 unwinds in three owners remain; native-only closure is false.
+
+The source manifest is retained losslessly as `source-hashes.json.gz`, 971,961
+stored bytes for 2,627,708 decoded bytes. Its authoritative decoded hash remains
+the inventory SHA above. All metadata totals 6,273,483 bytes within the unchanged
+8 MiB aggregate budget. Native metadata readers authenticate decoded source,
+runtime and analysis bytes transparently; no counters or source identities are
+changed to reduce storage. The whole source/build/capture owner is removed,
+with no retained runtime binary, banks or frames. The checkpoint comparison and
+hot queue live in `build/test-results/native-execution-r14-r18-comparison-20261109/`
+and `build/test-results/native-execution-hot-queue-r18-20261109/`. Later source
+bindings, all-map/campaign execution, Original-frame parity, timing and delivery
+remain separate unfinished gates.

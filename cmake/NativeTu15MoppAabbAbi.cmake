@@ -4,6 +4,10 @@ if(BUILD_TESTING)
         COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}" -B
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_physics_world_observation_tu15.py")
     set_tests_properties(native_world_observation_generator PROPERTIES TIMEOUT 120)
+    add_test(NAME native_polygon_prepared_owners
+        COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}" -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_polygon_prepared_owners.py")
+    set_tests_properties(native_polygon_prepared_owners PROPERTIES TIMEOUT 120)
     set(_halo2_mopp_aabb_sanitizers)
     if(HALO2_SANITIZERS AND NOT MSVC)
         list(APPEND _halo2_mopp_aabb_sanitizers --sanitizers)

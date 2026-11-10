@@ -8,6 +8,7 @@
 #include "halo2/native_tu15_bsp_segment_query.hpp"
 #include <array>
 #include <optional>
+#include <stdexcept>
 #include <xmmintrin.h>
 
 namespace halo2::native_camera_instance_query_value_detail {

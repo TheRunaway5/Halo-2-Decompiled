@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--fixed-ticks', action='store_true', help='require the owned fixed-tick probe cadence')
     parser.add_argument('--max-load', type=float, help='wait for a quiet host and reject timing runs exceeding this load')
     parser.add_argument('--quiet-seconds', type=float, default=20)
+    parser.add_argument('--resume', action='store_true', help='reuse accepted timing samples from this exact runtime')
     args = parser.parse_args()
     if 'HALO2_TEST_SCRATCH' not in os.environ:
         parser.error('use tools/run_test.py to own generated products')
@@ -56,6 +57,15 @@ def main():
                   helper_sha256=digest(Path(__file__)),
                   scratch_owner=os.environ['HALO2_TEST_SCRATCH'], runs=[])
     report_path = args.output / (args.phase + '.json')
+    if args.resume:
+        previous=json.loads(report_path.read_text())
+        if args.phase!='timing' or previous['phase']!='timing' or any(
+            previous[k]!=report[k] for k in ('runtime_sha256','maps')):
+            parser.error('resume requires timing samples from this exact runtime and map owner')
+        previous.setdefault('helper_revisions',[]).append(previous['helper_sha256'])
+        previous.update(helper_sha256=report['helper_sha256'],scratch_owner=report['scratch_owner'],passed=False)
+        report=previous
+    report['load_policy']=dict(max_load=args.max_load,quiet_seconds=args.quiet_seconds)
 
     def save():
         report_path.write_text(json.dumps(report, indent=2) + '\n')
@@ -168,6 +178,12 @@ def main():
                         roles = roles[1:] + roles[:1]
                     for role in roles:
                         label = f'{map_name}-{role}-{pair + 1}'
+                        retained=next((v for v in reversed(report['runs']) if v['label']==label and
+                                       v.get('sample_accepted') and 'phases' in v),None)
+                        if retained:
+                            measured[pair,role]=retained['cpu_ms']
+                            print('Reusing accepted sample: '+label,flush=True)
+                            continue
                         env = dict(ROLES[role], H2_MAP=map_name, H2_MAPS=str(args.maps), H2_CPUMON='1',
                                    SDL_VIDEODRIVER='x11', HALO2_PSTENCIL_CAPTURE_PRESENT_MODE='immediate')
                         if args.fixed_ticks:

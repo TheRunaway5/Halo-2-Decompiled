@@ -77,6 +77,11 @@ def main():
               0xff823456,0x3eaaaaab,0x80800000,0x807fffff)
         for opcode in list(range(0x10,0x1d))+list(range(0x20,0x26)):
             variants=[(f'cross_{direction}_{n}',None,16+n+8*direction) for direction in range(2) for n in range(8)]
+            # A shortened endpoint beyond the high plane must continue after
+            # the real child. The old fractions covered full/early-return and
+            # unordered paths, but skipped Original's 30B01D continuation.
+            if opcode in (0x10,0x11,0x12):
+                variants += [(f'cross_0_continuation_{n}',None,16+n) for n in range(2)]
             for name,alias,n in variants:
                 a=(0,1,64,127,128,170,254,255)[n%8];b=(255,254,170,128,127,64,1,0)[n%8]
                 if name.startswith('cross_'):a,b=64,192
@@ -101,6 +106,8 @@ def main():
                 banks[0x61000000][0xc10:0xc14]=code_info.to_bytes(4,'little')
                 banks[0x61000000][0xc20:0xc40]=banks[0x61000000][0x900:0x920]
                 fraction=(0x3f800000,0x3f000000,0,0xbf800000,0x7fc12345,0x7f800000,1,0x80000000)[n%8]
+                if '_continuation_' in name:
+                    fraction=(0x3f400000,0x3f666666)[n%2]
                 banks[0x61000000][0xc54:0xc58]=fraction.to_bytes(4,'little')
                 banks[0x61000000][0xd00:0xd10]=bytes(16)
                 arguments=[0x63000000,variables,0x61000100,bounds]

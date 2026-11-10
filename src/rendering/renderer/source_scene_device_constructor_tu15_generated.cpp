@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_simplex_triangle_abi.hpp"
 #include "physics/runtime/native_tu15_object_scan.hpp"
 #include "rendering/models/native_tu15_model_vector_length.hpp"
 #include "rendering/models/native_tu15_model_light_source.hpp"
@@ -39482,6 +39483,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_30d3f0(WorldState &s) {
+    if(halo2::native_simplex_triangle_detail::bridge_actual(s))return;
 if(s.services.instruction){s.services.instruction(0x30d3f0u);} s.push(0x30d3f0u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x30d3f1u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x30d3f3u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(selected(0xfffffff0u,s.image)),4),4,0);

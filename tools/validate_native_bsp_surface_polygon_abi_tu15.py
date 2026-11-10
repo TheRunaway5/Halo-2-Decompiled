@@ -154,14 +154,33 @@ def main():
             rejected+=1
         seam='case 0xfa670u:run_fa670(s);return;'
         if dispatch.count(seam)!=1:raise ValueError('Fresh dispatcher insertion seam changed')
-        fresh_dispatch=dispatch.replace(seam,ALLOCATOR_OWNER_FRESH_CASE+seam,1);fresh_primary=primary.replace(dispatch,fresh_dispatch,1)
+        hybrid_dispatch=dispatch.replace(seam,ALLOCATOR_OWNER_FRESH_CASE+seam,1)
+        hybrid_primary=primary.replace(dispatch,hybrid_dispatch,1)
+        # A dispatcher-only hybrid omits independently qualified newer body
+        # emissions (notably the refinement owner's seven FLD C1 clears).
+        # Keep all exact contexts strict and use the real complete generator.
+        try:specialize(hybrid_primary)
+        except ValueError as error:
+            if str(error)!='Complete simplex-face-refine body/resolver/dispatcher drift':raise
+        else:raise ValueError('Dispatcher-only hybrid unexpectedly became a complete fresh context')
+        rejected+=1
+        fresh_path=scratch/'primary-fresh.cpp'
+        fresh_command=[sys.executable,'-B',str(ROOT/'tools/generate_physics_live_support_tu15.py'),
+            '--output',str(fresh_path),'--manifest',str(scratch/'primary-fresh-generation')]
+        generated=subprocess.run(fresh_command,capture_output=True,text=True,cwd=ROOT)
+        if generated.returncode:raise ValueError('Complete fresh polygon context generation failed: '+generated.stderr[-5000:])
+        fresh_primary=fresh_path.read_text()
+        fresh_dispatch=re.search(r'static void dispatch\(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail\)\{[^\n]*\}',fresh_primary)[0]
+        if fresh_dispatch!=hybrid_dispatch:raise ValueError('Complete fresh dispatcher differs from the exact qualified insertion')
+        report['fresh_generation_command']=fresh_command
+        report['fresh_primary_sha256']=hashlib.sha256(fresh_primary.encode()).hexdigest()
         _,fresh_receipt=specialize(fresh_primary)
         owner_groups=('native_allocator_actual_owner_entries','native_tick_conversion_actual_owner_entries',
             'native_physical_epoch_actual_owner_entries','native_bsp_surface_2d_actual_owner_entries',
             'native_bsp_surface_polygon_actual_owner_entries','native_datum_delete_actual_owner_entries')
         if fresh_receipt.get('native_actual_owner_dispatch_variant')!='fresh-fa5d0'or any(fresh_receipt[group]!=receipt[group]for group in owner_groups):raise ValueError('Exact fresh dispatcher did not preserve every imported owner group')
         from native_halfword_bit_query_replacements import canonical_body as halfword_body,installed_entries as halfword_entries
-        fa_body=next(b for m,b in function_bodies(primary)if m[1]=='fa5d0')
+        fa_body=next(b for m,b in function_bodies(fresh_primary)if m[1]=='fa5d0')
         canonical_fa_sha=hashlib.sha256(halfword_body(fa_body).encode()).hexdigest()
         if canonical_fa_sha!=ALLOCATOR_OWNER_FRESH_BODY_PIN:raise ValueError('Fresh dispatcher FA5D0 canonical continuation drift')
         changed_fa=fa_body.replace('s.gp[1]),2)','s.gp[1]),4)',1)
@@ -218,7 +237,7 @@ def main():
             source_sha256={path:sha(ROOT/path)for path in paths},memory_fault_prefix_abi_qualified=False,
             binding_drift_rejections=rejected,actual_owner_entry='1e6e80',independent_reference_controls=controls,forced_reference=reference,
             fresh_dispatcher_imported_groups_verified={group:fresh_receipt[group]for group in owner_groups},
-            fresh_dispatcher_fa5d0_native_bindings=halfword_entries(primary),
+            fresh_dispatcher_fa5d0_native_bindings=halfword_entries(fresh_primary),
             fresh_dispatcher_fa5d0_canonical_body_sha256=canonical_fa_sha,
             fresh_dispatcher_fa5d0_continuation='Exact canonicalized7-site continuation and ordered shift; native execution qualified separately',
             fresh_dispatcher_authentication_is_execution_proof=False)

@@ -370,6 +370,16 @@ def specialize(text):
         from native_polygon_prepared_owners import installed as installed_polygon_owner
         installed_polygon_owner(text,feature_helper,'features')
         polygon_feature_entries=['1f6690']
+    simplex_triangle_entries=[]
+    if 'halo2::native_simplex_triangle_detail::bridge(s)' in text or '#include "physics/runtime/native_tu15_simplex_triangle_source_owner.hpp"' in text:
+        triangle_spec=importlib.util.spec_from_file_location('native_simplex_triangle_binding',Path(__file__).with_name('native_simplex_triangle_replacements.py'))
+        triangle_helper=importlib.util.module_from_spec(triangle_spec);triangle_spec.loader.exec_module(triangle_helper)
+        simplex_triangle_entries=triangle_helper.installed_entries(text)
+    simplex_triangle_scene_entries=[]
+    if 'halo2::native_simplex_triangle_detail::bridge_actual(s)' in text or '#include "physics/runtime/native_tu15_simplex_triangle_abi.hpp"' in text:
+        scene_triangle_spec=importlib.util.spec_from_file_location('native_simplex_triangle_scene_binding',Path(__file__).with_name('native_simplex_triangle_scene_replacements.py'))
+        scene_triangle_helper=importlib.util.module_from_spec(scene_triangle_spec);scene_triangle_spec.loader.exec_module(scene_triangle_helper)
+        simplex_triangle_scene_entries=scene_triangle_helper.installed_entries(text)
     mapping = MAPPING.search(text)
     if not mapping or text.count(HEADER) != 1:
         raise ValueError('Unsupported canonical native operand mapping')
@@ -594,12 +604,30 @@ def specialize(text):
         native_mopp_aabb_canonical_entries=mopp_aabb_canonical_entries,
         native_polygon_support_entries=polygon_support_entries,
         native_polygon_feature_entries=polygon_feature_entries,
+        native_simplex_triangle_entries=simplex_triangle_entries,
+        native_simplex_triangle_scene_entries=simplex_triangle_scene_entries,
         bindings=[dict(canonical=a, tu15=b, uses=n) for (a, b), n in sorted(counts.items())])
     # Preserve the older owner-specific authenticated rejection order. New
     # object-node receipts follow the existing Page/Stack/Busy validations.
     object_node_entries,object_animation_entries=object_node_bindings(text)
     receipt.update(native_object_node_rebuild_entries=object_node_entries,
         native_object_animation_entries=object_animation_entries)
+    # Validate this later owner after all older family guards, preserving their
+    # established mutation diagnostics and complete dispatcher pins.
+    simplex_face_refine_entries=[]
+    if 'halo2::native_simplex_face_refine_owner_detail::bridge(s)' in text or '#include "physics/runtime/native_tu15_simplex_face_refine_source_owner.hpp"' in text:
+        refine_spec=importlib.util.spec_from_file_location('native_simplex_face_refine_binding',Path(__file__).with_name('native_simplex_face_refine_replacements.py'))
+        refine_helper=importlib.util.module_from_spec(refine_spec);refine_spec.loader.exec_module(refine_helper)
+        simplex_face_refine_entries=refine_helper.installed_entries(text)
+    receipt['native_simplex_face_refine_entries']=simplex_face_refine_entries
+    # The later face-select owner follows all earlier strict guards so their
+    # established dispatcher mutation diagnostics remain authoritative.
+    simplex_face_select_entries=[]
+    if 'halo2::native_simplex_face_select_owner_detail::bridge(s,' in text or '#include "physics/runtime/native_tu15_simplex_face_select_source_owner.hpp"' in text:
+        face_select_spec=importlib.util.spec_from_file_location('native_simplex_face_select_binding',Path(__file__).with_name('native_simplex_face_select_replacements.py'))
+        face_select_helper=importlib.util.module_from_spec(face_select_spec);face_select_spec.loader.exec_module(face_select_helper)
+        simplex_face_select_entries=face_select_helper.installed_entries(text)
+    receipt['native_simplex_face_select_entries']=simplex_face_select_entries
     return output, receipt
 
 

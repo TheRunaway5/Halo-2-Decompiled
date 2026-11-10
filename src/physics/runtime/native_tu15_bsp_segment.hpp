@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_host_fp_io.hpp"
 #pragma once
 #include "halo2/native_tu15_bsp_segment_kernel.hpp"
 #include "physics/runtime/native_tu15_bsp_leaf_surface.hpp"
@@ -39,16 +40,16 @@ template<class State,class Call,class Before>struct Adapter:native_bsp_leaf_surf
     std::uint32_t flags(std::uint32_t)const{return word(sp-4u,1);}
     void raw_store(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width,bool packet=true){
         if(packet)at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(width)};
-        if(s.observe){event.before.resize(width);s.memory.read(address,event.before);}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));s.memory.write(address,event.written);if(s.observe)s.observe(event);
+        if(s.observe){event.before.resize(width);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
+        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
     }
     void store_crossing(long double value){
         constexpr auto pc=0x1e6a6fu;at(pc);const auto converted=single_store(value);
         s.fp.status=(s.fp.status&~0x200u)|(converted.status&0x200u);
         SourcePhysicsContactRecordStore event{pc,sp+8u,{},std::vector<std::byte>(4)};
-        if(s.observe){event.before.resize(4);s.memory.read(event.address,event.before);}
-        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(converted.value>>(n*8u));s.memory.write(event.address,event.written);
-        pop80();cross_live=false;if(s.observe)s.observe(event);
+        if(s.observe){event.before.resize(4);native_host_fp_io_detail::preserve([&]{s.memory.read(event.address,event.before);});}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(converted.value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(event.address,event.written);});
+        pop80();cross_live=false;if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
     }
     RecursiveContinuation recurse(const Progress&d,std::uint32_t child_node){
         auto&g=s.gp;g[2]=child_node;s.flags.load(arithmetic_shift_flags(d.packed,8u,s.flags.bits()));

@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_fog_membership_value.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_fog_clear.hpp"
@@ -90,16 +91,7 @@ bool BspAtmosphere::contains_planar(int cluster,std::uint32_t datum) const {
     }
     if(cluster<0)return false;
     if(std::size_t(cluster)>=clusters.size())throw FormatError("planar cluster outside BSP");
-    const int designator=clusters[cluster].planar_designator;
-    if(designator==-1)return false;
-    if(datum==0xffffffffu)return true;
-    int palette=designator;
-    if(designator<0) {
-        const unsigned plane=unsigned(designator)&127;
-        if(plane>=fog_planes.size())throw FormatError("containing fog plane outside BSP");
-        palette=fog_planes[plane].palette;
-    }
-    return palette>=0 && std::size_t(palette)<fog_palette.size() && fog_palette[palette].datum==datum;
+    return native_fog_membership_detail::planar_member(*this,cluster,datum);
 }
 std::vector<std::uint32_t> BspAtmosphere::potentially_visible_clusters(int camera_cluster) const {
     const auto words=(clusters.size()+31)/32;

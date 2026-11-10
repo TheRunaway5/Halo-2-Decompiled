@@ -1,3 +1,7 @@
+#include "physics/runtime/native_tu15_affine_inverse.hpp"
+#include "physics/runtime/native_tu15_instanced_ray_callback.hpp"
+#include "physics/runtime/native_tu15_camera_instance_query_frame.hpp"
+#include "physics/runtime/native_tu15_segment_sphere.hpp"
 #include "physics/runtime/native_tu15_camera_instance_bitmap.hpp"
 #include "physics/runtime/native_tu15_camera_instance_admission.hpp"
 #include "physics/runtime/native_tu15_instanced_ray_child.hpp"
@@ -10052,6 +10056,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_120fa0(WorldState &s) {
+    if(halo2::native_segment_sphere_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x120fa0u);} s.xmm[4]=_mm_set_ss(f(r(s.memory,(selected(0x4u,s.image)+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x120fa5u);} s.xmm[4]=_mm_sub_ss(s.xmm[4],_mm_set_ss(f(r(s.memory,(selected(0x4u,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x120faau);} s.xmm[5]=_mm_set_ss(f(r(s.memory,(selected(0x8u,s.image)+s.gp[1]),4)));
@@ -10705,6 +10710,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_144090(WorldState &s) {
+    if(halo2::native_affine_inverse_detail::bridge(s,halo2::native_affine_inverse_detail::Observation::actual))return;
 if(s.services.instruction){s.services.instruction(0x144090u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x144094u);} s.xmm[3]=_mm_xor_ps(s.xmm[3],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x144097u);} s.push(0x144097u,s.reg(7,4,0));
@@ -11551,6 +11557,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_16c000(WorldState &s) {
+    if(halo2::native_camera_instance_query_detail::bridge(s,[](auto&state,std::uint32_t target,std::uint32_t site){dispatch(state,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x16c000u);} s.set(4,s.flags.minus(s.reg(4,4,0),selected(0x468u,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x16c006u);} s.push(0x16c006u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x16c007u);} s.push(0x16c007u,s.reg(6,4,0));
@@ -43460,6 +43467,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_24def0(WorldState &s) {
+    if(halo2::native_instanced_ray_callback_binding_detail::forward(s,[](auto&state,std::uint32_t target,std::uint32_t site,bool tail){dispatch(state,target,site,tail);}))return;
 if(s.services.instruction){s.services.instruction(0x24def0u);} s.push(0x24def0u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x24def1u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x24def3u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(selected(0xfffffff0u,s.image)),4),4,0);
@@ -43480,6 +43488,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_24df20(WorldState &s) {
+    if(halo2::native_instanced_ray_callback_binding_detail::collect(s,[](auto&state,std::uint32_t target,std::uint32_t site,bool tail){dispatch(state,target,site,tail);}))return;
 if(s.services.instruction){s.services.instruction(0x24df20u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x24df24u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x24df27u);} s.set(2,r(s.memory,(selected(0x4f44ecu,s.image)),4),4,0);

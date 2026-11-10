@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Compare the shared group/range DATA loop to its pinned public predecessor."""
-import argparse,hashlib,json,os,subprocess,sys
+import argparse,hashlib,json,os,platform,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 FILES=('tools/validate_native_cluster_frustum_values.py','tests/native_tu15_cluster_frustum_value_tests.cpp','tests/native_tu15_cluster_frustum_value_reference.inc','include/halo2/native_tu15_cluster_frustum_kernel.hpp','include/halo2/native_tu15_cluster_frustum_value.hpp','src/rendering/world/source_visibility.cpp','include/halo2/source_visibility.hpp','include/halo2/native_tu15_sphere_frustum_value.hpp','include/halo2/native_tu15_sphere_frustum_kernel.hpp','src/physics/runtime/native_tu15_raw_x87_scope.hpp','tools/native_cluster_frustum_replacements.py')
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--report',type=Path,required=True);parser.add_argument('--compiler',default='g++');parser.add_argument('--sanitizers',action='store_true');parser.add_argument('--require-binding',action='store_true');args=parser.parse_args()
+    if sys.platform!='linux'or platform.machine().lower()not in('x86_64','amd64','i386','i686'):return 77
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);pins={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest()for name in FILES}
     from native_cluster_frustum_replacements import PUBLIC_PIN,replace_world_visibility
     reference=(ROOT/FILES[2]).read_text().rstrip().replace('source_cluster_frustum_visibility_reference(','source_cluster_frustum_visibility(',1)

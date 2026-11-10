@@ -38,6 +38,11 @@ FAMILIES=(
     ('15cdf0','native_vehicle_choice_data_replacements','replace_vehicle_choice_data'),
     ('15cd30','native_vehicle_choice_data_replacements','replace_vehicle_choice_data'),
     ('184690','native_sphere_frustum_replacements','replace_sphere_frustum'),
+    ('167ef0','native_cluster_frustum_replacements','replace_cluster_frustum'),
+    ('166c00','native_bsp_queue_find_replacements','replace_bsp_queue_find'),
+    ('171070','native_fog_membership_replacements','replace_fog_membership'),
+    ('136e10','native_visibility_association_replacements','replace_visibility_association'),
+    ('135970','native_geometry_visibility_replacements','replace_geometry_visibility'),
     ('bf0c0','native_object_node_rebuild_replacements','install_native_object_nodes'),
     ('bfb90','native_object_node_rebuild_replacements','install_native_object_nodes'),
     ('b8780','native_object_node_rebuild_replacements','install_native_object_nodes'),
@@ -51,6 +56,11 @@ FAMILIES=(
     ('1f1da0','native_polygon_features_replacements','replace_polygon_features'),
     ('16b810','native_camera_instance_admission_replacements','replace_camera_instance_admission'),
     ('186e30','native_camera_instance_bitmap_replacements','replace_camera_instance_bitmap'),
+    ('16b9a0','native_camera_collision_publication_replacements','replace_camera_collision_publication'),
+    ('120fa0','native_segment_sphere_replacements','replace_segment_sphere'),
+    ('16c000','native_camera_instance_query_replacements','replace_camera_instance_query'),
+    ('24def0','native_instanced_ray_callback_replacements','replace_instanced_ray_callbacks'),
+    ('24df20','native_instanced_ray_callback_replacements','replace_instanced_ray_callbacks'),
 )
 
 def runtime_include_hashes(root,include):
@@ -86,8 +96,8 @@ def authenticated_prefixes(root,path,text):
         # that whole guard/body; this is not an arbitrary substring hook.
         nested=name=='native_vehicle_choice_data_replacements'
         family=name=='native_object_node_rebuild_replacements'
-        async_insertion=name=='native_async_insert_replacements'
-        prefix=module.prefix(module.PINS[int(entry,16)][0])if nested else module.PREFIXES[entry]if family else module.prefix(entry)if async_insertion else module.PREFIX
+        entry_specific=name in('native_async_insert_replacements','native_instanced_ray_callback_replacements')
+        prefix=module.prefix(module.PINS[int(entry,16)][0])if nested else module.PREFIXES[entry]if family else module.prefix(entry)if entry_specific else module.PREFIX
         if prefix not in text:continue
         tool=TOOL_ROOT/(name+'.py')
         evidence={'binder':'tools/'+name+'.py','binder_sha256':hashlib.sha256(tool.read_bytes()).hexdigest(),
@@ -110,7 +120,7 @@ def authenticated_prefixes(root,path,text):
                 if body.count(prefix)!=1:raise ValueError('Expected one nested authenticated target admission')
             elif not(body[start:].startswith(prefix)or body[start:].startswith('\n'+prefix)):
                 raise ValueError('Exact native prefix is not installed at target entry')
-            original=module.canonical_body(entry,body)if family else module.canonical_body(body,entry)if async_insertion else module.canonical_body(body)
+            original=module.canonical_body(entry,body)if family else module.canonical_body(body,entry)if entry_specific else module.canonical_body(body)
             if original==body:raise ValueError('Owning canonicalizer did not remove target prefix')
             unbound=text[:signature.start()]+original+text[signature.start()+len(body):]
             if bind(unbound)!=text:raise ValueError('Owning binder did not authenticate and reconstruct the target body')

@@ -1,3 +1,6 @@
+#include "halo2/native_tu15_geometry_visibility_value.hpp"
+#include "halo2/native_tu15_visibility_association_value.hpp"
+#include "halo2/native_tu15_id_search_kernel.hpp"
 #include "halo2/source_bsp_admission.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include <algorithm>
@@ -78,8 +81,7 @@ std::vector<std::uint8_t> source_bsp_fog_admission(const BspAtmosphere &atmosphe
     return out;
 }
 const SourceBspAdmissionRecord *SourceBspAdmission::instance(std::size_t id) const {
-    const auto found=std::find_if(instances.begin(),instances.end(),[&](const auto &r){return r.id==id;});
-    return found==instances.end()?nullptr:&*found;
+    return native_id_search_detail::record(instances,id);
 }
 bool SourceBspAdmission::geometry_visible(int encoding) const {
     if(encoding==-1)return true;
@@ -123,25 +125,11 @@ SourceBspAdmission source_bsp_admission(const SourceBspAdmissionBsp &bsp,
                 continue;
             }
             const auto &i=bsp.instances[id];if(!bsp.definitions[i.definition].geometry_count)continue;
-            SourceClusterFrustumResult result;
-            if(in.mode==1){
-                //132E60 keeps the overlapping-sphere predicate in SSE, then
-                // uses x87 PC53 for the contained-sphere predicate.
-                const float z=i.center.z-in.sphere_center.z,x=i.center.x-in.sphere_center.x,
-                    y=i.center.y-in.sphere_center.y,r=i.radius+in.sphere_radius;
-                result.visible=!(r*r<(z*z+x*x)+y*y);
-                if(result.visible){
-                    const double cx=double(in.sphere_center.x)-i.center.x,
-                        cy=double(in.sphere_center.y)-i.center.y,cz=double(in.sphere_center.z)-i.center.z;
-                    result.contained=!(double(in.sphere_radius)<std::sqrt((cz*cz+cy*cy)+cx*cx)+i.radius);
-                }
-            }else result=source_cluster_frustum_visibility(spheres,ordinal,i.center,i.radius);
+            const auto result=native_geometry_visibility_detail::geometry(spheres,ordinal,i.center,i.radius,in.mode,false,in.context_2a78!=0,in.sphere_center,in.sphere_radius);
             if(!result.visible && !(in.flags&0x80))continue;
-            if(in.mode==0 && result.visible && !result.contained && in.context_2a78==0 && i.radius<=2.5f)result.contained=true;
             std::uint16_t association=0xffff;
             if(!result.contained) {
-                if(out.associations.size()==512){out.association_capacity_reached=true;association=0;}
-                else {association=std::uint16_t(out.associations.size());out.associations.push_back({});bit(out.associations.back(),ordinal);}
+                association=native_visibility_association_detail::reserve_mask(out.associations,out.association_capacity_reached,ordinal);
             }
             if(out.instances.size()<in.instance_capacity-1) {
                 const bool main_instance=!result.visible || !in.auxiliary || !(in.flags&1) || in.auxiliary->instance(id)!=nullptr;

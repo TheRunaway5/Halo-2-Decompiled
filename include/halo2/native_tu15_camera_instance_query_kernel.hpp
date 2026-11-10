@@ -32,17 +32,17 @@ template<class Scalar>struct Progress {
 // and collision DATA. The view owns caller ABI publication and the genuine
 // six dependency calls; no decoded instruction or virtual register is used
 // to choose geometric/material behavior here.
-template<class Access>bool query(Access&a,Progress<typename Access::Scalar>&d){
-    d={};d.index=a.begin(d);
-    d.scenario=a.word(Read::scenario,d);d.instances=a.word(Read::instances,d);
-    d.definitions=a.word(Read::definitions,d);d.mask=a.word(Read::mask,d);
-    d.instance=d.instances+d.index*0x58u;
-    d.definition_index=a.word(Read::definition_index,d);
-    d.definition=d.definitions+std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(d.definition_index))))*0xc8u;
-    if(!a.admit(d))return a.finish(false,d);a.resume(Child::admission,d);
-    if(!a.near_sphere(d))return a.finish(false,d);a.resume(Child::sphere,d);
-    a.inverse(d);a.resume(Child::inverse,d);
-
+template<class Access>bool query_hit(Access&a,Progress<typename Access::Scalar>&d){
+    d.material=a.word(Read::material,d);a.store_word(Write::result_kind,3u,d);
+    if(std::uint16_t(d.material)!=0xffffu){
+        d.material=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(d.material))));
+        d.scenario=a.word(Read::material_scenario,d);d.material_pointer=a.word(Read::material_table,d)+d.material*20u+8u;
+    }else d.material_pointer=a.default_material(d);
+    d.selected_material=a.word(Read::selected_material,d);a.store_word(Write::material,d.selected_material,d);
+    a.store_word(Write::object,0xffffffffu,d);a.store_word(Write::region,0xffffffffu,d);a.store_word(Write::instance,d.index,d);
+    a.publish(d);a.resume(Child::publication,d);return a.finish(true,d);
+}
+template<class Access>bool query_resolved(Access&a,Progress<typename Access::Scalar>&d){
     a.phase(Phase::origin_pointer,d);d.scale=a.scalar(Read::inverse_scale,d);
     d.one=a.scalar(Read::origin_one,d);d.scale_origin=a.different(d.scale,d.one,Comparison::origin_scale,d);
     d.ox=a.scalar(Read::origin_x,d);d.oy=a.scalar(Read::origin_y,d);d.oz=a.scalar(Read::origin_z,d);
@@ -76,13 +76,20 @@ template<class Access>bool query(Access&a,Progress<typename Access::Scalar>&d){
     d.bitmap=a.bitmap(d);a.resume(Child::bitmap,d);d.fraction=a.word(Read::fraction,d);
     if(!a.bsp(d))return a.finish(false,d);a.resume(Child::bsp,d);
 
-    d.material=a.word(Read::material,d);a.store_word(Write::result_kind,3u,d);
-    if(std::uint16_t(d.material)!=0xffffu){
-        d.material=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(d.material))));
-        d.scenario=a.word(Read::material_scenario,d);d.material_pointer=a.word(Read::material_table,d)+d.material*20u+8u;
-    }else d.material_pointer=a.default_material(d);
-    d.selected_material=a.word(Read::selected_material,d);a.store_word(Write::material,d.selected_material,d);
-    a.store_word(Write::object,0xffffffffu,d);a.store_word(Write::region,0xffffffffu,d);a.store_word(Write::instance,d.index,d);
-    a.publish(d);a.resume(Child::publication,d);return a.finish(true,d);
+    return query_hit(a,d);
 }
+template<class Access>bool query(Access&a,Progress<typename Access::Scalar>&d){
+    d={};d.index=a.begin(d);
+    d.scenario=a.word(Read::scenario,d);d.instances=a.word(Read::instances,d);
+    d.definitions=a.word(Read::definitions,d);d.mask=a.word(Read::mask,d);
+    d.instance=d.instances+d.index*0x58u;
+    d.definition_index=a.word(Read::definition_index,d);
+    d.definition=d.definitions+std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(d.definition_index))))*0xc8u;
+    if(!a.admit(d))return a.finish(false,d);a.resume(Child::admission,d);
+    if(!a.near_sphere(d))return a.finish(false,d);a.resume(Child::sphere,d);
+    a.inverse(d);a.resume(Child::inverse,d);
+    return query_resolved(a,d);
+}
+
+
 }

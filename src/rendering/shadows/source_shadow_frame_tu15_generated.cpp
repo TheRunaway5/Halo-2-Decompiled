@@ -1,3 +1,7 @@
+#include "rendering/native_tu15_geometry_visibility.hpp"
+#include "rendering/native_tu15_visibility_association.hpp"
+#include "rendering/native_tu15_fog_membership.hpp"
+#include "rendering/native_tu15_bsp_queue_find.hpp"
 #include "platform/native_tu15_async_order.hpp"
 #include "rendering/models/native_tu15_model_light_cache.hpp"
 #include "rendering/native_tu15_geometry_request_abi.hpp"
@@ -12121,6 +12125,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_135970(WorldState &s) {
+    if(halo2::native_geometry_visibility_detail::bridge(s,[](auto&child,halo2::native_geometry_visibility_detail::Child which,auto&){const bool frustum=which==halo2::native_geometry_visibility_detail::Child::frustum;dispatch(child,frustum?0x167ef0u:0x166c00u,frustum?0x1359b1u:0x1359f9u,false);}))return;
 if(s.services.instruction){s.services.instruction(0x135970u);} s.set(2,r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x135974u);} s.push(0x135974u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x135975u);} s.push(0x135975u,s.reg(5,4,0));
@@ -13596,6 +13601,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_136e10(WorldState &s) {
+    if(halo2::native_visibility_association_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x136e10u);} s.set(1,s.flags.logic((s.reg(1,4,0))^(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e12u);} s.set(1,r(s.memory,(selected(0xa5eu,s.image)+s.gp[2]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x136e19u);} s.set(0,s.reg(1,2,0),4,0);
@@ -13614,7 +13620,7 @@ if(s.services.instruction){s.services.instruction(0x136e39u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x136e3fu);} w(s.memory,s.observe,0x136e3fu,(selected(0xa68u,s.image)+s.gp[1]),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e45u);} w(s.memory,s.observe,0x136e45u,(selected(0xa64u,s.image)+s.gp[1]),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e4bu);} s.set(1,(selected(0xa6u,s.image)+s.gp[0]),4,0);
-if(s.services.instruction){s.services.instruction(0x136e51u);} s.set(1,s.flags.shift(s.reg(1,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x136e51u);} halo2::native_visibility_association_detail::retained_mask_zero_offset(s);
 if(s.services.instruction){s.services.instruction(0x136e54u);} w(s.memory,s.observe,0x136e54u,(selected(0x0u,s.image)+s.gp[1]+s.gp[2]*1u),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e57u);} s.set(1,sign_extend(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x136e5cu);} s.push(0x136e5cu,s.reg(7,4,0));
@@ -13625,7 +13631,7 @@ if(s.services.instruction){s.services.instruction(0x136e65u);} s.set(6,(selected
 if(s.services.instruction){s.services.instruction(0x136e6cu);} s.set(2,(selected(0x0u,s.image)+s.gp[2]+s.gp[6]*4u),4,0);
 if(s.services.instruction){s.services.instruction(0x136e6fu);} s.set(1,s.flags.logic((s.reg(1,4,0))&(selected(0x1fu,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e72u);} s.set(6,selected(0x1u,s.image),4,0);
-if(s.services.instruction){s.services.instruction(0x136e77u);} s.set(6,s.flags.shift(s.reg(6,4,0),s.reg(1,1,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x136e77u);} halo2::native_visibility_association_detail::retained_membership_bit(s);
 if(s.services.instruction){s.services.instruction(0x136e79u);} s.set(1,r(s.memory,(selected(0x0u,s.image)+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e7bu);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x136e7cu);} s.set(1,s.flags.logic((s.reg(1,4,0))|(s.reg(6,4,0)),4),4,0);
@@ -15290,6 +15296,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_166c00(WorldState &s) {
+    if(halo2::native_bsp_queue_find_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x166c00u);} s.set(1,r(s.memory,(selected(0x4u,s.image)+s.gp[2]),2),4,0);
 if(s.services.instruction){s.services.instruction(0x166c04u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x166c06u);} s.flags.logic((s.reg(1,4,0))&(s.reg(1,4,0)),4);
@@ -16773,6 +16780,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_171070(WorldState &s) {
+    if(halo2::native_fog_membership_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x171070u);} s.set(2,r(s.memory,(selected(0x4ecc18u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x171076u);} s.push(0x171076u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x171077u);} s.set(6,r(s.memory,(selected(0x4ecc20u,s.image)),4),4,0);
@@ -16807,7 +16815,7 @@ L1710ca: if(s.services.instruction){s.services.instruction(0x1710cau);} s.set(1,
 L1710cd: if(s.services.instruction){s.services.instruction(0x1710cdu);} s.flags.minus(s.reg(1,4,0),selected(0xffffffffu,s.image),4);
 if(s.services.instruction){s.services.instruction(0x1710d0u);} if(s.flags.zf)goto L1710e3;
 if(s.services.instruction){s.services.instruction(0x1710d2u);} s.set(2,r(s.memory,(selected(0x34cu,s.image)+s.gp[6]),4),4,0);
-if(s.services.instruction){s.services.instruction(0x1710d8u);} s.set(1,s.flags.shift(s.reg(1,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1710d8u);} halo2::native_fog_membership_detail::retained_datum_offset(s);
 if(s.services.instruction){s.services.instruction(0x1710dbu);} s.flags.minus(r(s.memory,(selected(0x8u,s.image)+s.gp[2]+s.gp[1]*1u),4),s.reg(7,4,0),4);
 if(s.services.instruction){s.services.instruction(0x1710dfu);} if(!s.flags.zf)goto L1710e3;
 L1710e1: if(s.services.instruction){s.services.instruction(0x1710e1u);} s.set(0,selected(0x1u,s.image),1,0);

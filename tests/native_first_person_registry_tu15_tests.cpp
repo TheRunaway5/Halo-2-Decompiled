@@ -177,6 +177,40 @@ int main(int argc,char **argv) {
             save();std::cout<<"PASS first native FP birth and genuine input "<<route<<'\n';return 0;
         }
         const auto weapon=world.cache->slayer_starting_weapon(5);
+        bool pickup_input_checked{};
+        const auto declare_pickup_input=[&] {
+            if(pickup_input_checked)return;
+            const auto before=match.state();const auto &actor=before.players[slot];
+            if(actor.source_unit==null_datum || actor.dead)return;
+            const auto count_smg=[&](const auto &state){return std::count_if(state.world_weapons.begin(),state.world_weapons.end(),
+                [&](const auto &item){return item.definition==weapon;});};
+            const auto count=count_smg(before);
+            report["declared_pickup_input"]={{"before_loose_smg",count},{"definition",weapon},
+                {"before_tick",before.tick},{"before_unit",actor.source_unit},{"before_player",actor.source_player},
+                {"before_dead",actor.dead},
+                {"before_position",{actor.position.x,actor.position.y,actor.position.z}},
+                {"before_body",world.source_objects->source_object_body(actor.source_unit)}};
+            if(!count) {
+                // The fixture declares a real loose pickup when the authored
+                // map has none; ordinary dual-wield input still carries it.
+                const auto point=actor.position+Vec3{.5f,0.f,.2f};
+                const auto created=world.source_objects->tu15_world().create_weapon(weapon,point);
+                need(created!=null_datum,"Genuine weapon factory did not create the declared pickup");
+                const auto after=match.state();const auto &retained=after.players[slot];
+                const auto item=std::find_if(after.world_weapons.begin(),after.world_weapons.end(),
+                    [&](const auto &entry){return entry.handle==created && entry.definition==weapon;});
+                report["declared_pickup_input"].update({{"created",created},
+                    {"created_source_body",world.source_objects->source_object_body(created)},
+                    {"after_loose_smg",count_smg(after)},{"after_tick",after.tick},
+                    {"after_unit",retained.source_unit},{"after_player",retained.source_player},{"after_dead",retained.dead},
+                    {"loose_published",item!=after.world_weapons.end()}});
+                need(item!=after.world_weapons.end() && count_smg(after)==count+1 && after.tick==before.tick &&
+                    retained.source_unit==actor.source_unit && retained.source_player==actor.source_player && !retained.dead,
+                    "Genuine weapon factory changed its actor/clock or failed to publish exactly one new loose SMG generation");
+            }
+            pickup_input_checked=true;
+        };
+        declare_pickup_input();
         SourceMatchAuthority authority(match,*world.source_objects);
         std::array<Controls,multiplayer_capacity> controls{};unsigned dual_frames{};
         std::uint64_t generation{},last_actions{};
@@ -207,6 +241,7 @@ int main(int argc,char **argv) {
             ~ActionUnobserve(){clear();}
         } action_unobserve{*world.source_objects};
         for(unsigned tick=0;tick<150 && dual_frames<48;++tick) {
+            declare_pickup_input();
             observed_step=tick;
             const auto before=match.state();const auto &player=before.players[slot];controls={};
             if(player.source_unit!=null_datum && player.secondary_weapon.datum==null_datum) {

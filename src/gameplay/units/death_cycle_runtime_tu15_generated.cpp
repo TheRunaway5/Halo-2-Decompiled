@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_simplex_face_refine_source_owner.hpp"
 #include "physics/runtime/native_tu15_camera_instance_admission.hpp"
 #include "physics/runtime/native_tu15_bsp_segment.hpp"
 #include "physics/runtime/native_tu15_bsp_segment_setup.hpp"
@@ -25714,6 +25715,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_30d1a0(WorldState &s) {
+    if(halo2::native_simplex_face_refine_owner_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x30d1a0u);} s.push(0x30d1a0u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x30d1a1u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x30d1a3u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(selected(0xfffffff0u,s.image)),4),4,0);

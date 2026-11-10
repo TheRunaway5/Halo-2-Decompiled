@@ -14,7 +14,7 @@ function(halo2_native_operand_source output source)
     set(binding_helpers)
     # Standalone miniature projects may stage only the specializer. Real
     # aliases must be regenerated when an installed sibling's policy changes.
-    foreach(helper native_page_window_replacements.py native_page_retire_replacements.py native_page_allocate_replacements.py native_stack_probe_replacements.py native_halfword_bit_query_replacements.py native_resource_busy_replacements.py native_mopp_aabb_replacements.py native_mopp_aabb_canonical_replacements.py native_polygon_support_replacements.py native_polygon_features_replacements.py native_object_node_rebuild_replacements.py native_selected_operand_binding.py)
+    foreach(helper native_page_window_replacements.py native_page_retire_replacements.py native_page_allocate_replacements.py native_stack_probe_replacements.py native_halfword_bit_query_replacements.py native_resource_busy_replacements.py native_mopp_aabb_replacements.py native_mopp_aabb_canonical_replacements.py native_polygon_support_replacements.py native_polygon_features_replacements.py native_polygon_prepared_owners.py native_simplex_triangle_replacements.py native_simplex_triangle_scene_replacements.py native_simplex_face_refine_replacements.py native_simplex_face_select_replacements.py native_object_node_rebuild_replacements.py native_selected_operand_binding.py)
         set(helper_path "${CMAKE_CURRENT_SOURCE_DIR}/tools/${helper}")
         if(EXISTS "${helper_path}")
             list(APPEND binding_helpers "${helper_path}")

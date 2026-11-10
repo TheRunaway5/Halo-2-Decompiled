@@ -62,10 +62,17 @@ def main():
  text=text.replace("shutil.copyfile(ROOT/'tests/native_tu15_contact_pressure_tests.cpp',project/'driver.cpp');variants={}",injected)
  begin=text.index('  for name,needle,replacement in [');end=text.index("\n  shutil.copyfile(ROOT/'src/physics/native_tu15_activation_services.cpp'",begin)
  text=text[:begin]+'''  for name,needle,replacement in [('bsp_mask','(flags>>23u)&0x3fu','(flags>>23u)&0x1fu'),('iterator_stride','(node&0xffffu)*stride','(node&0xffffu)*(stride+4u)'),('sphere_endpoint','return compare(discriminant,mul(endpoint,endpoint)).above();','return !compare(discriminant,mul(endpoint,endpoint)).above();')]:
-   assert needle in text;variants[name]=text.replace(needle,replacement);(project/(name+'.cpp')).write_text(variants[name])
+   if name=='sphere_endpoint'and needle not in text:
+    sphere_endpoint_overlay=project/'sphere-endpoint-overlay';target=sphere_endpoint_overlay/'halo2/native_tu15_segment_sphere_kernel.hpp';target.parent.mkdir(parents=True)
+    kernel=(ROOT/'include/halo2/native_tu15_segment_sphere_kernel.hpp').read_text();old='const bool accepted=memory.test(Test::endpoint_discriminant,d,d.discriminant,d.endpoint_squared).above();';assert kernel.count(old)==1
+    target.write_text(kernel.replace(old,old.replace('=memory.test','= !memory.test'),1));variants[name]=text
+   else:
+    assert needle in text;variants[name]=text.replace(needle,replacement)
+   (project/(name+'.cpp')).write_text(variants[name])
 '''+text[end:]
  text=text.replace("shutil.copyfile(ROOT/'src/physics/native_tu15_activation_services.cpp',project/'types.cpp')","(project/'types.cpp').write_text('')")
- text=text.replace("ROOT/'include/halo2/native_tu15_contact_pressure.hpp',ROOT/'include/halo2/native_tu15_contact_pressure_binding.hpp',ROOT/'src/physics/native_tu15_activation_services.cpp'","ROOT/'include/halo2/native_tu15_camera_query_leaves.hpp'")
+ text=text.replace("  (project/'CMakeLists.txt').write_text(cmake)","  if 'sphere_endpoint_overlay'in locals():cmake+='target_include_directories(pressure_sphere_endpoint BEFORE PRIVATE \"'+str(sphere_endpoint_overlay)+'\")\\n'\n  (project/'CMakeLists.txt').write_text(cmake)")
+ text=text.replace("ROOT/'include/halo2/native_tu15_contact_pressure.hpp',ROOT/'include/halo2/native_tu15_contact_pressure_binding.hpp',ROOT/'src/physics/native_tu15_activation_services.cpp'","ROOT/'include/halo2/native_tu15_camera_query_leaves.hpp',ROOT/'include/halo2/native_tu15_segment_sphere_kernel.hpp',ROOT/'include/halo2/native_tu15_segment_sphere_value.hpp'")
  calls='''switch(c.at("entry").get<unsigned>()){
      case0x16b940:result=native_tu15_camera_bsp_query_flags(c.at("receiver"));break;
      case0x16e360:result=native_tu15_camera_object_query_flags(c.at("receiver"));break;

@@ -1841,6 +1841,54 @@ class EnginePromotionTests(unittest.TestCase):
         self.assertFalse(result['passed'])
         self.assertEqual(result['unexpected_unwired_sources'], [unknown])
 
+    def test_allocator_and_accounting_stages_do_not_claim_runtime_delivery(self):
+        names = ('src/physics/native_tu15_lazy_heap.cpp',
+                 'src/physics/native_tu15_physical_allocation.cpp',
+                 'src/physics/native_tu15_physical_callbacks.cpp',
+                 'src/runtime/native_execution_accounting.cpp')
+        for name in names:
+            path = self.root/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('standalone validator or optional diagnostic source')
+        graph = self.scratch/'graph.txt'
+        for registered in (False, True):
+            with self.subTest(registered=registered):
+                graph.write_text('halo2_native|||src/app/main.cpp\n' +
+                    (''.join(f'component_test_{n}|||{name}\n' for n, name in enumerate(names))
+                     if registered else ''))
+                result = engine.wiring(graph, self.root)
+                self.assertTrue(result['passed'])
+                self.assertEqual(set(result['component_boundaries']), set(names))
+                self.assertTrue(set(names).isdisjoint(result['engine_sources']))
+                self.assertEqual(set(result['separate_components'] if registered else
+                                     result['unregistered_sources']), set(names))
+        unknown = 'src/physics/native_tu15_physical_allocation_live.cpp'
+        (self.root/unknown).write_text('unknown source still needs admission')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'], [unknown])
+
+    def test_allocator_boundaries_do_not_hide_a_lost_production_world_link(self):
+        components = ('src/physics/native_tu15_lazy_heap.cpp',
+                      'src/physics/native_tu15_physical_allocation.cpp',
+                      'src/physics/native_tu15_physical_callbacks.cpp',
+                      'src/runtime/native_execution_accounting.cpp')
+        production = 'src/physics/physics_live_world_tu15.cpp'
+        for name in (*components, production):
+            path = self.root/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('separate component' if name in components else 'required World producer')
+        graph = self.scratch/'graph.txt'
+        graph.write_text('halo2_native|halo2_systems||src/app/main.cpp\n'
+                         f'halo2_systems|||{production}\n')
+        self.assertTrue(engine.wiring(graph, self.root)['passed'])
+        graph.write_text('halo2_native|||src/app/main.cpp\n'
+                         f'halo2_systems|||{production}\n')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'], [production])
+        self.assertEqual(set(result['component_boundaries']), set(components))
+
     def test_zoom_delivery_is_separate_only_in_an_explicit_selected_protocol_cohort(self):
         name = 'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp'
         path = self.root/name

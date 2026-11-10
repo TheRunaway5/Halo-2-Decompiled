@@ -21,12 +21,13 @@ KNOWN_UNINSTRUMENTED=[
 sys.path.insert(0,str(ROOT/'tools'))
 from generated_routine_ownership import function_bodies,CANONICAL_ONLY_CALLBACK_SOURCES,qualified_dispatch_entries
 from native_execution_report import analyze
+from native_metadata import load as load_metadata,read_bytes as metadata_bytes,digest as metadata_digest
 from native_service_observations import native_service_observation
 from perf_4k60.census_common import (DIRECT,DISPATCH,INSTRUCTION,MAPPING,REQUIRED,
     REMAPPED_VEHICLE_UNITS,address,vehicle_observations)
 
 
-def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def digest(path):return metadata_digest(Path(path))
 
 
 def metadata(root,source,symbols,image,frozen_sha):
@@ -72,12 +73,12 @@ def metadata(root,source,symbols,image,frozen_sha):
 
 def aggregate(cohort_path,root,top=80):
     cohort_path=cohort_path.resolve();directory=cohort_path.parent;root=root.resolve()
-    cohort=json.loads(cohort_path.read_text())
+    cohort=load_metadata(cohort_path)
     if not(cohort.get('passed')and cohort.get('execution_accounting_enabled')and cohort.get('bounded_runtime_accounting_recorded')):
         raise ValueError('A passed runtime accounting cohort is required')
-    pins_path=directory/'source-hashes.json';pins=json.loads(pins_path.read_text())
+    pins_path=directory/'source-hashes.json';pins=load_metadata(pins_path)
     if digest(pins_path)!=cohort['source_inventory_sha256']:raise ValueError('Frozen source manifest hash differs')
-    coverage_path=directory/'cmake/evidence/native-execution-coverage.json';coverage=json.loads(coverage_path.read_text())
+    coverage_path=directory/'cmake/evidence/native-execution-coverage.json';coverage=load_metadata(coverage_path)
     if coverage.get('canonical_source_drift'):raise ValueError('Captured alias coverage has canonical source drift')
     allowed={(row['source'],row['canonical_sha256'],row['input_sha256'])for row in coverage['aliases']}
     missing_known=[source for source in KNOWN_UNINSTRUMENTED if source not in {row['source']for row in coverage['aliases']}]
@@ -87,8 +88,9 @@ def aggregate(cohort_path,root,top=80):
     for index,run in enumerate(runs):
         if not run.get('capture',{}).get('valid'):raise ValueError('Invalid capture in accounting cohort')
         path=directory/Path(run['runtime_report']).name
-        if path.stat().st_size>1_048_576 or digest(path)!=run['runtime_report_sha256']:raise ValueError('Runtime report size/hash differs')
-        raw=json.loads(path.read_text());analysis=analyze(raw)
+        data=metadata_bytes(path,max_bytes=1_048_576)
+        if hashlib.sha256(data).hexdigest()!=run['runtime_report_sha256']:raise ValueError('Runtime report size/hash differs')
+        raw=json.loads(data);analysis=analyze(raw)
         if raw['active_scopes']:raise ValueError('Completed cohort contains active function scopes')
         run_total=Counter()
         for values in raw['rows']:

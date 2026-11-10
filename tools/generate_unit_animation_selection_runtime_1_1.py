@@ -225,7 +225,10 @@ def main():
         if mn in ('fst','fstp'):
             value='s.fp.st(0)'
             if op[0].type==3:value=f'u(spill({value}))'
-            return put(i,op[0],value)+('s.fp.pop();' if mn=='fstp' else '')
+            # Reproduce the already-qualified retained 30BD0 continuation.
+            # These four register FSTP sites clear C1 without rounding.
+            clear_c1='s.fp.status&=~0x200u;' if p in (0x30beb,0x30bed,0x30bef,0x30bfe) else ''
+            return put(i,op[0],value)+clear_c1+('s.fp.pop();' if mn=='fstp' else '')
         if mn=='fxch':
             # Capstone includes implicit ST(0) before the encoded ST(i).
             assert len(op)==2 and name(i,op[0])=='st(0)'
@@ -407,6 +410,18 @@ void source_run_unit_animation_selection_1_1(M &m,std::uint32_t entry,
 } // namespace halo2
 '''
     a.output.parent.mkdir(parents=True,exist_ok=True)
+    if RUNTIME_FUNCTION=='source_run_unit_animation_selection_1_1':
+        # This fixed owner predates the generic unordered-comparison helper.
+        # Preserve its authenticated State exactly; wrappers with real users
+        # retain the helper above.
+        assert not any('s.flags.unordered_extended_compare(' in body for body in bodies)
+        start=preamble.index('        void unordered_extended_compare(')
+        end=preamble.index('\n        }\n',start)+len('\n        }\n')
+        preamble=preamble[:start]+preamble[end:]
+        assert not any('packed_words(' in body for body in bodies)
+        start=preamble.index('std::uint64_t packed_words(')
+        end=preamble.index('std::uint64_t shift_dwords(',start)
+        preamble=preamble[:start]+preamble[end:]
     source=preamble+'\n\n'.join(bodies)+ending
     if FORWARD_TIMESTAMP_COUNTER:
         source=source.replace('retained.instruction=services.instruction;',
@@ -415,6 +430,9 @@ void source_run_unit_animation_selection_1_1(M &m,std::uint32_t entry,
     source=source.replace('source_run_unit_animation_selection_1_1',RUNTIME_FUNCTION)
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
     source=install_native_normalizer(source,'Mp11Literal')
+    if RUNTIME_FUNCTION=='source_run_unit_animation_selection_1_1' and 0x142d00 in ENTRIES:
+        from native_affine_inverse_animation_replacements import replace_affine_inverse_animation
+        source=replace_affine_inverse_animation(source)
     if not a.output.exists() or a.output.read_text()!=source:
         a.output.write_text(source)
     report=dict(schema=1,generator_sha256=sha(__file__),original_sha256=PIN,

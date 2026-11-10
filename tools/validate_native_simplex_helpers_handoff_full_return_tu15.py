@@ -16,10 +16,16 @@ def main():
    for producer in([a.producer]if a.producer is not None else range(3 if name=='elongation-crates'else 2)):
     cases.extend(dict(name=f'{name}_{producer}_{variant}',producer=producer,variant=variant,elf=original/'original-hardware',capture=capture/'capture.json')for variant in a.variants)
    contexts.append(dict(name=name,capture=str(capture),capture_sha256=sha(capture/'capture.json'),reference_command=command,reference_raw_exit=r.returncode));print(name,'complete original root inputs ready',flush=True)
-  variants={};text=source.read_text()
+  variants={};text=source.read_text();shared='native_simplex_triangle_value_detail::View'in text;kernel=ROOT/'include/halo2/native_tu15_simplex_triangle_kernel.hpp'
+  if shared:pins.update({str(h.relative_to(ROOT)):sha(h)for h in(kernel,ROOT/'include/halo2/native_tu15_simplex_triangle_value.hpp',ROOT/'include/halo2/native_tu15_simplex_direction_kernel.hpp',ROOT/'include/halo2/native_tu15_simplex_initialize_kernel.hpp')})
   if a.negative_controls:
-   for name,needle,replacement in(('wrong_triangle_mask','std::uint32_t(_mm_movemask_ps(weights))&7u','std::uint32_t(_mm_movemask_ps(weights))&3u'),):
-    assert text.count(needle)==1;variants[name]=text.replace(needle,replacement);(project/(name+'.cpp')).write_text(variants[name])
+   mutation_source=kernel.read_text()if shared else text
+   needle='std::uint32_t(_mm_movemask_ps(d.weights))&7u'if shared else'std::uint32_t(_mm_movemask_ps(weights))&7u'
+   replacement='std::uint32_t(_mm_movemask_ps(d.weights))&3u'if shared else'std::uint32_t(_mm_movemask_ps(weights))&3u'
+   name='wrong_triangle_mask';assert mutation_source.count(needle)==1;variants[name]=mutation_source.replace(needle,replacement)
+   (project/(name+'.cpp')).write_text(text if shared else variants[name])
+   if shared:
+    directory=project/'mutants'/name/'halo2';directory.mkdir(parents=True);(directory/kernel.name).write_text(variants[name])
   (project/'negative.py').write_text('import json,subprocess,sys\nr=subprocess.run(sys.argv[1:],capture_output=True,text=True);j=json.load(open(sys.argv[-1]));assert r.returncode!=0 and not j.get("error") and not j["passed"],(r.returncode,j)\nprint("Full original root rejects native feature mutation")\n')
   cmake='''cmake_minimum_required(VERSION 3.20)
 project(native_simplex_helpers_full_return LANGUAGES CXX)
@@ -35,13 +41,14 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/evidence")
 ''';retain=[]
   for mode in('native',*variants):
    cmake+=f'add_executable(features_{mode} $<TARGET_OBJECTS:driver> {mode}.cpp segments.cpp handoff.cpp)\ntarget_include_directories(features_{mode} PRIVATE include)\ntarget_compile_features(features_{mode} PRIVATE cxx_std_20)\ntarget_link_libraries(features_{mode} PRIVATE Threads::Threads)\ntarget_compile_options(features_{mode} PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)\n'
+   if shared and mode!='native':cmake+=f'target_include_directories(features_{mode} BEFORE PRIVATE mutants/{mode})\n'
    selected=next((c for c in cases if c['variant']==1 and c['producer']==1),cases[0])
    for c in(cases if mode=='native'else[selected]):
     relative='evidence/'+mode+'_'+c['name']+'.json';retain.append(relative);negative=''if mode=='native'else f'"{sys.executable}" "{project}/negative.py" ';cmake+=f'add_test(NAME features_{mode}_{c["name"]} COMMAND "{sys.executable}" "{ROOT}/tools/run_test.py" -- {negative}$<TARGET_FILE:features_{mode}> "{c["elf"]}" "{c["capture"]}" {c["producer"]} {c["variant"]} "${{CMAKE_BINARY_DIR}}/{relative}")\n'
   (project/'CMakeLists.txt').write_text(cmake);results=[]
   for compiler in a.compilers:
    command=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/compiler),'--target','features_native',*sum((['--target','features_'+name]for name in variants),[]),'--filter','^features_','--cmake-arg=-DCMAKE_CXX_COMPILER='+compiler,'--jobs','1','--test-jobs','1',*sum((['--retain-report',p]for p in retain),[])];r=subprocess.run(command);results.append(dict(compiler=compiler,exit_code=r.returncode,command=command))
-  unchanged=all(sha(ROOT/p)==pin for p,pin in pins.items());report.update(passed=all(r['exit_code']==0 for r in results)and unchanged,compiler_results=results,contexts=contexts,source_hashes=pins,sources_unchanged=unchanged,original_sha256=NEW_PIN,original_cases_per_compiler=len(cases),negative_controls=list(variants),declared_variants=a.variants,supplied_original_outcomes=False,captured_after_consumed=False,original_volatile_postimages_consumed=False,production_native_only_closure=False,remaining=['production handoff adapter and actual World integration','other original solver helpers and parent'])
+  unchanged=all(sha(ROOT/p)==pin for p,pin in pins.items());report.update(passed=all(r['exit_code']==0 for r in results)and unchanged,compiler_results=results,contexts=contexts,source_hashes=pins,sources_unchanged=unchanged,original_sha256=NEW_PIN,original_cases_per_compiler=len(cases),negative_controls=list(variants),declared_variants=a.variants,supplied_original_outcomes=False,captured_after_consumed=False,original_volatile_postimages_consumed=False,production_native_only_closure=False,shared_typed_triangle_core=shared,remaining=['production handoff adapter and actual World integration','other original solver helpers and parent'])
  except BaseException as error:report['error']=str(error)or repr(error);report['error_type']=type(error).__name__;raise
  finally:report['temporary_allocated_bytes_before_cleanup']=sum(p.stat().st_blocks*512 for p in scratch.rglob('*')if p.is_file());save(a.output/'report.json',report)
  return 0 if report['passed']else 1

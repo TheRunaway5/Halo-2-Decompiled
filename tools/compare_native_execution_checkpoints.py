@@ -12,17 +12,18 @@ from pathlib import Path
 import re
 
 from native_execution_report import analyze
+from native_metadata import digest as metadata_digest,load as load_metadata
 
 FIELDS=('entries','body_entries','literal_statements','returns','unwinds',
         'returns_without_body','unwinds_without_body','active')
 
 
 def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return metadata_digest(path)
 
 
 def load(path):
-    return json.loads(path.read_text())
+    return load_metadata(path)
 
 
 def checked_cohort(path):

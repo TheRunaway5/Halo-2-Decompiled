@@ -291,6 +291,8 @@ void source_run_physics_vehicle_motion_runtime(M &m,std::uint32_t entry,
     a.output.write_text(install_native_normalizer(preamble+'\n\n'.join(bodies)+ending,'ImageSelected'))
     from native_weapon_effect_paired_bridge_tu15 import install_native_paired_weapon_owners
     a.output.write_text(install_native_paired_weapon_owners(a.output.read_text(),'vehicle'))
+    from native_affine_inverse_replacements import replace_affine_inverse
+    a.output.write_text(replace_affine_inverse(a.output.read_text()))
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),
         complete_native_entries=[f'{p:08x}' for p in ENTRIES],

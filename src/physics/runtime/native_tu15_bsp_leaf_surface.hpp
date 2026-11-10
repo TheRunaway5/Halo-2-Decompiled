@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_host_fp_io.hpp"
 #pragma once
 #include "halo2/native_tu15_bsp_leaf_surface_kernel.hpp"
 #include "physics/runtime/native_tu15_bsp_surface_2d.hpp"
@@ -9,9 +10,9 @@ struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 template<class State,class Call,class Before>struct Adapter {
     State&s;Call&call;Before&before;std::uint32_t sp,frame;bool compare_y_live{};
-    void at(std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;before(s,pc);}
+    void at(std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;native_host_fp_io_detail::preserve([&]{before(s,pc);});}
     std::uint32_t word(std::uint32_t address,unsigned width=4)const{
-        std::array<std::byte,4>bytes{};s.memory.read(address,std::span(bytes).first(width));std::uint32_t value{};
+        std::array<std::byte,4>bytes{};native_host_fp_io_detail::preserve([&]{s.memory.read(address,std::span(bytes).first(width));});std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8*n);return value;
     }
     void push80(const long double&value){
@@ -25,9 +26,9 @@ template<class State,class Call,class Before>struct Adapter {
     }
     void store(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width=4,bool stack=false,bool pop_fp=false){
         at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(width)};
-        if(s.observe){event.before.resize(width);s.memory.read(address,event.before);}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));s.memory.write(address,event.written);
-        if(stack)s.gp[4]=address;if(pop_fp){pop80();s.fp.status&=~0x200u;}if(s.observe)s.observe(event);
+        if(s.observe){event.before.resize(width);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
+        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});
+        if(stack)s.gp[4]=address;if(pop_fp){pop80();s.fp.status&=~0x200u;}if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
     }
     void push(std::uint32_t pc,std::uint32_t value){store(pc,s.gp[4]-4u,value,4,true);}
     std::uint32_t pop(std::uint32_t pc){at(pc);const auto value=word(s.gp[4]);s.gp[4]+=4u;return value;}

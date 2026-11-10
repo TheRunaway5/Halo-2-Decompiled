@@ -1,9 +1,11 @@
 #pragma once
 #include "halo2/native_tu15_camera_collision_publication_kernel.hpp"
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include "physics/runtime/native_tu15_mopp_ray_caller_frame.hpp"
 #include "physics/runtime/native_tu15_raw_x87_scope.hpp"
 #include "physics/runtime/native_tu15_sse_mmx_scope.hpp"
-#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+#include <cstdlib>
+#include <thread>
 namespace halo2::native_camera_collision_publication_detail {
 struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
 template<class Scope>struct Io {Scope*scope;template<class Callback>void operator()(Callback&&callback){scope->io(std::forward<Callback>(callback));}};
@@ -94,10 +96,32 @@ public:
         if(s_.observe){event.written.assign(bytes.begin(),bytes.begin()+width);Base::io([&]{s_.observe(event);});}
     }
 };
+inline bool reference(){static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_CAMERA_COLLISION_PUBLICATION");return p&&*p;}();return enabled;}
+template<class State>bool admitted(const State&s){
+    if(reference()||s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
+    if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
+    if(!s.services.instruction)return !s.instruction_cursor&&!s.literal_service_sites&&!s.observe;
+    const auto*c=s.instruction_cursor;
+    if(!s.literal_service_sites||!c||c!=&s.services.instruction_cursor||!c->position||!c->callback_type||
+       s.services.instruction.target_type()!=*c->callback_type||c->executor!=std::this_thread::get_id()||
+       !c->literal_service_sites||c->service_sites.size()!=3||c->service_sites[0]!=0x38846eu||
+       c->service_sites[1]!=0x21f590u||c->service_sites[2]!=0x33b595u||
+       (c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace)||
+       (s.observe&&!c->observation_only_stores))return false;
+    return true;
+}
 template<class State,class Before=Noop>void run_private(State&s,Before before={}){
     const auto execute=[&](auto&scope){Frame frame{s,before,scope};Progress d;publish(frame,d);};
     if constexpr(requires{s.active_mmx;})if(s.active_mmx){native_sse_mmx_detail::Scope scope{s};execute(scope);return;}
     native_raw_x87_detail::Scope scope{s};execute(scope);
 }
+template<class State>bool bridge(State&s){
+    if(!admitted(s)||(!native_raw_x87_detail::supported(s)&&!native_sse_mmx_detail::supported(s)))return false;
+    run_private(s);return true;
+}
 } // namespace halo2::native_camera_collision_publication_detail
+#else
+namespace halo2::native_camera_collision_publication_detail {
+template<class State,class...Args>bool bridge(State&,Args&&...){return false;}
+}
 #endif

@@ -89,6 +89,21 @@ if(s.services.instruction){s.services.instruction(0x100u);} return;
         changed=text.replace(PREFIX,PREFIX.replace('bridge(s,','bridge( s,',1),1)
         self.assertNotIn('126060',authenticated_prefixes(ROOT,path,changed))
 
+    def test_settled_renderer_prefixes_keep_each_source_scope(self):
+        from native_source_prefixes import authenticated_prefixes
+        for source,entries in (
+                ('src/rendering/shadows/source_shadow_frame_tu15_generated.cpp',('166c00','171070','136e10')),
+                ('src/runtime/source_map_world_support_tu15_generated.cpp',('136e10',)),
+                ('src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp',('167ef0','171070')),
+                ('src/physics/physics_live_support_tu15_generated.cpp',('16b9a0','120fa0','16c000','24def0','24df20')),
+                ('src/campaign/ai/source_ai_frame_tu15_generated.cpp',('120fa0','16c000','24def0','24df20'))):
+            path=ROOT/source;evidence=authenticated_prefixes(ROOT,path,path.read_text())
+            for entry in entries:
+                self.assertTrue(evidence[entry]['authenticated'],(source,entry))
+                self.assertTrue(evidence[entry]['target_body_rebinding_proved'])
+                self.assertFalse(evidence[entry]['runtime_admission_proved'])
+                self.assertFalse(evidence[entry]['native_dependency_closure_proved'])
+
     def test_nested_vehicle_admission_requires_its_complete_guard_and_body(self):
         from native_source_prefixes import authenticated_prefixes
         from native_vehicle_choice_data_replacements import prefix

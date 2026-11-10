@@ -129,6 +129,36 @@ native replicas listed in the 4K60 goal document.
 
 ## Status
 
+- 2026-11-09, r18: immutable source inventory
+  `4a2bd5b5f5301402619cd0b1e00d788b27ce43f16d4feb01dae261e94d681394`
+  passes 158/158 component checks, the full engine and all eight exact-input
+  90-tick Coagulation/Zanzibar static/moving 1p/4p accounting runs. Runtime
+  SHA-256 is `d6414a4a9752ad17452cc36d3e10b67f7f5e7feb2ec55980c79bd11e0a252460`
+  (329,988,984 bytes). All eight frame hashes match r14, while literal
+  observations fall by 12,965,847 to 739,656,383. Registration, activation,
+  source/alias and decoded metadata hashes verify; 2,758 literal-fallback
+  functions, 66 unresolved identities and the same three unwind owners remain.
+  The entire owner is removed, retaining 6,273,483 bytes of bounded metadata
+  and no runtime binary or frames. Comparison and queue are under
+  `build/test-results/native-execution-r14-r18-comparison-20261109/` and
+  `build/test-results/native-execution-hot-queue-r18-20261109/`. Later fog,
+  face-refinement, affine-inverse and callback defaults are outside this freeze.
+  Campaign/all-map, native-only, Original-frame, performance and launcher
+  delivery gates remain open; the overall goal stays active.
+- 2026-11-09, r16: frozen inventory
+  `c2c0ca315ec71ee77eb78bf42259ad1b264836ef8abfb6a8e4c296a0ccc7e6ad`
+  runs 135 required components, with 131 passing. Two MOPP checks reject
+  repeated specialization of already prepared polygon owners; two camera
+  generation checks cannot recover an absolute original manifest bank through
+  the frozen analysis symlink. The strict source pins stay enforced. Engine
+  and runtime stages do not run. The whole owner is removed, with no generated
+  large artifacts retained. Exact integration repairs and focused regressions
+  precede the next freeze; this checkpoint is not runtime acceptance.
+- 2026-11-09, r15: the frozen component selector exceeds CTest's capture-group
+  capacity before any test runs. Its whole owner is removed. The repaired
+  selector expands the same finite language into one flat alternation; real
+  CTest exact-name and negative-name checks pass. No production numeric code
+  changes are involved, and this failed checkpoint is not accepted.
 - 2026-11-09, r14: frozen source inventory
   `6a071b5fa7d083d905d93ec13dc636ea96bd3a147ba1e46097e0358c08372577`
   passes 106/106 component checks, the full engine and all eight exact-input

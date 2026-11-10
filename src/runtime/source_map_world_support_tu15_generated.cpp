@@ -1,3 +1,5 @@
+#include "rendering/native_tu15_visibility_association.hpp"
+#include "physics/runtime/native_tu15_affine_inverse.hpp"
 #include "physics/runtime/native_tu15_bsp_surface_polygon.hpp"
 #include "rendering/models/native_tu15_model_light_cache.hpp"
 #include "rendering/models/native_tu15_model_lighting_leaves.hpp"
@@ -3659,6 +3661,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_136e10(WorldState &s) {
+    if(halo2::native_visibility_association_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x136e10u);} s.set(1,s.flags.logic((s.reg(1,4,0))^(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e12u);} s.set(1,r(s.memory,(selected(0xa5eu,s.image)+s.gp[2]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x136e19u);} s.set(0,s.reg(1,2,0),4,0);
@@ -3677,7 +3680,7 @@ if(s.services.instruction){s.services.instruction(0x136e39u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x136e3fu);} w(s.memory,s.observe,0x136e3fu,(selected(0xa68u,s.image)+s.gp[1]),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e45u);} w(s.memory,s.observe,0x136e45u,(selected(0xa64u,s.image)+s.gp[1]),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e4bu);} s.set(1,(selected(0xa6u,s.image)+s.gp[0]),4,0);
-if(s.services.instruction){s.services.instruction(0x136e51u);} s.set(1,s.flags.shift(s.reg(1,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x136e51u);} halo2::native_visibility_association_detail::retained_mask_zero_offset(s);
 if(s.services.instruction){s.services.instruction(0x136e54u);} w(s.memory,s.observe,0x136e54u,(selected(0x0u,s.image)+s.gp[1]+s.gp[2]*1u),4,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x136e57u);} s.set(1,sign_extend(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x136e5cu);} s.push(0x136e5cu,s.reg(7,4,0));
@@ -3688,7 +3691,7 @@ if(s.services.instruction){s.services.instruction(0x136e65u);} s.set(6,(selected
 if(s.services.instruction){s.services.instruction(0x136e6cu);} s.set(2,(selected(0x0u,s.image)+s.gp[2]+s.gp[6]*4u),4,0);
 if(s.services.instruction){s.services.instruction(0x136e6fu);} s.set(1,s.flags.logic((s.reg(1,4,0))&(selected(0x1fu,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e72u);} s.set(6,selected(0x1u,s.image),4,0);
-if(s.services.instruction){s.services.instruction(0x136e77u);} s.set(6,s.flags.shift(s.reg(6,4,0),s.reg(1,1,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x136e77u);} halo2::native_visibility_association_detail::retained_membership_bit(s);
 if(s.services.instruction){s.services.instruction(0x136e79u);} s.set(1,r(s.memory,(selected(0x0u,s.image)+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136e7bu);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x136e7cu);} s.set(1,s.flags.logic((s.reg(1,4,0))|(s.reg(6,4,0)),4),4,0);
@@ -4803,6 +4806,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_144090(WorldState &s) {
+    if(halo2::native_affine_inverse_detail::bridge(s,halo2::native_affine_inverse_detail::Observation::actual))return;
 if(s.services.instruction){s.services.instruction(0x144090u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x144094u);} s.xmm[3]=_mm_xor_ps(s.xmm[3],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x144097u);} s.push(0x144097u,s.reg(7,4,0));

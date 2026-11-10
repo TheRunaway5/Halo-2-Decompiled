@@ -335,6 +335,41 @@ not full-path, native-only or production-parent acceptance. Both production ray
 parents remain unbound. All completed owners are removed and no new large
 artifacts are retained.
 
+## Genuinely returned collector query
+
+The private collector path now executes the actual `24DEC0` provider, its
+authored `46625C` vtable, `24DEF0` forwarder, `24DF20` collector and complete
+`16C000` scene query through native admission, sphere, bitmap, BSP and collision
+publication, then returns through the MOPP parent epilogue. Only the inverse
+child still uses its independently pinned retained World body. No query result,
+child return ABI or substitute vtable target is supplied.
+
+`native-mopp-leaf-query-full-prefixes-20261109/report.json` passes all 408 whole
+calls and 521 interruptions at the newly connected parent/provider/callback
+seam. GCC and Clang sanitizers each check 1,337 comparisons and 256,443 complete
+pre-I/O GP/flags/XMM/FP/live80 packets. The original observations contain 153,656
+packets. All 62 forwarding/collector instructions execute, with real duplicate,
+no-hit, any-hit, replacement and keep returns. Dense incoming x87 counts
+0/1/4/6, unrounded caller stacks, all ordered accesses, writes, banks and final
+parent ABI remain strict. The ordinary-bank/non-hostile-provider domain and
+the existing indirect-CALL before-instruction versus post-target-read failure
+distinction remain explicit.
+
+The authenticated historical raw-stage union grows from 851 to **861/896**;
+only ten newly returned parent instructions enter this count, excluding all
+provider/query descendants. The bounded proof-input hashes and remaining 35
+sites are recorded in `native-mopp-ray-returned-collector-union-20261109/`.
+Sixteen diagnostic continuation sites, one numerical continuation branch, four
+returned-filter sites and fourteen direct-cast/returned-hit sites remain.
+This is a site union, not whole-function or production-parent qualification.
+
+The actual instanced provider installs `46625C+0x20 = 1CB560` (INT3 padding), while
+`46625C+0x24 = 24DEF0` is its genuine collector forwarder. A direct-hit proof must
+follow another actual shape owner or qualify the original unsupported path;
+replacing that authored direct target would invent behavior. Both production
+MOPP parents remain unbound. The completed collector owner was removed and no
+large artifact was retained.
+
 ## Aligned native vector stores
 
 The private vector-store adapter now validates MOVAPS destination alignment at
@@ -362,11 +397,65 @@ physical I/O and child boundaries. Single-store conversion/pop must commit only
 after an actual successful provider write and before a completed-write observer.
 The value API's balanced/depth-zero environment cannot serve as this raw frame.
 
-Genuine recursive, filter, child-shape, direct-cast, collector and diagnostic
-handoffs remain required, including returned register/stack aliases, actual
-backend returns and descendant faults. The present corpus stops at the first
-real external service and never supplies its result. Malformed programs,
+Genuine recursive, filter, child-shape, direct-cast and diagnostic handoffs
+remain required, including returned register/stack aliases, actual backend
+returns and descendant faults. The collector composition above returns through
+its real scene query; the other external-service corpora still stop at their
+declared first unprovided service. No corpus supplies a child result. Malformed programs,
 MapPack ownership, wider FP/MMX/exceptional domains, all retained default routes,
 actual `30B890` caller composition, full query/runtime native closure and
 original frame parity remain open. Neither production `30AA70` copy has a native
 prefix yet. No launcher runtime was changed.
+
+
+## Complete split/recursive query and callback-state repair
+
+The private controller now uses the accepted native inverse and complete native
+query subtree. It executes all 19 authored split families in both directions,
+recurses through actual child leaves, adopts returned cache fractions, resumes
+and returns through the parent. No child results or register packets are supplied.
+The full private four-header BSP callback-isolation candidate passes 1,757
+original paths (1,064 whole calls and 693 interruptions). Each sanitizer compiler
+checks 5,642 comparisons and 2,017,424 complete pre-I/O packets, with 3,192 genuine
+queries and 912 hits. The source receipt is
+`native-mopp-query-controller-fp-overlay-full-20261109/report.json`.
+
+Hostile providers exposed four existing BSP adapters whose callbacks leaked
+host x87/MXCSR changes into subsequent genuine children. A neutral callback
+boundary now preserves the opaque host image on normal return and exceptions.
+It does not import or publish State software x87/MMX, and genuine child execution
+remains outside. This is narrower than wrapping the full adapter in a raw FP
+scope, which would conflict with its manual software temporary transport.
+
+Eight existing BSP baseline gates pass on the private candidate. The polygon
+gate then passes separately after replacing its stale dispatcher-only hybrid
+fixture with complete genuine generated source; its strict body/context pins
+are unchanged. The corrected 2D first-store address is independently compared
+with actual retained `State::push`: a callback may change SP after the store
+address has been captured. Both compilers reject a mutant that retargets that
+store, and both reject missing normal-return and exception FP restoration.
+The host-image utility compares 2,016 precision/rounding/TOP/tag/payload/return/
+throw/nested cases per compiler.
+
+The four exact qualified BSP headers are installed. The overlay helper is
+retired. The installed whole-query proof passes both sanitizer compilers with
+the same 1,757 original paths / 5,642 comparisons / 2,017,424 complete packets
+per compiler. Maintained installed host-state checks pass both compilers and
+all three real defect controls; their registered sanitizer/Release pair passes
+2/2. Closure: `native-bsp-host-fp-io-closure-20261109/report.json`. Installation provenance and exact hashes are in
+`native-bsp-host-fp-io-install-20261109/report.json`. All completed scratch
+owners are removed, and no large artifacts are retained. These proofs do not
+bind either production MOPP parent.
+
+
+The missing numerical continuation at `30B01D` now has a directed independent
+proof: real recursive empty-geometry children return with shortened fractions
+0.75 and approximately 0.9, leaving each of the three axis endpoints beyond its
+high plane. Both sanitizer compilers pass six full continuation paths and 900
+read/write/observer interruptions, 1,824 comparisons each. The unchanged
+original observations contain 48,984 complete packets. No child outcome is
+supplied. The exact historical site-union reconstruction now reaches
+**862/896**, leaving 16 diagnostic continuation, four returned-filter and
+14 direct-cast/returned-hit sites. Receipts:
+`native-mopp-numerical-continuation-20261109/report.json` and
+`native-mopp-ray-numerical-continuation-union-20261109/report.json`.

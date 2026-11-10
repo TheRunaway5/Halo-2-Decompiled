@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <stdexcept>
 #include "halo2/native_tu15_camera_collision_publication_kernel.hpp"
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 namespace halo2::native_camera_collision_publication_detail {

@@ -1,9 +1,9 @@
 # 30E930 convex simplex controller
 
 The complete native replacement is in progress. The generated parent remains
-unbound. The private shared direction and candidate stages cover352 disjoint
-sites of the1,020 original instructions, rather than a complete parent or
-descendant-closure claim.
+unbound. Seven disjoint private stages cover 661 of the 1,020 original instructions.
+The separate complete triangle child is default native in all three copies;
+its 137 sites do not increase that parent union or establish descendant closure.
 
 ## Owners and algorithm
 
@@ -339,3 +339,73 @@ The six disjoint private stages now cover558 of1,020 parent sites. The
 remaining462 sites, actual reduction-child ABI and complete parent/default
 route remain active work. Physical atomicity, sparse/MMX/unmasked FP and
 arbitrary GP or policy mutation remain outside this stage.
+
+## Genuine support queries and accepted-point transform
+
+The next shared private family covers 103 sites: both first-shape support
+attempts, the second-shape inverse direction and support attempt, and the
+accepted second-point transform. It retains signed-byte capacity limits,
+equality-only progress gates, live parity, original matrix Z/X/Y order and
+the fresh Y reread, every transpose shuffle and ordered MUL/ADD/XOR, and
+escaped XMM values at argument pushes. The point transform keeps Z plus
+translation before Y/X, then computes `(X+Y)+(Z+T)`, with the live count RMW
+after the vector publication. Model's full source review found no mismatch
+within the stated normal/read/callee domain.
+
+The stage invokes the qualified actual `1F6610` through the genuine
+`4620D0+30` vtable entry. Both original and native algorithms compute the
+child result. No return tuple is supplied or restored after the call.
+Saved-register and output/input aliases include a real child store that
+changes returned BX; the caller adopts that actual state. Fresh-row provider
+feedback and post-vector count feedback exercise the live acquisition seams.
+
+GCC and Clang sanitizer gates each pass 160 source-backed returns, 277
+read/observer prefixes, three rejected mutants and 192 unchanged-i386 cases.
+All 103 sites, 74 genuine support entries and 1,606 complete pre-I/O/callee
+GP/full-flags/XMM/FP/live80 packets agree, along with complete banks and
+ordered stores. The registered CMake sanitizer gate passes 1/1. Native
+parent and child paths execute zero literal callbacks.
+
+Normal source comparisons retain the unmodified parent body. Stopped-prefix
+comparisons explicitly identify three native immediate-SHL flag primitives
+and CPU-atomic PUSH write/commit/observer transport. The parent retains two
+eight-byte vector transactions; the child retains its qualified sixteen-byte
+transaction. Physical MOVAPS and RMW page-fault atomicity remain separate and
+open. In particular, retained INC flags precede its provider write, as in the
+canonical expression; no physical RMW write-failure claim is made.
+
+The module is `cmake/NativeTu15SimplexSupport.cmake`, target
+`native_simplex_support_tests`, test `original_tu15_native_simplex_support`,
+report `native-simplex-support.json`. Its bounded closure is
+`build/test-results/native-simplex-support-closure-20261109/report.json`.
+All generated scratch is removed with no retained large artifacts. R17's
+immutable manifest is `87757b203cfa9c403bcb7032cf0830456788a5c9974003e95353d5be93e4330b`.
+
+Seven disjoint private stages now qualify 661 of the 1,020 parent sites.
+The remaining 359 comprise central reduction (268), segment-normal and
+triangle compaction continuations (63), and degenerate/general fallback (28).
+The complete parent and its default routing remain open. The complete `30D3F0` child now shares one DATA core and full raw ABI across
+World, Contact and Scene default routes. Its unchanged-i386, both-compiler,
+reference-isolation and exact whole-generation evidence is recorded in
+`30D3F0_simplex_triangle.md`; the original parent body hashes remain unchanged.
+The separate full `30D5D0` face-selection and real `30D1A0` refinement
+dependencies are now default native as recorded below. The remaining paired
+and general reducers still need complete callee-entry/resumed GP, SIMD,
+live80 and caller-frame qualification; their scalar helpers alone do not
+establish that closure.
+
+## Face-refinement dependency
+
+The real `30D1A0` refinement owner is default native in both Primary and Death
+copies; it shares one typed policy with the standalone DATA facade. Full normal
+ABI, declared retained prefixes, unchanged-i386 and exact source-copy/default
+controls are recorded in `30D1A0_simplex_face_refine.md`. Its 131 child sites do
+not increase the parent's 661/1,020 private-site union. The complete 189-site
+`30D5D0` face-selection owner now defaults natively in World and Contact.
+Both compiler proofs cover all 189 parent and 131 genuine child hardware
+sites and 16,355 complete pre-I/O packets each. Its installed four-test
+registered cohort, independent source controls and exact complete477/82
+regeneration pass; see `30D5D0_simplex_face_select.md`. These separate child
+sites do not increase the seven-stage parent union. Next is the190-site
+`312620` closest-segments raw ABI underneath the still-open paired `30D830`
+reducer. Its new phased DATA kernel remains private and unqualified.

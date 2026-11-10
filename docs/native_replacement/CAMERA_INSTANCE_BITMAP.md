@@ -58,3 +58,13 @@ policy during a call are not newly qualified. The existing outer FpScope host
 C-bit restoration limitation remains separate. Remaining camera publication,
 other actual children and16C000 query composition are still required before
 claiming the24DEF0/24DF20 or full MOPP-ray parent closed.
+
+A later frozen-checkout integration repair resolves the authenticated original
+analysis root before bank containment/member checks. Absolute original manifest
+paths now match the snapshot's analysis symlink without relaxing any bank,
+descriptor, image, body or dispatcher pin. Both actual registered generation
+tests pass from a real owned frozen source/CMake tree:
+`native-camera-generation-frozen-recovery-20261109/report.json` (2/2,98.12s).
+Each uses all49 real AI references and independently authenticates/reconstructs
+the same two required banks. The frozen source, dependency copies and banks
+were removed; R16's earlier failure remains immutable historical evidence.

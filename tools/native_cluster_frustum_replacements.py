@@ -19,8 +19,10 @@ def authenticate(source):
     if not resolver or digest(resolver[0])!=RESOLVER_PIN:raise ValueError('Complete167EF0 selected resolver drift')
     dispatcher=re.search(r'static void dispatch\(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail\)\{[^\n]*\}',source)
     if not dispatcher or digest(dispatcher[0])!=DISPATCH_PIN:raise ValueError('Complete167EF0 dispatcher drift')
-    from native_sphere_frustum_replacements import replace_sphere_frustum
-    replace_sphere_frustum(source) # authenticates the actual complete child
+    from native_sphere_frustum_replacements import replace_sphere_frustum,PREFIX as child_prefix
+    children=list(re.finditer(r'static void run_184690\(WorldState &s\) \{.*?\n\}',source,re.S))
+    if len(children)!=1 or child_prefix not in children[0][0]or replace_sphere_frustum(source)!=source:
+        raise ValueError('Missing complete qualified native184690 child owner')
     return match,body
 def replace_cluster_frustum(source):
     if not BODY.search(source):return source

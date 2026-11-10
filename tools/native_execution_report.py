@@ -6,9 +6,10 @@ import hashlib
 import json
 from pathlib import Path
 from native_service_observations import native_service_observation
+from native_metadata import digest as metadata_digest,load as load_metadata
 
 
-def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def digest(path):return metadata_digest(path)
 
 
 def analyze(data):
@@ -89,8 +90,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     if args.runtime:
-        if args.runtime.stat().st_size>1_048_576:raise ValueError('Runtime report exceeds1MiB')
-        report=analyze(json.loads(args.runtime.read_text()));report['runtime_report_sha256']=digest(args.runtime)
+        report=analyze(load_metadata(args.runtime,max_bytes=1_048_576));report['runtime_report_sha256']=digest(args.runtime)
     else:report=coverage(args.manifests,args.source_root)
     encoded=json.dumps(report,indent=2,sort_keys=True)+'\n'
     if len(encoded.encode())>1_048_576:raise ValueError('Bounded accounting summary exceeds1MiB')

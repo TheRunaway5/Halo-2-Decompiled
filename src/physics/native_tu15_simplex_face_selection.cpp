@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_simplex_face_selection.hpp"
+#include "halo2/native_tu15_simplex_face_refine_value.hpp"
 #include <cstring>
 #include <stdexcept>
 #if defined(__i386__) || defined(__x86_64__)
@@ -62,25 +63,8 @@ std::uint32_t native_tu15_refine_simplex_face(SourcePhysicsContactMemory&memory,
     const SourcePhysicsContactRecordObserver&observe){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     Memory m(memory,observe);Environment environment(fp,depth);
-    m.word(0x30d1b0u,p+0xcu,vertices);
-    for(unsigned n=0;n<3;++n){
-        const auto first=std::uint32_t(std::int32_t(std::int8_t(m.word(0x41d762u+n,1)))),second=std::uint32_t(std::int32_t(std::int8_t(m.word(0x41d760u+n,1))));
-        push(m.word(scores+first*4u));const auto first_status=compare_pop(m.word(0x46a0e8u));
-        if(!(first_status&0x0100u)){
-            push(m.word(scores+second*4u));const auto second_status=compare_pop(m.word(0x46a0e8u));
-            if(!(second_status&0x0100u)){
-                const auto origin=m.vector(m.word(p+0xcu)),apex=m.vector(vertices+0x30u),first_vertex=m.vector(vertices+first*16u),first_direction=subtract(first_vertex,origin),apex_delta=subtract(apex,origin),second_vertex=m.vector(vertices+second*16u),ray=m.vector(point),ray_delta=subtract(ray,origin),second_direction=subtract(second_vertex,origin);
-                const auto along_first=dot(ray_delta,first_direction),along_second=dot(ray_delta,second_direction),apex_first=dot(apex_delta,first_direction),apex_second=dot(apex_delta,second_direction);
-                m.word(0x30d25eu,p+0x14u,along_first);m.word(0x30d277u,p+0x1cu,along_second);m.word(0x30d28du,p+0x18u,apex_first);m.word(0x30d2abu,p+0x10u,apex_second);
-                push(m.word(p+0x10u));mul(m.word(p+0x14u));push(m.word(p+0x18u));mul(m.word(p+0x1cu));
-                if(greater(compare_two_pop()))m.word(0x30d2c8u,scores+second*4u,0xbf800000u);
-                else m.word(0x30d2d1u,scores+first*4u,0xbf800000u);
-            }
-        }
-        const auto cursor=m.word(p+0xcu);m.word(0x30d2e3u,p+0xcu,cursor+16u);
-    }
-    for(unsigned n=0;n<3;++n){push(m.word(scores+n*4u));if(greater(compare_pop(m.word(0x46a0e8u))))return n;}
-    return 0xffffffffu;
+    native_simplex_face_refine_value_detail::View<Memory>view{m,vertices,point,scores,p};
+    NativeTu15SimplexFaceRefine data;return native_tu15_refine_simplex_faces(view,data);
 #else
     (void)memory;(void)vertices;(void)point;(void)scores;(void)p;(void)fp;(void)depth;(void)observe;throw std::runtime_error("Exact native TU1.5 face refinement backend unavailable");
 #endif

@@ -147,7 +147,8 @@ function(halo2_native_accounting_all_targets)
             COMMAND "${Python3_EXECUTABLE}" -B "${PROJECT_SOURCE_DIR}/tools/native_execution_report.py"
                 --manifests "${CMAKE_BINARY_DIR}/native-execution" --source-root "${PROJECT_SOURCE_DIR}"
                 --output "${CMAKE_BINARY_DIR}/native-execution-coverage.json"
-            DEPENDS ${outputs} "${PROJECT_SOURCE_DIR}/tools/native_execution_report.py" VERBATIM)
+            DEPENDS ${outputs} "${PROJECT_SOURCE_DIR}/tools/native_execution_report.py"
+                "${PROJECT_SOURCE_DIR}/tools/native_metadata.py" VERBATIM)
     endif()
 endfunction()
 if(HALO2_NATIVE_EXECUTION_ACCOUNTING)

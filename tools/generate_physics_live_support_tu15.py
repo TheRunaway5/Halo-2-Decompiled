@@ -1305,6 +1305,20 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if all(entry in ENTRIES for entry in(0x184690,0x1770c0,0x1772c0,0x167ef0)):
         from native_sphere_frustum_replacements import replace_sphere_frustum
         generated=replace_sphere_frustum(generated)
+        from native_cluster_frustum_replacements import replace_cluster_frustum
+        generated=replace_cluster_frustum(generated)
+    if 0x166c00 in ENTRIES:
+        from native_bsp_queue_find_replacements import replace_bsp_queue_find
+        generated=replace_bsp_queue_find(generated)
+    if 0x171070 in ENTRIES:
+        from native_fog_membership_replacements import replace_fog_membership
+        generated=replace_fog_membership(generated)
+    if 0x136e10 in ENTRIES:
+        from native_visibility_association_replacements import replace_visibility_association
+        generated=replace_visibility_association(generated)
+    if 0x135970 in ENTRIES:
+        from native_geometry_visibility_replacements import replace_geometry_visibility
+        generated=replace_geometry_visibility(generated)
     if 0x24dec0 in ENTRIES:
         from native_instanced_ray_child_replacements import replace_instanced_ray_child
         generated=replace_instanced_ray_child(generated)
@@ -1314,6 +1328,24 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if 0x186e30 in ENTRIES:
         from native_camera_instance_bitmap_replacements import replace_camera_instance_bitmap
         generated=replace_camera_instance_bitmap(generated)
+    if 0x16b9a0 in ENTRIES:
+        from native_camera_collision_publication_replacements import replace_camera_collision_publication
+        generated=replace_camera_collision_publication(generated)
+    if 0x120fa0 in ENTRIES:
+        from native_segment_sphere_replacements import replace_segment_sphere
+        generated=replace_segment_sphere(generated)
+    if 0x16c000 in ENTRIES:
+        from native_camera_instance_query_replacements import replace_camera_instance_query
+        generated=replace_camera_instance_query(generated)
+    if 0x30d1a0 in ENTRIES:
+        from native_simplex_face_refine_replacements import replace_simplex_face_refine
+        generated=replace_simplex_face_refine(generated)
+    if all(entry in ENTRIES for entry in(0x24def0,0x24df20,0x16c000)):
+        from native_instanced_ray_callback_replacements import replace_instanced_ray_callbacks
+        generated=replace_instanced_ray_callbacks(generated)
+    if 0x144090 in ENTRIES:
+        from native_affine_inverse_replacements import replace_affine_inverse
+        generated=replace_affine_inverse(generated)
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(generated)

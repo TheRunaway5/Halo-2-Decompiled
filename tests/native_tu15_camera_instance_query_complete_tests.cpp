@@ -1,6 +1,13 @@
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "physics/runtime/native_tu15_camera_instance_query_frame.hpp"
 #include "physics/runtime/native_tu15_camera_instance_admission.hpp"
+#include "physics/runtime/native_tu15_camera_instance_bitmap.hpp"
+#include "physics/runtime/native_tu15_camera_collision_publication.hpp"
+#include "physics/runtime/native_tu15_segment_sphere.hpp"
+#include "physics/runtime/native_tu15_bsp_segment.hpp"
+#include "physics/runtime/native_tu15_bsp_segment_setup.hpp"
+#include "physics/runtime/native_tu15_bsp_surface_2d.hpp"
+#include "physics/runtime/native_tu15_bsp_surface_polygon.hpp"
 #include "physics/runtime/native_tu15_mopp_ray_branch_frame.hpp"
 #include "physics/runtime/native_tu15_mopp_ray_crossing_frame.hpp"
 #include <fstream>
@@ -11,6 +18,27 @@
 using namespace halo2;
 using namespace halo2::physics_world_runtime_detail;
 using J=nlohmann::json;
+namespace retained {
+#include "camera_query_children.inc"
+}
+struct InstrumentedState:WorldState {
+    using WorldState::WorldState;unsigned parent_literals{};
+    void instruction_literal(std::uint32_t pc){if(pc>=0x16c000u&&pc<=0x16c28bu)++parent_literals;WorldState::instruction_literal(pc);}
+};
+namespace parent_copies {
+using WorldState=InstrumentedState;
+inline std::function<void(WorldState&,std::uint32_t)> current_dispatch;
+static void dispatch(WorldState&s,std::uint32_t target,std::uint32_t,bool){current_dispatch(s,target);}
+static void run_16b810(WorldState&s){current_dispatch(s,0x16b810u);}
+static void run_120fa0(WorldState&s){current_dispatch(s,0x120fa0u);}
+static void run_144090(WorldState&s){current_dispatch(s,0x144090u);}
+static void run_186e30(WorldState&s){current_dispatch(s,0x186e30u);}
+static void run_1e68e0(WorldState&s){current_dispatch(s,0x1e68e0u);}
+static void run_16b9a0(WorldState&s){current_dispatch(s,0x16b9a0u);}
+using retained::sign_extend;
+#include "camera_query_parent_bodies.inc"
+}
+
 namespace {
 struct Boundary {};
 void check(bool ok,const std::string&message){if(!ok)throw std::runtime_error(message);}
@@ -69,15 +97,21 @@ struct Memory:SourcePhysicsContactMemory {
 int main(int argc,char**argv)try{
     check(argc==2||argc==3,"Supply physical camera query fixture");std::ifstream stream(argv[1]);const auto fixture=J::parse(stream);
     check(fixture.at("image_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong camera query original");
-    const auto sites=fixture.at("io_sites").get<std::set<std::uint32_t>>();unsigned comparisons{},packets{};
-    for(const auto&row:fixture.at("cases"))for(bool hostile:{false,true})for(bool observe:{false,true}){
+    const auto sites=fixture.at("io_sites").get<std::set<std::uint32_t>>();unsigned comparisons{},packets{},private_packets{},source_calls{},source_callbacks{},source_literals{};
+    const bool forced=std::getenv("HALO2_CAMERA_INSTANCE_QUERY_REFERENCE_TEST");
+    for(const auto&row:fixture.at("cases"))for(unsigned route=forced?1u:0u;route<5;++route)for(bool hostile:{false})for(bool observe:{false,true}){
         const auto phase=row.at("phase").get<std::string>();
-        if(phase!="query_return"&&phase!="sphere_entry"&&observe!=(phase=="after_write"))continue;
+        if(forced&&phase!="query_return")continue;
+        if(phase!="query_return"&&observe!=(phase=="after_write"))continue;
         Memory memory;for(const auto&bank:row.at("banks"))memory.banks.emplace(bank.at("address"),bytes(bank.at("before")));
         memory.observer_preimages=observe;memory.hostile_fp=hostile;
         if(phase=="before_read")memory.read_fault=row.at("native_fault_ordinal");
         if(phase=="before_write")memory.write_fault=row.at("native_fault_ordinal");
-        SourcePhysicsWorldRuntimeServices services;SourcePhysicsContactRecordObserver observer;unsigned observed_writes{};
+        J observed=J::array();WorldState*current{};unsigned parent_callbacks{};
+        SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto pc){parent_callbacks+=pc>=0x16c000u&&pc<=0x16c28bu;memory.pc=pc;if(sites.contains(pc))observed.push_back(packet(*current,pc));};
+        constexpr std::array service_sites{0x38846eu,0x21f590u,0x33b595u};bool trace{};
+        services.instruction_cursor={&memory.pc,&trace,nullptr,service_sites,std::this_thread::get_id(),&services.instruction.target_type(),true,true};
+        SourcePhysicsContactRecordObserver observer;unsigned observed_writes{};
         if(observe)observer=[&](const auto&event){
             const auto&expected=row.at("writes").at(observed_writes);
             check(event.instruction==expected.at("instruction")&&event.address==expected.at("address")&&
@@ -86,28 +120,39 @@ int main(int argc,char**argv)try{
             const auto ordinal=observed_writes++;if(hostile)clobber_fp();
             if(phase=="after_write"&&ordinal==row.at("native_fault_ordinal").get<unsigned>())throw Boundary{};
         };
-        WorldState state{memory,observer,services,SourcePhysicsContactImage::TitleUpdate15};SourcePhysicsWorldRuntimeAbi incoming{};
+        InstrumentedState state{memory,observer,services,SourcePhysicsContactImage::TitleUpdate15};SourcePhysicsWorldRuntimeAbi incoming{};
         incoming.gp=row.at("gp");incoming.eflags=row.at("eflags");incoming.xmm=row.at("xmm");
         incoming.floating_point=SourcePhysicsFactoryFloatingPoint{row.at("before_fp")[0],row.at("before_fp")[2]};
         incoming.x87_status=row.at("before_fp")[1];incoming.x87_depth=row.at("live_x87").size();
-        for(unsigned n=0;n<incoming.x87_depth;++n){const auto v=bytes(row.at("live_x87")[n]);std::memcpy(&incoming.x87[n],v.data(),10);}state.load(incoming);
-        J observed=J::array();auto before=[&](auto&s,std::uint32_t pc){
+        for(unsigned n=0;n<incoming.x87_depth;++n){const auto v=bytes(row.at("live_x87")[n]);std::memcpy(&incoming.x87[n],v.data(),10);}state.load(incoming);current=&state;
+        auto before=[&](auto&s,std::uint32_t pc){
             memory.pc=pc;if(pc==0x63000000u)throw Boundary{};
             if(sites.contains(pc))observed.push_back(packet(s,pc));if(hostile)clobber_fp();
         };
         bool interrupted{},alignment_fault{};std::uint32_t fault_flags{};
         try{
             auto dispatch=[&](auto&s,std::uint32_t target,std::uint32_t){
-                if(target==0x120fa0u){memory.pc=target;throw Boundary{};}
-                check(target==0x16b810u,"Unexpected camera-query child");
-                native_camera_instance_admission_detail::run_private(s,before);
+                if(target==0x16b810u)native_camera_instance_admission_detail::run_private(s,before);
+                else if(target==0x120fa0u)native_segment_sphere_detail::run_private(s,before);
+                else if(target==0x186e30u)native_camera_instance_bitmap_detail::run_private(s,before);
+                else if(target==0x16b9a0u)native_camera_collision_publication_detail::run_private(s,before);
+                else if(target==0x1e68e0u){
+                    auto missing=[](auto&,auto,auto,bool){throw std::runtime_error("Native camera BSP child escaped its qualified owners");};
+                    check(native_bsp_segment_setup_detail::bridge(s,missing,before),"Native camera BSP child refused its actual input");
+                }
+                else retained::dispatch(s,target,0,false);
             };
-            native_camera_instance_query_detail::run_private(state,before,dispatch);
+            parent_copies::current_dispatch=[&](auto&s,auto target){dispatch(s,target,0);};
+            if(!route)native_camera_instance_query_detail::run_private(state,before,dispatch);
+            else if(route==1)parent_copies::primary_bound::run_16c000(state);
+            else if(route==2)parent_copies::primary_prepared::run_16c000(state);
+            else if(route==3)parent_copies::ai_bound::run_16c000(state);
+            else parent_copies::ai_prepared::run_16c000(state);
             before(state,0x63000000u);
         }catch(const Boundary&){interrupted=true;}
         check(interrupted,"Camera query did not reach declared boundary");
         const auto name=row.at("name").get<std::string>();
-        if(observed!=row.at("calls")){
+        if(!route&&observed!=row.at("calls")){
             const auto&expected_calls=row.at("calls");std::size_t n{};
             while(n<std::min(observed.size(),expected_calls.size())&&observed[n]==expected_calls[n])++n;
             const auto actual_call=n<observed.size()?observed[n]:J();const auto expected_call=n<expected_calls.size()?expected_calls[n]:J();
@@ -118,8 +163,11 @@ int main(int argc,char**argv)try{
         check(actual==expected,name+": camera query boundary ABI differs actual="+packet(state,memory.pc).dump()+" expected="+expected.dump());
         check(memory.architectural_reads()==row.at("reads")&&memory.writes==row.at("writes"),name+": camera query ordered IO differs");
         for(const auto&bank:row.at("banks"))check(hex(memory.banks.at(bank.at("address")))==bank.at("after").get<std::string>(),name+": camera query bank differs");
-        ++comparisons;packets+=observed.size();
+        if(forced)check(parent_callbacks||state.parent_literals,name+": reference parent executed no retained statements");
+        else check(!parent_callbacks&&!state.parent_literals,name+": native parent executed retained statements");
+        ++comparisons;packets+=observed.size();if(!route)private_packets+=observed.size();else ++source_calls;
+        source_callbacks+=parent_callbacks;source_literals+=state.parent_literals;
     }
-    const auto report=J{{"passed",true},{"comparisons",comparisons},{"complete_pre_io_packets",packets},{"production_binding",false},{"scope","Private16C000 metadata/admission/rejection ABI and genuine sphere-entry boundary"}};if(argc==3){std::ofstream output(argv[2]);output<<report.dump(2)<<'\n';}
+    const auto report=J{{"passed",true},{"comparisons",comparisons},{"observed_pre_io_packets",packets},{"strict_private_pre_io_packets",private_packets},{"actual_source_calls",source_calls},{"parent_callbacks",source_callbacks},{"parent_literal_statements",source_literals},{"reference_control",forced},{"production_binding",false},{"scope","Complete private16C000 caller DATA/raw frame with genuine live child algorithms"}};if(argc==3){std::ofstream output(argv[2]);output<<report.dump(2)<<'\n';}
     std::cout<<report.dump()<<'\n';return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

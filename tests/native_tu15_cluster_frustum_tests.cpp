@@ -6,7 +6,7 @@
 #include <map>
 #include <set>
 using namespace halo2;using J=nlohmann::json;using State=physics_world_runtime_detail::WorldState;
-struct InstrumentedState:State {using State::State;bool selected_observation_pcs{true};unsigned literal_calls{};void instruction_literal(std::uint32_t pc){++literal_calls;State::instruction_literal(pc);}};
+struct InstrumentedState:State {using Base=physics_world_runtime_detail::WorldState;using Base::Base;bool selected_observation_pcs{true};unsigned literal_calls{};void instruction_literal(std::uint32_t pc){++literal_calls;Base::instruction_literal(pc);}};
 struct RetainedStop{};unsigned retained_statements{};bool stop_at_retained{};
 void retained_statement(){++retained_statements;if(stop_at_retained)throw RetainedStop{};}
 namespace copies {
@@ -36,7 +36,7 @@ struct Memory:SourcePhysicsContactMemory {
     }
 };
 unsigned guards(bool forced){
-    unsigned count{};constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u},changed{0x38846eu,0x167efbu,0x33b595u},extra{0x38846eu,0x21f590u,0x33b595u,0x100u};
+    unsigned count{};constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u},changed{0x38846eu,0x167efbu,0x33b595u};constexpr std::array extra{0x38846eu,0x21f590u,0x33b595u,0x100u};
     for(unsigned route=0;route<2;++route)for(unsigned policy=0;policy<(forced?1u:24u);++policy){
         Memory memory;unsigned callbacks{},stores{};bool first{},second{};SourcePhysicsWorldRuntimeServices services;
         services.instruction=[&](auto){++callbacks;};services.instruction_cursor={&memory.pc,&first,&second,sites,std::this_thread::get_id(),&services.instruction.target_type(),true,true};
@@ -56,7 +56,7 @@ unsigned guards(bool forced){
             if(policy==20)s.selected_observation_pcs=false;if(policy==21)s.fp.status=0x80;if(policy==22)s.fp.status=0x8000;
             if(policy==23)services.instruction_cursor.service_sites=extra;
         }
-        const auto gp=s.gp;const auto flags=s.flags.bits();const auto depth=s.fp.count,top=s.fp.top,status=s.fp.status;const auto host=native_raw_x87_detail::capture();std::array<std::byte,128>xmm{};std::memcpy(xmm.data(),s.xmm,128);memory.pc=0xdeadbeefu;
+        const auto gp=s.gp;const auto flags=s.flags.bits();const auto depth=s.fp.count,top=s.fp.top;const auto status=s.fp.status;const auto host=native_raw_x87_detail::capture();std::array<std::byte,128>xmm{};std::memcpy(xmm.data(),s.xmm,128);memory.pc=0xdeadbeefu;
         retained_statements=0;stop_at_retained=true;bool stopped{};try{if(route)copies::prepared::run_167ef0(s);else copies::bound::run_167ef0(s);}catch(const RetainedStop&){stopped=true;}stop_at_retained=false;
         check(stopped&&retained_statements==1,"Unqualified policy skipped untouched first retained statement");
         check(s.gp==gp&&s.flags.bits()==flags&&s.fp.count==depth&&s.fp.top==top&&s.fp.status==status&&!std::memcmp(xmm.data(),s.xmm,128),"Admission fallback changed CPU state");
@@ -73,12 +73,13 @@ int main(int argc,char**argv)try{
     for(const auto&row:fixture.at("cases"))for(unsigned mode=forced?4u:0u;mode<6;++mode){
         if(forced&&row.contains("fault"))continue;
         if(mode==3&&row.contains("fault"))continue;
-        if(row.contains("fault")&&row.at("fault").at("phase")=="after_write"&&mode!=2)continue;
+        const bool after_write=row.contains("fault")&&row.at("fault").at("phase")=="after_write";
+        if(after_write&&mode!=2&&mode<4)continue;
         Memory memory;for(const auto&bank:row.at("banks"))memory.banks.emplace(bank.at("address"),unhex(bank.at("before")));for(auto pc:fixture.at("write_sites"))memory.write_sites.insert(pc.get<std::uint32_t>());
         memory.noisy=mode==1;if(row.contains("fault"))memory.fault=row.at("fault");SourcePhysicsWorldRuntimeServices services;SourcePhysicsContactRecordObserver observer;unsigned callbacks{};
         bool trace{};constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
         services.instruction=[&](auto pc){memory.pc=pc;++callbacks;};services.instruction_cursor={&memory.pc,&trace,nullptr,sites,std::this_thread::get_id(),&services.instruction.target_type(),true,true};
-        if(mode==2)observer=[&](const auto&){if(memory.fault&&memory.fault->at("phase")=="after_write"&&memory.write_count-1==memory.fault->at("ordinal"))throw Fault{};hostile();};
+        if(mode==2||after_write)observer=[&](const auto&){if(memory.fault&&memory.fault->at("phase")=="after_write"&&memory.write_count-1==memory.fault->at("ordinal"))throw Fault{};hostile();};
         InstrumentedState state{memory,observer,services,SourcePhysicsContactImage::TitleUpdate15};SourcePhysicsWorldRuntimeAbi input{};input.gp=row.at("gp");input.eflags=row.at("eflags");input.xmm=row.at("xmm");input.floating_point=SourcePhysicsFactoryFloatingPoint{row.at("before_fp")[0],row.at("before_fp")[2]};input.x87_status=row.at("before_fp")[1];input.x87_depth=row.at("live_x87").size();for(unsigned n=0;n<input.x87_depth;++n){const auto raw=unhex(row.at("live_x87")[n]);std::memcpy(&input.x87[n],raw.data(),10);}state.load(input);retained_statements=0;
         memory.capture=[&]{return packet(state,memory.pc);};auto before=[&](auto&,auto pc){memory.pc=pc;if(mode==2)hostile();};bool faulted{};
         try{

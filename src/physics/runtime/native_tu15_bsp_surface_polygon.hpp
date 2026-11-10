@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_host_fp_io.hpp"
 #pragma once
 #include "halo2/native_tu15_bsp_surface_polygon_kernel.hpp"
 #include "halo2/physics_contact_runtime.hpp"
@@ -21,7 +22,7 @@ inline std::uint32_t shifted_flags(std::uint32_t value,unsigned count,std::uint3
 struct Memory {
     const SourcePhysicsContactMemory&memory;
     std::uint32_t word(std::uint32_t at,unsigned width=4)const{
-        std::array<std::byte,4>bytes{};memory.read(at,std::span(bytes).first(width));std::uint32_t value{};
+        std::array<std::byte,4>bytes{};native_host_fp_io_detail::preserve([&]{memory.read(at,std::span(bytes).first(width));});std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8*n);return value;
     }
 };
@@ -42,12 +43,12 @@ template<class State,class Before=Noop>bool bridge(State&s,Before before={}){
         for(const auto site:c->service_sites)if(site>=0x1e6e80u&&site<=0x1e6facu)return false;
     }
     auto&gp=s.gp;const auto entry_sp=gp[4],descriptor=gp[2],bitmap=gp[0];Memory memory{s.memory};
-    const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;before(s,pc);};
+    const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;native_host_fp_io_detail::preserve([&]{before(s,pc);});};
     const auto store=[&](std::uint32_t pc,std::uint32_t address,std::uint32_t value,bool stack=false){
         at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(4)};
-        if(s.observe){event.before.resize(4);s.memory.read(address,event.before);}
-        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8*n));s.memory.write(address,event.written);
-        if(stack)gp[4]=address;if(s.observe)s.observe(event);
+        if(s.observe){event.before.resize(4);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8*n));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});
+        if(stack)gp[4]=address;if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
     };
     const auto push=[&](std::uint32_t pc,std::uint32_t value){store(pc,gp[4]-4u,value,true);};
     const auto pop=[&](std::uint32_t pc){at(pc);const auto value=memory.word(gp[4]);gp[4]+=4u;return value;};

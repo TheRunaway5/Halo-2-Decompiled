@@ -19,6 +19,8 @@ import time
 from build_launcher_engine import freeze_source, source_hashes
 from collect_native_production_closure import prepare_peer_source
 from native_cohort_test_filter import expand_test_names, flatten_test_filter
+from native_metadata import (retain_bytes as retain_metadata_bytes,retain_file as retain_metadata_file,
+    MetadataBudgetError,check_budget as check_metadata_budget)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTROLS = {
@@ -37,10 +39,15 @@ CONTROLS = {
     'HALO2_REFERENCE_RAW_ALLOCATOR': '1',
     'HALO2_REFERENCE_ASYNC_QUEUE': '1',
     'HALO2_REFERENCE_INSTANCED_RAY_CHILD': '1',
+    'HALO2_REFERENCE_INSTANCED_RAY_CALLBACKS': '1',
+    'HALO2_REFERENCE_AFFINE_INVERSE': '1',
     'HALO2_REFERENCE_POLYGON_SUPPORT': '1',
     'HALO2_REFERENCE_POLYGON_FEATURES': '1',
     'HALO2_REFERENCE_CAMERA_INSTANCE_ADMISSION': '1',
     'HALO2_REFERENCE_CAMERA_INSTANCE_BITMAP': '1',
+    'HALO2_REFERENCE_CAMERA_INSTANCE_QUERY': '1',
+    'HALO2_REFERENCE_CAMERA_COLLISION_PUBLICATION': '1',
+    'HALO2_REFERENCE_SEGMENT_SPHERE': '1',
     'HALO2_REFERENCE_TICK_CONVERSION': '1',
     'HALO2_REFERENCE_MILLISECOND_CLOCK': '1',
     'HALO2_REFERENCE_KERNEL_YIELD': '1',
@@ -60,6 +67,14 @@ CONTROLS = {
     'HALO2_REFERENCE_NODE_DESCRIPTOR_LOOKUP': '1',
     'HALO2_REFERENCE_VEHICLE_CHOICE': '1',
     'HALO2_REFERENCE_SPHERE_FRUSTUM': '1',
+    'HALO2_REFERENCE_CLUSTER_FRUSTUM': '1',
+    'HALO2_REFERENCE_BSP_QUEUE_FIND': '1',
+    'HALO2_REFERENCE_FOG_MEMBERSHIP': '1',
+    'HALO2_REFERENCE_VISIBILITY_ASSOCIATION': '1',
+    'HALO2_REFERENCE_GEOMETRY_VISIBILITY': '1',
+    'HALO2_REFERENCE_SIMPLEX_TRIANGLE': '1',
+    'HALO2_REFERENCE_SIMPLEX_FACE_REFINE': '1',
+    'HALO2_REFERENCE_SIMPLEX_FACE_SELECT': '1',
     'HALO2_REFERENCE_OBJECT_NODE_REBUILD': '1',
     'HALO2_REFERENCE_OBJECT_ANIMATION': '1',
     'HALO2_REFERENCE_OBJECT_PREDICTION_COPY': '1',
@@ -80,7 +95,7 @@ CONTROLS = {
     'HALO2_REFERENCE_PAGE_ALLOCATE': '1',
     'HALO2_REFERENCE_OBJECT_SCAN': '1',
 }
-TEST_FILTER_PATTERN = ('^(native_replacement_cohort_filter|native_bsp_leaves|native_matrix_leaf_faults|native_bsp_cluster_flood|'
+TEST_FILTER_PATTERN = ('^(native_replacement_cohort_filter|native_metadata_storage|native_metadata_retention_replay|native_bsp_leaves|native_matrix_leaf_faults|native_bsp_cluster_flood|'
                'native_translation_partition|native_translation_partition_linkage|'
                'native_operand_specialization|native_instruction_cursor|native_instruction_census|'
                'native_migration_inventory|original_tu15_native_collision_matrix_leaves|'
@@ -116,6 +131,8 @@ TEST_FILTER_PATTERN = ('^(native_replacement_cohort_filter|native_bsp_leaves|nat
                'original_tu15_native_mopp_ray_split_controller(_release)?|'
                'original_tu15_native_instanced_ray_callback_frame(_release)?|'
                'native_instanced_ray_child_bindings|original_tu15_native_instanced_ray_child(_release)?|native_instanced_ray_child_public_values|'
+               'original_tu15_native_instanced_ray_callbacks(_generation|_release)?|'
+               'original_tu15_native_affine_inverse(_release|_mappack|_mappack_release|_generation|_motion_c1|_animation|_animation_release)?|'
                'native_tu15_instruction_cursor|'
                'original_tu15_native_camera_instance_admission(_release|_generation)?|'
                'original_tu15_native_camera_instance_bitmap(_release|_generation)?|native_object_node_live_admission|'
@@ -123,7 +140,9 @@ TEST_FILTER_PATTERN = ('^(native_replacement_cohort_filter|native_bsp_leaves|nat
                'original_mappack_native_polygon_support(_release)?|'
                'original_tu15_native_raw_x87_scope(_release)?|'
                'native_tu15_retained_observer_fp(_release)?|'
+               'native_tu15_host_fp_io(_release)?|'
                'native_world_observation_generator|'
+               'native_polygon_prepared_owners|original_tu15_native_camera_collision_publication(_release|_generation)?|original_tu15_native_segment_sphere(_release|_generation)?|original_tu15_native_camera_instance_query(_release|_generation|_values)?|'
                'original_tu15_native_node_resource|'
                'original_tu15_native_node_descriptor_lookup(_release)?|'
                'original_tu15_native_vehicle_choice_data(_release)?|'
@@ -133,7 +152,14 @@ TEST_FILTER_PATTERN = ('^(native_replacement_cohort_filter|native_bsp_leaves|nat
                'original_tu15_native_object_prediction_copy|'
                'original_tu15_native_resource_composition(_release)?|'
                'original_tu15_native_sphere_frustum(_release|_generation)?|'
-               'original_tu15_native_simplex_direction|original_tu15_native_simplex_candidate|original_tu15_native_simplex_finalize|original_tu15_native_simplex_initialize|original_tu15_native_simplex_projection|original_tu15_native_simplex_iteration|'
+               'native_cluster_frustum_binding|original_tu15_native_cluster_frustum(_values|_generation|_release)?|'
+               'native_bsp_queue_find_binding|original_tu15_native_bsp_queue_find(_values|_generation|_release)?|original_tu15_native_simplex_triangle_generation|'
+               'native_fog_membership_binding|original_tu15_native_fog_membership(_values|_generation|_release)?|'
+               'native_visibility_association_binding|original_tu15_native_visibility_association(_values|_generation|_release)?|'
+               'native_geometry_visibility_binding|original_tu15_native_geometry_visibility(_values|_generation|_release)?|'
+               'original_tu15_native_simplex_face_refine(_routes|_value|_generation)?|'
+               'original_tu15_native_simplex_face_select(_routes|_generation)?|'
+               'original_tu15_native_simplex_direction|original_tu15_native_simplex_candidate|original_tu15_native_simplex_finalize|original_tu15_native_simplex_initialize|original_tu15_native_simplex_projection|original_tu15_native_simplex_iteration|original_tu15_native_simplex_support|original_tu15_native_simplex_triangle_frame|'
                'native_tu15_async_queue_data_bindings|native_tu15_async_queue_source_routes|'
                'original_tu15_native_async_queue_data(_release)?|'
                'native_tu15_async_queue_public_values|'
@@ -247,17 +273,17 @@ def main():
                    'Launcher delivery and all-map/campaign/online qualification remain separate.']}
 
     def save():
-        (output / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+        data=(json.dumps(report, indent=2, sort_keys=True) + '\n').encode()
+        if len(data)>1_048_576:raise RuntimeError('Cohort report exceeds1MiB retention bound')
+        (output / 'report.json').write_bytes(data)
 
     def retain_accounting_metadata(original,destination):
         if original.stat().st_size>1_048_576:raise RuntimeError('Accounting metadata exceeds1MiB')
-        existing=[path for path in output.rglob('*.json') if path!=destination]
-        retained=sum(path.stat().st_size for path in existing)+original.stat().st_size
-        if retained+128*1024>8*1024*1024:
-            report['metadata_retention_rejected_bytes']=retained;save()
-            raise RuntimeError('Accounting/component metadata exceeds8MiB retention budget')
-        shutil.copyfile(original,destination)
-        report['retained_metadata_bytes']=retained
+        try:receipt=retain_metadata_file(original,destination,output,max_bytes=1_048_576)
+        except MetadataBudgetError as error:
+            report['metadata_retention_rejected_bytes']=error.retained_bytes;save();raise
+        report['retained_metadata_bytes']=receipt['retained_metadata_bytes']
+        return receipt
 
     def run(label, command, env=None):
         step = {'name': label, 'command': command, 'started': time.time(), 'exit_code': None}
@@ -301,8 +327,11 @@ def main():
                     raise
                 shutil.rmtree(source)
                 print(json.dumps({'freeze_retry': attempt+1, 'reason': str(error)}), flush=True)
-        (output / 'source-hashes.json').write_text(json.dumps({**pins, **before_tests,**before_auxiliary}, indent=2, sort_keys=True) + '\n')
-        report['source_inventory_sha256'] = sha(output / 'source-hashes.json')
+        inventory_bytes=(json.dumps({**pins, **before_tests,**before_auxiliary}, indent=2, sort_keys=True) + '\n').encode()
+        inventory_storage=retain_metadata_bytes(inventory_bytes,output/'source-hashes.json',output)
+        report['source_inventory_sha256']=inventory_storage['raw_sha256']
+        report['source_inventory_storage']=inventory_storage
+        report['metadata_retention_encoding']='lossless gzip; hashes identify decoded original bytes'
         selection = json.loads((root / 'gameplay-runtime-selection.json').read_text())
         maps = root / selection['cache'] / 'halo2/h2_maps_win64_dx11'
         report['selected_runtime_at_freeze'] = selection['runtime']
@@ -345,6 +374,8 @@ def main():
             '--target', 'native_mopp_ray_slab_frame_tests',
             '--target', 'native_instanced_ray_callback_frame_tests',
             '--target', 'native_instanced_ray_child_tests',
+            '--target', 'native_instanced_ray_callbacks_tests',
+            '--target', 'native_affine_inverse_tests',
             '--target', 'native_instruction_cursor_tests',
             '--target', 'native_cohort_test_filter_tests',
             '--target', 'native_polygon_support_tests',
@@ -365,12 +396,32 @@ def main():
             '--target', 'native_object_prediction_copy_tests',
             '--target', 'native_resource_composition_tests',
             '--target', 'native_sphere_frustum_tests',
+            '--target', 'native_cluster_frustum_tests',
+            '--target', 'native_bsp_queue_find_tests',
+            '--target', 'native_fog_membership_tests',
+            '--target', 'native_visibility_association_tests',
+            '--target', 'native_geometry_visibility_tests',
             '--target', 'native_simplex_direction_tests',
             '--target', 'native_simplex_candidate_tests',
             '--target', 'native_simplex_finalize_tests',
             '--target', 'native_simplex_initialize_tests',
             '--target', 'native_simplex_projection_tests',
             '--target', 'native_simplex_iteration_tests',
+            '--target', 'native_simplex_support_tests',
+            '--target', 'native_metadata_retention_tests',
+            '--target', 'native_host_fp_io_tests',
+            '--target', 'native_simplex_triangle_frame_tests',
+            '--target', 'native_simplex_triangle_generation_tests',
+            '--target', 'native_simplex_face_refine_tests',
+            '--target', 'native_simplex_face_refine_routes_tests',
+            '--target', 'native_simplex_face_refine_value_tests',
+            '--target', 'native_simplex_face_refine_generation_tests',
+            '--target', 'native_simplex_face_select_tests',
+            '--target', 'native_simplex_face_select_routes_tests',
+            '--target', 'native_simplex_face_select_generation_tests',
+            '--target', 'native_camera_collision_publication_tests',
+            '--target', 'native_camera_instance_query_tests',
+            '--target', 'native_segment_sphere_tests',
             '--target', 'native_tu15_async_queue_data_tests',
             '--target', 'native_tu15_async_promotion_data_tests',
             '--target', 'native_node_resource_lifecycle_tests',
@@ -437,6 +488,17 @@ def main():
             '--retain-report', 'native-instanced-ray-child/report.json',
             '--retain-report', 'native-instanced-ray-child-release/report.json',
             '--retain-report', 'native-instanced-ray-child-values.json',
+            '--retain-report', 'native-instanced-ray-callbacks/report.json',
+            '--retain-report', 'native-instanced-ray-callbacks-release/report.json',
+            '--retain-report', 'native-instanced-ray-callbacks-generation.json',
+            '--retain-report', 'native-tu15-affine-inverse/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-release/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-mappack/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-mappack-release/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-generation.json',
+            '--retain-report', 'native-tu15-affine-inverse-motion-c1/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-animation/report.json',
+            '--retain-report', 'native-tu15-affine-inverse-animation-release/report.json',
             '--retain-report', 'native-instruction-cursor/report.json',
             '--retain-report', 'native-cohort-test-filter.json',
             '--retain-report', 'native-polygon-support/report.json',
@@ -458,6 +520,12 @@ def main():
             '--retain-report', 'native-mopp-ray-vector-store-frame/report.json',
             '--retain-report', 'native-tu15-raw-x87-scope.json',
             '--retain-report', 'native-tu15-retained-observer-fp.json',
+            '--retain-report', 'native-tu15-host-fp-io.json',
+            '--retain-report', 'native-tu15-host-fp-io-release.json',
+            '--retain-report', 'native-tu15-geometry-visibility.json',
+            '--retain-report', 'native-tu15-geometry-visibility-release.json',
+            '--retain-report', 'native-tu15-geometry-visibility-values.json',
+            '--retain-report', 'native-tu15-geometry-visibility-generation.json',
             '--retain-report', 'native-tu15-node-resource.json',
             '--retain-report', 'native-tu15-node-descriptor-lookup.json',
             '--retain-report', 'native-tu15-vehicle-choice-data.json',
@@ -468,12 +536,49 @@ def main():
             '--retain-report', 'native-tu15-resource-composition.json',
             '--retain-report', 'native-tu15-sphere-frustum.json',
             '--retain-report', 'native-tu15-sphere-frustum-generation.json',
+            '--retain-report', 'native-tu15-cluster-frustum.json',
+            '--retain-report', 'native-tu15-cluster-frustum-values.json',
+            '--retain-report', 'native-tu15-cluster-frustum-generation.json',
+            '--retain-report', 'native-tu15-cluster-frustum-release.json',
+            '--retain-report', 'native-tu15-bsp-queue-find.json',
+            '--retain-report', 'native-tu15-bsp-queue-find-values.json',
+            '--retain-report', 'native-tu15-bsp-queue-find-generation.json',
+            '--retain-report', 'native-tu15-bsp-queue-find-release.json',
+            '--retain-report', 'native-tu15-fog-membership.json',
+            '--retain-report', 'native-tu15-fog-membership-values.json',
+            '--retain-report', 'native-tu15-fog-membership-generation.json',
+            '--retain-report', 'native-tu15-fog-membership-release.json',
+            '--retain-report', 'native-tu15-visibility-association.json',
+            '--retain-report', 'native-tu15-visibility-association-values.json',
+            '--retain-report', 'native-tu15-visibility-association-generation.json',
+            '--retain-report', 'native-tu15-visibility-association-release.json',
             '--retain-report', 'native-simplex-direction.json',
             '--retain-report', 'native-simplex-candidate.json',
             '--retain-report', 'native-simplex-finalize.json',
             '--retain-report', 'native-simplex-initialize.json',
             '--retain-report', 'native-simplex-projection.json',
             '--retain-report', 'native-simplex-iteration.json',
+            '--retain-report', 'native-simplex-support.json',
+            '--retain-report', 'native-metadata-retention.json',
+            '--retain-report', 'native-simplex-triangle-frame.json',
+            '--retain-report', 'native-simplex-triangle-generation.json',
+            '--retain-report', 'native-simplex-face-refine.json',
+            '--retain-report', 'native-simplex-face-refine-routes.json',
+            '--retain-report', 'native-simplex-face-refine-value.json',
+            '--retain-report', 'native-simplex-face-refine-generation.json',
+            '--retain-report', 'native-simplex-face-select.json',
+            '--retain-report', 'native-simplex-face-select-routes.json',
+            '--retain-report', 'native-simplex-face-select-generation.json',
+            '--retain-report', 'native-tu15-camera-collision-publication/report.json',
+            '--retain-report', 'native-tu15-camera-collision-publication-release/report.json',
+            '--retain-report', 'native-tu15-camera-collision-publication-generation.json',
+            '--retain-report', 'native-tu15-camera-instance-query/report.json',
+            '--retain-report', 'native-tu15-camera-instance-query-release/report.json',
+            '--retain-report', 'native-tu15-camera-instance-query-values/report.json',
+            '--retain-report', 'native-tu15-camera-instance-query-generation.json',
+            '--retain-report', 'native-tu15-segment-sphere/report.json',
+            '--retain-report', 'native-tu15-segment-sphere-release/report.json',
+            '--retain-report', 'native-tu15-segment-sphere-generation.json',
             '--retain-report', 'native-tu15-async-queue-data.json',
             '--retain-report', 'native-tu15-async-queue-source-routes.json',
             '--retain-report', 'native-tu15-async-queue-values.json',
@@ -520,6 +625,7 @@ def main():
         # engine. A rejected boundary fixture must not consume an engine build.
         report['validation_sequence']=['components','engine-build'];save()
         run('components', command, environment)
+        report['retained_metadata_bytes']=check_metadata_budget(output);save()
         if '***Skipped' in (output/'cmake/tests.log').read_text():
             raise RuntimeError('A required component oracle was skipped; see CMake test log')
         engine_command=[sys.executable,'-B',str(root/'tools/run_tests.py'),'--build-worker',
@@ -527,6 +633,7 @@ def main():
             '--target','halo2_native','--build-only',
             *(value for value in command if value.startswith('--cmake-arg='))]
         run('engine-build',engine_command,environment)
+        report['retained_metadata_bytes']=check_metadata_budget(output);save()
         runtime = build / 'halo2_native'
         report['runtime_sha256'] = sha(runtime);report['runtime_bytes'] = runtime.stat().st_size
         if args.execution_accounting and not args.build_and_components_only:
@@ -560,16 +667,16 @@ def main():
                                 if (unit[0],unit[1],unit[2]) not in allowed:
                                     raise RuntimeError('Runtime counter identity has no authenticated alias receipt')
                                 if pins.get(unit[0])!=unit[1]:raise RuntimeError('Runtime canonical counter identity differs from frozen source')
-                            retained=output/(label+'-execution.json');retain_accounting_metadata(raw,retained)
-                            item.update(runtime_report=str(retained),runtime_report_sha256=sha(retained))
+                            retained=retain_accounting_metadata(raw,output/(label+'-execution.json'))
+                            item.update(runtime_report=retained['path'],runtime_report_sha256=retained['raw_sha256'],runtime_report_storage=retained)
                             summary=scratch/(label+'-execution-summary.json')
                             run('accounting-analysis-'+label,[sys.executable,'-B',str(source/'tools/native_execution_report.py'),
                                 '--runtime',str(raw),'--output',str(summary)],environment)
                             analyzed=json.loads(summary.read_text())
                             if analyzed['totals'].get('active',0):
                                 raise RuntimeError('Completed process has active generated scopes: '+label)
-                            retained_summary=output/summary.name;retain_accounting_metadata(summary,retained_summary)
-                            item.update(analysis=str(retained_summary),analysis_sha256=sha(retained_summary));save()
+                            retained_summary=retain_accounting_metadata(summary,output/summary.name)
+                            item.update(analysis=retained_summary['path'],analysis_sha256=retained_summary['raw_sha256'],analysis_storage=retained_summary);save()
                         else:raise RuntimeError('Runtime did not produce an execution report for '+label)
                         if not capture['valid']:raise RuntimeError('Accounting workload failed: '+label)
             report['bounded_runtime_accounting_recorded']=True
@@ -597,9 +704,9 @@ def main():
         report.update(passed=True, status='passed',
             selected_map_frame_parity_recorded=not args.build_and_components_only and not args.execution_accounting,
             selected_map_timing_recorded=not args.build_and_components_only and not args.execution_accounting)
-        save();return 0
+        save();report['retained_metadata_bytes']=check_metadata_budget(output);save();return 0
     except Exception as error:
-        report.update(status='failed', error=str(error));save()
+        report.update(passed=False, status='failed', error=str(error));save()
         print(json.dumps({'status': 'failed', 'error': str(error)}), flush=True)
         return 1
 

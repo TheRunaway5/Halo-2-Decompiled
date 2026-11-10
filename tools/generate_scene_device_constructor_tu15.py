@@ -234,7 +234,8 @@ def main():
     correspondence.write_text(json.dumps(paired, indent=2, sort_keys=True)+'\n')
     manifest = a.directory/'generation.json'
     generate(SimpleNamespace(output=a.output, manifest=manifest, correspondence=correspondence,
-        additional_entries=Path(__file__)), paired, code_override=code)
+        additional_entries=Path(__file__)), paired, code_override=code,
+        preserve_selected_addresses=True)
     source = a.output.read_text().replace('tools/generate_physics_live_support_tu15.py',
         'tools/generate_scene_device_constructor_tu15.py').replace('halo2/physics_live_support_tu15.hpp',
         'halo2/source_scene_device_constructor_tu15.hpp').replace('source_run_physics_live_support_tu15',
@@ -260,7 +261,13 @@ def main():
 }
 
 '''+source[end:]
-    a.output.write_text(replace_model_vector_length(replace_model_light_source(source)))
+    source=replace_model_vector_length(replace_model_light_source(source))
+    scan_include='#include "physics/runtime/native_tu15_object_scan.hpp"\n'
+    if source.count(scan_include)!=1:raise ValueError('Complete Scene object-scan owner include drift')
+    source=scan_include+source.replace(scan_include,'',1)
+    from native_simplex_triangle_scene_replacements import replace_simplex_triangle_scene
+    source=replace_simplex_triangle_scene(source)
+    a.output.write_text(source)
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(a.output), wrapper_sha256=sha(Path(__file__)),
         update_spec_sha256=sha(Path(__file__).with_name('scene_device_tu15_entries.json')),
