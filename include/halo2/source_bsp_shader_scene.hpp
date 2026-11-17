@@ -7,6 +7,10 @@
 #include <set>
 
 namespace halo2 {
+struct SourceBspShaderLodInputs {
+    SourceShaderCoverageCamera coverage;
+    SourceShaderLodView lod;
+};
 struct SourceBspShaderView {
     const SourceViewProjectionBank &camera;
     const SourceBspAdmission &admission;
@@ -16,6 +20,11 @@ struct SourceBspShaderView {
     std::optional<float> detail_multiplier;
     // Owned frame snapshot of actual186E70; empty only for independent/static callers.
     std::span<const std::byte> breakable_visibility;
+    // Height of this view in the original 480-line layout. Zero uses the
+    // submitted viewport, as in literal original-camera comparisons.
+    std::int16_t source_lod_height{};
+    SourceBspShaderLodInputs shader_lod_inputs(bool auxiliary_present=false,
+        bool auxiliary_byte5=false) const;
 };
 struct SourceBspShaderPart {
     int geometry{}; // >=0 cluster; <=-2 authored instance ordinal.

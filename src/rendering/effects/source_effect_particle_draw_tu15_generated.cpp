@@ -1,3 +1,5 @@
+#include "gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp"
+#include "rendering/native_tu15_bsp_admission.hpp"
 #include "rendering/native_tu15_geometry_visibility.hpp"
 #include "rendering/native_tu15_fog_membership.hpp"
 #include "rendering/native_tu15_cluster_frustum_abi.hpp"
@@ -7,8 +9,11 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
+#include "rendering/effects/native_tu15_particle_type_filter_source_owner.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
+#include "rendering/effects/native_tu15_particle_envelope_source_owner.hpp"
 #include "halo2/source_object_attachment_tu15.hpp"
+#include "rendering/effects/native_tu15_particle_record_source_owner.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -1698,13 +1703,14 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_1e4c0(WorldState &s) {
+    if(halo2::native_particle_record_owner_detail::bridge<false>(s))return;
 if(s.services.instruction){s.services.instruction(0x1e4c0u);} s.push(0x1e4c0u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x1e4c1u);} s.set(6,r(s.memory,(0x4c2aa0u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e4c7u);} s.set(0,s.flags.logic((s.reg(0,1,0))^(s.reg(0,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0x1e4c9u);} s.flags.minus(s.reg(6,4,0),0x400u,4);
 if(s.services.instruction){s.services.instruction(0x1e4cfu);} if(s.flags.sf==s.flags.of)goto L1e59c;
 if(s.services.instruction){s.services.instruction(0x1e4d5u);} s.set(0,s.reg(6,4,0),4,0);
-if(s.services.instruction){s.services.instruction(0x1e4d7u);} s.set(0,s.flags.product(s.reg(0,4,0),0x70u),4,0);
+if(s.services.instruction){s.services.instruction(0x1e4d7u);} s.set(0,halo2::native_particle_record_detail::multiply_slot(s,s.reg(0,4,0)),4,0);
 if(s.services.instruction){s.services.instruction(0x1e4dau);} s.push(0x1e4dau,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x1e4dbu);} s.set(5,r(s.memory,(0x4c2aa8u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e4e1u);} w(s.memory,s.observe,0x1e4e1u,(0x0u+s.gp[0]+s.gp[5]*1u),4,0x0u);
@@ -1723,7 +1729,7 @@ if(s.services.instruction){s.services.instruction(0x1e51du);} if(s.flags.zf)goto
 if(s.services.instruction){s.services.instruction(0x1e51fu);} s.set(6,r(s.memory,(0x10u+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e523u);} s.set(5,s.reg(1,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x1e525u);} s.push(0x1e525u,s.reg(7,4,0));
-if(s.services.instruction){s.services.instruction(0x1e526u);} s.set(1,s.flags.right(s.reg(1,4,0),0x2u,4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x1e526u);} s.set(1,halo2::native_particle_record_detail::shift_count(s,s.reg(1,4,0)),4,0);
 if(s.services.instruction){s.services.instruction(0x1e529u);} s.set(7,(0x24u+s.gp[0]),4,0);
 if(s.services.instruction){s.services.instruction(0x1e52cu);} while(s.gp[1]){const auto x=r(s.memory,s.gp[6],4);w(s.memory,s.observe,0x1e52cu,s.gp[7],4,x);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0x1e52cu);}
 if(s.services.instruction){s.services.instruction(0x1e52eu);} s.set(1,s.reg(5,4,0),4,0);
@@ -2811,23 +2817,24 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_bcdf0(WorldState &s) {
+    {switch(halo2::native_object_lookup_copies_detail::bridge<false>(s)){case 0u:break;case 0xffffffffu:return;case 0xbcdf1u:goto NativeObjectBodybcdf1;case 0xbcdf2u:goto NativeObjectBodybcdf2;case 0xbce01u:goto NativeObjectBodybce01;case 0xbce04u:goto NativeObjectBodybce04;case 0xbce13u:goto NativeObjectBodybce13;case 0xbce19u:goto NativeObjectBodybce19;case 0xbce1cu:goto NativeObjectBodybce1c;case 0xbce36u:goto NativeObjectBodybce36;case 0xbce41u:goto NativeObjectBodybce41;case 0xbce46u:goto NativeObjectBodybce46;case 0xbce47u:goto NativeObjectBodybce47;case 0xbce48u:goto NativeObjectBodybce48;default:throw std::runtime_error("Invalid native object lookup continuation");}}
 if(s.services.instruction){s.services.instruction(0xbcdf0u);} s.push(0xbcdf0u,s.reg(6,4,0));
-if(s.services.instruction){s.services.instruction(0xbcdf1u);} s.push(0xbcdf1u,s.reg(7,4,0));
-if(s.services.instruction){s.services.instruction(0xbcdf2u);} s.set(6,s.reg(0,4,0),4,0);
+NativeObjectBodybcdf1: if(s.services.instruction){s.services.instruction(0xbcdf1u);} s.push(0xbcdf1u,s.reg(7,4,0));
+NativeObjectBodybcdf2: if(s.services.instruction){s.services.instruction(0xbcdf2u);} s.set(6,s.reg(0,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xbcdf4u);} s.set(7,s.flags.logic((s.reg(7,4,0))^(s.reg(7,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbcdf6u);} s.flags.minus(s.reg(6,4,0),0xffffffffu,4);
 if(s.services.instruction){s.services.instruction(0xbcdf9u);} if(s.flags.zf)goto Lbce2d;
 if(s.services.instruction){s.services.instruction(0xbcdfbu);} s.set(2,r(s.memory,(0x4ecbd0u),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbce01u);} s.set(0,r(s.memory,(0x38u+s.gp[2]),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbce04u);} s.set(1,s.reg(6,4,0),4,0);
+NativeObjectBodybce01: if(s.services.instruction){s.services.instruction(0xbce01u);} s.set(0,r(s.memory,(0x38u+s.gp[2]),4),4,0);
+NativeObjectBodybce04: if(s.services.instruction){s.services.instruction(0xbce04u);} s.set(1,s.reg(6,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xbce06u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0xffffu),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbce0cu);} s.flags.minus(s.reg(1,4,0),s.reg(0,4,0),4);
 if(s.services.instruction){s.services.instruction(0xbce0eu);} if(s.flags.sf==s.flags.of)goto Lbce2d;
 if(s.services.instruction){s.services.instruction(0xbce10u);} s.set(0,r(s.memory,(0x24u+s.gp[2]),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbce13u);} s.set(0,s.flags.product(s.reg(0,4,0),s.reg(1,4,0)),4,0);
+NativeObjectBodybce13: if(s.services.instruction){s.services.instruction(0xbce13u);} s.set(0,s.flags.product(s.reg(0,4,0),s.reg(1,4,0)),4,0);
 if(s.services.instruction){s.services.instruction(0xbce16u);} s.set(0,s.flags.plus(s.reg(0,4,0),r(s.memory,(0x44u+s.gp[2]),4),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbce19u);} s.set(1,r(s.memory,(0x0u+s.gp[0]),2),2,0);
-if(s.services.instruction){s.services.instruction(0xbce1cu);} s.flags.logic((s.reg(1,2,0))&(s.reg(1,2,0)),2);
+NativeObjectBodybce19: if(s.services.instruction){s.services.instruction(0xbce19u);} s.set(1,r(s.memory,(0x0u+s.gp[0]),2),2,0);
+NativeObjectBodybce1c: if(s.services.instruction){s.services.instruction(0xbce1cu);} s.flags.logic((s.reg(1,2,0))&(s.reg(1,2,0)),2);
 if(s.services.instruction){s.services.instruction(0xbce1fu);} if(s.flags.zf)goto Lbce2d;
 if(s.services.instruction){s.services.instruction(0xbce21u);} s.set(1,sign_extend(s.reg(1,2,0),2),4,0);
 if(s.services.instruction){s.services.instruction(0xbce24u);} s.set(6,s.flags.right(s.reg(6,4,0),0x10u,4,true),4,0);
@@ -2838,14 +2845,14 @@ Lbce2d: if(s.services.instruction){s.services.instruction(0xbce2du);} s.set(0,s.
 if(s.services.instruction){s.services.instruction(0xbce2fu);} s.flags.logic((s.reg(7,4,0))&(s.reg(7,4,0)),4);
 if(s.services.instruction){s.services.instruction(0xbce31u);} if(s.flags.zf)goto Lbce46;
 if(s.services.instruction){s.services.instruction(0xbce33u);} s.set(1,r(s.memory,(0x3u+s.gp[7]),1),1,0);
-if(s.services.instruction){s.services.instruction(0xbce36u);} s.set(2,0x1u,4,0);
+NativeObjectBodybce36: if(s.services.instruction){s.services.instruction(0xbce36u);} s.set(2,0x1u,4,0);
 if(s.services.instruction){s.services.instruction(0xbce3bu);} s.set(2,s.flags.shift(s.reg(2,4,0),s.reg(1,1,0),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbce3du);} s.flags.logic((r(s.memory,(0xcu+s.gp[4]),4))&(s.reg(2,4,0)),4);
-if(s.services.instruction){s.services.instruction(0xbce41u);} if(s.flags.zf)goto Lbce46;
+NativeObjectBodybce41: if(s.services.instruction){s.services.instruction(0xbce41u);} if(s.flags.zf)goto Lbce46;
 if(s.services.instruction){s.services.instruction(0xbce43u);} s.set(0,r(s.memory,(0x8u+s.gp[7]),4),4,0);
-Lbce46: if(s.services.instruction){s.services.instruction(0xbce46u);} s.set(7,s.pop(),4,0);
-if(s.services.instruction){s.services.instruction(0xbce47u);} s.set(6,s.pop(),4,0);
-if(s.services.instruction){s.services.instruction(0xbce48u);} s.pop();s.gp[4]+=4u;return;
+Lbce46: NativeObjectBodybce46: if(s.services.instruction){s.services.instruction(0xbce46u);} s.set(7,s.pop(),4,0);
+NativeObjectBodybce47: if(s.services.instruction){s.services.instruction(0xbce47u);} s.set(6,s.pop(),4,0);
+NativeObjectBodybce48: if(s.services.instruction){s.services.instruction(0xbce48u);} s.pop();s.gp[4]+=4u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
@@ -2970,6 +2977,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_136ea0(WorldState &s) {
+    if(halo2::native_bsp_admission_detail::bridge(s,[](auto&child,halo2::native_bsp_admission_detail::Child which,auto&){using Child=halo2::native_bsp_admission_detail::Child;const auto target=which==Child::geometry?0x135970u:which==Child::association?0x136e10u:which==Child::geometry_frustum?0x167ef0u:which==Child::geometry_auxiliary?0x166c00u:0x171070u;const auto site=which==Child::geometry?0x1371abu:which==Child::association?0x1372c5u:which==Child::geometry_frustum?0x1359b1u:which==Child::geometry_auxiliary?0x1359f9u:which==Child::cluster_fog?0x137091u:which==Child::instance_fog?0x137259u:0x13739au;dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x136ea0u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x3cu,4),4,0);
 if(s.services.instruction){s.services.instruction(0x136ea3u);} s.push(0x136ea3u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x136ea4u);} s.set(5,r(s.memory,(0x44u+s.gp[4]),4),4,0);
@@ -2998,7 +3006,7 @@ if(s.services.instruction){s.services.instruction(0x136efau);} s.set(2,s.reg(1,4
 if(s.services.instruction){s.services.instruction(0x136efcu);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0x1fu),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136effu);} s.set(2,s.flags.right(s.reg(2,4,0),0x5u,4,true),4,0);
 if(s.services.instruction){s.services.instruction(0x136f02u);} s.set(3,0x1u,4,0);
-if(s.services.instruction){s.services.instruction(0x136f07u);} s.set(3,s.flags.shift(s.reg(3,4,0),s.reg(1,1,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x136f07u);} halo2::native_bsp_admission_detail::retained_cluster_bit(s);
 if(s.services.instruction){s.services.instruction(0x136f09u);} s.set(1,r(s.memory,(0x21cu+s.gp[5]+s.gp[2]*4u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x136f10u);} s.set(2,(0x21cu+s.gp[5]+s.gp[2]*4u),4,0);
 if(s.services.instruction){s.services.instruction(0x136f17u);} w(s.memory,s.observe,0x136f17u,(0x18u+s.gp[4]),4,s.reg(0,4,0));
@@ -3016,27 +3024,27 @@ if(s.services.instruction){s.services.instruction(0x136f42u);} s.xmm[3]=_mm_set_
 if(s.services.instruction){s.services.instruction(0x136f4au);} s.set(0,s.reg(1,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x136f4cu);} s.set(0,s.flags.product(s.reg(0,4,0),0xb0u),4,0);
 if(s.services.instruction){s.services.instruction(0x136f52u);} s.xmm[2]=_mm_set_ss(f(r(s.memory,(0x64u+s.gp[0]+s.gp[3]*1u),4)));
-if(s.services.instruction){s.services.instruction(0x136f58u);} s.xmm[2]=_mm_add_ss(s.xmm[2],_mm_set_ss(f(r(s.memory,(0x68u+s.gp[0]+s.gp[3]*1u),4))));
+if(s.services.instruction){s.services.instruction(0x136f58u);} s.xmm[2]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[2],_mm_set_ss(f(r(s.memory,(0x68u+s.gp[0]+s.gp[3]*1u),4))));
 if(s.services.instruction){s.services.instruction(0x136f5eu);} s.xmm[5]=_mm_set_ss(f(r(s.memory,(0x68u+s.gp[0]+s.gp[3]*1u),4)));
 if(s.services.instruction){s.services.instruction(0x136f64u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x5cu+s.gp[0]+s.gp[3]*1u),4)));
-if(s.services.instruction){s.services.instruction(0x136f6au);} s.xmm[1]=_mm_add_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(0x60u+s.gp[0]+s.gp[3]*1u),4))));
+if(s.services.instruction){s.services.instruction(0x136f6au);} s.xmm[1]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[1],_mm_set_ss(f(r(s.memory,(0x60u+s.gp[0]+s.gp[3]*1u),4))));
 if(s.services.instruction){s.services.instruction(0x136f70u);} s.xmm[4]=_mm_set_ss(f(r(s.memory,(0x60u+s.gp[0]+s.gp[3]*1u),4)));
 if(s.services.instruction){s.services.instruction(0x136f76u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x54u+s.gp[0]+s.gp[3]*1u),4)));
-if(s.services.instruction){s.services.instruction(0x136f7cu);} s.xmm[0]=_mm_add_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x58u+s.gp[0]+s.gp[3]*1u),4))));
+if(s.services.instruction){s.services.instruction(0x136f7cu);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[0],_mm_set_ss(f(r(s.memory,(0x58u+s.gp[0]+s.gp[3]*1u),4))));
 if(s.services.instruction){s.services.instruction(0x136f82u);} s.set(0,s.flags.plus(s.reg(0,4,0),s.reg(3,4,0),4),4,0);
-if(s.services.instruction){s.services.instruction(0x136f84u);} s.xmm[2]=_mm_mul_ss(s.xmm[2],s.xmm[3]);
-if(s.services.instruction){s.services.instruction(0x136f88u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[3]);
-if(s.services.instruction){s.services.instruction(0x136f8cu);} s.xmm[5]=_mm_sub_ss(s.xmm[5],s.xmm[2]);
+if(s.services.instruction){s.services.instruction(0x136f84u);} s.xmm[2]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[2],s.xmm[3]);
+if(s.services.instruction){s.services.instruction(0x136f88u);} s.xmm[1]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[1],s.xmm[3]);
+if(s.services.instruction){s.services.instruction(0x136f8cu);} s.xmm[5]=halo2::native_bsp_admission_detail::retained_subtract(s,s.xmm[5],s.xmm[2]);
 if(s.services.instruction){s.services.instruction(0x136f90u);} w(s.memory,s.observe,0x136f90u,(0x48u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[5])));
 if(s.services.instruction){s.services.instruction(0x136f96u);} s.fp.push(ext(f(r(s.memory,(0x48u+s.gp[4]),4))));s.fp.status&=~0x200u;
 if(s.services.instruction){s.services.instruction(0x136f9au);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0x48u+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x136f9eu);} s.xmm[4]=_mm_sub_ss(s.xmm[4],s.xmm[1]);
+if(s.services.instruction){s.services.instruction(0x136f9eu);} s.xmm[4]=halo2::native_bsp_admission_detail::retained_subtract(s,s.xmm[4],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x136fa2u);} w(s.memory,s.observe,0x136fa2u,(0x44u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[4])));
 if(s.services.instruction){s.services.instruction(0x136fa8u);} s.fp.push(ext(f(r(s.memory,(0x44u+s.gp[4]),4))));s.fp.status&=~0x200u;
 if(s.services.instruction){s.services.instruction(0x136facu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(0x44u+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x136fb0u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[3]);
+if(s.services.instruction){s.services.instruction(0x136fb0u);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[0],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x136fb4u);} s.xmm[3]=_mm_set_ss(f(r(s.memory,(0x58u+s.gp[0]),4)));
-if(s.services.instruction){s.services.instruction(0x136fb9u);} s.xmm[3]=_mm_sub_ss(s.xmm[3],s.xmm[0]);
+if(s.services.instruction){s.services.instruction(0x136fb9u);} s.xmm[3]=halo2::native_bsp_admission_detail::retained_subtract(s,s.xmm[3],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x136fbdu);} s.fp.st(1)=add(s.fp.st(1),s.fp.st(0));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x136fbfu);} w(s.memory,s.observe,0x136fbfu,(0x40u+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[3])));
 if(s.services.instruction){s.services.instruction(0x136fc5u);} s.fp.push(ext(f(r(s.memory,(0x40u+s.gp[4]),4))));s.fp.status&=~0x200u;
@@ -3048,13 +3056,13 @@ if(s.services.instruction){s.services.instruction(0x136fdau);} s.fp.st(1)=add(s.
 if(s.services.instruction){s.services.instruction(0x136fdcu);} s.fp.st(0)=root(s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x136fdeu);} if(s.flags.zf)goto L137041;
 if(s.services.instruction){s.services.instruction(0x136fe0u);} s.xmm[3]=_mm_set_ss(f(r(s.memory,(0x2a90u+s.gp[5]),4)));
-if(s.services.instruction){s.services.instruction(0x136fe8u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x2a88u+s.gp[5]),4))));
-if(s.services.instruction){s.services.instruction(0x136ff0u);} s.xmm[3]=_mm_mul_ss(s.xmm[3],s.xmm[2]);
+if(s.services.instruction){s.services.instruction(0x136fe8u);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[0],_mm_set_ss(f(r(s.memory,(0x2a88u+s.gp[5]),4))));
+if(s.services.instruction){s.services.instruction(0x136ff0u);} s.xmm[3]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[3],s.xmm[2]);
 if(s.services.instruction){s.services.instruction(0x136ff4u);} s.xmm[2]=_mm_set_ss(f(r(s.memory,(0x2a8cu+s.gp[5]),4)));
-if(s.services.instruction){s.services.instruction(0x136ffcu);} s.xmm[2]=_mm_mul_ss(s.xmm[2],s.xmm[1]);
-if(s.services.instruction){s.services.instruction(0x137000u);} s.xmm[3]=_mm_add_ss(s.xmm[3],s.xmm[2]);
-if(s.services.instruction){s.services.instruction(0x137004u);} s.xmm[3]=_mm_add_ss(s.xmm[3],s.xmm[0]);
-if(s.services.instruction){s.services.instruction(0x137008u);} s.xmm[3]=_mm_sub_ss(s.xmm[3],_mm_set_ss(f(r(s.memory,(0x2a94u+s.gp[5]),4))));
+if(s.services.instruction){s.services.instruction(0x136ffcu);} s.xmm[2]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[2],s.xmm[1]);
+if(s.services.instruction){s.services.instruction(0x137000u);} s.xmm[3]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[3],s.xmm[2]);
+if(s.services.instruction){s.services.instruction(0x137004u);} s.xmm[3]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[3],s.xmm[0]);
+if(s.services.instruction){s.services.instruction(0x137008u);} s.xmm[3]=halo2::native_bsp_admission_detail::retained_subtract(s,s.xmm[3],_mm_set_ss(f(r(s.memory,(0x2a94u+s.gp[5]),4))));
 if(s.services.instruction){s.services.instruction(0x137010u);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x137013u);} s.set(3,s.flags.logic((s.reg(3,1,0))^(s.reg(3,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0x137015u);} s.flags.scalar_compare(s.xmm[0],s.xmm[3],false);
@@ -3130,7 +3138,7 @@ if(s.services.instruction){s.services.instruction(0x1370ecu);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x1370f3u);} s.set(1,r(s.memory,(0x4u+s.gp[0]),2),4,0);
 if(s.services.instruction){s.services.instruction(0x1370f7u);} s.set(2,r(s.memory,(0x14u+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1370fau);} w(s.memory,s.observe,0x1370fau,(0x0u+s.gp[2]+s.gp[1]*2u),2,0xffffu);
-if(s.services.instruction){s.services.instruction(0x137100u);} w(s.memory,s.observe,0x137100u,(0x4u+s.gp[0]),2,s.flags.increment(r(s.memory,(0x4u+s.gp[0]),2),2,false));
+if(s.services.instruction){s.services.instruction(0x137100u);} halo2::native_bsp_admission_detail::retained_rmw(s,0x137100u,(0x4u+s.gp[0]),2,0u,true);
 L137104: if(s.services.instruction){s.services.instruction(0x137104u);} s.set(1,r(s.memory,(0x98u+s.gp[6]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13710au);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13710cu);} s.flags.logic((s.reg(1,4,0))&(s.reg(1,4,0)),4);
@@ -3192,14 +3200,14 @@ if(s.services.instruction){s.services.instruction(0x1371d0u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x1371d8u);} w(s.memory,s.observe,0x1371d8u,(0x2cu+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1371deu);} if(s.flags.zf)goto L137246;
 if(s.services.instruction){s.services.instruction(0x1371e0u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x2a90u+s.gp[5]),4)));
-if(s.services.instruction){s.services.instruction(0x1371e8u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x8u+s.gp[7]),4))));
+if(s.services.instruction){s.services.instruction(0x1371e8u);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[0],_mm_set_ss(f(r(s.memory,(0x8u+s.gp[7]),4))));
 if(s.services.instruction){s.services.instruction(0x1371edu);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x2a8cu+s.gp[5]),4)));
-if(s.services.instruction){s.services.instruction(0x1371f5u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(0x4u+s.gp[7]),4))));
-if(s.services.instruction){s.services.instruction(0x1371fau);} s.xmm[0]=_mm_add_ss(s.xmm[0],s.xmm[1]);
+if(s.services.instruction){s.services.instruction(0x1371f5u);} s.xmm[1]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[1],_mm_set_ss(f(r(s.memory,(0x4u+s.gp[7]),4))));
+if(s.services.instruction){s.services.instruction(0x1371fau);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[0],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x1371feu);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x0u+s.gp[7]),4)));
-if(s.services.instruction){s.services.instruction(0x137202u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(0x2a88u+s.gp[5]),4))));
-if(s.services.instruction){s.services.instruction(0x13720au);} s.xmm[0]=_mm_add_ss(s.xmm[0],s.xmm[1]);
-if(s.services.instruction){s.services.instruction(0x13720eu);} s.xmm[0]=_mm_sub_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(0x2a94u+s.gp[5]),4))));
+if(s.services.instruction){s.services.instruction(0x137202u);} s.xmm[1]=halo2::native_bsp_admission_detail::retained_multiply(s,s.xmm[1],_mm_set_ss(f(r(s.memory,(0x2a88u+s.gp[5]),4))));
+if(s.services.instruction){s.services.instruction(0x13720au);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_add(s,s.xmm[0],s.xmm[1]);
+if(s.services.instruction){s.services.instruction(0x13720eu);} s.xmm[0]=halo2::native_bsp_admission_detail::retained_subtract(s,s.xmm[0],_mm_set_ss(f(r(s.memory,(0x2a94u+s.gp[5]),4))));
 if(s.services.instruction){s.services.instruction(0x137216u);} s.xmm[1]=_mm_xor_ps(s.xmm[1],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x137219u);} s.set(3,s.flags.logic((s.reg(3,1,0))^(s.reg(3,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0x13721bu);} s.flags.scalar_compare(s.xmm[1],s.xmm[0],false);
@@ -3278,7 +3286,7 @@ if(s.services.instruction){s.services.instruction(0x137300u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x137307u);} s.set(2,r(s.memory,(0x4u+s.gp[0]),2),4,0);
 if(s.services.instruction){s.services.instruction(0x13730bu);} s.set(6,r(s.memory,(0x14u+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13730eu);} w(s.memory,s.observe,0x13730eu,(0x0u+s.gp[6]+s.gp[2]*2u),2,s.reg(1,2,0));
-if(s.services.instruction){s.services.instruction(0x137312u);} w(s.memory,s.observe,0x137312u,(0x4u+s.gp[0]),2,s.flags.increment(r(s.memory,(0x4u+s.gp[0]),2),2,false));
+if(s.services.instruction){s.services.instruction(0x137312u);} halo2::native_bsp_admission_detail::retained_rmw(s,0x137312u,(0x4u+s.gp[0]),2,0u,true);
 if(s.services.instruction){s.services.instruction(0x137316u);} s.set(0,r(s.memory,(0x4f44ecu),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13731bu);} s.set(1,r(s.memory,(0x38u+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13731fu);} w(s.memory,s.observe,0x13731fu,(0x4f44f0u+s.gp[1]*4u),4,s.reg(0,4,0));
@@ -3303,7 +3311,7 @@ if(s.services.instruction){s.services.instruction(0x137353u);} s.flags.minus(s.r
 if(s.services.instruction){s.services.instruction(0x137355u);} if(s.flags.sf!=s.flags.of)goto L137340;
 L137357: if(s.services.instruction){s.services.instruction(0x137357u);} s.set(2,r(s.memory,(0x8u+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13735au);} s.set(6,sign_extend(s.reg(7,2,0),2),4,0);
-if(s.services.instruction){s.services.instruction(0x13735du);} s.set(6,s.flags.shift(s.reg(6,4,0),0x1u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x13735du);} halo2::native_bsp_admission_detail::retained_double(s);
 if(s.services.instruction){s.services.instruction(0x13735fu);} s.flags.logic((r(s.memory,(0x1u+s.gp[6]+s.gp[2]*1u),1))&(0x8u),1);
 if(s.services.instruction){s.services.instruction(0x137364u);} if(!s.flags.zf)goto L13738d;
 if(s.services.instruction){s.services.instruction(0x137366u);} s.set(0,r(s.memory,(0x14u+s.gp[1]),4),4,0);
@@ -3315,8 +3323,8 @@ if(s.services.instruction){s.services.instruction(0x137376u);} s.set(2,(0x298u+s
 if(s.services.instruction){s.services.instruction(0x13737du);} s.set(0,(0x0u+s.gp[5]+s.gp[2]*4u),4,0);
 if(s.services.instruction){s.services.instruction(0x137381u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0x1fu),4),4,0);
 if(s.services.instruction){s.services.instruction(0x137384u);} s.set(2,0x1u,4,0);
-if(s.services.instruction){s.services.instruction(0x137389u);} s.set(2,s.flags.shift(s.reg(2,4,0),s.reg(1,1,0),4),4,0);
-if(s.services.instruction){s.services.instruction(0x13738bu);} w(s.memory,s.observe,0x13738bu,(0x0u+s.gp[0]),4,s.flags.logic((r(s.memory,(0x0u+s.gp[0]),4))|(s.reg(2,4,0)),4));
+if(s.services.instruction){s.services.instruction(0x137389u);} halo2::native_bsp_admission_detail::retained_association_bit(s);
+if(s.services.instruction){s.services.instruction(0x13738bu);} halo2::native_bsp_admission_detail::retained_rmw(s,0x13738bu,(0x0u+s.gp[0]),4,s.reg(2,4,0),false);
 L13738d: if(s.services.instruction){s.services.instruction(0x13738du);} s.set(0,r(s.memory,(0x18u+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x137391u);} s.set(1,sign_extend(r(s.memory,(0x0u+s.gp[0]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x137394u);} s.set(7,r(s.memory,(0x4c67acu),4),4,0);
@@ -3326,7 +3334,7 @@ if(s.services.instruction){s.services.instruction(0x1373a1u);} if(s.flags.zf)got
 if(s.services.instruction){s.services.instruction(0x1373a3u);} s.set(1,r(s.memory,(0x18u+s.gp[5]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1373a6u);} s.set(2,r(s.memory,(0x8u+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1373a9u);} s.set(6,s.flags.plus(s.reg(6,4,0),s.reg(2,4,0),4),4,0);
-if(s.services.instruction){s.services.instruction(0x1373abu);} w(s.memory,s.observe,0x1373abu,(0x1u+s.gp[6]),1,s.flags.logic((r(s.memory,(0x1u+s.gp[6]),1))|(0x4u),1));
+if(s.services.instruction){s.services.instruction(0x1373abu);} halo2::native_bsp_admission_detail::retained_rmw(s,0x1373abu,(0x1u+s.gp[6]),1,4u,false);
 L1373af: if(s.services.instruction){s.services.instruction(0x1373afu);} s.set(0,r(s.memory,(0x1cu+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1373b3u);} s.set(1,r(s.memory,(0x20u+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1373b7u);} s.set(2,r(s.memory,(0x98u+s.gp[1]),4),4,0);
@@ -4562,10 +4570,11 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_17de60(WorldState &s) {
+    if(halo2::native_particle_type_filter_owner_detail::bridge<false>(s,[](auto& child){run_bcdf0(child);}))return;
 if(s.services.instruction){s.services.instruction(0x17de60u);} s.set(1,r(s.memory,(0x4f720cu),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17de66u);} s.set(2,r(s.memory,(0x44u+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17de69u);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
-if(s.services.instruction){s.services.instruction(0x17de6eu);} s.set(0,s.flags.product(s.reg(0,4,0),0x190u),4,0);
+if(s.services.instruction){s.services.instruction(0x17de6eu);} s.set(0,halo2::native_particle_type_filter_detail::multiply_row<true>(s,0x190u),4,0);
 if(s.services.instruction){s.services.instruction(0x17de74u);} s.set(0,r(s.memory,(0x48u+s.gp[0]+s.gp[2]*1u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17de78u);} s.push(0x17de78u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x17de79u);} s.push(0x17de79u,0x3u);
@@ -4580,7 +4589,7 @@ if(s.services.instruction){s.services.instruction(0x17de91u);} s.set(1,r(s.memor
 if(s.services.instruction){s.services.instruction(0x17de97u);} s.set(2,r(s.memory,(0x44u+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17de9au);} s.set(1,r(s.memory,(0x8u+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17de9eu);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
-if(s.services.instruction){s.services.instruction(0x17dea3u);} s.set(0,s.flags.product(s.reg(0,4,0),0x21cu),4,0);
+if(s.services.instruction){s.services.instruction(0x17dea3u);} s.set(0,halo2::native_particle_type_filter_detail::multiply_row<true>(s,0x21cu),4,0);
 if(s.services.instruction){s.services.instruction(0x17dea9u);} s.set(0,sign_extend(r(s.memory,(0x28u+s.gp[0]+s.gp[2]*1u),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x17deaeu);} s.flags.minus(s.reg(0,4,0),s.reg(1,4,0),4);
 if(s.services.instruction){s.services.instruction(0x17deb0u);} s.set(0,s.flags.zf,1,0);
@@ -5024,6 +5033,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_252ec0(WorldState &s) {
+    if(halo2::native_particle_envelope_owner_detail::bridge<false>(s))return;
 if(s.services.instruction){s.services.instruction(0x252ec0u);} s.set(1,r(s.memory,(0x51df50u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x252ec6u);} s.flags.logic((s.reg(1,4,0))&(s.reg(1,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x252ec8u);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);

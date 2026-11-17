@@ -1,4 +1,5 @@
 #include "halo2/source_workshop_script_actions.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <array>
@@ -45,8 +46,8 @@ void source_ai_force_active(PhysicsLiveWorldTu15 &world,std::uint32_t reference,
 }
 void source_unit_set_enterable_by_player(PhysicsLiveWorldTu15 &world,std::uint32_t unit,bool enabled) {
     if(unit!=0xffffffffu)(void)world.source_object_body(unit);
-    auto abi=world.prepare_source_call(std::array{std::uint32_t(enabled)});
-    abi.gp[0]=unit;world.run_actual(0x11db00,abi);
+    auto bank=native_campaign_script_bank(world);
+    native_campaign_script_tu15::unit_set_enterable_by_player(bank,unit,std::uint8_t(enabled)); // native 11DB00
 }
 void source_object_cannot_die(PhysicsLiveWorldTu15 &world,std::uint32_t object,bool enabled) {
     if(object==0xffffffffu)return;

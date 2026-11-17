@@ -6,17 +6,27 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
+#include <stdexcept>
+#include <string>
 
 namespace halo2 {
 namespace {
 struct Metadata {
   explicit Metadata(SourceTagMetadata payload)
-      : owned(std::move(payload)), bytes(owned.bytes_at(owned.source_address(),owned.size())) {}
-  SourceTagMetadata owned;
+      : owned(std::move(payload)),datum(owned->datum()),address(owned->source_address()),group(owned->group()),
+        bytes(owned->bytes_at(address,owned->size())) {}
+  // Borrowed resident payload: the same cache bytes, read in place.
+  Metadata(std::uint32_t datum,std::uint32_t address,std::string group,std::span<const std::byte> payload)
+      : datum(datum),address(address),group(std::move(group)),bytes(payload) {}
+  Metadata(const Metadata&)=delete;Metadata &operator=(const Metadata&)=delete;
+  std::optional<SourceTagMetadata> owned;
+  std::uint32_t datum,address;
+  std::string group;
   Bytes bytes;
-  std::size_t pointer(std::uint32_t address,std::size_t extent) const {
-    if(address<owned.source_address())throw FormatError("source geometry pointer precedes metadata");
-    const auto at=std::size_t(address-owned.source_address());bytes.require(at,extent);return at;
+  std::size_t pointer(std::uint32_t pointer_address,std::size_t extent) const {
+    if(pointer_address<address)throw FormatError("source geometry pointer precedes metadata");
+    const auto at=std::size_t(pointer_address-address);bytes.require(at,extent);return at;
   }
   std::pair<unsigned,std::size_t> block(std::size_t at,unsigned stride,unsigned limit) const {
     const auto count=bytes.u32(at);
@@ -61,6 +71,24 @@ SourceTagMetadata Cache::load_source_bsp_metadata(std::size_t index) const {
     throw FormatError("source BSP metadata mapping unavailable");
   return {bsp.datum,"sbsp",bsp.memory_address,Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size)};
 }
+namespace {
+// Cache::load_source_bsp_metadata copies the whole resident sbsp payload
+// (megabytes) into an owned vector. Owner and section rows are read once,
+// immediately, so a view of the same cache bytes yields identical values and
+// errors. Per-frame owner validation and light/shadow palettes call this for
+// every BSP instance draw; the copy dominated campaign main-thread time.
+Metadata resident_bsp_metadata(const Cache &cache,std::size_t index) {
+  if(index>=cache.bsps().size())throw FormatError("source BSP metadata index outside scenario");
+  const auto &bsp=cache.bsps()[index];
+  if(bsp.size<16 || !bsp.memory_address || bsp.datum==0xffffffffu)
+    throw FormatError("source BSP metadata mapping unavailable");
+  const auto payload=Bytes(cache.source_runtime_cache_bytes()).slice(bsp.file_offset,bsp.size);
+  // SourceTagMetadata's own admission (address nonzero and payload nonempty hold above).
+  if(std::uint64_t(bsp.memory_address)+payload.size()>(std::uint64_t{1}<<32))
+    throw std::invalid_argument("Invalid resident source tag payload");
+  return Metadata(bsp.datum,bsp.memory_address,"sbsp",payload);
+}
+}
 
 class MenuWorldSourceSectionBuilder {
 public:
@@ -70,7 +98,7 @@ public:
       bool mcc_model=false,unsigned model_nodes=0) {
     const bool model=kind==MenuWorldSourceSectionKind::render_model;
     const Bytes &meta=m.bytes;const Bytes b(raw);MenuWorldSourceSection out;
-    out.kind_=kind;out.owner_datum_=m.owned.datum();out.section_=ordinal;
+    out.kind_=kind;out.owner_datum_=m.datum;out.section_=ordinal;
     out.vertex_count_=meta.u16(at+(model?4:0));if(model)out.model_geometry_class_=meta.u16(at);
     if(!out.vertex_count_ || (model && (*out.model_geometry_class_<1 || *out.model_geometry_class_>3)))
       throw FormatError("source world geometry requires nonempty BSP or model class1..3 section");
@@ -250,7 +278,7 @@ MenuWorldSourceSection load_menu_world_source_bsp_section(const Cache &cache,std
     MenuWorldSourceSectionKind kind,unsigned section) {
   if(kind!=MenuWorldSourceSectionKind::bsp_cluster && kind!=MenuWorldSourceSectionKind::bsp_instance_definition)
     throw FormatError("source BSP section kind is not a BSP allocation");
-  const Metadata m(cache.load_source_bsp_metadata(bsp));
+  const Metadata m(resident_bsp_metadata(cache,bsp));
   const auto [clusters,cp]=m.block(16+156,176,2048);
   const auto [instances,ip]=m.block(16+312,200,2048);
   const bool instance=kind==MenuWorldSourceSectionKind::bsp_instance_definition;
@@ -264,7 +292,7 @@ MenuWorldSourceSection load_menu_world_source_bsp_section(const Cache &cache,std
 }
 MenuWorldSourceSection load_menu_world_source_model_section(const Cache &cache,std::uint32_t datum,unsigned section) {
   const Metadata m(cache.load_source_tag_metadata(datum));
-  if(m.owned.group()!="mode")throw FormatError("source model geometry requires actual mode datum");
+  if(m.group!="mode")throw FormatError("source model geometry requires actual mode datum");
   const auto [sections,sp]=m.block(0x24,0x5c,512);
   if(section>=sections)throw FormatError("source model section outside authored bank");
   const auto [materials,mp]=m.block(0x60,32,65535);
@@ -276,10 +304,10 @@ MenuWorldSourceSection load_menu_world_source_model_section(const Cache &cache,s
       false,cache.is_mcc(),m.bytes.u32(0x48));
 }
 MenuWorldSourceBspOwner load_menu_world_source_bsp_owner(const Cache &cache,std::size_t bsp,unsigned instance) {
-  const Metadata m(cache.load_source_bsp_metadata(bsp));const auto [count,p]=m.block(16+320,88,2048);
+  const Metadata m(resident_bsp_metadata(cache,bsp));const auto [count,p]=m.block(16+320,88,2048);
   if(instance>=count)throw FormatError("source BSP owner outside instance bank");
   const auto at=p+instance*88;MenuWorldSourceBspOwner out;
-  out.bsp_datum=m.owned.datum();out.instance=instance;out.section=m.bytes.u16(at+52);out.separate_scale=m.bytes.f32(at);
+  out.bsp_datum=m.datum;out.instance=instance;out.section=m.bytes.u16(at+52);out.separate_scale=m.bytes.f32(at);
   const auto [sections,unused]=m.block(16+312,200,2048);(void)unused;
   if(out.section>=sections)throw FormatError("source BSP owner section outside definition bank");
   for(unsigned row=0;row<3;++row)for(unsigned column=0;column<4;++column)

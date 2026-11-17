@@ -10,7 +10,12 @@ struct MenuBloom {
 // Original 214F0/211A0/20F30 title path (no layer-17 HDR accumulation).
 // Cinematic defaults from 22590/13870 give strength 0.375. The menu's
 // rasterizer_bloom_override_threshold service supplies threshold 0.3.
-MenuBloom menu_bloom(float threshold,float strength=.375f);
+// mask selects the 492294 branch of 214D0: once the frame has submitted source
+// layer 17, 44360 clears target alpha and that layer writes an alpha-only glow
+// mask. The threshold program then keeps the averaged mask in alpha (.25 x),
+// every blur pass scales it by 1.4, and the composite adds twice the blurred
+// mask to the blurred colour before the screen blend.
+MenuBloom menu_bloom(float threshold,float strength=.375f,bool mask=false);
 // TU1.5 214D0 reads these fields only while interface+5 is true. -1 is
 // the original per-field sentinel, not an ordinary threshold/strength.
 struct CinematicBloomOverride {
@@ -25,5 +30,5 @@ CinematicBloomParameters cinematic_bloom_parameters(float threshold,float streng
 // Complete authored blur schedule and original screen/additive blend selector.
 // Retains the menu recipe when no cinematic override is active.
 MenuBloom cinematic_bloom(float threshold,float strength,bool cinematic,
-    const CinematicBloomOverride &);
+    const CinematicBloomOverride &,bool mask=false);
 }

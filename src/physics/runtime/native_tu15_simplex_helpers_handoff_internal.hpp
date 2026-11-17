@@ -4,10 +4,13 @@
 #if defined(HALO2_NATIVE_SIMPLEX_TRIANGLE_SOURCE_OWNER)
 #include "physics/runtime/native_tu15_simplex_triangle_abi.hpp"
 #endif
+#if defined(HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER)
+#include "physics/runtime/native_tu15_closest_segments_source_owner.hpp"
+#endif
 namespace halo2::physics_world_runtime_detail {
 // Invoke only after one of the five genuine solver helper calls has pushed its
-// authenticated return. A qualified whole triangle owner must enter through
-// its real run_309900 body, preserving owner accounting and complete returned
+// authenticated return. Qualified whole triangle/segment owners enter through
+// their real generated bodies, preserving accounting and complete returned
 // state. The residual scalar handoff publishes only EAX/FP/DATA.
 template<class SolverState>
 inline bool handoff_native_simplex_helpers(SolverState&s,std::uint32_t target,
@@ -24,6 +27,9 @@ inline bool handoff_native_simplex_helpers(SolverState&s,std::uint32_t target,
         }
         ++native_simplex_triangle_detail::activity().legacy_handoff_fallbacks;
     }
+#endif
+#if defined(HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER)
+    if(native_closest_segments_owner_detail::defer_world_owner(s,target,tu15_instruction))return false;
 #endif
     auto actual=s.save();
     try{

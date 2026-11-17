@@ -86,7 +86,9 @@ def run_step(command, log, *, env=None):
     with log.open('w+b') as stream:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         try:
-            while data := process.stdout.read(65536):
+            # Drain available CTest output without waiting for the pipe to
+            # fill. Long runs must retain completed-test lines on interruption.
+            while data := process.stdout.read1(65536):
                 stream.write(data)
                 if stream.tell() > 2 * LOG_LIMIT:
                     stream.seek(-LOG_LIMIT, os.SEEK_END)

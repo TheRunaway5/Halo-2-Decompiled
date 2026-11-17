@@ -128,7 +128,8 @@ struct Reader {
 };
 }
 std::vector<Vertex> source_live_model_collector_vertices_tu15(PhysicsLiveWorldTu15& world,
-    const SourceObjectDrawCollector& collector,unsigned ordinal,const RenderModel& model) {
+    const SourceObjectDrawCollector& collector,unsigned ordinal,const RenderModel& model,
+    std::span<const Transform> presented_nodes) {
     const Bytes c(collector.bytes);const auto count=std::bit_cast<std::int16_t>(c.u16(0x166u));
     if(count<0 || count>5 || ordinal>=unsigned(count) || c.u16(0x168u)>=6 ||
         std::to_integer<unsigned>(c.slice(0x16cu,1).front()))
@@ -136,6 +137,18 @@ std::vector<Vertex> source_live_model_collector_vertices_tu15(PhysicsLiveWorldTu
     const auto regions=c.u32(0x18u+ordinal*4u);
     if(regions>16 || model.skin.size()!=model.mesh.vertices.size())
         throw FormatError("Secondary native palette lost its prepared region/skin bank");
+    if(!presented_nodes.empty()) {
+        // The primary draw already sampled this complete WORLD hierarchy.
+        // Retain the native collector's current sections/LOD, but materialize
+        // them from that same bank so secondary rays see the presented pose.
+        std::vector<unsigned> sections;
+        for(unsigned region=0;region<regions;++region) {
+            const auto section=std::to_integer<unsigned>(c.slice(0x75u+ordinal*16u+region,1).front());
+            if(section!=255)sections.push_back(section);
+        }
+        return source_live_model_selected_vertices_tu15(c.u32(0x34u+ordinal*4u),c.u16(0x168u),
+            model,presented_nodes,sections);
+    }
     const Reader r{world.memory()};std::vector<Vertex> result;
     for(unsigned region=0;region<regions;++region) {
         const auto section=std::to_integer<unsigned>(c.slice(0x75u+ordinal*16u+region,1).front());
@@ -396,7 +409,8 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     return out;
 }
 std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
-    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceModelCommandGeometry& geometry) {
+    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceModelCommandGeometry& geometry,
+    std::span<const std::array<float,12>> presented_palette) {
     if(unit.words[7]) {
         const Reader r{world.memory()};const auto t=r.get<Transform>(unit.words[7]);
         return {{{t.basis[0].x,t.basis[1].x,t.basis[2].x,t.position.x,
@@ -409,12 +423,38 @@ std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
     const auto selected=geometry.palette.regions[region];
     auto first=std::int32_t(std::bit_cast<std::int16_t>(selected.first));
     unsigned count=selected.count;
+    bool rigid_ordinal=false;
     if((unit.words[3]&0xe0000000u)==0x20000000u && geometry.rigid_node!=-1) {
-        if(count!=1u)first=geometry.rigid_node;
+        if(count!=1u) {
+            first=geometry.rigid_node;
+            rigid_ordinal=true;
+        }
         count=1;
     }
     if(first<0 || !count || count>40u || std::size_t(first)+count>geometry.palette.matrices.size())
         throw FormatError("live model c50 upload escapes its produced palette");
+    if(!presented_palette.empty()) {
+        // The source unit still owns c50 range selection. Translate its compact
+        // resident rows back to logical node indices before using the render pose.
+        std::span<const std::byte> node_map;
+        if(!rigid_ordinal && first>=geometry.palette.base_count) {
+            const Reader r{world.memory()};
+            const auto resident=r.word(r.section(r.model(unit),unit)+0x34u);
+            const auto nodes=r.word(resident+0x64u),map=r.word(resident+0x68u);
+            if(!map || nodes!=selected.count)
+                throw FormatError("presented model c50 range lost its resident node map");
+            node_map=r.memory.view(map,nodes);
+        }
+        std::vector<std::array<float,12>> rows;
+        rows.reserve(count);
+        for(unsigned n=0;n<count;++n) {
+            const auto node=node_map.empty()?unsigned(first)+n:std::to_integer<unsigned>(node_map[n]);
+            if(node>=presented_palette.size())
+                throw FormatError("presented model c50 node escapes the completed render pose");
+            rows.push_back(presented_palette[node]);
+        }
+        return rows;
+    }
     return {geometry.palette.matrices.begin()+first,geometry.palette.matrices.begin()+first+count};
 }
 }

@@ -31,6 +31,9 @@ struct SourceCampaignViewInputTu15 {
     std::array<std::int16_t,4> viewport;
     float distance_scale{},coverage_multiplier{};
     bool view_modifier{};
+    // The viewport's height in the original 640x480 layout. Shader coverage
+    // saturates in physical pixels; zero keeps the literal physical height.
+    std::int32_t source_shader_height{};
     // A render frame resets visibility/cache storage once; each admitted view
     // still gets its own original22830 reset. Secondary then ordinary views
     // retain the same frame arena and union visibility bank.

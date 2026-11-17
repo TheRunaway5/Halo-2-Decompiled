@@ -6,6 +6,19 @@
 #include <set>
 
 namespace halo2 {
+SourceBspShaderLodInputs SourceBspShaderView::shader_lod_inputs(bool auxiliary_present,
+    bool auxiliary_byte5) const {
+    auto coverage=source_shader_coverage_camera(camera);
+    if(!source_lod_height || source_lod_height==int(outer_bottom)-int(outer_top))
+        return {coverage,source_shader_lod_view(outer_top,outer_bottom,auxiliary_present,auxiliary_byte5)};
+
+    // 2FD90 multiplies the vertical projection by the submitting view
+    // height before halving it. Use the Xbox layout before the collector
+    // packs coverage into a byte, where a larger target can saturate it.
+    coverage.viewport_height_metric=(camera.projection[5]*float(source_lod_height))*.5f;
+    return {coverage,source_shader_lod_view(0,source_lod_height,auxiliary_present,auxiliary_byte5)};
+}
+
 std::set<std::pair<int,unsigned>> source_bsp_broken_parts(const SourceTransparentBspParts& parts,
     std::span<const std::byte> visibility,std::size_t bsp) {
     std::set<std::pair<int,unsigned>> hidden;
@@ -70,8 +83,7 @@ SourceBspShaderScene::SourceBspShaderScene(const Cache &cache,Mesh &mesh,std::si
 std::vector<SourceBspShaderPart> SourceBspShaderScene::select(
     std::vector<Vertex> &vertices,const SourceBspShaderView &view) const {
     const auto broken=source_bsp_broken_parts(parts_,view.breakable_visibility,bsp_index_);
-    const auto camera=source_shader_coverage_camera(view.camera);
-    const auto shader_view=source_shader_lod_view(view.outer_top,view.outer_bottom,false,false);
+    const auto [camera,shader_view]=view.shader_lod_inputs();
     const auto multiplier=view.detail_multiplier.value_or(source_shader_lod_player_multiplier(view.local_players));
     std::vector<SourceBspShaderPart> result;
     struct Binding {unsigned material;std::uint8_t alpha;std::uint8_t stipple_level{};};

@@ -332,6 +332,10 @@ void source_run_physics_game_arena_runtime(M &m,std::uint32_t entry,
     from native_async_insert_replacements import install_native_async_insert
     generated=install_native_async_order(preamble+'\n\n'.join(bodies)+ending)
     generated=install_native_async_insert(generated)
+    from native_arena_initialize_replacements import replace_arena_initialize
+    generated=replace_arena_initialize(generated)
+    from native_arena_world_initialize_replacements import replace_arena_world_initialize
+    generated=replace_arena_world_initialize(generated)
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(generated)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),

@@ -436,6 +436,37 @@ void model_lower_lods(const std::filesystem::path &disc,const std::filesystem::p
 
 int main(int argc, char **argv) {
   try {
+    if(argc>1 && std::string(argv[1])=="--mcc-powerup") {
+      if(argc!=3 || std::string(argv[2]).empty())return 77;
+      const Cache cache(argv[2]);
+      const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto &value) {
+        return value.group=="shad" && value.name=="objects\\powerups\\over_shield\\shaders\\over_shield";
+      });
+      check(tag!=cache.tags().end(),"MCC overshield material missing");
+      const auto authored=cache.load_material(tag->datum);
+      check(cache.is_mcc() && !authored.lods.empty(),"MCC overshield has no authored LOD bank");
+      std::cout<<std::unitbuf<<"Overshield template: "<<authored.template_name<<'\n';
+      for(const auto &gap:authored.rendering_gaps)std::cout<<"gap "<<gap<<'\n';
+      for(const auto &pass:authored.passes) {
+        std::cout<<"pass "<<pass.template_pass<<" implementation "<<pass.implementation<<" "<<pass.name
+                 <<" vertex "<<pass.vertex_shader<<'\n';
+        for(const auto &r:pass.vertex_externs)std::cout<<"vertex extern "<<unsigned(r.source)<<" "<<r.destination<<" "<<unsigned(r.component)<<'\n';
+        for(const auto &r:pass.pixel_externs)std::cout<<"pixel extern "<<unsigned(r.source)<<" "<<r.destination<<" "<<unsigned(r.component)<<'\n';
+      }
+      for(unsigned lod=0;lod<authored.lods.size();++lod) {
+        auto original=authored;original.selected_shader_lod=lod;auto emitted=original;
+        check(prepare_dynamic_material(cache,emitted,{},true),"MCC overshield pickup material rejected at LOD "+std::to_string(lod));
+        exact_pass(emitted,original,15,0);
+        std::map<TextureKey,Texture> resident;
+        exact_textures(cache,original,emitted,original.passes.at(emitted.forward_pass_index),resident);
+        check(emitted.rendering_gaps.empty(),"MCC overshield retained unresolved source inputs");
+        auto unresolved=original;
+        unresolved.passes.at(emitted.forward_pass_index).vertex_externs.push_back({0,0,255});
+        check(!prepare_dynamic_material(cache,unresolved,{},true),"MCC overshield admitted an unresolved extern");
+      }
+      std::cout<<"MCC overshield: all authored LODs, exact programs/constants/textures/samplers/raster; unknown extern rejected\n";
+      return 0;
+    }
     if(argc>1 && std::string(argv[1])=="--campaign-late") {
       const auto directory=argc>2?std::filesystem::path(argv[2]):std::filesystem::path("assets/disc/maps");
       const Cache cache(directory/"01b_spacestation.map");

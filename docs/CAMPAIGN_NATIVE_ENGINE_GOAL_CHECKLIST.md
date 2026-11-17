@@ -338,6 +338,15 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   caller GP/arithmetic-flags retirement and original operand limits. The
   generated body, full speech/facial/playback chain, forty-owner campaign
   audio gate and audio launcher acceptance remain open.
+- [x] **K118 native HS builtins, batch 1 (2026-11-11):** 38 previously
+  unhandled or seed-divergent campaign builtins: object, device, unit, list,
+  physics-global, player-effect, PVS, GC, interpolator, random and save
+  variants. Each runs as a native evaluator-tail kernel over the live world.
+  Type-18 device-group arguments resolve through a native 10C180. Results:
+  2,672 physical original cases, 5,344 comparisons, nine rejected mutations. `random_range` now shares the original `*[0x4F3CD8]` seed with
+  `begin_random`. Unhandled campaign builtins drop from 175 to 130; 85 of the
+  remainder are AI/command scripts. See the
+  [inventory, proof and next targets](CAMPAIGN_SCRIPT_BUILTINS_NATIVE.md).
 
 ### October 30 presentation follow-up
 

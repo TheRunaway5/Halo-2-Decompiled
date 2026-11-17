@@ -2,7 +2,7 @@
 // Complete TU1.5 1E1200 owner. Math remains with its actual native callees.
 void marker_emission(Memory &m,Abi &a,const Observer &o,const Services &s) {
     bool sse_active{};std::optional<SseEnvironment> environment;
-    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction)s.instruction(pc);};
+    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};
     IteratorRegisters r{a.gp,a.eflags};
     const auto signed_less=[&]{return bool(a.eflags&128u)!=bool(a.eflags&2048u);};
     const auto increment=[&](std::uint32_t value){const auto carry=a.eflags&1u;const auto result=iterator_flags(r,value,1,4,false);a.eflags=(a.eflags&~1u)|carry;return result;};

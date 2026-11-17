@@ -50,7 +50,9 @@ enum class MenuWorldFragmentWindow { unspecified, inclusive, exclusive };
 enum class MenuWorldFragmentColors { unspecified, front, back_or_two_sided };
 enum class MenuWorldFragmentPrimitive { unspecified, ordinary_triangles, other };
 enum class MenuWorldTextureCoordinates { unspecified, normalized, pixel };
-enum class MenuWorldTextureSemantics { unspecified, ordinary_rgba, other };
+// shadow_depth: a light shadow buffer whose fetch is the original hardware
+// depth comparison (texel coordinates, D24 reference in the third lane).
+enum class MenuWorldTextureSemantics { unspecified, ordinary_rgba, other, shadow_depth };
 struct MenuWorldFragmentTexture {
   const Texture *image{};
   MenuWorldTextureCoordinates coordinates=MenuWorldTextureCoordinates::unspecified;

@@ -420,11 +420,21 @@ std::uint32_t shader_function_color(std::span<const std::byte> bytes,
   return 0xffffffffu;
 }
 
+ObjectFunctionBuiltins ObjectFunctionBuiltins::from_cache(const Cache &cache) {
+  ObjectFunctionBuiltins result;
+  if (cache.is_mcc())
+    result = {0x030005b2u, 0x040005b3u};
+  if (cache.string_id(result.one) != "one" || cache.string_id(result.zero) != "zero")
+    throw FormatError("Object function builtin differs from its authored cache symbol identity");
+  return result;
+}
+
 FunctionValue
 evaluate_object_function(std::span<const ObjectFunction> functions,
                          const ShaderFunctionTables &tables, std::uint32_t name,
                          float seconds, const ObjectFunctionInput &input,
-                         const ObjectFunctionHandler &handler,bool original_builtin_constants) {
+                         const ObjectFunctionHandler &handler,bool original_builtin_constants,
+                         ObjectFunctionBuiltins builtins) {
   std::set<std::uint32_t> pending;
   std::function<FunctionValue(std::uint32_t)> eval =
       [&](std::uint32_t id) -> FunctionValue {
@@ -433,9 +443,9 @@ evaluate_object_function(std::span<const ObjectFunction> functions,
         return {finite(*v), true};
     if(handler)
       if(const auto value=handler(id))return {finite(value->value),value->enabled};
-    if (!id || (original_builtin_constants && id == 0x030005a6))
+    if (!id || (original_builtin_constants && id == builtins.one))
       return {1, true};
-    if (original_builtin_constants && id == 0x040005a7)
+    if (original_builtin_constants && id == builtins.zero)
       return {};
     if (!pending.insert(id).second)
       throw FormatError("cyclic object shader function");
@@ -445,7 +455,7 @@ evaluate_object_function(std::span<const ObjectFunction> functions,
         const bool implicit = !(f.flags & 2);
         // Retail 108D90's built-in one/zero inputs; authored output functions
         // are resolved by BAB40, not recursively used as input handlers.
-        float v = (!f.input || (original_builtin_constants && f.input == 0x030005a6)) ? 1.f : 0.f;
+        float v = (!f.input || (original_builtin_constants && f.input == builtins.one)) ? 1.f : 0.f;
         bool enabled = v != 0;
         if (input)
           if (const auto override = input(f.input)) {

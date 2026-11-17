@@ -3,9 +3,8 @@
 #include <bit>
 #include <cmath>
 namespace halo2::pstencil {
-std::optional<NativeIncident> native_incident_tu15(PhysicsLiveWorldTu15& world,
-    std::uint32_t object,float metric) {
-    if(!std::isfinite(metric))throw FormatError("pStencil native incident requires a finite native lighting metric");
+bool native_lightmap_shadow_eligible_tu15(PhysicsLiveWorldTu15& world,
+    std::uint32_t object) {
     const auto& memory=world.memory();
     const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
     const auto half=[&](std::uint32_t p){return Bytes(memory.view(p,2)).u16(0);};
@@ -13,7 +12,14 @@ std::optional<NativeIncident> native_incident_tu15(PhysicsLiveWorldTu15& world,
     const auto definition=word(body),row=word(0x4f0414u)+(definition&65535u)*16u;
     if(word(row+4)!=definition)throw FormatError("pStencil distant caster lost its complete definition");
     const auto type=half(word(row+8));
-    if(type!=0 && type!=1)return {}; // Actual2003 eligibility families.
+    return type==0 || type==1; // Actual2003 001C60D0, layer 6 only.
+}
+std::optional<NativeIncident> native_incident_tu15(PhysicsLiveWorldTu15& world,
+    std::uint32_t object,float metric) {
+    if(!std::isfinite(metric))throw FormatError("pStencil native incident requires a finite native lighting metric");
+    if(!native_lightmap_shadow_eligible_tu15(world,object))return {};
+    const auto& memory=world.memory();
+    const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
     std::set<std::uint32_t> seen;
     auto owner=object;
     for(;;) {

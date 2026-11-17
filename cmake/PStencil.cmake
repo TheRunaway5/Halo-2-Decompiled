@@ -22,13 +22,18 @@ foreach(stage vert frag)
         DEPENDS shaders/pstencil/${program}.${stage} shaders/world_depth_fragment.glsl shaders/source_stipple.glsl VERBATIM)
 endforeach()
 endforeach()
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.geom.spv
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil
+    COMMAND ${GLSLANG_VALIDATOR} -V ${PROJECT_SOURCE_DIR}/shaders/pstencil/volume.geom
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.geom.spv
+    DEPENDS shaders/pstencil/volume.geom VERBATIM)
 foreach(program light_utility dependent_light normal_accumulation normal_light_utility texture_accumulation)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/${program}.frag.spv
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil
         COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
             ${PROJECT_SOURCE_DIR}/shaders/pstencil/${program}.frag
             -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/${program}.frag.spv
-        DEPENDS shaders/pstencil/${program}.frag shaders/pstencil/light_surface.glsl
+        DEPENDS shaders/pstencil/${program}.frag shaders/pstencil/light_surface.glsl shaders/source_alpha_test.glsl
             shaders/combiner.glsl shaders/texture_program.glsl shaders/world_combiner_specialization.glsl
             shaders/world_depth_fragment.glsl shaders/source_stipple.glsl
             shaders/pstencil/texture_accumulation_2003_program.glsl VERBATIM)
@@ -49,6 +54,7 @@ add_custom_target(pstencil_shaders DEPENDS
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/normal_light_utility.vert.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/normal_light_utility.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.geom.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/lightmap.vert.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/lightmap.frag.spv
@@ -68,6 +74,80 @@ target_link_libraries(halo2_renderer PUBLIC halo2_pstencil_render)
 set(PSTENCIL_2003_BUILD "" CACHE PATH "Local May 2003 Halo 2 build for original-code comparisons")
 set(PSTENCIL_REFERENCE_PYTHON "${Python3_EXECUTABLE}" CACHE FILEPATH "Python with Unicorn for the optional pStencil original-code test")
 if(BUILD_TESTING)
+    include(${CMAKE_CURRENT_LIST_DIR}/PStencilVolumeDepthTest.cmake)
+    add_executable(pstencil_elite_light_response_2003_tests tests/pstencil/elite_light_response_2003_tests.cpp)
+    target_link_libraries(pstencil_elite_light_response_2003_tests PRIVATE halo2_pstencil)
+    add_test(NAME pstencil_elite_reference_response COMMAND pstencil_elite_light_response_2003_tests
+        ${PROJECT_SOURCE_DIR}/analysis/pstencil/elite-response-audit/original-utility-programs.json
+        ${PROJECT_SOURCE_DIR}/analysis/pstencil/elite-light-response-20261110/reference-materials.json)
+    add_executable(pstencil_elite_native_kernels_gpu_tests tests/pstencil/elite_native_kernels_gpu_tests.cpp)
+    target_link_libraries(pstencil_elite_native_kernels_gpu_tests PRIVATE halo2_pstencil Vulkan::Vulkan)
+    add_test(NAME pstencil_elite_native_kernels COMMAND ${Python3_EXECUTABLE}
+        ${PROJECT_SOURCE_DIR}/tests/pstencil/elite_native_kernels_2003_tests.py
+        $<TARGET_FILE:pstencil_elite_native_kernels_gpu_tests>)
+    set_tests_properties(pstencil_elite_native_kernels PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE)
+    add_executable(pstencil_elite_material_bank_2003_tests tests/pstencil/elite_material_bank_2003_tests.cpp)
+    target_link_libraries(pstencil_elite_material_bank_2003_tests PRIVATE halo2_cache)
+    add_executable(pstencil_actor_material_bank_2003_tests tests/pstencil/actor_material_bank_2003_tests.cpp)
+    target_link_libraries(pstencil_actor_material_bank_2003_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    set(PSTENCIL_ACTOR_MCC_MAPS "" CACHE PATH "Prepared MCC map directory for pStencil actor lighting tests")
+    # Without an explicit directory, use the prepared cache the build already
+    # names, so the material-bank tests register instead of silently vanishing.
+    set(pstencil_actor_maps "${PSTENCIL_ACTOR_MCC_MAPS}")
+    if(NOT pstencil_actor_maps AND HALO2_WORKSHOP_TEST_CACHE)
+        set(pstencil_actor_maps "${HALO2_WORKSHOP_TEST_CACHE}/halo2/h2_maps_win64_dx11")
+    endif()
+    if(EXISTS "${pstencil_actor_maps}/08b_deltacontrol.map")
+        add_test(NAME pstencil_actor_material_bank COMMAND pstencil_actor_material_bank_2003_tests
+            "${CMAKE_CURRENT_BINARY_DIR}/pstencil-actor-materials.json"
+            "${pstencil_actor_maps}/00a_introduction.map"
+            "${pstencil_actor_maps}/01b_spacestation.map"
+            "${pstencil_actor_maps}/04b_floodlab.map"
+            "${pstencil_actor_maps}/06a_sentinelwalls.map"
+            "${pstencil_actor_maps}/07a_highcharity.map"
+            "${pstencil_actor_maps}/08b_deltacontrol.map"
+            "${pstencil_actor_maps}/coagulation.map")
+        set_tests_properties(pstencil_actor_material_bank PROPERTIES TIMEOUT 180)
+    endif()
+    set(PSTENCIL_ELITE_MCC_MAP "${HALO2_MCC_OPENING_MODEL_DONOR}"
+        CACHE FILEPATH "Prepared MCC opening cache for exact Elite material-bank validation")
+    # Native C2B30 light animation; its fixture is checked against the
+    # unchanged TU1.5 routine by tools/pstencil/oracle_light_animation_tu15.py.
+    add_executable(pstencil_light_animation_tu15_tests tests/pstencil/light_animation_tu15_tests.cpp)
+    target_link_libraries(pstencil_light_animation_tu15_tests PRIVATE halo2_systems)
+    # Needs a Python with Unicorn (the repository's .tools/python) and the
+    # authenticated TU1.5 image the oracle pins.
+    if(EXISTS "${PROJECT_SOURCE_DIR}/.tools/python/bin/python" AND EXISTS "${pstencil_actor_maps}/coagulation.map")
+        add_test(NAME pstencil_light_animation_original COMMAND "${PROJECT_SOURCE_DIR}/.tools/python/bin/python"
+            "${PROJECT_SOURCE_DIR}/tools/pstencil/oracle_light_animation_tu15.py"
+            --dumper $<TARGET_FILE:pstencil_light_animation_tu15_tests>
+            --output "${CMAKE_CURRENT_BINARY_DIR}/pstencil-light-animation-original.json"
+            "${pstencil_actor_maps}/coagulation.map" "${pstencil_actor_maps}/elongation.map"
+            "${pstencil_actor_maps}/lockout.map" "${pstencil_actor_maps}/warlock.map"
+            "${pstencil_actor_maps}/turf.map" "${pstencil_actor_maps}/01b_spacestation.map")
+        set_tests_properties(pstencil_light_animation_original PROPERTIES TIMEOUT 300)
+    endif()
+    add_executable(pstencil_animated_effect_lights_tests tests/pstencil/animated_effect_lights_tests.cpp)
+    target_link_libraries(pstencil_animated_effect_lights_tests PRIVATE halo2_systems)
+    if(EXISTS "${pstencil_actor_maps}/coagulation.map" AND EXISTS "${HALO2_TU15_GAMEPLAY_XBE}")
+        add_test(NAME pstencil_animated_effect_lights COMMAND pstencil_animated_effect_lights_tests
+            "${pstencil_actor_maps}/coagulation.map" "${pstencil_actor_maps}" "${HALO2_TU15_GAMEPLAY_XBE}")
+        set_tests_properties(pstencil_animated_effect_lights PROPERTIES TIMEOUT 180)
+    endif()
+    add_executable(pstencil_sun_shadow_tests tests/pstencil/sun_shadow_tests.cpp)
+    target_link_libraries(pstencil_sun_shadow_tests PRIVATE halo2_pstencil_render)
+    if(EXISTS "${pstencil_actor_maps}/coagulation.map")
+        add_test(NAME pstencil_sun_shadow_bound COMMAND pstencil_sun_shadow_tests "${pstencil_actor_maps}/coagulation.map")
+        set_tests_properties(pstencil_sun_shadow_bound PROPERTIES TIMEOUT 120)
+    endif()
+    set(pstencil_elite_map "${PSTENCIL_ELITE_MCC_MAP}")
+    if(NOT pstencil_elite_map AND pstencil_actor_maps)
+        set(pstencil_elite_map "${pstencil_actor_maps}/00a_introduction.map")
+    endif()
+    if(EXISTS "${pstencil_elite_map}")
+        add_test(NAME pstencil_elite_material_bank COMMAND pstencil_elite_material_bank_2003_tests "${pstencil_elite_map}")
+        set_tests_properties(pstencil_elite_material_bank PROPERTIES TIMEOUT 120)
+    endif()
     add_executable(pstencil_player_colors_gpu_tests tests/pstencil/player_colors_gpu_tests.cpp)
     target_link_libraries(pstencil_player_colors_gpu_tests PRIVATE halo2_renderer)
     add_dependencies(pstencil_player_colors_gpu_tests halo2_shaders)
@@ -123,7 +203,7 @@ if(BUILD_TESTING)
             ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/accumulation-bindings-v1/reference.json)
     endif()
     add_executable(pstencil_light_completion_2003_tests tests/pstencil/light_completion_2003_tests.cpp)
-    target_link_libraries(pstencil_light_completion_2003_tests PRIVATE halo2_cache)
+    target_link_libraries(pstencil_light_completion_2003_tests PRIVATE halo2_systems halo2_cache)
     if(EXISTS "${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map")
         add_test(NAME pstencil_image_free_armor_light_completion COMMAND pstencil_light_completion_2003_tests
             ${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
@@ -158,7 +238,7 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/light_response_2003.comp.spv)
     add_dependencies(pstencil_light_response_2003_tests pstencil_light_response_2003_shader)
     set(PSTENCIL_LIGHT_CONSTRUCTION_REFERENCE
-        "${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/light-construction-v3/reference.json"
+        "${PROJECT_SOURCE_DIR}/analysis/pstencil/elite-light-response-20261110/constructors.json"
         CACHE FILEPATH "Retained original 2003 light-constructor oracle for optional GPU checks")
     set(PSTENCIL_LIGHT_RGB_REFERENCE
         "${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-light-inputs-v1/sphere-colors-v2.json"
@@ -223,6 +303,8 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv
         ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/default_environment_map-resident-0.bin
         ${PROJECT_SOURCE_DIR}/analysis/pstencil/reference-environment-parameters/evidence.json)
+    add_executable(pstencil_audit_light_coverage tools/pstencil/audit_light_coverage.cpp)
+    target_link_libraries(pstencil_audit_light_coverage PRIVATE halo2_systems)
     add_executable(pstencil_audit_caster_resources tools/pstencil/audit_caster_resources.cpp)
     target_link_libraries(pstencil_audit_caster_resources PRIVATE halo2_pstencil_render)
     add_executable(pstencil_audit_campaign_materials tools/pstencil/audit_campaign_materials.cpp)
@@ -257,16 +339,23 @@ if(BUILD_TESTING)
     target_link_libraries(pstencil_attached_lights_tests PRIVATE halo2_systems)
     add_executable(pstencil_native_incident_tests tests/pstencil/native_incident_tests.cpp)
     target_link_libraries(pstencil_native_incident_tests PRIVATE halo2_systems halo2_pstencil_render)
+    add_executable(pstencil_campaign_shadow_eligibility_tests tests/pstencil/campaign_shadow_eligibility_tests.cpp)
+    target_link_libraries(pstencil_campaign_shadow_eligibility_tests PRIVATE halo2_systems)
     add_executable(pstencil_scenario_lights_tests tests/pstencil/scenario_lights_tu15_tests.cpp)
     target_link_libraries(pstencil_scenario_lights_tests PRIVATE halo2_systems)
     if(EXISTS "${PSTENCIL_GAMEPLAY_XBE}")
+        if(EXISTS "${pstencil_elite_map}")
+            add_test(NAME pstencil_campaign_shadow_eligibility COMMAND pstencil_campaign_shadow_eligibility_tests
+                "${PSTENCIL_GAMEPLAY_XBE}" "${pstencil_elite_map}")
+            set_tests_properties(pstencil_campaign_shadow_eligibility PROPERTIES TIMEOUT 180)
+        endif()
         add_test(NAME pstencil_native_scenario_lights COMMAND pstencil_scenario_lights_tests
             "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
             ${CMAKE_CURRENT_BINARY_DIR}/pstencil-scenario-light-results)
         add_test(NAME pstencil_projected_resident_constants COMMAND pstencil_projected_constants_tests
             "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
         add_test(NAME pstencil_native_attached_light COMMAND pstencil_attached_lights_tests
-            "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/coagulation.map)
+            "${PSTENCIL_GAMEPLAY_XBE}" "${halo2_point_light_asset_root}/assets/disc/maps/coagulation.map")
         add_test(NAME pstencil_native_cinematic_incident COMMAND pstencil_native_incident_tests
             "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map)
     endif()

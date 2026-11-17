@@ -31,9 +31,9 @@ NativeTu15SimplexReductionKind native_tu15_begin_simplex_iteration(Access&memory
     d.kind=NativeTu15SimplexReductionKind::degenerate;
     d.first=memory.word_read(P::first_count,d,d.work);
     const auto epsilon=memory.word_read(P::epsilon,d,memory.frame(P::epsilon,d));
-    memory.require_capacity(1u);native_simplex_projection_numeric::load(epsilon);
+    memory.require_capacity(1u);memory.load_epsilon(epsilon);
     d.second=memory.word_read(P::second_count,d,d.count_address);
-    native_simplex_iteration_numeric::double_top();
+    memory.double_epsilon();
     d.iteration=memory.word_read(P::iteration,d,memory.frame(P::iteration,d));
     d.packed=(d.first<<3u)|d.second;d.key=d.packed-9u;
     memory.prepare_packed(d);memory.store_epsilon(d);

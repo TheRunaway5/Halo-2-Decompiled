@@ -103,6 +103,7 @@ int main(int argc,char**argv)try {
  bool baseline{},self_damage{},target_damage{},target_healthy_before_stimulus{};float initial_target_health=1,minimum_target_health=1,minimum_target_shield=1;
  std::uint32_t target_unit=null_datum,last_shot{},smg_damage=null_datum,smg_weapon=null_datum;std::string smg_name;unsigned actual_shots{},matching_native_damage_reports{};std::uint64_t damage_voice_serial{};unsigned source_detonations{},peer_blood{},peak_peer_blood{};std::size_t maximum_source_wire_bytes{};std::set<std::uint32_t>before_blood,seen_blood;std::map<std::uint32_t,std::string>decal_names;
  for(const auto&t:world.cache->select_tags({.group=tag_groups::decal,.require_address=true}))decal_names[t.datum]=t.name;
+ unsigned peak_all_records{};std::set<std::uint32_t> seen_any;std::map<std::string,unsigned> born_by_name;
  const auto blood=[&](const auto&d){const auto at=decal_names.find(d.definition);return at!=decal_names.end()&&at->second.find("blood")!=std::string::npos;};
  struct FrameWriter {
   std::vector<std::byte> bytes;
@@ -122,6 +123,17 @@ int main(int argc,char**argv)try {
    for(unsigned n=0;n<root.u32(0x58);++n){const auto name=groups.u32(n*12);for(const auto&m:pose_model_markers(source_model_markers(metadata,name),pose->nodes))append(world.cache->string_id(name),m.world);}
    if(!markers.contains("root"))append("root",pose->nodes.front());client_effects.object_markers(object,std::move(markers));
   }
+ };
+ float aim_yaw{},aim_pitch{};report["aim_samples"]=Json::array();
+ // Original decal admission gates: 181500's enable byte, 17D730's random
+ // threshold, 1755B0's local-player slots and observer bank sentinel.
+ const auto gates=[&]{
+  const auto& m=world.source_objects->memory();const auto u32=[&](std::uint32_t a){return Bytes(m.view(a,4)).u32(0);};
+  const auto players=u32(0x4f54f0u);Json slots=Json::array();
+  if(players)for(unsigned n=0;n<4;++n)slots.push_back(u32(players+0xcu+n*4u));
+  return Json{{"decals_enabled_47a2a8",std::to_integer<unsigned>(m.view(0x47a2a8u,1)[0])},
+   {"random_threshold_46a130",std::bit_cast<float>(u32(0x46a130u))},{"observer_sentinel_474c24",u32(0x474c24u)},
+   {"local_player_slots",slots}};
  };
  const auto stimulus_clock=std::chrono::steady_clock::now();
  for(unsigned tick=0;tick<(plasma?240u:360u);++tick){
@@ -144,14 +156,24 @@ int main(int argc,char**argv)try {
    }
    for(const auto&d:source_decal_vertex_cache_tu15(world.source_objects->memory()))if(blood(d))before_blood.insert(d.datum);baseline=true;
   }
+  if(tick==80)report["decal_gates_at_stimulus"]=gates();
   if(tick>=79)for(unsigned view=0;view<options.local_players;++view)
    world.source_objects->publish_native_observer_position(view,match.unit(view).body.position+Vec3{0,0,match.unit(view).definition.camera_height});
   input[0].yaw=match.unit(0).yaw;input[0].pitch=-1.2f;input[0].grenade=plasma && tick==80;
   if(!plasma) {
    const auto from=match.unit(0).body.position+Vec3{0,0,match.unit(0).definition.camera_height};
    const auto target=match.unit(1).body.position+Vec3{0,0,match.unit(1).body.height*.55f};const auto delta=target-from;
-   input[0].yaw=std::atan2(delta.y,delta.x);input[0].pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
-   input[1].yaw=input[0].yaw+3.14159265358979323846f;
+   const float desired_yaw=std::atan2(delta.y,delta.x),desired_pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+   // A source World consumes the raw current-minus-previous look delta.
+   // Steer from the original controller's processed look, not an absolute.
+   const auto look=world.source_objects->player_look(match.player(0).source_datum,match.unit(0).source_datum);
+   if(look) {
+    aim_yaw+=std::remainder(desired_yaw-look->x,6.283185307179586f);aim_pitch+=desired_pitch-look->y;
+    if(report["aim_samples"].size()<16 && tick%20==0)report["aim_samples"].push_back({{"tick",tick},
+     {"look",{look->x,look->y}},{"desired",{desired_yaw,desired_pitch}}});
+   } else {aim_yaw=desired_yaw;aim_pitch=desired_pitch;}
+   input[0].yaw=aim_yaw;input[0].pitch=aim_pitch;
+   input[1].yaw=desired_yaw+3.14159265358979323846f;
    input[1].forward=tick>=25 && tick<45?-1.f:0.f;
    input[0].fire=(tick>=90 && tick<240)||(tick>=270 && tick<340);input[0].reload=tick==240;
   }
@@ -172,6 +194,8 @@ int main(int argc,char**argv)try {
   maximum_source_wire_bytes=std::max(maximum_source_wire_bytes,frame_bytes(state.source_decals).size());
   for(const auto&e:state.grenade_detonations)if(e.serial>source_detonation_serial){source_detonation_serial=e.serial;++source_detonations;}
   const auto records=source_decal_vertex_cache_tu15(world.source_objects->memory());unsigned active_blood{};
+  peak_all_records=std::max<unsigned>(peak_all_records,unsigned(records.size()));
+  for(const auto&d:records)if(seen_any.insert(d.datum).second)++born_by_name[decal_names.contains(d.definition)?decal_names.at(d.definition):std::to_string(d.definition)];
   for(const auto&d:records)if(blood(d)&&!d.quads.empty()){++active_blood;if(baseline&&tick>=80&&!before_blood.contains(d.datum)&&seen_blood.insert(d.datum).second){++new_blood;
    if(report["blood_births"].size()<64)report["blood_births"].push_back({{"datum",d.datum},{"definition",d.definition},{"name",decal_names.at(d.definition)},
     {"birth_tick",d.tick},{"observed_tick",state.tick},{"layer",d.layer},{"tint",d.tint},{"image",d.bitmap_index},{"lifetime",d.lifetime},{"decay",d.decay},{"quads",d.quads.size()}});}}
@@ -195,6 +219,18 @@ int main(int argc,char**argv)try {
   }
   std::this_thread::sleep_until(stimulus_clock+std::chrono::nanoseconds(std::uint64_t(tick+1)*1000000000u/30u));
  }
+ // Renderer consumer: every cluster admitted isolates it from camera/PVS.
+ {SourceBspAdmission view;for(unsigned cluster=0;cluster<512;++cluster)view.clusters.push_back({cluster,0,0xffff,0});
+  std::array<ShaderVector,192> constants{};unsigned blood_draws{},blood_quads{};
+  const auto retained=source_decal_vertex_cache_tu15(world.source_objects->memory());
+  for(const auto& draw:scene.draw(world.source_objects->memory(),view,constants,{0,0,640,480},{0,16777215,16,1048576})) {
+   check(draw.texture && !draw.texture->pixels.empty(),"Retained source decal draw has no decoded texture");
+   const auto record=std::ranges::find_if(retained,[&](const auto& d){return d.datum==draw.datum;});
+   if(record!=retained.end() && blood(*record)){++blood_draws;blood_quads+=unsigned(draw.quads.size());}
+  }
+  report["consumer_blood_draws"]=blood_draws;report["consumer_blood_quads"]=blood_quads;}
+ report["decal_gates_final"]=gates();report["peak_all_decal_records"]=peak_all_records;
+ report["decal_births_by_name"]=born_by_name;
  report["stimulus_wall_seconds"]=std::chrono::duration<double>(std::chrono::steady_clock::now()-stimulus_clock).count();
  report["declared_caller_cadence_hz"]=30;
  report["source_new_blood_records"]=new_blood;report["source_peak_blood_records"]=peak_source_blood;report["actual_self_damage"]=self_damage;
@@ -211,5 +247,6 @@ int main(int argc,char**argv)try {
  for(const auto&gap:client_effects.diagnostics().unavailable)if(report["client_boundaries"].size()<64)report["client_boundaries"].push_back(gap);
  save();check((plasma?self_damage:(target_healthy_before_stimulus && actual_shots>0 && target_damage)) && new_blood>0,"Actual source controls produced no admitted body damage/new dynamic blood cache geometry; trigger is not qualified");
  if(online)check(peak_peer_blood>0,"Actual born source blood absent from accepted UDP presentation cache");
+ check(report["consumer_blood_draws"].get<unsigned>()>0,"Renderer decal consumer submitted no retained blood draw");
  std::cout<<"PASS source blood births="<<new_blood<<" peer blood vertices="<<peak_client_blood_vertices<<'\n';return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

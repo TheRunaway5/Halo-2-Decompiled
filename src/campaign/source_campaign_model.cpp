@@ -224,6 +224,14 @@ std::vector<SourcePrtMaterialBank> SourceCampaignModel::prt_banks(std::uint32_t 
     }
     return result;
 }
+namespace {
+// 41030 returns before emitting a model part whose authored type is 0 (not
+// drawn) or 5 (lightmap only). The cinematic anchor's only part is type 5:
+// the original never draws it.
+bool submitted_part(const Vertex &vertex) {
+    return vertex.source_part_type!=0 && vertex.source_part_type!=5;
+}
+}
 std::vector<Vertex> SourceCampaignModel::vertices(std::uint32_t owner,
     const SourceObjectDrawCollector &collector,std::span<const Transform> nodes)const {
     const Bytes c(collector.bytes);
@@ -263,6 +271,7 @@ std::vector<Vertex> SourceCampaignModel::vertices(unsigned lod,std::span<const u
         if(std::ranges::find(sections_[lod],section)==sections_[lod].end())
             throw FormatError("Campaign source selected an unprepared section");
         for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
+            if(!submitted_part(resource.mesh.vertices[i]))continue;
             selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
             selected.vertex_origins.push_back(resource.vertex_origins.at(i));
         }
@@ -305,7 +314,7 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
             const std::array sections{section};
             at=posed.emplace(key,vertices(draw.lod,sections,nodes,baked?current_lighting:nullptr,instance)).first;
         }
-        if(at->second.empty())throw FormatError("Campaign main unit has no selected resident vertices");
+        if(at->second.empty())continue; // Every part of the section is type 0/5.
         const auto*selected_shaders=baked?baked_shaders_.get():draw.lighting_class==3?default_shaders_.get():shaders_.get();
         selected_shaders->append_selected(result,at->second,{0,draw.coverage},view,
             baked?baked_material_base_:draw.lighting_class==3?default_material_base_:material_base_);
@@ -361,6 +370,7 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
                 selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
                 selected.checksum=resource.checksum;
                 for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
+                    if(!submitted_part(resource.mesh.vertices[i]))continue;
                     selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
                     selected.vertex_origins.push_back(resource.vertex_origins.at(i));
                     prepared.ordinals.push_back(i);
@@ -370,7 +380,7 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
             at=posed.emplace(key,std::move(prepared)).first;
         }
         const auto &prepared=at->second;
-        if(prepared.pose.vertices.empty())throw FormatError("Campaign main unit has no selected resident vertices");
+        if(prepared.pose.vertices.empty())continue; // Every part of the section is type 0/5.
         if(!prepared.pose.gpu) {
             const auto*selected_shaders=baked?baked_shaders_.get():draw.lighting_class==3?default_shaders_.get():shaders_.get();
             selected_shaders->append_selected(result.vertices,prepared.pose.vertices,{0,draw.coverage},view,

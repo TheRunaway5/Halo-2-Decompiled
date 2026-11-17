@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('native_cohort_filter',ROOT/'tools/native_cohort_test_filter.py')
@@ -44,7 +45,27 @@ def main():
         assert result.returncode==0,result.stderr+result.stdout
         selected=[row['name']for row in json.loads(result.stdout)['tests']]
         assert selected==list(names),(len(selected),len(names))
+        sys.path.insert(0,str(ROOT/'tools'))
+        from validate_native_replacement_snapshot import freeze_test_code,test_code_hashes
+        borrowed=scratch/'test-references';borrowed.mkdir()
+        (borrowed/'nested').mkdir();(borrowed/'nested/required.hpp').write_text('#pragma once\n')
+        (borrowed/'reference.bin').write_bytes(b'fixture')
+        donor=scratch/'donor';copy=scratch/'copy'
+        for root in (donor,copy):(root/'tests').mkdir(parents=True)
+        (donor/'tests/helpers').symlink_to(borrowed,target_is_directory=True)
+        (copy/'tests/helpers').symlink_to(donor/'tests/helpers',target_is_directory=True)
+        expected=test_code_hashes(donor)
+        assert list(expected)==['tests/helpers/nested/required.hpp']
+        freeze_test_code(donor,copy)
+        assert test_code_hashes(copy)==expected and not (copy/'tests/helpers').is_symlink()
+        assert not (copy/'tests/helpers/nested/required.hpp').is_symlink()
+        assert (copy/'tests/helpers/reference.bin').resolve()==borrowed/'reference.bin'
+        (borrowed/'cycle').symlink_to(borrowed,target_is_directory=True)
+        try:test_code_hashes(donor)
+        except ValueError as error:assert 'cycle' in str(error)
+        else:raise AssertionError('Borrowed test code directory cycle was accepted')
         report.update(passed=True,selected_tests=len(names),negative_names=len(negatives),malformed_rejections=len(bad),original_capture_groups=re.compile(original).groups,executed_capture_groups=1,ctest_exact_selection=True,flat_filter_sha256=hashlib.sha256(flat.encode()).hexdigest())
+        report.update(borrowed_test_code_copied_and_hashed=True,borrowed_reference_preserved=True,directory_cycle_rejected=True)
     except BaseException as error:report['error']=repr(error);raise
     finally:
         report['source_after']=hashes()

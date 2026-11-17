@@ -1,4 +1,5 @@
 #include "halo2/source_bsp_shader_scene.hpp"
+#include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/world_material.hpp"
@@ -9,6 +10,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <string_view>
 #include <tuple>
 
 using namespace halo2;
@@ -117,6 +119,55 @@ FixtureCamera camera(Vec3 eye,Vec3 forward,unsigned players,unsigned index){
 }
 struct Expected {unsigned section{},lod{},material{};std::uint8_t coverage{},alpha=255;bool omit{};};
 struct Stats {unsigned views{},cluster_parts{},instance_parts{},lower{},producer_lower{},producer_alpha_zero{},alpha_zero_instances{},alpha_zero_vertices{},partial_alpha{},changed_worlds{},resident_pairs{};};
+
+void beavercreek_resolution_test(const Cache& cache, const SourceBspShaderScene& scene,
+    const Mesh& copy_mesh, const std::vector<Vertex>& original_vertices) {
+    auto resident_mesh=cache.load_bsp(0);
+    const SourceBspResidentPlan resident(cache,resident_mesh,0);
+    SourceBspAdmission admission;
+    admission.clusters.push_back({32});
+    const auto check=[&](Vec3 eye, unsigned expected_lod) {
+        for(std::int16_t height:{480,720,1440,2160}) {
+            SourceFrustumProjectionInput input;
+            input.outer=input.safe={0,0,height,std::int16_t(height*16/9)};
+            input.projection_angle=1.2217304706573486f;
+            const auto projection=source_frustum_projection(input);
+            const auto bank=source_view_projection({eye,{1,0,0},{0,0,1},.1f,1024.f,{},
+                projection.projection_program});
+            const SourceBspShaderView view{bank,admission,0,height,1,false,{}, {},480};
+            auto vertices=original_vertices;
+            const auto copied=scene.select(vertices,view);
+            const auto planned=resident.select(view);
+            const auto require_terrain=[&](const auto& parts, const Mesh& mesh) {
+                for(unsigned ordinal:{1u,2u}) {
+                    const auto part=std::find_if(parts.begin(),parts.end(),[&](const auto& p){
+                        return p.geometry==32 && p.part==ordinal;
+                    });
+                    const auto context="Beaver Creek cluster 32 part "+std::to_string(ordinal)+
+                        " at height "+std::to_string(height);
+                    require(part!=parts.end() && part->shader_lod==expected_lod,
+                        context+" selected the wrong authored shader LOD");
+                    const auto& m=mesh.materials.at(part->material);
+                    require(m.selected_shader_lod==expected_lod &&
+                        m.name.ends_with(ordinal==1?"\\beavercreek_ground":"\\beavercreek_ground_water"),
+                        context+" lost its authored terrain material");
+                    const bool detail_pass=m.passes.at(m.forward_pass_index).name.ends_with(
+                        "\\detail_blend_detail_texture_zwrite");
+                    require(detail_pass==(expected_lod==0),context+" bound the wrong detail pass");
+                }
+            };
+            require_terrain(copied,copy_mesh);
+            require_terrain(planned.selected_parts,resident_mesh);
+        }
+    };
+    auto eye=cache.spawns().front().position;
+    eye.z+=.65f;
+    check(eye,0);
+    eye.x-=400.f;
+    check(eye,1);
+    std::cout<<"Beaver Creek terrain preserves original near/far LODs at 480, 720, 1440 and 2160 lines\n";
+}
+
 void map_test(const Cache&cache,const std::string&name,const Literal&literal,Stats&total){
     const auto &raw=literal.maps.at(name);const auto geometry=cache.load_source_bsp_admission(0);const auto atmosphere=cache.load_bsp_atmosphere(0);
     require(raw.bounds.size()==geometry.clusters.size() && raw.instances.size()==geometry.instances.size(),"original BSP fixture owner census differs");
@@ -140,6 +191,7 @@ void map_test(const Cache&cache,const std::string&name,const Literal&literal,Sta
         }
     }
     SourceBspShaderScene scene(cache,mesh,0);require(mesh.materials.size()==next,"resident shader LOD bank changed root/alternative allocation contract");
+    if(name=="beavercreek")beavercreek_resolution_test(cache,scene,mesh,original_vertices);
     for(unsigned root=0;root<roots;++root)for(unsigned lod=0;lod<slots[root].size();++lod){
         const auto &m=mesh.materials.at(root);const bool per_vertex=m.per_vertex_lighting || (m.environment_pass && m.environment_pass->per_vertex_lighting);
         same_material(mesh.materials.at(slots[root][lod]),prepared.at({m.source_shader_datum,lod,per_vertex}));
@@ -243,6 +295,14 @@ void map_test(const Cache&cache,const std::string&name,const Literal&literal,Sta
 }
 int main(int argc,char**argv){try{
     std::cout<<std::unitbuf;
+    if(argc==3 && std::string_view(argv[1])=="--beavercreek-resolution") {
+        const Cache cache(argv[2]);
+        require(cache.name()=="beavercreek","resolution test requires Beaver Creek");
+        auto mesh=cache.load_bsp(0);
+        const SourceBspShaderScene scene(cache,mesh,0);
+        beavercreek_resolution_test(cache,scene,mesh,mesh.vertices);
+        return 0;
+    }
     const auto disc=argc>1?std::filesystem::path(argv[1]):std::filesystem::path("assets/disc/maps");
     const auto dlc=argc>2?std::filesystem::path(argv[2]):std::filesystem::path("assets/map-pack/maps");const auto literal=literal_banks();
     constexpr std::array names{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron","foundation","headlong","lockout",

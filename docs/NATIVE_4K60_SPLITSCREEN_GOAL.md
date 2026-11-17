@@ -471,6 +471,9 @@ native out-words), so skipping calls cannot change simulation state.
       `40E80` in the profile is the main view's translated **remainder**:
       `41C70→41C10→41970` object-queue scheduling (1.19%) + nested dispatches
       (0.49%); `44AB0` over hidden units is 0.07%.
+      2026-11-14: superseded. The shadow roots and projected lights now run native
+      `40E80`/`44710`/`45550`/`4B5C0` by default, proven by record oracles
+      ([render commands in every mode](native_replacement/RENDER_COMMANDS_ALL_MODES.md)).
 
 ## Sub-page region index (2026-10-25)
 

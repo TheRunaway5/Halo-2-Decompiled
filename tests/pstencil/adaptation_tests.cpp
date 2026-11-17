@@ -169,6 +169,12 @@ int main(int argc,char** argv){try {
     auto foreign=lods[2];foreign.source_shader_datum^=1;
     const std::array negative{lods[0],foreign};
     require(pstencil::texture_mask_materials(negative)[1]==~0u,"Mask crossed shader identity");
+    // The armor emblem is a blended overlay coplanar with the armor: it must
+    // never be routed to the opaque texture target, whatever its shader owns.
+    auto with_overlay=lods;with_overlay.push_back(lods[0]);
+    with_overlay.back().template_name="shaders\\shader_templates\\opaque\\emblem_overlay_simple";
+    const auto overlay_masks=pstencil::texture_mask_materials(with_overlay);
+    require(overlay_masks.back()==~0u && overlay_masks[0]==masks[0],"Emblem overlay became an opaque texture-target writer");
     Mesh vehicle_mesh;pstencil::MaterialBank vehicle_bank(vehicles,vehicle_mesh);
     vehicle_bank.preload(banshee,0,{});
     const auto vehicle_spec=vehicle_bank.complete(banshee.source_shader_datum,0,0,uniforms);

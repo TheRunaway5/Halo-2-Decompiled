@@ -47,8 +47,16 @@ Checkpoint restore retains training state. Training-text drawing, automatic
 training events and the full mission's other script/AI services remain open.
 See [pause settings status](PAUSE_SETTINGS_STATUS.md) for the precise scope.
 
-The native multiplayer root offers Continue, Settings and Quit for offline
-matches, or Leave Match for online matches. The original Vista multiplayer pause owner has
+The native multiplayer root offers Continue, Settings, End Match and Exit To
+Desktop for local offline (Split Screen) matches with one or more local
+players, Quit for System Link, or Leave Match for online matches. TU1.5
+screen195 (`14A0D9 -> 239104`) always lists Leave Game, End Game and Settings
+for a local game regardless of player count. Before 2026-11-11 the port only
+offered End Match with two or more local players.
+`native_mcc_split_screen_one_player_end_match_roundtrip` now covers the
+one-player Vista round trip beside the two-player test (both pass, with
+`native_mcc_split_screen_pause_window` and `native_game_pause_menu`).
+The original Vista multiplayer pause owner has
 additional session-gated rows, which are not reproduced here. Campaign Quit
 does not claim durable saving: its label is Quit and its confirmation warns
 that unsaved progress will be lost. Offline games launched through the current

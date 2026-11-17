@@ -1,5 +1,6 @@
 #include "halo2/path_tracing/geometry.hpp"
 #include "halo2/path_tracing/scene.hpp"
+#include "halo2/path_tracing/material_alias.hpp"
 #include "rendering/models/model_skin_cpu_materialization.hpp"
 #include <algorithm>
 #include <bit>
@@ -25,7 +26,7 @@ BodyTriangleKey body_key(std::uint32_t material,Vec3 a,Vec3 b,Vec3 c) {
 std::vector<SecondaryBodyCount> secondary_body_counts(const Scene& scene,std::span<const Vertex> native_bank,
     std::span<const SecondaryBodyOwner> owners,std::span<const Material> materials,
     std::span<const MaterialRange> replaced) {
-    if(native_bank.size()%3 || scene.materials.size()!=materials.size())
+    if(native_bank.size()%3 || scene.materials.size()<materials.size())
         throw FormatError("Path Tracing body bank requires complete triangles and current scene materials");
     const auto valid_range=[&](const MaterialRange& r) {
         return r.count && r.first<materials.size() && r.count<=materials.size()-r.first;
@@ -86,8 +87,8 @@ std::vector<SecondaryBodyCount> secondary_body_counts(const Scene& scene,std::sp
             ++remaining[body_key(a.material,a.position,b.position,c.position)];++eligible;
         }
         SecondaryBodyCount count{body.root,body.definition,body.render_model,body.source_tick,body.lod,0,eligible};
-        for(const auto& triangle:scene.triangles)if(contains(body.materials,triangle.metadata[0])) {
-            const auto key=body_key(triangle.metadata[0],{triangle.p0[0],triangle.p0[1],triangle.p0[2]},
+        for(const auto& triangle:scene.triangles)if(contains(body.materials,source_material(scene,triangle.metadata[0]))) {
+            const auto key=body_key(source_material(scene,triangle.metadata[0]),{triangle.p0[0],triangle.p0[1],triangle.p0[2]},
                 {triangle.p1[0],triangle.p1[1],triangle.p1[2]},{triangle.p2[0],triangle.p2[1],triangle.p2[2]});
             const auto found=remaining.find(key);
             if(found!=remaining.end() && found->second) {--found->second;++count.triangles;}

@@ -14,7 +14,7 @@ void marker_store_high(Memory &m,const Observer &o,const Abi &a,
 }
 void marker_quaternion_matrix(Memory &m,Abi &a,const Observer &o,const Services &s) {
     bool sse_active{};std::optional<SseEnvironment> environment;
-    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction)s.instruction(pc);};
+    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};
     IteratorRegisters r{a.gp,a.eflags};
     instruction(0x144910);scalar(m,a,3,a.gp[1]+4);
     instruction(0x144915);scalar(m,a,2,a.gp[1]+8);
@@ -108,7 +108,7 @@ scale_ready:
 void marker_transform_product(Memory &m,Abi &a,const Observer &o,const Services &s) {
     if(halo2::native_effect_transform_product_detail::try_native(m,a,s,o))return;
     bool sse_active{};std::optional<SseEnvironment> environment;
-    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction)s.instruction(pc);};
+    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};
     instruction(0x145560);a.gp[0]=read(m,a.gp[4]+4);
     instruction(0x145564);scalar(m,a,7,a.gp[1]);
     instruction(0x145568);vector(a,7,_mm_shuffle_ps(vector(a,7),vector(a,7),0));

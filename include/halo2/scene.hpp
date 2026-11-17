@@ -99,6 +99,13 @@ public:
     if(parent==null_datum)throw FormatError("Model child requires an actual parent generation");
     return place(placement,tick,SourceScenarioBirth::runtime,parent);
   }
+  // Present a netgame generation the original row owner already constructed
+  // (TU1.5 15D890 -> 15D4F0). No constructor runs; the source birth selector
+  // still binds its actual cold template.
+  std::uint32_t adopt_source_placement(std::size_t placement,std::uint32_t handle,std::uint64_t tick=0) {
+    if(handle==null_datum)throw FormatError("Netgame adoption requires an actual source generation");
+    return place(placement,tick,SourceScenarioBirth::runtime,null_datum,handle);
+  }
   void destroy(std::uint32_t handle);
   // Source deletion has already retired this full generation. Remove only
   // its presentation and lifetime sidecar; never invoke the destructor again.
@@ -118,6 +125,9 @@ public:
                              float value, float frames, int tick);
   std::optional<float> function_variable(std::uint32_t object,
                                          std::uint32_t name, int tick) const;
+  // Every name function_variable answers for this object at tick, with that
+  // value, in name order. Any other name has no variable.
+  std::vector<std::pair<std::uint32_t,float>> function_variables(std::uint32_t object,int tick) const;
   void clear_function_variable(std::uint32_t object,std::uint32_t name);
   // Completed samples from the retained source owner. No native interpolation
   // or slot replacement policy advances these borrowed shader inputs.
@@ -205,14 +215,17 @@ private:
   std::map<std::pair<std::uint32_t,std::uint32_t>,FunctionVariable> functions_;
   std::uint32_t place(std::size_t, std::uint64_t creation_tick = 0,
                       SourceScenarioBirth = SourceScenarioBirth::runtime,
-                      std::uint32_t attachment_parent = null_datum);
+                      std::uint32_t attachment_parent = null_datum,
+                      std::uint32_t existing = null_datum);
 };
 class Presentation {
 public:
   using AnimationLoader =
       std::function<AnimationClip(std::uint32_t, std::uint32_t)>;
   explicit Presentation(const LevelContent &, AnimationLoader = {});
-  void restore(const Presentation &);
+  // TU1.5 campaign restores the fade clock from the arena. The RGB words at
+  // 4F54F8 live outside it and retain the latest authored color.
+  void restore(const Presentation &, bool retain_fade_color = false);
   void tick();
   void fade(Vec3 color, bool out, int ticks);
   void letterbox(bool show, bool immediate);

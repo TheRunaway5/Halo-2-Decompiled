@@ -58,6 +58,8 @@ ROOTS = {
     ],
 }
 
+SHARED_RUNTIME_ROOTS = {'needle': [('coagulation', 'opaque', 'tex_bump_one_change_color'), ('coagulation', 'opaque', 'illum'), ('coagulation', 'opaque', 'illum_clamped'), ('coagulation', 'opaque', 'illum_detail'), ('01b_spacestation', 'opaque', 'overlay'), ('coagulation', 'opaque', 'tex_bump_env_illum_detail_honor_guard'), ('coagulation', 'opaque', 'tex_bump_env_illum_four_change_color_no_lod'), ('coagulation', 'opaque', 'tex_bump_env_illum_two_change_color'), ('coagulation', 'opaque', 'tex_bump_env_two_change_color'), ('coagulation', 'opaque', 'tex_bump_plasma'), ('coagulation', 'opaque', 'tex_bump_shiny'), ('coagulation', 'texture_camera', 'scope'), ('coagulation', 'transparent', 'meter_active_camo'), ('coagulation', 'transparent', 'one_alpha_env_active_camo'), ('coagulation', 'transparent', 'plasma_alpha_active_camo'), ('coagulation', 'transparent', 'plasma_mask_offset'), ('coagulation', 'transparent', 'two_add_env_illum_active_camo'), ('coagulation', 'transparent', 'two_alpha_env_illum'), ('coagulation', 'transparent', 'plasma_shield'), ('coagulation', 'transparent', 'overshield'), ('coagulation', 'opaque', 'tex_bump_env_alpha_test'), ('03a_oldmombasa', 'transparent', 'one_alpha_env'), ('coagulation', 'hud', 'widget_legacy_meter'), ('coagulation', 'hud', 'text_flash'), ('coagulation', 'hud', 'shield_test'), ('coagulation', 'hud', 'waypoint_emblem'), ('01b_spacestation', 'hud', 'widget_simple_flash'), ('coagulation', 'hud', 'widget_gradient_flash'), ('coagulation', 'hud', 'widget_meter_custom'), ('coagulation', 'hud', 'widget_simple_custom'), ('coagulation', 'hud', 'waypoint_icon_meter'), ('coagulation', 'opaque', 'illum_3_channel_plasma')], 'street_sweeper': [('coagulation', 'opaque', 'tex_bump_one_change_color'), ('coagulation', 'opaque', 'illum'), ('coagulation', 'opaque', 'illum_clamped'), ('coagulation', 'opaque', 'illum_detail'), ('coagulation', 'opaque', 'tex_bump_env_illum_detail_honor_guard'), ('coagulation', 'opaque', 'tex_bump_env_illum_four_change_color_no_lod'), ('coagulation', 'opaque', 'tex_bump_env_illum_two_change_color'), ('coagulation', 'opaque', 'tex_bump_env_two_change_color'), ('coagulation', 'opaque', 'tex_bump_plasma'), ('coagulation', 'opaque', 'tex_bump_shiny'), ('coagulation', 'texture_camera', 'scope'), ('coagulation', 'transparent', 'meter_active_camo'), ('coagulation', 'transparent', 'one_alpha_env_active_camo'), ('coagulation', 'transparent', 'plasma_alpha_active_camo'), ('coagulation', 'transparent', 'plasma_mask_offset'), ('coagulation', 'transparent', 'two_add_env_illum_active_camo'), ('coagulation', 'transparent', 'two_alpha_env_illum'), ('coagulation', 'transparent', 'plasma_shield'), ('coagulation', 'transparent', 'overshield'), ('coagulation', 'hud', 'widget_legacy_meter'), ('coagulation', 'hud', 'text_flash'), ('coagulation', 'hud', 'shield_test'), ('coagulation', 'hud', 'waypoint_emblem'), ('01b_spacestation', 'hud', 'widget_simple_flash'), ('coagulation', 'hud', 'widget_gradient_flash'), ('coagulation', 'hud', 'widget_meter_custom'), ('coagulation', 'hud', 'widget_simple_custom'), ('coagulation', 'hud', 'waypoint_icon_meter'), ('coagulation', 'opaque', 'illum_3_channel_plasma')]}
+
 # Template/remap data only. Every pass and vertex dependency must already be
 # resident after the normal reviewed closure; these roots cannot add programs.
 RESIDENT_TEMPLATE_ROOTS = {
@@ -132,6 +134,15 @@ def generate(cache):
             key = ("stem", "shaders\\shader_templates\\" + family + "\\" + leaf)
             roots.append({"source_map": source, "group": key[0], "name": key[1]})
             pending.append((source, key))
+        # Existing qualified roots retain their exact payload ownership first.
+        # New shared-runtime roots are still checked against the complete typed
+        # retained graph; they cannot replace any earlier bank identity.
+        shared_pending = []
+        for source, family, leaf in SHARED_RUNTIME_ROOTS[name]:
+            key = ("stem", "shaders\\shader_templates\\" + family + "\\" + leaf)
+            roots.append({"source_map": source, "group": key[0], "name": key[1]})
+            shared_pending.append((source, key))
+        pending = shared_pending + pending
         visited = set()
         while pending:
             source, key = pending.pop()

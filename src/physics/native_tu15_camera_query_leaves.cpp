@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_segment_sphere_value.hpp"
 #include "halo2/native_tu15_camera_query_leaves.hpp"
 #include <bit>
@@ -13,7 +14,7 @@ class Memory {
 public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):m_(m),o_(o){}
     std::uint32_t word(std::uint32_t p)const{std::array<std::byte,4>b{};m_.read(p,b);std::uint32_t value{};for(unsigned n=0;n<4;++n)value|=std::to_integer<unsigned>(b[n])<<(n*8u);return value;}
-    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value){std::array<std::byte,4>b{};for(unsigned n=0;n<4;++n)b[n]=std::byte(value>>(n*8u));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(o_){e.before.resize(4);m_.read(p,e.before);e.written.assign(b.begin(),b.end());}m_.write(p,b);if(o_)o_(e);}
+    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value){std::array<std::byte,4>b{};for(unsigned n=0;n<4;++n)b[n]=std::byte(value>>(n*8u));SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m_,o_,pc,p,4);if(observed){e.before.resize(4);m_.read(p,e.before);e.written.assign(b.begin(),b.end());}m_.write(p,b);if(observed)o_(e);}
 };
 std::uint32_t advance(Memory&m,std::uint32_t node,std::uint32_t iterator,std::uint32_t payload,
     std::uint32_t payload_pc,std::uint32_t iterator_pc){

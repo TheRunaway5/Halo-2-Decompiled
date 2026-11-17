@@ -764,6 +764,7 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
     // owners; shader names never choose a substitute image or mip chain.
     struct MissingBitmapOwner {const char* map;const char* donor;const char* name;std::uint64_t hash;};
     static constexpr MissingBitmapOwner missing_bitmap_owners[]{
+        {"zanzibar","ascension","scenarios\\objects\\nature\\boulders\\granite\\bitmaps\\granite_bump",0xbbbfc06f4cf6553eull},
         {"03a_oldmombasa","shared","scenarios\\bitmaps\\detail_maps\\metal\\scratches",0x73c1fd33956b443full},
         {"06a_sentinelwalls","00a_introduction","objects\\characters\\prophet\\bitmaps\\holo_static_scanlines",0xbcc10a801d819a58ull},
         {"06a_sentinelwalls","00a_introduction","objects\\characters\\prophet\\bitmaps\\holo_static_noise",0x5be3212c09b553ddull},

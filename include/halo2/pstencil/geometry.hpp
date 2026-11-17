@@ -33,5 +33,8 @@ std::vector<Vertex> posed_triangles(const MenuWorldSourceBinding&,unsigned mater
 // This changes the amount of submitted geometry, not the shadow surface.
 void append_volume(std::vector<ShadowVertex>&,std::span<const Vec3>,
     std::span<const std::array<std::uint16_t,3>>,Vec3 light,unsigned stipple_level=16);
+void append_sun_volume(std::vector<ShadowVertex>&,std::span<const Vec3>,
+    std::span<const std::array<std::uint16_t,3>>,Vec3 incident,float extrusion=1024.f,
+    unsigned stipple_level=16);
 void append_volume(std::vector<ShadowVertex>&,const MenuWorldSourceBinding&,Vec3 light,unsigned stipple_level=16);
 } // namespace halo2::pstencil

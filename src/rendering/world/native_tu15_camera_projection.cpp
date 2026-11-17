@@ -1,5 +1,6 @@
 #include "halo2/native_tu15_affine_inverse_value.hpp"
 #include "halo2/native_tu15_camera_projection.hpp"
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include <bit>
 #include <cstring>
 #include <xmmintrin.h>
@@ -13,9 +14,10 @@ std::uint32_t read(const SourcePhysicsContactMemory &memory,std::uint32_t addres
 void publish(SourcePhysicsContactMemory &memory,const SourcePhysicsContactRecordObserver &observe,
     std::uint32_t site,std::uint32_t address,std::uint32_t value) {
     SourcePhysicsContactRecordStore event{site,address,{},std::vector<std::byte>(4)};
-    if(observe){event.before.resize(4);memory.read(address,event.before);}
+    const bool observed=native_tu15_observes_retained_store(memory,observe,site,address,4);
+    if(observed){event.before.resize(4);memory.read(address,event.before);}
     for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8u*n));
-    memory.write(address,event.written);if(observe)observe(event);
+    memory.write(address,event.written);if(observed)observe(event);
 }
 using Scalar=__m128;
 Scalar scalar(std::uint32_t value){return _mm_castsi128_ps(_mm_cvtsi32_si128(std::bit_cast<std::int32_t>(value)));}

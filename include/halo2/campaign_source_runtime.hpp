@@ -40,6 +40,9 @@ public:
       std::optional<std::int16_t> count={});
   // Return the source actor unit datum for the unmodified AI reference.
   std::uint32_t ai_object(std::uint32_t reference);
+  // Native command and HS pools own execution, movement and completion.
+  void run_command_script(std::uint32_t reference,std::int16_t script);
+  bool command_script_running(std::uint32_t reference,std::int16_t script);
   // Typed TU1.5 query of the same retained AI banks, returning SHORT bits.
   // Return explicit FP status; the complete shared native HS FP/checkpoint
   // authority is a separate integration gate, not a per-query shadow bank.

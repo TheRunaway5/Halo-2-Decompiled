@@ -7,6 +7,7 @@
 #include "halo2/gameplay_font_source.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_emblem.hpp"
+#include "halo2/mcc_hud_reference.hpp"
 #include "halo2/shader_animation.hpp"
 #include <algorithm>
 #include <bit>
@@ -68,6 +69,17 @@ Material dead_emblem_material(const Cache &cache,std::uint32_t shader,const Text
     if(state.index==63)dst=state.value;
   }
   if(src!=0x302 || dst!=0x303)throw FormatError("Unsupported scoreboard death indicator blend");
+  if(cache.is_mcc()) {
+    // The native callback owns Original HUD operands; bind complete authored
+    // MCC names while retaining their curves and the admitted pixel program.
+    const auto operand=[&](std::uint32_t id) {
+      return !id || id==null_datum ? id :
+          normalize_mcc_hud_function_operand(id,cache.string_id(id));
+    };
+    for(auto& overlay:material.animation.overlays) {
+      overlay.input=operand(overlay.input);overlay.range=operand(overlay.range);
+    }
+  }
   material.diffuse=image;material.hud_pass=material.forward_pass=true;
   material.static_lightmap_pass=false;material.forward_pass_index=0;
   material.forward_program=pass.program;material.forward_vertex=0;material.forward_blend=1;

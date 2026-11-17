@@ -9,6 +9,7 @@ OBJECT='src/gameplay/objects/source_object_admission.cpp'
 LINKED=('src/rendering/world/source_visibility.cpp','src/rendering/world/source_portal_visibility.cpp','src/gameplay/objects/object_light_spatial.cpp')
 REFERENCES=('tests/native_tu15_visibility_association_bsp_reference.inc','tests/native_tu15_visibility_association_object_reference.inc')
 FILES=(BSP,OBJECT,*LINKED,*REFERENCES,'include/halo2/native_tu15_geometry_visibility_kernel.hpp','include/halo2/native_tu15_geometry_visibility_value.hpp','tools/native_geometry_visibility_public_replacements.py','tools/validate_native_geometry_visibility_values.py','tests/native_tu15_geometry_visibility_value_tests.cpp','tools/native_visibility_association_public_replacements.py')
+FILES+=('tools/native_bsp_admission_public_replacements.py','include/halo2/native_tu15_bsp_admission_kernel.hpp','include/halo2/native_tu15_bsp_admission_value.hpp')
 def digest(value):return hashlib.sha256(value).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--report',type=Path,required=True);parser.add_argument('--compiler',default='g++');parser.add_argument('--sanitizers',action='store_true');parser.add_argument('--require-binding',action='store_true');args=parser.parse_args()

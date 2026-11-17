@@ -18,6 +18,15 @@ int main()try {
     const std::array all{current,low,combined,foreign,transformed,converted};
     const auto result=pstencil::texture_mask_materials(all);
     require(result==std::vector<unsigned>{5,5,5,3,4,5},"Converted same-shader pass did not reach both independent and combined roots");
+    auto combined_high=combined;
+    combined_high.selected_shader_lod=0;
+    auto combined_mask=combined_high;
+    combined_mask.forward_blend=pstencil::texture_accumulation_blend_2003;
+    auto combined_transformed=combined_high;
+    combined_transformed.world_vertex_input_transform=SourceWorldVertexInputTransform::NormalizeSkinNormal;
+    const std::array combined_lods{combined,combined_high,combined_mask,combined_transformed};
+    require(pstencil::texture_mask_materials(combined_lods)==std::vector<unsigned>{~0u,2,2,~0u},
+        "Combined mask crossed an authored LOD or vertex transform");
     std::cout<<"Independent and combined roots select recovered texture accumulation; foreign shader/CPU transforms stay separate; current route preserves authored LODs\n";
     return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

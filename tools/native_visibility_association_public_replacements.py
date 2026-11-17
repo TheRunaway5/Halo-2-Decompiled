@@ -17,17 +17,23 @@ OLD={
 }
 NEW={kind:('                'if kind=='bsp'else'            ')+'association=native_visibility_association_detail::reserve_mask(out.associations,out.association_capacity_reached,ordinal);'for kind in OWNERS}
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
+def canonical_parent(body,kind):
+    if kind=='bsp':
+        from native_bsp_admission_public_replacements import canonical_public as canonical_bsp
+        return canonical_bsp(body)
+    return body
 def canonical_geometry(body,kind):
+    body=canonical_parent(body,kind)
     if 'native_geometry_visibility_detail::geometry('in body:
         from native_geometry_visibility_public_replacements import canonical_public as canonical_geometry_policy
         return canonical_geometry_policy(body,kind)
     return body
-def canonical_public(body,kind):return canonical_geometry(body.replace(NEW[kind],OLD[kind]),kind)
+def canonical_public(body,kind):return canonical_geometry(canonical_parent(body,kind).replace(NEW[kind],OLD[kind]),kind)
 def replace_public(source,kind):
-    owner,pin=OWNERS[kind];body=unique_function(source,owner);original=body.replace(NEW[kind],OLD[kind])
+    owner,pin=OWNERS[kind];body=unique_function(source,owner);original=canonical_parent(body,kind).replace(NEW[kind],OLD[kind])
     if digest(canonical_geometry(original,kind))!=pin:raise ValueError('Complete public association owner drift '+kind)
     if original.count(OLD[kind])!=1:raise ValueError('Exact public association allocation block missing '+kind)
     expected=original.replace(OLD[kind],NEW[kind],1)
-    if body!=expected:source=source.replace(body,expected,1)
+    if canonical_parent(body,kind)!=expected:source=source.replace(body,expected,1)
     if source.count(INCLUDE)>1:raise ValueError('Duplicate public association include')
     return source if INCLUDE in source else INCLUDE+source

@@ -2,6 +2,8 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/native_tu15_shadow_basis_32340.hpp"
 #include "halo2/native_tu15_shadow_view_320a0.hpp"
+#include "halo2/native_tu15_command_walk.hpp"
+#include "halo2/native_tu15_cull_walk_44710.hpp"
 #include <bit>
 #include <cstring>
 #include <algorithm>
@@ -164,7 +166,7 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
             a=world.prepare_source_call();
             a.x87_status=append_status;a.floating_point=append_control;
             if(observe)observe(true,0x44710u,root.owner,a,memory);
-            world.run_actual(0x44710u,a);
+            source_cull_walk_site_tu15(world,a);
             if(observe)observe(false,0x44710u,root.owner,a,memory);
             auto& collected=root.collected.emplace();auto& state=collected.state;
             state.main_prefix=word(0x4cd39cu);state.draw_count=word(0x4cd398u);
@@ -207,7 +209,7 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
                     a=world.prepare_source_call(); //EAX0 selects all shadow layers.
                     if(observe)observe(true,0x40e80u,root.owner,a,memory);
                     const auto translated=[&]{world.run_actual(0x40e80u,a);};
-                    if(commands)commands(a,translated);else translated();
+                    if(commands)commands(a,translated);else source_command_frame_site_tu15(world,a,SourceCommandFrameSiteTu15::shadow);
                     if(observe)observe(false,0x40e80u,root.owner,a,memory);
                     auto& banks=root.commands.emplace();
                     for(unsigned n=0;n<banks.size();++n) {

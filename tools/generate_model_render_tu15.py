@@ -109,7 +109,20 @@ def main():
     assert source.count(boundary)==1
     source=source.replace(boundary,boundary+
         'presented.publish(presented_owner,presented_model,s.gp[0],r(s.memory,s.gp[3]+0x48u,4),presented_first_person); ')
-    a.output.write_text(replace_model_light_cache(replace_model_vector_length(replace_model_light_source(replace_model_color_step(replace_model_direction(replace_model_color(replace_model_lighting_leaves(replace_prt_cache_build(replace_prt_cache(replace_prt_sample(replace_prt_helpers(replace_prt_update(source)))))))))))))
+    source=replace_model_light_cache(replace_model_vector_length(replace_model_light_source(replace_model_color_step(replace_model_direction(replace_model_color(replace_model_lighting_leaves(replace_prt_cache_build(replace_prt_cache(replace_prt_sample(replace_prt_helpers(replace_prt_update(source))))))))))))
+    from native_codec_translation_replacements import replace_codec_translation
+    source=replace_codec_translation(source)
+    from native_codec_scale_replacements import replace_codec_scale
+    source=replace_codec_scale(source)
+    from native_codec_rotation_interpolation_replacements import replace_codec_rotation_interpolation
+    source=replace_codec_rotation_interpolation(source)
+    from native_codec_translation_interpolation_replacements import replace_codec_translation_interpolation
+    source=replace_codec_translation_interpolation(source)
+    from native_codec_scale_interpolation_replacements import replace_codec_scale_interpolation
+    source=replace_codec_scale_interpolation(source)
+    from native_codec_copy_replacements import replace_codec_copy
+    source=replace_codec_copy(source)
+    a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

@@ -211,6 +211,14 @@ def main():
     source=source.replace('halo2/physics_live_support_tu15.hpp','halo2/source_combat_action_tu15.hpp')
     source=source.replace('source_run_physics_live_support_tu15','source_run_combat_action_tu15')
     source=source.replace('source_physics_live_support_tu15_owns_entry','source_combat_action_tu15_owns_entry')
+    from native_effect_reference_element_replacements import replace_effect_reference_element
+    source=replace_effect_reference_element(source)
+    from native_projectile_function_query_replacements import replace_projectile_function_query
+    source=replace_projectile_function_query(source)
+    from native_object_definition_mode_query_replacements import replace_object_definition_mode_query
+    source=replace_object_definition_mode_query(source)
+    from native_object_table_ratio_replacements import replace_object_table_ratio
+    source=replace_object_table_ratio(source)
     a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

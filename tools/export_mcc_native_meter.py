@@ -26,7 +26,7 @@ def sha(value):
     return hashlib.sha256(value).hexdigest()
 
 
-def generate_one(prepared, stem_name, pass_name, kernel):
+def generate_one(prepared, stem_name, pass_name, kernel, *, native_stem_name=None, native_pass_name=None, vertex_name=VERTEX):
     native = prepared / 'native-shaders'
     library = json.loads((native / 'coagulation/library.json').read_bytes())
     assert sha(canonical(library)) == LIBRARY
@@ -82,8 +82,34 @@ def generate_one(prepared, stem_name, pass_name, kernel):
                                 setup['external_regions'].append({'address': pointer, 'bytes': key[1],
                                     'sha256': sha(retain(*key))})
         for group, name, label in (('stem', stem_name, 'native_stem'), ('spas', pass_name, 'native_pass')):
-            record = records[group, name]
-            raw = payload('coagulation', record)
+            original_name=(native_stem_name if group=='stem' else native_pass_name) or name
+            original_record=records[group,original_name]
+            record=__import__('copy').deepcopy(original_record)
+            raw=payload('coagulation',original_record)
+            if native_stem_name is not None:
+                record['name']=name
+                if group=='stem':
+                    assert len(record['references'])==1 and record['references'][0][1]==['spas',native_pass_name]
+                    record['references'][0][1]=['spas',pass_name]
+                else:
+                    original_raw=raw;mutable=bytearray(raw)
+                    pp=struct.unpack_from('<I',raw,32)[0]
+                    assert struct.unpack_from('<I',raw,pp+24)[0]==1
+                    sampler=struct.unpack_from('<I',raw,pp+28)[0]
+                    assert raw[sampler:sampler+24].hex()=='200200000303030000000000000000000000000000000000'
+                    mutable[sampler+1]=(mutable[sampler+1]&15)|(2<<4);raw=bytes(mutable)
+                    assert [(i,a,b)for i,(a,b)in enumerate(zip(original_raw,raw))if a!=b]==[(sampler+1,2,34)]
+                    record['payload']=sha(raw)+'.bin';fnv=0xcbf29ce484222325
+                    for byte in raw:fnv=((fnv^byte)*0x100000001b3)&0xffffffffffffffff
+                    record['fnv64']=f'{fnv:016x}'
+                    setup['derived_from_original']={'scope':'Source-owned Ammo descriptors from authentic Original legacy code and authored MIP2; not an Original Ammo record',
+                        'authority_sha256':'d60db91932e676e6efd927093425e720ceec008c72475b27ce41fd2443deb500',
+                        'kernel_authority_sha256':'0f5b2344bc00df4ea5a74408ee284e9620590a246d1c0ec28f8d398e01e5e7b9',
+                        'original_stem_record':records['stem',native_stem_name],
+                        'original_pass_record':original_record,'original_pass_metadata_hex':original_raw.hex(),
+                        'changed_pass_bytes':[[sampler+1,2,34]],'source_authored_MIP':2,
+                        'original_sampler_hex':original_raw[sampler:sampler+24].hex(),'derived_sampler_hex':raw[sampler:sampler+24].hex()}
+
             setup[label] = {'record': record, 'metadata_hex': raw.hex()}
         pass_raw = bytes.fromhex(setup['native_pass']['metadata_hex'])
         u32 = lambda b, n: struct.unpack_from('<I', b, n)[0]
@@ -96,6 +122,8 @@ def generate_one(prepared, stem_name, pass_name, kernel):
         assert sha(struct.pack('<60I', *controls)) == kernel
         catalog = json.loads((ROOT / 'shaders/native-programs/fragments/materials.json').read_bytes())
         assert any(r['family'] == 'world' and r['controls'] == controls for r in catalog['entries'])
+        if native_stem_name is not None:
+            assert any(r['family']=='hud' and r['controls']==controls for r in catalog['entries'])
         assert all(u32(pass_raw, post + f) == 0 for f in (32, 40, 48))
         setup['existing_fragment_kernel'] = kernel
         hud = json.loads((ROOT / 'tools/data/mcc-native-hud-bootstrap.json').read_bytes())
@@ -103,7 +131,7 @@ def generate_one(prepared, stem_name, pass_name, kernel):
         world = json.loads((ROOT / 'tools/data/mcc-native-pc-world-closure.json').read_bytes())
         programs = json.loads((ROOT / 'tools/data/mcc-native-pc-world-programs.json').read_bytes())
         resident, fixture_vertices = {}, []
-        original = records['vrtx', VERTEX]
+        original = records['vrtx', vertex_name]
         original_graph = storage_graph(original, payload('coagulation', original))['graph']
         for row in programs['maps']:
             s = next(s for s in sky['maps'] if s['map'] == row['map'])
@@ -112,7 +140,7 @@ def generate_one(prepared, stem_name, pass_name, kernel):
             bank += [(world['source_map'], r) for r in world['records']]
             bank += [(r['source_map'], r['record']) for r in row['records']]
             choices = [(source_map, record) for source_map, record in bank
-                       if (record['group'], record['name']) == ('vrtx', VERTEX)]
+                       if (record['group'], record['name']) == ('vrtx', vertex_name)]
             assert len(choices) == 1
             source_map, record = choices[0]
             raw = payload(source_map, record)
@@ -125,7 +153,7 @@ def generate_one(prepared, stem_name, pass_name, kernel):
         policy = {'schema': 'H2_MCC_RESIDENT_METER_METADATA_V1', 'setup': setup,
             'scope': 'MCC source-qualified declarative pass/template metadata only; exact existing compiled Vulkan kernel and existing complete vertex owners; no executable program bank or guessed authored value'}
         record, raw = fixture_vertices[0]
-        vertex = {'group': 'vrtx', 'name': VERTEX, 'datum': 0xd000f000,
+        vertex = {'group': 'vrtx', 'name': vertex_name, 'datum': 0xd000f000,
                   'address': 0xf0000000, 'size': len(raw)}
         relocated = bytearray(raw)
         for field, target in record['pointers']:
@@ -139,7 +167,7 @@ def generate_one(prepared, stem_name, pass_name, kernel):
         source.close()
 
 
-def generate(prepared):
+def generate_weapons(prepared):
     policy, fixture = generate_one(prepared, STEM, PASS, KERNEL)
     current_policy, current_fixture = generate_one(prepared, CURRENT_STEM, CURRENT_PASS, CURRENT_KERNEL)
     assert policy['setup']['resident_vertex_records'] == current_policy['setup']['resident_vertex_records']
@@ -150,14 +178,32 @@ def generate(prepared):
     return policy, fixture
 
 
+AMMO_CACHE_SIBLING='mcc-82114d7d2e034d48ba762109935f9ca3'
+AMMO_STEM=r'shaders\shader_templates\hud\ammo_meter'
+AMMO_PASS=r'shaders\shader_passes\hud\ammo_meter'
+AMMO_KERNEL='3e6fb316fa50af5b3953aa345dbcaa98adc15e2bb1d83047266c88f167ba4d33'
+def generate(prepared, ammo_prepared=None):
+    # Preserve the original v7 weapon inputs; Ammo has its own explicit source.
+    policy,fixture=generate_weapons(prepared)
+    ammo_prepared=Path(ammo_prepared) if ammo_prepared else prepared.parent/AMMO_CACHE_SIBLING
+    assert sha((ammo_prepared/'halo2/h2_maps_win64_dx11/shared.map').read_bytes())=='29ef461fcde6b9866e73ff6fa679ab668054964d8e9c7f4722c70ecf82a3d99f'
+    ammo,ammo_fixture=generate_one(ammo_prepared,AMMO_STEM,AMMO_PASS,AMMO_KERNEL,
+        native_stem_name=r'shaders\shader_templates\hud\widget_legacy_meter',
+        native_pass_name=r'shaders\shader_passes\hud\widget_legacy_meter',
+        vertex_name=r'rasterizer\vertex_shaders_xbox\screen')
+    policy['additional_setups'].append(ammo['setup']);fixture['additional_cases'].append(ammo_fixture)
+    policy['scope']='Three exact source-owned resident pass contracts; old two v7 weapons unchanged, separate authenticated Ammo source and explicit MIP2 descriptor derivation; no executable bank'
+    return policy,fixture
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cache', type=Path, required=True)
+    parser.add_argument('--ammo-cache', type=Path)
     parser.add_argument('--policy', type=Path)
     parser.add_argument('--fixture', type=Path)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    policy, fixture = generate(args.cache)
+    policy, fixture = generate(args.cache,args.ammo_cache)
     if args.policy:
         text = json.dumps(policy, indent=2) + '\n'
         if args.check:
@@ -166,7 +212,7 @@ def main():
             args.policy.write_text(text)
     if args.fixture:
         args.fixture.write_bytes(canonical(fixture))
-    print('Two exact MCC weapon-pass metadata and existing compiled Vulkan/vertex identities authenticated')
+    print('Three exact MCC resident-pass contracts and existing compiled Vulkan/vertex identities authenticated')
 
 
 if __name__ == '__main__':

@@ -55,7 +55,10 @@ int run(int argc,char** argv){
         const auto prepared=prepare_effect_light_diffuse_material(cache,authored,definition,uniforms);require(prepared.size()==1,"raw source selected pass cardinality");
         const auto& material=prepared[0];const auto pass=load_menu_world_source_pass(cache,row.shader,{row.lod,12,0,1});
         auto base=authored;require(prepare_dynamic_material(cache,base,{},false),"raw controlled base pass missing");
-        base.forward_program=scope_copy_frame({}).program;base.diffuse={1,1,11,std::vector<std::byte>(4,std::byte{24}),{}};base.diffuse.pixels[3]=std::byte{255};
+        // Keep the authored world vertex/fragment pair. The scope-copy
+        // program belongs to another native family; a constant texture is
+        // sufficient to control the baseline for the relative light checks.
+        base.diffuse={1,1,11,std::vector<std::byte>(4,std::byte{24}),{}};base.diffuse.pixels[3]=std::byte{255};
         if(!material.accumulation_texture)base.environment_pass.reset();
         base.world_overlays_before.clear();base.world_overlays_after.clear();base.world_bloom_passes.clear();base.world_planar_passes={};base.planar_fog_pass.reset();base.accumulation_texture=false;
         base.forward_blend=0;base.forward_raster.depth_enable=base.forward_raster.depth_write=1;base.forward_raster.depth_function=0x203;

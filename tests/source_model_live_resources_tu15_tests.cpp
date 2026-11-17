@@ -15,6 +15,7 @@
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/model.hpp"
+#include "halo2/model_node_interpolation.hpp"
 #include "halo2/content.hpp"
 #include <algorithm>
 #include <set>
@@ -160,6 +161,20 @@ int main(int argc,char**argv)try {
                 const auto from_nodes=source_live_model_selected_vertices_tu15(object,produced.u16(0x168u),skin,*nodes,selected_sections);
                 if(exact.size()!=from_nodes.size() || std::memcmp(exact.data(),from_nodes.data(),exact.size()*sizeof(Vertex)))
                     throw FormatError("Completed native palette differs from its exact original WORLD skin arithmetic");
+                // A completed native collector still holds its tick palette
+                // while primary presentation samples between completed WORLD
+                // banks. Exercise that real seam with the actual selected
+                // model/regions, including four different view/LOD choices.
+                auto previous=*nodes;
+                for(auto& node:previous)node.position.x-=.5f;
+                ModelNodeInterpolation history;history.capture(100,previous);history.capture(101,*nodes);
+                for(float fraction:{0.f,.25f,.5f,.75f,1.f}) {
+                    const auto sampled=history.sample(skin,fraction);
+                    const auto primary=source_live_model_selected_vertices_tu15(object,produced.u16(0x168u),skin,sampled,selected_sections);
+                    const auto secondary=source_live_model_collector_vertices_tu15(world,collector,0,skin,sampled);
+                    if(primary.size()!=secondary.size() || std::memcmp(primary.data(),secondary.data(),primary.size()*sizeof(Vertex)))
+                        throw FormatError("Path Tracing secondary collector did not use the primary interpolated WORLD bank");
+                }
             }
             // Region-change allocation can defer context publication once.
             // Reach genuine same-view geometry reuse, then require the owned
@@ -490,6 +505,43 @@ int main(int argc,char**argv)try {
         if(!unavailable.empty() || base_draws.size()!=lit_base.size())
             throw FormatError("unavailable native model base still submitted an unmatched light pass");
         objects.model_available={};
+
+        // Path Tracing consumes ray lights, but the native secondary model
+        // queries still own next-frame LOD/cache history. Compare the actual
+        // completed query with/without constructing its raster packets.
+        struct NativeLightQuery {
+            std::vector<std::array<std::uint32_t,8>> units;
+            std::set<std::uint32_t> owners;
+            unsigned culled{},completed{};
+        };
+        const auto query=[&](bool materialize) {
+            NativeLightQuery result;
+            objects.light_command_observer=[&](const SourceEffectLightCommandObservationTu15& observed) {
+                if(observed.phase!=SourceEffectLightCommandPhaseTu15::culled)return;
+                ++result.culled;
+                for(unsigned n=observed.state.main_prefix;n<observed.state.draw_count;++n) {
+                    const auto& unit=observed.state.units.at(n);
+                    result.units.push_back(unit.words);
+                    if(unit.words[1]!=null_datum)result.owners.insert(word(unit.words[4]));
+                }
+            };
+            objects.light_commands=[&](bool before,auto,const auto&,const auto&) {
+                if(!before)++result.completed;
+            };
+            const auto packets=light_draws.draw(light_view,std::span(&receiver,1),{},view.draw.rendering,{},
+                view.entry.eye,view.draw.viewport,{640,480},1,&objects,nullptr,0,nullptr,materialize);
+            objects.light_command_observer={};objects.light_commands={};
+            if(packets.empty()==materialize || !result.culled || !result.completed ||
+               result.owners!=std::set{object,warmup})
+                throw FormatError("Native light continuation omitted real model queries or materialized unwanted raster packets");
+            return result;
+        };
+        const auto raster_query=query(true),ray_query=query(false);
+        if(raster_query.units!=ray_query.units || raster_query.culled!=ray_query.culled ||
+           raster_query.completed!=ray_query.completed)
+            throw FormatError("Path Tracing native light continuation changed completed secondary model units");
+        std::cout<<"Native light continuation: "<<ray_query.units.size()
+            <<" exact secondary units and completed source commands without raster packets\n";
 
         // Actual smaller queries retain the original attribution gate. These
         // cold bipeds lack mode+74/+7C attribution and legitimately bypass

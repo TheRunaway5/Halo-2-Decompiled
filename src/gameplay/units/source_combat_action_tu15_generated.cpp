@@ -1,3 +1,4 @@
+#include "rendering/effects/native_tu15_effect_reference_element_admission.hpp"
 #include "platform/native_tu15_millisecond_clock.hpp"
 #include "rendering/models/native_tu15_model_light_cache.hpp"
 #include "rendering/models/native_tu15_model_lighting_leaves.hpp"
@@ -11,6 +12,9 @@
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "halo2/source_presented_model_pose_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
+#include "gameplay/objects/native_tu15_projectile_function_query_source_owner.hpp"
+#include "gameplay/objects/native_tu15_object_definition_mode_query_source_owner.hpp"
+#include "gameplay/objects/native_tu15_object_table_ratio_source_owner.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/native_d5610_bitmap_row_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
@@ -13755,6 +13759,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_100e70(WorldState &s) {
+    if(halo2::native_projectile_function_query_owner_detail::bridge<false>(s))return;
 if(s.services.instruction){s.services.instruction(0x100e70u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x100e74u);} s.set(1,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x100e7au);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
@@ -13816,7 +13821,7 @@ if(s.services.instruction){s.services.instruction(0x100f4cu);} s.flags.logic((s.
 if(s.services.instruction){s.services.instruction(0x100f4fu);} if(!s.flags.pf)goto L100f25;
 if(s.services.instruction){s.services.instruction(0x100f51u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x168u,s.image)+s.gp[1]),4)));
 if(s.services.instruction){s.services.instruction(0x100f59u);} s.xmm[0]=_mm_sub_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x18cu,s.image)+s.gp[2]),4))));
-if(s.services.instruction){s.services.instruction(0x100f61u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x194u,s.image)+s.gp[2]),4))));
+if(s.services.instruction){s.services.instruction(0x100f61u);} s.xmm[0]=halo2::native_projectile_function_query_detail::ordered_multiply(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x194u,s.image)+s.gp[2]),4))));
 if(s.services.instruction){s.services.instruction(0x100f69u);} s.flags.scalar_compare(s.xmm[1],s.xmm[0],false);
 if(s.services.instruction){s.services.instruction(0x100f6cu);} if(!s.flags.cf&&!s.flags.zf)goto L100f96;
 if(s.services.instruction){s.services.instruction(0x100f6eu);} s.xmm[2]=_mm_set_ss(f(r(s.memory,(selected(0x46a0d0u,s.image)),4)));
@@ -18971,6 +18976,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_13a6b0(WorldState &s) {
+    if(halo2::native_effect_reference_element_detail::bridge(s,0x13a6b0u,[](auto&child,std::uint32_t target,std::uint32_t site){if(site==0x1780ecu){run_178070(child);return;}if(site==0x1780f4u){run_13a6b0(child);return;}dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x13a6b0u);} s.set(1,sign_extend(s.reg(2,2,0),2),4,0);
 if(s.services.instruction){s.services.instruction(0x13a6b3u);} s.push(0x13a6b3u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x13a6b4u);} s.set(6,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
@@ -22342,6 +22348,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_165590(WorldState &s) {
+    if(halo2::native_object_definition_mode_query_owner_detail::bridge<false>(s))return;
 if(s.services.instruction){s.services.instruction(0x165590u);} s.set(2,r(s.memory,(selected(0x4f3218u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x165596u);} s.push(0x165596u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x165597u);} s.set(6,r(s.memory,(selected(0x180u,s.image)+s.gp[2]),4),4,0);
@@ -22369,6 +22376,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_1655f0(WorldState &s) {
+    if(halo2::native_object_table_ratio_owner_detail::bridge_parent<false>(s, [&](auto& child){run_24b430(child);}))return;
 if(s.services.instruction){s.services.instruction(0x1655f0u);} s.set(0,r(s.memory,(selected(0x4f3218u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1655f5u);} s.flags.minus(r(s.memory,(selected(0x180u,s.image)+s.gp[0]),4),selected(0x9u,s.image),4);
 if(s.services.instruction){s.services.instruction(0x1655fcu);} if(!s.flags.zf)goto L16560a;
@@ -23429,6 +23437,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_178070(WorldState &s) {
+    if(halo2::native_effect_reference_element_detail::bridge(s,0x178070u,[](auto&child,std::uint32_t target,std::uint32_t site){if(site==0x1780ecu){run_178070(child);return;}if(site==0x1780f4u){run_13a6b0(child);return;}dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x178070u);} s.set(2,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x178076u);} s.push(0x178076u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x178077u);} s.set(6,s.reg(1,4,0),4,0);
@@ -35723,6 +35732,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_24b430(WorldState &s) {
+    if(halo2::native_object_table_ratio_owner_detail::bridge_leaf<false>(s))return;
 if(s.services.instruction){s.services.instruction(0x24b430u);} s.set(1,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x24b436u);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x24b439u);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);

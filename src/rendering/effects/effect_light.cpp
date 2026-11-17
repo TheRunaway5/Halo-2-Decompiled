@@ -6,26 +6,82 @@
 #include <bit>
 #include <cmath>
 namespace halo2 {
-EffectLightDefinition source_effect_light_definition(std::span<const std::byte> raw){
+namespace {
+EffectLightDefinition light_definition(std::span<const std::byte> raw,bool completed_animation){
   const Bytes p(raw);p.require(0,228);
   if(p.u16(4)!=0)throw FormatError("Effect light requires original frustum shape owner");
   if(p.u32(0x34)!=0)throw FormatError("Effect light requires original HSV interpolation owner");
-  if(p.u32(0xc4)||p.u32(0xcc)||p.u32(0xd4))throw FormatError("Effect light requires original animation owner");
+  if(!completed_animation && (p.u32(0xc4)||p.u32(0xcc)||p.u32(0xd4)))
+    throw FormatError("Effect light requires original animation owner");
   if(p.u16(0xb6)>=16)throw FormatError("Effect light fade curve escapes its original table bank");
   EffectLightDefinition out;std::copy_n(raw.begin(),228,out.bytes.begin());
   out.flags=p.u32(0);out.lens=p.u32(0x94);out.radius=p.f32(0x18);out.specular_radius=p.f32(0x1c);out.duration=p.f32(0xb0);
   return out;
 }
-EffectLightDefinition load_effect_light(const Cache &cache,std::uint32_t datum){
+EffectLightDefinition load_light(const Cache &cache,std::uint32_t datum,bool completed_animation){
   const auto p=cache.load_source_tag_metadata(datum);
   if(p.group()!="ligh")throw FormatError("Effect light reference is not ligh");
-  auto definition=source_effect_light_definition(p.bytes_at(p.source_address(),228));
-  const auto type=Bytes(definition.bytes).u16(0xb6);
+  auto definition=light_definition(p.bytes_at(p.source_address(),228),completed_animation);
+  const Bytes raw(definition.bytes);
+  const auto type=raw.u16(0xb6);
   if(type && type!=5) {
     const auto tables=cache.shader_function_tables();
     definition.timed_curve={tables,&tables->transition[type]};
   }
+  if(completed_animation && (raw.u32(0xc4)||raw.u32(0xcc)) && !raw.u32(0xd4)) {
+    // Each block row begins with its mapping function's {size,address}.
+    const auto function=[&](unsigned block) {
+      std::vector<std::byte> out;
+      if(std::bit_cast<std::int32_t>(raw.u32(block))<=0)return out;
+      const Bytes row(p.bytes_at(raw.u32(block+4),8));
+      const auto size=row.u32(0),address=row.u32(4);
+      if(std::bit_cast<std::int32_t>(size)<=0 || !address)
+        throw FormatError("Effect light animation block has no mapping function");
+      const auto bytes=p.bytes_at(address,size);out.assign(bytes.begin(),bytes.end());return out;
+    };
+    auto animation=std::make_shared<EffectLightAnimation>();
+    animation->synchronized=raw.u32(0xc0)&1u;
+    animation->brightness=function(0xc4);animation->color=function(0xcc);
+    animation->tables=cache.shader_function_tables();
+    definition.animation=std::move(animation);
+  }
   return definition;
+}
+}
+EffectLightDefinition source_effect_light_definition(std::span<const std::byte> raw){return light_definition(raw,false);}
+EffectLightDefinition source_completed_effect_light_definition(std::span<const std::byte> raw){return light_definition(raw,true);}
+EffectLightDefinition load_effect_light(const Cache &cache,std::uint32_t datum){return load_light(cache,datum,false);}
+EffectLightDefinition load_completed_effect_light(const Cache &cache,std::uint32_t datum){return load_light(cache,datum,true);}
+bool effect_light_is_animated(const EffectLightDefinition &definition){
+  const Bytes p(definition.bytes);return p.u32(0xc4)||p.u32(0xcc)||p.u32(0xd4);
+}
+void source_effect_light_animate(const EffectLightAnimation &animation,std::uint32_t identity,
+    std::int32_t tick,std::int16_t tick_rate,EffectLightState &state){
+  if(tick_rate<=0 || !animation.tables)throw FormatError("Invalid effect light animation clock");
+  // C2B3D/C2B4E: cvtsi2ss of the (offset) game tick times seconds per tick.
+  std::int32_t ticks=tick;
+  if(!animation.synchronized) {
+    const auto hashed=std::bit_cast<std::int32_t>((identity*4999u)&0x7fffffffu);
+    ticks=std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(hashed%(std::int32_t(tick_rate)*60))+
+        std::bit_cast<std::uint32_t>(tick));
+  }
+  const float time=float(ticks)*(1.f/float(tick_rate));
+  if(!animation.brightness.empty()) {
+    // C2B93..C2BDE: 13DE70, then the +4/+8 range when the output kind is 0.
+    const float value=shader_function_value(animation.brightness,time,state.control,*animation.tables);
+    state.brightness=state.brightness*value;
+  }
+  if(!animation.color.empty()) {
+    // C2BF6..C2C78: 13DE70 -> 13E6E0, then x87 channel*diffuse*(1/255).
+    const float fraction=shader_function_fraction(animation.color,time,state.control,*animation.tables);
+    const auto color=shader_function_color(animation.color,fraction);
+    constexpr float unit=0.003921568859368563f; // 46A0C4
+    const auto scale=[&](unsigned shift,float diffuse) {
+      const volatile double product=double(std::int32_t((color>>shift)&0xffu))*double(diffuse);
+      return float(product*double(unit));
+    };
+    state.diffuse={scale(16,state.diffuse.x),scale(8,state.diffuse.y),scale(0,state.diffuse.z)};
+  }
 }
 EffectLightState source_effect_light_state(const EffectLightDefinition &d,float control,
     std::int32_t elapsed,std::int16_t tick_rate,std::span<const std::uint8_t,1024> curve){

@@ -1082,6 +1082,9 @@ struct MultiplayerOptions {
   // Finite pose-review capture only: show the current local source body and
   // held weapon from capture_camera, suppressing its first-person models/HUD.
   bool capture_third_person{};
+  // Finite capture only: place the first local player's source unit here
+  // before the first tick, so a declared view can show a chosen spot.
+  std::optional<Vec3> capture_player_position;
   // Captured camera+28/+2C, radians and lighting/grid distance factor. This
   // diagnostic accompanies capture_camera and never supplies gameplay state.
   std::optional<Vec2> capture_projection;

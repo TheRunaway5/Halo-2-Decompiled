@@ -66,11 +66,16 @@ def physical_original(image, rows, scratch, *, entries=None, regions=None, trace
     observer_source = root / 'tools/observe_native_campaign_ai_vector_math_tu15.cpp'
     observer_text = observer_source.read_text()
     diagnostic = 'check(it!=sites.end(),"Original geometry escaped authenticated leaf bodies");'
-    if observer_text.count(diagnostic) != 1:
+    # Exact later observer form: it already reports the escaped case and PC,
+    # then throws the same refusal.
+    reported = ('if(it==sites.end()){std::cerr<<"Original case escaped: "<<c.at("name")<<" pc="<<std::hex<<pc<<std::dec<<"\\n";'
+                'throw std::runtime_error("Original geometry escaped authenticated leaf bodies");}')
+    if observer_text.count(diagnostic) == 1 and reported not in observer_text:
+        observer_text = observer_text.replace(diagnostic,
+            'if(it==sites.end())std::cerr<<"case "<<c.value("name",std::string{})'
+            '<<" unknown original PC0x"<<std::hex<<pc<<"\\n";' + diagnostic)
+    elif observer_text.count(reported) != 1 or diagnostic in observer_text:
         raise ValueError('Physical PRT observer diagnostic boundary changed')
-    observer_text = observer_text.replace(diagnostic,
-        'if(it==sites.end())std::cerr<<"case "<<c.value("name",std::string{})'
-        '<<" unknown original PC0x"<<std::hex<<pc<<"\\n";' + diagnostic)
     incomplete = 'check(finished||!boundary.is_null(),"Original geometry did not reach its declared boundary");'
     if observer_text.count(incomplete) != 1:
         raise ValueError('Physical PRT observer completion diagnostic changed')

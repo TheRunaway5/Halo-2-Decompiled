@@ -28,6 +28,10 @@ MenuWorldPixelProgramView menuWorldPixelProgram;
 #ifndef MENU_WORLD_ALPHA_VALUE
 #define MENU_WORLD_ALPHA_VALUE(pixel) ((pixel).a)
 #endif
+// True for a draw into a light shadow target, whose depth is screen-linear Z.
+#ifndef MENU_WORLD_Z_DEPTH
+#define MENU_WORLD_Z_DEPTH() false
+#endif
 #ifndef MENU_WORLD_RASTER_OFFSET
 #define MENU_WORLD_RASTER_OFFSET() vec2(0)
 #endif
@@ -67,8 +71,11 @@ vec4 menuWorldFragment(vec4 front0,vec4 front1,vec4 p0,vec4 p1,vec4 p2,float slo
            all(lessThan(position,vec2(region.zw)))) {contained=true;break;}
     }
     if(!contained)demote;
-    float depth=worldWDepth(gl_FragCoord.xy-MENU_WORLD_RASTER_OFFSET(),vec2(MENU_WORLD_SURFACE_SCALE()),
-        p0,p1,p2,slope,MENU_WORLD_DEPTH_FACTOR(),MENU_WORLD_DEPTH_OFFSET());
+    float depth=MENU_WORLD_Z_DEPTH()?
+        worldZDepth(gl_FragCoord.xy-MENU_WORLD_RASTER_OFFSET(),vec2(MENU_WORLD_SURFACE_SCALE()),
+            p0,p1,p2,MENU_WORLD_DEPTH_FACTOR(),MENU_WORLD_DEPTH_OFFSET()):
+        worldWDepth(gl_FragCoord.xy-MENU_WORLD_RASTER_OFFSET(),vec2(MENU_WORLD_SURFACE_SCALE()),
+            p0,p1,p2,slope,MENU_WORLD_DEPTH_FACTOR(),MENU_WORLD_DEPTH_OFFSET());
     vec4 clip=MENU_WORLD_CLIP_RANGE();
     if(MENU_WORLD_W_CLIP_MODE()==16u)depth=clamp(depth,clip.z,clip.w);
     else if(depth<clip.z || depth>clip.w)demote;

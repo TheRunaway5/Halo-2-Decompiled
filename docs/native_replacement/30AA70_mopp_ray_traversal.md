@@ -10,6 +10,14 @@ The bodies match exactly after removing the AI-frame copy's 94 explicit C1-clear
 annotations; their owning FP primitives must still be authenticated separately.
 This normalization is an identity observation, not permission to weaken a pin.
 
+2026-11-16: the Death copy's four `FSTP ST(0)` (`30AE00`, `30B2C7`, `30B6AB`,
+`30B6AD`) now clear C1, as the AI-frame copy and the hardware do. Its hash is
+now `7705b4f435c057f959617f5ef867fce610b934cec04ce7ec1a1f2d7c1c10e333`, and it
+carries 4 explicit clears to the AI-frame copy's 94. With all explicit clears
+removed, the two bodies are still identical. The missing clear left a stale C1 in
+the live-support collision-ray reference. See
+[16C620](16C620_collision_ray.md#c1-root-cause-and-fix-2026-11-16-native-is-the-default).
+
 ## Shared native implementation
 
 `include/halo2/native_tu15_mopp_ray_traversal_kernel.hpp` now owns the native
@@ -459,3 +467,66 @@ supplied. The exact historical site-union reconstruction now reaches
 14 direct-cast/returned-hit sites. Receipts:
 `native-mopp-numerical-continuation-20261109/report.json` and
 `native-mopp-ray-numerical-continuation-union-20261109/report.json`.
+
+
+## Genuine filter and list-collection composition
+
+The actual30B890 caller, complete split/recursive parent, authored2E9920
+filter, real212330 zero-info method and real306220/306230 list methods now
+pass both sanitizer compilers. The corpus contains1,092 complete returns and
+1,504 interruptions; each compiler compares7,376 runs /2,048,120 complete
+packets, including2,412 actual scene queries /328 hits. All31 filter sites and
+62 callback sites execute, with1,501 mask accepts,257 mask rejects and208
+same-group rejects. Four real compiled defects are rejected per compiler.
+Twenty-eight genuine unfiltered callback controls preserve all collector
+outcomes alongside new nonzero collection keys; no child result is supplied.
+
+The failed full-corpus callback coverage assertion remains preserved. The
+corrected report is native-mopp-array-callback-controls-20261109/report.json.
+Its source hashes remain unchanged and the complete owner is removed. Exact
+reconstruction of all13 earlier report hashes and the unchanged896-site AI
+parent adds only30B615/30B617/30B61A/30B620, reaching **866/896**. Receipt:
+native-mopp-ray-returned-filter-union-20261110/report.json. The remaining30
+sites are16 diagnostic and14 direct-cast/returned-hit sites. This historical
+site union is separate from whole-owner/default/runtime closure.
+
+The genuine147-site sphere cast2E8DD0 passes its both-compiler full numerical,
+alias, prefix and four-defect proof. A real authored list/filter/sphere MOPP
+smoke returns through direct-hit publication; its full composed prefix proof
+is running. See [the sphere ledger](2E8DD0_sphere_ray_cast.md). Both production
+MOPP parents remain unbound.
+
+
+The complete genuine MOPP/list/filter/sphere proof now passes both sanitizer
+compilers:1,673 original paths (320 returns +1,353 interruptions),3,986 native
+comparisons /220,502 complete packets /2,260 genuine sphere entries each.
+Exact dependency hashes are stable; all owned source/build/fixture data is
+removed. Its corrected before-indirect-CALL fixture follows the actual physical
+boundary; post-target-read provider return-push failure remains explicitly
+unqualified. Receipt: native-mopp-sphere-query-call-prefix-fixed-20261110/report.json.
+
+Reauthentication of all15 historical proof hashes and the unchanged AI parent
+adds exactly14 direct-cast/returned-hit sites, reaching **880/896**. Only the16
+diagnostic continuation sites remain in this private site union. Receipt:
+native-mopp-ray-direct-sphere-union-20261110/report.json. Both production
+parents, complete domain/source/default admission and runtime closure remain open.
+
+
+Private diagnostic print/flush/strlen controllers now have genuine buffered
+writer returns:40 original paths /2,102 full parent pre-I/O and child-entry
+packets per sanitizer compiler. The exact retained Primary formatter32BA80
+(20 direct-closure definitions; six executed for the pinned%i format), buffered
+writer2E3DB0/2E3E70/2E3D60 and copy2E2E30 remain explicit reference children.
+They supply genuine CPU computations, rather than captured outcomes, but are
+not native replacements. Constructor-consistent stream inputs do not qualify
+full singleton construction, the default debugger/stdout services or an
+all-native diagnostic subtree. The parent private union remains880/896.
+
+The later diagnostic closure extends the historical private union to **895/896**.
+Both sanitizer compilers pass 104 original paths and 4,104 complete packets,
+including 24 actual CPU null-store faults, matching native provider failures
+at the execution boundary, and 32 separately entered epilogue returns. The
+sole remaining site is the intentional null write `30AE42`; a successful
+retirement and whole-parent return through that write are unclaimed. Admission
+stays closed pending the real required-owner stable policy and native
+diagnostic dependencies. `native-mopp-diagnostic-return-closure-20261110/report.json`.

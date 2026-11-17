@@ -147,6 +147,69 @@ class Accounting(unittest.TestCase):
         transformed,_=instrument(FIXTURE,FIXTURE,'src/fixture_generated.cpp')
         with self.assertRaises(ValueError):instrument(transformed,FIXTURE,'src/fixture_generated.cpp')
 
+    def test_scoped_reference_getter_keeps_native_and_empty_service_counts(self):
+        name='src/runtime/native_tu15_diagnostic_logger_owner.hpp'
+        original=(ROOT/name).read_text()
+        transformed,manifest=instrument(original,original,name)
+        self.assertEqual(manifest['function_count'],1)
+        self.assertEqual(manifest['functions'][0]['literal_sites'],2)
+        self.assertNotEqual(manifest['functions'][0]['source_body_semantics'],'native_service_observation_sites')
+        driver=r'''
+#include <iostream>
+using namespace halo2;
+struct Memory final:SourcePhysicsContactMemory{
+ void read(std::uint32_t p,std::span<std::byte> bytes)const override{
+  if(p!=0x62000100u||bytes.size()!=4u)throw std::runtime_error("Unexpected getter read");
+  std::fill(bytes.begin(),bytes.end(),std::byte{});
+ }
+ void write(std::uint32_t,std::span<const std::byte>)override{throw std::runtime_error("Unexpected getter store");}
+};
+int main(int argc,char**){
+ Memory memory;SourcePhysicsWorldRuntimeServices services;unsigned callbacks{},pc{};bool trace{};
+ constexpr std::array<std::uint32_t,3> sites{0x38846eu,0x21f590u,0x33b595u};
+ if(argc>1){services.instruction=[&](auto site){++callbacks;pc=site;};
+  services.instruction_cursor={&pc,&trace,nullptr,sites,std::this_thread::get_id(),&services.instruction.target_type(),true,true};}
+ services.required_owner=[](auto&,const auto&,auto&,const auto&){throw std::runtime_error("Getter invoked a child");};
+ SourcePhysicsWorldRuntimeAbi abi{};abi.gp[1]=0xfffffffcu;abi.gp[4]=0x62000100u;abi.eflags=0x246u;
+ abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x37fu,0x1f80u};
+ if(!native_diagnostic_logger_owner_detail::run(memory,{0x123u,0x2e16d0u,false},abi,services,{}))return 2;
+ if(abi.gp[0]!=4u||abi.gp[4]!=0x62000104u||abi.eflags!=0x246u)return 3;
+ std::cout<<abi.gp[0]<<' '<<abi.gp[4]<<' '<<callbacks<<'\n';
+}
+'''
+        binaries={}
+        for label,header in (('original',original),('accounted',transformed)):
+            source=self.directory/(label+'.cpp');source.write_text(header+'\n'+driver);binary=self.directory/label
+            command=['c++','-std=c++20','-O2','-pthread','-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),str(source)]
+            if label=='accounted':command.append(str(ROOT/'src/runtime/native_execution_accounting.cpp'))
+            subprocess.run(command+['-o',str(binary)],check=True,capture_output=True);binaries[label]=binary
+        outcomes=[]
+        for reference in (False,True):
+            for present in (False,True):
+                report_path=self.directory/('getter-'+str(reference)+'-'+str(present)+'.json')
+                env=dict(os.environ,HALO2_NATIVE_EXECUTION_REPORT=str(report_path))
+                env.pop('HALO2_REFERENCE_DIAGNOSTIC_LOGGER',None)
+                if reference:env['HALO2_REFERENCE_DIAGNOSTIC_LOGGER']='1'
+                arguments=['present']if present else[]
+                outputs=[subprocess.check_output([str(binaries[label]),*arguments],env=env,text=True)for label in ('original','accounted')]
+                self.assertEqual(*outputs)
+                raw=json.loads(report_path.read_text());rows=[dict(zip(raw['row_fields'],row))for row in raw['rows']]
+                self.assertEqual(len(rows),1);row=rows[0]
+                self.assertEqual((row['entries'],row['body_entries'],row['literal_statements'],row['returns_without_body']),
+                    (1,int(reference),2 if reference else 0,int(not reference)))
+                analyzed=analyze(raw);self.assertEqual(analyzed['native_service_observation_rows'],0)
+                self.assertEqual(analyzed['literal_fallback_rows'],int(reference))
+                self.assertEqual(int(outputs[0].split()[-1]),2 if reference and present else 0)
+                outcomes.append(dict(reference=reference,service_present=present,runtime=raw,analysis=analyzed))
+        REPORTS['actual_scoped_reference_getter']=outcomes
+
+    def test_scoped_callback_rejects_extra_statements_else_and_receiver_drift(self):
+        body='if(services.instruction)scope.io([&]{services.instruction(0x2e16d0u);});'
+        for changed in (body.replace(';});',';extra();});'),body+'else extra();',
+                        body.replace('scope.io','scope.other'),body.replace(']{services',']{other.services')):
+            source='inline void owner(){'+changed+'}\n'
+            with self.assertRaises(ValueError):instrument(source,source,'src/scoped-reference.hpp')
+
     def test_descriptive_owners_damage_mapper_and_local_state(self):
         source=r'''
 void producer(WorldState &s) {

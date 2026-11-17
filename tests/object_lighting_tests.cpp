@@ -23,13 +23,20 @@ std::filesystem::path map_path(const std::string &name) {
   if(i==names.end())throw FormatError("unknown object lighting fixture map");
   return std::filesystem::path(i-names.begin()<12?"assets/disc/maps":"assets/map-pack/maps")/(name+".map");
 }
+Cache fixture_cache(const std::string &name) {
+  // DLC fixture entries point at the authenticated import, whose directory
+  // has no shared.map. Resolve this explicit test input and borrow the disc's
+  // real shared-map directory; production resource admission stays strict.
+  return Cache(std::filesystem::canonical(map_path(name)),
+      std::filesystem::canonical("assets/disc/maps"));
+}
 void probe() {
   std::map<std::string,ObjectLightingDefinition> definitions;
   std::string name;unsigned type;ObjectLightmapSample sample;
   std::cout<<std::setprecision(9);
   while(std::cin>>name>>type>>sample.incident.x>>sample.incident.y>>sample.incident.z
       >>sample.diffuse_rgb>>sample.lightmap_rgb) {
-    if(!definitions.contains(name))definitions.emplace(name,Cache(map_path(name)).load_object_lighting_definition());
+    if(!definitions.contains(name))definitions.emplace(name,fixture_cache(name).load_object_lighting_definition());
     for(float v:object_lighting(definitions.at(name),sample,type).source_values())std::cout<<v<<' ';
     std::cout<<'\n';
   }
@@ -61,7 +68,7 @@ void cache_probe() {
       >>velocity.x>>velocity.y>>velocity.z) {
     sample(cache.current);sample(cache.target);std::cin>>available;sample(query);
     if(!std::cin)throw FormatError("truncated object cache oracle fixture");
-    if(!definitions.contains(name))definitions.emplace(name,Cache(map_path(name)).load_object_lighting_definition());
+    if(!definitions.contains(name))definitions.emplace(name,fixture_cache(name).load_object_lighting_definition());
     cache.sample_valid=sample_valid;cache.lighting_valid=lighting_valid;cache.lighting={};
     const auto due=object_lighting_query_due(cache,frame,origin,distance,frozen);
     update_object_lighting_cache(cache,definitions.at(name),type,frame,origin,velocity,due,
@@ -165,7 +172,7 @@ int main(int argc,char **argv) {
     unsigned definitions=0,dynamic=0,accumulation=0,scopes=0,volumes=0;
     unsigned scenery_placements=0,scenery_lit=0,scenery_transparent=0,arms_environment=0;
     for(const auto name:names) {
-      const Cache cache(map_path(name));const auto definition=cache.load_object_lighting_definition();
+      const Cache cache=fixture_cache(name);const auto definition=cache.load_object_lighting_definition();
       check(definition.variables.size()==2,"authored multiplayer global lighting variable coverage changed");
       check(definition.variables[0].affected_objects==0x2002 && definition.variables[1].affected_objects==0x1ffc,
         "original object-type global lighting selection changed");

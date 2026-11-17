@@ -16,6 +16,7 @@
 #include "halo2/source_loop_phased_output_tu15.hpp"
 #include "halo2/source_loop_combined_listener_tu15.hpp"
 #include "halo2/math.hpp"
+#include "halo2/mcc_mono_distortion_definition.hpp"
 #include <algorithm>
 #include <atomic>
 #include <thread>
@@ -264,7 +265,8 @@ struct MultiplayerAudio::State {
     std::optional<CompanionCompletion> companion;bool loop_packet{};
     std::map<std::uint64_t,std::int8_t> packet_gains;
     std::optional<ChunkSequence> chunks;
-    std::uint16_t location_flags{};};
+    std::uint16_t location_flags{};
+    std::optional<tu15_sound_mono_distortion::Parameters> effect;};
   struct PacketCompletion {
     SdlSoundCompletion value;
     std::optional<SdlSoundPlatform::CompletionReceipt> receipt;
@@ -283,6 +285,38 @@ struct MultiplayerAudio::State {
     bool stopping{},seen{},retain{},alternate{},disable_details{};
   };
   std::shared_ptr<const Cache> cache_owner;
+  // Retained MCC effect definitions (built on first effect use) and the
+  // record-1 parameters the next created voice installs.
+  std::shared_ptr<const MccSoundEffectDefinitions> effect_definitions;
+  std::optional<tu15_sound_mono_distortion::Parameters> pending_effect;
+  // 18FE80/224740/2290C0: an effect row's first DSP instance; its template
+  // must be sfx_mono_distortion (record 1, mixbin 13) to send. Rows without
+  // a DSP instance play dry. Parameters convert the instance's selected
+  // override (TU1.5 228CD0 -> 385B4F conversion) under CW 027F.
+  std::optional<tu15_sound_mono_distortion::Parameters> effect_parameters(const MultiplayerAudioEffect& effect) {
+    if(!cache_owner)throw FormatError("Native sound effects require the retaining Cache owner");
+    if(!effect_definitions)effect_definitions=std::make_shared<const MccSoundEffectDefinitions>(cache_owner);
+    const MccSoundEffectDefinitions::Collection* found=nullptr;
+    for(const auto& collection:effect_definitions->collections())
+      if(collection.handle.value==effect.collection){found=&collection;break;}
+    if(!found)for(const auto& collection:effect_definitions->collections())
+      if((collection.handle.value&0xffffu)==(effect.collection&0xffffu)){found=&collection;break;}
+    if(!found)throw FormatError("Sound effect collection is not a retained MCC definition");
+    if(effect.row>=found->effects.size())throw FormatError("Sound effect row is outside its collection");
+    const auto& row=found->effects[effect.row];
+    if(row.instances.empty())return std::nullopt;
+    const auto& instance=row.instances.front();
+    const auto& definition=effect_definitions->effect_template(instance.effect_template.handle);
+    bool mono=false;
+    for(const auto& platform:definition.platforms)
+      if(platform.input.text && *platform.input.text=="sfx_mono_distortion")mono=true;
+    if(!mono)throw FormatError("Sound effect "+(row.name.text?*row.name.text:std::string("?"))+
+        " uses a DSP template without a native effect record");
+    const auto compiled=tu15_mono_parameter_conversion::CompiledMonoDefinition::compile(effect_definitions,
+        instance.effect_template.handle);
+    const auto selected=instance.override_records.empty()?std::nullopt:std::optional<std::size_t>(0);
+    return compiled->instance(instance,selected,tu15_mono_parameter_conversion::FpMode::double_53).parameters;
+  }
   const Cache &cache;SoundLocalRandom random;
   std::shared_ptr<SdlSoundPlatform> platform_storage;SdlSoundPlatform&platform;
   MultiplayerAudioObserver observer;
@@ -526,7 +560,9 @@ struct MultiplayerAudio::State {
     // Explicit native stereo output. Xbox mix-bin/DSP routing is a separate
     // platform contract; neither channel is silently dropped on a stereo host.
     const auto output_gain=spatial>0.f?master:0.f;
-    return {std::bit_cast<std::uint32_t>(v.relative_rate),volume,paused,{{0,0,output_gain},{1,1,output_gain}}};
+    SdlSoundVoiceParameters out{std::bit_cast<std::uint32_t>(v.relative_rate),volume,paused,{{0,0,output_gain},{1,1,output_gain}}};
+    if(v.effect)out.effect=SdlSoundEffectSend{*v.effect};
+    return out;
   }
   void loop_location(Voice& voice,std::optional<Vec3> position){
     if(position && (!std::isfinite(position->x) || !std::isfinite(position->y) || !std::isfinite(position->z)))
@@ -663,6 +699,7 @@ struct MultiplayerAudio::State {
     const auto driver_pitch=source_sound_driver_pitch(b.rate_index,std::bit_cast<std::uint32_t>(packet_pitch),constants,{0x027f,0x1f80});
     const auto relative=std::bit_cast<float>(source_sound_relative_rate(driver_pitch,b.rate_index,constants,{0x027f,0x1f80}));
     Voice v{0,sound,owner,loop_tag,view,track,kind,gain_db+extra,relative,ambient_gain,b.sound_class,looping,std::move(completion)};
+    v.effect=std::exchange(pending_effect,std::nullopt);
     v.record=std::make_shared<const unsigned char>(0);v.companion=std::move(companion);
     v.position=position;
     v.location_flags=location_flags.value_or(source_sound_direct_location_flags_tu15(
@@ -1199,9 +1236,12 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_impulse(std::uint3
   return voice?std::optional<Voice>(voice):std::nullopt;
 }
 std::optional<MultiplayerAudio::Voice> MultiplayerAudio::schedule_impulse(std::uint32_t sound,
-    std::uint64_t frame,float control,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view,Completion completion){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+    std::uint64_t frame,float control,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view,Completion completion,
+    std::optional<MultiplayerAudioEffect> effect){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
   if(sound==none)return std::nullopt;
   if(!std::isfinite(control)||control<0)throw FormatError("Invalid native sound caller gain");
+  struct Pending {std::optional<tu15_sound_mono_distortion::Parameters>& slot;~Pending(){slot.reset();}} pending{state->pending_effect};
+  if(effect)state->pending_effect=state->effect_parameters(*effect);
   const auto voice=state->play(sound,0,kind,owner,view,false,none,0,1,std::move(completion),control,{},frame);
   return voice?std::optional<Voice>(voice):std::nullopt;
 }
@@ -1431,10 +1471,13 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_impulse_at(std::ui
   return id?std::optional<Voice>(id):std::nullopt;
 }
 std::optional<MultiplayerAudio::Voice> MultiplayerAudio::schedule_impulse_at(std::uint32_t sound,Vec3 position,
-    std::uint64_t frame,float control,MultiplayerAudioKind kind,std::uint32_t owner){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+    std::uint64_t frame,float control,MultiplayerAudioKind kind,std::uint32_t owner,
+    std::optional<MultiplayerAudioEffect> effect){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
   if(sound==none)return {};
   if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(position.z)||!std::isfinite(control)||control<0)
     throw FormatError("Invalid world audio emitter or caller control");
+  struct Pending {std::optional<tu15_sound_mono_distortion::Parameters>& slot;~Pending(){slot.reset();}} pending{state->pending_effect};
+  if(effect)state->pending_effect=state->effect_parameters(*effect);
   const auto id=state->play(sound,0,kind,owner,0,false,none,0,1,{},control,position,frame);
   return id?std::optional<Voice>(id):std::nullopt;
 }

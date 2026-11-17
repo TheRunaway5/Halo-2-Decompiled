@@ -22,7 +22,11 @@ COLD=[(0x48605c,4),(0x486070,4),(0x4f3010,4),
  # Original203C00 clears ceil(cluster_count/32) DWORDs, then publishes
  # the cluster key separately. BSP clusters are bounded to512. Original
  # constructor1CFB79 initializes the key toFFFF; never seed a cached result.
- (0x502200,0x40),(0x502240,2),(0x505e70,0x10),(0x50eedc,8),
+ (0x502200,0x40),(0x502240,2),(0x505e70,0x10),
+ # Original262710 publishes caller context/status pointers at26273A/262734
+ # before invoking the command children. These are loader-zero cells, not
+ # command completion values or prefilled private caller frames.
+ (0x50eed4,8),(0x50eedc,8),
  # Original262590 publishes actor/script context before211840 and clears it
  # after the callback. Preserve the eight loader-zero bytes, not live IDs.
  (0x50eee4,8),
@@ -43,6 +47,9 @@ COLD=[(0x48605c,4),(0x486070,4),(0x4f3010,4),
  # make this loader-zeroed mutable field an immutable literal.
  (0x56e224,1)]
 SHARED=[(0x4f2950,8),(0x4f295c,4),(0x51df2c,4),(0x51df44,4),(0x56e225,1),(0x56e258,0x400)]
+# Actual2005A8 FADD reads the authored0.03f retry increment during200420.
+# Admit only its four immutable bytes, independent of captured actor results.
+ADDITIONAL_LITERALS=[(0x45c618,4)]
 
 def regions(points):
  rows=[]
@@ -62,6 +69,7 @@ def main():
   # Optimized source copies read aligned words through each NUL. Group the
   # authenticated neighboring bytes into their actual four-byte storage unit.
   points.update(range(address&~3,(address+size+3)&~3))
+ for address,size in ADDITIONAL_LITERALS:points.update(range(address,address+size))
  for address,size in COLD+SHARED:points.difference_update(range(address,address+size))
  lines=['// Authenticated final TU1.5 startup data; no executable is read at runtime.'];rows=[]
  for address,size in COLD:

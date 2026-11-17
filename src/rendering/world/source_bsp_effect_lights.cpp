@@ -144,7 +144,7 @@ struct SourceBspEffectLights::Impl {
         // Literal3B8A0 capacities; each retained24-byte record is owned here.
         for(unsigned i=0;i<3;++i) {const unsigned capacity=std::array{0xa00u,0x400u,0x200u}[i];
             commands.banks[i].header[0]=capacity;commands.banks[i].storage.resize(capacity);}
-        for(auto id:ids)lights.emplace(id,load_effect_light(cache,id));
+        for(auto id:ids)lights.emplace(id,load_completed_effect_light(cache,id));
         for(const auto& material:materials)if(material.shader!=0xffffffffu && !shaders.contains(material.shader)) {
             const auto& shad=metadata.definition(material.shader);
             const auto sr=Bytes(metadata.read(shad.source_address(),0x40));
@@ -594,7 +594,8 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
     std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
     SourceEffectLightModelViewTu15* objects,std::vector<pstencil::PointCaster>* point_casters,
-    std::uint32_t light_domain,const std::array<ShaderVector,12>* submitting_constants) {
+    std::uint32_t light_domain,const std::array<ShaderVector,12>* submitting_constants,
+    bool materialize_draws) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;
     if(initial_receivers.empty() && (!objects ||
         (!objects->main_draws && !objects->main_collected && !objects->current_lights)))return output;
@@ -837,7 +838,8 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             if(point_casters) {
                 if(!i.pstencil_casters)i.pstencil_casters=std::make_unique<pstencil::PointCasterBank>(i.cache,i.bsp_index);
                 i.pstencil_casters->collect(units,objects?&objects->world:nullptr,runtime,constants,
-                    light_domain,objects?objects->model_available:std::function<bool(const SourceCullDrawUnit&)>{},*point_casters);
+                    light_domain,objects?objects->model_available:std::function<bool(const SourceCullDrawUnit&)>{},
+                    *point_casters,objects?objects->presented_palette:pstencil::PresentedModelPalette{});
             }
             if(!objects)return;
             if(objects->model_available)for(unsigned n=units.main_prefix;n<units.draw_count;++n) {
@@ -895,6 +897,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             for(const auto& call:result.frustum_calls)i.mode0_model_entries+=i.units.units.at(call.unit).words[1]!=0xffffffffu;
         }
         i.light_arena=i.units.arena;
+        if(!materialize_draws)continue;
         const auto& commands=i.commands.banks[1];
         const auto selected=std::span(i.opaque).first(result.opaque_count);
         // Bind the actual raw source inputs before accepting1CAA0's range
@@ -909,9 +912,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
                     if(!objects)throw FormatError("light model binding lacks its live world");
                     const auto& section=i.model(u);
                     const auto& geometry=live_model(u);
-                    const auto palette=source_live_model_palette_rows_tu15(objects->world,u,geometry);
                     SourceModelEffectLightDrawInput input;
                     input.object=Bytes(objects->world.memory().view(u.words[4],4)).u32(0);
+                    const auto palette=source_live_model_palette_rows_tu15(objects->world,u,geometry,
+                        objects->presented_palette?objects->presented_palette(input.object,u.words[1]):
+                            std::span<const std::array<float,12>>{});
                     input.light=light->definition_identity;input.shader=c[2];input.shader_lod=c[5]>>8&255u;
                     input.pass=c[5]&255u;input.part=c[3]&255u;input.vertex_class=vertex_class;
                     input.topology=source_effect_light_part_ranges(u,section.ranges,input.part,i.units.arena,Impl::light_arena_token).topology;

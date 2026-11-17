@@ -6,12 +6,17 @@ import subprocess
 import sys
 from oracle_smg_firing_1_1 import ROOT
 from validate_native_tu15_prt_helpers import PIN
+from native_instanced_ray_callback_replacements import authenticate
 
 BODY_PIN='051c773a4b00e5564355f1a5d2fb2bbd070f642d2984ac5b83d2c4518217f35f'
 
 def qualify(scratch,output,rows,io):
     source=(ROOT/'src/physics/physics_live_support_tu15_generated.cpp').read_text()
-    body=re.search(r'static void run_24def0\(WorldState &s\) \{(.*?)\n\}\n\nstatic void run_24df20',source,re.S)
+    # Recover only the exact authenticated retained owner. The production
+    # prefix is now present; hashing it as part of the old oracle would either
+    # reject a valid source or accidentally run the native route as reference.
+    canonical=next(body for entry,_,body in authenticate(source)if entry==0x24def0)
+    body=re.fullmatch(r'static void run_24def0\(WorldState &s\) \{(.*?)\n\}',canonical,re.S)
     assert body and hashlib.sha256(body[1].encode()).hexdigest()==BODY_PIN,'Complete24DEF0 retained source drift'
     project=scratch/'retained-call-failure';project.mkdir()
     (project/'instanced_callback_forward_reference.inc').write_text('static void canonical_forward(WorldState&s){'+body[1]+'\n}\n')
@@ -32,5 +37,8 @@ add_test(NAME retained_call_failure COMMAND retained_call_failure "{fixture}")
     result=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
     assert result.returncode==0,'Retained memCALL policy receipt failed: '+result.stdout[-7000:]
     return dict(passed=True,whole_retained_forward_body_sha256=BODY_PIN,source_scope='Exact retained24DEF0 with only fixture symbol renamed; actual target read followed by provider stack-write failure',
+                authenticated_complete_source_sha256=hashlib.sha256(source.encode()).hexdigest(),
+                authenticated_canonical_owner_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
+                native_prefix_canonicalization='Only the exact paired source/body/resolver/dispatcher/dependency-authenticated prefix is removed; original retained BODY_PIN unchanged',
                 raw_gp4_policy='Commit after provider success',canonical_gp4_policy='Existing State.push predecrements before provider',
                 target_read_and_all_other_abi_memory_preserved=True,full_exception_parity_claim=False,physical_post_target_provider_failure_claim=False,supplied_child_outcomes=False)

@@ -7,6 +7,9 @@
 #include "physics/runtime/native_tu15_mopp_ray_slab_frame.hpp"
 #include "physics/runtime/native_tu15_mopp_ray_diagnostic_frame.hpp"
 #include "physics/runtime/native_tu15_affine_inverse.hpp"
+#include "physics/runtime/native_tu15_mopp_ray_setup_frame.hpp"
+#include "physics/runtime/native_tu15_ray_filter_frame.hpp"
+#include "physics/runtime/native_tu15_shape_collection_frame.hpp"
 #ifdef HALO2_CALLBACK_SOURCE_ROUTES
 #include "physics/runtime/native_tu15_instanced_ray_callback.hpp"
 #endif
@@ -143,12 +146,21 @@ int main(int argc,char**argv)try{
         };
         bool interrupted{};
         try{
-            unsigned row_queries{},row_hits{};
+            unsigned row_queries{},row_hits{},row_collectors{};
             std::function<void(InstrumentedState&,std::uint32_t,std::uint32_t)> dispatch;
             auto forwarded=[&](auto&s,auto target,auto site,bool){dispatch(s,target,site);};
             dispatch=[&](auto&s,std::uint32_t owner,std::uint32_t){
-                if(owner==0x24dec0u)native_instanced_ray_child_detail::resolve_retained(s,before);
+                if(owner==0x2e9920u)native_ray_filter_detail::run_private(s,before,dispatch);
+                else if(owner==0x212330u)native_ray_filter_detail::empty_info_private(s,before);
+                else if(owner==0x306220u)native_shape_collection_detail::run_private<native_shape_collection_detail::Field::shape>(s,before);
+                else if(owner==0x306230u)native_shape_collection_detail::run_private<native_shape_collection_detail::Field::filter_info>(s,before);
+                else if(owner==0x30aa70u){
+                    auto slab=[&](auto&s,auto&before,auto&scope,auto opcode,auto&program){return native_mopp_ray_caller_detail::slab(s,before,scope,opcode,program);};
+                    auto diagnostic=[&](auto&s,auto&before,auto&scope,auto&dispatch){native_mopp_ray_caller_detail::DiagnosticFrame frame{s,before,scope,dispatch};frame.invoke();};
+                    native_mopp_ray_caller_detail::traverse(s,before,dispatch,slab,diagnostic);
+                }else if(owner==0x24dec0u)native_instanced_ray_child_detail::resolve_retained(s,before);
                 else if(owner==0x24def0u||owner==0x24df20u){
+                    row_collectors+=owner==0x24df20u;
 #ifdef HALO2_CALLBACK_SOURCE_ROUTES
                     if(route){
                         const bool forward=owner==0x24def0u;
@@ -178,7 +190,8 @@ int main(int argc,char**argv)try{
 #ifdef HALO2_CALLBACK_SOURCE_ROUTES
             callback_copies::current_dispatch=[&](auto&s,auto owner){dispatch(s,owner,0);};
 #endif
-            if(row.value("complete_controller",false)){
+            if(row.value("setup_caller",false))native_mopp_ray_setup_detail::run_private(state,before,dispatch);
+            else if(row.value("complete_controller",false)){
                 auto slab=[&](auto&s,auto&before,auto&scope,auto opcode,auto&program){return native_mopp_ray_caller_detail::slab(s,before,scope,opcode,program);};
                 auto diagnostic=[&](auto&s,auto&before,auto&scope,auto&dispatch){native_mopp_ray_caller_detail::DiagnosticFrame frame{s,before,scope,dispatch};frame.invoke();};
                 native_mopp_ray_caller_detail::traverse(state,before,dispatch,slab,diagnostic);
@@ -191,7 +204,7 @@ int main(int argc,char**argv)try{
                 native_mopp_ray_leaf_detail::Progress progress;
                 const auto result=native_mopp_ray_leaf_detail::visit(leaf,key,progress);leaf.finish(result);
             }
-            queries+=row_queries;hits+=row_hits;duplicates+=!row_queries;before(state,0x63000000u);
+            queries+=row_queries;hits+=row_hits;duplicates+=!row_queries&&row_collectors;before(state,0x63000000u);
         }catch(const Boundary&){interrupted=true;}
         catch(const std::exception&error){throw std::runtime_error(std::string(error.what())+" "+J{{"case",row.at("name")},{"phase",phase},{"hostile",hostile},{"observed",observe},{"state",packet(state,memory.pc)}}.dump());}
         check(interrupted,"Primitive key did not reach declared boundary");

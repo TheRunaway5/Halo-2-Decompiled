@@ -6,6 +6,7 @@
 #include "halo2/path_tracing/surface.hpp"
 #include "halo2/path_tracing/material_surface.hpp"
 #include "halo2/path_tracing/color_guide.hpp"
+#include "halo2/path_tracing/source_ambient.hpp"
 #include "halo2/pstencil/environment.hpp"
 #include "halo2/pstencil/combined_environment.hpp"
 #include "halo2/source_texture_filtering.hpp"
@@ -345,6 +346,7 @@ std::array<std::uint64_t,2> material_image_key(const Material &material) {
         const unsigned first=surface->family==SurfaceFamily::TerrainBlend ||
             surface->family==SurfaceFamily::TerrainBlendThreeStage?2:0;
         add(colors[first]);add(colors[first+1]);
+        if(surface->family==SurfaceFamily::TextureFourChangeColor){add(colors[2]);add(colors[3]);}
         for(unsigned stage=0;stage<4;++stage) {
             if(!(surface->stages&(1u<<stage)))continue;
             const auto& image=emission_texture(material,stage);const auto& sampler=material.texture_states[stage];
@@ -415,6 +417,13 @@ bool node_hit(const GpuNode &node,Vec3 origin,Vec3 direction,float maximum) {
     return true;
 }
 }
+namespace alias_detail {
+std::array<std::uint32_t,3> append_image(Scene& scene,const Texture& image,unsigned minimum_level) {
+    GpuMaterial temporary;append_texture(scene,temporary,image,minimum_level);
+    scene.texture_texel_count=std::uint32_t(scene.pixels.size());
+    return {temporary.texture[0],temporary.texture[1],temporary.texture[2]};
+}
+}
 GpuMaterial material_response(const Material &material) {
     GpuMaterial result;
     const Material *environment=material.environment_pass.get();
@@ -425,17 +434,24 @@ GpuMaterial material_response(const Material &material) {
     };
     find_environment(material.world_overlays_before);find_environment(material.world_overlays_after);
     if(!environment)environment=pstencil::combined_visor_environment(material);
-    const auto *reference=pstencil::reference_environment_parameters(material.name);
+    if(!environment && pstencil::supports_combined_environment_strength(material))environment=&material;
     // Halo's legacy response has no physical roughness. This optional policy
     // deliberately broadens weak reflections instead of making every surface
     // metallic. Authored facing/glancing strengths remain independently bounded.
     float facing=0,glancing=0;
-    if(reference && (environment || pstencil::supports_combined_environment_strength(material))) {
-        facing=unit(reference->facing[3]);glancing=unit(reference->glancing[3]);
-        for(unsigned n=0;n<3;++n)result.base[n]=unit(reference->facing[n]);
+    // Path Tracing follows the current Original material. The May2003 lookup
+    // belongs to pStencil presentation and must not override retail colors.
+    if(environment && environment->forward_vertex==6) {
+        const auto& words=environment->forward_program.words;
+        facing=float(words[17]>>24)/255.f;glancing=float(words[25]>>24)/255.f;
+        const auto facing_color=surface_detail::argb(words[15]),glancing_color=surface_detail::argb(words[23]);
+        for(unsigned n=0;n<3;++n){result.base[n]=facing_color[n];result.glancing_tint[n]=glancing_color[n];}
     }else if(environment) {
         facing=unit(environment->forward_diffuse[3]);glancing=unit(environment->forward_specular[3]);
-        for(unsigned n=0;n<3;++n)result.base[n]=unit(environment->forward_diffuse[n]);
+        for(unsigned n=0;n<3;++n) {
+            result.base[n]=unit(environment->forward_diffuse[n]);
+            result.glancing_tint[n]=unit(environment->forward_specular[n]);
+        }
     }else if(material.specular_brightness>0) {
         facing=unit(material.specular_brightness)*.04f;glancing=facing;
     }
@@ -449,6 +465,15 @@ GpuMaterial material_response(const Material &material) {
     if(!traces_material(material))flags|=16u;
     if(material.forward_vertex==2)flags|=32u; // Primary root emits; child passes retain their source draw.
     if(qualified_unlit_white_tint(material) || (material.forward_vertex==2 && supports_emission(material)))flags|=128u;
+    if(source_ambient_owner(material))flags|=source_ambient_flag;
+    if(environment && environment->forward_vertex==4 && environment->forward_blend==8)
+        if(const auto source=qualified_surface(material);source &&
+           ((unsigned(source->family)>=8u && unsigned(source->family)<=10u) ||
+            source->family==SurfaceFamily::DynamicDetail))
+            // These complete native programs preserve the destination alpha
+            // consumed by the separate environment pass, including animated
+            // C24.a for dynamic detail. Other families do not claim that mask.
+            flags|=2048u;
     flags|=(material.forward_raster.alpha_function&7u)<<8;result.texture[3]=flags;
     result.transform=material.texture_transforms[0];
     // These complete native vertex identities use c18 for base UVs even
@@ -658,7 +683,7 @@ std::optional<ShaderVector> material_surface(const Scene& scene,std::uint32_t ma
     if(!pointer || pointer-1>scene.pixels.size() || scene.pixels.size()-(pointer-1)<surface_record_words)
         throw FormatError("Path Tracing source surface lost its bounded record");
     const auto record=pointer-1;
-    if(word(record)!=surface_magic || (word(record+7)!=3 && word(record+7)!=7 && word(record+7)!=15))
+    if(word(record)!=surface_magic || (word(record+7)!=3 && word(record+7)!=7 && word(record+7)!=11 && word(record+7)!=15))
         throw FormatError("Path Tracing source surface lost its native family record");
     const Vec2 base{uv.x*std::bit_cast<float>(word(record+8))+std::bit_cast<float>(word(record+10)),
                     uv.y*std::bit_cast<float>(word(record+9))+std::bit_cast<float>(word(record+11))};

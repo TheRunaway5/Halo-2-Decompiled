@@ -55,9 +55,11 @@ void SourceCharacterShaders::select(std::vector<Vertex>& vertices,const SourceMo
     resident_->select(vertices,collector,view);
 }
 ShaderInput SourceCharacterShaderInputs::input(const Unit& unit,float seconds)const {
-    return [this,&unit,seconds](std::uint32_t name) {
-        return damage_feedback_shader_input(unit.damage_feedback,unit.vitality.body,unit.vitality.shield,
-            unit.vitality.dead,functions_,*tables_,name,seconds,names_);
+    // The renderer may evaluate this after the simulation advanced (render
+    // overlap): keep the unit's values as they are at submission.
+    return [this,feedback=unit.damage_feedback,body=unit.vitality.body,shield=unit.vitality.shield,
+            dead=unit.vitality.dead,seconds](std::uint32_t name) {
+        return damage_feedback_shader_input(feedback,body,shield,dead,functions_,*tables_,name,seconds,names_);
     };
 }
 void SourceCharacterShaders::select_indexed(std::vector<Vertex>& vertices,std::vector<std::uint32_t>& ordinals,

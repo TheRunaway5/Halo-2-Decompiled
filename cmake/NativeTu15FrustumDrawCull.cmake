@@ -1,11 +1,16 @@
-if(TARGET halo2_systems)
-    target_sources(halo2_systems PRIVATE src/rendering/native_tu15_frustum_draw_cull.cpp
-        src/rendering/world/source_main_frustum_cull_tu15.cpp)
+if(TARGET halo2_cache)
+    # The effect-light geometry frame in halo2_cache calls this owner too.
+    # Keep the kernel with its lowest-level caller so cache-only consumers
+    # do not depend on the higher-level world runtime to resolve it.
+    target_sources(halo2_cache PRIVATE src/rendering/native_tu15_frustum_draw_cull.cpp)
     if(MSVC)
         set_source_files_properties(src/rendering/native_tu15_frustum_draw_cull.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
     else()
         set_source_files_properties(src/rendering/native_tu15_frustum_draw_cull.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
     endif()
+endif()
+if(TARGET halo2_systems)
+    target_sources(halo2_systems PRIVATE src/rendering/world/source_main_frustum_cull_tu15.cpp)
 endif()
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
     add_executable(native_tu15_frustum_draw_cull_tests

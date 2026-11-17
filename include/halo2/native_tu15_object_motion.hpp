@@ -74,6 +74,10 @@ struct NativeTu15ObjectActivationContext {
 };
 void native_tu15_set_object_velocities(SourcePhysicsContactMemory &, std::uint32_t object, const Vec3 *linear,
                                        const Vec3 *angular, NativeTu15ObjectActivationContext &);
+// 1100C0: HS object_set_velocity (local forward/left/up scalars). Same
+// refusal as B9800 before any write when a body's island needs activation.
+void native_tu15_object_set_velocity(SourcePhysicsContactMemory &, std::uint32_t object, float forward,
+                                     float left, float up, SourcePhysicsFactoryFloatingPoint);
 // D2B60 / D2BD0: the units the original rider iterator yields for `object`,
 // in its order. It starts at the highest unit ancestor reached through
 // parents whose object +4 bit 26 is set, yields that root's unit children,

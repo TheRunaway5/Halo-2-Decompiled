@@ -1,4 +1,5 @@
 #include "halo2/source_campaign_screen_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <bit>
@@ -40,8 +41,8 @@ Vec2 source_campaign_clip_planes_tu15(PhysicsLiveWorldTu15 &world) {
 }
 void source_campaign_depth_of_field_tu15(PhysicsLiveWorldTu15 &world,
     std::span<const std::uint32_t,7> arguments) {
-    auto abi=world.prepare_source_call(arguments.subspan<1>());
-    abi.xmm[0][0]=arguments[0];world.run_actual(0x1fc10u,abi);
+    auto bank=native_campaign_script_bank(world,true);
+    native_campaign_script_tu15::cinematic_depth_of_field(bank,arguments); // native 1FC10
 }
 SourceCampaignDepthOfFieldFrameTu15 source_campaign_depth_of_field_frame_tu15(
     const SourceRuntimeMemory &m,bool view_modifier,bool target_ready) {

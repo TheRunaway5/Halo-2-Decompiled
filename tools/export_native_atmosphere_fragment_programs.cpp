@@ -29,6 +29,9 @@ int main() {
     emit("bloom",bloom.threshold,{{"pass","threshold"}});
     emit("bloom",bloom.blur,{{"pass","blur"}});
     emit("bloom",bloom.composite,{{"pass","composite"}});
+    const auto masked=menu_bloom(.37f,.63f,true);
+    emit("bloom",masked.threshold,{{"pass","layer17 mask threshold"}});
+    emit("bloom",masked.composite,{{"pass","layer17 mask composite"}});
     emit("bloom",frontend_popup_blur(.5f).program,{{"pass","popup lower-channel blur"}});
     PatchyFog patchy{};patchy.color={.25f,.5f,.75f};patchy.distance={1,512};patchy.density={.25f,.75f};
     patchy.flags=1;patchy.noise_scale=32;patchy.vertical_up=patchy.vertical_forward=patchy.opacity_up=1;

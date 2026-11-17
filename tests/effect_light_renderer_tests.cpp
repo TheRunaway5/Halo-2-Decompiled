@@ -94,7 +94,9 @@ int verify(int argc,char**argv){
         std::cout<<'\n';
     }
     auto base=authored;require(prepare_dynamic_material(cache,base,{},false),"Controlled base source VP unavailable");
-    base.forward_program=scope_copy_frame({}).program;
+    // Keep the authored world vertex/fragment pair. The scope-copy program
+    // belongs to another native family; control the relative baseline with
+    // the constant texture without changing the admitted shader identity.
     base.diffuse={1,1,11,std::vector<std::byte>(4,std::byte{24}),{}};base.diffuse.pixels[3]=std::byte{255};
     // The ordinary sphere variant consumes the original texture-mapping
     // target. Retain its authored dynamic-lighting child so the renderer's

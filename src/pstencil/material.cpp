@@ -106,6 +106,12 @@ struct MaterialBank::Impl {
     std::map<std::tuple<std::uint32_t,unsigned,unsigned,unsigned,unsigned>,std::pair<unsigned,bool>> response_slots;
     std::map<std::uint32_t,ResponseContext> contexts;
     std::map<std::uint32_t,bool> texture_masks;
+    std::map<std::pair<std::uint32_t,unsigned>,bool> combined_texture_masks;
+    bool has_texture_mask(std::uint32_t shader,unsigned lod) const {
+        if(const auto at=texture_masks.find(shader);at!=texture_masks.end() && at->second)return true;
+        const auto at=combined_texture_masks.find({shader,lod});
+        return at!=combined_texture_masks.end() && at->second;
+    }
     Impl(const Cache& c,Mesh& m):cache(c),mesh(m){}
 };
 MaterialBank::MaterialBank(const Cache& cache,Mesh& mesh):impl_(std::make_unique<Impl>(cache,mesh)){}
@@ -134,12 +140,22 @@ void MaterialBank::preload(const Material& authored,std::uint32_t light,const Ef
             bank.mesh.materials.push_back(std::move(texture));
         }
     }
+    const auto source_key=std::pair{authored.source_shader_datum,authored.selected_shader_lod};
+    if(!mask->second && !std::getenv("HALO2_PSTENCIL_CURRENT_TEXTURE_ACCUMULATION")) {
+        auto [found,first_combined]=bank.combined_texture_masks.try_emplace(source_key,false);
+        if(first_combined) {
+            if(auto combined=bind_actor_texture_mapping_pass(bank.cache,authored)) {
+                found->second=true;
+                bank.mesh.materials.push_back(std::move(*combined));
+            }
+        }
+    }
     // The final source program consumes complete texture-target RGBA.
-    context.enabled=context.enabled && mask->second;
+    const bool has_mask=bank.has_texture_mask(source_key.first,source_key.second);
+    context.enabled=context.enabled && has_mask;
     const Impl::Key key{authored.source_shader_datum,authored.selected_shader_lod,context};
     if(bank.passes.contains(key))return;
     auto& out=bank.passes[key];
-    const auto source_key=std::pair{authored.source_shader_datum,authored.selected_shader_lod};
     auto source_at=bank.sources.find(source_key);
     if(source_at==bank.sources.end()) {
         auto source=std::make_shared<Material>(authored);
@@ -166,8 +182,8 @@ void MaterialBank::preload(const Material& authored,std::uint32_t light,const Ef
         const auto format=material->bump.format;
         const bool normalized_bump=format==11 || (format>=14 && format<=16);
         if(context.enabled && normalized_bump && !material->bump.depth && material->bump.layers==1 && material->detail.layers==6) {
-            const auto* reference=reference_light_material(authored.name);
-            const bool dull=reference && reference->utility_builtin==10;
+            const auto builtin=actor_light_utility_builtin(authored.name,authored.shader_switches[4]);
+            const bool dull=builtin==10;
             // Original names retain the primary-checked layer2 settings.
             // Compatible later assets adapt that same producer/consumer using
             // their authored normalized bump image and posed tangent basis.
@@ -180,7 +196,7 @@ void MaterialBank::preload(const Material& authored,std::uint32_t light,const Ef
                 utility.texture_states[0]=normal_target_sampler_2003();
                 utility.texture_states[1]=normalization_cube_sampler_2003();
             }
-            utility.forward_program=light_utility_2003(context.geometry,context.diffuse,context.specular,0,dull);
+            utility.forward_program=light_utility_2003(context.geometry,context.diffuse,context.specular,0,builtin);
             utility.auxiliary=bank.cache.load_effect_light_attenuation_bitmap();
             utility.animated_textures[3].clear();utility.texture_states[3]=attenuation_sampler(authored);
             auto dependent=*material;adapter_metadata(dependent);
@@ -215,7 +231,7 @@ void MaterialBank::preload(const Material& authored,std::uint32_t light,const Ef
         } else {
             if(context.geometry)continue;
             material->forward_program=texture_masked_specular(material->forward_program);
-            if(mask->second){material->forward_blend=3;material->accumulation_texture=true;}
+            if(has_mask){material->forward_blend=3;material->accumulation_texture=true;}
             const auto slot=unsigned(bank.mesh.materials.size());bank.mesh.materials.push_back(std::move(*material));
             out.push_back({slot,i,source,false});
         }
@@ -226,8 +242,7 @@ std::shared_ptr<const std::vector<EffectLightDraw>> MaterialBank::complete(
     const auto& bank=*impl_;const auto found=bank.contexts.find(light);
     if(found==bank.contexts.end())return {};
     auto context=found->second;
-    const auto mask=bank.texture_masks.find(shader);
-    context.enabled=context.enabled && mask!=bank.texture_masks.end() && mask->second;
+    context.enabled=context.enabled && bank.has_texture_mask(shader,lod);
     const auto at=bank.passes.find({shader,lod,context});if(at==bank.passes.end() || at->second.empty())return {};
     auto out=std::make_shared<std::vector<EffectLightDraw>>();
     for(const auto& pass:at->second) {
@@ -245,7 +260,7 @@ std::shared_ptr<const std::vector<EffectLightDraw>> MaterialBank::complete(
             }
             if(pass.normal)append(pass.slot,normal_accumulation_2003(),*material);
             append(pass.slot+unsigned(pass.normal),light_utility_2003(context.geometry,context.diffuse,context.specular,0,
-                reference && reference->utility_builtin==10),*material);
+                actor_light_utility_builtin(pass.authored->name,pass.authored->shader_switches[4])),*material);
             append(pass.slot+1+unsigned(pass.normal),dependent_light_2003(context.geometry,context.mask,uniforms.color_shift,
                 pack_light_rgb_2003(rgb(uniforms.constants[6])),pack_light_rgb_2003(rgb(uniforms.constants[7]))),*material);
         } else append(pass.slot,texture_masked_specular(material->forward_program),*material);

@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_segment_sphere_kernel.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include "physics/runtime/native_tu15_mopp_ray_caller_frame.hpp"
 #include "physics/runtime/native_tu15_raw_x87_scope.hpp"
@@ -78,6 +79,8 @@ inline bool reference(){static const bool enabled=[]{const auto*p=std::getenv("H
 template<class State>bool admitted(const State&s){
     if(reference()||s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
+    // Census diagnostic: full callbacks without a cursor.
+    if(native_census_detail::uncursored(s,0x120fa0u,0x1210acu))return true;
     if(!s.services.instruction)return !s.instruction_cursor&&!s.literal_service_sites&&!s.observe;
     const auto*c=s.instruction_cursor;
     return s.literal_service_sites&&c&&c==&s.services.instruction_cursor&&c->position&&c->callback_type&&

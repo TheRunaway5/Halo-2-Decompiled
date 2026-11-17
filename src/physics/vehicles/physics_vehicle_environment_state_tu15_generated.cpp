@@ -1,3 +1,4 @@
+#include "physics/vehicles/native_tu15_vehicle_object_lookup_owner.hpp"
 // Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_vehicle_environment_state.hpp"
 #include "physics/vehicles/physics_vehicle_motion_math_internal.hpp"
@@ -45,6 +46,7 @@ void run_228220(MathState &);
 void run_2e44d0(MathState &);
 void run_2e4650(MathState &);
 void run_bcdf0(MathState &s) {
+ if(halo2::native_vehicle_object_lookup_owner_detail::bridge(s))return;
 if(s.services.instruction)s.services.instruction(0xbcdf0u); s.push(0xbcdf0u,s.reg(6,4,0));
 if(s.services.instruction)s.services.instruction(0xbcdf1u); s.push(0xbcdf1u,s.reg(7,4,0));
 if(s.services.instruction)s.services.instruction(0xbcdf2u); s.set(6,s.reg(0,4,0),4,0);

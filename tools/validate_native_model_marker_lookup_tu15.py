@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Private actual1E11B0/disc1DC8F0 native marker lookup versus unchanged i386."""
-import argparse,copy,hashlib,json,os,random,struct,subprocess,sys
+import argparse,copy,hashlib,json,os,random,shlex,struct,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
@@ -8,7 +8,8 @@ from validate_native_tu15_prt_helpers import physical_original
 from oracle_smg_firing_1_1 import Xbe
 OLD_PIN='aaea4c9c58ac02cf5f9cc97a16d688318c59b652e92301078e2547a2a5ea5377'
 REGIONS=((0x4eb000,4096),(0x4f0000,4096),(0x61000000,16384),(0x62000000,8192))
-INPUTS=('include/halo2/native_tu15_model_marker_lookup_kernel.hpp','include/halo2/native_tu15_id_search_kernel.hpp','src/gameplay/weapons/native_tu15_model_marker_lookup.hpp','src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp','include/halo2/native_weapon_effect_birth_color_observer.hpp','tests/native_tu15_model_marker_lookup_tests.cpp','tools/validate_native_model_marker_lookup_tu15.py','src/physics/runtime/native_tu15_raw_x87_scope.hpp','src/physics/runtime/native_tu15_sse_mmx_scope.hpp','src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp','src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_world_runtime_internal.hpp','tools/validate_native_tu15_prt_helpers.py','tools/observe_native_campaign_ai_vector_math_tu15.cpp')
+INPUTS=('include/halo2/native_tu15_model_marker_lookup_kernel.hpp','include/halo2/native_tu15_id_search_kernel.hpp','src/gameplay/weapons/native_tu15_model_marker_lookup.hpp','src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp','include/halo2/native_weapon_effect_birth_color_observer.hpp','tests/native_tu15_model_marker_lookup_tests.cpp','tools/validate_native_model_marker_lookup_tu15.py','tools/native_model_marker_lookup_mutations.py','src/physics/runtime/native_tu15_raw_x87_scope.hpp','src/physics/runtime/native_tu15_sse_mmx_scope.hpp','src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp','src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_world_runtime_internal.hpp','tools/validate_native_tu15_prt_helpers.py','tools/observe_native_campaign_ai_vector_math_tu15.cpp')
+INPUTS+=('tools/native_sandbox_dispatch_preservation.py','tools/native_halfword_bit_query_replacements.py')
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def corpus(image,smoke):
  rng=random.Random(0x1e11b0);rows=[]
@@ -51,10 +52,18 @@ def corpus(image,smoke):
    rows.append(dict(id=len(rows),name=f'{image}-{kind}-{variant}',entry=0x1e11b0 if image=='TitleUpdate15'else 0x1dc8f0,image=image,observation='actual'if image=='TitleUpdate15'else'canonical',gp=gp,eflags=0x202|rng.choice((0,1,0x10,0x40,0x80,0x800,0x8d5))|(0x400 if variant&1 else 0),xmm=[[rng.getrandbits(32)for _ in range(4)]for _ in range(8)],before_fp=[(0x27f,0x37f,0x77f,0xf7f)[variant%4],status,0x1f80|((ordinal%4)<<13)],live_x87=list(live[:depth]),matrix=get(sp+4),source=get(sp+8),max_steps=10000,banks=[dict(address=base,before=bank.hex())for(base,_),bank in zip(REGIONS,banks)]))
  return rows
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--compiler',action='append');p.add_argument('--sanitizers',action='store_true');p.add_argument('--smoke',action='store_true');p.add_argument('--prefixes',action='store_true');p.add_argument('--mmx',action='store_true');args=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--xbe',type=Path,default=NEW_DEFAULT);p.add_argument('--output',type=Path,required=True);p.add_argument('--compiler',action='append');p.add_argument('--sanitizers',action='store_true');p.add_argument('--smoke',action='store_true');p.add_argument('--prefixes',action='store_true');p.add_argument('--mmx',action='store_true');p.add_argument('--semantic-mutants',action='store_true');p.add_argument('--source-copies',action='store_true');p.add_argument('--require-binding',action='store_true');args=p.parse_args()
+ if args.smoke and args.prefixes:p.error('Expanded access prefixes require the complete corpus')
+ if args.require_binding and not args.source_copies:p.error('Installed routing requires all actual source copies')
  scratch=Path(os.environ['HALO2_TEST_SCRATCH']);args.output.mkdir(parents=True,exist_ok=False)
- pins={name:digest(ROOT/name)for name in INPUTS};report=dict(passed=False,private_unbound=True,owned_scratch=str(scratch),source_before=pins,retained_large_artifacts=[])
+ pins={name:digest(ROOT/name)for name in INPUTS};report=dict(passed=False,private_unbound=not args.require_binding,owned_scratch=str(scratch),source_before=pins,retained_large_artifacts=[])
  try:
+  if args.source_copies:
+   from native_model_marker_lookup_inputs import prepare,UNITS,EFFECT,HELPER
+   source_files=(*UNITS,EFFECT,HELPER,'tools/native_model_marker_lookup_inputs.py','tools/native_model_marker_lookup_replacements.py','tools/specialize_native_operands.py','tools/native_selected_operand_binding.py')
+   pins.update({name:digest(ROOT/name)for name in source_files})
+   report['source_ownership']=prepare(ROOT,scratch,require_binding=args.require_binding)
+  header_snapshot={path.resolve():digest(path)for tree in('src','include')for path in(ROOT/tree).rglob('*')if path.suffix in('.h','.hpp','.inc')}
   import oracle_native_campaign_screen_lifecycle_tu15 as common
   old_metadata=common.metadata
   def metadata(image):
@@ -63,7 +72,7 @@ def main():
     if code.at(site['instruction']).mnemonic in('ret','pop'):site['operands'].append(dict(base=4,index=-1,scale=1,displacement=0,bytes=4,read=True,write=False))
    return result
   common.metadata=metadata;all_rows=[];authorities=[];all_sites=set()
-  for image_name,path,pin,entry in(('TitleUpdate15',NEW_DEFAULT,NEW_PIN,0x1e11b0),('MapPack11',ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03',OLD_PIN,0x1dc8f0)):
+  for image_name,path,pin,entry in(('TitleUpdate15',args.xbe,NEW_PIN,0x1e11b0),('MapPack11',ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03',OLD_PIN,0x1dc8f0)):
    assert digest(path)==pin;image=Xbe(path);common.ENTRIES=(entry,);sites=metadata(image)['sites'];code=common._Code(image,'.text')
    io=[site['instruction']for site in sites if site['operands']or code.at(site['instruction']).mnemonic=='push'];writes=[site['instruction']for site in sites if any(o['write']for o in site['operands'])or code.at(site['instruction']).mnemonic=='push']
    rows=corpus(image_name,args.smoke);directory=scratch/image_name;directory.mkdir();normal=directory/'normal';normal.mkdir()
@@ -99,19 +108,40 @@ def main():
   fixture=scratch/'fixture.json';fixture.write_text(json.dumps(dict(cases=all_rows),separators=(',',':')));results=[]
   for compiler in args.compiler or('g++','clang++'):
    project=scratch/Path(compiler).name;project.mkdir();binary=project/'marker'
-   command=[compiler,'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),str(ROOT/'tests/native_tu15_model_marker_lookup_tests.cpp'),'-o',str(binary)]
+   command=[compiler,'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(scratch),'-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),str(ROOT/'tests/native_tu15_model_marker_lookup_tests.cpp'),'-o',str(binary)]
+   if args.source_copies:command+=['-DHALO2_MODEL_MARKER_SOURCE_COPIES=1','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I'+str(ROOT/'src/gameplay/weapons'),str(scratch/'marker_effect.cpp')]
    if args.sanitizers:command+=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
    done=subprocess.run(command,capture_output=True,text=True);assert done.returncode==0,done.stderr[-8000:]
+   dependencies=set()
+   for source in([ROOT/'tests/native_tu15_model_marker_lookup_tests.cpp',scratch/'marker_effect.cpp']if args.source_copies else[ROOT/'tests/native_tu15_model_marker_lookup_tests.cpp']):
+    dep=project/(source.name+'.d')
+    syntax=[compiler,'-std=c++20','-fsyntax-only','-I'+str(scratch),'-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),'-I'+str(ROOT/'src/gameplay/weapons'),'-MD','-MF',str(dep),str(source)]
+    if args.source_copies:syntax.append('-DHALO2_MODEL_MARKER_SOURCE_COPIES=1')
+    checked=subprocess.run(syntax,capture_output=True,text=True);assert checked.returncode==0,checked.stderr[-6000:]
+    dependencies.update(Path(value).resolve()for value in shlex.split(dep.read_text().replace('\\\n',' ').split(':',1)[1]))
+   for path in dependencies:
+    if path in header_snapshot:pins[str(path.relative_to(ROOT))]=header_snapshot[path]
    done=subprocess.run([str(binary),str(fixture)],capture_output=True,text=True);assert done.returncode==0,(done.stdout+done.stderr)[-12000:]
    checks=[]
+   if args.source_copies:
+    reference=subprocess.run([str(binary),str(fixture)],capture_output=True,text=True,env=dict(os.environ,HALO2_REFERENCE_MODEL_MARKER_LOOKUP='1',HALO2_MODEL_MARKER_REFERENCE_TEST='1'))
+    assert reference.returncode==0,(reference.stdout+reference.stderr)[-12000:]
+    checks.append(dict(option='positive_actual_source_reference',result=json.loads(reference.stdout)))
+    guarded=subprocess.run([str(binary),'--source-guards'],capture_output=True,text=True)
+    assert guarded.returncode==0,(guarded.stdout+guarded.stderr)[-6000:]
+    checks.append(dict(option='untouched_actual_source_fallbacks',result=json.loads(guarded.stdout)))
    for option,env in(('--guards',{}),('--reference-guard',{'HALO2_REFERENCE_MODEL_MARKER_LOOKUP':'1'})):
     guarded=subprocess.run([str(binary),option],capture_output=True,text=True,env=dict(os.environ,**env));assert guarded.returncode==0,(guarded.stdout+guarded.stderr)[-6000:]
     checks.append(dict(option=option,result=json.loads(guarded.stdout)))
-   results.append(dict(compiler=compiler,native=json.loads(done.stdout),admission_checks=checks,command=command))
+   mutations=[]
+   if args.semantic_mutants:
+    from native_model_marker_lookup_mutations import qualify
+    mutations=qualify(scratch,fixture,compiler,command)
+   results.append(dict(compiler=compiler,native=json.loads(done.stdout),admission_checks=checks,compiled_mutations=mutations,command=command))
   report.update(passed=True,physical_paths=len(all_rows),source_sites=sorted(hex(pc)for pc in all_sites),compilers=results,originals=authorities)
  except BaseException as error:report['error']=str(error)or repr(error);raise
  finally:
-  report['source_after']={name:digest(ROOT/name)for name in INPUTS}
+  report['source_after']={name:digest(ROOT/name)for name in pins}
   if report['source_after']!=pins:report.update(passed=False,source_drift=True)
   (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
  return 0 if report['passed']else 1

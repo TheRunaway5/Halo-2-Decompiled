@@ -1,5 +1,6 @@
 #include "halo2/native_campaign_ai_jump_arc_tu15.hpp"
 #include "halo2/native_campaign_ai_vector_math_tu15.hpp"
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include <bit>
 #include <cstring>
 #include <optional>
@@ -91,9 +92,11 @@ std::uint32_t square_root_single(std::uint32_t value) {
 struct Prepared {
     bool straight_fallback{},feasible=true;
     std::array<std::uint32_t,3> difference{},direction{};
+    std::uint32_t vertical_velocity{},horizontal_speed{};
 };
 Prepared prepare(const SourcePhysicsContactMemory &memory,const NativeCampaignAiJumpPointTu15 &first,
-    const NativeCampaignAiJumpPointTu15 &second,std::uint32_t maximum_speed) {
+    const NativeCampaignAiJumpPointTu15 &second,std::uint32_t maximum_speed,
+    const std::function<void(std::uint32_t)> &publish_minimum={}) {
     std::optional<Pending> pending;
     try {
         Prepared result;
@@ -130,6 +133,7 @@ Prepared prepare(const SourcePhysicsContactMemory &memory,const NativeCampaignAi
         const auto denominator_bits=bits(denominator);std::uint32_t fallback_time;
         asm volatile("fdivs %1\n\tfmuls %2\n\tfsqrt\n\tfstps %0":"=m"(fallback_time):"m"(denominator_bits),"m"(negative_root):"memory","st");
         const auto minimum_speed=negative_minimum?0u:square_root_single(bits(minimum_speed_squared));
+        if(publish_minimum)publish_minimum(minimum_speed);
         auto chosen_speed=maximum_speed,time=fallback_time;
         bool solved{};
         if(!below_or_unordered(scalar(maximum_speed),scalar(minimum_speed))) {
@@ -159,7 +163,8 @@ Prepared prepare(const SourcePhysicsContactMemory &memory,const NativeCampaignAi
         vz=add(vz,gravity_time);
         asm volatile("faddp %%st,%%st(1)":::"memory","st","st(1)");
         (void)multiply(scalar(time),scalar(chosen_speed));
-        asm volatile("fsqrt":::"memory","st");(void)spill_single();pending.reset();
+        asm volatile("fsqrt":::"memory","st");result.horizontal_speed=spill_single();pending.reset();
+        result.vertical_velocity=bits(vz);
         result.direction={vx_bits,vy_bits,bits(vz)};return result;
     }catch(...) {
         if(pending)throw NativeCampaignAiJumpArcPendingErrorTu15(pending_quantities(*pending),std::current_exception());
@@ -184,6 +189,21 @@ public:
         throw std::logic_error("Native private arc normalization cannot publish through constant storage");
     }
 };
+void finish_direction(const SourcePhysicsContactMemory &memory,Prepared &prepared,NativeTu15PhysicsFrameFp &fp) {
+    NormalizationConstants constants(memory);
+    auto magnitude=native_campaign_ai_normalize_vector_value_ordered_tu15(constants,prepared.direction,fp);
+    bool zero_magnitude;
+    {SimdEnvironment environment(fp);zero_magnitude=ordered_equal(scalar(magnitude),scalar(read(memory,0x46a0e8u)));}
+    if(zero_magnitude) {
+        prepared.feasible=false;prepared.direction=prepared.difference;
+        magnitude=native_campaign_ai_normalize_vector_value_ordered_tu15(constants,prepared.direction,fp);
+        SimdEnvironment environment(fp);
+        if(ordered_equal(scalar(magnitude),scalar(read(memory,0x46a0e8u)))) {
+            const auto fallback=read(memory,0x474d10u);
+            prepared.direction[0]=read(memory,fallback);prepared.direction[1]=read(memory,fallback+4u);prepared.direction[2]=read(memory,fallback+8u);
+        }
+    }
+}
 #endif
 }
 NativeCampaignAiJumpArcValueTu15 native_campaign_ai_jump_arc_profile_tu15(
@@ -196,19 +216,7 @@ NativeCampaignAiJumpArcValueTu15 native_campaign_ai_jump_arc_profile_tu15(
         const auto fallback=native_campaign_ai_jump_fallback_value_tu15(memory,first,second,maximum_speed,fp);
         return {true,fallback.direction};
     }
-    NormalizationConstants constants(memory);
-    auto magnitude=native_campaign_ai_normalize_vector_value_tu15(constants,prepared.direction,fp);
-    bool zero_magnitude;
-    {SimdEnvironment environment(fp);zero_magnitude=ordered_equal(scalar(magnitude),scalar(read(memory,0x46a0e8u)));}
-    if(zero_magnitude) {
-        prepared.feasible=false;prepared.direction=prepared.difference;
-        magnitude=native_campaign_ai_normalize_vector_value_tu15(constants,prepared.direction,fp);
-        SimdEnvironment environment(fp);
-        if(ordered_equal(scalar(magnitude),scalar(read(memory,0x46a0e8u)))) {
-            const auto fallback=read(memory,0x474d10u);
-            prepared.direction[0]=read(memory,fallback);prepared.direction[1]=read(memory,fallback+4u);prepared.direction[2]=read(memory,fallback+8u);
-        }
-    }
+    finish_direction(memory,prepared,fp);
     return {prepared.feasible,prepared.direction};
 #else
     (void)memory;(void)first;(void)second;(void)maximum_speed;(void)fp;
@@ -220,6 +228,37 @@ NativeCampaignAiJumpArcValueTu15 native_campaign_ai_jump_arc_profile_tu15(
     std::uint32_t maximum_speed,NativeTu15PhysicsFrameFp &fp) {
     NativeCampaignAiJumpPointMemoryTu15 first_point(memory,first),second_point(memory,second);
     return native_campaign_ai_jump_arc_profile_tu15(memory,first_point,second_point,maximum_speed,fp);
+}
+
+bool native_campaign_ai_jump_arc_movement_profile_tu15(SourcePhysicsContactMemory &memory,
+    std::uint32_t first,std::uint32_t second,std::uint32_t maximum_speed,std::uint32_t direction,
+    std::uint32_t minimum_speed,std::uint32_t vertical_velocity,std::uint32_t horizontal_speed,
+    NativeTu15PhysicsFrameFp &fp,const SourcePhysicsContactRecordObserver &observe) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    const auto store=[&](std::uint32_t pc,std::uint32_t address,std::uint32_t value) {
+        const bool observed=native_tu15_observes_retained_store(memory,observe,pc,address,4);
+        SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(4)};
+        if(observed){event.before.resize(4);memory.read(address,event.before);}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(n*8u));
+        memory.write(address,event.written);if(observed)observe(event);
+    };
+    NativeCampaignAiJumpPointMemoryTu15 first_point(memory,first),second_point(memory,second);
+    Prepared prepared;
+    {ArithmeticEnvironment environment(fp);prepared=prepare(memory,first_point,second_point,maximum_speed,
+        [&](auto value){if(minimum_speed)store(0xff2e1u,minimum_speed,value);});}
+    if(prepared.straight_fallback) {
+        native_campaign_ai_jump_fallback_tu15(memory,first,second,maximum_speed,{direction,0,0,0},fp,observe);
+        return true;
+    }
+    finish_direction(memory,prepared,fp);
+    for(unsigned n=0;n<3;++n)store(std::array{0xff4f1u,0xff4f3u,0xff4f6u}[n],direction+n*4u,prepared.direction[n]);
+    if(vertical_velocity)store(0xff525u,vertical_velocity,prepared.vertical_velocity);
+    if(horizontal_speed)store(0xff537u,horizontal_speed,prepared.horizontal_speed);
+    return prepared.feasible;
+#else
+    (void)memory;(void)first;(void)second;(void)maximum_speed;(void)direction;(void)minimum_speed;(void)vertical_velocity;(void)horizontal_speed;(void)fp;(void)observe;
+    throw std::runtime_error("Exact native TU1.5 jump arc arithmetic unavailable");
+#endif
 }
 
 bool native_campaign_ai_jump_link_tu15(const SourcePhysicsContactMemory &memory,

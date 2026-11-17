@@ -380,6 +380,9 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
   }
   std::vector<std::pair<std::uint32_t, std::string>> locale;
   const auto &globals = cache.tag(b.u32(cache.index + 16), "matg");
+  const auto &scenario = cache.tag(b.u32(cache.index + 12), "scnr");
+  const auto type = cache.s16(scenario.offset + 0x10);
+  const bool multiplayer_ui = type == 1 || type == 2;
   for (auto p : cache.block(globals.offset + 0x160, 12, 256)) {
     const Vec3 value{b.f32(p), b.f32(p + 4), b.f32(p + 8)};
     if (!std::isfinite(value.x) || !std::isfinite(value.y) || !std::isfinite(value.z))
@@ -388,10 +391,12 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
   }
   // PC5B4DB6 follows matg+16C to mulg, then the first universal
   // record at mulg+4. The RGB block belongs to universal+10/+14.
+  // Team/PCR metadata belongs to multiplayer and shell UI. Solo MCC caches
+  // retain the mulg identity with no owned payload; their pause/settings
+  // widgets come from the scenario-selected wgtz below and do not consume it.
   const auto multiplayer = b.u32(globals.offset + 0x16c);
-  if (multiplayer != null_datum) {
+  if (multiplayer_ui && multiplayer != null_datum) {
     const auto &mulg = cache.tag(multiplayer, "mulg");
-    // Solo gameplay caches retain mulg but have an empty universal block.
     if(b.u32(mulg.offset)) {
       const auto universal = cache.pointer(b.u32(mulg.offset + 4), 0x18);
       for (auto p : cache.block(universal + 0x10, 12, 256)) {
@@ -405,8 +410,6 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
   // PC60BB1D selects the wgtz owner through the actual scenario type
   // and matg interface[0], not the first wigl present in the cache.
   // PC60C1A9 then follows wgtz+4 and scans wigl+158 signed ranges.
-  const auto &scenario = cache.tag(b.u32(cache.index + 12), "scnr");
-  const auto type = cache.s16(scenario.offset + 0x10);
   std::optional<std::uint32_t> selected_ui_globals;
   const auto interface_address = b.u32(globals.offset + 0x114);
   if (b.u32(globals.offset + 0x110) && interface_address != null_datum &&
@@ -461,7 +464,7 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
       result.insert(locale[first + i]);
     return result;
   };
-  if(multiplayer!=null_datum) {
+  if(multiplayer_ui && multiplayer!=null_datum) {
     const auto &mulg=cache.tag(multiplayer,"mulg");
     if(b.u32(mulg.offset)) {
       const auto universal=cache.pointer(b.u32(mulg.offset+4),0x18);

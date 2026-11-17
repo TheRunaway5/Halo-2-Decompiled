@@ -1,4 +1,12 @@
+#include "physics/runtime/native_tu15_arena_world_publication.hpp"
+#include "runtime/native_tu15_diagnostic_logger_owner.hpp"
 #include "halo2/native_weapon_effect_birth_color_observer.hpp"
+#include "halo2/native_object_factory_core_tu15.hpp"
+#include "halo2/native_object_factory_nodebuild_tu15.hpp"
+#include "halo2/native_object_factory_attachments_tu15.hpp"
+#include "halo2/native_object_factory_lights_tu15.hpp"
+#include "halo2/native_object_factory_placement_tu15.hpp"
+#include "halo2/native_object_factory_weapon_tu15.hpp"
 #include "halo2/mcc_sound_duration_tu15.hpp"
 #include "halo2/mcc_sound_dat_resources_tu15.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
@@ -49,6 +57,20 @@
 #include "halo2/native_campaign_session_timers_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_area_count_tu15.hpp"
 #include "halo2/native_campaign_ai_area_choice_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_area_perform_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_biped_refresh_tu15.hpp"
+#include "halo2/native_campaign_ai_command_lifecycle_tu15.hpp"
+#include "halo2/native_campaign_ai_command_movement_tu15.hpp"
+#include "halo2/native_campaign_ai_publication_tu15.hpp"
+#include "halo2/native_campaign_ai_resource_retirement_tu15.hpp"
+#include "halo2/native_campaign_hs_command_builtins_tu15.hpp"
+#include "halo2/native_campaign_ai_command_facing_tu15.hpp"
+#include "halo2/native_campaign_ai_route_special_link_tu15.hpp"
+#include "halo2/native_campaign_ai_movement_link_transition_tu15.hpp"
+#include "halo2/native_campaign_ai_target_merge_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_129_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_129_perform_tu15.hpp"
+#include "halo2/native_campaign_ai_character_property_tu15.hpp"
 #include "halo2/native_campaign_ai_path_distance_tu15_binding.hpp"
 #include "halo2/native_campaign_scenario_lookup_tu15.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
@@ -150,6 +172,8 @@
 #include "halo2/source_object_render_entry.hpp"
 #include "halo2/source_object_admission_memory.hpp"
 #include "halo2/source_model_build.hpp"
+#include "halo2/source_native_store_oracle_tu15.hpp"
+#include "halo2/native_tu15_object_lighting_3daf0.hpp"
 #include "halo2/source_bsp_part_commands.hpp"
 #include "halo2/source_render_cache.hpp"
 #include "halo2/source_multiplayer_render_history_tu15.hpp"
@@ -315,6 +339,11 @@ void release_unused_loader_memory() noexcept {
 #endif
 }
 constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;
+constexpr bool owns_d3950_node_progress_call(SourcePhysicsContactImage selected_image,
+                                               const SourcePhysicsContactRuntimeCall &call) noexcept {
+    return selected_image==SourcePhysicsContactImage::TitleUpdate15 && !call.tail &&
+        call.target==0x1cf0e0u && (call.instruction==0xd3998u || call.instruction==0xd39b3u);
+}
 constexpr SourcePhysicsFactoryFloatingPoint fp{0x27f,0x1f80};
 constexpr std::uint32_t stack=0x600f0000u,tls=0x60200000u,
     parameters=0x60201000u,process_context=0x60210000u,
@@ -684,6 +713,33 @@ struct PhysicsLiveWorldTu15::Impl {
     std::unique_ptr<SourceUnitSpeechChannelSymbolsTu15> unit_speech_channel_symbols;
     std::unique_ptr<private_cpu_bitmap::WorldProjection> cpu_bitmap_projection;
     private_cpu_bitmap::PredictionRows bitmap_prediction_rows;
+    // Canonical runtime root -> full bitmap handle, derived from the
+    // immutable MCC Cache for 181DA0's decal residency boundary.
+    std::map<std::uint32_t,TagHandle> decal_bitmap_roots;
+    std::set<std::uint32_t> decal_bitmap_refusals;
+    // MCC canonical bitmaps keep 168-byte rows with no texture-cache
+    // partitions. A bound prediction row is a complete original 116-byte
+    // row whose partition-0 reads the 1301B0 I/O owner serves from the real
+    // MCC resource, exactly as 12F4A0 prediction does. NONE retains the
+    // original refusal for a frame that has no deliverable partition.
+    std::optional<std::uint32_t> decal_bitmap_frame_row(std::uint32_t root,unsigned image) {
+        if(decal_bitmap_roots.empty())
+            for(const auto &tag:cache_owner.select_tags({.group=tag_groups::bitmap,.require_address=true}))
+                try{decal_bitmap_roots.emplace(canonical_cache->runtime_address(tag.address,tag.size),tag.handle());}
+                catch(const FormatError &){}
+        const auto found=decal_bitmap_roots.find(root);
+        if(found==decal_bitmap_roots.end()) {
+            if(decal_bitmap_refusals.insert(root).second)
+                std::cerr<<"MCC decal bitmap root has no canonical bitmap tag; original refusal retained\n";
+            return std::nullopt;
+        }
+        try {return bitmap_prediction_rows.bind(bank,cache_owner,found->second,image);}
+        catch(const FormatError &error) {
+            if(decal_bitmap_refusals.insert(found->second.value).second)
+                std::cerr<<"MCC decal bitmap remains unavailable to the original texture cache: "<<error.what()<<'\n';
+            return std::nullopt;
+        }
+    }
     std::unique_ptr<SourceRuntimeDspSection> dsp_section;
     std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk_resources;
     std::unique_ptr<NativeTu15AudioPreference> sound_preference;
@@ -730,6 +786,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::map<std::uint32_t,SourceObjectAttachmentTu15> model_attachments;
     std::map<std::uint32_t,std::vector<Transform>> rendered_model_nodes;
     std::uint64_t next_model_collector=0x62000000u;
+    std::function<void(std::uint32_t,float,std::uint32_t,SourceRuntimeMemory&)> model_lighting_correction;
     static constexpr std::uint32_t model_scratch=0x60400000u;
     bool model_scratch_mounted{};
     std::vector<SourceProjectileDetonationTu15> projectile_detonations;
@@ -969,7 +1026,11 @@ struct PhysicsLiveWorldTu15::Impl {
         arena=std::make_unique<SourcePhysicsGameArenaNative>(bank,
             SourcePhysicsGameArenaConfiguration{files,0x60110000u,fp,{}},services());
         for(auto entry:{0x12cb70u,0x1221b0u,0x125280u}) {
-            a=frame({});arena->run(entry,a);
+            a=frame({});
+            if(entry==0x125280u) {
+                native_arena_world_publication_detail::Construction published_world_arena{*arena,bank,services(),this};
+                arena->run(entry,a);
+            }else arena->run(entry,a);
         }
         // Main-thread source construction has exclusive access after the
         // startup worker has retired the real file jobs and is stopped/joined.
@@ -1374,6 +1435,18 @@ struct PhysicsLiveWorldTu15::Impl {
             }
         };
     }
+    struct WorldRequiredOwner {
+        Impl*const world;
+        void operator()(SourcePhysicsContactMemory&memory,const SourcePhysicsContactRuntimeCall&call,
+            SourcePhysicsContactRuntimeAbi&abi,const SourcePhysicsContactRecordObserver&observe)const{
+            world->required(memory,call,abi,observe);
+        }
+        static bool matches(const SourcePhysicsContactRuntimeServices::RequiredOwner&callback,const void*owner)noexcept{
+            const auto*body=callback.target<WorldRequiredOwner>();
+            return body&&body->world==owner&&std::this_thread::get_id()==body->world->main_thread&&
+                !body->world->first_person_phase_active&&!body->world->weapon_effect_phase_active;
+        }
+    };
     SourcePhysicsWorldRuntimeServices build_services() {
         SourcePhysicsWorldRuntimeServices s;
         static constexpr std::array<std::uint32_t,3> instruction_service_sites{
@@ -1445,7 +1518,13 @@ struct PhysicsLiveWorldTu15::Impl {
             return value;
         };
 #endif
-        s.required_owner=[this](auto&m,const auto&c,auto&a,const auto&o){required(m,c,a,o);};
+        // This immutable dispatcher captures only its World, never the
+        // caller's Services. Descendants reacquire published services(), and the
+        // audited required-entry trace scopes restore initially-false policy
+        // on return/throw. Only this exact World/main-executor owner certifies
+        // that contract; wrappers retain their ordinary whole-entry paths.
+        s.required_owner=WorldRequiredOwner{this};
+        s.required_owner_policy={&s.required_owner.target_type(),main_thread,this,&WorldRequiredOwner::matches};
         static const bool reference_normalize=[]{
             const auto *p=std::getenv("HALO2_REFERENCE_NORMALIZE_VECTOR");
             const auto *all=std::getenv("HALO2_REFERENCE_LITERAL_INSTRUCTIONS");
@@ -1660,6 +1739,81 @@ struct PhysicsLiveWorldTu15::Impl {
             stats.light_flags_changed+=result.changed_rows;stats.light_flags_f8+=result.f8_written;
             //31EC2 reloads volatile GP/flags. Every XMM0 read is defined by
             //135E00/135EA0 first; still retain the exact MOVSS return residue.
+            return;
+        }
+        if(c.target==0x4b5c0u && (c.instruction==0x136501u || c.instruction==0x136a27u)) {
+            // 1362A0/1365C0 light-geometry builds: ECX force-world, EDX caller
+            // mode; owner, geometry/lighting metric bits, output, center
+            // (unconsumed), rebase; RET18. The ordinary views' native builder
+            // owns the whole body over the same current banks.
+            const auto sp=a.gp[4];
+            if(image!=SourcePhysicsContactImage::TitleUpdate15 || c.tail || word(m,sp)!=c.instruction+5u ||
+                a.x87_depth || a.active_mmx || std::this_thread::get_id()!=main_thread)
+                throw FormatError("TU1.5 light model builder caller differs");
+            // Native by default; HALO2_REFERENCE_LIGHT_MODEL_BUILD=1 runs the
+            // original (the oracle route of HALO2_LIGHT_MODEL_BUILD_TRACE).
+            // The world is the light-view one: no campaign lighting correction
+            // and no rendered-WORLD publication (see model_build_world).
+            static const bool reference=[]{
+                const auto* p=std::getenv("HALO2_REFERENCE_LIGHT_MODEL_BUILD");return p&&*p&&*p!='0';
+            }();
+            static std::atomic<std::uint64_t> native_builds{},reference_builds{},traced_builds{};
+            static const struct Report {~Report(){if(const auto* p=std::getenv("HALO2_LIGHT_MODEL_BUILD_STATS");p&&*p)
+                std::cerr<<"Build4B5C0 light stats: native="<<native_builds<<" reference="<<reference_builds<<
+                    " traced="<<traced_builds<<'\n';}} report;
+            (void)report;
+            // Parity record only: its services commit and re-protect backing,
+            // so no undo journal can replay this body. HALO2_LIGHT_MODEL_BUILD_TRACE
+            // appends every call's non-stack stores (first-store order, final
+            // bytes) for a cross-run comparison of the reference and native routes.
+            struct Trace {
+                std::ofstream file;
+                Trace(){if(const auto* p=std::getenv("HALO2_LIGHT_MODEL_BUILD_TRACE");p&&*p)file.open(p,std::ios::binary|std::ios::trunc);}
+            };
+            static Trace trace;
+            const auto traced=[&](const auto& run) {
+                if(!trace.file.is_open()){run();return;}
+                // Byte-level final state: each touched non-stack byte with its
+                // value before this call's first store and after the call.
+                std::map<std::uint32_t,std::byte> before;
+                struct Recorder {
+                    SourceRuntimeMemory& memory;std::map<std::uint32_t,std::byte>& before;
+                    Recorder(SourceRuntimeMemory& b,std::map<std::uint32_t,std::byte>& s):memory(b),before(s) {
+                        source_runtime_register_write_observer(memory,this,[this](std::uint32_t at,std::size_t n) {
+                            if(at>=SourceNativeStoreOracleTu15::stack_first && at<SourceNativeStoreOracleTu15::stack_end)return;
+                            const auto bytes=memory.view(at,n);
+                            for(std::size_t k=0;k<n;++k)before.try_emplace(at+std::uint32_t(k),bytes[k]);
+                        });
+                    }
+                    ~Recorder(){source_runtime_unregister_write_observer(memory,this);}
+                };
+                {Recorder recorder(bank,before);run();}
+                const std::array<std::uint32_t,3> head{c.instruction,word(m,sp+4u),std::uint32_t(before.size())};
+                trace.file.write(reinterpret_cast<const char*>(head.data()),sizeof(head));
+                for(const auto& [at,value]:before) {
+                    const std::array<std::byte,6> row{std::byte(at),std::byte(at>>8),std::byte(at>>16),std::byte(at>>24),
+                        value,bank.view(at,1)[0]};
+                    trace.file.write(reinterpret_cast<const char*>(row.data()),row.size());
+                }
+                ++traced_builds;
+            };
+            const auto translated=[&](SourcePhysicsWorldRuntimeAbi& abi){source_run_shadow_frame_tu15(m,0x4b5c0u,abi,fp,services(),o);};
+            // The builder's world publishes these same view inputs; refuse
+            // before any effect unless they already hold exactly those values.
+            const auto view=word(m,0x4c6870u),players=word(m,0x4c686cu);
+            const auto modifier_byte=word(m,0x4c6839u,1);const bool modifier=modifier_byte!=0;
+            if(reference || view>=4u || !players || players>4u || modifier_byte>1u || !session_configured ||
+               word(m,0x4c683cu)!=std::uint32_t(source_geometry_lod_policy(players).ordinary_maximum)) {
+                ++reference_builds;traced([&]{translated(a);});return;
+            }
+            ++native_builds;
+            traced([&] {
+                const auto world=model_build_world(view,players,modifier,true);
+                CallerFrame nested(*this,sp);
+                source_model_build(word(m,sp+4u),std::bit_cast<float>(word(m,sp+8u)),std::bit_cast<float>(word(m,sp+12u)),
+                    word(m,sp+16u),word(m,sp+24u),a.gp[1],a.gp[2],world);
+                a.gp[4]=sp+0x1cu;
+            });
             return;
         }
         if(c.target==0x2cbd0u && c.instruction==0x136ce0u) {
@@ -1904,9 +2058,794 @@ struct PhysicsLiveWorldTu15::Impl {
         catch(...){hitscan_projectile=projectile;throw;}
         hitscan_projectile=projectile;return true;
     }
+    // BE850's per-tick node rebuild calls: BE892 -> BF0C0 (node matrices) and
+    // BE941 -> BFF20 (bounds) run the native object factory owners (track
+    // nodebuild). The "birth" sites are BF050's callers other than its own
+    // child recursion (B959C, B9757, BA295, 10F8B6, 11DD5A, 10BDC7, 118096,
+    // BB808, ECB2B, ED006, EE80E, F0BCA, 1DC29F), BF640's
+    // BFB90 at BF7E5 (render presentation; BF640 itself is native through
+    // deferred_node_matrices, so BF7E5 runs only in the translated mode) and
+    // 16A4DD's 1D5840/BF9A0/1CF3B0/1CF210 sites (first-person sampler, reached
+    // only in the translated mode) and 169C46's 16A479 -> 16A4DD (the whole
+    // sampler with 16AD45/169863, native by default). HALO2_REFERENCE_NODE_REBUILD_TU15=1
+    // keeps the translated route for every site (comparison only);
+    // HALO2_NODE_REBUILD_DIFFERENTIAL_TU15=1 runs the native on the live bank
+    // under a write journal, rolls it back, runs the translated original and
+    // compares every byte either wrote (the original's effects are kept;
+    // refusals and differences are counted and logged). The native is the
+    // default for both groups (2026-11-14: Armory, Coagulation 1p/4p and
+    // Containment 4p differentials without a refusal or difference);
+    // HALO2_REFERENCE_NODE_BIRTH_TU15=1 keeps only the birth group translated.
+    enum class NodeRebuildMode {translated,native,differential};
+    static NodeRebuildMode node_rebuild_mode(bool birth) {
+        static const auto modes=[] {
+            const auto set=[](const char* name){const auto* p=std::getenv(name);return p && *p && *p!='0';};
+            using Modes=std::pair<NodeRebuildMode,NodeRebuildMode>;
+            if(set("HALO2_REFERENCE_NODE_REBUILD_TU15"))return Modes{NodeRebuildMode::translated,NodeRebuildMode::translated};
+            if(set("HALO2_NODE_REBUILD_DIFFERENTIAL_TU15"))return Modes{NodeRebuildMode::differential,NodeRebuildMode::differential};
+            if(set("HALO2_REFERENCE_NODE_BIRTH_TU15"))return Modes{NodeRebuildMode::native,NodeRebuildMode::translated};
+            // Native by default again (2026-11-15): 283E10, the kind-4 loops,
+            // 284090, 296890/2969E0, C3750, 1692E0 and 145070 are native, the
+            // object-function callbacks compare through the cache's StringID
+            // namespace, and the scripted-input differential sweep (every MP
+            // map 1p/4p, campaign 01a..08b as far as they run) shows no
+            // refusal and no difference. HALO2_NATIVE_NODE_REBUILD_TU15 is
+            // accepted for compatibility.
+            return Modes{NodeRebuildMode::native,NodeRebuildMode::native};
+        }();
+        return birth?modes.second:modes.first;
+    }
+    // The bound call sites; `birth` selects the group.
+    static bool node_rebuild_site(const SourcePhysicsContactRuntimeCall& c,bool& birth) {
+        switch(c.instruction) {
+        case 0xbe892u:birth=false;return c.target==0xbf0c0u;
+        case 0xbe941u:birth=false;return c.target==0xbff20u;
+        case 0xb959cu:case 0xb9757u:case 0xba295u:case 0x10f8b6u:case 0x11dd5au:case 0x10bdc7u:case 0x118096u:
+        case 0xbb808u:case 0xecb2bu:case 0xed006u:case 0xee80eu:case 0xf0bcau:case 0x1dc29fu:
+            birth=true;return c.target==0xbf050u;
+        case 0xbf7e5u:birth=true;return c.target==0xbfb90u;
+        // 16A4DD, the first-person animation sampler (169C46's update and
+        // the 168DED draw): its channel sampling (1D5840, 1CF210, 1CF3B0)
+        // and function overlays (BF9A0).
+        case 0x16a6e5u:birth=true;return c.target==0x1d5840u;
+        case 0x16a6fdu:birth=true;return c.target==0xbf9a0u;
+        case 0x16a82au:birth=true;return c.target==0x1cf3b0u;
+        case 0x16a796u:case 0x16a7d5u:case 0x16a8fcu:case 0x16a986u:case 0x16aa19u:case 0x16aaa3u:case 0x16aaecu:
+        case 0x16ac26u:
+            birth=true;return c.target==0x1cf210u;
+        // 169C46's 16A479 -> 16A4DD (re-emitted by
+        // tools/regenerate_first_person_sampler_boundary_tu15.py): the whole
+        // first-person sampler, with its 16AD45 rebuild and 169863 state.
+        case 0x16a479u:birth=true;return c.target==0x16a4ddu;
+        // 168D55 -> 169C46 (re-emitted by the same tool): the whole
+        // first-person update, whose 16A479 calls the native sampler.
+        case 0x168d55u:birth=true;return c.target==0x169c46u;
+        // The translated callers of the first-person rebuild (16AD45: 168CA1's
+        // 168D40, 16B16A's 16B1AD, 16B736's 16B78B, 1693ED's 16940B) and state
+        // (169863: 16B736's 16B7F5), dispatched or re-emitted as required
+        // boundaries.
+        case 0x168d40u:case 0x16b1adu:case 0x16b78bu:case 0x16940bu:birth=true;return c.target==0x16ad45u;
+        case 0x16b7f5u:birth=true;return c.target==0x169863u;
+        default:return false;
+        }
+    }
+    struct NodeRebuildStats {
+        std::uint64_t native{},compared{},matched{},differed{},refused{};
+        std::map<std::string,std::uint64_t> refusals;
+        std::map<std::uint32_t,std::uint64_t> sites;  // calls per site (native or compared)
+        void report(const char* when) const {
+            std::fprintf(stderr,"[node-rebuild %s] native=%llu compared=%llu matched=%llu differed=%llu refused=%llu\n",when,
+                (unsigned long long)native,(unsigned long long)compared,(unsigned long long)matched,
+                (unsigned long long)differed,(unsigned long long)refused);
+            for(const auto& [why,n]:refusals)std::fprintf(stderr,"[node-rebuild refusal] x%llu %s\n",(unsigned long long)n,why.c_str());
+            for(const auto& [site,n]:sites)std::fprintf(stderr,"[node-rebuild site] %x x%llu\n",site,(unsigned long long)n);
+        }
+        ~NodeRebuildStats(){if(native || compared || refused)report("final");}
+    } node_rebuild_stats;
+    bool node_rebuild_bypass=false;  // the next required entry skips the node rebuild sites (translated route)
+    // A cache miss reads through the same synchronous animation cache
+    // policy as the interception at 0x126139 (1A3B70): descriptor and size
+    // checks, payload, retained job, then the completion byte.
+    native_object_factory_tu15::AnimationResourceReader node_resource_reader() {
+        return [this](SourcePhysicsContactMemory& memory,const native_object_factory_tu15::AnimationResourceRead& read) {
+            if(&memory!=&bank)throw FormatError("TU1.5 native animation resource read requires the live bank");
+            const auto resource=resources.animation(read.row);
+            if(!std::ranges::equal(bank.view(read.row,12),std::span(resource.descriptor).first(12)) ||
+               read.file_offset!=word(bank,read.row+8u) || read.bytes!=((resource.bytes.size()+511u)&~511u))
+                throw FormatError("TU1.5 native animation resource read differs from its actual cache descriptor");
+            const auto payload=resources.load(read.file_offset,read.bytes);
+            bank.write(read.destination,payload);
+            const auto job=retain_resource_read({read.row,read.destination,read.bytes},true);
+            constexpr std::array done{std::byte{1}};bank.write(read.completion,done);
+            return job;
+        };
+    }
+    // Every byte write to the bank in order (with its previous value), for
+    // the differentials' rollback and comparison.
+    struct NodeWriteJournal {
+        SourceRuntimeMemory &bank;std::vector<std::pair<std::uint32_t,std::vector<std::byte>>> undo;bool recording=true;
+        explicit NodeWriteJournal(SourceRuntimeMemory &b):bank(b) {
+            source_runtime_register_write_observer(bank,this,[this](std::uint32_t at,std::size_t bytes) {
+                const auto before=bank.view(at,bytes);undo.emplace_back(at,std::vector<std::byte>(before.begin(),before.end()));
+            });
+        }
+        void stop(){if(recording)source_runtime_unregister_write_observer(bank,this);recording=false;}
+        void rollback(){stop();for(auto it=undo.rbegin();it!=undo.rend();++it)bank.write(it->first,it->second);}
+        ~NodeWriteJournal(){stop();}
+    };
+    // BF640 (object, selected sections, nodes) for the native model
+    // builder's deferred-node service and the completed body publication:
+    // track nodebuild's object_deferred_node_matrices, in the birth group's
+    // mode (HALO2_REFERENCE_NODE_REBUILD_TU15/HALO2_REFERENCE_NODE_BIRTH_TU15
+    // keep the translated entry; HALO2_NODE_REBUILD_DIFFERENTIAL_TU15 runs
+    // the native under a write journal, rolls it back and compares every
+    // byte and the result with the translated entry, whose effects stay).
+    std::uint32_t deferred_node_matrices(std::uint32_t object,std::uint32_t selected,std::uint32_t nodes,
+        const std::function<std::uint32_t()>& translated) {
+        const auto mode=node_rebuild_mode(true);
+        if(mode==NodeRebuildMode::translated)return translated();
+        ++node_rebuild_stats.sites[0xbf640u];
+        const auto native=[&] {
+            const native_object_factory_tu15::ObjectFunctionNamespace function_names(
+                source_object_function_compiled_symbol_tu15(bank,0xbcbd9u,0x30005a6u)!=0x30005a6u);
+            const auto reader=node_resource_reader();
+            const native_object_factory_tu15::AnimationResourceReaderScope reading(reader);
+            NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+            Execution execution(*this);
+            return native_object_factory_tu15::object_deferred_node_matrices(bank,object,selected,nodes,arithmetic);
+        };
+        if(mode==NodeRebuildMode::native){last_instruction=0xbf640u;const auto result=native();++node_rebuild_stats.native;return result;}
+        const auto caller=caller_abi().gp[4];
+        const auto dead=[&](std::uint32_t at){return at<caller+0x200u && at>=caller-0x10000u;};
+        std::map<std::uint32_t,std::byte> native_bytes;
+        std::optional<std::string> refusal;
+        std::uint32_t native_result=0;
+        {
+            NodeWriteJournal journal(bank);
+            try{native_result=native();}
+            catch(const std::exception& e){refusal=e.what();}
+            journal.stop();
+            if(!refusal)for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+                native_bytes[std::uint32_t(at+i)]=bank.view(std::uint32_t(at+i),1)[0];
+            journal.rollback();
+        }
+        NodeWriteJournal journal(bank);
+        const auto result=translated();
+        journal.stop();
+        if(refusal) {
+            ++node_rebuild_stats.refused;
+            if(++node_rebuild_stats.refusals[*refusal]==1)
+                std::fprintf(stderr,"[node-rebuild refusal] bf640 at tick %u: %s\n",word(bank,word(bank,0x51df54u)+8u),refusal->c_str());
+            return result;
+        }
+        ++node_rebuild_stats.compared;
+        for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+            native_bytes.try_emplace(std::uint32_t(at+i),before[i]);
+        unsigned differences=0;std::uint32_t first=0;
+        for(const auto& [at,value]:native_bytes)
+            if(!dead(at) && bank.view(at,1)[0]!=value){if(!differences++)first=at;}
+        if(native_result!=result)++differences;
+        if(differences) {
+            if(++node_rebuild_stats.differed<=16)
+                std::fprintf(stderr,"[node-rebuild differs] bf640 object %08x: %u bytes, first %08x native=%02x original=%02x, result %08x/%08x\n",
+                    object,differences,first,
+                    unsigned(std::to_integer<unsigned>(native_bytes.count(first)?native_bytes[first]:std::byte{})),
+                    unsigned(std::to_integer<unsigned>(bank.view(first,1)[0])),native_result,result);
+        } else ++node_rebuild_stats.matched;
+        if(!(node_rebuild_stats.compared%8192u))node_rebuild_stats.report("progress");
+        return result;
+    }
+    // Original13AB4E: C3430, the light tick, runs track lights'
+    // native_object_factory_tu15::lights_update (attachments' C2CB0,
+    // placement's C4D30, C5290) on the live bank under the world's FP
+    // controls and the cache's object-function namespace.
+    // HALO2_REFERENCE_LIGHT_UPDATE_TU15=1 keeps the translated C3430;
+    // HALO2_LIGHT_UPDATE_DIFFERENTIAL_TU15=1 runs the native under a write
+    // journal, rolls it back, runs the translated C3430 and compares every
+    // byte either wrote outside C3430's dead stack (the original's effects
+    // are kept; "[light-update ...]" lines count refusals and differences).
+    enum class LightUpdateMode {translated,native,differential};
+    static LightUpdateMode light_update_mode() {
+        static const auto mode=[] {
+            const auto set=[](const char* name){const auto* p=std::getenv(name);return p && *p && *p!='0';};
+            if(set("HALO2_REFERENCE_LIGHT_UPDATE_TU15"))return LightUpdateMode::translated;
+            if(set("HALO2_LIGHT_UPDATE_DIFFERENTIAL_TU15"))return LightUpdateMode::differential;
+            // Native by default (2026-11-16): the scripted-input differential
+            // sweep (every MP map 1p/4p, campaign 01a..08b as far as they
+            // run) shows no difference and no refusal (docs/
+            // native_object_factory_tracks/lights.md).
+            // HALO2_NATIVE_LIGHT_UPDATE_TU15 is accepted for compatibility.
+            return LightUpdateMode::native;
+        }();
+        return mode;
+    }
+    struct LightUpdateStats {
+        std::uint64_t native{},compared{},matched{},differed{},refused{};
+        std::map<std::string,std::uint64_t> refusals;
+        void report(const char* when) const {
+            std::fprintf(stderr,"[light-update %s] native=%llu compared=%llu matched=%llu differed=%llu refused=%llu\n",when,
+                (unsigned long long)native,(unsigned long long)compared,(unsigned long long)matched,
+                (unsigned long long)differed,(unsigned long long)refused);
+            for(const auto& [why,n]:refusals)std::fprintf(stderr,"[light-update refusal] x%llu %s\n",(unsigned long long)n,why.c_str());
+        }
+        ~LightUpdateStats(){if(native || compared || refused)report("final");}
+    } light_update_stats;
+    void light_tick() {
+        const auto mode=light_update_mode();
+        if(mode==LightUpdateMode::translated){call_actual(0xc3430u);return;}
+        // A refusal is caught inside the execution scope: in the
+        // differential it must not mark the world's continuation faulted.
+        const auto native=[&]()->std::optional<std::string> {
+            const native_object_factory_tu15::ObjectFunctionNamespace function_names(
+                source_object_function_compiled_symbol_tu15(bank,0xbcbd9u,0x30005a6u)!=0x30005a6u);
+            NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+            Execution execution(*this);
+            last_instruction=0xc3430u;
+            try{native_object_factory_tu15::lights_update(bank,arithmetic);}
+            catch(const std::exception& e){return std::string(e.what());}
+            return std::nullopt;
+        };
+        if(mode==LightUpdateMode::native) {
+            if(const auto refused=native())throw FormatError("TU1.5 native light update refused: "+*refused);
+            ++light_update_stats.native;return;
+        }
+        // C3430 runs on a frame at the caller's stack; its locals (and its
+        // callees', 16D740's 0xB96C included) lie below it and are dead.
+        const auto caller=caller_abi().gp[4];
+        const auto dead=[&](std::uint32_t at){return at<caller+4u && at>=caller-0x10000u;};
+        std::map<std::uint32_t,std::byte> native_bytes;
+        std::optional<std::string> refusal;
+        {
+            NodeWriteJournal journal(bank);
+            refusal=native();
+            journal.stop();
+            if(!refusal)for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+                native_bytes[std::uint32_t(at+i)]=bank.view(std::uint32_t(at+i),1)[0];
+            journal.rollback();
+        }
+        NodeWriteJournal journal(bank);
+        call_actual(0xc3430u);
+        journal.stop();
+        const auto tick=word(bank,word(bank,0x51df54u)+8u);
+        if(refusal) {
+            ++light_update_stats.refused;
+            if(++light_update_stats.refusals[*refusal]==1)
+                std::fprintf(stderr,"[light-update refusal] c3430 at tick %u: %s\n",tick,refusal->c_str());
+            return;
+        }
+        ++light_update_stats.compared;
+        for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+            native_bytes.try_emplace(std::uint32_t(at+i),before[i]);
+        unsigned differences=0;std::uint32_t first=0;
+        for(const auto& [at,value]:native_bytes)
+            if(!dead(at) && bank.view(at,1)[0]!=value){if(!differences++)first=at;}
+        if(differences) {
+            if(++light_update_stats.differed<=16)
+                std::fprintf(stderr,"[light-update differs] c3430 at tick %u: %u bytes, first %08x native=%02x original=%02x\n",
+                    tick,differences,first,unsigned(std::to_integer<unsigned>(native_bytes[first])),
+                    unsigned(std::to_integer<unsigned>(bank.view(first,1)[0])));
+        } else ++light_update_stats.matched;
+        if(!(light_update_stats.compared%4096u))light_update_stats.report("progress");
+    }
+    // The light natives at their other translated callers (2026-11-16):
+    // C4D30 (placement's light_reconnect, with 16D740) at C0F60's C100F,
+    // C3750's C3810 and C20D0's C2135; C2CB0 (attachments' light_update) at
+    // C2260's C2353; BCB70 (attachments' object_function_value, with BC8F0
+    // and 10DE40) at C0700's C0756 and at C0910's C09EC and C0A57 (the node
+    // lights' weights and scales). The first four are required boundaries
+    // re-emitted by tools/regenerate_light_caller_boundaries_tu15.py; C0756
+    // reaches BCB70 through the shadow frame unit's dispatch; the native
+    // C0910 closure leaves through the required owner at its two sites
+    // (tools/native_object_subtree_replacements.py, REQUIRED_CHILDREN).
+    // HALO2_REFERENCE_LIGHT_CALLERS_TU15=1 keeps the translated callees;
+    // HALO2_LIGHT_CALLERS_DIFFERENTIAL_TU15=1 runs the native under a write
+    // journal, rolls it back, runs the translated callee and compares every
+    // byte either wrote outside the callee's dead stack ("[light-callers
+    // ...]" lines). Otherwise the native runs (the default since 2026-11-16;
+    // HALO2_NATIVE_LIGHT_CALLERS_TU15=1 is accepted for compatibility).
+    enum class LightCallerMode {translated,native,differential};
+    static LightCallerMode light_caller_mode() {
+        static const auto mode=[] {
+            const auto set=[](const char* name){const auto* p=std::getenv(name);return p && *p && *p!='0';};
+            if(set("HALO2_REFERENCE_LIGHT_CALLERS_TU15"))return LightCallerMode::translated;
+            if(set("HALO2_LIGHT_CALLERS_DIFFERENTIAL_TU15"))return LightCallerMode::differential;
+            // Native by default (2026-11-16): the scripted-input differential
+            // sweep (every MP map 1p/4p, campaign 01a..08b as far as they run)
+            // shows no difference and no refusal at any of the sites; C0910's
+            // C09EC since the continuation's sweep (Cyclotron and Colossus at
+            // 4 players), C0A57 unreached (docs/native_object_factory_tracks/lights.md).
+            return LightCallerMode::native;
+        }();
+        return mode;
+    }
+    static bool light_caller_site(const SourcePhysicsContactRuntimeCall& c) {
+        switch(c.instruction) {
+        case 0xc100fu:case 0xc3810u:case 0xc2135u:return c.target==0xc4d30u;
+        case 0xc2353u:return c.target==0xc2cb0u;
+        case 0xc0756u:case 0xc09ecu:case 0xc0a57u:return c.target==0xbcb70u;
+        default:return false;
+        }
+    }
+    struct LightCallerStats {
+        std::uint64_t native{},compared{},matched{},differed{},refused{};
+        std::map<std::string,std::uint64_t> refusals;
+        std::map<std::uint32_t,std::uint64_t> sites;
+        void report(const char* when) const {
+            std::fprintf(stderr,"[light-callers %s] native=%llu compared=%llu matched=%llu differed=%llu refused=%llu\n",when,
+                (unsigned long long)native,(unsigned long long)compared,(unsigned long long)matched,
+                (unsigned long long)differed,(unsigned long long)refused);
+            for(const auto& [why,n]:refusals)std::fprintf(stderr,"[light-callers refusal] x%llu %s\n",(unsigned long long)n,why.c_str());
+            for(const auto& [site,n]:sites)std::fprintf(stderr,"[light-callers site] %x x%llu\n",site,(unsigned long long)n);
+        }
+        ~LightCallerStats(){if(native || compared || refused)report("final");}
+    } light_caller_stats;
+    // The native callee on the call's ABI: its stack arguments, the live FP
+    // controls and the cache's object-function namespace; RET pops them.
+    // The callers read no other register the originals return (their next
+    // instructions write EAX, ECX, EDX and the flags before reading them):
+    // C0910 reads BCB70's AL (the active byte), so BCB70 returns it there.
+    void light_caller_native(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
+        SourcePhysicsWorldRuntimeAbi&a) {
+        if(a.x87_depth || a.active_mmx)throw FormatError("TU1.5 light caller has live x87/MMX state");
+        const auto sp=a.gp[4];
+        if(word(m,sp)!=c.instruction+5u)throw FormatError("TU1.5 light caller lost its original caller");
+        const native_object_factory_tu15::ObjectFunctionNamespace function_names(
+            source_object_function_compiled_symbol_tu15(m,0xbcbd9u,0x30005a6u)!=0x30005a6u);
+        auto control=a.floating_point.value_or(fp);
+        NativeTu15PhysicsFrameFp arithmetic{control.x87_control_word,a.x87_status,control.mxcsr};
+        std::uint32_t pops=8u;  // C4D30, C2CB0: RET 4
+        switch(c.target) {
+        case 0xc4d30u:native_object_factory_tu15::light_reconnect(m,word(m,sp+4u),arithmetic);break;
+        case 0xc2cb0u:native_object_factory_tu15::light_update(m,word(m,sp+4u),arithmetic.control_word,arithmetic.mxcsr);break;
+        default: {
+            // BCB70 (object, name, value): C0700's and C0910's value is their own local.
+            native_object_factory_tu15::OriginalOutput value{word(m,sp+12u)};
+            const auto active=native_object_factory_tu15::object_function_value(m,word(m,sp+4u),word(m,sp+8u),value,
+                arithmetic.control_word,arithmetic.mxcsr);
+            a.gp[0]=(a.gp[0]&0xffffff00u)|active;
+            pops=16u;  // RET 0xC
+        }
+        }
+        a.x87_status=arithmetic.status;control.mxcsr=arithmetic.mxcsr;a.floating_point=control;
+        a.gp[4]=sp+pops;
+    }
+    // Returns false in the translated mode: the call continues on its
+    // ordinary route (the live support unit's callee).
+    bool light_caller(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
+        SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
+        const auto mode=light_caller_mode();
+        if(mode==LightCallerMode::translated)return false;
+        ++light_caller_stats.sites[c.instruction];
+        if(mode==LightCallerMode::native) {
+            last_instruction=c.target;light_caller_native(m,c,a);++light_caller_stats.native;return true;
+        }
+        // Below the stack pointer is dead: the callee's locals and, once it
+        // returns, its popped return address and arguments (BCB70's 10FB70
+        // stores its slot into BCB70's own value argument). a.gp[4] is the
+        // entry ESP until the original returns, its return ESP afterwards.
+        const auto entry_sp=a.gp[4];
+        const auto dead=[&](std::uint32_t at){return at<std::max(entry_sp,a.gp[4]) && at>=entry_sp-0x10000u;};
+        std::map<std::uint32_t,std::byte> native_bytes;
+        std::optional<std::string> refusal;
+        auto native_abi=a;
+        {
+            NodeWriteJournal journal(bank);
+            try{light_caller_native(m,c,native_abi);}
+            catch(const std::exception& e){refusal=e.what();}
+            journal.stop();
+            if(!refusal)for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+                native_bytes[std::uint32_t(at+i)]=bank.view(std::uint32_t(at+i),1)[0];
+            journal.rollback();
+        }
+        NodeWriteJournal journal(bank);
+        source_run_physics_live_support_tu15(m,c.target,a,fp,services(),o);
+        journal.stop();
+        const auto tick=word(bank,word(bank,0x51df54u)+8u);
+        if(refusal) {
+            ++light_caller_stats.refused;
+            if(++light_caller_stats.refusals[*refusal]==1)
+                std::fprintf(stderr,"[light-callers refusal] %x at tick %u: %s\n",c.instruction,tick,refusal->c_str());
+            return true;
+        }
+        ++light_caller_stats.compared;
+        for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+            native_bytes.try_emplace(std::uint32_t(at+i),before[i]);
+        unsigned differences=0;std::uint32_t first=0;
+        for(const auto& [at,value]:native_bytes)
+            if(!dead(at) && bank.view(at,1)[0]!=value){if(!differences++)first=at;}
+        if(native_abi.gp[4]!=a.gp[4])++differences;
+        if(c.target==0xbcb70u && (native_abi.gp[0]&0xffu)!=(a.gp[0]&0xffu))++differences;
+        if(differences) {
+            if(++light_caller_stats.differed<=16) {
+                std::fprintf(stderr,"[light-callers differs] %x -> %x at tick %u: %u bytes, first %08x native=%02x original=%02x"
+                    " (entry %08x args %08x %08x %08x)\n",
+                    c.instruction,c.target,tick,differences,first,unsigned(std::to_integer<unsigned>(native_bytes[first])),
+                    unsigned(std::to_integer<unsigned>(bank.view(first,1)[0])),entry_sp,word(m,entry_sp+4u),
+                    word(m,entry_sp+8u),word(m,entry_sp+12u));
+                // The differing dwords (diagnostic only).
+                unsigned shown=0;std::uint32_t last=0xffffffffu;
+                for(const auto& [at,value]:native_bytes) {
+                    if(dead(at) || bank.view(at,1)[0]==value || (at&~3u)==last || shown>=4)continue;
+                    last=at&~3u;++shown;
+                    std::uint32_t native_word=0,original_word=word(m,last);
+                    for(unsigned k=0;k<4;++k) {
+                        const auto found=native_bytes.find(last+k);
+                        const auto byte=found!=native_bytes.end()?found->second:bank.view(last+k,1)[0];
+                        native_word|=std::uint32_t(std::to_integer<unsigned>(byte))<<(8u*k);
+                    }
+                    std::fprintf(stderr,"[light-callers differs]   %08x native=%08x original=%08x\n",last,native_word,original_word);
+                }
+            }
+        } else ++light_caller_stats.matched;
+        if(!(light_caller_stats.compared%8192u))light_caller_stats.report("progress");
+        return true;
+    }
+    void node_rebuild_native(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
+        SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o,bool publish=false) {
+        if(a.x87_depth || a.active_mmx)throw FormatError("TU1.5 node rebuild call has live x87/MMX state");
+        // The bank's MCC object-function names (the translated callbacks'
+        // compiled-literal join): the native callbacks compare through it.
+        const native_object_factory_tu15::ObjectFunctionNamespace function_names(
+            source_object_function_compiled_symbol_tu15(m,0xbcbd9u,0x30005a6u)!=0x30005a6u);
+        // The cache's first-person animation key names (the translated
+        // 1D5320's query scopes, SourceWeaponAnimationQuerySymbolsTu15): the
+        // native first-person lookups search through them.
+        const native_object_factory_tu15::weapon_animation::QueryNamespace animation_names(cache_owner.is_mcc());
+        const auto sp=a.gp[4];
+        if(word(m,sp)!=c.instruction+5u)throw FormatError("TU1.5 node rebuild lost its original caller");
+        const auto object=word(m,sp+4u);
+        auto control=a.floating_point.value_or(fp);
+        NativeTu15PhysicsFrameFp arithmetic{control.x87_control_word,a.x87_status,control.mxcsr};
+        const auto reader=node_resource_reader();
+        const native_object_factory_tu15::AnimationResourceReaderScope reading(reader);
+        if(c.target==0xbf0c0u)native_object_factory_tu15::object_update_node_matrices(m,object,arithmetic);
+        else if(c.target==0xbff20u) {
+            const bool changed=native_object_factory_tu15::object_update_bounds(m,object,arithmetic);
+            a.gp[0]=(a.gp[0]&0xffffff00u)|(changed?1u:0u);
+        } else if(c.target==0xbf050u)native_object_factory_tu15::object_rebuild_nodes(m,object,arithmetic);
+        else if(c.target==0x1d5840u) {
+            // 1D5840: manager, -, weight, mask, orientations, -, -; ESI count; RET 0x1C.
+            native_object_factory_tu15::animation_sample_channels(m,object,word(m,sp+12u),word(m,sp+16u),word(m,sp+20u),
+                a.gp[6],arithmetic);
+        } else if(c.target==0xbf9a0u) {
+            // BF9A0: object, -, manager, mask, count, orientations; RET 0x18.
+            native_object_factory_tu15::object_function_overlays(m,object,word(m,sp+12u),word(m,sp+16u),word(m,sp+20u),
+                word(m,sp+24u),arithmetic);
+        } else if(c.target==0x1cf3b0u) {
+            // 1CF3B0: ESI channel; yaw, pitch, weight, mask, count, orientations; RET 0x18.
+            native_object_factory_tu15::animation_aim_channel(m,a.gp[6],word(m,sp+4u),word(m,sp+8u),word(m,sp+12u),
+                word(m,sp+16u),word(m,sp+20u),word(m,sp+24u),arithmetic);
+        } else if(c.target==0x1cf210u) {
+            // 1CF210: EBX channel; weight, mask, count, orientations; RET 0x10.
+            native_object_factory_tu15::animation_sample_channel(m,a.gp[3],word(m,sp+4u),word(m,sp+8u),word(m,sp+12u),
+                word(m,sp+16u),arithmetic);
+        } else if(c.target==0x16a4ddu || c.target==0x169c46u || c.target==0x16ad45u || c.target==0x169863u) {
+            // 16A4DD, 16AD45: user, slot; RET 8. 169C46: user; RET 4. 169863:
+            // EAX key; user, slot, stop sound; RET 0xC. Their residual
+            // owners outside the object factory (17A570 effects, 171440
+            // resource prediction, 128E70 sound stop, 18BE50 event sound)
+            // run through their own call sites, on a frame below the
+            // callers' dead locals, with the native's current FP controls.
+            const auto residual=[&](std::uint32_t site,std::uint32_t target,std::initializer_list<std::uint32_t> args,
+                const std::function<void(SourcePhysicsWorldRuntimeAbi&)>& registers) {
+                auto b=a;
+                const auto frame=(sp-0x400u)&~15u;
+                std::uint32_t at=frame;
+                for(const auto arg:args){put(m,at,arg);at+=4u;}
+                put(m,frame-4u,site+5u);
+                b.gp[4]=frame-4u;
+                registers(b);
+                b.x87_status=arithmetic.status;
+                auto controls=control;controls.mxcsr=arithmetic.mxcsr;controls.x87_control_word=arithmetic.control_word;
+                b.floating_point=controls;
+                required_entry(m,{site,target,false},b,o);
+                if(b.gp[4]!=at)throw FormatError("TU1.5 native first-person residual returned an unbalanced frame");
+                arithmetic.status=b.x87_status;
+                if(b.floating_point)arithmetic.mxcsr=b.floating_point->mxcsr;
+                return b.gp[0];
+            };
+            native_object_factory_tu15::FirstPersonResiduals residuals;
+            residuals.effects=[&](std::uint32_t user,std::uint32_t object,bool attach) {
+                residual(attach?0x16b237u:0x16b223u,0x17a570u,{user,object,attach?1u:0u},
+                    [&](auto& b){b.gp[3]=a.gp[3];b.gp[7]=object;});
+            };
+            residuals.predict=[&](std::uint32_t block) {
+                residual(0x16b30au,0x171440u,{block},[&](auto& b){b.gp[3]=a.gp[3];b.gp[7]=a.gp[7]&0xffff0000u;});
+            };
+            residuals.sound_stop=[&](std::uint32_t sound) {
+                residual(0x169a7du,0x128e70u,{},[&](auto& b){b.gp[3]=sound;b.gp[7]=a.gp[7];});
+            };
+            // 169BA2's 169C02: EAX [0x474D08], ECX [0x474CE8], EBX sound;
+            // object, -1, 1.0; the sound handle in EAX.
+            residuals.sound_start=[&](std::uint32_t sound,std::uint32_t object,std::uint32_t position,std::uint32_t direction) {
+                return residual(0x169c02u,0x18be50u,{object,0xffffffffu,0x3f800000u},
+                    [&](auto& b){b.gp[0]=position;b.gp[1]=direction;b.gp[3]=sound;});
+            };
+            // The translated 16A4DD publishes its inputs to the private FP
+            // context's composition observer at entry (169C46's 16A47E
+            // return). The native update does the same before each native
+            // sampler call, in native mode only (the differential's
+            // original run publishes them itself).
+            if(publish && c.target==0x169c46u)residuals.sampler_entry=[&](std::uint32_t user,std::uint32_t slot) {
+                auto b=a;
+                const auto frame=(sp-0x400u)&~15u;
+                put(m,frame,0x16a47eu);put(m,frame+4u,user);put(m,frame+8u,slot);
+                b.gp[4]=frame;
+                SourceFirstPersonCompositionObserverTu15::entry(m,b);
+            };
+            const native_object_factory_tu15::FirstPersonResidualScope binding(residuals);
+            if(c.target==0x16a4ddu)
+                native_object_factory_tu15::first_person_animation(m,word(m,sp+4u),word(m,sp+8u),arithmetic);
+            else if(c.target==0x16ad45u)
+                native_object_factory_tu15::first_person_rebuild(m,word(m,sp+4u),word(m,sp+8u),arithmetic);
+            else if(c.target==0x169863u) {
+                native_object_factory_tu15::first_person_state(m,a.gp[0],word(m,sp+4u),word(m,sp+8u),
+                    (word(m,sp+12u)&0xffu)!=0,arithmetic);
+            }
+            else native_object_factory_tu15::first_person_update(m,word(m,sp+4u),arithmetic);
+        } else {
+            // BFB90: EAX count, ECX mask, EDX object; stack mode, manager,
+            // orientations; RET 0xC.
+            native_object_factory_tu15::object_sample_animation(m,a.gp[2],word(m,sp+4u),word(m,sp+8u),word(m,sp+12u),
+                a.gp[0],a.gp[1],arithmetic);
+        }
+        a.x87_status=arithmetic.status;control.mxcsr=arithmetic.mxcsr;a.floating_point=control;
+        const auto pops=c.target==0xbfb90u?16u:c.target==0x1d5840u?0x20u:c.target==0xbf9a0u || c.target==0x1cf3b0u?0x1cu:
+            c.target==0x1cf210u?0x14u:c.target==0x16a4ddu || c.target==0x16ad45u?0xcu:c.target==0x169863u?0x10u:8u;  // 169C46: RET 4
+        a.gp[4]=sp+pops;  // RET 0xC / 0x1C / 0x18 / 0x10 / RET 4
+    }
+    void node_rebuild_call(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
+        SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o,bool birth) {
+        const auto original=[&](SourcePhysicsWorldRuntimeAbi& state) {
+            // 16A4DD belongs to the sandbox special unit; every other bound
+            // target to the physics live support unit.
+            if(c.target==0x16a4ddu || c.target==0x169c46u)source_run_sandbox_special_tu15(m,c.target,state,fp,services(),o);
+            else if(c.target==0x16ad45u || c.target==0x169863u) {
+                // Their owners' own route (the required entry without this
+                // interception).
+                node_rebuild_bypass=true;required_entry_original(m,c,state,o);
+            }
+            else source_run_physics_live_support_tu15(m,c.target,state,fp,services(),o);
+        };
+        auto mode=node_rebuild_mode(birth);
+        // The native first-person update (169C46 at 168D55) and the 16B7F5
+        // state entry (169863) are native by default since 2026-11-16: the
+        // weapon track's lookups search the cache's first-person key names
+        // (weapon_animation::QueryNamespace, opened in node_rebuild_native),
+        // and the scripted-input differential sweep shows no difference
+        // (docs/native_object_factory_tracks/nodebuild.md).
+        // HALO2_REFERENCE_FIRST_PERSON_UPDATE_TU15=1 keeps their translated
+        // routes; HALO2_NATIVE_FIRST_PERSON_UPDATE_TU15 is accepted for
+        // compatibility. The differential compares them in every mode.
+        static const bool update_reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_FIRST_PERSON_UPDATE_TU15");return p && *p && *p!='0';}();
+        if(mode==NodeRebuildMode::native && update_reference && (c.target==0x169c46u || c.target==0x169863u))
+            mode=NodeRebuildMode::translated;
+        if(mode==NodeRebuildMode::translated){original(a);return;}
+        ++node_rebuild_stats.sites[c.instruction];
+        if(mode==NodeRebuildMode::native) {
+            // The translated 16A4DD publishes its inputs to the private FP
+            // context's composition observer at entry; the native does the
+            // same (the differential's original run publishes them itself).
+            if(c.target==0x16a4ddu)SourceFirstPersonCompositionObserverTu15::entry(m,a);
+            last_instruction=c.target;node_rebuild_native(m,c,a,o,true);++node_rebuild_stats.native;return;
+        }
+        struct Journal {
+            SourceRuntimeMemory &bank;std::vector<std::pair<std::uint32_t,std::vector<std::byte>>> undo;bool recording=true;
+            explicit Journal(SourceRuntimeMemory &b):bank(b) {
+                source_runtime_register_write_observer(bank,this,[this](std::uint32_t at,std::size_t bytes) {
+                    const auto before=bank.view(at,bytes);undo.emplace_back(at,std::vector<std::byte>(before.begin(),before.end()));
+                });
+            }
+            void stop(){if(recording)source_runtime_unregister_write_observer(bank,this);recording=false;}
+            void rollback(){stop();for(auto it=undo.rbegin();it!=undo.rend();++it)bank.write(it->first,it->second);}
+            ~Journal(){stop();}
+        };
+        const auto entry_esp=a.gp[4];
+        // Below the stack pointer is dead: the callee's locals and, once it
+        // returns, its own popped return address and arguments (16A4DD
+        // reuses its user slot for the shown rounds). a.gp[4] is the entry
+        // ESP until the original returns, its return ESP afterwards.
+        const auto dead=[&](std::uint32_t at){return at<std::max(entry_esp,a.gp[4]) && at>=entry_esp-0x10000u;};
+        std::map<std::uint32_t,std::byte> native_bytes;
+        std::optional<std::string> refusal;
+        auto native_abi=a;
+        // HALO2_NODE_REBUILD_DIFF_TRACE=1: on a difference, print both
+        // ordered store sequences (outside the dead stack) from their first
+        // divergence (diagnostic only).
+        static const bool trace=[]{const auto* p=std::getenv("HALO2_NODE_REBUILD_DIFF_TRACE");return p && *p && *p!='0';}();
+        struct Store{std::uint32_t at;std::vector<std::byte> value;};
+        const auto stores=[&](const std::vector<std::pair<std::uint32_t,std::vector<std::byte>>>& undo,
+            const std::function<std::byte(std::uint32_t)>& final_byte) {
+            std::vector<Store> out;std::map<std::uint32_t,std::byte> later;
+            for(auto it=undo.rbegin();it!=undo.rend();++it) {
+                Store st{it->first,std::vector<std::byte>(it->second.size())};
+                for(std::size_t i=0;i<it->second.size();++i) {
+                    const auto at=std::uint32_t(it->first+i);
+                    const auto found=later.find(at);
+                    st.value[i]=found!=later.end()?found->second:final_byte(at);
+                    later[at]=it->second[i];
+                }
+                if(!dead(it->first))out.push_back(std::move(st));
+            }
+            std::reverse(out.begin(),out.end());
+            return out;
+        };
+        std::vector<Store> native_stores;
+        auto& debug_log=native_object_factory_tu15::node_rebuild_debug_log();
+        debug_log.enabled=trace;debug_log.text.clear();
+        {
+            Journal journal(bank);
+            try{node_rebuild_native(m,c,native_abi,o);}
+            catch(const std::exception& e){refusal=e.what();}
+            journal.stop();
+            if(!refusal)for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+                native_bytes[std::uint32_t(at+i)]=bank.view(std::uint32_t(at+i),1)[0];
+            if(trace && !refusal)native_stores=stores(journal.undo,[&](std::uint32_t at){return bank.view(at,1)[0];});
+            journal.rollback();
+        }
+        Journal journal(bank);
+        original(a);
+        journal.stop();
+        const auto print_trace=[&] {
+            const auto original_stores=stores(journal.undo,[&](std::uint32_t at){return bank.view(at,1)[0];});
+            // Compare byte by byte (store widths may differ: MOVAPS against
+            // MOVLPS/MOVHPS), then report the store holding that byte.
+            const auto flat=[](const std::vector<Store>& list) {
+                std::vector<std::pair<std::uint32_t,std::size_t>> out;
+                for(std::size_t i=0;i<list.size();++i)for(std::size_t b=0;b<list[i].value.size();++b)
+                    out.emplace_back(std::uint32_t(list[i].at+b),i);
+                return out;
+            };
+            const auto nf=flat(native_stores),of=flat(original_stores);
+            std::size_t byte=0;
+            const auto value_of=[](const std::vector<Store>& list,const std::pair<std::uint32_t,std::size_t>& e) {
+                return list[e.second].value[e.first-list[e.second].at];
+            };
+            while(byte<nf.size() && byte<of.size() && nf[byte].first==of[byte].first &&
+                  value_of(native_stores,nf[byte])==value_of(original_stores,of[byte]))++byte;
+            std::size_t k=byte<nf.size()?nf[byte].second:native_stores.size();
+            const std::size_t ko=byte<of.size()?of[byte].second:original_stores.size();
+            const auto dump=[&](const char* who,const std::vector<Store>& list) {
+                for(std::size_t i=k>16?k-16:0;i<list.size() && i<k+12;++i) {
+                    std::string bytes;char text[4];
+                    for(auto b:list[i].value){std::snprintf(text,sizeof text,"%02x",unsigned(std::to_integer<unsigned>(b)));bytes+=text;}
+                    std::fprintf(stderr,"[node-rebuild trace] %s #%zu %08x %s%s\n",who,i,list[i].at,bytes.c_str(),i==k?" <":"");
+                }
+            };
+            std::fprintf(stderr,"[node-rebuild trace] %x first divergence at byte %zu: store %zu of %zu native / %zu of %zu original\n",
+                c.target,byte,k,native_stores.size(),ko,original_stores.size());
+            dump("native",native_stores);
+            k=ko;dump("original",original_stores);
+            for(std::size_t at=0;at<debug_log.text.size();) {
+                const auto end=debug_log.text.find('\n',at);
+                std::fprintf(stderr,"[node-rebuild note] %s\n",debug_log.text.substr(at,end-at).c_str());
+                if(end==std::string::npos)break;
+                at=end+1;
+            }
+        };
+        if(refusal) {
+            ++node_rebuild_stats.refused;
+            if(++node_rebuild_stats.refusals[*refusal]==1)
+                std::fprintf(stderr,"[node-rebuild refusal] %x at tick %u: %s\n",c.target,word(m,word(m,0x51df54u)+8u),refusal->c_str());
+            return;
+        }
+        ++node_rebuild_stats.compared;
+        for(const auto& [at,before]:journal.undo)for(std::size_t i=0;i<before.size();++i)
+            native_bytes.try_emplace(std::uint32_t(at+i),before[i]);
+        unsigned differences=0;std::uint32_t first=0;
+        for(const auto& [at,value]:native_bytes)
+            if(!dead(at) && bank.view(at,1)[0]!=value){if(!differences++)first=at;}
+        if(c.target==0xbff20u && (native_abi.gp[0]&0xffu)!=(a.gp[0]&0xffu))++differences;
+        if(native_abi.gp[4]!=a.gp[4])++differences;
+        if(differences) {
+            if(++node_rebuild_stats.differed<=16) {
+                std::fprintf(stderr,"[node-rebuild differs] %x object %08x: %u bytes, first %08x native=%02x original=%02x\n",
+                    c.target,word(m,entry_esp+4u),differences,first,
+                    unsigned(std::to_integer<unsigned>(native_bytes.count(first)?native_bytes[first]:std::byte{})),
+                    unsigned(std::to_integer<unsigned>(bank.view(first,1)[0])));
+                if(trace && node_rebuild_stats.differed<=4)print_trace();
+            }
+        } else ++node_rebuild_stats.matched;
+        if(!(node_rebuild_stats.compared%8192u))node_rebuild_stats.report("progress");
+    }
     void required_entry_original(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(node_rebuild_bypass)node_rebuild_bypass=false;
+        else if(bool birth=false;image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail && node_rebuild_site(c,birth)) {
+            node_rebuild_call(m,c,a,o,birth);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail && light_caller_site(c) && light_caller(m,c,a,o))return;
+        if(image==SourcePhysicsContactImage::TitleUpdate15) {
+            if(c.target==0x1cacb0u || c.target==0x1cacd0u || c.target==0x1cae70u) {
+                last_instruction=c.target;
+                native_campaign_ai_behavior_129_call_tu15(m,c.target,a,o);return;
+            }
+            if(c.target==0x273290u) {
+                last_instruction=c.target;
+                native_campaign_ai_target_merge_call_tu15(m,c.target,a,{},o);return;
+            }
+            if(c.target==0x200420u) {
+                last_instruction=c.target;
+                native_campaign_ai_movement_link_transition_call_tu15(m,c.target,a,{},o);return;
+            }
+            if(c.target==0x279100u) {
+                last_instruction=c.target;
+                native_campaign_ai_route_special_link_call_tu15(m,c.target,a,{},o);return;
+            }
+            if(c.target==0x280c90u || c.target==0x280d70u) {
+                last_instruction=c.target;
+                native_campaign_ai_command_facing_call_tu15(m,c.target,a,o);return;
+            }
+            if(c.target==0x2b2470u || c.target==0x2b2670u || c.target==0x210a10u || c.target==0x2b1200u ||
+               c.target==0x2b1000u || c.target==0x2b10b0u || c.target==0x2b11b0u || c.target==0x2b1300u ||
+               c.target==0x2b2410u || c.target==0x2b0e30u) {
+                NativeCampaignHsCommandChildrenTu15 children;
+                children.call=[&](auto site,auto target,auto &state) {
+                    if(target==0x212010u || target==0x211da0u) {
+                        source_run_ai_frame_tu15(m,target,state,fp,services(),o);return;
+                    }
+                    if(target==0x211cb0u || target==0x280c90u || target==0x280d70u) {
+                        required_entry_original(m,{site,target,false},state,o);return;
+                    }
+                    throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                };
+                last_instruction=c.target;
+                native_campaign_hs_command_builtins_call_tu15(m,c.target,a,children,o);return;
+            }
+            const auto lifecycle=[&] {
+                switch(c.target) {
+                case 0x2801d0u:case 0x280400u:case 0x261be0u:case 0x261a90u:case 0x261d50u:
+                case 0x262250u:case 0x262190u:case 0x263b80u:case 0x262870u:case 0x2629d0u:
+                case 0x2117e0u:case 0x211a80u:case 0x211cb0u:case 0x211840u:
+                case 0x262590u:case 0x262710u:return true;
+                default:return false;
+                }
+            }();
+            if(lifecycle) {
+                NativeCampaignAiCommandLifecycleServicesTu15 children;
+                children.callee=[&](auto site,auto target,auto &state) {
+                    // These existing compiled native HS bodies consume their
+                    // real retained expression stack. No parser, wake or
+                    // command-completion result is supplied by the host VM.
+                    if(target==0x211b10u || target==0x211e80u || target==0x212560u) {
+                        source_run_ai_frame_tu15(m,target,state,fp,services(),o);return;
+                    }
+                    if(target==0x262a00u || target==0x263140u || target==0x263aa0u) {
+                        required_entry_original(m,{site,target,false},state,o);return;
+                    }
+                    throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                };
+                last_instruction=c.target;
+                native_campaign_ai_command_lifecycle_call_tu15(m,c.target,a,children,o);return;
+            }
+            if(c.target==0x262a00u || c.target==0x263140u || c.target==0x263aa0u ||
+               c.target==0x263bd0u || c.target==0x264860u || c.target==0x1fc720u || c.target==0x1cace0u) {
+                const auto query_data=bank.find_unowned_range(0x60100000u,0x61000000u,0x10000u,16u);
+                if(!query_data)throw FormatError("Native command query has no disjoint DATA range");
+                std::vector<NativeTu15ContactPrivateRange> retained;
+                bank.visit_region_metadata([&](const auto &region) {
+                    if(region.bytes>0xffffffffull)throw FormatError("Native command retained extent exceeds32bits");
+                    retained.push_back({region.address,std::uint32_t(region.bytes)});
+                });
+                NativeCampaignAiBipedRefreshScratchBindingTu15 query_scratch(m,*query_data,retained);
+                struct Protection final:NativeCampaignAiResourceProtectionTu15 {
+                    Impl &owner;
+                    explicit Protection(Impl &value):owner(value){}
+                    void protect_pages(std::uint32_t p,std::uint32_t n,std::uint32_t f)const override {
+                        if(!owner.arena)throw FormatError("Native command path requires its retained page owner");
+                        owner.arena->protect_pages(p,n,f);
+                    }
+                } protection(*this);
+                NativeCampaignAiPerformServicesTu15 children;children.protection=&protection;
+                last_instruction=c.target;
+                if(c.target==0x1cace0u)native_campaign_ai_behavior_129_perform_call_tu15(m,c.target,a,children,o);
+                else if(c.target==0x1fc720u)native_campaign_ai_publication_call_tu15(m,c.target,a,children,o);
+                else native_campaign_ai_command_movement_call_tu15(m,c.target,a,children,o);
+                return;
+            }
+        }
+        if(c.target==0x2e16d0u && native_diagnostic_logger_owner_detail::run(m,c,a,services(),o))return;
         if(c.target==0xc1270u) {
             last_instruction=0xc1270u;
             native_tu15_collect_object_recovery_candidates(m,c,a,o);return;
@@ -1923,6 +2862,27 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(c.target==0x1bbec0u) {
             native_campaign_ai_area_choice_tu15_run(m,c,a,o);return;
+        }
+        if(native_campaign_ai_area_perform_tu15_owns_call(c)) {
+            if(&m!=&bank)throw FormatError("Native biped query scratch requires the current world bank");
+            const auto query_data=bank.find_unowned_range(0x60100000u,0x61000000u,0x10000u,16u);
+            if(!query_data)throw FormatError("Native biped query has no disjoint DATA range");
+            std::vector<NativeTu15ContactPrivateRange> retained;
+            bank.visit_region_metadata([&](const auto &region) {
+                if(region.bytes>0xffffffffull)throw FormatError("Native biped query retained extent exceeds32bits");
+                retained.push_back({region.address,std::uint32_t(region.bytes)});
+            });
+            NativeCampaignAiBipedRefreshScratchBindingTu15 query_scratch(m,*query_data,retained);
+            native_campaign_ai_area_perform_tu15_run(m,c,a,[this](auto p,auto n,auto f) {
+                if(!arena)throw FormatError("Native 1BBEE0 workspace requires its retained arena owner");
+                arena->protect_pages(p,n,f);
+            },[&](auto entry,auto &state){source_run_ai_frame_tu15(m,entry,state,fp,services(),o);},o);return;
+        }
+        if(native_campaign_ai_area_perform_release_tu15_owns_call(c)) {
+            native_campaign_ai_area_perform_release_tu15_run(m,c,a,o);return;
+        }
+        if(native_campaign_ai_character_property_tu15_owns_call(c)) {
+            native_campaign_ai_character_property_tu15_run(m,c,a);return;
         }
         if(native_campaign_session_timers_tu15_owns_entry(c.target)) {
             native_campaign_session_timers_tu15_run(m,c,a,[this](std::uint32_t cell) {
@@ -2310,6 +3270,33 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(c.instruction==0x183e17u && c.target==0x439c0u && !c.tail) {
             source_native_cache_vertex_view_tu15(m,a);return;
+        }
+        if((c.instruction==0x182b17u && c.target==0x12f800u) || (c.instruction==0x182b26u && c.target==0x12f910u)) {
+            // 181DA0's decal bitmap residency: 12F800, then the mode-2
+            // (blocking) 12F910 request. EBP is the decal state (+100 image,
+            // +104 bitmap root); ESI/arg0 is root+48 + image*116, the Xbox
+            // row stride. An Xbox cache runs both callees unchanged. An MCC
+            // canonical bitmap row has no loadable partition, so the original
+            // refuses every decal (blood, holes, scorches); the bound frame
+            // row lets the same original callee load the real MCC resource.
+            const auto sp=a.gp[4];
+            const bool request=c.target==0x12f910u;
+            if(c.tail || word(m,sp)!=c.instruction+5u || (request && word(m,sp+8u)!=2u))
+                throw FormatError("TU1.5 decal bitmap residency caller differs");
+            const auto row=request?word(m,sp+4u):a.gp[6];
+            if(canonical_cache) {
+                const auto root=word(m,a.gp[5]+0x104u);
+                const auto image=std::bit_cast<std::int16_t>(std::uint16_t(word(m,a.gp[5]+0x100u)));
+                if(image<0 || std::uint64_t(word(m,root+0x48u))+std::uint64_t(image)*116u!=row)
+                    throw FormatError("TU1.5 decal bitmap residency lost its actual decal image row");
+                if(const auto bound=decal_bitmap_frame_row(root,unsigned(image))) {
+                    if(request)put(bank,sp+4u,*bound);else a.gp[6]=*bound;
+                    required(m,{c.target,c.target,false},a,o);
+                    if(!request)a.gp[6]=row; // 12F800 preserves the caller's ESI.
+                    return;
+                }
+            }
+            required(m,{c.target,c.target,false},a,o);return;
         }
         if(c.instruction==0x1d2eau && c.target==0x407c00u && !c.tail) {
             source_native_cache_bitmap_view_tu15(m,a,fp,services(),o);return;
@@ -2708,10 +3695,12 @@ struct PhysicsLiveWorldTu15::Impl {
             source_run_first_person_light_pose_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_model_render_tu15_owns_entry(c.target)) {
-            if(canonical_cache && c.target==0x3daf0u) {
+            // Native 3DAF0 reaches its D3D90 query owner directly; both roots
+            // retain the same D5610 first-row projection.
+            if(canonical_cache && (c.target==0x3daf0u || c.target==0xd3d90u)) {
                 if(!cpu_bitmap_projection)cpu_bitmap_projection=std::make_unique<private_cpu_bitmap::WorldProjection>(cache_owner,bank,*canonical_cache);
                 private_cpu_bitmap::run_model_3daf0_with_inline_cpu_bitmaps(bank,a,fp,services(),o,
-                    [this](TagHandle requested,unsigned root){return cpu_bitmap_projection->first_row_for_canonical_root(requested,root);});
+                    [this](TagHandle requested,unsigned root){return cpu_bitmap_projection->first_row_for_canonical_root(requested,root);},c.target);
                 return;
             }
             source_run_model_render_tu15(m,c.target,a,fp,services(),o);return;
@@ -2967,6 +3956,9 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_level_handles_startup_tu15_owns_entry(c.target)) {
             source_run_level_handles_startup_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(owns_d3950_node_progress_call(image,c)) {
+            source_run_ai_frame_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(c.target==0x11dc00u || c.target==0x11dd90u || source_ai_frame_tu15_owns_entry(c.target)) {
             source_run_ai_frame_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -3149,6 +4141,25 @@ struct PhysicsLiveWorldTu15::Impl {
             const auto payload=word(m,p);
             std::erase_if(allocations,[&](const auto &row){return row.payload==payload;});
             a.gp[4]+=12u;return;
+        }
+        if(c.target==0xc7d70u && !c.tail) {
+            // Native C7D70, the unit's global impulse-sound helper. Campaign
+            // C7580 reaches it for the flashlight (AX=5 on, 4 off). The
+            // original frame is rebuilt exactly and 18C000 keeps its owner.
+            const auto globals=word(m,0x4ecc1cu),sounds=word(m,globals+0x134u);
+            const auto sound=word(m,sounds+0xe8u+std::uint32_t(std::int32_t(std::int16_t(a.gp[0])))*8u);
+            a.gp[1]=globals;a.gp[2]=sounds;a.gp[0]=sound;
+            if(sound!=0xffffffffu) {
+                auto frame=a.gp[4]-0x14u;                 // sub esp,10; push edi
+                put(m,frame,a.gp[7]);put(m,frame+8u,sound);
+                a.gp[0]=0x4000095u;a.gp[7]=frame+4u;
+                put(m,frame+4u,0xffffffffu);put(m,frame+0xcu,0x3f800000u);put(m,frame+0x10u,0u);
+                put(m,frame-4u,0xc7dbfu);a.gp[4]=frame-4u; // call 18C000
+                required_entry(m,{0xc7dbau,0x18c000u,false},a,o);
+                if(a.gp[4]!=frame)throw std::runtime_error("TU1.5 native C7D70 sound call returned an unbalanced frame");
+                a.gp[7]=word(m,frame);a.gp[4]=frame+0x14u;  // pop edi; add esp,10
+            }
+            a.gp[4]+=4u;return;
         }
         std::ostringstream message;message<<"TU1.5 live world owner missing at "<<std::hex
             <<c.instruction<<" -> "<<c.target<<" return "<<word(m,sp);
@@ -4497,7 +5508,7 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x179cd0u);
         // Original13AB4E updates every native light, including sleeping
         // owners, after effects and before later player/render phases.
-        call_actual(0xc3430u);
+        light_tick();
         // Literal13AB53/13AB58 finalize engine state, then advance later
         // player actions after effects/lights and before first-person work.
         if(engine_owner==SourceEngineFrameOwnerTu15::World) {
@@ -4610,14 +5621,31 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         const std::array birth_args{request};return call_actual(0xb9b70u,birth_args);
     }
+    // Native B9960 (placement request for an unowned object without a
+    // location). Stores reach the live bank in original order; an installed
+    // physics store observer sees each one, attributed to B9960.
+    void new_placement_request(std::uint32_t request,std::uint32_t definition) {
+        struct Observed final:SourcePhysicsContactMemory {
+            SourcePhysicsContactMemory& world;const SourcePhysicsContactRecordObserver& observe;
+            Observed(SourcePhysicsContactMemory& w,const SourcePhysicsContactRecordObserver& o):world(w),observe(o){}
+            void read(std::uint32_t at,std::span<std::byte> out)const override{world.read(at,out);}
+            void write(std::uint32_t at,std::span<const std::byte> in)override{
+                SourcePhysicsContactRecordStore store{0xb9960u,at,std::vector<std::byte>(in.size()),{in.begin(),in.end()}};
+                world.read(at,store.before);world.write(at,in);observe(store);
+            }
+        };
+        if(physics_store_observer) {
+            Observed observed(bank,physics_store_observer);
+            native_object_factory_tu15::placement_data_new(observed,request,definition,0xffffffffu,0);
+        } else native_object_factory_tu15::placement_data_new(bank,request,definition,0xffffffffu,0);
+    }
     std::uint32_t equip_weapon(std::uint32_t unit,std::uint32_t definition) {
         (void)object_body(unit);
         const auto tag=cache_owner.query_tag({.handle=TagHandle{definition},.group=tag_groups::weapon,.require_address=true});
         if(!tag)throw FormatError("Source equipment input requires a resident weapon definition");
         call_actual(0xcf4d0u,std::array{unit});
         constexpr std::uint32_t request=0x60010000u;
-        auto a=frame(std::array{definition,0xffffffffu,0u});a.gp[6]=request;
-        run_actual(0xb9960u,a);
+        new_placement_request(request,definition);
         // Literal1A8CAB sets request+C to zero before original object birth.
         put(bank,request+0xcu,0u);
         const auto weapon=call_actual(0xb9b70u,std::array{request});
@@ -4708,8 +5736,7 @@ struct PhysicsLiveWorldTu15::Impl {
         const auto tag=cache_owner.query_tag({.handle=TagHandle{definition},.group=tag_groups::weapon,.require_address=true});
         if(!tag)throw FormatError("Runtime weapon input requires a resident weapon definition");
         constexpr std::uint32_t request=0x60010000u;
-        auto a=frame(std::array{definition,0xffffffffu,0u});a.gp[6]=request;
-        run_actual(0xb9960u,a);
+        new_placement_request(request,definition);
         put(bank,request+0xcu,0u); // Original1A8CAB runtime item caller input.
         const auto weapon=call_actual(0xb9b70u,std::array{request});
         if(weapon!=0xffffffffu)set_object_position(weapon,position);
@@ -4904,7 +5931,11 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         call_actual(0x3f3e0u);
     }
-    SourceModelBuildWorld model_build_world(unsigned view,unsigned players,bool modifier) {
+    // light_view: the 1362A0/1365C0 4B5C0 builds. Their original body reaches
+    // 3DAF0 (4BA11) and 13A2E0 (4B96E) through the required boundary only, so
+    // neither the campaign lighting correction nor the rendered-WORLD
+    // publication (ordinary-view host services) belongs to them.
+    SourceModelBuildWorld model_build_world(unsigned view,unsigned players,bool modifier,bool light_view=false) {
         if(!session_configured || view>=4)
             throw FormatError("TU1.5 model builder requires a current session and valid view");
         const auto policy=source_geometry_lod_policy(players);
@@ -4938,8 +5969,9 @@ struct PhysicsLiveWorldTu15::Impl {
             use->publish(owner,model,nodes,count);return use;
         };
         w.nodes.deferred_nodes=[this](auto object,auto selected,auto nodes){
-            const std::array args{object,selected,nodes};return call_actual(0xbf640u,args);};
-        w.nodes.observed_world_nodes=[this](auto object,auto nodes,auto count){
+            return deferred_node_matrices(object,selected,nodes,[&]{
+                const std::array args{object,selected,nodes};return call_actual(0xbf640u,args);});};
+        if(!light_view)w.nodes.observed_world_nodes=[this](auto object,auto nodes,auto count){
             if(count<0 || count>256 || (!nodes && count))
                 throw FormatError("Completed TU1.5 render pose has an invalid node bank");
             auto& retained=rendered_model_nodes[object];retained.resize(std::size_t(count));
@@ -4950,11 +5982,107 @@ struct PhysicsLiveWorldTu15::Impl {
         w.prt=[this](const std::array<std::uint32_t,7>& args){
             return (call_actual(0x23670u,args)&255u)!=0;
         };
-        w.lighting=[this](auto object,float distance){
-            const std::array args{std::bit_cast<std::uint32_t>(distance)};auto a=frame(args);a.gp[0]=object;
-            run_actual(0x3daf0u,a);std::array<std::uint32_t,21> result;
-            const auto bytes=bank.view(a.gp[0],sizeof(result));std::memcpy(result.data(),bytes.data(),sizeof(result));return result;};
+        w.lighting=[this,light_view](auto object,float distance){
+            const auto lighting=object_lighting(object,std::bit_cast<std::uint32_t>(distance));
+            std::array<std::uint32_t,21> result;
+            if(model_lighting_correction && !light_view)model_lighting_correction(object,distance,lighting,bank);
+            const auto bytes=bank.view(lighting,sizeof(result));std::memcpy(result.data(),bytes.data(),sizeof(result));return result;};
         return w;
+    }
+    // 3DAF0 (the model builder's lighting owner, its only caller): the native
+    // object-lighting tree by default. HALO2_REFERENCE_OBJECT_LIGHTING=1 runs
+    // the original; HALO2_OBJECT_LIGHTING_ORACLE=1 runs native in an undo
+    // journal and then the original, comparing every stored byte and the
+    // returned bank; HALO2_OBJECT_LIGHTING_TRACE=<file> records each call's
+    // touched non-stack bytes (before/after) for a cross-run comparison;
+    // HALO2_OBJECT_LIGHTING_STATS=1 prints counts. The uncorrected bank is
+    // produced here; the campaign correction stays the ordinary-view caller's.
+    std::uint32_t object_lighting(std::uint32_t object,std::uint32_t metric) {
+        const auto flag=[](const char* name){const auto* p=std::getenv(name);return p&&*p&&*p!='0';};
+        static const bool reference=flag("HALO2_REFERENCE_OBJECT_LIGHTING"),oracle=flag("HALO2_OBJECT_LIGHTING_ORACLE");
+        struct Report {
+            NativeTu15ObjectLightingStats stats;std::uint64_t reference{},declines{},traced{},oracle_calls{},oracle_address_mismatches{},
+                oracle_query_skips{},nanoseconds{};
+            SourceNativeStoreOracleTu15 store;
+            ~Report() {
+                const auto* p=std::getenv("HALO2_OBJECT_LIGHTING_STATS");if(!p||!*p)return;
+                const auto& s=stats;
+                std::cerr<<"Lighting3DAF0 stats: native="<<s.calls<<" reference="<<reference<<" declines="<<declines
+                    <<" traced="<<traced<<" default="<<s.default_banks<<" probe="<<s.probe_banks<<" roots="<<s.roots
+                    <<" children="<<s.children<<" uncached_children="<<s.uncached_children<<" acquisitions="<<s.acquisitions
+                    <<" allocations="<<s.allocations<<" evictions="<<s.evictions<<" updates="<<s.updates<<" unchanged="<<s.unchanged
+                    <<" frozen="<<s.frozen<<" due="<<s.due<<" near="<<s.near_skips<<" queries="<<s.queries<<" hits="<<s.query_hits
+                    <<" interpolations="<<s.interpolations<<" rotations="<<s.rotations<<" snaps="<<s.snaps
+                    <<" conversions="<<s.conversions<<" fallbacks="<<s.conversion_fallbacks<<" colors="<<s.color_publications
+                    <<" function_refusals="<<s.function_refusals<<" service_ns="<<nanoseconds<<'\n';
+                if(oracle_calls)std::cerr<<"Lighting3DAF0 oracle: calls="<<oracle_calls<<" native_bytes="<<store.native_bytes
+                    <<" original_bytes="<<store.original_bytes<<" mismatches="<<store.mismatches
+                    <<" address_mismatches="<<oracle_address_mismatches<<" topology="<<store.topology_changes
+                    <<" query_skips="<<oracle_query_skips<<'\n';
+                for(const auto& m:store.first)std::cerr<<"Lighting3DAF0 oracle mismatch "<<std::hex<<m.address<<" native="
+                    <<unsigned(m.native)<<" original="<<unsigned(m.original)<<std::dec<<'\n';
+            }
+        };
+        static Report report;
+        const auto translated=[&] {
+            const std::array args{metric};auto a=frame(args);a.gp[0]=object;run_actual(0x3daf0u,a);return a.gp[0];
+        };
+        NativeTu15ObjectLightingServices native_services;
+        native_services.query=[this](std::uint32_t queried,std::uint32_t first,std::uint32_t sample) {
+            const std::array args{first,sample};auto a=frame(args);a.gp[7]=queried;run_actual(0xd3d90u,a);return (a.gp[0]&255u)!=0;
+        };
+        native_services.function=[this](std::uint32_t reference_word,std::uint32_t parameter,std::uint32_t second) {
+            const std::array args{parameter,second};auto a=frame(args);a.gp[7]=reference_word;run_actual(0x13de70u,a);return a.xmm[0][0];
+        };
+        const auto native_with=[&](const NativeTu15ObjectLightingServices& with) {
+            NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+            try {return native_tu15_object_lighting_3daf0(bank,object,metric,arithmetic,with,&report.stats);}
+            catch(const NativeTu15ObjectLightingDecline&){++report.declines;return translated();}
+        };
+        const auto native=[&]{return native_with(native_services);};
+        struct Trace {
+            std::ofstream file;
+            Trace(){if(const auto* p=std::getenv("HALO2_OBJECT_LIGHTING_TRACE");p&&*p)file.open(p,std::ios::binary|std::ios::trunc);}
+        };
+        static Trace trace;
+        const auto traced=[&](const auto& run) {
+            if(!trace.file.is_open())return run();
+            std::map<std::uint32_t,std::byte> before;std::uint32_t result;
+            {
+                SourceNativeStoreOracleTu15::Stores stores(bank);result=run();
+                before.insert(stores.before.begin(),stores.before.end());
+            }
+            const std::array<std::uint32_t,4> head{object,metric,result,std::uint32_t(before.size())};
+            trace.file.write(reinterpret_cast<const char*>(head.data()),sizeof(head));
+            for(const auto& [at,value]:before) {
+                const std::array<std::byte,6> row{std::byte(at),std::byte(at>>8),std::byte(at>>16),std::byte(at>>24),
+                    value,bank.view(at,1)[0]};
+                trace.file.write(reinterpret_cast<const char*>(row.data()),row.size());
+            }
+            ++report.traced;return result;
+        };
+        // Service wall time per route (stats only; two clock reads per call).
+        static const bool timed=flag("HALO2_OBJECT_LIGHTING_STATS");
+        struct Timer {
+            std::uint64_t& total;const bool on;std::chrono::steady_clock::time_point start;
+            Timer(std::uint64_t& t,bool o):total(t),on(o),start(o?std::chrono::steady_clock::now():std::chrono::steady_clock::time_point{}){}
+            ~Timer(){if(on)total+=std::uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count());}
+        } timer(report.nanoseconds,timed);
+        if(reference){++report.reference;return traced(translated);}
+        if(oracle) {
+            // The D3D90 query commits and re-protects backing, which no undo
+            // journal can replay: a call reaching it is skipped (counted) and
+            // stays covered by the cross-run byte trace.
+            struct QueryReached {};
+            auto journaled=native_services;journaled.query=[](auto,auto,auto)->bool{throw QueryReached{};};
+            std::uint32_t native_result{},original_result{};
+            report.store.keep_topology_changes=true;
+            try {report.store.run(bank,[&]{native_result=native_with(journaled);},[&]{original_result=translated();});}
+            catch(const QueryReached&){++report.oracle_query_skips;return translated();}
+            ++report.oracle_calls;report.oracle_address_mismatches+=native_result!=original_result;
+            return original_result;
+        }
+        return traced(native);
     }
     std::vector<Transform> completed_body_world_nodes(std::uint32_t object) {
         require_executor();
@@ -5032,14 +6160,16 @@ struct PhysicsLiveWorldTu15::Impl {
             explicit PublicationScope(bool& active):active(active){active=true;}
             ~PublicationScope(){active=false;}
         } publication(body_pose_publication_active);
-        Execution execution(*this);
-        try {source_run_model_render_tu15(bank,0xbf640u,abi,fp,services());}
-        catch(const std::exception& error) {
+        std::uint32_t used=0;
+        try {
+            used=deferred_node_matrices(object,selected_at,nodes,[&]{
+                Execution execution(*this);source_run_model_render_tu15(bank,0xbf640u,abi,fp,services());return abi.gp[0];});
+        } catch(const std::exception& error) {
             std::ostringstream context;
             context<<"Native completed body pose for object 0x"<<std::hex<<object<<": "<<error.what();
             throw FormatError(context.str());
         }
-        copy(abi.gp[0]);return result;
+        copy(used);return result;
     }
     void build_render_model(SourceObjectDrawCollector& collector,const SourceObjectBuildRequest& request,
         unsigned view,unsigned players,bool modifier) {
@@ -6235,6 +7365,10 @@ void PhysicsLiveWorldTu15::require_publication_provider(const MccSoundVariationP
         throw FormatError("Native metadata publication lost its retained World owner");
     detail::require_mcc_sound_variation_owner(provider,cache,impl_->sound_timing_memory);
     detail::require_mcc_sound_variation_world_resources(provider,cache,impl_->resources);
+}
+void PhysicsLiveWorldTu15::set_model_lighting_correction(std::function<void(std::uint32_t,float,
+    std::uint32_t,SourceRuntimeMemory&)> correction){
+    Impl::PublicCall active(*impl_,false);impl_->model_lighting_correction=std::move(correction);
 }
 void PhysicsLiveWorldTu15::write_source_call_input(std::uint32_t address,std::span<const std::byte> bytes){
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::WriteSourceCallInput,[&]{return source_execution_arguments(address,bytes);});

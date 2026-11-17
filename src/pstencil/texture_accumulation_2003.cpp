@@ -7,6 +7,40 @@ namespace {
 bool normalized(const Texture& t) {
     return !t.depth && t.layers==1 && (t.format==11 || (t.format>=14 && t.format<=16));
 }
+Texture neutral_detail_texture() {
+    return {1,1,11,{std::byte{128},std::byte{128},std::byte{128},std::byte{255}},{}};
+}
+std::optional<PixelProgram> actor_alpha_coverage(const PixelProgram& source) {
+    const auto& w=source.words;
+    if(w[53]!=0x11108u || w[54]!=0x18421u || ((w[9]>>8)&255u)!=0x1au ||
+       w[0]!=0x1a201120u || w[26]!=0xcbu || w[33]!=0x4a00u ||
+       (w[7]!=0x11201812u && w[7]!=0x11201820u))return {};
+    // The final T2.a is selected by R0.a (the bump alpha written by stage
+    // zero). Its inputs are the original T0.a and stage-7 color alphas.
+    // Reject any intermediate write to either of those two registers.
+    for(unsigned i=0;i<8;++i) {
+        const auto rgb=w[45+i];
+        if(((rgb&0x80000u) && ((rgb>>4)&15u)==8u) ||
+           ((rgb&0x40000u) && (rgb&15u)==8u) ||
+           ((rgb&0x80000u) && ((rgb>>4)&15u)==12u) ||
+           ((rgb&0x40000u) && (rgb&15u)==12u))return {};
+        if(i==0 || i==7)continue;
+        for(unsigned shift:{0u,4u,8u}) {
+            const auto dest=(w[26+i]>>shift)&15u;
+            if(dest==8u || dest==12u)return {};
+        }
+    }
+    auto result=source;
+    auto& out=result.words;
+    std::fill(out.begin(),out.begin()+10,0u);
+    std::fill(out.begin()+26,out.begin()+43,0u);
+    std::fill(out.begin()+45,out.end(),0u);
+    out[0]=0x1a200000u;out[26]=0xc0u;
+    out[7]=w[7];out[33]=w[33];
+    out[8]=0x20u;out[9]=0x1a80u;
+    out[53]=0x11108u;out[54]=0x421u;
+    return result;
+}
 }
 PixelProgram texture_accumulation_2003(){return {texture_program_2003,{}};}
 bool supports_texture_accumulation_2003(const Material& m) {
@@ -40,13 +74,73 @@ Material adapt_texture_accumulation_2003(Material m,std::optional<unsigned> neut
             throw FormatError("Texture accumulation lost its completed neutral-detail multiply");
         // Preserve the existing primary-matched Elite effective sample while
         // the original constructor owns the final multiply and target alpha.
-        m.detail=Texture{1,1,11,std::vector<std::byte>{std::byte{128},std::byte{128},std::byte{128},std::byte{255}}, {}};
+        m.detail=neutral_detail_texture();
         m.animated_textures[1].clear();
     }
     m.forward_blend=texture_accumulation_blend_2003;
     // Primary-matched old materials use their exact default_texture samplers.
     // Later assets keep authored addressing/filtering for their own UV layout.
-    if(reference_light_material(m.name))for(unsigned s:{0u,1u,3u})m.texture_states[s]={};
+    if(reference_default_texture_samplers(m.name))for(unsigned s:{0u,1u,3u})m.texture_states[s]={};
+    return m;
+}
+
+std::optional<Material> adapt_actor_texture_accumulation_2003(Material m,bool color_mask,bool neutral_detail) {
+    const bool alpha_test=m.forward_raster.alpha_test!=0;
+    if(m.vertex_program.empty() || (alpha_test && (color_mask || !normalized(m.bump))) || !normalized(m.diffuse) ||
+       ((color_mask || !neutral_detail) && !normalized(m.detail)))return {};
+    for(unsigned stage=0;stage<(alpha_test?3u:2u);++stage) {
+        if(stage==1 && neutral_detail && !color_mask)continue;
+        const auto& state=m.texture_states[stage];
+        if(state.color_sign || state.alpha_kill || state.color_key_op)return {};
+    }
+    auto& pass=m.passes.at(m.forward_pass_index);
+    if(color_mask) {
+        // The retail layer-14 producer has already isolated the color mask
+        // from lighting. Keep its packed constants and per-owner remaps.
+        std::array<std::uint32_t,60> controls{};
+        controls[8]=0x08090000u;controls[9]=0x1880u;
+        controls[34]=0x29200901u;controls[45]=0x900u;
+        controls[53]=0x11101u;controls[54]=0x21u;
+        auto authored=m.forward_program.words;
+        std::fill(authored.begin()+10,authored.begin()+26,0);
+        authored[43]=authored[44]=0;
+        if(authored!=controls)return {};
+    } else {
+        // This existing native texture kernel supplies a unit color factor.
+        // The selected layer-3 vertex program retains both authored UVs.
+        if(alpha_test) {
+            const auto coverage=actor_alpha_coverage(m.forward_program);
+            if(!coverage)return {};
+            m.forward_program=*coverage;
+        } else {
+            m.forward_program={};
+            auto& words=m.forward_program.words;
+            words[0]=0x18190000u;words[8]=0x0c010000u;words[9]=0x1c80u;words[26]=0xc0u;
+            words[34]=0x08090000u;words[43]=0xffffffffu;words[45]=0x100c0u;
+            words[53]=0x11101u;words[54]=0x21u;
+            pass.pixel_remaps.clear();pass.pixel_externs.clear();pass.fragments.clear();
+        }
+        pass.program=m.forward_program;
+        if(neutral_detail) {
+            m.detail=neutral_detail_texture();
+            m.animated_textures[1].clear();
+            m.texture_states[1]={};
+        }
+    }
+    std::erase_if(pass.textures,[&](const auto& binding) {
+        return binding.stage>=(alpha_test?3u:2u) || (binding.stage==1 && neutral_detail && !color_mask);
+    });
+    m.auxiliary={};
+    if(!alpha_test)m.bump={};
+    for(unsigned stage=alpha_test?3u:2u;stage<4;++stage) {
+        m.texture_states[stage]={};
+        m.animated_textures[stage].clear();
+    }
+    m.accumulation_texture=false;
+    m.baked_lightmap_texture=false;
+    m.forward_raster.color_write=0x01010101u;
+    m.forward_raster.depth_write=1;
+    m.forward_blend=texture_accumulation_blend_2003;
     return m;
 }
 }

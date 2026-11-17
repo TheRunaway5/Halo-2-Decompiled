@@ -43,12 +43,31 @@ SourceShaderLodView source_shader_lod_view(std::int16_t top,std::int16_t bottom,
     if(present && auxiliary)view.multipliers[6]=mul(once,2);
     return view;
 }
+SourceShaderLodView source_shader_lod_view(std::int16_t top,std::int16_t bottom,
+    std::int32_t source_height,bool present,bool auxiliary) {
+    if(source_height<=0 || source_height>32767 || source_height==std::int32_t(bottom)-std::int32_t(top))
+        return source_shader_lod_view(top,bottom,present,auxiliary);
+    return source_shader_lod_view(0,std::int16_t(source_height),present,auxiliary);
+}
+std::int32_t source_shader_original_height(std::int32_t view,std::int32_t surface) {
+    if(view<=0 || surface<=0)return 0;
+    return std::max<std::int32_t>(1,std::int32_t((std::int64_t(view)*960+surface)/(std::int64_t(surface)*2)));
+}
 float source_shader_lod_player_multiplier(unsigned players) {
     return source_geometry_lod_policy(players).effect_scale;
 }
 SourceShaderCoverageCamera source_shader_coverage_camera(const SourceViewProjectionBank &bank) {
     return {{bank.inverse_view.basis[0].z,bank.inverse_view.basis[1].z,
         bank.inverse_view.basis[2].z,bank.inverse_view.position.z},bank.viewport_half_metrics.y};
+}
+SourceShaderCoverageCamera source_shader_coverage_camera(const SourceViewProjectionBank &bank,
+    std::int32_t physical_height,std::int32_t source_height) {
+    auto camera=source_shader_coverage_camera(bank);
+    // 2FD90 multiplies the vertical projection by the view height before
+    // halving it; substitute the original layout's height in that product.
+    if(source_height>0 && source_height!=physical_height)
+        camera.viewport_height_metric=mul(mul(bank.projection[5],float(source_height)),.5f);
+    return camera;
 }
 float source_shader_cluster_coverage(const std::array<float,6> &bounds,const SourceShaderCoverageCamera &camera) {
     const Vec3 center{mul(add(bounds[0],bounds[1]),.5f),mul(add(bounds[2],bounds[3]),.5f),mul(add(bounds[4],bounds[5]),.5f)};

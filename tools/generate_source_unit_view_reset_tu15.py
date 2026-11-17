@@ -26,6 +26,8 @@ a=argparse.Namespace(output=args.output,manifest=args.manifest,correspondence=co
 generate(a,paired)
 s=a.output.read_text().replace('#include "physics/runtime/physics_world_runtime_internal.hpp"','#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_physics_entry_observation.hpp"').replace('tools/generate_physics_live_support_tu15.py','tools/generate_source_unit_view_reset_tu15.py').replace('source_run_physics_live_support_tu15','source_run_unit_view_reset_tu15').replace('source_physics_live_support_tu15_owns_entry','source_unit_view_reset_tu15_owns_entry').replace('#include "halo2/physics_live_support_tu15.hpp"','#include "halo2/source_unit_view_reset_tu15.hpp"')
 needle='static void run_158690(WorldState &s) {';assert s.count(needle)==1;s=s.replace(needle,needle+'\nSourcePhysicsEntryObservation diagnostic(s.memory,0x158690u,[&]{return s.save();});')
+from native_object_body_replacements import replace_object_body
+s=replace_object_body(s)
 a.output.write_text(s)
 report=json.loads(a.manifest.read_text());report['generated_cpp_sha256']=hashlib.sha256(s.encode()).hexdigest();report['original_sha256']=NEW_PIN;report['later_original_sha256']=NEW_PIN;report['boundary']='Actual English TU1.5 reachable scalar/SSE/x87 bodies; no production opcode decoder. External owners preserve the full source ABI.';a.manifest.write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps({'complete_entries':len(entries),'instructions':len(sites),'entries':[hex(p)for p in sorted(entries)],'external_owners':report['external_owners']}))

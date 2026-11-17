@@ -3,6 +3,7 @@
 import argparse,hashlib,json,os,re,struct,subprocess
 from pathlib import Path
 from generated_routine_ownership import function_bodies
+from native_closest_segments_replacements import canonical_body
 from validate_native_simplex_face_refine_tu15 import ROOT,reference as refinement_reference
 from validate_native_simplex_direction_tu15 import sha
 PINS={
@@ -12,7 +13,7 @@ PINS={
 def reference(scratch):
     bodies=[]
     for path,pin in PINS.items():
-        body=next(body for sig,body in function_bodies((ROOT/path).read_text())if sig.symbol=='30eb30')
+        body=canonical_body(next(body for sig,body in function_bodies((ROOT/path).read_text())if sig.symbol=='30eb30'))
         if hashlib.sha256(body.encode()).hexdigest()!=pin:raise ValueError('Complete312620 source body drift: '+path)
         bodies.append(body)
     actual=re.sub(r'world_observation_pc\(0x[0-9a-f]+u,(0x[0-9a-f]+u),s\)',r'\1',bodies[0]).replace('run_30eb30(ObservedWorldState','run_unmodified(WorldState',1)
@@ -124,6 +125,7 @@ def hardware(args,scratch,binary,body):
     return dict(cases=count,source_sites=len(all_sites),executed_sites=len(executed),missing_sites=[f'{pc:x}'for pc in sorted(all_sites-executed)],full_pre_io_gp_flags_xmm_fp_live80_packets=packets,comparison_sha256=hashlib.sha256(b).hexdigest(),complete_normal_abi_banks_ordered_stores=True,original_text_unmodified=True,original=proof,unmodified_source_c1_counterexample=counterexample,physical_vector_page_fault_atomicity=False)
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);args=p.parse_args()
+    if args.xbe is not None and not args.xbe.is_file():return 77
     if not os.environ.get('HALO2_TEST_SCRATCH'):p.error('Run through tools/run_test.py')
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);report=dict(passed=False,production_bound=False,hardware_qualified=False,scratch_owner=str(scratch),retained_large_artifacts=[])
     paths=[*PINS,'include/halo2/native_tu15_closest_segments_kernel.hpp','src/physics/runtime/native_tu15_closest_segments_frame.hpp','tests/native_tu15_closest_segments_frame_tests.cpp','tools/validate_native_simplex_face_refine_tu15.py','tools/native_simplex_face_refine_replacements.py','tools/validate_native_tu15_prt_helpers.py',str(Path(__file__).relative_to(ROOT))];pending=list(paths);seen=set(paths)

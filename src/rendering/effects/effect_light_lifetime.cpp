@@ -86,7 +86,10 @@ void source_standalone_effect_light_update(SourceEffectLightDatumPool& p,SourceE
     const EffectLightDefinition& definition,std::uint32_t id,const SourceEffectLightLifetimeWorld& world) {
     auto& r=p.record(id);valid_standalone(r);
     const auto elapsed=std::bit_cast<std::int32_t>(world.tick-r[0x14/4]);
-    const auto state=source_effect_light_state(definition,scalar(r,0xcc),elapsed,world.tick_rate,world.fade_curve);
+    auto state=source_effect_light_state(definition,scalar(r,0xcc),elapsed,world.tick_rate,world.fade_curve);
+    // C2CB0 calls C2B30 with the full light datum once the tick's state exists.
+    if(definition.animation)
+        source_effect_light_animate(*definition.animation,id,std::bit_cast<std::int32_t>(world.tick),world.tick_rate,state);
     scalar(r,0xd0,state.control);vector(r,0xd4,state.diffuse);vector(r,0xe0,state.specular);
     scalar(r,0xec,state.brightness);scalar(r,0xc8,0);scalar(r,0xc4,state.size);
     const bool active=(flags(r)&1) && state.size>0 &&

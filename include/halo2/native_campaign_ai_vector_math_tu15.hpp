@@ -36,6 +36,11 @@ native_campaign_ai_publish_perception_distance_tu15(SourcePhysicsContactMemory &
 std::uint32_t native_campaign_ai_normalize_vector_tu15(SourcePhysicsContactMemory &,
     std::uint32_t vector,NativeTu15PhysicsFrameFp &,
     const SourcePhysicsContactRecordObserver & = {});
+// Complete2B3E0 planar normalization. Returns original magnitude REAL
+// (zero for epsilon refusal); publishes X/Y with exact scalar FP ordering.
+std::uint32_t native_campaign_ai_normalize_vector2_tu15(SourcePhysicsContactMemory &,
+    std::uint32_t vector,NativeTu15PhysicsFrameFp &,
+    const SourcePhysicsContactRecordObserver & = {});
 // Native private intermediate for composed algorithms. The same arithmetic
 // owns normalization; only actual global constants are read through memory.
 // No retained temporary address or guest/private stack is created.
@@ -46,5 +51,10 @@ std::uint32_t native_campaign_ai_normalize_vector_value_tu15(const SourcePhysics
 std::uint32_t native_campaign_ai_normalize_vector_value_tu15(const SourcePhysicsContactMemory &,
     std::array<std::uint32_t,3> &value,NativeTu15PhysicsFrameFp &,
     const std::function<void(unsigned,std::uint32_t)> &publish);
+// Exact source constant-read boundary for composed owners that retain a
+// pending extended norm when epsilon access fails. Unlike the buffered value
+// interface, epsilon is read after the norm under its native FP environment.
+std::uint32_t native_campaign_ai_normalize_vector_value_ordered_tu15(const SourcePhysicsContactMemory &,
+    std::array<std::uint32_t,3> &value,NativeTu15PhysicsFrameFp &);
 
 }

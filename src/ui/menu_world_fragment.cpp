@@ -141,15 +141,25 @@ void validate_menu_world_fragment(const MenuWorldFragmentInput &input) {
       throw FormatError("raw menu fragment texture mode is outside the bounded bridge");
     if(mode==0 || mode==5)continue;
     const auto &binding=input.textures[stage];
-    if(!binding.image || binding.semantics!=MenuWorldTextureSemantics::ordinary_rgba ||
+    const bool shadow=binding.semantics==MenuWorldTextureSemantics::shadow_depth;
+    if(!binding.image || (binding.semantics!=MenuWorldTextureSemantics::ordinary_rgba && !shadow) ||
         binding.coordinates==MenuWorldTextureCoordinates::unspecified)
       throw FormatError("raw menu fragment is missing proved texture binding/coordinate facts");
+    if(shadow) {
+      // The comparison replaces the filtered fetch: texel coordinates on a
+      // projected two-dimensional stage, with the authored sampler unused.
+      if(binding.coordinates!=MenuWorldTextureCoordinates::pixel || (mode!=1 && mode!=2) ||
+          binding.image->layers!=1 || binding.image->depth)
+        throw FormatError("raw menu fragment shadow comparison requires a projected texel fetch");
+      continue;
+    }
     sampler((*input.texture_states)[stage],*binding.image,*input.sampler_limits);
     if((mode==3 && (binding.image->layers!=6 || binding.image->depth)) ||
         ((mode==1 || mode==2) && binding.image->layers!=1))
       throw FormatError("raw menu fragment texture dimensionality disagrees with its mode");
     if(binding.coordinates==MenuWorldTextureCoordinates::pixel && (stage!=0 || mode!=1 || binding.image->depth))
-      throw FormatError("raw menu fragment admits pixel coordinates only for projected stage0");
+      throw FormatError("raw menu fragment admits pixel coordinates only for projected stage0: stage "+
+          std::to_string(stage)+" mode "+std::to_string(mode));
     if(binding.coordinates!=MenuWorldTextureCoordinates::normalized &&
         binding.coordinates!=MenuWorldTextureCoordinates::pixel)
       throw FormatError("raw menu fragment coordinate policy is unsupported");

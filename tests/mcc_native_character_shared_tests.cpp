@@ -20,6 +20,7 @@ Tag tag(const Json& value){return {value.at("group"),value.at("name"),value.at("
 void word(std::vector<std::byte>& out,unsigned at,std::uint32_t value){Bytes(out).require(at,4);for(unsigned i=0;i<4;++i)out[at+i]=std::byte(value>>(8*i));}
 struct Fixture {
     Tag shader,source_stem,native_stem;std::string payload_name;std::vector<std::byte> payload;
+    mutable std::uint32_t prediction_watch{};mutable unsigned prediction_reads{};
     std::map<std::uint32_t,Tag> names;std::map<std::uint32_t,unsigned> frames;
     std::map<std::uint32_t,std::string> strings;
     std::vector<std::pair<std::uint32_t,std::vector<std::byte>>> regions;
@@ -31,6 +32,7 @@ struct Fixture {
         for(const auto& region:input.at("regions"))regions.emplace_back(region.at(0),unhex(region.at(1)));
     }
     std::span<const std::byte> read(std::uint32_t address,std::size_t size) const {
+        if(size&&prediction_watch&&address==prediction_watch)++prediction_reads;
         if(!size)return {};for(const auto& [first,raw]:regions)
             if(address>=first&&std::uint64_t(address)-first<=raw.size()&&size<=raw.size()-(address-first))return std::span(raw).subspan(address-first,size);
         throw FormatError("Character fixture allocation escaped its actual owner");
@@ -48,10 +50,10 @@ struct Fixture {
 }
 int main(int argc,char**argv)try {
     need(argc==2,"Expected literal shared character fixture");std::ifstream input(argv[1]);const auto fixture=Json::parse(input);
-    need(fixture.at("schema")=="H2_MCC_CHARACTER_SHARED_FIXTURE_V1"&&fixture.at("cases").size()==12,"Character fixture census changed");
-    unsigned rejects=0,banks_checked=0,curves_checked=0,words_checked=0;
+    need(fixture.at("schema")=="H2_MCC_CHARACTER_SHARED_FIXTURE_V1"&&fixture.at("cases").size()==95,"Character fixture census changed");
+    unsigned rejects=0,banks_checked=0,curves_checked=0,words_checked=0;unsigned null_roles=0,named_null_controls=0,range_controls=0,nonzero_ranges=0;
     for(const auto& row:fixture.at("cases")) {
-        Fixture value(row);const auto result=value.run();need(bool(result),"Actual shared character source was not admitted");
+        Fixture value(row);const auto result=value.run();need(bool(result),"Actual shared character source was not admitted: "+value.shader.name);
         const Bytes out(result->bytes);const auto pp=out.u32(36);std::set<unsigned> pointer_fields;
         for(const auto& [field,target]:result->pointers)need(pointer_fields.insert(field).second&&target<result->bytes.size()&&out.u32(field)==target,"Character pointer ownership changed");
         need(out.u32(32)==1,"Character native platform count changed");
@@ -76,11 +78,43 @@ int main(int argc,char**argv)try {
         std::set<std::uint32_t> addresses;
         for(const auto& [first,raw]:value.regions)for(unsigned i=0;i<raw.size();++i)addresses.insert(first+i);
         std::set<std::uint32_t> source_pointers{value.source_stem.address+92,value.shader.address+16,value.shader.address+36,value.shader.address+48};
+        const Bytes prediction_root(value.read(value.shader.address,84));
+        if(prediction_root.u32(44)==96)for(const auto count:{95u,97u,0xffffffffu}) {
+            auto bad=value;bad.prediction_watch=prediction_root.u32(48);bad.write_word(value.shader.address+44,count);
+            fail(bad,"Changed exact96 predicted-resource count admitted");
+            need(bad.prediction_reads==0,"Changed prediction count read its bank before refusal");
+        }
         const Bytes source_template(value.read(value.source_stem.address,96));
         for(unsigned platform=0;platform<3;++platform)for(unsigned field:{0u,8u,16u,24u,32u})
             source_pointers.insert(source_template.u32(92)+platform*40+field+4);
         const Bytes source_root(value.read(value.shader.address,84));
         const auto source_pp=source_root.u32(36);const Bytes source_definition(value.read(source_pp,124));
+        for(unsigned i=0;i<source_definition.u32(60);++i) {
+            const auto address=source_definition.u32(64)+i*20+4;
+            const auto id=Bytes(value.read(address,4)).u32(0);
+            if(id) {
+                ++nonzero_ranges;
+                {auto bad=value;bad.strings[id]="wrong-range";fail(bad,"Wrong range namespace admitted");++range_controls;}
+                {auto bad=value;bad.strings.erase(id);fail(bad,"Unknown range namespace admitted");++range_controls;}
+                {auto bad=value;bad.write_word(address,0);fail(bad,"Zero substituted for named range");++range_controls;}
+            } else {auto bad=value;bad.write_word(address,0x1f000001u);bad.strings[0x1f000001u]="turned_on";fail(bad,"Named range substituted for zero");++range_controls;}
+        }
+        const auto image_source=source_definition.u32(8);
+        for(unsigned image_index=0;image_index<source_definition.u32(4);++image_index) {
+            const auto address=image_source+image_index*12;
+            const auto handle=Bytes(value.read(address,12)).u32(0);
+            if(handle==0xffffffffu) {
+                ++null_roles;
+                need(out.u32(out.u32(pp+8)+image_index*12)==0xffffffffu&&
+                    out.u32(out.u32(pp+8)+image_index*12+4)==0&&out.u32(out.u32(pp+8)+image_index*12+8)==0,
+                    "Paired literal NONE bitmap output changed");
+                const auto real=std::find_if(value.names.begin(),value.names.end(),[&](const auto& named){
+                    const auto frame=value.frames.find(named.first);return named.second.group=="bitm"&&frame!=value.frames.end()&&frame->second;});
+                need(real!=value.names.end(),"NULL fixture needs a genuine valid bitmap control");
+                {auto bad=value;bad.write_word(address,real->first);fail(bad,"Owned bitmap substituted for literal NONE");++named_null_controls;}
+                for(unsigned field:{4u,8u}) {auto bad=value;bad.write_word(address+field,1);fail(bad,"Literal NONE frame/log changed");++named_null_controls;}
+            } else {auto bad=value;bad.write_word(address,0xffffffffu);fail(bad,"Literal NONE substituted for actual bitmap");++named_null_controls;}
+        }
         for(const auto& [field,stride]:fields){(void)stride;source_pointers.insert(source_pp+field+4);}
         for(unsigned i=0;i<source_definition.u32(60);++i)source_pointers.insert(source_definition.u32(64)+i*20+16);
         for(const auto field:source_pointers){for(unsigned i=0;i<4;++i)addresses.erase(field+i);auto bad=value;bad.write_word(field,0xffffffffu);fail(bad,"Unowned character source pointer admitted");}
@@ -93,6 +127,8 @@ int main(int argc,char**argv)try {
         {auto bad=value;bad.native_stem.size+=1;bad.names[bad.native_stem.datum]=bad.native_stem;fail(bad,"Wrong native allocation extent admitted");}
         {auto same=value;same.shader.name="unrelated-authored-instance-name";same.names[same.shader.datum]=same.shader;need(bool(same.run()),"Character setup was replaced by material-name aliasing");}
     }
-    const Json report={{"passed",true},{"profiles",fixture.at("cases").size()},{"complete_banks",banks_checked},{"authored_curves",curves_checked},{"exact_words",words_checked},{"strict_rejections",rejects}};
+    need(null_roles==15&&named_null_controls>3,"Actual paired NULL semantic controls missing");
+    need(nonzero_ranges>=2&&range_controls>0,"Actual semantic range controls missing");
+    const Json report={{"nonzero_ranges",nonzero_ranges},{"range_controls",range_controls},{"null_roles",null_roles},{"named_null_controls",named_null_controls},{"passed",true},{"profiles",fixture.at("cases").size()},{"complete_banks",banks_checked},{"authored_curves",curves_checked},{"exact_words",words_checked},{"strict_rejections",rejects}};
     std::cout<<report.dump()<<'\n';return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

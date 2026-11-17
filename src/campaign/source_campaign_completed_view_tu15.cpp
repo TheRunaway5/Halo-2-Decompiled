@@ -46,7 +46,7 @@ std::vector<std::uint32_t> source_campaign_resident_definitions_tu15(
 
 SourceCampaignCompletedViewTu15 source_campaign_completed_view_tu15(PhysicsLiveWorldTu15 &world,
     const SourceTextureCameraScenePrefixTu15 &prefix,const BspAtmosphere &atmosphere_,
-    bool begin_frame,std::optional<float> horizontal_angle) {
+    bool begin_frame,std::optional<float> horizontal_angle,std::int32_t source_layout_surface_height) {
     auto &memory=world.memory();prefix.require_current(memory);
     SourceCampaignCompletedViewTu15 value;auto *out=&value;
     const Bytes packet(prefix.packet),raw(prefix.raw_camera);
@@ -72,8 +72,11 @@ SourceCampaignCompletedViewTu15 source_campaign_completed_view_tu15(PhysicsLiveW
         short_at(raw,0x34u),short_at(raw,0x36u)};
     const auto auxiliary=word(memory,0x51df50u);const bool auxiliary_active=auxiliary && word(memory,auxiliary+5u,1);
     const auto policy=source_geometry_lod_policy(1);out->policy=policy;
-    out->shaders={source_shader_coverage_camera(out->collection_rendering),
-        source_shader_lod_view(rectangle[0],rectangle[2],bool(auxiliary),auxiliary_active),
+    const std::int32_t physical_height=std::int32_t(rectangle[2])-std::int32_t(rectangle[0]);
+    const std::int32_t source_height=source_layout_surface_height>0?
+        source_shader_original_height(physical_height,source_layout_surface_height):0;
+    out->shaders={source_shader_coverage_camera(out->collection_rendering,physical_height,source_height),
+        source_shader_lod_view(rectangle[0],rectangle[2],source_height,bool(auxiliary),auxiliary_active),
         policy.coverage_multiplier,policy.effect_scale,word(memory,0x4c6839u,1)!=0};
     out->collection_rectangle=rectangle;
     MuzzleEffectView particles;
@@ -101,6 +104,7 @@ SourceCampaignCompletedViewTu15 source_campaign_completed_view_tu15(PhysicsLiveW
     SourceCampaignViewInputTu15 input{out->collection_rendering,clipping,eye,forward,rectangle,
         raw.f32(0x2cu),policy.coverage_multiplier,out->shaders.view_modifier};
     input.begin_frame=begin_frame;input.view=viewport;input.local_players=1;input.actual_local_user=prefix.actual_local_user;
+    input.source_shader_height=source_height;
     input.source_prefix=&prefix;
     if(prefix.actual_local_user>=0 && !horizontal_angle)
         throw FormatError("Completed local-user view needs its actual admitted horizontal lens owner");

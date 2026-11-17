@@ -71,10 +71,13 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
     const auto volume=input.images[stage] && input.images[stage]->depth;
     const auto coordinates=input.texture_coordinates[stage];
     const auto pixel=coordinates==MenuWorldTextureCoordinates::pixel;
-    if(effects[0]!=input.texture_states[stage].alpha_kill || effects[1]!=unsigned(pixel) || effects[2]!=unsigned(volume))
+    if(input.shadow_compare[stage] && (!pixel || volume || mode==3))
+      throw FormatError("raw world packet shadow comparison requires a projected two-dimensional texel fetch");
+    if(effects[0]!=input.texture_states[stage].alpha_kill || effects[1]!=unsigned(pixel) ||
+       effects[2]!=(unsigned(volume)|(input.shadow_compare[stage]?2u:0u)))
       throw FormatError("raw world packet texture effects differ from explicit sampling coordinates");
     validation.textures[stage]={input.images[stage],coordinates,
-        MenuWorldTextureSemantics::ordinary_rgba};
+        input.shadow_compare[stage]?MenuWorldTextureSemantics::shadow_depth:MenuWorldTextureSemantics::ordinary_rgba};
   }
   validate_menu_world_fragment(validation);
   MenuWorldNativeDrawInput result{input.source,&vertex_shader,vertex,fragment,input.raster,input.forward,
@@ -82,6 +85,7 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
   result.vertex_attributes=input.material.vertex_attributes;
   result.vertex_attribute_components=input.vertex_attribute_components;
   result.fog_alpha_bound=input.fog_alpha_bound;
+  result.linear_z_depth=input.linear_z_depth;
   result.fragment_program=program.words;
   return result;
 }

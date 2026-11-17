@@ -91,7 +91,8 @@ def sequence_digest(events):
 
 def configuration_errors(configuration, args):
     float32_bits = lambda value: struct.unpack('<I', struct.pack('<f', value))[0]
-    expected = dict(schema='H2_CAMPAIGN_SKIN_REFERENCE_V1', frames=args.frames, neutral_input=True,
+    expected = dict(schema='H2_CAMPAIGN_SKIN_REFERENCE_V1', graphics_mode=getattr(args, 'graphics_mode', 'Original'),
+                    frames=args.frames, neutral_input=True,
                     interval_bits=float32_bits(args.interval), render_fraction_bits=float32_bits(args.fraction),
                     primary_seed=0x12345678, auxiliary_seed=args.auxiliary_seed, width=args.width, height=args.height,
                     place_squad_fixture=args.squad or '', natural_startup=not bool(args.squad),

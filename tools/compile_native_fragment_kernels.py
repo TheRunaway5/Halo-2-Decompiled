@@ -22,6 +22,8 @@ from compile_native_world_kernels import atomic
 from audit_native_renderer_kernels import audit_spirv
 
 COLORS=frozenset((*range(10,26),43,44))
+# Retail layer-14 texture_mapping/one_change_color controls.
+PSTENCIL_ONE_CHANGE_COLOR='7e4472e34b45cf0dcb6b77d4a5363c3388486bbafb40d430ecfaed0fb5a23bab'
 FAMILIES={
     'world':'world.frag','world-fixed':'world.frag','world-emblem':'world.frag','world-source-depth':'world.frag',
     'hud':'hud.frag','menu':'menu_world.frag','menu-temporal':'menu_world.frag',
@@ -150,6 +152,8 @@ def source_for(shader_root,row):
         wrapper=wrapper.replace('originalPhase=true;','')
         wrapper=wrapper.replace('pixel=runCombiners(samples,colorFactor,','pixel=runOriginalCombiners(samples,colorFactor,')
         wrapper=wrapper.replace('void main() {',fixed+'\nvoid main() {')
+        if row['key']==PSTENCIL_ONE_CHANGE_COLOR:
+            wrapper=wrapper.replace('#version 450','#version 450\n#define H2_PSTENCIL_ONE_CHANGE_COLOR 1',1)
         overrides[path]=wrapper
     source=inline_source(path,shader_root,words,overrides=overrides,
         preserve_source_operations=family=='fog')

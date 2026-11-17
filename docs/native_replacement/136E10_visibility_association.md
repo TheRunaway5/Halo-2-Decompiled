@@ -21,8 +21,11 @@ Both whole canonical resolver/dispatcher pairs and the exact fresh MapWorld
 literal context are required. Only the exported exact prefix and two known
 ordered shift spellings are reversed before checking these original pins.
 All other 146 Shadow and 192 MapWorld bodies were preserved during installation.
-MapWorld's checked-in helper is called locally and has no public dispatch case;
-its source-qualified qualification does not create a missing public route.
+MapWorld's internal generated-call dispatcher lacks this case, while its public
+`source_run_map_world_support_tu15` switch and `owns_entry` both include136E10.
+`PhysicsLiveWorldTu15` forwards required targets to that real public owner.
+The public route is preserved. The original component receipt misstated this
+distinction; a separate source-hashed ownership correction records it.
 
 An unchanged-i386 comparison exposed a pre-existing retained AF mismatch before
 the fourth mask clear (0x206 versus 0x216). The bounded failure is preserved.
@@ -73,6 +76,8 @@ This change is later than frozen R18
 `4a2bd5b5f5301402619cd0b1e00d788b27ce43f16d4feb01dae261e94d681394`.
 The bounded receipt is
 `build/test-results/native-visibility-association-closure-20261109/report.json`.
+The route correction is recorded in
+`build/test-results/native-visibility-association-ownership-correction-20261109/report.json`.
 All owned code/bank/binary/build copies were removed; no large artifacts remain.
 Renderer parents 135970/136EA0 and other image variants remain open. No timing,
 whole-game parity or global native-only execution claim follows from this gate.

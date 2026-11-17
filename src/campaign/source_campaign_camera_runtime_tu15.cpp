@@ -1,4 +1,5 @@
 #include "halo2/source_campaign_camera_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <bit>
@@ -11,7 +12,8 @@ void put(SourceRuntimeMemory &m,std::uint32_t at,std::uint32_t value) {
 }
 }
 void source_campaign_camera_control_tu15(PhysicsLiveWorldTu15 &world,bool active) {
-    world.call_actual(0x158560u,std::array{std::uint32_t(active)});
+    auto bank=native_campaign_script_bank(world);
+    native_campaign_script_tu15::camera_control(bank,std::uint8_t(active)); // native 158560
 }
 void source_campaign_camera_point_tu15(PhysicsLiveWorldTu15 &world,std::int16_t point,std::int16_t ticks) {
     auto abi=world.prepare_source_call(std::array{std::uint32_t(std::uint16_t(ticks)),null_datum});
@@ -23,7 +25,9 @@ void source_campaign_camera_animation_tu15(PhysicsLiveWorldTu15 &world,
     abi.gp[0]=graph;abi.gp[3]=name;world.run_actual(0x16edd0u,abi);
 }
 void source_campaign_camera_field_of_view_tu15(PhysicsLiveWorldTu15 &world,float degrees,std::int16_t ticks) {
-    world.call_actual(0x16f5a0u,std::array{std::bit_cast<std::uint32_t>(degrees),std::uint32_t(std::uint16_t(ticks))});
+    auto bank=native_campaign_script_bank(world,true);
+    native_campaign_script_tu15::camera_set_field_of_view(bank,std::bit_cast<std::uint32_t>(degrees),
+        std::uint16_t(ticks)); // native 16F5A0
 }
 void source_campaign_camera_frame_tu15(PhysicsLiveWorldTu15 &world,float seconds) {
     if(!std::isfinite(seconds) || seconds<0)

@@ -1,3 +1,4 @@
+#include "halo2/native_campaign_script_builtins_tu15.hpp"
 #include "halo2/campaign_source_runtime.hpp"
 #include "halo2/native_weapon_hud.hpp"
 #include "halo2/native_weapon_inventory.hpp"
@@ -193,12 +194,18 @@ void CampaignSourceRuntime::respawn(Simulation &simulation,Spawn spawn) {
     //14E7B0 consumes the actual campaign starting-profile representation and
     //team before the new-player continuation. This also admits Arbiter's
     //representation1 to the original HUD appearance query.
-    constexpr std::uint32_t profile=0x6005b000u;
+    // Native 14E7B0 over a private copy of the record (only the record is
+    // stored; world globals are read through the overlay).
     auto &world=objects_->tu15_world();
-    world.memory().write(profile,std::as_bytes(std::span(configuration)));
-    auto input=world.prepare_source_call();input.gp[2]=profile;
-    world.run_actual(0x14e7b0u,input);
-    world.memory().read(profile,std::as_writable_bytes(std::span(configuration)));
+    {
+      const auto bytes=std::as_writable_bytes(std::span(configuration));
+      if(bytes.size()<0x90u)throw FormatError("Campaign starting profile is smaller than the 14E7B0 record");
+      NativeCampaignScriptScratch scratch(world.memory(),bytes.size());
+      scratch.write(NativeCampaignScriptScratch::base,bytes);
+      NativeCampaignScriptBank bank(scratch);
+      native_campaign_script_tu15::player_profile_normalize(bank,NativeCampaignScriptScratch::base);
+      std::ranges::copy(scratch.bytes(),bytes.begin());
+    }
     objects_->construct_player(player_,0,configuration);
   }
   auto &unit=simulation.player_;
@@ -349,6 +356,19 @@ void CampaignSourceRuntime::place_ai(Simulation &simulation,std::uint32_t refere
 std::uint32_t CampaignSourceRuntime::ai_object(std::uint32_t reference) {
   return objects_->tu15_world().ai_object(reference);
 }
+void CampaignSourceRuntime::run_command_script(std::uint32_t reference,std::int16_t script) {
+  auto &world=objects_->tu15_world();
+  auto abi=world.prepare_source_call();
+  abi.gp[1]=reference;abi.gp[7]=std::uint32_t(std::int32_t(script));
+  world.run_actual(0x2801d0u,abi);
+}
+bool CampaignSourceRuntime::command_script_running(std::uint32_t reference,std::int16_t script) {
+  auto &world=objects_->tu15_world();
+  auto abi=world.prepare_source_call(std::array{std::uint32_t(std::int32_t(script))});
+  abi.gp[1]=reference;
+  world.run_actual(0x280400u,abi);
+  return (abi.gp[0]&0xffu)!=0;
+}
 std::size_t CampaignSourceRuntime::place_squad(Simulation &simulation,std::size_t squad) {
   const auto before=std::ranges::count_if(simulation.actors_,[](const auto &u){return u.exists;});
   place_ai(simulation,std::uint32_t(squad));
@@ -368,6 +388,9 @@ void CampaignSourceRuntime::deliver_controls(Simulation &simulation,const Contro
   // through the original F68C0 bit11 gate.
   put(0,source_secondary_trigger_intent_tu15(unsigned(input.crouch)|(unsigned(input.jump)<<1)|(input.grenade?0x04000000u:0u)|
       (input.melee?0x20u:0u)|(input.fire?0x00010040u:0u)|
+      // Control bit2 is the flashlight press. OriginalC7580 consumes it only
+      // in campaign (game mode 1); multiplayer has no flashlight.
+      (input.flashlight?4u:0u)|
       (input.fire_secondary?0x220000u:0u)|(input.reload?0x10000000u:0u),input.fire_secondary));
   put(4,std::bit_cast<std::uint32_t>(input.yaw));put(8,std::bit_cast<std::uint32_t>(input.pitch));
   put(0xc,std::bit_cast<std::uint32_t>(input.forward));put(0x10,std::bit_cast<std::uint32_t>(-input.right));

@@ -43,6 +43,15 @@ void native_tu15_command_frame_40e80(SourcePhysicsContactMemory&,std::uint32_t s
 class PhysicsLiveWorldTu15;
 struct SourcePhysicsContactRuntimeAbi;
 NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15&,std::uint32_t selector=0);
+// Whole 40E80 at a native secondary-view caller (projected light, shadow
+// root) whose context is already published at 4CD3A0. EAX is the selector;
+// the call's FP words receive the completed arithmetic state. Native by
+// default. HALO2_REFERENCE_LIGHT_COMMANDS=1 / HALO2_REFERENCE_SHADOW_COMMANDS=1
+// restore the original at that site; HALO2_SECONDARY_COMMANDS_ORACLE=1 runs
+// the native kernel in an undo journal, then the original, and compares every
+// non-stack store and the FP words (counts: HALO2_NATIVE_COMMAND_SITE_STATS=1).
+enum class SourceCommandFrameSiteTu15 : unsigned {light,shadow};
+void source_command_frame_site_tu15(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&,SourceCommandFrameSiteTu15);
 void source_native_transparent_collection_tu15(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&);
 // Try the retained 3BC20 command selection frame. Refusal makes no writes.
 bool source_native_command_selection_3baa0(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&,const void* camera_receipts);

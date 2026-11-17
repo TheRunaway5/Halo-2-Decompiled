@@ -193,8 +193,14 @@ void main() {
     }
     if((material.textureEffects[0].y&32u)!=0u)
         pixel=pstencilSpecularMask(pixel,texture(diffuse,gl_FragCoord.xy/vec2(textureSize(diffuse,0))).a);
-    if((material.textureEffects[1].y&32u)!=0u)
+    if((material.textureEffects[1].y&32u)!=0u) {
+        // This pass contains only the Spartan visor's environment reflection.
+        // Bring up bright reflected features while preserving the dark glass
+        // between highlights, the sampled hue, and the authored visor mask.
+        float peak=max(max(pixel.r,pixel.g),pixel.b);
+        pixel.rgb*=1.0+3.0*smoothstep(0.05,0.25,peak);
         pixel=pstencilSpecularMask(pixel,texture(detail,gl_FragCoord.xy/vec2(textureSize(detail,0))).a);
+    }
     if(material.alphaTest.x!=0u) {
         if(!sourceAlphaTestPass(pixel.a,material.alphaTest.y,material.alphaTest.z&255u))discard;
     }

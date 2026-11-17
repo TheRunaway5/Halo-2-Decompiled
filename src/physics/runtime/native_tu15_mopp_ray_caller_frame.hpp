@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/physics_contact_runtime.hpp"
+#include "physics/runtime/native_tu15_raw_x87_scope.hpp"
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -24,11 +25,12 @@ protected:
     void at(std::uint32_t pc){
         if(s_.instruction_cursor&&s_.instruction_cursor->position)
             *s_.instruction_cursor->position=pc;
-        io([&]{before_(s_,pc);});
+        if(!native_raw_x87_detail::skip_hook<Before>())io([&]{before_(s_,pc);});
     }
     std::uint32_t word(std::uint32_t address,unsigned width=4){
         std::array<std::byte,4>bytes{};
-        io([&]{s_.memory.read(address,std::span(bytes).first(width));});
+        if(!native_raw_x87_detail::direct_read(s_.memory,address,std::span(bytes).first(width)))
+            io([&]{s_.memory.read(address,std::span(bytes).first(width));});
         std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8u*n);
         return value;

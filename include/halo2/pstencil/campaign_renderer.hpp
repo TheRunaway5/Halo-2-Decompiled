@@ -2,6 +2,8 @@
 #include "halo2/effect_light_draw.hpp"
 #include "halo2/pstencil/point_caster.hpp"
 #include "halo2/path_tracing/scene.hpp"
+#include "halo2/transform.hpp"
+#include <map>
 
 namespace halo2 {
 class Cache;
@@ -26,11 +28,20 @@ struct CampaignLightingInput {
     // Completed source12F80 bank from submitting camera2. Collection and
     // receiver admission retain camera above. Absent preserves old callers.
     const std::array<ShaderVector,12>* submitting_constants{};
+    // Exact WORLD poses used by the ordinary render of this frame.
+    const std::map<std::uint32_t,std::vector<Transform>>* presented_model_nodes{};
+    // Original graphics: each projected light also submits its layer-11 alpha
+    // pass; no stencil casters are consumed.
+    bool original{};
 };
 struct CampaignLightingFrame {
     std::vector<EffectLightRawDraw> draws;
     std::vector<PointCaster> casters;
     unsigned lights{},selected{};
+    // Selected non-sphere lights drawn through the projected owner, and their draws.
+    unsigned projected_lights{},projected_draws{};
+    // Native non-sphere records present, and those the native owner has placed.
+    unsigned projected_records{},placed_projected_records{};
     std::vector<path_tracing::Light> path_tracing_lights;
 };
 // Prepare immutable shader/texture residency before Renderer construction.

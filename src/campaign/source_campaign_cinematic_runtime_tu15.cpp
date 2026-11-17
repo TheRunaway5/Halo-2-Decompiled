@@ -1,10 +1,16 @@
 #include "halo2/source_campaign_cinematic_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <bit>
 #include <cmath>
 namespace halo2 {
 void source_campaign_cinematic_control_tu15(PhysicsLiveWorldTu15 &world,bool active) {
-    world.call_actual(active?0x13ead0u:0x13f560u);
+    if(!active) {
+        auto bank=native_campaign_script_bank(world);
+        native_campaign_script_tu15::cinematic_stop(bank); // native 13F560
+        return;
+    }
+    world.call_actual(0x13ead0u);
 }
 void source_campaign_lightmap_shadow_tu15(PhysicsLiveWorldTu15 &world,bool enabled) {
     // TU1.5 HS evaluators2B6720/2B6740 publish exactly this byte before
@@ -14,8 +20,8 @@ void source_campaign_lightmap_shadow_tu15(PhysicsLiveWorldTu15 &world,bool enabl
     world.write_source_call_input(0x515ef5u,value);
 }
 void source_campaign_cinematic_lod_tu15(PhysicsLiveWorldTu15 &world,std::uint32_t object,bool active) {
-    auto abi=world.prepare_source_call(std::array{std::uint32_t(active)});
-    abi.gp[0]=object;world.run_actual(0xbdf70u,abi);
+    auto bank=native_campaign_script_bank(world);
+    native_campaign_script_tu15::object_cinematic_lod(bank,object,std::uint8_t(active)); // native BDF70
 }
 bool source_campaign_cinematic_animation_tu15(PhysicsLiveWorldTu15 &world,
     std::uint32_t object,std::uint32_t graph,std::uint32_t name,

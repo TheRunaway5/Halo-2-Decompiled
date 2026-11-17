@@ -38,28 +38,52 @@ struct Result {
     SourcePhysicsWorldRuntimeAbi abi;std::uint32_t pc{};bool stopped{};Kind kind{};
     std::vector<SourcePhysicsContactRecordStore>stores;std::vector<std::pair<std::uint32_t,SourcePhysicsWorldRuntimeAbi>>packets;std::set<std::uint32_t>sites;std::uint64_t callbacks{};
 };
-Result run(Memory&m,const SourcePhysicsWorldRuntimeAbi&abi,bool native,unsigned feedback=0,unsigned stop_observer=0){
+Result run(Memory&m,const SourcePhysicsWorldRuntimeAbi&abi,bool native,unsigned feedback=0,unsigned stop_observer=0,bool retained=false){
     Result out;SourcePhysicsContactRecordObserver observe=[&](const auto&e){out.stores.push_back(e);
         if(feedback&&e.instruction==0x30ea13u){m.put(abi.gp[4]+0x1cu,0xdeadbeefu);m.put(work,0x12345678u);}
         if(out.stores.size()==stop_observer)throw std::runtime_error("Declared iteration observer stop");};
-    SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto pc){out.pc=pc;out.sites.insert(pc);++out.callbacks;};
+    WorldState* live{};
+    SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto pc){
+        out.pc=pc;out.sites.insert(pc);++out.callbacks;
+        if(retained)switch(pc){
+        case 0x30ea00u:case 0x30ea02u:case 0x30ea06u:case 0x30ea0au:case 0x30ea13u:
+        case 0x30ea1eu:case 0x30ea22u:case 0x30ea30u:case 0x30ea37u:
+            out.packets.emplace_back(pc,live->save());break;
+        default:break;
+        }
+    };
     constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};auto&cursor=services.instruction_cursor;cursor.position=&out.pc;cursor.service_sites=sites;cursor.callback_type=&services.instruction.target_type();cursor.executor=std::this_thread::get_id();cursor.literal_service_sites=true;cursor.observation_only_stores=true;
-    physics_step_detail::FpScope environment(*abi.floating_point);WorldState s{m,observe,services,SourcePhysicsContactImage::TitleUpdate15};s.load(abi);
-    try{if(native)out.kind=native_simplex_iteration_detail::run_private_stage(s,[&](auto&state,std::uint32_t pc){out.packets.emplace_back(pc,state.save());});else out.kind=reference::run_stage(s);}catch(const std::runtime_error&){out.stopped=true;}
+    physics_step_detail::FpScope environment(*abi.floating_point);WorldState s{m,observe,services,SourcePhysicsContactImage::TitleUpdate15};s.load(abi);live=&s;
+    try{
+        const auto before=[&](auto&state,std::uint32_t pc){out.packets.emplace_back(pc,state.save());};
+        if(native)out.kind=retained?native_simplex_iteration_detail::run_private_retained_stage(s,before):
+            native_simplex_iteration_detail::run_private_stage(s,before);
+        else out.kind=retained?reference::run_unmodified(s):reference::run_stage(s);
+    }catch(const std::runtime_error&){out.stopped=true;}
     out.abi=s.save();return out;
 }
 bool same_abi(const auto&a,const auto&b){
     if(a.gp!=b.gp||a.eflags!=b.eflags||a.xmm!=b.xmm||a.x87_depth!=b.x87_depth||a.x87_status!=b.x87_status||a.floating_point->mxcsr!=b.floating_point->mxcsr||a.floating_point->x87_control_word!=b.floating_point->x87_control_word)return false;
     for(unsigned n=0;n<a.x87_depth;++n)if(std::memcmp(&a.x87[n],&b.x87[n],10))return false;return true;
 }
-void compare(const Memory&a,const Memory&b,const Result&x,const Result&y,const std::string&name){
+void compare(const Memory&a,const Memory&b,const Result&x,const Result&y,const std::string&name,bool compare_packets=false){
     if(!same_abi(x.abi,y.abi)||x.pc!=y.pc||x.stopped!=y.stopped||x.kind!=y.kind||a.bank!=b.bank||a.tables!=b.tables||a.reads!=b.reads||x.stores!=y.stores){
         std::cerr<<name<<" pc "<<std::hex<<x.pc<<"/"<<y.pc<<" flags "<<x.abi.eflags<<"/"<<y.abi.eflags<<" fp "<<x.abi.x87_status<<"/"<<y.abi.x87_status<<std::dec<<" reads "<<a.reads.size()<<"/"<<b.reads.size()<<" stores "<<x.stores.size()<<"/"<<y.stores.size()<<"\n";for(unsigned n=0;n<8u;++n)if(x.abi.gp[n]!=y.abi.gp[n])std::cerr<<"gp "<<n<<" differs\n";
         throw std::runtime_error("Native simplex iteration mismatch "+name);
     }
+    if(compare_packets){
+        if(x.packets.size()!=y.packets.size())throw std::runtime_error("Retained iteration packet count differs "+name);
+        for(unsigned n=0;n<x.packets.size();++n){
+            const auto& [pc,reference]=x.packets[n];const auto& [got_pc,actual]=y.packets[n];
+            if(pc!=got_pc||!same_abi(reference,actual)){
+                std::cerr<<"Retained iteration packet "<<std::hex<<pc<<"/"<<got_pc<<" FP "<<reference.x87_status<<"/"<<actual.x87_status<<"\n";
+                throw std::runtime_error("Retained iteration packet differs "+name);
+            }
+        }
+    }
     if(y.callbacks)throw std::runtime_error("Native iteration used literal callbacks");
 }
-void supplemental(){
+void supplemental(bool retained=false){
     std::mt19937 rng(0x30ea00u);unsigned cases{},prefixes{};std::set<std::uint32_t>sites;std::set<Kind>kinds;
     const std::array<std::uint32_t,16>eps{0,0x80000000u,1,0x80000001u,0x007fffffu,0x00800000u,0x7f7fffffu,0xff7fffffu,0x7f800000u,0xff800000u,0x7fc12345u,0xffc23456u,0x7f812345u,0xff823456u,0x2edbe6ffu,0xbf800000u};
     for(unsigned k=0;k<128u;++k){
@@ -68,9 +92,10 @@ void supplemental(){
         if(k%16u==7u)abi.gp[7]=work;seed.put(abi.gp[4]+0x14u,eps[k%16u]);seed.put(abi.gp[4]+0x1cu,k>=64u?0xffffffffu:k);
         abi.eflags=0x202u|(rng()&0xcd5u);abi.floating_point=SourcePhysicsFactoryFloatingPoint{std::uint16_t(std::array{0x7fu,0x27fu,0x37fu}[k%3u]|((k%4u)<<10u)),0x1f80u|((k%4u)<<13u)|((k&4u)?0x8040u:0u)};
         abi.x87_depth=std::array{0u,1u,4u,7u}[k%4u];abi.x87_status=0x4100u|((k%8u)<<11u);for(unsigned n=0;n<abi.x87_depth;++n)abi.x87[n]=n%2u?-(1.234567890123456789L+n):(9.876543210987654321L+n);for(auto&v:abi.xmm)for(auto&word:v)word=rng();
-        Memory a=seed,b=seed;const auto x=run(a,abi,false,k%2u),y=run(b,abi,true,k%2u);compare(a,b,x,y,"normal-"+std::to_string(k));if(x.stopped)throw std::runtime_error("Normal iteration stopped");sites.insert(x.sites.begin(),x.sites.end());kinds.insert(x.kind);++cases;
-        if(k<12u){Memory baseline=seed;const auto unchanged=run(baseline,abi,false);
-            for(unsigned category=0;category<3u;++category){const auto limit=category==0?baseline.read_count:category==1?baseline.write_count:unsigned(unchanged.stores.size());for(unsigned n=1;n<=limit;++n){Memory c=seed,d=seed;if(category==0)c.fail_read=d.fail_read=n;if(category==1)c.fail_write=d.fail_write=n;const auto r=run(c,abi,false,0,category==2?n:0),s=run(d,abi,true,0,category==2?n:0);compare(c,d,r,s,"prefix-"+std::to_string(k)+"-"+std::to_string(category)+"-"+std::to_string(n));if(!r.stopped)throw std::runtime_error("Iteration prefix did not stop");++prefixes;}}
+        Memory a=seed,b=seed;const auto x=run(a,abi,false,k%2u,0u,retained),y=run(b,abi,true,k%2u,0u,retained);
+        compare(a,b,x,y,"normal-"+std::to_string(k),retained);if(x.stopped)throw std::runtime_error("Normal iteration stopped");sites.insert(x.sites.begin(),x.sites.end());kinds.insert(x.kind);++cases;
+        if(k<12u){Memory baseline=seed;const auto unchanged=run(baseline,abi,false,0u,0u,retained);
+            for(unsigned category=0;category<3u;++category){const auto limit=category==0?baseline.read_count:category==1?baseline.write_count:unsigned(unchanged.stores.size());for(unsigned n=1;n<=limit;++n){Memory c=seed,d=seed;if(category==0)c.fail_read=d.fail_read=n;if(category==1)c.fail_write=d.fail_write=n;const auto r=run(c,abi,false,0,category==2?n:0,retained),s=run(d,abi,true,0,category==2?n:0,retained);compare(c,d,r,s,"prefix-"+std::to_string(k)+"-"+std::to_string(category)+"-"+std::to_string(n),retained);if(!r.stopped)throw std::runtime_error("Iteration prefix did not stop");++prefixes;}}
         }
     }
     if(sites.size()!=17u||kinds.size()!=11u)throw std::runtime_error("Iteration site/kind coverage incomplete");std::cerr<<"{\"canonical_cases\":"<<cases<<",\"retired_fp_prefixes\":"<<prefixes<<",\"source_sites\":"<<sites.size()<<",\"reduction_kinds\":"<<kinds.size()<<",\"native_literal_callbacks\":0}\n";
@@ -80,4 +105,8 @@ void emit(std::uint32_t value){std::cout.write(reinterpret_cast<const char*>(&va
 void emit_abi(const SourcePhysicsWorldRuntimeAbi&abi){for(auto value:abi.gp)emit(value);emit(abi.eflags);emit(abi.floating_point->mxcsr);emit(abi.x87_status);emit(abi.floating_point->x87_control_word);emit(abi.x87_depth);for(unsigned n=0;n<abi.x87_depth;++n)std::cout.write(reinterpret_cast<const char*>(&abi.x87[n]),10u);for(const auto&v:abi.xmm)for(auto value:v)emit(value);}
 void fixture(){const auto count=input_word();for(unsigned k=0;k<count;++k){SourcePhysicsWorldRuntimeAbi abi{};for(auto&v:abi.gp)v=input_word();abi.eflags=input_word();const auto mxcsr=input_word(),cw=input_word();abi.x87_status=input_word();abi.x87_depth=input_word();abi.floating_point=SourcePhysicsFactoryFloatingPoint{std::uint16_t(cw),mxcsr};for(unsigned n=0;n<abi.x87_depth;++n){std::array<std::byte,10>b{};std::cin.read(reinterpret_cast<char*>(b.data()),10u);std::memcpy(&abi.x87[n],b.data(),10u);}for(auto&v:abi.xmm)for(auto&word:v)word=input_word();Memory m;std::cin.read(reinterpret_cast<char*>(m.bank.data()),m.bank.size());std::cin.read(reinterpret_cast<char*>(m.tables.data()),m.tables.size());const auto got=run(m,abi,true);if(got.stopped)throw std::runtime_error("Native hardware iteration stopped");emit_abi(got.abi);std::cout.write(reinterpret_cast<const char*>(m.bank.data()),m.bank.size());emit(got.stores.size());for(const auto&e:got.stores){emit(e.instruction);emit(e.address);emit(e.written.size());std::cout.write(reinterpret_cast<const char*>(e.before.data()),e.before.size());std::cout.write(reinterpret_cast<const char*>(e.written.data()),e.written.size());}emit(got.pc);emit(std::uint32_t(got.kind));emit(got.packets.size());for(const auto&[pc,state]:got.packets){emit(pc);emit_abi(state);}}}
 }
-int main(int argc,char**argv){try{if(argc==2&&std::string(argv[1])=="--fixture")fixture();else supplemental();return 0;}catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}
+int main(int argc,char**argv){try{
+    const auto mode=argc==2?std::string(argv[1]):std::string{};
+    if(mode=="--fixture")fixture();else supplemental(mode=="--retained-mode");
+    return 0;
+}catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

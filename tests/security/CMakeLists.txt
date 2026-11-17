@@ -1,8 +1,0 @@
-cmake_minimum_required(VERSION 3.24)
-project(Halo2TransportSecurity LANGUAGES CXX)
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-find_package(OpenSSL REQUIRED)
-find_package(Threads REQUIRED)
-include(CTest)
-include(../../cmake/TestStorage.cmake)
-include(../../cmake/SecurityTransport.cmake)

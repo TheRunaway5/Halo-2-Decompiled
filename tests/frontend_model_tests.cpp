@@ -21,6 +21,23 @@ std::string sha(std::span<const std::byte> bytes) {
   for(auto byte:digest){result+=digits[byte>>4];result+=digits[byte&15];}
   return result;
 }
+std::filesystem::path vista_fixture_cache(const nlohmann::json &fixture) {
+  const auto root=std::filesystem::path(__FILE__).parent_path().parent_path();
+  auto path=root/fixture.at("cache").at("path").get<std::string>();
+  // The original import may have been retired. The retained extracted copy
+  // is usable only when its complete bytes match the fixture's pinned cache.
+  if(!std::filesystem::exists(path))
+    path=root/"analysis/frontend/vista-asset-inventory-20261009/extracted/maps/mainmenu.map";
+  std::ifstream file(path,std::ios::binary|std::ios::ate);
+  require(bool(file),"supplied Vista ring cache is missing");
+  const auto size=file.tellg();
+  require(size>0 && size<=256*1024*1024,"Vista ring cache extent is invalid");
+  std::vector<std::byte> bytes(static_cast<std::size_t>(size));file.seekg(0);
+  require(bool(file.read(reinterpret_cast<char*>(bytes.data()),size)),"Vista ring cache is truncated");
+  require(sha(bytes)==fixture.at("cache").at("sha256").get<std::string>(),
+      "Vista ring cache differs from the pinned original");
+  return path;
+}
 void camera_fixtures(const std::filesystem::path &path) {
   std::ifstream input(path,std::ios::binary);require(bool(input),"original model camera fixture missing");
   unsigned cases=0;
@@ -159,9 +176,7 @@ void vista_ring_textures() {
   std::ifstream input(source/"fixtures/vista_progress_textures_original.json");
   require(bool(input),"original Vista ring texture fixture missing");
   const auto fixture=nlohmann::json::parse(input);
-  const auto path=source.parent_path()/fixture.at("cache").at("path").get<std::string>();
-  require(std::filesystem::exists(path),"supplied Vista ring cache is missing");
-  Cache cache(path);require(cache.is_vista(),"ring texture test used a non-Vista cache");
+  Cache cache(vista_fixture_cache(fixture));require(cache.is_vista(),"ring texture test used a non-Vista cache");
   unsigned textures=0,mips=0;
   for(const auto &row:fixture.at("textures")) {
     const auto datum=std::uint32_t(std::stoul(row.at("datum").get<std::string>(),nullptr,16));
@@ -195,7 +210,7 @@ void vista_ring_geometry() {
   std::ifstream input(source/"fixtures/vista_progress_geometry_original.json");
   require(bool(input),"original Vista ring geometry fixture missing");
   const auto fixture=nlohmann::json::parse(input);
-  Cache cache(source.parent_path()/fixture.at("cache").at("path").get<std::string>());
+  Cache cache(vista_fixture_cache(fixture));
   require(cache.is_vista(),"ring geometry test used a non-Vista cache");
   const auto datum=std::uint32_t(std::stoul(fixture.at("mode").get<std::string>(),nullptr,16));
   const auto model=cache.load_model(datum,false);

@@ -66,6 +66,8 @@ int main(int argc,char**argv)try {
                 "Vehicle restoration lacks its exact authenticated preceding source bank";}
             need(rejected&&changed==original,message);++rejects;++preceding_checks;};
         reject_bank(row.at("obsolete_preceding_library"),"Obsolete literal preceding bank admitted or modified");
+        if(row.contains("obsolete_preceding_v2_library"))
+            reject_bank(row.at("obsolete_preceding_v2_library"),"Obsolete V2 preceding bank admitted or modified");
         for(const auto& insertion:row.at("preceding_insertions")) {
             const auto index=insertion.at("index").get<unsigned>();
             need(value.before.at("shader_tags").at(index)==insertion.at("record"),"Fixture inserted metadata changed");

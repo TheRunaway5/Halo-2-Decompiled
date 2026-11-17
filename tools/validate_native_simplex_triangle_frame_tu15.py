@@ -62,7 +62,15 @@ static std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage){if(p!=0
             except ValueError as error:rejections[control]=str(error)
             else:raise ValueError('Triangle owner drift accepted: '+control)
         if n<3:
-            if triangle_binding.replace_simplex_triangle(value)!=value or triangle_binding.replace_simplex_triangle(triangle_binding.remove_simplex_triangle(value))!=value:raise ValueError('Triangle source overlay not reversible/idempotent')
+            # A sibling installed later may precede Triangle's include. The
+            # installer intentionally prepends a missing include; restore only
+            # that exact include's original position when checking roundtrip.
+            unbound=triangle_binding.remove_simplex_triangle(value)
+            rebound=triangle_binding.replace_simplex_triangle(unbound)
+            include_at=value.index(triangle_binding.INCLUDE)
+            without_include=rebound.replace(triangle_binding.INCLUDE,'',1)
+            restored=without_include[:include_at]+triangle_binding.INCLUDE+without_include[include_at:]
+            if triangle_binding.replace_simplex_triangle(value)!=value or triangle_binding.remove_simplex_triangle(rebound)!=unbound or restored!=value:raise ValueError('Triangle source overlay not reversible/idempotent')
         expected_prepared=variants[n+3]if n<3 else value
         if operand_spec.specialize(value)[0]!=expected_prepared:raise ValueError('Triangle repeated preparation changed source')
         source_bodies.append(body);source_receipts.append(dict(variant=n,context_state=entry[1],complete_input_sha256=triangle_binding.digest(value),body_before_test_instrumentation_sha256=triangle_binding.digest(entry[0]),strict_context_controls=rejections))

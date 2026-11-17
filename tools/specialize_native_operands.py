@@ -137,8 +137,10 @@ TEMPORARY_ABI_ENTRIES = {
     '2e8090': ('d38beefa42c7df62021c16fea3fab90b62ad0ee2d0947897c0abad3315d7ae3e', 'destroy', '2eb850'),
 }
 LEAVES = {
-    '145560': ('3ce39c1046f43fec27fe7f65c35755ca56024dcdae65bdebd4ec4e2377171b62', 'kernel_145560', 0x14566e),
-    '144cf0': ('c6d3ad70a57319f692018045a3de73c341b85bf996fbd1330fcd7e9afc1fc032', 'kernel_144cf0', 0x144e4e),
+    # Second digests: the identical bodies with identity-mapped selected()
+    # operands (AI frame, scene device, effect particle units).
+    '145560': (('3ce39c1046f43fec27fe7f65c35755ca56024dcdae65bdebd4ec4e2377171b62', '6ab5af55d5cce6547098d13f85c4169b2dc1364b50c382161698df28bac38169'), 'kernel_145560', 0x14566e),
+    '144cf0': (('c6d3ad70a57319f692018045a3de73c341b85bf996fbd1330fcd7e9afc1fc032', 'a12dcc069c07b58c31058558e0e6ea247781974bd56ca73d0c3872affb17cf58'), 'kernel_144cf0', 0x144e4e),
     '2e44d0': ('9f79312f94c4df9caf23dd8e6c012cefe64749e9f7548b557d7375d8618919f1', 'kernel_2e44d0', 0x2e4540),
     '2e46e0': ('198a8866775ff17db3d72b629e04d42e4b9772cddbe9e79257d986711ee667c9', 'kernel_2e46e0', 0x2e4753),
     '14cdb0': ('f747aad6a36fcee70a3af5ab504d7fa8d9027e392c2175bee747f0bbb2752e30', 'kernel_14cdb0', 0),
@@ -151,11 +153,70 @@ LEAVES = {
     '243450': (('a0308dda34f7a7f07103c6863266b0ba6a263b9d73f4e6d6f140226a700bb659', 'c966df7ae118b3c92387ceadfb02d3368e01f0189cba0f89e0fa23387063266a'), 'kernel_243450', 0),
     '2ea050': ('b60d187abad84cd9544150fb40183325fa20cbd6e3af70d32e6883d159ded7c2', 'kernel_2ea050', 0x2ea146),
     '2eb0c0': ('46e52cdff199e798899b7fb86f9c83e8ff00c93a0819efc0546fb061d1e2470a', 'kernel_2eb0c0', 0x2ea146),
+    # Scene device point/segment distance (SSE + x87 FSQRT/FABS/FSTP); its
+    # two exits publish their own final cursor.
+    '14dd70': ('9bd118cbb828a5c8926d33d736b5409c12a1f585699fb25fa2b43fc7bf3ec4e6', 'kernel_14dd70', 0),
 }
 
 
 def leaf_body(text, name):
     return re.search(r'static void run_' + name + r'\((\w+) &s\) \{.*?\n\}', text, re.S)
+
+
+def spatial_owner_bindings(canonical,output):
+    # Native spatial owners (PVS closure 1532A0, object sphere query BD080,
+    # object tick B8F40/B9090/B9180/BE4A0/10DD10, object tick children
+    # BE850/BE610/C0F60/10DD80/C0200/1D5790/1E15D0, cluster distance 131470,
+    # collision ray 16C620).
+    # Loaded beside this file so callers without tools on sys.path keep working.
+    installed=[]
+    for marker,name in (('static void run_1532a0(','native_pvs_flood_replacements'),
+                        ('static void run_bd080(','native_object_sphere_query_replacements'),
+                        ('static void run_b8f40(','native_object_tick_replacements'),
+                        ('static void run_be850(','native_object_subtree_replacements'),
+                        ('static void run_131470(','native_cluster_distance_replacements'),
+                        ('static void run_16c620(','native_collision_ray_replacements'),
+                        # Device update callbacks 1179C0/10B840 (scene device unit).
+                        ('static void run_1179c0(','native_device_update_replacements'),
+                        # Group L live-support leaves: the helper matches each pinned body
+                        # in any unit (C9550, 1EC970, 1F7F60, 171010, C1E90, 110350).
+                        ('static void run_','native_live_support_leaves_replacements'),
+                        # Group F frame/gameplay owners: the helper matches each pinned
+                        # owner and its unit itself (1306B0, D7230, 1EEE80, ...).
+                        ('static void run_','native_frame_misc_replacements'),
+                        # Group E effect owners: the helper matches each pinned closure
+                        # in its unit itself (20680, C35D0, 176A40).
+                        ('static void run_','native_effect_owner_replacements'),
+                        # Group H physics world leaves (1F5FE0, 2E4550, 303BA0, 2E47B0),
+                        # physics world unit only.
+                        ('static void run_1f16f0(ObservedWorldState','native_world_leaves_replacements'),
+                        # Group H 303EE0 contact record append (child 2E3250).
+                        ('static void run_300400(ObservedWorldState','native_contact_array_replacements'),
+                        # Group H 303C70/303D00 local shape buffers, then the 304350
+                        # collection agent that runs them inline (after its children's binders).
+                        ('static void run_3001d0(ObservedWorldState','native_local_buffers_replacements'),
+                        ('static void run_300870(ObservedWorldState','native_collection_agent_replacements'),
+                        # Group H 30CF40 manifold report and 304130 contact weld (304350's children).
+                        ('static void run_309450(ObservedWorldState','native_manifold_replacements'),
+                        # Group H 2F33B0 key sort (2F36F0's child; recursion inline).
+                        ('static void run_2ef8f0(ObservedWorldState','native_key_sort_replacements'),
+                        # Group H 1F76A0 shape key filter (its jump table and 185AA0 call).
+                        ('static void run_1f2db0(ObservedWorldState','native_shape_key_filter_replacements'),
+                        # Group H 2F8630 closest point and 2E4FE0 swept pair (2E4550/2E4760 inline).
+                        ('static void run_2f4bd0(ObservedWorldState','native_convex_pair_replacements'),
+                        # Group H 1F7C10 BSP child shape (1F76A0 and 1F5FE0 through their bound bodies).
+                        ('static void run_1f3320(ObservedWorldState','native_bsp_child_shape_replacements'),
+                        # Group H 1F6D10 structure AABB query (1F76A0 through its bound body; 2E4550 inline).
+                        ('static void run_1f2420(ObservedWorldState','native_structure_aabb_query_replacements'),
+                        # Group H 2F36F0 child agent update (2F33B0 through its bound body; 2E4550 and 30BAD0 inline).
+                        ('static void run_2efc30(ObservedWorldState','native_child_agents_replacements'),
+                        # Group H E8D80 object flag update (vehicle update unit; its update functions through the dispatch).
+                        ('static void run_e7e60(VehicleState','native_object_flag_update_replacements')):
+        if marker not in canonical:continue
+        spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(name+'.py'))
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        output,entries=helper.install(canonical,output);installed+=entries
+    return output,installed
 
 
 def page_window_bindings(text):
@@ -239,7 +300,7 @@ def install_leaves(canonical, output):
         state = original[1]
         if digest(original[0].replace(state + ' &s', 'STATE &s')) not in (expected if isinstance(expected, tuple) else (expected,)):
             continue
-        if name in ('14cea0', '123210', '243450'):
+        if name in ('14cea0', '123210', '243450', '145560', '144cf0', '14dd70'):
             mapping=MAPPING.search(canonical)
             addresses={int(a,16):int(b,16) for a,b in CASE.findall(mapping['cases'])}
             if any(addresses.get(int(call[1],16))!=int(call[1],16) for call in CALL.finditer(original[0])):
@@ -278,6 +339,7 @@ def install_leaves(canonical, output):
         # canonical trailer, and the original instructions stay intact.
         start = current[0].index('{\n') + 2
         admission='s.selected_observation_pcs && ' if name=='2e6240' else ''
+        if name=='14dd70':admission='halo2::native_tu15_leaves::x87_room(s,2u) && '
         marker = (f'    // BEGIN native leaf{name}\n'
                   f'    if({admission}halo2::native_tu15_leaves::run(s,[](auto &io,auto &m){{halo2::native_tu15_leaves::{kernel}(io,m);}},\n'
                   f'        [](auto &r){{run_{name}(r);}},0x{final_pc:x}u))return;\n'
@@ -419,6 +481,9 @@ def specialize(text):
     leaves = []
     if cursor_calls or '#include "physics/runtime/physics_world_runtime_internal.hpp"' in text:
         output, leaves = install_leaves(text, output)
+    spatial_entries=[]
+    if cursor_calls or '#include "physics/runtime/physics_world_runtime_internal.hpp"' in text:
+        output,spatial_entries=spatial_owner_bindings(text,output)
     output,temporary_entries=install_temporary_abi(text,output)
     output,array_entries=install_array_abi(text,output)
     main_heap_entries=[]
@@ -607,6 +672,7 @@ def specialize(text):
         native_simplex_triangle_entries=simplex_triangle_entries,
         native_simplex_triangle_scene_entries=simplex_triangle_scene_entries,
         bindings=[dict(canonical=a, tu15=b, uses=n) for (a, b), n in sorted(counts.items())])
+    if spatial_entries:receipt['native_spatial_owners']=spatial_entries
     # Preserve the older owner-specific authenticated rejection order. New
     # object-node receipts follow the existing Page/Stack/Busy validations.
     object_node_entries,object_animation_entries=object_node_bindings(text)
@@ -628,6 +694,414 @@ def specialize(text):
         face_select_helper=importlib.util.module_from_spec(face_select_spec);face_select_spec.loader.exec_module(face_select_helper)
         simplex_face_select_entries=face_select_helper.installed_entries(text)
     receipt['native_simplex_face_select_entries']=simplex_face_select_entries
+    closest_segments_entries=[];closest_segments_scene_entries=[]
+    if '#include "physics/runtime/native_tu15_closest_segments_source_owner.hpp"' in text or 'halo2::native_closest_segments_owner_detail::bridge' in text:
+        closest_spec=importlib.util.spec_from_file_location('native_closest_segments_binding',Path(__file__).with_name('native_closest_segments_replacements.py'))
+        closest_helper=importlib.util.module_from_spec(closest_spec);closest_spec.loader.exec_module(closest_helper)
+        closest_owner=closest_helper.BODY.search(text)
+        entries=closest_helper.installed_entries(text)
+        if closest_owner[1]=='312620':closest_segments_scene_entries=entries
+        else:closest_segments_entries=entries
+    receipt.update(native_closest_segments_entries=closest_segments_entries,native_closest_segments_scene_entries=closest_segments_scene_entries)
+    simplex_paired_entries=[]
+    if '#include "physics/runtime/native_tu15_simplex_paired_source_owner.hpp"' in text or 'halo2::native_simplex_paired_owner_detail::bridge' in text:
+        paired_spec=importlib.util.spec_from_file_location('native_simplex_paired_binding',Path(__file__).with_name('native_simplex_paired_replacements.py'))
+        paired_helper=importlib.util.module_from_spec(paired_spec);paired_spec.loader.exec_module(paired_helper)
+        simplex_paired_entries=paired_helper.installed_entries(text)
+    receipt['native_simplex_paired_entries']=simplex_paired_entries
+    simplex_boundary_entries=[]
+    if '#include "physics/runtime/native_tu15_simplex_boundary_source_owner.hpp"' in text or 'halo2::native_simplex_boundary_owner_detail::bridge' in text:
+        boundary_spec=importlib.util.spec_from_file_location('native_simplex_boundary_binding',Path(__file__).with_name('native_simplex_boundary_replacements.py'))
+        boundary_helper=importlib.util.module_from_spec(boundary_spec);boundary_spec.loader.exec_module(boundary_helper)
+        simplex_boundary_entries=boundary_helper.installed_entries(text)
+    receipt['native_simplex_boundary_entries']=simplex_boundary_entries
+    solver_hull_append_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_append_source_owner.hpp"', 'native_solver_hull_append_owner_detail')):
+        append_spec=importlib.util.spec_from_file_location('native_solver_hull_append_binding',Path(__file__).with_name('native_solver_hull_append_replacements.py'))
+        append_helper=importlib.util.module_from_spec(append_spec);append_spec.loader.exec_module(append_helper)
+        solver_hull_append_entries=append_helper.installed_entries(text)
+    receipt['native_solver_hull_append_entries']=solver_hull_append_entries
+    zero_shape_support_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_zero_shape_support_source_owner.hpp"', 'native_zero_shape_support_owner_detail')):
+        zero_support_spec=importlib.util.spec_from_file_location('native_zero_shape_support_binding',Path(__file__).with_name('native_zero_shape_support_replacements.py'))
+        zero_support_helper=importlib.util.module_from_spec(zero_support_spec);zero_support_spec.loader.exec_module(zero_support_helper)
+        zero_shape_support_entries=zero_support_helper.installed_entries(text)
+    receipt['native_zero_shape_support_entries']=zero_shape_support_entries
+    box_shape_support_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_box_shape_support_source_owner.hpp"', 'native_box_shape_support_owner_detail')):
+        box_support_spec=importlib.util.spec_from_file_location('native_box_shape_support_binding',Path(__file__).with_name('native_box_shape_support_replacements.py'))
+        box_support_helper=importlib.util.module_from_spec(box_support_spec);box_support_spec.loader.exec_module(box_support_helper)
+        box_shape_support_entries=box_support_helper.installed_entries(text)
+    receipt['native_box_shape_support_entries']=box_shape_support_entries
+    packed_rotation_entries=[]
+    if '#include "physics/runtime/native_tu15_packed_rotation_source_owner.hpp"' in text or 'halo2::native_packed_rotation_owner_detail::bridge' in text:
+        packed_rotation_spec=importlib.util.spec_from_file_location('native_packed_rotation_binding',Path(__file__).with_name('native_packed_rotation_replacements.py'))
+        packed_rotation_helper=importlib.util.module_from_spec(packed_rotation_spec);packed_rotation_spec.loader.exec_module(packed_rotation_helper)
+        packed_rotation_entries=packed_rotation_helper.installed_entries(text)
+    receipt['native_packed_rotation_entries']=packed_rotation_entries
+    codec_translation_entries=[]
+    if '#include "physics/runtime/native_tu15_codec_translation_source_owner.hpp"' in text or 'halo2::native_codec_translation_owner_detail::bridge' in text:
+        codec_translation_spec=importlib.util.spec_from_file_location('native_codec_translation_binding',Path(__file__).with_name('native_codec_translation_replacements.py'))
+        codec_translation_helper=importlib.util.module_from_spec(codec_translation_spec);codec_translation_spec.loader.exec_module(codec_translation_helper)
+        codec_translation_entries=codec_translation_helper.installed_entries(text)
+    receipt['native_codec_translation_entries']=codec_translation_entries
+    codec_scale_entries=[]
+    if '#include "physics/runtime/native_tu15_codec_scale_source_owner.hpp"' in text or 'halo2::native_codec_scale_owner_detail::bridge' in text:
+        codec_scale_spec=importlib.util.spec_from_file_location('native_codec_scale_binding',Path(__file__).with_name('native_codec_scale_replacements.py'))
+        codec_scale_helper=importlib.util.module_from_spec(codec_scale_spec);codec_scale_spec.loader.exec_module(codec_scale_helper)
+        codec_scale_entries=codec_scale_helper.installed_entries(text)
+    receipt['native_codec_scale_entries']=codec_scale_entries
+    # Rebind only overlays already authenticated in the input. The helper
+    # restores the exact legacy spelling solely to authenticate prepared output.
+    if '#include "gameplay/objects/native_tu15_object_body_source_owner.hpp"' in text or 'halo2::native_object_body_owner_detail::bridge' in text:
+        format_spec=importlib.util.spec_from_file_location('format_native_object_body_replacements',Path(__file__).with_name('native_object_body_replacements.py'))
+        format_helper=importlib.util.module_from_spec(format_spec);format_spec.loader.exec_module(format_helper)
+        output=format_helper.retag_specialized(text,output)
+    if '#include "gameplay/objects/native_tu15_object_material_lookup_source_owner.hpp"' in text or 'halo2::native_object_material_owner_detail::bridge' in text:
+        format_spec=importlib.util.spec_from_file_location('format_native_object_material_lookup_replacements',Path(__file__).with_name('native_object_material_lookup_replacements.py'))
+        format_helper=importlib.util.module_from_spec(format_spec);format_spec.loader.exec_module(format_helper)
+        output=format_helper.retag_specialized(text,output)
+    if '#include "gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp"' in text or 'halo2::native_object_lookup_copies_detail::bridge' in text:
+        format_spec=importlib.util.spec_from_file_location('format_native_object_lookup_copies_replacements',Path(__file__).with_name('native_object_lookup_copies_replacements.py'))
+        format_helper=importlib.util.module_from_spec(format_spec);format_spec.loader.exec_module(format_helper)
+        output=format_helper.retag_specialized(text,output)
+    if '#include "gameplay/objects/native_tu15_object_body_canonical_source_owner.hpp"' in text or 'halo2::native_object_body_canonical_owner_detail::bridge' in text:
+        format_spec=importlib.util.spec_from_file_location('format_native_object_lookup_canonical_replacements',Path(__file__).with_name('native_object_lookup_canonical_replacements.py'))
+        format_helper=importlib.util.module_from_spec(format_spec);format_spec.loader.exec_module(format_helper)
+        output=format_helper.retag_specialized(text,output)
+    object_body_entries=[]
+    if '#include "gameplay/objects/native_tu15_object_body_source_owner.hpp"' in text or 'halo2::native_object_body_owner_detail::bridge' in text:
+        object_body_spec=importlib.util.spec_from_file_location('native_object_body_binding',Path(__file__).with_name('native_object_body_replacements.py'))
+        object_body_helper=importlib.util.module_from_spec(object_body_spec);object_body_spec.loader.exec_module(object_body_helper)
+        object_body_entries=object_body_helper.installed_entries(output)
+    receipt['native_object_body_entries']=object_body_entries
+    object_material_lookup_entries=[]
+    if '#include "gameplay/objects/native_tu15_object_material_lookup_source_owner.hpp"' in text or 'halo2::native_object_material_owner_detail::bridge' in text:
+        material_lookup_spec=importlib.util.spec_from_file_location('native_object_material_lookup_binding',Path(__file__).with_name('native_object_material_lookup_replacements.py'))
+        material_lookup_helper=importlib.util.module_from_spec(material_lookup_spec);material_lookup_spec.loader.exec_module(material_lookup_helper)
+        object_material_lookup_entries=material_lookup_helper.installed_entries(output)
+    receipt['native_object_material_lookup_entries']=object_material_lookup_entries
+    lookup_copies_entries=[]
+    if '#include "gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp"' in text or 'halo2::native_object_lookup_copies_detail::bridge' in text:
+        lookup_copies_spec=importlib.util.spec_from_file_location('native_object_lookup_copies_binding',Path(__file__).with_name('native_object_lookup_copies_replacements.py'))
+        lookup_copies_helper=importlib.util.module_from_spec(lookup_copies_spec);lookup_copies_spec.loader.exec_module(lookup_copies_helper)
+        lookup_copies_entries=lookup_copies_helper.installed_entries(output)
+    receipt['native_object_lookup_copies_entries']=lookup_copies_entries
+    canonical_lookup_entries=[]
+    if '#include "gameplay/objects/native_tu15_object_body_canonical_source_owner.hpp"' in text or 'halo2::native_object_body_canonical_owner_detail::bridge' in text:
+        canonical_spec=importlib.util.spec_from_file_location('canonical_format_binding',Path(__file__).with_name('native_object_lookup_canonical_replacements.py'))
+        canonical_helper=importlib.util.module_from_spec(canonical_spec);canonical_spec.loader.exec_module(canonical_helper)
+        canonical_lookup_entries=canonical_helper.installed_entries(output)
+    receipt['native_object_lookup_canonical_entries']=canonical_lookup_entries
+    solver_hull_support_pair_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_support_pair_source_owner.hpp"', 'native_solver_hull_support_pair_owner_detail', 'native_support_pair_resume_')):
+        support_pair_spec=importlib.util.spec_from_file_location('native_solver_hull_support_pair_binding',Path(__file__).with_name('native_solver_hull_support_pair_replacements.py'))
+        support_pair_helper=importlib.util.module_from_spec(support_pair_spec);support_pair_spec.loader.exec_module(support_pair_helper)
+        solver_hull_support_pair_entries=support_pair_helper.installed_entries(text)
+    receipt['native_solver_hull_support_pair_entries']=solver_hull_support_pair_entries
+    solver_hull_edge_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_edge_source_owner.hpp"', 'native_solver_hull_edge_owner_detail', 'native_hull_edge_resume_')):
+        edge_spec=importlib.util.spec_from_file_location('native_solver_hull_edge_binding',Path(__file__).with_name('native_solver_hull_edge_replacements.py'))
+        edge_helper=importlib.util.module_from_spec(edge_spec);edge_spec.loader.exec_module(edge_helper)
+        edge_helper.installed_entries(text)
+        output=edge_helper.rebind_prepared(output)
+        solver_hull_edge_entries=edge_helper.installed_entries(output)
+    receipt['native_solver_hull_edge_entries']=solver_hull_edge_entries
+    solver_hull_initialize_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_initialize_source_owner.hpp"', 'native_solver_hull_initialize_owner_detail', 'native_hull_initialize_resume_')):
+        initialize_spec=importlib.util.spec_from_file_location('native_solver_hull_initialize_binding',Path(__file__).with_name('native_solver_hull_initialize_replacements.py'))
+        initialize_helper=importlib.util.module_from_spec(initialize_spec);initialize_spec.loader.exec_module(initialize_helper)
+        initialize_helper.installed_entries(text)
+        output=initialize_helper.rebind_prepared(output)
+        solver_hull_initialize_entries=initialize_helper.installed_entries(output)
+    receipt['native_solver_hull_initialize_entries']=solver_hull_initialize_entries
+    solver_hull_line_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_line_source_owner.hpp"', 'native_solver_hull_line_owner_detail', 'native_hull_line_resume_')):
+        line_spec=importlib.util.spec_from_file_location('native_solver_hull_line_binding',Path(__file__).with_name('native_solver_hull_line_replacements.py'))
+        line_helper=importlib.util.module_from_spec(line_spec);line_spec.loader.exec_module(line_helper)
+        line_helper.installed_entries(text)
+        output=line_helper.rebind_prepared(output)
+        solver_hull_line_entries=line_helper.installed_entries(output)
+    receipt['native_solver_hull_line_entries']=solver_hull_line_entries
+    solver_hull_sample_entries=[]
+    if any(marker in text for marker in ('#include "physics/runtime/native_tu15_solver_hull_sample_source_owner.hpp"', 'native_solver_hull_sample_owner_detail', 'native_hull_sample_resume_')):
+        sample_spec=importlib.util.spec_from_file_location('native_solver_hull_sample_binding',Path(__file__).with_name('native_solver_hull_sample_replacements.py'))
+        sample_helper=importlib.util.module_from_spec(sample_spec);sample_spec.loader.exec_module(sample_helper)
+        sample_helper.installed_entries(text)
+        output=sample_helper.rebind_prepared(output)
+        solver_hull_sample_entries=sample_helper.installed_entries(output)
+    receipt['native_solver_hull_sample_entries']=solver_hull_sample_entries
+    solver_hull_minimum_entries=[]
+    if any(marker in output for marker in ('#include "physics/runtime/native_tu15_solver_hull_minimum_source_owner.hpp"','native_solver_hull_minimum_owner_detail','native_hull_minimum_resume_')):
+        minimum_spec=importlib.util.spec_from_file_location('native_solver_hull_minimum_binding',Path(__file__).with_name('native_solver_hull_minimum_replacements.py'))
+        minimum_helper=importlib.util.module_from_spec(minimum_spec);minimum_spec.loader.exec_module(minimum_helper)
+        minimum_helper.installed_entries(text)
+        output=minimum_helper.rebind_prepared(output)
+        solver_hull_minimum_entries=minimum_helper.installed_entries(output)
+    receipt['native_solver_hull_minimum_entries']=solver_hull_minimum_entries
+    solver_hull_clear_entries=[]
+    if any(marker in output for marker in ('#include "physics/runtime/native_tu15_solver_hull_clear_source_owner.hpp"','native_solver_hull_clear_owner_detail','native_hull_clear_resume_')):
+        clear_spec=importlib.util.spec_from_file_location('native_solver_hull_clear_binding',Path(__file__).with_name('native_solver_hull_clear_replacements.py'))
+        clear_helper=importlib.util.module_from_spec(clear_spec);clear_spec.loader.exec_module(clear_helper)
+        clear_helper.installed_entries(text)
+        output=clear_helper.rebind_prepared(output)
+        solver_hull_clear_entries=clear_helper.installed_entries(output)
+    receipt['native_solver_hull_clear_entries']=solver_hull_clear_entries
+    solver_hull_clip_entries=[]
+    if any(marker in output for marker in ('#include "physics/runtime/native_tu15_solver_hull_clip_source_owner.hpp"','native_solver_hull_clip_owner_detail','native_hull_clip_resume_')):
+        clip_spec=importlib.util.spec_from_file_location('native_solver_hull_clip_binding',Path(__file__).with_name('native_solver_hull_clip_replacements.py'))
+        clip_helper=importlib.util.module_from_spec(clip_spec);clip_spec.loader.exec_module(clip_helper)
+        clip_helper.installed_entries(text)
+        output=clip_helper.rebind_prepared(output)
+        solver_hull_clip_entries=clip_helper.installed_entries(output)
+    receipt['native_solver_hull_clip_entries']=solver_hull_clip_entries
+    codec_rotation_interpolation_entries=[]
+    if '#include "physics/runtime/native_tu15_codec_rotation_interpolation_source_owner.hpp"' in output or 'halo2::native_codec_rotation_interpolation_owner_detail::bridge' in output:
+        interpolation_spec=importlib.util.spec_from_file_location('native_codec_rotation_interpolation_binding',Path(__file__).with_name('native_codec_rotation_interpolation_replacements.py'))
+        interpolation_helper=importlib.util.module_from_spec(interpolation_spec);interpolation_spec.loader.exec_module(interpolation_helper)
+        interpolation_helper.installed_entries(text)
+        output=interpolation_helper.rebind_prepared(output)
+        codec_rotation_interpolation_entries=interpolation_helper.installed_entries(output)
+    receipt['native_codec_rotation_interpolation_entries']=codec_rotation_interpolation_entries
+    object_type_query_entries=[]
+    if '#include "gameplay/objects/native_tu15_object_type_query_source_owner.hpp"' in text or 'halo2::native_object_type_query_owner_detail::bridge' in text:
+        query_spec=importlib.util.spec_from_file_location('native_object_type_query_binding',Path(__file__).with_name('native_object_type_query_replacements.py'))
+        query_helper=importlib.util.module_from_spec(query_spec);query_spec.loader.exec_module(query_helper)
+        query_helper.installed_entries(text)
+        output=query_helper.retag_specialized(text,output)
+        object_type_query_entries=query_helper.installed_entries(output)
+    receipt['native_object_type_query_entries']=object_type_query_entries
+    arena_world_entries=[]
+    if '#include "physics/runtime/native_tu15_arena_world_initialize_owner.hpp"' in text or 'halo2::native_arena_world_initialize_owner_detail::bridge' in text:
+        arena_world_spec=importlib.util.spec_from_file_location('native_arena_world_binding',Path(__file__).with_name('native_arena_world_initialize_replacements.py'))
+        arena_world_helper=importlib.util.module_from_spec(arena_world_spec);arena_world_spec.loader.exec_module(arena_world_helper)
+        arena_world_helper.installed_entries(text)
+        output=arena_world_helper.retag_specialized(text,output)
+        arena_world_entries=arena_world_helper.installed_entries(output)
+    receipt['native_arena_world_initialize_entries']=arena_world_entries
+    codec_translation_interpolation_entries=[]
+    if '#include "physics/runtime/native_tu15_codec_translation_interpolation_source_owner.hpp"' in text or 'halo2::native_codec_translation_interpolation_owner_detail::bridge' in text:
+        translation_interpolation_spec=importlib.util.spec_from_file_location('native_codec_translation_interpolation_binding',Path(__file__).with_name('native_codec_translation_interpolation_replacements.py'))
+        translation_interpolation_helper=importlib.util.module_from_spec(translation_interpolation_spec);translation_interpolation_spec.loader.exec_module(translation_interpolation_helper)
+        translation_interpolation_helper.installed_entries(text)
+        output=translation_interpolation_helper.rebind_prepared(output)
+        codec_translation_interpolation_entries=translation_interpolation_helper.installed_entries(output)
+    receipt['native_codec_translation_interpolation_entries']=codec_translation_interpolation_entries
+    codec_scale_interpolation_entries=[]
+    if '#include "physics/runtime/native_tu15_codec_scale_interpolation_source_owner.hpp"' in text or 'halo2::native_codec_scale_interpolation_owner_detail::bridge' in text:
+        scale_interpolation_spec=importlib.util.spec_from_file_location('native_codec_scale_interpolation_binding',Path(__file__).with_name('native_codec_scale_interpolation_replacements.py'))
+        scale_interpolation_helper=importlib.util.module_from_spec(scale_interpolation_spec);scale_interpolation_spec.loader.exec_module(scale_interpolation_helper)
+        scale_interpolation_helper.installed_entries(text)
+        output=scale_interpolation_helper.rebind_prepared(output)
+        codec_scale_interpolation_entries=scale_interpolation_helper.installed_entries(output)
+    receipt['native_codec_scale_interpolation_entries']=codec_scale_interpolation_entries
+    codec_copy_entries=[]
+    if ('#include "physics/runtime/native_tu15_codec_copy_source_owner.hpp"' in text or
+            'native_codec_copy_owner_detail' in text or 'native_codec_copy_resume_' in text):
+        copy_spec=importlib.util.spec_from_file_location('native_codec_copy_binding',Path(__file__).with_name('native_codec_copy_replacements.py'))
+        copy_helper=importlib.util.module_from_spec(copy_spec);copy_spec.loader.exec_module(copy_helper)
+        copy_helper.installed_entries(text)
+        output=copy_helper.rebind_prepared(output)
+        codec_copy_entries=copy_helper.installed_entries(output)
+    receipt['native_codec_copy_entries']=codec_copy_entries
+    projectile_query_entries=[]
+    if '#include "gameplay/objects/native_tu15_projectile_function_query_source_owner.hpp"' in text or 'halo2::native_projectile_function_query_owner_detail::bridge' in text:
+        projectile_spec=importlib.util.spec_from_file_location('native_projectile_function_query_binding',Path(__file__).with_name('native_projectile_function_query_replacements.py'))
+        projectile_helper=importlib.util.module_from_spec(projectile_spec);projectile_spec.loader.exec_module(projectile_helper)
+        projectile_helper.installed_entries(text)
+        output=projectile_helper.retag_specialized(text,output)
+        projectile_query_entries=projectile_helper.installed_entries(output)
+    receipt['native_projectile_function_query_entries']=projectile_query_entries
+    definition_mode_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_definition_mode_query_source_owner.hpp',
+            'native_object_definition_mode_query_owner_detail','native_object_definition_mode_query_detail')):
+        definition_spec=importlib.util.spec_from_file_location('native_object_definition_mode_query_binding',
+            Path(__file__).with_name('native_object_definition_mode_query_replacements.py'))
+        definition_helper=importlib.util.module_from_spec(definition_spec);definition_spec.loader.exec_module(definition_helper)
+        definition_helper.installed_entries(text)
+        output=definition_helper.retag_specialized(text,output)
+        definition_mode_entries=definition_helper.installed_entries(output)
+    receipt['native_object_definition_mode_query_entries']=definition_mode_entries
+    table_ratio_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_table_ratio_source_owner.hpp',
+            'native_object_table_ratio_owner_detail','native_object_table_ratio_detail')):
+        table_spec=importlib.util.spec_from_file_location('native_object_table_ratio_binding',
+            Path(__file__).with_name('native_object_table_ratio_replacements.py'))
+        table_helper=importlib.util.module_from_spec(table_spec);table_spec.loader.exec_module(table_helper)
+        table_helper.installed_entries(text)
+        output=table_helper.retag_specialized(text,output)
+        table_ratio_entries=table_helper.installed_entries(output)
+    receipt['native_object_table_ratio_entries']=table_ratio_entries
+    map_world_property_entries=[]
+    if '#include "gameplay/objects/native_tu15_map_world_property_owners.hpp"' in text or 'halo2::native_map_world_property_owner_detail::bridge_' in text:
+        property_spec=importlib.util.spec_from_file_location('native_map_world_property_query_binding',Path(__file__).with_name('native_map_world_property_query_replacements.py'))
+        property_helper=importlib.util.module_from_spec(property_spec);property_spec.loader.exec_module(property_helper)
+        property_helper.installed_entries(text)
+        output=property_helper.retag_specialized(text,output)
+        map_world_property_entries=property_helper.installed_entries(output)
+    receipt['native_map_world_property_query_entries']=map_world_property_entries
+    device_query_entries=[]
+    if any(marker in text for marker in ('native_tu15_device_property_query_source_owner.hpp',
+            'native_device_property_query_owner_detail','native_device_property_query_detail')):
+        device_spec=importlib.util.spec_from_file_location('native_device_property_query_binding',Path(__file__).with_name('native_device_property_query_replacements.py'))
+        device_helper=importlib.util.module_from_spec(device_spec);device_spec.loader.exec_module(device_helper)
+        device_helper.installed_entries(text)
+        output=device_helper.retag_specialized(text,output)
+        device_query_entries=device_helper.installed_entries(output)
+    receipt['native_device_property_query_entries']=device_query_entries
+    vehicle_render_root_entries=[]
+    if 'native_tu15_vehicle_render_root_source_owner.hpp' in text or 'native_vehicle_render_root_detail' in text:
+        root_spec=importlib.util.spec_from_file_location('native_vehicle_render_root_binding',Path(__file__).with_name('native_vehicle_render_root_replacements.py'))
+        root_helper=importlib.util.module_from_spec(root_spec);root_spec.loader.exec_module(root_helper)
+        root_helper.installed_entries(text)
+        output=root_helper.rebind_prepared(output)
+        vehicle_render_root_entries=root_helper.installed_entries(output)
+    receipt['native_vehicle_render_root_entries']=vehicle_render_root_entries
+    flight_query_entries=[]
+    if any(marker in text for marker in ('native_tu15_flight_property_query_source_owner.hpp',
+            'native_flight_property_query_owner_detail','native_flight_property_query_detail')):
+        flight_spec=importlib.util.spec_from_file_location('native_flight_property_query_binding',
+            Path(__file__).with_name('native_flight_property_query_replacements.py'))
+        flight_helper=importlib.util.module_from_spec(flight_spec);flight_spec.loader.exec_module(flight_helper)
+        flight_helper.installed_entries(text)
+        output=flight_helper.retag_specialized(text,output)
+        flight_query_entries=flight_helper.installed_entries(output)
+    receipt['native_flight_property_query_entries']=flight_query_entries
+    record_ratio_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_record_ratio_source_owner.hpp',
+            'native_object_record_ratio_owner_detail','native_object_record_ratio_detail')):
+        record_spec=importlib.util.spec_from_file_location('native_object_record_ratio_binding',
+            Path(__file__).with_name('native_object_record_ratio_replacements.py'))
+        record_helper=importlib.util.module_from_spec(record_spec);record_spec.loader.exec_module(record_helper)
+        record_helper.installed_entries(text)
+        output=record_helper.retag_specialized(text,output)
+        record_ratio_entries=record_helper.installed_entries(output)
+    receipt['native_object_record_ratio_entries']=record_ratio_entries
+    ratio_caller_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_ratio_caller_source_owner.hpp',
+            'native_object_ratio_caller_owner_detail','native_object_ratio_caller_detail')):
+        caller_spec=importlib.util.spec_from_file_location('native_object_ratio_caller_binding',
+            Path(__file__).with_name('native_object_ratio_caller_replacements.py'))
+        caller=importlib.util.module_from_spec(caller_spec)
+        caller_spec.loader.exec_module(caller)
+        caller.installed_entries(text)
+        output=caller.retag_specialized(text,output)
+        ratio_caller_entries=caller.installed_entries(output)
+    receipt['native_object_ratio_caller_entries']=ratio_caller_entries
+    node_function_progress_entries=[]
+    if any(marker in text for marker in ('native_tu15_node_function_progress_source_owner.hpp',
+            'native_node_function_progress_owner_detail','native_node_function_progress_detail')):
+        progress_spec=importlib.util.spec_from_file_location('native_node_function_progress_binding',
+            Path(__file__).with_name('native_node_function_progress_replacements.py'))
+        progress_helper=importlib.util.module_from_spec(progress_spec);progress_spec.loader.exec_module(progress_helper)
+        progress_helper.installed_entries(text)
+        output=progress_helper.retag_specialized(text,output)
+        node_function_progress_entries=progress_helper.installed_entries(output)
+    receipt['native_node_function_progress_entries']=node_function_progress_entries
+    object_function_query_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_function_query_source_owner.hpp',
+            'native_object_function_query_owner_detail','native_object_function_query_detail')):
+        query_spec=importlib.util.spec_from_file_location('native_object_function_query_binding',
+            Path(__file__).with_name('native_object_function_query_replacements.py'))
+        query_helper=importlib.util.module_from_spec(query_spec);query_spec.loader.exec_module(query_helper)
+        query_helper.installed_entries(text)
+        output=query_helper.retag_specialized(text,output)
+        object_function_query_entries=query_helper.installed_entries(output)
+    receipt['native_object_function_query_entries']=object_function_query_entries
+    object_function_scalar_entries=[]
+    if any(marker in text for marker in ('native_tu15_object_function_scalar_source_owner.hpp',
+            'native_object_function_scalar_owner_detail','native_object_function_scalar_detail',
+            'native_object_function_scalar_ordered_detail')):
+        scalar_spec=importlib.util.spec_from_file_location('native_object_function_scalar_binding',
+            Path(__file__).with_name('native_object_function_scalar_replacements.py'))
+        scalar_helper=importlib.util.module_from_spec(scalar_spec);scalar_spec.loader.exec_module(scalar_helper)
+        scalar_helper.installed_entries(text)
+        if scalar_helper.authenticate(text)[2]:
+            scalar_helper.installed_entries(output)
+        else:
+            output=scalar_helper.retag_specialized(text,output)
+        object_function_scalar_entries=scalar_helper.installed_entries(output)
+    receipt['native_object_function_scalar_entries']=object_function_scalar_entries
+    death_flight_entries=[]
+    if any(marker in text for marker in ('native_tu15_death_cycle_flight_query_source_owner.hpp',
+            'native_death_cycle_flight_query_owner_detail')):
+        death_flight_spec=importlib.util.spec_from_file_location('native_death_flight_query_binding',
+            Path(__file__).with_name('native_death_cycle_flight_query_replacements.py'))
+        death_flight_helper=importlib.util.module_from_spec(death_flight_spec);death_flight_spec.loader.exec_module(death_flight_helper)
+        death_flight_helper.installed_entries(text)
+        output=death_flight_helper.retag_specialized(text,output)
+        death_flight_entries=death_flight_helper.installed_entries(output)
+    receipt['native_death_cycle_flight_query_entries']=death_flight_entries
+    contact_predicate_entries=[]
+    if any(marker in text for marker in ('native_tu15_contact_predicate_source_owner.hpp',
+            'native_contact_predicate_owner_detail','native_contact_predicate_ordered_detail',
+            'NativeContactPredicateResume_')):
+        predicate_spec=importlib.util.spec_from_file_location('native_contact_predicate_binding',
+            Path(__file__).with_name('native_contact_predicate_replacements.py'))
+        predicate=importlib.util.module_from_spec(predicate_spec);predicate_spec.loader.exec_module(predicate)
+        predicate.installed_entries(text)
+        output=predicate.rebind_prepared(output)
+        contact_predicate_entries=predicate.installed_entries(output)
+    receipt['native_contact_predicate_entries']=contact_predicate_entries
+    node_progress_entries=[]
+    if any(marker in text for marker in ('native_tu15_node_progress_query_source_owner.hpp',
+            'native_node_progress_query_owner_detail','native_node_progress_query_detail')):
+        node_progress_spec=importlib.util.spec_from_file_location('native_node_progress_query_binding',
+            Path(__file__).with_name('native_node_progress_query_replacements.py'))
+        node_progress=importlib.util.module_from_spec(node_progress_spec);node_progress_spec.loader.exec_module(node_progress)
+        node_progress.installed_entries(text)
+        output=node_progress.retag_specialized(text,output)
+        node_progress_entries=node_progress.installed_entries(output)
+    receipt['native_node_progress_query_entries']=node_progress_entries
+    vehicle_effect_ratio_entries=[]
+    if any(marker in text for marker in ('native_tu15_vehicle_effect_ratio_source_owner.hpp',
+            'native_vehicle_effect_ratio_owner_detail','native_vehicle_effect_ratio_ordered_detail')):
+        ratio_spec=importlib.util.spec_from_file_location('native_vehicle_effect_ratio_binding',
+            Path(__file__).with_name('native_vehicle_effect_ratio_replacements.py'))
+        ratio=importlib.util.module_from_spec(ratio_spec);ratio_spec.loader.exec_module(ratio)
+        ratio.installed_entries(text)
+        output=ratio.rebind_prepared(output)
+        vehicle_effect_ratio_entries=ratio.installed_entries(output)
+    receipt['native_vehicle_effect_ratio_entries']=vehicle_effect_ratio_entries
+    indexed_datum_entries=[]
+    if 'native_indexed_datum_gate_owner_detail' in text or 'native_tu15_indexed_datum_gate_source_owner.hpp' in text:
+        datum_spec=importlib.util.spec_from_file_location('native_indexed_datum_gate_binding',
+            Path(__file__).with_name('native_indexed_datum_gate_replacements.py'))
+        indexed_datum=importlib.util.module_from_spec(datum_spec);datum_spec.loader.exec_module(indexed_datum)
+        output=indexed_datum.retag_specialized(text,output)
+        indexed_datum_entries=indexed_datum.installed_entries(output)
+    receipt['native_indexed_datum_gate_entries']=indexed_datum_entries
+    particle_type_filter_entries=[]
+    if any(marker in text for marker in ('native_tu15_particle_type_filter_source_owner.hpp',
+            'native_particle_type_filter_owner_detail','native_particle_type_filter_detail')):
+        filter_spec=importlib.util.spec_from_file_location('native_particle_type_filter_binding',
+            Path(__file__).with_name('native_particle_type_filter_replacements.py'))
+        type_filter=importlib.util.module_from_spec(filter_spec);filter_spec.loader.exec_module(type_filter)
+        type_filter.installed_entries(text)
+        output=type_filter.retag_specialized(text,output)
+        particle_type_filter_entries=type_filter.installed_entries(output)
+    receipt['native_particle_type_filter_entries']=particle_type_filter_entries
+    particle_envelope_entries=[]
+    if any(marker in text for marker in ('native_tu15_particle_envelope_source_owner.hpp',
+            'native_particle_envelope_owner_detail','native_particle_envelope_detail')):
+        envelope_spec=importlib.util.spec_from_file_location('native_particle_envelope_binding',
+            Path(__file__).with_name('native_particle_envelope_replacements.py'))
+        envelope=importlib.util.module_from_spec(envelope_spec);envelope_spec.loader.exec_module(envelope)
+        envelope.installed_entries(text)
+        output=envelope.retag_specialized(text,output)
+        particle_envelope_entries=envelope.installed_entries(output)
+    receipt['native_particle_envelope_entries']=particle_envelope_entries
+    particle_record_entries=[]
+    if any(marker in text for marker in ('native_tu15_particle_record_source_owner.hpp',
+            'native_particle_record_owner_detail','native_particle_record_detail')):
+        record_spec=importlib.util.spec_from_file_location('native_particle_record_binding',
+            Path(__file__).with_name('native_particle_record_replacements.py'))
+        particle_record=importlib.util.module_from_spec(record_spec);record_spec.loader.exec_module(particle_record)
+        particle_record.installed_entries(text)
+        output=particle_record.retag_specialized(text,output)
+        particle_record_entries=particle_record.installed_entries(output)
+    receipt['native_particle_record_entries']=particle_record_entries
+    receipt['specialized_sha256']=digest(output)
     return output, receipt
 
 

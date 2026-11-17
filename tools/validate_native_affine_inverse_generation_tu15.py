@@ -38,7 +38,35 @@ def main():
    if name=='motion':
     import native_motion_fst_c1_corrections as correction
     if correction.correct(source)!=source or correction.correct(current)!=current:raise ValueError('Qualified Motion C1 corrections missing')
-    row['qualified_motion_c1']=dict(sites=len(correction.SITES),whole_original_baseline=correction.BASELINE,original_reversal_equal=correction.canonical_source(source)==correction.canonical_source(current))
+    import native_model_marker_lookup_replacements as marker
+    marker_match,marker_body,marker_mode,marker_owner=marker.authenticate(source)
+    if marker_owner!='motion'or marker_mode!='canonical'or marker.prefix(marker_mode)not in marker_match[0]:
+     raise ValueError('Qualified Motion marker sibling missing')
+    resolver=re.search(r'std::uint32_t selected\(std::uint32_t p,SourcePhysicsContactImage image\)\{.*?\}\}',source,re.S)[0]
+    controls=(source.replace(marker_match[0],marker_match[0].replace('0x58u','0x54u',1),1),
+     source.replace(marker.prefix('canonical'),marker.prefix('actual'),1),
+     source.replace(marker.INCLUDE,'',1),
+     source.replace(resolver,resolver.replace('return p;','return p+1u;',1),1))
+    for changed in controls:
+     if changed==source:raise ValueError('Motion composition mutation witness missing')
+     try:correction.correct(changed)
+     except ValueError:pass
+     else:raise ValueError('Motion C1 composition accepted marker ownership drift')
+    if marker.replace_model_marker_lookup(correction.correct(source))!=source:raise ValueError('Motion C1 validation altered installed marker default')
+    row['qualified_motion_c1']=dict(sites=len(correction.SITES),whole_original_baseline=correction.BASELINE,original_reversal_equal=correction.canonical_source(source)==correction.canonical_source(current),exact_marker_body=marker.digest(marker_body),marker_default_preserved=True,marker_composition_mutants_rejected=len(controls))
+    import native_marker_owner_replacements as inherited
+    owner_match,owner_body,owner_identity=inherited.authenticate(source)
+    if owner_identity!='motion'or inherited.CANONICAL_PREFIX not in owner_match[0]:raise ValueError('Qualified Motion inherited-marker sibling missing')
+    owner_controls=(source.replace(owner_match[0],owner_match[0].replace('0x14u','0x18u',1),1),
+     source.replace(inherited.CANONICAL_PREFIX,inherited.PREFIX,1),
+     source.replace(inherited.INCLUDE,'',1))
+    for changed in owner_controls:
+     if changed==source:raise ValueError('Motion inherited-marker composition mutation witness missing')
+     try:correction.correct(changed)
+     except ValueError:pass
+     else:raise ValueError('Motion C1 composition accepted inherited-marker ownership drift')
+    if inherited.replace_marker_owner(correction.correct(source))!=source:raise ValueError('Motion C1 validation altered installed inherited-marker default')
+    row['qualified_motion_c1'].update(exact_inherited_marker_body=inherited.digest(owner_body),inherited_marker_default_preserved=True,inherited_marker_composition_mutants_rejected=len(owner_controls))
    if binding.prefix(mode)not in match[0]or binding.replace_affine_inverse(source)!=source:raise ValueError('Fresh inverse default/idempotence missing '+name)
    canonical_match,canonical_body,_,_=binding.authenticate(current)
    if binding.canonical_body(canonical_match[0])!=canonical_body:raise ValueError('Canonical inverse body ownership changed')

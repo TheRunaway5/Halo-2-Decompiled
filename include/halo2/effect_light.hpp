@@ -4,11 +4,23 @@
 namespace halo2 {
 // Standalone, spherical effect-light inputs; attached functions, HSV color
 // interpolation and authored animation blocks retain separate owners.
+struct ShaderFunctionTables;
+// Authored +C0 animation of a sphere light: the first mapping function of
+// its brightness (+C4) and colour (+CC) blocks. No shipped sphere names a
+// gel block (+D4); a definition that does carries no animation here.
+struct EffectLightAnimation {
+  bool synchronized{}; // +C0 bit0: every instance shares the game clock.
+  std::vector<std::byte> brightness,color;
+  std::shared_ptr<const ShaderFunctionTables> tables;
+};
 struct EffectLightDefinition {
   std::array<std::byte,228> bytes{};
   std::uint32_t flags{},lens=0xffffffffu;
   float radius{},specular_radius{},duration{};
   std::shared_ptr<const std::array<std::uint8_t,1024>> timed_curve;
+  // Only the completed-animation loader fills this; load_effect_light still
+  // declines every animated definition.
+  std::shared_ptr<const EffectLightAnimation> animation;
 };
 struct EffectLightState {
   float size{},control{};
@@ -17,6 +29,25 @@ struct EffectLightState {
 };
 EffectLightDefinition load_effect_light(const Cache &,std::uint32_t datum);
 EffectLightDefinition source_effect_light_definition(std::span<const std::byte>);
+// A sphere definition with authored brightness/colour/gel animation blocks
+// (+C4/+CC/+D4). Original C2CB0/C2B30 evaluates those blocks into the light
+// record each tick, so this definition is only valid for a light whose
+// completed size/colour/brightness comes from that native record. The
+// standalone lifetime owner (source_effect_light_state) has no animation
+// evaluator and must never tick it. Frustum and HSV definitions still throw.
+EffectLightDefinition source_completed_effect_light_definition(std::span<const std::byte>);
+EffectLightDefinition load_completed_effect_light(const Cache &,std::uint32_t datum);
+// True when the definition names any of the three animation blocks.
+bool effect_light_is_animated(const EffectLightDefinition &);
+struct EffectLightState;
+// Whole original C2B30 for a sphere without a gel block, called by C2CB0
+// after it has produced the tick's control, colours and brightness. The
+// brightness function scales +EC; the colour function scales the diffuse
+// colour at +D4 only. An unsynchronized light offsets the game tick by
+// (identity*4999 & 0x7fffffff) % (tick_rate*60). Specular, size and control
+// are not touched.
+void source_effect_light_animate(const EffectLightAnimation &,std::uint32_t identity,
+    std::int32_t tick,std::int16_t tick_rate,EffectLightState &);
 // Original retailC0C80 / TU1.1 C1B30 standalone scalar/color update.
 // Elapsed is the signed source tick difference; no render fraction is added.
 EffectLightState source_effect_light_state(const EffectLightDefinition &,float control,

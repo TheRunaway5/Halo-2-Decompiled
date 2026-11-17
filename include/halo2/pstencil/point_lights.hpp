@@ -4,6 +4,9 @@
 #include "halo2/pstencil/attached_lights.hpp"
 
 namespace halo2::pstencil {
+// pStencil gives every visible, admitted point its own stencil pass.
+void include_active_point_lights(SourceEffectLightView&);
+
 struct PointLightOwner {
     std::uint32_t object,definition;
     Transform root;

@@ -315,6 +315,85 @@ run in the tick (10% and 6% of it), so a native BF0C0 is worth roughly
 1.5-2 ms per frame. Next: scope and build it with a store-sequence oracle,
 as the native 40E80 command kernel was.
 
+## Campaign render overlap (2026-11-14)
+
+Campaign now uses the multiplayer pattern (src/app/main.cpp). Armory
+(01a, Original, 1920x1018) before it: ~52 ms main-thread CPU per frame, of
+which `Renderer::Impl::draw` 12.9 ms and `Simulation::step` 11.7 ms.
+
+- The frame's event/input/simulation block is the `advance` lambda at the
+  top of the campaign loop. `overlap_campaign_draw` runs the draw
+  (`draw_texture_camera`/`draw`) as a `native_overlap_run` job while
+  `advance` runs for the next frame on the main thread, the work that follows
+  the draw in the serial order anyway.
+- Input-latency guard: when the draw outlasts the block (Armory: draw ~13-17
+  ms, one tick ~12 ms), `advance` would sample input earlier than the serial
+  order does, relative to the presentation of the frame it drives. The guard
+  waits `max(0, D - A(k) - dev(k) - 0.5 ms)` before `advance`, ending early
+  once the draw is done. D is the smoothed draw time, and A(k) and dev(k) are
+  the smoothed block time and its mean deviation for the predicted tick count
+  k. A side-effect-free `CampaignFrameClock` predicts k. Both then end about
+  together, input is sampled no earlier than in the serial order, and the
+  frame interval is unchanged. A misprediction costs latency, not frame time.
+  `HALO2_REFERENCE_OVERLAP_EARLY_INPUT=1` disables the guard (the multiplayer
+  order). The bookkeeping runs under
+  `campaign_reference_capture::Environment` (no FP flag or errno leaks). The
+  reference capture uses its declared interval, so its frames do not depend
+  on the wait. At exit: `Campaign render overlap draws=N input_wait_ms=T`.
+- The draw starts after `with_texture_camera_scene_prefix_tu15` has finished
+  (13C00 cleanup), because the next tick must not run inside the prefix.
+  `campaign_view`, `effects` and `pause_draw` live at loop-body scope so the
+  deferred draw can borrow them; the reticle flag and capture path are values.
+- Shader inputs that the renderer evaluates during the draw were live readers
+  of the simulation (`SceneObjects::function_variable`, `object_vitality`,
+  `SourceCharacterShaderInputs::input` held `&unit`). They now take value
+  snapshots at submission (`SceneObjects::function_variables`, vitality copy,
+  unit damage/vitality copy). The frame is the same in sync mode.
+- `native_overlap_join()` (new) lets `advance` wait for the draw. It does so
+  through `join_campaign_draw()` before `renderer->resized()`, a pause-menu
+  event (visible menu, ESC or Start), the restart block and a BSP switch in
+  `update_bsp`. The join then also runs the submission bookkeeping (lens query
+  finish, reference trace records, `++frames`), so it runs before any owner
+  is retired.
+- Not overlapped: the last frame of a finite run, crossfade screen captures,
+  pStencil capture controls, a visible pause menu, a pending restart, and runs
+  with the weapon/hologram trace observers. `HALO2_REFERENCE_SYNC_RENDER=1`
+  keeps every campaign draw synchronous. The startup line is
+  `Campaign render overlap: ...`.
+- Order changes relative to the serial path: the lens query finish (stamp at
+  0x4922c0 plus rollback) and the 13C00 cleanup move after the draw/the
+  next tick, as multiplayer's lens finish already did. During `advance`,
+  `frames` already counts the frame (exact unless the draw is declined).
+- The reference trace keeps the serial record order: `Trace::hold` queues
+  the main thread's `advance` records, the join `interject`s the completion
+  records, and `release` writes the queue. Draw-time observer records from
+  the render thread are written directly. The `after_render` state is
+  evaluated at submission.
+- Parity: `--campaign-reference-capture .05 0 305419896` at 600 frames.
+  Overlap, `HALO2_REFERENCE_SYNC_RENDER=1` and the pre-change binary have the
+  same frame (sha256 e3640a13499f9cc5...) and the same trace (287c93af82da7d5b...,
+  13,191 records). The final build matches with the guard on and with
+  `HALO2_REFERENCE_OVERLAP_EARLY_INPUT=1`: 599 of 600 draws overlapped.
+  Under `--validation` with overlap on (300 frames) there are 0 validation
+  messages.
+- Timing (Armory A/B on one binary, `HALO2_REFERENCE_SYNC_RENDER=1` vs
+  default, interleaved, 2026-11-14). The host was shared with other agents'
+  builds and game instances (load 6-33 on 16 cores), so single runs varied
+  up to 2x. Late runs used 1904x1018 because the window was clamped. In the
+  least-loaded Original pairs the frame went from 50.1 to 39.5 ms (plain
+  overlap) and from 50.8 to 40.3 ms (guard), about +25% fps. pStencil went
+  from 44.4 to 37.2 ms and from 47.5 to 41.0 ms. The median paired gain by
+  set is +7..27%, and some heavily loaded pairs were neutral or negative:
+  the overlap needs a free core for the render thread. Remeasure on a quiet
+  host. The guard versus early input is not yet separable from the noise
+  (`HALO2_REFERENCE_OVERLAP_EARLY_INPUT=1` gives the comparison).
+- What still limits the frame: the draw on the render thread (~13 ms sync,
+  ~17-20 ms beside the tick) now outlasts the block it overlaps. The frame is
+  about (draw) + (prefix/view/pStencil preparation) instead of
+  (tick) + (preparation) + (draw). More gain needs a shorter
+  `Renderer::Impl::draw` (geometry bind ~9 ms) or less main-thread
+  preparation.
+
 ## Rules, tools, validation (same as the goal doc)
 
 - Frames must be byte-identical: `python3 tools/run_test.py -- python3

@@ -101,8 +101,9 @@ int main(int argc,char** argv)try {
     std::size_t declared_bytes=0;Json fields=Json::array();
     declarations.visit_committed([&](auto p,auto bytes){declared_bytes+=bytes.size();fields.push_back({{"address",p},{"bytes",bytes.size()},{"initial_sha256",digest(bytes)}});});
     // Includes the separately declared loader-zeroed opposite-end allocation
-    // cursor at4F2958. The optional original comparison checks every byte.
-    check(declared_bytes==43566 && fields.size()==21,"Native arena data includes unclassified storage");
+    // cursor at4F2958 and state-change BYTE at4F2968. The optional original
+    // comparison checks every byte.
+    check(declared_bytes==43567 && fields.size()==22,"Native arena data includes unclassified storage");
     if(!reference.empty()) {
         const auto original=load_source_runtime_image(reference,SourcePhysicsContactImage::TitleUpdate15);
         declarations.visit_committed([&](auto p,auto bytes){check(std::ranges::equal(bytes,original.view(p,bytes.size())),"Native arena cold declaration differs from the authenticated reference at "+std::to_string(p));});

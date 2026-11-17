@@ -6,7 +6,7 @@
 #include <stdexcept>
 namespace halo2 {
 namespace {std::atomic<std::uint64_t> entry_calls{};}
-bool native_campaign_ai_clump_retirement_tu15_owns_entry(std::uint32_t entry){return entry==0x272ec0u;}
+bool native_campaign_ai_clump_retirement_tu15_owns_entry(std::uint32_t entry){return entry==0x272ec0u||entry==0x2731e0u;}
 void native_campaign_ai_clump_retirement_tu15_run(SourcePhysicsContactMemory &memory,
         std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi,
         const SourcePhysicsWorldRuntimeServices &services) {
@@ -15,6 +15,12 @@ void native_campaign_ai_clump_retirement_tu15_run(SourcePhysicsContactMemory &me
     if(abi.eflags&0x400u)throw std::invalid_argument("Native AI clump retirement needs the engine ABI forward string direction");
     const auto read=[&](std::uint32_t address){std::array<std::byte,4>b{};memory.read(address,b);std::uint32_t v{};for(unsigned i=0;i<4;++i)v|=std::to_integer<std::uint32_t>(b[i])<<(i*8u);return v;};
     if(services.instruction)services.instruction(entry);
+    if(entry==0x2731e0u) {
+        native_campaign_ai_clump_detach_actor_tu15(memory,abi.gp[0],abi.gp[2]);
+        // Both actual27282F/272899 callers consume only retained DATA and
+        // preserved registers. They overwrite the dead volatile registers.
+        read(abi.gp[4]);abi.gp[4]+=4u;return;
+    }
     const auto clump=read(abi.gp[4]+4u);
     native_campaign_ai_clump_retirement_tu15(memory,clump,[&](const NativeCampaignAiReferenceInvalidationTu15&r){
         native_campaign_ai_clump_reference_invalidation_tu15(memory,r);

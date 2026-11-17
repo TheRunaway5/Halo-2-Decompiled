@@ -12,6 +12,137 @@ Track implementation and independent parity separately from runtime closure,
 performance and delivery in [the complete migration checklist](NATIVE_REPLACEMENT_CHECKLIST.md).
 The goal remains active until those completion gates are met.
 
+Latest coherent checkpoint R26 passes 258/258 components, the full engine and
+all eight exact-input 4K runtime/accounting workloads. Every frame hash matches
+R24, R21 and R14. It records 3,022,959 fewer literal observations than R24,
+18,340,238 fewer than R21 and 53,850,272 fewer than R14; 2,733 observed fallback
+functions and 65 unresolved owner identities remain. Source manifest:
+`e4783108af13ae69247431ed1b7179767d6e6ed80b1e63ee146804dc7d0dcc2a`.
+The complete owner and rebuildable runtime are removed, retaining 3,254,815
+bytes of JSON metadata and bounded text logs, with no large binary/capture
+artifacts. Closure: `native-execution-r26-closure-20261110/report.json`.
+Failed R25's 251/255 results and diagnostics remain preserved; its four exact
+include-reconstruction fixture corrections pass 4/4 and are included in R26.
+Later observer, object-material lookup, callback-free Arena, support-pair and
+three lookup-copy changes have separate scoped acceptance and postdate this
+freeze. Parent/runtime closure and the remaining owners stay open. The
+launcher selection is preserved; all-map/campaign, zero-translated-execution,
+Original-frame, timing and delivery gates remain open.
+
+Later three-owner codec translation is closed within its stated physical and
+source domains: official 3/3, independent Clang physical/five defects and a full
+installed 325,008-comparison Clang source matrix pass, with its owned tree
+removed. Two-owner scalar-copy defaults also pass official 3/3, independent
+Clang physical/four defects and a full installed eight-context 215,904-comparison
+Clang source proof; their owned source/build tree is removed. The lookup source family now distinguishes
+raw callback streams from prepared literals, requires exact function-entry
+placement and uniform callback formats, and includes the canonical
+DirectDamage/Vitality defaults. Its installed routing/generation suite passes
+12/12 and independent canonical Clang passes. The combined global-prefix
+authentication correction passes registered format 2/2 and generation 4/4.
+The full catalog's older Boundary/Scene include-order rejection is closed by
+an exact known-sibling correction: registered routes/generation/catalog pass
+3/3, including all 38 catalog methods, with the owned tree removed. R27 is frozen at
+`f7c4abc3ed8356892f4c05b9d05d3f7a1905b41c5e1c39dfc4d539974ce2ef32`
+and failed 282/285 component checks before engine/runtime work: a stale Edge
+mutation anchor and two empty Arena optional arguments. All three repairs have
+separate focused acceptance; the owned tree is removed and R27 stays immutable.
+Failure closure: `native-execution-r27-failure-closure-20261110/report.json`.
+These source results postdate
+R26 and establish neither a new coherent runtime checkpoint nor native-only
+campaign/all-map closure.
+
+The later frozen AI/Edge installed retry now passes all eight registered gates,
+including full catalog, selector and isolated helpers, with its owner removed.
+The TypeQuery parent10DE40 is inserted after both-compiler parent/source/owner
+and exact candidate-route proofs. Its immutable final cohort is7/8 because an
+older codec-translation include roundtrip failed; the separate focused include
+repair and independent installed Clang are closed. Inherited child bodies are
+preserved; complete child/public/runtime domains stay open. VehicleEnvironment's
+raw/public/default/generator scope is closed with twelve installed passes plus
+independent Clang. The historical regression skipped in that cohort, then ran
+from the SHA-verified archive and exposed missing BBE70 renderer callbacks.
+Exact controlled cause and callback-capable repair are tracked separately. Arena's twelve actual producer-policy pairs and both real removal/
+restoration controls now pass with stable generated-input audits and all owned
+trees removed. Its exact production binding is installed and passes all11
+registered checks plus independent Clang and four defects. These component
+stages do not establish a new coherent engine checkpoint.
+
+Two-owner quaternion interpolation296240 is now closed within its declared
+source/FP domain: official3/3, independent Clang766 physical paths/four defects,
+and full installed tagged Clang370,272 comparisons across eight contexts and
+34 feedback modes. All owned source/build/bank artifacts are removed. Closure:
+`native-codec-rotation-interpolation-closure-20261110/report.json`. The later
+codec-translation known-interpolation include-order repair is separately
+closed by registered whole operand specialization1/1. TypeQuery's failed
+immutable final cohort remains7/8; its five numeric/owner/generation gates,
+selector and full catalog pass, followed by the focused include repair and
+independent installed Clang routing. Projectile child100E70 is installed in
+its exact CombatAction source after the ordered original-backed multiply,
+physical observer and both-compiler source proof. Its actual linked public
+API and independent installed Clang source proof pass. The installed suite
+remains 8/9, with a separate R29 full catalog pass on the same owning code. MapWorld
+1DB800/11E490 pass both physical compilers and the first complete composed
+source comparison; four actual raw/prepared owner contexts are authenticated.
+The exact pair is now installed; both source compilers and six registered
+component checks pass, as does the actual linked public API under all five
+route controls. Whole-runtime qualification remains open.
+Flight query E0900 passes all 76 physical sites and both sanitizer compilers,
+including original retired stores and five deliberate defects per compiler.
+Primary and DeathCycle pass their separate source proofs and are installed
+with separate reference routes. The linked diagnostics match guest and
+host streams across all three controls for both owners. The prior registered
+FP assertion rejected a caller x87 C1 change shared by all routes; the
+corrected registered run remains open. The 10BE20 MapWorld leaf passes both original and source sanitizer
+compilers, including original retired x87 stores and six source defects
+per compiler. Its exact default is installed and all eight registered
+Device/MapWorld component checks and four focused regressions pass. All
+seven linked controls pass in the exact MapWorld object supplement, after
+restoring the caller's host x87 C1 in the native entry. Whole-cohort and
+inherited dispatch qualification remain open.
+Hull Line and Sample pass all 11 registered Clang checks and independent GCC
+source routes, with the owned tree removed. Hull Minimum is installed; six
+registered checks and independent GCC pass, and the full catalog timed out.
+Basis remains private. Hull Clear is installed and passes all four
+registered checks, independent GCC source and focused catalog and operand
+checks. The hull initialization catalog passed
+in a separate exact-owner supplement with the longer test limit. The installed
+VehicleUpdate callback repair passes the complete archived default and its own
+reference route and all three affected component tests. All owners were removed.
+Coherent R28, frozen at
+`5c119eb66adcc8a1b3dc517ae3cc9dde3b25f14f7b4f51868a38308a1366fa00`, was
+interrupted after the component targets built. The owner is removed; no
+component, engine or replay acceptance followed. R29 froze its new source
+at `2d9d14737d28379e17fa174970e1323afc0d4642ef9732f30dabd66636200c06`
+and passed 330/332 registered components, including the full catalog. The
+two timeouts each passed an independent replay using the same frozen source.
+R29's engine and replay gates did not run, and its owned tree is removed.
+R30 froze at `dd6179bb56ff6cec2e957d40aee4c7acf21364eb43ad2deda4081160cbd6f252`
+with the later native defaults and corrected Flight tests. Its component
+gate runs at most two CTests concurrently and schedules the two R29 timeout
+cases alone at their unchanged limits. R30 exited 143 during compilation,
+before CTest began, and its owned tree was removed. R31 is frozen at
+`86e6ac1eb6bbca1c5197680bec35d022ff515ba8584ec838400ae6bfd97402d1`
+and finished building the targets for 361 registered component tests. It
+adds the AIFrame node-progress default and the final World 303800
+registrations. The later 165590, 1655F0/24B430, 107140, Hull Clip 3147D0,
+VehicleUpdate D3750 and scoped D3950 World admission are outside R31.
+Their component and bounded relink evidence is tracked in the checklist.
+All-map/campaign/native-only/Original-frame qualification remains open.
+
+The earlier R19 cohort froze at
+`62e3f58b4eff954443e732ea9cfe85597dbdead1e2525b655a1f28c1c96aab64`
+and passed 187/189 registered component checks before stopping at two older
+fixture integrations. No engine/runtime work followed. The exact callback
+oracle repair passes sanitizer/Release; the triangle include roundtrip repair
+passes its full registered regression. The failed cohort remains preserved with scratch removed.
+Its accepted source additions and private ports are updated in the companion
+checklist; R18 was the latest completed runtime checkpoint at that stage.
+
+R20 is frozen at `54e33b77fa0646e8e2bb786bd5f7ae3565b85f068930c93c8b912d46fde11b9c`
+with the accepted marker/closest-segments defaults and exact R19 fixture repairs.
+Its four-worker component gate finished 195/196. The sole Motion inverse-generation fixture failed on a later marker prefix; the exact composition repair passes its focused registered regression, with original baseline/pins unchanged. Historical R20 remains failed, with no engine/runtime work and its complete scratch owner removed. Later BSP admission and paired-simplex defaults pass their final nine-test and five-test cohorts. R21 is frozen at `fd842427aa6843ecf4c0d7571f7f2d81eee5b37596ae20e94f23538f4c6f108c` and passes all 206 components, the full engine and eight runtime/accounting workloads. All eight frame hashes match R18 and R14, with 22,544,187 fewer literal observations than R18; 2,746 fallback functions and 66 unresolved identities remain. The entire owner is removed, retaining only 7,518,346 bytes of bounded metadata. Later FC510/sphere/boundary/diagnostic-stream defaults are outside that freeze; all-map/campaign, native-only, Original-frame, timing and delivery gates remain open.
+
 Scope includes every compiled, reachable production variant. A TU1.5 parity
 cohort does not exclude the retained MapPack11 `State` owners: the application
 still accepts an explicit gameplay image and source-world selection, and those
@@ -46,6 +177,16 @@ instruction count does not establish native execution time; measure each
 replacement in a separate non-accounted runtime cohort. At that checkpoint,
 the translated work dominated frame time (presented-pose relocation ~13 ms,
 tick ~9 ms at 1p).
+
+
+The later installed diagnostic controller scope passes 4/4 registered checks,
+independent Clang and catalog24/24, with all 30 owned trees removed. Its
+formatter, writer, copy, logger initialization/getter and platform dependencies
+remain explicit. The private 95-site effect-reference closure passes both
+sanitizer compilers over 563 genuine whole/interrupted paths and five compiled
+defects; actual current/fresh source routing is still under qualification.
+The shared hull wrapper has separately qualified narrow value reuse and raw
+entry-stop/continuation evidence; its full child/default scope remains open.
 
 ## Acceptance
 
@@ -363,3 +504,11 @@ entry: B8F40 4.6% (DF880 1.9, 1179C0 1.3, C9010 0.8), B9090 2.8%, 168CA1 2.5%,
 23670 PRT 1.6%, 3DAF0 1.4%, 15EBA0 1.1%, 1ADF60 0.9%.
 
 If Codex takes over any file listed above, note it here.
+
+The 2026-11-10 effect-reference95-site component is now installed and closed:
+ten exact source defaults, three owning generators, five catalog rows, both
+compiler original/ABI/provider/mutation proofs, twelve whole syntax contexts,
+catalog27/27 and registered3/3. All29recorded owners are removed. The exact
+required-owner policy repair is separately accepted for World/Marker/Boundary/
+Paired; incidental host-FP child transport is being qualified privately before
+the next coherent engine checkpoint. The broad goal remains active.

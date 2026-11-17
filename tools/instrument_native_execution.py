@@ -17,6 +17,12 @@ from native_service_observations import native_service_observation
 NON_CODE=re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',re.S)
 CALL_RECEIVER=r'(?:[A-Za-z_]\w*(?:\(\))?\.)*instruction(?:_literal)?'
 GUARD=re.compile(r'\bif\s*\(\s*(?P<predicate>s\.gp\[1\]\s*&&\s*)?(?P<receiver>'+CALL_RECEIVER+r')\s*\)\s*(?P<brace>\{\s*)?(?P=receiver)\s*\(')
+# A retained instruction may preserve host FP around its service callback.
+# Own the complete guard, so an absent callback still counts the translated
+# instruction. Additional lambda statements or an else remain unsupported.
+SCOPED_GUARD=re.compile(r'\bif\s*\(\s*(?P<receiver>(?:s\.)?services\.instruction)\s*\)\s*'
+    r'[A-Za-z_]\w*\.io\s*\(\s*\[&\]\s*\{\s*(?P=receiver)\s*\(\s*'
+    r'0x[0-9a-fA-F]+[uU]?\s*\)\s*;\s*\}\s*\)\s*;')
 LITERAL=re.compile(r'\b'+CALL_RECEIVER+r'\s*\(')
 SERVICE=re.compile(r'\b(?:s\.)?services\.instruction\s*\(')
 LITERAL_PC=re.compile(rf'(?:{EXPRESSION}|\(s\.image==SourcePhysicsContactImage::MapPack11\?{HEX}:{HEX}\))')
@@ -55,6 +61,10 @@ def instrument(text,canonical_text,canonical_name,*,embedded=False):
         if symbol not in canonical:raise ValueError('Alias function is absent from canonical source: '+symbol)
         mask=NON_CODE.sub(lambda m:' '*len(m.group()),body)
         covered=[];sites=[];forwarders=[];predicates={}
+        for guard in SCOPED_GUARD.finditer(mask):
+            following=after_space(mask,guard.end())
+            if re.match(r'else\b',mask[following:]):raise ValueError('Scoped instruction callback guard has an unsupported else clause')
+            sites.append((guard.start(),guard.end()));covered.append((guard.start(),guard.end()))
         for guard in GUARD.finditer(mask):
             closed=close_parenthesis(mask,guard.end()-1)
             if not LITERAL_PC.fullmatch(mask[guard.end():closed-1].strip()):

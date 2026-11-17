@@ -6,6 +6,7 @@ layout(push_constant) uniform Camera {
 } camera;
 layout(location=0) out float sourceDepth;
 layout(location=1) flat out uint sourceStipple;
+layout(location=2) flat out vec4 sourceWindow;
 void main() {
     sourceStipple=stippleLevel;
     // May2003 program89/8F: normalize(light-position), then subtract
@@ -18,6 +19,7 @@ void main() {
     vec4 p=vec4(position,1);
     gl_Position=camera.matrix*p;
     sourceDepth=dot(p,camera.depthRow);
+    sourceWindow=vec4(0);
     if(camera.control.z!=0.0) {
         // Match the surface program's DPH, MUL c10, RCC and MAD c11
         // ordering, including its Z round trip. A matrix multiply or XY/W
@@ -37,6 +39,8 @@ void main() {
         screen.xy=trunc(screen.xy*16.0)/16.0;
         clip.w=(clip.w<0.0?-1.0:1.0)*clamp(abs(clip.w),
             5.421010862427522e-20,1.8446744073709552e19);
+        sourceDepth=clip.w;
+        sourceWindow=vec4(screen.xyz,clip.w);
         vec2 ndc=(screen.xy-camera.viewport.xy)*2.0/camera.viewport.zw-1.0;
         gl_Position=vec4(ndc*clip.w,(screen.z/16777215.0)*clip.w,clip.w);
     }

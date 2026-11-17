@@ -6,7 +6,7 @@
 #include <thread>
 
 namespace halo2::native_async_queue_abi_detail {
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_ASYNC_QUEUE");return p&&*p;}();return value;}
 template<class State>bool admitted(State&s){
     if(reference()||s.image!=SourcePhysicsContactImage::TitleUpdate15||!native_raw_x87_detail::supported(s))return false;
@@ -25,8 +25,11 @@ template<class State>bool admitted(State&s){
 }
 template<class State,class Before>struct Storage {
     State&s;std::uint32_t base;Before&before;native_raw_x87_detail::Scope<State>&scope;
-    void at(unsigned offset){const auto pc=base+offset;if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;scope.io([&]{before(s,pc);});}
-    std::uint32_t word(std::uint32_t address,unsigned width=4){std::uint32_t value{};scope.io([&]{value=physics_step_detail::r(s.memory,address,width);});return value;}
+    void at(unsigned offset){const auto pc=base+offset;if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;if(!native_raw_x87_detail::skip_hook<Before>())scope.io([&]{before(s,pc);});}
+    std::uint32_t word(std::uint32_t address,unsigned width=4){
+        std::array<std::byte,4>bytes{};if(width&&width<=4&&native_raw_x87_detail::direct_read(s.memory,address,std::span(bytes).first(width))){std::uint32_t value{};for(unsigned n=0;n<width;++n)value|=std::to_integer<std::uint32_t>(bytes[n])<<(8u*n);return value;}
+        std::uint32_t value{};scope.io([&]{value=physics_step_detail::r(s.memory,address,width);});return value;
+    }
     SourcePhysicsContactRecordStore write(unsigned offset,std::uint32_t address,std::uint32_t value,unsigned width=4){
         SourcePhysicsContactRecordStore event{base+offset,address,{},std::vector<std::byte>(width)};
         if(s.observe){event.before.resize(width);scope.io([&]{s.memory.read(address,event.before);});}

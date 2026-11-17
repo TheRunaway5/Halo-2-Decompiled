@@ -28,6 +28,15 @@ int main(int argc,char** argv)try {
     body.selected_shader_lod=0;
     require(prepare_dynamic_material(cache,body,{},true,0.f),"Actual independent carrier did not prepare");
     const auto* carrier=independent(body);require(carrier,"Missing actual independent environment carrier");
+    const auto reflection=pstencil::load_reference_visor_cube(cache);
+    if(reflection)require(reflection->width==64 && reflection->layers==6 && reflection->mips.size()==42,
+        "Authenticated 2003 cube has an incomplete face or mip chain");
+    const auto* original=pstencil::reference_environment_parameters(visor.name);
+    const auto* multiplayer=pstencil::reference_environment_parameters(
+        "objects\\characters\\masterchief_mp\\shaders\\masterchief_visor_mp");
+    require(original && multiplayer && original->facing==multiplayer->facing && original->glancing==multiplayer->glancing &&
+        original->midrange_color_argb==multiplayer->midrange_color_argb &&
+        original->midrange_factor_argb==multiplayer->midrange_factor_argb,"Multiplayer changed the 2003 visor response");
     unsigned checked{},cube_changes{},semantic_cases{};
     std::mt19937 random(0x2003cafe);std::uniform_real_distribution<float> unorm(0,1);
     for(unsigned lod=0;lod<visor.lods.size();++lod) {
@@ -40,6 +49,14 @@ int main(int argc,char** argv)try {
         for(unsigned n=0;n<60;++n)require(base.words[n]==
             ((n==17 || n==25)?before[n]&0xffffffu:before[n]),"Reflection separation changed diffuse controls");
         const auto extra=pstencil::separate_visor_environment(root,*carrier);
+        if(reflection) {
+            const auto restored=pstencil::separate_visor_environment(root,*carrier,&*reflection);
+            require(restored.auxiliary.pixels==reflection->pixels && restored.auxiliary.mips.size()==42 &&
+                restored.texture_frames[3]==0 && restored.animated_textures[3].empty(),
+                "pStencil companion did not bind the authenticated cube statically");
+            require(restored.diffuse.pixels==extra.diffuse.pixels && restored.bump.pixels==extra.bump.pixels,
+                "2003 reflection replaced the current normal data");
+        }
         require(!source_material_layer(extra) && source_material_layer(*carrier)==8,
             "Own companion claimed another authored template LOD/layer");
         require(extra.name==root.name && extra.source_shader_datum==root.source_shader_datum &&

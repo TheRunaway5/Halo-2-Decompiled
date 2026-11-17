@@ -68,17 +68,17 @@ NativeTu15SimplexProjectionNext native_tu15_project_simplex_direction(Access&mem
     memory.word_write(P::projection,d,X::low(d.projection));
     if(!d.reducer_status){
         memory.require_capacity(2u);
-        X::load(memory.scalar_read(P::projection_load,d));
-        X::multiply(memory.scalar_read(P::projection_square,d));
-        X::multiply(memory.scalar_read(P::projection_cube,d));
-        X::load(memory.scalar_read(P::epsilon_load,d));
-        X::multiply(memory.scalar_read(P::threshold_scale,d));
-        X::multiply(memory.scalar_read(P::threshold_length,d));
-        d.relation=X::compare_pop_two();memory.relation(d);
+        memory.load_float(memory.scalar_read(P::projection_load,d));
+        memory.multiply_float(memory.scalar_read(P::projection_square,d));
+        memory.multiply_float(memory.scalar_read(P::projection_cube,d));
+        memory.load_float(memory.scalar_read(P::epsilon_load,d));
+        memory.multiply_float(memory.scalar_read(P::threshold_scale,d));
+        memory.multiply_float(memory.scalar_read(P::threshold_length,d));
+        d.relation=memory.compare_pop_two();memory.relation(d);
         if(d.relation&0x100u){
-            X::load(memory.scalar_read(P::length_load,d));
+            memory.load_float(memory.scalar_read(P::length_load,d));
             d.iteration=memory.scalar_read(P::iteration,d);
-            X::multiply(memory.scalar_read(P::tolerance_scale,d));
+            memory.multiply_float(memory.scalar_read(P::tolerance_scale,d));
             d.parity=d.iteration&1u;memory.word_write(P::parity,d,d.parity);
             memory.store_tolerance(d);
             d.next=d.parity?NativeTu15SimplexProjectionNext::first_support:NativeTu15SimplexProjectionNext::second_support;

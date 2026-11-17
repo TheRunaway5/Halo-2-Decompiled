@@ -2,8 +2,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -67,10 +69,55 @@ inline bool equivalent(const Image&a,const Image&b) noexcept {
     for(unsigned n=0;n<8;++n)if(a.tag(n)!=3&&std::memcmp(a.x87.data()+28+n*10,b.x87.data()+28+n*10,10))return false;
     return true;
 }
+// Access paths that need no parked FP image. A silent hook declares
+// `static constexpr bool silent_hook=true` and has no effects at all. A direct
+// read copies a complete committed ordinary page published through
+// SourcePhysicsContactMemory::direct_page: by that contract the copy has no read
+// side effects, and it calls no provider, observer or guard, allocates nothing,
+// cannot throw and leaves x87/MXCSR state untouched. The provider's own read()
+// takes this same route first, and the translated reference reads through it,
+// so values and access order are unchanged. Sub-page ordinary regions use the
+// provider's try_read_view block (below); any other operand returns false
+// and keeps its scoped provider read. HALO2_REFERENCE_SCOPED_ACCESS=1 restores
+// the scoped provider route for every hook and read, and the full FNSAVE park
+// around every Scope::io provider call (comparison/oracle only).
+inline bool scoped_access_reference() noexcept {
+    static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_SCOPED_ACCESS");return p&&*p;}();return value;
+}
+template<class Hook>concept silent_hook=requires{requires Hook::silent_hook;};
+template<class Hook>bool skip_hook() noexcept {
+    if constexpr(silent_hook<Hook>)return !scoped_access_reference();
+    else return false;
+}
+template<class Memory>bool direct_read(const Memory&memory,std::uint32_t address,std::span<std::byte> output) noexcept {
+    if(scoped_access_reference())return false;
+    if constexpr(requires{memory.direct_page(address,output.size());}) {
+        if(const auto*page=memory.direct_page(address,output.size())) {
+            std::memcpy(output.data(),page->bytes+(address&4095u),output.size());return true;
+        }
+    }
+    // Ordinary retained regions smaller than a page (image globals) have the
+    // same read-only block contract: try_read_view only inspects topology and
+    // never throws, calls back, allocates or changes FP state. A refusal keeps
+    // the provider read, including its exact fault for an invalid extent.
+    if constexpr(requires{memory.try_read_view(address,output.size());}) {
+        if(output.empty())return false;
+        if(const auto view=memory.try_read_view(address,output.size());view&&view->size()==output.size()) {
+            std::memcpy(output.data(),view->data(),output.size());return true;
+        }
+    }
+    return false;
+}
 template<class State>bool supported(const State&state) noexcept {
     if(state.fp.count>8||state.fp.top>7)return false;
     if constexpr(requires{state.active_mmx;})if(state.active_mmx)return false;
-    auto image=capture();image.word(4,state.fp.word());return controls_supported(image);
+    // controls_supported reads only CW, SW and MXCSR. FNSTCW/STMXCSR sample the
+    // same live controls as a full FNSAVE/FRSTOR capture, without its cost.
+    Image image;
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::uint16_t control{};asm volatile("fnstcw %0":"=m"(control));image.word(0,control);image.mxcsr=_mm_getcsr();
+#endif
+    image.word(4,state.fp.word());return controls_supported(image);
 }
 template<class State>class Scope {
     State&state_;
@@ -137,6 +184,37 @@ public:
     }
     template<class Callback>void io(Callback&&callback) {
         static_assert(std::is_void_v<std::invoke_result_t<Callback>>,"FP callbacks return through ordinary captured storage");
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+        // Empty register file at TOP 0: that state already is its own parked
+        // image, so park is publish alone. FXSAVE samples tags/controls without
+        // FNSAVE's reinitialization. After the callback any control, status,
+        // tag or MXCSR difference restores the exact source environment; empty
+        // register payloads and FIP/FDP/FOP are unobservable (see equivalent).
+        if(!scoped_access_reference()) {
+            alignas(16) std::array<std::byte,512> area;
+            asm volatile("fxsave %0":"=m"(area)::"memory");
+            const auto field=[&](unsigned offset,unsigned bytes){std::uint32_t value{};std::memcpy(&value,area.data()+offset,bytes);return value;};
+            const auto control=std::uint16_t(field(0,2)),status=std::uint16_t(field(2,2));const auto mxcsr=field(24,4);
+            if(!field(4,1)&&!(status&0x3800u)) {
+                Image source{};source.word(0,control);source.word(4,status);source.word(8,0xffffu);source.mxcsr=mxcsr;
+                // Identical to publish(source): a dense empty image or terminate.
+                if(!controls_supported(source))std::terminate();
+                const auto publish_empty=[&]{state_.fp.count=0;state_.fp.top=0;state_.fp.status=status;};
+                const auto settle=[&] {
+                    alignas(16) std::array<std::byte,512> after;
+                    asm volatile("fxsave %0":"=m"(after)::"memory");
+                    if(std::memcmp(after.data(),area.data(),6)||std::memcmp(after.data()+24,area.data()+24,4)) {
+                        asm volatile("fninit; fldenv %0"::"m"(source.x87):"memory","st","st(1)","st(2)","st(3)","st(4)","st(5)","st(6)","st(7)");
+                        _mm_setcsr(mxcsr);
+                    }
+                };
+                publish_empty();
+                try {std::forward<Callback>(callback)();}
+                catch(...) {settle();publish_empty();throw;}
+                settle();publish_empty();return;
+            }
+        }
+#endif
         const auto source=capture();park(source);
         try {std::forward<Callback>(callback)();}
         catch(...) {restore(source);publish(source);throw;}

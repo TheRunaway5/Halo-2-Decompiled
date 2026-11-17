@@ -695,7 +695,8 @@ std::string native_tu15_object_velocities_unsupported(const M &m, std::uint32_t 
 }
 
 static void set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear, const Vec3 *angular,
-                                  FP fp, NativeTu15ObjectActivationContext *context) {
+                                  FP fp, NativeTu15ObjectActivationContext *context,
+                                  const bool *wake_decision = nullptr) {
   std::optional<Scope> scope;
   if (!context)
     scope.emplace(fp);
@@ -703,7 +704,8 @@ static void set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear
   const auto old_component = context ? 0u : component_of(m, object);
   const auto moving = [&] { return (linear && above(squared(*linear), std::bit_cast<float>(0x38d1b717u))) ||
                                   (angular && above(squared(*angular), std::bit_cast<float>(0x38d1b717u))); };
-  const bool old_wakes = context ? false : moving();
+  // A caller with its own original wake test (1100C0) supplies the decision.
+  const bool old_wakes = wake_decision ? *wake_decision : context ? false : moving();
   // Refuse unported owners before any store.
   if (!context)
     if (const auto reason = native_tu15_object_velocities_unsupported(m, object, linear, angular); !reason.empty())
@@ -731,7 +733,7 @@ static void set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear
     });
     activate_component(m, component, context);
   }
-  if (context ? moving() : old_wakes) {
+  if (wake_decision ? *wake_decision : context ? moving() : old_wakes) {
     wake(m, object, context);
     propagate(m, object);
     update_root(m, object);
@@ -746,6 +748,30 @@ void native_tu15_set_object_velocities(M &m, std::uint32_t object, const Vec3 *l
   ActivationEnvironment environment(context);
   set_object_velocities(m, object, linear, angular,
                        {context.floating_point.control_word, context.floating_point.mxcsr}, &context);
+}
+
+// 1100C0 (HS object_set_velocity): linear velocity forward*s0 + left*s1 +
+// up*s2 in the object's +70 forward / +7C up frame (left = up x forward),
+// then B9770 and 1CD6A0 exactly as B9800 with no angular velocity. Its wake
+// test sums (z*z + y*y) + x*x, the reverse of B9800's order.
+void native_tu15_object_set_velocity(M &m, std::uint32_t object, float forward, float left, float up, FP fp) {
+  if (object == 0xffffffffu)
+    return;
+  Vec3 linear;
+  bool wakes;
+  {
+    Scope scope(fp);
+    const auto o = data(m, object);
+    const Vec3 f3 = v3(m, o + 0x70), u3 = v3(m, o + 0x7c);
+    const Vec3 l3{sub(mul(f3.z, u3.y), mul(u3.z, f3.y)), sub(mul(u3.z, f3.x), mul(u3.x, f3.z)),
+                  sub(mul(u3.x, f3.y), mul(f3.x, u3.y))};
+    linear = {add(add(mul(f3.x, forward), mul(l3.x, left)), mul(up, u3.x)),
+              add(add(mul(f3.y, forward), mul(l3.y, left)), mul(u3.y, up)),
+              add(add(mul(f3.z, forward), mul(l3.z, left)), mul(u3.z, up))};
+    wakes = above(add(add(mul(linear.z, linear.z), mul(linear.y, linear.y)), mul(linear.x, linear.x)),
+                  std::bit_cast<float>(0x38d1b717u));
+  }
+  set_object_velocities(m, object, &linear, nullptr, fp, nullptr, &wakes);
 }
 
 std::vector<std::uint32_t> native_tu15_vehicle_riders(const M &m, std::uint32_t object) {

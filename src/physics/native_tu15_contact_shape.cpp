@@ -1,5 +1,7 @@
+#include "halo2/native_tu15_box_shape_support_kernel.hpp"
 #include "halo2/native_tu15_contact_shape.hpp"
 #include "halo2/native_tu15_polygon_support_value.hpp"
+#include "halo2/native_tu15_zero_shape_support_kernel.hpp"
 #include <bit>
 #include <cstring>
 #include <stdexcept>
@@ -86,7 +88,7 @@ void native_tu15_contact_shape_support(SourcePhysicsContactMemory&memory,
     // Actual2E8D20 reads neither the shape nor the direction and leaves FP unchanged.
     if(owner.identity==0x2e8d20u){
         if(output&15u)throw std::runtime_error("Native TU1.5 sphere support requires aligned vector output");
-        const std::array<std::byte,16> zero{};m.bytes(0x2e8d2cu,output,zero);return;
+        const auto zero=std::bit_cast<std::array<std::byte,16>>(native_tu15_zero_shape_support_point());m.bytes(0x2e8d2cu,output,zero);return;
     }
     Environment environment(fp,depth);
     if(owner.identity==0x2e5db0u){
@@ -114,9 +116,9 @@ void native_tu15_contact_shape_support(SourcePhysicsContactMemory&memory,
     }
     if(owner.identity==0x306790u){
         const auto vertex=m.vector(shape.identity+0x10u);m.vector(0x30679du,output,vertex);
-        const auto sign=m.vector(0x461960u),input=m.vector(direction),value=_mm_xor_ps(vertex,_mm_and_ps(input,sign));
-        const auto feature=std::uint32_t(_mm_movemask_ps(value))&7u;
-        m.vector(0x3067bfu,output,value);m.word(0x3067c2u,output+0xcu,feature|0x3f000000u);return;
+        const auto sign=m.vector(0x461960u),input=m.vector(direction);
+        const auto point=native_tu15_box_shape_support_point(std::bit_cast<std::array<std::uint32_t,4>>(vertex),std::bit_cast<std::array<std::uint32_t,4>>(sign),std::bit_cast<std::array<std::uint32_t,4>>(input));
+        m.vector(0x3067bfu,output,std::bit_cast<__m128>(point.point));m.word(0x3067c2u,output+0xcu,point.feature|0x3f000000u);return;
     }
     if(owner.identity==0x1f6610u){
         native_polygon_support_detail::ValueFrame frame{m,environment,shape.identity,direction,output,scratch.scalar};

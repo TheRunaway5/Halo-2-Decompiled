@@ -31,8 +31,9 @@ public:
     Render(const Render&)=delete;
     Render& operator=(const Render&)=delete;
     // Each upload advances one immutable frame serial. Temporal lighting
-    // histories reset for a new source, changed light/emissive energy, quality
-    // or target extent; ordinary geometry poses are rejected by GPU guides.
+    // histories reset for a new source, changed static/emissive inputs, quality
+    // or target extent. Animated lights and occluders invalidate only affected
+    // direct visibility; presented geometry poses use current GPU guides.
     void upload(const Scene&);
     void upload(const Scene&,const GpuSceneUniform&);
     // Bounded per-draw transport budget. Both choices are 1..2; the default
@@ -89,6 +90,8 @@ public:
     VkPipelineLayout layout()const noexcept;
     // Actual VkDeviceMemory allocation sizes for this owner's scene buffers.
     std::size_t allocated_bytes()const noexcept;
+    // CPU-owned previous shadow positions/lights used by temporal validation.
+    std::size_t cpu_bytes()const noexcept;
     struct TemporalBankStats {
         std::uint32_t sampled_cells{},sampled_valid_count{},maximum_count{};
         double mean_count{};

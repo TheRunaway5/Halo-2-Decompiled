@@ -2,6 +2,7 @@
 #pragma once
 #include "halo2/native_tu15_bsp_segment_kernel.hpp"
 #include "physics/runtime/native_tu15_bsp_leaf_surface.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 
 namespace halo2::native_bsp_segment_detail {
 using Noop=native_bsp_leaf_surface_detail::Noop;
@@ -40,16 +41,16 @@ template<class State,class Call,class Before>struct Adapter:native_bsp_leaf_surf
     std::uint32_t flags(std::uint32_t)const{return word(sp-4u,1);}
     void raw_store(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width,bool packet=true){
         if(packet)at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(width)};
-        if(s.observe){event.before.resize(width);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
+        if(s.observe){event.before.resize(width);this->read(address,event.before);}
+        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve_empty([&]{s.memory.write(address,event.written);});if(s.observe)native_host_fp_io_detail::preserve_empty([&]{s.observe(event);});
     }
     void store_crossing(long double value){
         constexpr auto pc=0x1e6a6fu;at(pc);const auto converted=single_store(value);
         s.fp.status=(s.fp.status&~0x200u)|(converted.status&0x200u);
         SourcePhysicsContactRecordStore event{pc,sp+8u,{},std::vector<std::byte>(4)};
-        if(s.observe){event.before.resize(4);native_host_fp_io_detail::preserve([&]{s.memory.read(event.address,event.before);});}
-        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(converted.value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(event.address,event.written);});
-        pop80();cross_live=false;if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
+        if(s.observe){event.before.resize(4);this->read(event.address,event.before);}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(converted.value>>(n*8u));native_host_fp_io_detail::preserve_empty([&]{s.memory.write(event.address,event.written);});
+        pop80();cross_live=false;if(s.observe)native_host_fp_io_detail::preserve_empty([&]{s.observe(event);});
     }
     RecursiveContinuation recurse(const Progress&d,std::uint32_t child_node){
         auto&g=s.gp;g[2]=child_node;s.flags.load(arithmetic_shift_flags(d.packed,8u,s.flags.bits()));
@@ -242,7 +243,9 @@ template<class State,class Call,class Before>bool bridge(State&s,Call call,Befor
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
     if constexpr(requires{s.active_mmx;})if(s.active_mmx)return false;
     std::uint16_t cw;asm volatile("fnstcw %0":"=m"(cw));if((cw&0x3fu)!=0x3fu||(_mm_getcsr()&0x1f80u)!=0x1f80u)return false;
-    if(s.services.instruction){
+    if(native_census_detail::uncursored(s,0x1e6980u,0x1e6cabu)){
+        // Census diagnostic: full callbacks without a cursor.
+    }else if(s.services.instruction){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*c=s.instruction_cursor;if((c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace))return false;
         if(s.observe&&!c->observation_only_stores)return false;

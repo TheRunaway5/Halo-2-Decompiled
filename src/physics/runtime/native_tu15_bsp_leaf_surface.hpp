@@ -3,16 +3,27 @@
 #include "halo2/native_tu15_bsp_leaf_surface_kernel.hpp"
 #include "physics/runtime/native_tu15_bsp_surface_2d.hpp"
 #include "physics/runtime/native_tu15_bsp_surface_polygon.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 
 namespace halo2::native_bsp_leaf_surface_detail {
 inline bool reference_mode(){static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_LEAF_SURFACE");return p&&*p;}();return enabled;}
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 template<class State,class Call,class Before>struct Adapter {
     State&s;Call&call;Before&before;std::uint32_t sp,frame;bool compare_y_live{};
-    void at(std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;native_host_fp_io_detail::preserve([&]{before(s,pc);});}
+    // Production access route (HALO2_REFERENCE_SCOPED_ACCESS=1 restores the
+    // scoped provider route): silent hooks are skipped, committed direct pages
+    // and read views are copied as the provider would, and every remaining
+    // provider/observer call keeps the exact empty-stack preserve.
+    void at(std::uint32_t pc){
+        if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;
+        if(!native_raw_x87_detail::skip_hook<Before>())native_host_fp_io_detail::preserve_empty([&]{before(s,pc);});
+    }
+    void read(std::uint32_t address,std::span<std::byte> output)const{
+        if(!native_raw_x87_detail::direct_read(s.memory,address,output))native_host_fp_io_detail::preserve_empty([&]{s.memory.read(address,output);});
+    }
     std::uint32_t word(std::uint32_t address,unsigned width=4)const{
-        std::array<std::byte,4>bytes{};native_host_fp_io_detail::preserve([&]{s.memory.read(address,std::span(bytes).first(width));});std::uint32_t value{};
+        std::array<std::byte,4>bytes{};read(address,std::span(bytes).first(width));std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8*n);return value;
     }
     void push80(const long double&value){
@@ -26,9 +37,9 @@ template<class State,class Call,class Before>struct Adapter {
     }
     void store(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width=4,bool stack=false,bool pop_fp=false){
         at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(width)};
-        if(s.observe){event.before.resize(width);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});
-        if(stack)s.gp[4]=address;if(pop_fp){pop80();s.fp.status&=~0x200u;}if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
+        if(s.observe){event.before.resize(width);read(address,event.before);}
+        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));native_host_fp_io_detail::preserve_empty([&]{s.memory.write(address,event.written);});
+        if(stack)s.gp[4]=address;if(pop_fp){pop80();s.fp.status&=~0x200u;}if(s.observe)native_host_fp_io_detail::preserve_empty([&]{s.observe(event);});
     }
     void push(std::uint32_t pc,std::uint32_t value){store(pc,s.gp[4]-4u,value,4,true);}
     std::uint32_t pop(std::uint32_t pc){at(pc);const auto value=word(s.gp[4]);s.gp[4]+=4u;return value;}
@@ -138,7 +149,9 @@ template<class State,class Call,class Before=Noop>bool bridge(State&s,Call call,
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
     if constexpr(requires{s.active_mmx;})if(s.active_mmx)return false;
     std::uint16_t cw;asm volatile("fnstcw %0":"=m"(cw));if((cw&0x3fu)!=0x3fu||(_mm_getcsr()&0x1f80u)!=0x1f80u)return false;
-    if(s.services.instruction){
+    if(native_census_detail::uncursored(s,0x1e6cb0u,0x1e6e70u)){
+        // Census diagnostic: full callbacks without a cursor.
+    }else if(s.services.instruction){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*c=s.instruction_cursor;
         if((c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace))return false;

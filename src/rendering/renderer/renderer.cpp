@@ -1,6 +1,7 @@
 #include "rendering/renderer/renderer_shader_directory.hpp"
 #include "platform/startup_texture_fingerprints.hpp"
 #include "rendering/renderer/renderer_pipeline_cache.hpp"
+#include "rendering/renderer/scene_pass_dependencies.hpp"
 #include "rendering/renderer/renderer_gpu_timings.hpp"
 #include "rendering/renderer/renderer_shadow_bitmap_pages.hpp"
 #include "rendering/renderer/renderer_upload_batch.hpp"
@@ -83,6 +84,8 @@
 #include "halo2/pstencil/specular_mask.hpp"
 #include "halo2/path_tracing/render.hpp"
 #include "halo2/path_tracing/scene.hpp"
+#include "halo2/path_tracing/source_ambient.hpp"
+#include "halo2/path_tracing/material_alias.hpp"
 #include "halo2/path_tracing/geometry.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/path_tracing/color_guide.hpp"
@@ -394,6 +397,7 @@ struct Renderer::Impl {
     std::vector<std::unique_ptr<Material>> pstencil_environment_owned;
     std::set<unsigned> pstencil_environment_companion_slots;
     std::optional<unsigned> pstencil_environment_carrier_layer;
+    std::optional<Texture> pstencil_visor_cube;
     std::vector<std::optional<unsigned>> source_material_layers;
     std::vector<std::array<unsigned,2>> source_material_identities;
     std::vector<std::vector<unsigned>> source_layer15_passes;
@@ -707,6 +711,7 @@ struct Renderer::Impl {
         std::array<std::unique_ptr<path_tracing::Render>,5> renderers;
         std::array<std::optional<path_tracing::Scene>,5> scenes;
         std::array<std::unique_ptr<ResidentDrawStorage>,5> sky_storage;
+        std::array<std::unique_ptr<ResidentDrawStorage>,4> ambient_storage;
     };
     bool path_tracing_fragment_stores{};
     std::unique_ptr<PathTracingState> path_tracing_state;
@@ -725,6 +730,27 @@ struct Renderer::Impl {
     std::vector<ForwardRasterState> material_forward_states;
     std::vector<unsigned> material_forward_blends;
     std::vector<bool> accumulation_materials;
+    // A material whose own selected pass is source layer 7 (self-illumination)
+    // and which has no lighting pass, such as a character's inset lights. The
+    // original submits it with the other layer 7 passes, after every
+    // lightmap pass; drawn with the texture-mapping passes it would be
+    // overwritten by the lightmap pass of the surface beneath it.
+    std::vector<bool> emissive_forward_materials;
+    // Texture stages a light material binds to its shadow buffer (extern 13).
+    std::vector<std::uint8_t> shadow_stage_masks;
+    // A shadowed projected light's depth target (TU1.5 target 9, 48ED0): the
+    // layer 10 casters render into it before the main pass and the light's
+    // layer 11 comparison passes sample it. The color image only keeps the
+    // pass compatible with the light pipelines; nothing reads it.
+    struct LightShadowTarget {
+        VkImage color{},depth{};
+        VkDeviceMemory color_memory{},depth_memory{};
+        VkImageView color_view{},attachment_view{},sample_view{};
+        VkFramebuffer framebuffer{};
+    };
+    std::vector<LightShadowTarget> light_shadow_targets;
+    VkRenderPass light_shadow_pass{};
+    static constexpr std::uint32_t light_shadow_size=512;
     std::unique_ptr<ResidentDrawStorage> object_draw_storage;
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
     std::unique_ptr<MenuWorldNativeDraw> menu_world_native;
@@ -1984,7 +2010,8 @@ struct Renderer::Impl {
         pstencil_environment_companions.assign(material_count,~0u);
         pstencil_environment_owned.clear();pstencil_environment_companion_slots.clear();
         const auto carrier=std::find_if(materials.begin(),materials.end(),[](const auto* m) {
-            return m->name=="objects\\characters\\masterchief\\shaders\\masterchief" &&
+            return (m->name=="objects\\characters\\masterchief\\shaders\\masterchief" ||
+                    m->name=="objects\\characters\\masterchief_mp\\shaders\\masterchief_mp") &&
                 pstencil::supports_environment_response(*m);
         });
         const Material* visor_carrier=carrier==materials.end()?nullptr:*carrier;
@@ -1997,7 +2024,8 @@ struct Renderer::Impl {
                mesh.materials[root].world_vertex_input_transform!=visor_carrier->world_vertex_input_transform ||
                current->bump.layers!=1 || current->detail.layers!=6 || current->auxiliary.layers!=6 ||
                !current->animation.overlays.empty())continue;
-            auto extra=std::make_unique<Material>(pstencil::separate_visor_environment(mesh.materials[root],*visor_carrier));
+            auto extra=std::make_unique<Material>(pstencil::separate_visor_environment(
+                mesh.materials[root],*visor_carrier,pstencil_visor_cube?&*pstencil_visor_cube:nullptr));
             const auto slot=unsigned(materials.size());
             pstencil_environment_companions[root]=slot;pstencil_environment_companion_slots.insert(slot);
             materials.push_back(extra.get());pstencil_environment_owned.push_back(std::move(extra));
@@ -2024,9 +2052,16 @@ struct Renderer::Impl {
         hologram_scene_required=std::ranges::any_of(materials,[](const auto *m) {
             return source_material_layer(*m)==21;
         });
-        for(const auto *material:materials)
-            source_material_layers.push_back(pstencil_environment_companion_slots.contains(unsigned(source_material_layers.size()))?
-                pstencil_environment_carrier_layer:source_material_layer(*material));
+        for(const auto *material:materials) {
+            auto layer=source_material_layer(*material);
+            if(pstencil_environment_companion_slots.contains(unsigned(source_material_layers.size())))
+                layer=pstencil_environment_carrier_layer;
+            // Combined texture producers use the base pass's stipple
+            // coverage even when their color comes from authored layer 14.
+            if(material->forward_vertex==6 && pstencil::texture_accumulation_material_2003(*material))
+                layer=3;
+            source_material_layers.push_back(layer);
+        }
         for(const auto *material:materials)
             source_material_identities.push_back({material->source_shader_datum,material->selected_shader_lod});
         camouflage_variants.resize(material_count,{~0u,~0u,~0u,~0u,~0u});
@@ -2238,6 +2273,8 @@ struct Renderer::Impl {
         material_forward_states.resize(count);
         material_forward_blends.resize(count);
         accumulation_materials.resize(count);
+        emissive_forward_materials.assign(count,false);
+        shadow_stage_masks.assign(count,0);
         material_fragment_offsets.resize(count);
         baked_materials.resize(count);
         water_material_definitions.resize(count);water_materials.resize(count);water_texture_bindings.resize(count);
@@ -2272,10 +2309,32 @@ struct Renderer::Impl {
             material_forward_states[i]=material.forward_raster;
             material_forward_blends[i]=material.forward_blend;
             accumulation_materials[i]=material.accumulation_texture;
+            if(material.forward_pass && !material.lods.empty() && material.selected_shader_lod<material.lods.size() &&
+               material.forward_pass_index<material.passes.size()) {
+                const auto &lod=material.lods[material.selected_shader_lod];
+                const auto selected=material.passes[material.forward_pass_index].template_pass;
+                if(lod.layers.count()>7 && (lod.available_layers&(1u<<7)) && lod.layers.first()+7<material.layers.size()) {
+                    const auto range=material.layers[lod.layers.first()+7];
+                    emissive_forward_materials[i]=selected>=range.first() && selected-range.first()<range.count();
+                }
+            }
             const bool projected_light=material.forward_vertex==6 && material.forward_pass &&
                 material.forward_pass_index<material.passes.size() &&
                 material.passes[material.forward_pass_index].vertex_shader.find("\\lightaccum_frustum")!=std::string::npos;
-            if(material.forward_blend==10 || projected_light) {
+            // Source layer 11 implementation 2: a projected light's
+            // unblended alpha-only gel pass (validated by the light owner).
+            const bool projected_light_alpha=material.forward_vertex==6 && material.forward_pass &&
+                material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0x01000000u &&
+                (material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_1tap") ||
+                 material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_3tap"));
+            // Source layer 10: a shadowed light's caster into its depth target.
+            const bool projected_light_caster=material.forward_vertex==6 && material.forward_pass &&
+                material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0 &&
+                material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_generation");
+            if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
+                for(const auto &binding:material.passes[material.forward_pass_index].textures)
+                    if(binding.external==13 && binding.stage<4)shadow_stage_masks[i]|=std::uint8_t(1u<<binding.stage);
+            if(material.forward_blend==10 || projected_light || projected_light_alpha || projected_light_caster) {
                 source_effect_light_draw(unsigned(i),material,{});
                 effect_light_materials[i]=true;
                 effect_light_blends[i]=material.forward_blend;
@@ -2329,6 +2388,13 @@ struct Renderer::Impl {
                 uniform.texture_effects[stage]={state.alpha_kill,
                     ((stage==0 && material.accumulation_texture) || (stage==2 && material.camouflage_scene_texture)?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
                 if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
+                // A light's shadow buffer: texel coordinates and the depth
+                // comparison fetch (menu_world.frag sourceShadowCompare).
+                if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
+                    for(const auto &binding:material.passes[material.forward_pass_index].textures)
+                        if(binding.external==13 && binding.stage==stage) {
+                            uniform.texture_effects[stage][1]|=1u;uniform.texture_effects[stage][2]|=2u;
+                        }
             }
             const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
             if((material.forward_pass || material.static_lightmap_pass) &&
@@ -2748,6 +2814,7 @@ struct Renderer::Impl {
         if(fog_pass)vkDestroyRenderPass(device,fog_pass,nullptr);
         if(continuation_pass)vkDestroyRenderPass(device,continuation_pass,nullptr);
         fog_pipeline=VK_NULL_HANDLE;fog_pass=VK_NULL_HANDLE;continuation_pass=VK_NULL_HANDLE;
+        destroy_light_shadow_targets();
         if(accumulation_framebuffer) vkDestroyFramebuffer(device,accumulation_framebuffer,nullptr);
         if(world_accumulation_pass) vkDestroyRenderPass(device,world_accumulation_pass,nullptr);
         if(foreground_accumulation_pass) vkDestroyRenderPass(device,foreground_accumulation_pass,nullptr);
@@ -2848,7 +2915,7 @@ struct Renderer::Impl {
                 std::error_code error;
                 const auto size=std::filesystem::file_size(shader_directory/"path_tracing"/name,error);
                 if(error || size<20 || size>32u*1024u*1024u || size%4)
-                    return "Path Tracing authored surface shaders are unavailable in this runtime.";
+                    return "Path Tracing authored ambient surface shaders are unavailable in this runtime.";
             }
             VkImageFormatProperties visibility_properties{};
             if(vkGetPhysicalDeviceImageFormatProperties(physical,VK_FORMAT_D32_SFLOAT,VK_IMAGE_TYPE_2D,
@@ -3354,25 +3421,7 @@ struct Renderer::Impl {
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &color;
         subpass.pDepthStencilAttachment = &depth_reference;
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependency.dstStageMask = dependency.srcStageMask;
-        dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        std::array<VkSubpassDependency,2> pass_dependencies{};
-        pass_dependencies[0]=dependency;
-        pass_dependencies[0].srcStageMask|=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        pass_dependencies[0].srcAccessMask|=VK_ACCESS_SHADER_READ_BIT;
-        pass_dependencies[0].srcAccessMask|=VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        pass_dependencies[0].dstAccessMask|=VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-        pass_dependencies[1].srcSubpass=0;pass_dependencies[1].dstSubpass=VK_SUBPASS_EXTERNAL;
-        pass_dependencies[1].srcStageMask=VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        pass_dependencies[1].dstStageMask=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        pass_dependencies[1].srcAccessMask=VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        pass_dependencies[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
+        const auto pass_dependencies=detail::scene_pass_dependencies();
         VkRenderPassCreateInfo render{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
         render.attachmentCount = 2;
         render.pAttachments = attachments;
@@ -4151,6 +4200,73 @@ struct Renderer::Impl {
         return result;
     }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+    void ensure_light_shadow_targets(unsigned count) {
+        if(!light_shadow_pass) {
+            std::array<VkAttachmentDescription,2> attachments{};
+            attachments[0].format=format;attachments[0].samples=VK_SAMPLE_COUNT_1_BIT;
+            attachments[0].loadOp=VK_ATTACHMENT_LOAD_OP_CLEAR;attachments[0].storeOp=VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[0].stencilLoadOp=VK_ATTACHMENT_LOAD_OP_DONT_CARE;attachments[0].stencilStoreOp=VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[0].initialLayout=VK_IMAGE_LAYOUT_UNDEFINED;attachments[0].finalLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachments[1]=attachments[0];attachments[1].format=depth_format;
+            attachments[1].storeOp=VK_ATTACHMENT_STORE_OP_STORE;attachments[1].stencilLoadOp=VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[1].finalLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            const VkAttachmentReference color{0,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+                depth_reference{1,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            VkSubpassDescription subpass{};subpass.pipelineBindPoint=VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpass.colorAttachmentCount=1;subpass.pColorAttachments=&color;subpass.pDepthStencilAttachment=&depth_reference;
+            VkRenderPassCreateInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+            pass.attachmentCount=unsigned(attachments.size());pass.pAttachments=attachments.data();
+            pass.subpassCount=1;pass.pSubpasses=&subpass;
+            const auto dependencies=detail::scene_pass_dependencies();
+            pass.dependencyCount=unsigned(dependencies.size());pass.pDependencies=dependencies.data();
+            check(vkCreateRenderPass(device,&pass,nullptr,&light_shadow_pass),"create light shadow pass");
+        }
+        while(light_shadow_targets.size()<count) {
+            LightShadowTarget target;
+            const auto create=[&](VkFormat image_format,VkImageUsageFlags usage,VkImage &image,VkDeviceMemory &memory) {
+                VkImageCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+                info.imageType=VK_IMAGE_TYPE_2D;info.format=image_format;
+                info.extent={light_shadow_size,light_shadow_size,1};info.mipLevels=info.arrayLayers=1;
+                info.samples=VK_SAMPLE_COUNT_1_BIT;info.tiling=VK_IMAGE_TILING_OPTIMAL;info.usage=usage;
+                check(vkCreateImage(device,&info,nullptr,&image),"create light shadow image");
+                VkMemoryRequirements requirements;vkGetImageMemoryRequirements(device,image,&requirements);
+                VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+                allocation.allocationSize=requirements.size;
+                allocation.memoryTypeIndex=memory_type(requirements.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                check(vkAllocateMemory(device,&allocation,nullptr,&memory),"allocate light shadow image");
+                check(vkBindImageMemory(device,image,memory,0),"bind light shadow image");
+            };
+            const auto view=[&](VkImage image,VkFormat image_format,VkImageAspectFlags aspect,VkImageView &result) {
+                VkImageViewCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+                info.image=image;info.viewType=VK_IMAGE_VIEW_TYPE_2D;info.format=image_format;
+                info.subresourceRange={aspect,0,1,0,1};
+                check(vkCreateImageView(device,&info,nullptr,&result),"create light shadow view");
+            };
+            create(format,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,target.color,target.color_memory);
+            create(depth_format,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,target.depth,target.depth_memory);
+            view(target.color,format,VK_IMAGE_ASPECT_COLOR_BIT,target.color_view);
+            const bool stencil=depth_format==VK_FORMAT_D24_UNORM_S8_UINT || depth_format==VK_FORMAT_D32_SFLOAT_S8_UINT;
+            view(target.depth,depth_format,VK_IMAGE_ASPECT_DEPTH_BIT|(stencil?VK_IMAGE_ASPECT_STENCIL_BIT:VkImageAspectFlags{}),target.attachment_view);
+            view(target.depth,depth_format,VK_IMAGE_ASPECT_DEPTH_BIT,target.sample_view);
+            const VkImageView views[]{target.color_view,target.attachment_view};
+            VkFramebufferCreateInfo framebuffer{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+            framebuffer.renderPass=light_shadow_pass;framebuffer.attachmentCount=2;framebuffer.pAttachments=views;
+            framebuffer.width=framebuffer.height=light_shadow_size;framebuffer.layers=1;
+            check(vkCreateFramebuffer(device,&framebuffer,nullptr,&target.framebuffer),"create light shadow framebuffer");
+            light_shadow_targets.push_back(target);
+        }
+    }
+    void destroy_light_shadow_targets() {
+        for(const auto &target:light_shadow_targets) {
+            if(target.framebuffer)vkDestroyFramebuffer(device,target.framebuffer,nullptr);
+            for(const auto view:{target.color_view,target.attachment_view,target.sample_view})if(view)vkDestroyImageView(device,view,nullptr);
+            for(const auto image:{target.color,target.depth})if(image)vkDestroyImage(device,image,nullptr);
+            for(const auto memory:{target.color_memory,target.depth_memory})if(memory)vkFreeMemory(device,memory,nullptr);
+        }
+        light_shadow_targets.clear();
+        if(light_shadow_pass)vkDestroyRenderPass(device,light_shadow_pass,nullptr);
+        light_shadow_pass=VK_NULL_HANDLE;
+    }
     void record_native_world(const MenuWorldNativeDraw &native,VkCommandBuffer buffer,std::size_t index) {
         native.record(buffer,index);
         ++frame_timing.world_native_record_calls;
@@ -5134,7 +5250,7 @@ struct Renderer::Impl {
                     draw.source_depth_owned=true;draw.source_model_depth_owned=object.source_model_depth;
                     draw.source_depth_first=draw.first;draw.source_depth_count=draw.count;draw.source_depth_key=key;
                 }
-                if(view.completed_object_draw_observer || !view.hologram_groups.empty())for(auto &draw:std::span{list}.subspan(first))
+                if(path_tracing_enabled || view.completed_object_draw_observer || !view.hologram_groups.empty())for(auto &draw:std::span{list}.subspan(first))
                     draw.observed_object=std::size_t(&object-view.objects.data());
                 object_ranges.push_back({i,std::size_t(&object-view.objects.data()),first,list.size()-first});
             }
@@ -5777,7 +5893,7 @@ struct Renderer::Impl {
                 {forward.x,forward.y,forward.z});
             for(std::size_t i=0;i<material_uniforms.size();++i) {
                 auto &u=material_uniforms[i];
-                if(!u.flags[3] || u.fog_constants==constants)continue;
+                if(native_world_kernel_indices[i]==~0u || u.fog_constants==constants)continue;
                 u.fog_constants=constants;
                 mark_material_changed(i);
             }
@@ -5910,13 +6026,18 @@ struct Renderer::Impl {
                 post_views.push_back({view.camera,*view.atmosphere,rectangle,
                     source_player_bloom_screen_context(std::int16_t(post_views.size())),
                     view.projection_clip_planes.value_or(Vec2{.015625f,1024.f})});
-                // TU1.5 targets7/8 retain160x120 logical filter taps when the
-                // native single-view4:3 allocation scales with resolution.
-                if(!title_scene && !active_detail && views.size()==1 && view.full_surface &&
-                    !view.source_ui_viewport && view.left==0 && view.top==0 &&
-                    view.width==640 && view.height==480 &&
-                    std::uint64_t(rectangle.extent.width)*3==std::uint64_t(rectangle.extent.height)*4)
-                    post_views.back().source_bloom_filter_extent=Vec2{160,120};
+                // TU1.5 targets7/8 are quarter-size images of the 640x480
+                // raster, and every view owns its part of them. Each native
+                // view keeps that original raster for bloom at any drawable
+                // size, aspect or split layout, so the glow keeps its original
+                // extent in the picture instead of shrinking with resolution.
+                static const bool physical_bloom=[]{const auto* value=std::getenv("HALO2_REFERENCE_PHYSICAL_BLOOM");return value && *value;}();
+                if(!title_scene && !active_detail && !physical_bloom) {
+                    Vec2 logical{float(view.width),float(view.height)};
+                    if(view.source_ui_viewport)logical={float(rectangle.extent.width)*640.f/float(extent.width),
+                        float(rectangle.extent.height)*480.f/float(extent.height)};
+                    if(logical.x>=1 && logical.y>=1)post_views.back().source_logical_extent=logical;
+                }
             }
             bsp_postprocess->cinematic_bloom(campaign_cinematic,campaign_bloom);
             bsp_postprocess->prepare(post_views,views.front().effect_time);
@@ -5989,7 +6110,7 @@ struct Renderer::Impl {
                                              const ObjectLightingState *owner_light=nullptr,
                                              const ObjectColors *owner_colors=nullptr,const ShaderInput *owner_input=nullptr,
                                              const float *owner_camouflage=nullptr,std::uint32_t *owner_blend=nullptr,
-                                             const ObjectColors *owner_render_colors=nullptr) {
+                                             const ObjectColors *owner_render_colors=nullptr,bool native_admission=true) {
 
             const auto &prepared=prepared_views[std::size_t(&view-views.data())];
             const auto pass=fog_material_passes.find(unsigned(m));
@@ -6114,7 +6235,7 @@ struct Renderer::Impl {
                 pstencil::adapt_combined_environment_strength(response,pstencil_environment_parameters[m],pstencil_polished_armor[m]);
                 uniform.program=response.words;
             }
-            view_native_pipeline_indices[std::size_t(&view-views.data())][m]=admit_combiner(m,uniform);
+            if(native_admission)view_native_pipeline_indices[std::size_t(&view-views.data())][m]=admit_combiner(m,uniform);
             return uniform;
         };
         std::array<bool,4> view_fog_enabled{};
@@ -6212,6 +6333,11 @@ struct Renderer::Impl {
         if(borrowed_frame && presentation_copy_worker && !(serial_copy && *serial_copy) &&
            std::size_t(ui_first)*sizeof(Vertex)>=65536) {
             check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&vertex_mapping.address),"map worker dynamic vertices");
+            // pStencil appends one posed receiver range per raw light draw
+            // after this point, while the worker is still reading the plan.
+            std::size_t late_ranges{};
+            for(const auto& view:views)late_ranges+=view.raw_effect_lights.size();
+            upload_plan.reserve_late_chunks(late_ranges);
             vertex_mapping.copy=presentation_copy_worker->start(upload_plan,vertex_mapping.address,ui_first);
             if(measure_frames)copy_owner_begin=steady_ns();
         }
@@ -6524,6 +6650,23 @@ struct Renderer::Impl {
                             throw FormatError("model receiver depth native controls differ from the completed ordinary program");
                         source_depth_pipelines[i][m]=pipeline;source_depth_masks[i][m]=true;
                     }
+                    // A pStencil texture-target companion rasterizes its
+                    // root's own triangles into the retained world depth.
+                    // It borrows the root's source W-depth raster, so both
+                    // produce the same depth sample; with the ordinary raster
+                    // a one-step difference rejected scattered pixels and
+                    // left them black. The owning draw keeps every check.
+                    static const bool ordinary_mask_depth=[]{const auto* value=std::getenv("HALO2_REFERENCE_PSTENCIL_ORDINARY_MASK_DEPTH");return value && *value;}();
+                    if(pstencil_enabled && !ordinary_mask_depth)for(const auto root:materials) {
+                        if(root>=material_count || !source_depth_masks[i][root])continue;
+                        const auto mask=pstencil_texture_mask_materials[root];
+                        if(mask==~0u || mask==root || source_depth_masks[i][mask] ||
+                           native_world_kernel_indices.at(mask)==~0u || view_native_pipeline_indices[i].at(mask)==~0u)continue;
+                        const auto& base=forward_pipelines.at(view_native_pipeline_indices[i][mask]);
+                        if(base.base_world || base.extended_vertex_bank || !source_world_depth_cull_admitted(base.state.cull))continue;
+                        source_depth_pipelines[i][mask]=source_depth_pipeline(view_native_pipeline_indices[i][mask]);
+                        source_depth_masks[i][mask]=true;
+                    }
                 }
                 for(const auto m:materials) {
                     const auto uniform=source_final.contains(m)?source_final.at(m):native_material_gpu_uniform(view_material_uniform(view,m));
@@ -6610,6 +6753,18 @@ struct Renderer::Impl {
             std::span<const VkDescriptorSet> descriptors;
         };
         std::array<PathSkyAliases,5> path_sky_aliases;
+        struct PathAmbientAliases {
+            std::map<std::tuple<std::size_t,unsigned,unsigned>,std::size_t> indices;
+            std::vector<MaterialUniform> uniforms;
+            std::span<const VkDescriptorSet> descriptors;
+        };
+        std::array<PathAmbientAliases,4> path_ambient_aliases;
+        std::array<std::vector<path_tracing::MaterialAliasBinding>,5> path_material_bindings;
+        constexpr std::uint64_t path_unowned_material=std::numeric_limits<std::uint64_t>::max();
+        const auto path_object_owner=[&](const ModelView& view,std::size_t object) {
+            return view.objects[object].source_object?std::uint64_t(*view.objects[object].source_object):
+                (std::uint64_t(1)<<63)|std::uint64_t(object);
+        };
         if(path_tracing_enabled) {
             if(!path_tracing_state)path_tracing_state=std::make_unique<PathTracingState>();
             const auto prepare_sky_aliases=[&](std::size_t slot,const ModelView* view,const std::vector<Draw>& list) {
@@ -6648,6 +6803,53 @@ struct Renderer::Impl {
             prepare_sky_aliases(0,nullptr,background_draws);
             for(std::size_t i=0;i<views.size();++i)if(views[i].full_surface)
                 prepare_sky_aliases(i+1,&views[i],view_background[i]);
+            // The native primary/lighting/sky descriptors remain immutable.
+            // Only the optional PT opaque/depth roles bind these copies of
+            // each completed owner/view bank, including its current images.
+            for(std::size_t i=0;i<views.size();++i) {
+                auto& aliases=path_ambient_aliases[i];
+                std::vector<ResidentDrawUpload> uploads;
+                std::vector<VkDescriptorSet> bump_sources;
+                const auto add=[&](const Draw& draw) {
+                    const auto m=draw.material;
+                    if(!views[i].full_surface || !draw.count || !path_tracing_source_mesh ||
+                       m>=path_tracing_source_mesh->materials.size())return;
+                    const auto& root=path_tracing_source_mesh->materials[m];
+                    if(!path_tracing::traces_material(root))return;
+                    const auto* source=path_tracing::source_ambient_owner(root);if(!source)return;
+                    const auto key=std::tuple{draw.object_alias,m,draw.lightmap};
+                    if(aliases.indices.contains(key))return;
+                    const unsigned lighting=source==&root?m:environment_materials[m];
+                    const bool owner=draw.object_alias!=std::numeric_limits<std::size_t>::max();
+                    const auto primary_index=owner?object_aliases.at(draw.object_alias).at({m,draw.lightmap}):0;
+                    const auto lighting_index=owner?object_aliases.at(draw.object_alias).at({lighting,draw.lightmap}):0;
+                    auto uniform=owner?object_uniforms.at(primary_index):view_material_uniform(views[i],m);
+                    const auto illumination=owner?object_uniforms.at(lighting_index):view_material_uniform(views[i],lighting);
+                    uniform=path_tracing::source_ambient_uniform(uniform,illumination);
+                    aliases.indices.emplace(key,aliases.uniforms.size());
+                    aliases.uniforms.push_back(native_material_gpu_uniform(uniform));
+                    uploads.push_back({owner?object_descriptors[primary_index]:geometry_descriptor(m,draw.lightmap),{},
+                        owner?object_vertex_banks[primary_index]:std::optional{vertex_bank_uniforms[m]}});
+                    bump_sources.push_back(owner?object_descriptors[lighting_index]:geometry_descriptor(lighting,draw.lightmap));
+                };
+                for(const auto& draw:view_draws[i])add(draw);
+                for(const auto& draw:view_foreground[i])add(draw);
+                auto& storage=path_tracing_state->ambient_storage[i];
+                if(uploads.empty()){storage.reset();continue;}
+                for(std::size_t n=0;n<uploads.size();++n)
+                    uploads[n].material={reinterpret_cast<const std::byte*>(&aliases.uniforms[n]),sizeof(MaterialUniform)};
+                if(!storage)storage=std::make_unique<ResidentDrawStorage>(device,physical,texture_layout,sizeof(MaterialUniform));
+                aliases.descriptors=storage->upload(uploads);
+                std::vector<VkCopyDescriptorSet> copies;copies.reserve(uploads.size());
+                for(std::size_t n=0;n<uploads.size();++n) {
+                    VkCopyDescriptorSet copy{VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
+                    copy.srcSet=bump_sources[n];copy.srcBinding=2;copy.dstSet=aliases.descriptors[n];
+                    copy.dstBinding=2;copy.descriptorCount=1;copies.push_back(copy);
+                }
+                vkUpdateDescriptorSets(device,0,nullptr,unsigned(copies.size()),copies.data());
+            }
+            for(std::size_t i=views.size();i<path_tracing_state->ambient_storage.size();++i)
+                path_tracing_state->ambient_storage[i].reset();
         }
         struct ShadowDrawRecord {
             const SourceShadowMaterial *authored{};
@@ -7166,7 +7368,10 @@ struct Renderer::Impl {
         std::vector<SourceWorldDrawUpload> light_uploads;light_uploads.reserve(effect_light_draw_count+raw_effect_light_draw_count);
         for(std::size_t i=0;i<views.size();++i)for(const auto &draw:views[i].effect_lights) {
             auto &uniform=light_uniforms.emplace_back(view_material_uniform(views[i],draw.material_slot));
-            if(!uniform.flags[3])throw FormatError("Sphere diffuse draw lacks authored vertex program");
+            // Native programs carry no interpreter instruction count in the
+            // uniform. Residency already selected their exact compiled kernel.
+            if(native_world_kernel_indices.at(draw.material_slot)==~0u)
+                throw FormatError("Sphere diffuse draw lacks its exact compiled native vertex kernel");
             uniform.program=draw.program.words;
             uniform.vertex_attributes=draw.constants[0];uniform.vertex_constants=draw.constants[1];
             light_views[i].push_back({draw.material_slot,light_vertex_first.at(light_uploads.size()),unsigned(draw.vertices.size()),unsigned(light_uploads.size())});
@@ -7183,6 +7388,17 @@ struct Renderer::Impl {
             raw_light_views[i].push_back(light_uploads.size());
             light_uploads.push_back({textures.at(draw.material_slot).descriptor,
                 {reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)},draw.vertex_bank});
+            if(draw.shadow_generate || draw.shadow_sample) {
+                if(std::max(draw.shadow_generate,draw.shadow_sample)>16)
+                    throw FormatError("Raw light draw names a shadow target outside the frame bank");
+                ensure_light_shadow_targets(std::max(draw.shadow_generate,draw.shadow_sample));
+            }
+            if(draw.shadow_sample) {
+                const auto &target=light_shadow_targets.at(draw.shadow_sample-1u);
+                for(unsigned stage=0;stage<4;++stage)if(shadow_stage_masks.at(draw.material_slot)&(1u<<stage))
+                    light_uploads.back().stage_images[stage]=SourceWorldDrawStageImages{
+                        stage_samplers.at(draw.material_slot)[stage],target.sample_view,cube_fallback.cube_view,volume_fallback.view};
+            }
             auto& specular_indices=pstencil_specular_indices[i].emplace_back();
             // All companion phases use this receiver's identical posed stream.
             // Material is descriptor-selected, not a vertex input attribute.
@@ -7212,6 +7428,10 @@ struct Renderer::Impl {
         Texture accumulation_shape;
         accumulation_shape.width=extent.width;accumulation_shape.height=extent.height;
         accumulation_shape.format=11;
+        Texture light_shadow_shape;
+        light_shadow_shape.width=light_shadow_shape.height=light_shadow_size;light_shadow_shape.format=11;
+        // Prepared draw indices that render into a light shadow target.
+        std::map<std::size_t,std::pair<unsigned,std::array<std::uint16_t,2>>> raw_light_casters;
         const auto &enabled=source_world_device;
         if(raw_effect_light_draw_count && (enabled.instance_api_version<VK_API_VERSION_1_3 ||
            enabled.physical_api_version<VK_API_VERSION_1_3 || !enabled.geometry_shader_enabled ||
@@ -7223,7 +7443,9 @@ struct Renderer::Impl {
             for(std::size_t j=0;j<view.raw_effect_lights.size();++j) {
                 const auto &draw=view.raw_effect_lights[j];const auto slot=draw.material_slot;
                 const auto upload=raw_light_views[i][j];
-                const Vec2 input_scale=temporal_upscaler?Vec2{float(extent.width)/presentation_extent.width,float(extent.height)/presentation_extent.height}:Vec2{1,1};
+                // A shadow caster owns its fixed light-target raster; the
+                // temporal input scale and jitter belong to the main view.
+                const Vec2 input_scale=temporal_upscaler && !draw.shadow_generate?Vec2{float(extent.width)/presentation_extent.width,float(extent.height)/presentation_extent.height}:Vec2{1,1};
                 const auto scaled_source=menu_world_source_resized_viewport(draw.source,input_scale);
                 MenuWorldNativePacketInput input{scaled_source,generated_menu_world_vertex_catalog::entries,
                     light_uniforms[upload]};
@@ -7242,7 +7464,9 @@ struct Renderer::Impl {
                 // 1/16-pixel quantization, including its unscaled half-pixel
                 // bias. Raw and packed W-depth must sample the same pixels.
                 input.surface_size={float(extent.width),float(extent.height)};
-                if(temporal_upscaler)for(auto& region:input.raster.regions)for(unsigned edge=0;edge<4;++edge) {
+                if(draw.shadow_generate)input.surface_size={float(light_shadow_size),float(light_shadow_size)};
+                input.linear_z_depth=draw.shadow_generate!=0;
+                if(temporal_upscaler && !draw.shadow_generate)for(auto& region:input.raster.regions)for(unsigned edge=0;edge<4;++edge) {
                     const float value=region[edge]*(edge%2?input_scale.y:input_scale.x);
                     region[edge]=std::int32_t(edge<2?std::floor(value):std::ceil(value));
                 }
@@ -7256,6 +7480,13 @@ struct Renderer::Impl {
                             throw FormatError("Raw sphere diffuse lacks its live texture-mapping target");
                         input.images[0]=&accumulation_shape;
                         input.texture_coordinates[0]=MenuWorldTextureCoordinates::pixel;
+                        continue;
+                    }
+                    if(shadow_stage_masks.at(slot)&(1u<<stage)) {
+                        if(!draw.shadow_sample)throw FormatError("Raw light comparison pass lacks its shadow target");
+                        input.images[stage]=&light_shadow_shape;
+                        input.texture_coordinates[stage]=MenuWorldTextureCoordinates::pixel;
+                        input.shadow_compare[stage]=true;
                         continue;
                     }
                     const auto &animated=animated_textures.at(slot)[stage];
@@ -7272,9 +7503,10 @@ struct Renderer::Impl {
                     !views[i].pstencil_native_point_casters);
                 if(pstencil_enabled)input.raster=pstencil::receiver_raster(input.raster);
                 auto packet=menu_world_native_packet(input);
-                if(temporal_upscaler) {
+                if(temporal_upscaler && !draw.shadow_generate) {
                     const auto jitter=temporal_upscaler->jitter();packet.raster_offset={jitter.x,jitter.y};
                 }
+                if(draw.shadow_generate)raw_light_casters.emplace(raw_light_inputs.size(),std::pair{unsigned(draw.shadow_generate),draw.shadow_extent});
                 raw_light_inputs.push_back(std::move(packet));
             }
         }
@@ -7481,13 +7713,21 @@ struct Renderer::Impl {
             const auto prepare=[&](std::size_t slot,const ModelView* view) {
                 auto& scene=path_tracing_state->scenes[slot];
                 if(!scene)scene=path_tracing::build_scene({},path_tracing_materials);
+                path_tracing::clear_material_aliases(*scene,path_tracing_materials.size());
                 path_tracing::refresh_color_guides(*scene,path_tracing_source_mesh->lightmaps);
                 std::vector<Vertex> geometry;
-                const auto append=[&](std::span<const Vertex> bank) {
+                struct OwnerGeometry {std::size_t first,count,object;std::uint64_t owner;};
+                std::vector<OwnerGeometry> owner_geometry;
+                constexpr auto no_object=std::numeric_limits<std::size_t>::max();
+                const auto append_owner=[&](std::span<const Vertex> bank,std::uint64_t owner,
+                                             std::size_t object,bool replace=true) {
+                    const auto first=geometry.size();
                     path_tracing::append_secondary_geometry(geometry,bank,path_tracing_materials,
-                        view?view->path_tracing_replaced_body_materials:
+                        view && replace?view->path_tracing_replaced_body_materials:
                             std::span<const path_tracing::MaterialRange>{});
+                    if(geometry.size()>first)owner_geometry.push_back({first,geometry.size()-first,object,owner});
                 };
+                const auto append=[&](std::span<const Vertex> bank) {append_owner(bank,path_unowned_material,no_object);};
                 // Ordinary game views without a resident plan already carry
                 // their BSP followed by dynamic vertices in the same bank.
                 if(view && view->source_bsp_resident_plan) {
@@ -7505,22 +7745,150 @@ struct Renderer::Impl {
                             auto vertex=source;vertex.material=material;geometry.push_back(vertex);
                         }
                     }
+                    if(!geometry.empty())owner_geometry.push_back({0,geometry.size(),no_object,path_unowned_material});
                 } else if(!view || !view->full_surface)
                     append(path_tracing_source_mesh->vertices);
                 if(view) {
                     append(path_tracing::posed_vertices(view->vertices,view->deferred_skins));
-                    for(const auto& object:view->objects)
-                        append(path_tracing::posed_vertices(object.vertices,object.deferred_skins));
-                    path_tracing::append_secondary_geometry(geometry,view->path_tracing_body_occluders,
-                        path_tracing_materials);
-                    path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
+                    for(std::size_t index=0;index<view->objects.size();++index) {
+                        const auto& object=view->objects[index];
+                        append_owner(path_tracing::posed_vertices(object.vertices,object.deferred_skins),
+                            path_object_owner(*view,index),index);
+                    }
+                    std::vector<const path_tracing::SecondaryBodyOwner*> bodies;
+                    for(const auto& body:view->path_tracing_secondary_bodies)bodies.push_back(&body);
+                    std::sort(bodies.begin(),bodies.end(),[](const auto* a,const auto* b){return a->first_vertex<b->first_vertex;});
+                    std::size_t cursor{};
+                    for(const auto* body:bodies) {
+                        const auto first=std::size_t(body->first_vertex),count=std::size_t(body->vertex_count);
+                        if(first<cursor || first>view->path_tracing_body_occluders.size() ||
+                           count>view->path_tracing_body_occluders.size()-first)
+                            throw FormatError("Path Tracing material owner lost its secondary body range");
+                        append_owner(view->path_tracing_body_occluders.subspan(cursor,first-cursor),path_unowned_material,no_object,false);
+                        auto object=no_object;
+                        for(std::size_t n=0;n<view->objects.size();++n)
+                            if(view->objects[n].source_object==body->root){object=n;break;}
+                        append_owner(view->path_tracing_body_occluders.subspan(first,count),body->root,object,false);
+                        cursor=first+count;
+                    }
+                    append_owner(view->path_tracing_body_occluders.subspan(cursor),path_unowned_material,no_object,false);
+                    const auto view_index=std::size_t(view-views.data());
+                    std::map<std::size_t,std::size_t> object_bindings;
+                    for(const auto& draw:view_draws[view_index])if(draw.observed_object<view->objects.size())
+                        object_bindings.try_emplace(draw.observed_object,draw.object_alias);
+                    struct CompletedMaterial {
+                        MaterialUniform primary;
+                        std::optional<MaterialUniform> environment,ambient;
+                        const Material* environment_source{};
+                        std::array<const Texture*,4> images{};
+                        const Texture* ambient_image{};
+                    };
+                    std::map<path_tracing::MaterialAliasKey,CompletedMaterial> completed;
+                    std::set<unsigned> resident_roots;
+                    const auto logical_index=[&](std::size_t object,unsigned material,unsigned lightmap)->std::optional<std::size_t> {
+                        if(const auto owner=object_bindings.find(object);owner!=object_bindings.end()) {
+                            const auto& aliases=object_aliases.at(owner->second);
+                            if(const auto found=aliases.find({material,lightmap});found!=aliases.end())return found->second;
+                        }
+                        return {};
+                    };
+                    const auto uniform=[&](std::size_t object,unsigned material,unsigned lightmap) {
+                        if(const auto index=logical_index(object,material,lightmap))return object_uniforms.at(*index);
+                        const auto* context=object<view->objects.size()?&view->objects[object]:nullptr;
+                        return view_material_uniform(*view,material,context && context->lighting?&*context->lighting:nullptr,
+                            context && context->colors?&*context->colors:nullptr,context && context->shader_input?&context->shader_input:nullptr,
+                            context && context->camouflage?&*context->camouflage:nullptr,nullptr,nullptr,false);
+                    };
+                    const auto image=[&](std::size_t object,unsigned material,unsigned lightmap,const Material& source,unsigned stage)->const Texture* {
+                        if(const auto index=logical_index(object,material,lightmap)) {
+                            for(const auto& frame:object_bitmap_frames)if(frame.owner==*index && frame.stage==stage)
+                                return &source.animated_textures[stage].at(frame.frame);
+                        } else if(object<view->objects.size() && view->objects[object].shader_input)
+                            if(const auto animation=owner_bitmap_animations.find(material);animation!=owner_bitmap_animations.end()) {
+                                const auto frames=animate_bitmap_frames(animation->second,view->effect_time,
+                                    view->objects[object].shader_input,bound_frames[material]);
+                                if(frames[stage]!=bound_frames[material][stage])return &source.animated_textures[stage].at(frames[stage]);
+                            }
+                        return nullptr;
+                    };
+                    const auto request=[&](path_tracing::MaterialAliasKey key,std::size_t object) {
+                        resident_roots.insert(key.material);
+                        if(completed.contains(key))return;
+                        const auto& root=path_tracing_materials[key.material];
+                        if(!path_tracing::qualified_surface(root))return;
+                        CompletedMaterial value;value.primary=uniform(object,key.material,key.lightmap);
+                        for(unsigned stage=0;stage<4;++stage)value.images[stage]=image(object,key.material,key.lightmap,root,stage);
+                        unsigned environment=~0u;
+                        if(root.environment_pass && root.environment_pass->forward_vertex==4) {
+                            environment=environment_materials[key.material];value.environment_source=root.environment_pass.get();
+                        }
+                        if(root.forward_vertex==4) {environment=key.material;value.environment_source=&root;}
+                        const auto find_environment=[&](const auto& passes,const auto& indices) {
+                            for(std::size_t n=0;n<passes.size();++n)if(environment==~0u && passes[n] && passes[n]->forward_vertex==4) {
+                                environment=indices[n];value.environment_source=passes[n].get();
+                            }
+                        };
+                        find_environment(root.world_overlays_before,world_before[key.material]);
+                        find_environment(root.world_overlays_after,world_after[key.material]);
+                        if(environment==~0u) {
+                            const auto* combined=pstencil::combined_visor_environment(root);
+                            if(!combined && pstencil::supports_combined_environment_strength(root))combined=&root;
+                            // Match the exact native pass selected by material_response.
+                            // Its completed program words carry per-owner combined
+                            // facing/glancing strengths, not the ordinary diffuse slots.
+                            if(combined==&root)environment=key.material;
+                            else if(combined && root.environment_pass.get()==combined)environment=environment_materials[key.material];
+                            const auto find_combined=[&](const auto& passes,const auto& indices) {
+                                for(std::size_t n=0;n<passes.size();++n)if(combined && passes[n].get()==combined)environment=indices[n];
+                            };
+                            find_combined(root.world_overlays_before,world_before[key.material]);
+                            find_combined(root.world_overlays_after,world_after[key.material]);
+                            if(environment!=~0u)value.environment_source=combined;
+                        }
+                        if(environment!=~0u)value.environment=uniform(object,environment,key.lightmap);
+                        if(const auto* ambient=path_tracing::source_ambient_owner(root)) {
+                            const auto material=ambient==&root?key.material:environment_materials[key.material];
+                            value.ambient=uniform(object,material,key.lightmap);
+                            value.ambient_image=image(object,material,key.lightmap,*ambient,2);
+                        }
+                        completed.emplace(key,std::move(value));
+                    };
+                    for(const auto& run:owner_geometry)for(std::size_t n=run.first;n<run.first+run.count;n+=3)
+                        request({run.owner,geometry[n].material,geometry[n].lightmap},run.object);
+                    const auto request_primary=[&](const auto& list) {
+                        for(const auto& draw:list)if(draw.count && draw.material<path_tracing_materials.size() &&
+                           path_tracing::traces_material(path_tracing_materials[draw.material]))
+                            request({draw.observed_object<view->objects.size()?path_object_owner(*view,draw.observed_object):path_unowned_material,
+                                draw.material,draw.lightmap},draw.observed_object);
+                    };
+                    request_primary(view_draws[view_index]);request_primary(view_foreground[view_index]);
+                    std::vector<Vertex> residency;residency.reserve(resident_roots.size()*3);
+                    for(const auto material:resident_roots)for(unsigned n=0;n<3;++n) {
+                        Vertex vertex;vertex.material=material;vertex.source_stipple_level=16;residency.push_back(vertex);
+                    }
+                    path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,residency);
+                    std::vector<path_tracing::MaterialAliasInput> inputs;inputs.reserve(completed.size());
+                    for(auto& [key,value]:completed) {
+                        path_tracing::MaterialAliasInput input;input.key=key;input.primary=&value.primary;
+                        input.environment=value.environment?&*value.environment:nullptr;input.environment_source=value.environment_source;
+                        input.ambient=value.ambient?&*value.ambient:nullptr;input.surface_images=value.images;
+                        input.ambient_image=value.ambient_image;inputs.push_back(input);
+                    }
+                    auto& bindings=path_material_bindings[slot];
+                    bindings=path_tracing::refresh_material_aliases(*scene,path_tracing_materials,inputs);
+                    for(const auto& run:owner_geometry)for(std::size_t n=run.first;n<run.first+run.count;++n) {
+                        auto& vertex=geometry[n];const path_tracing::MaterialAliasKey key{run.owner,vertex.material,vertex.lightmap};
+                        const auto at=std::lower_bound(bindings.begin(),bindings.end(),key,
+                            [](const auto& binding,const auto& wanted){return binding.key<wanted;});
+                        if(at!=bindings.end() && at->key==key)vertex.material=at->material;
+                    }
                     path_tracing::update_geometry(*scene,geometry,view->path_tracing_lights);
                     if(path_tracing_capture) {
                         auto& captured=path_tracing_capture->at(slot);
                         for(const auto& triangle:scene->triangles)
                             if(std::any_of(view->path_tracing_replaced_body_materials.begin(),
                                 view->path_tracing_replaced_body_materials.end(),[&](const auto& range) {
-                                    const auto material=triangle.metadata[0];
+                                    const auto material=path_tracing::source_material(*scene,triangle.metadata[0]);
                                     return material>=range.first && material-range.first<range.count;
                                 }))++captured.native_player_occluder_triangles;
                         captured.native_player_occluder_vertices=captured.native_player_occluder_triangles*3;
@@ -7807,6 +8175,17 @@ struct Renderer::Impl {
                 path_tracing_source_mesh && material<path_tracing_source_mesh->materials.size() &&
                 path_tracing::traces_material(path_tracing_source_mesh->materials[material]);
         };
+        const auto path_material_index=[&](const Draw& draw,unsigned material) {
+            if(active_material_view>=views.size())return material;
+            const auto& view=views[active_material_view];
+            const path_tracing::MaterialAliasKey key{
+                draw.observed_object<view.objects.size()?path_object_owner(view,draw.observed_object):path_unowned_material,
+                material,draw.lightmap};
+            const auto& bindings=path_material_bindings[active_material_view+1];
+            const auto at=std::lower_bound(bindings.begin(),bindings.end(),key,
+                [](const auto& binding,const auto& wanted){return binding.key<wanted;});
+            return at!=bindings.end() && at->key==key?at->material:material;
+        };
         const PreparedViewMaterialInputs *camouflage_view=nullptr;
         const auto material_descriptor=[&](unsigned material,unsigned lightmap) {
             if(const auto target=texture_camera_target(material,active_material_view,true))
@@ -7817,6 +8196,11 @@ struct Renderer::Impl {
             if(path_sky_capture) {
                 const auto& aliases=path_sky_aliases[*path_sky_capture];
                 return std::pair{aliases.descriptors[aliases.indices.at({material,draw.lightmap})],std::uint32_t(0)};
+            }
+            if(trace_material(material) && active_material_view<views.size()) {
+                const auto& aliases=path_ambient_aliases[active_material_view];
+                if(const auto at=aliases.indices.find({draw.object_alias,material,draw.lightmap});at!=aliases.indices.end())
+                    return std::pair{aliases.descriptors[at->second],std::uint32_t(0)};
             }
             const bool owner=draw.object_alias!=std::numeric_limits<std::size_t>::max();
             if(owner)(void)texture_camera_target(material,active_material_view,true);
@@ -7829,7 +8213,7 @@ struct Renderer::Impl {
             const auto [descriptor,bank]=material_binding(draw,material);
             if(path_tracing_material) {
                 const auto slot=active_material_view<views.size()?active_material_view+1:0;
-                path_tracing_state->renderers.at(slot)->bind(command,descriptor,bank,path_tracing_camera,material);
+                path_tracing_state->renderers.at(slot)->bind(command,descriptor,bank,path_tracing_camera,path_material_index(draw,material));
             } else vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,
                 is_source_material(material,&draw)?source_world_depth_layout:pipeline_layout,0,1,&descriptor,1,&bank);
             return std::pair{descriptor,bank};
@@ -7976,8 +8360,9 @@ struct Renderer::Impl {
             const auto emit=[&](const Draw& draw,unsigned material,VkBuffer buffer) {
                 if(!draw.count || !draw_visible(draw) || !layer_enabled(material) || !trace_material(material))return;
                 const auto [descriptor,bank]=material_binding(draw,material);
-                if(lighting)rt.bind_lighting(command,descriptor,bank,path_tracing_camera,material);
-                else rt.bind_visibility(command,descriptor,bank,path_tracing_camera,material);
+                const auto selected=path_material_index(draw,material);
+                if(lighting)rt.bind_lighting(command,descriptor,bank,path_tracing_camera,selected);
+                else rt.bind_visibility(command,descriptor,bank,path_tracing_camera,selected);
                 bind_draw_vertices(draw,buffer);
                 vkCmdDraw(command,draw.count,1,draw.first,0);
             };
@@ -8107,12 +8492,20 @@ struct Renderer::Impl {
             return source_water_alpha_order && active_material_view<views.size() &&
                 !sky_raster && water_edge_materials[material];
         };
+        // Source layer 7 follows every lightmap pass. See emissive_forward_materials.
+        static const bool emissive_after_lighting=[]{const auto* value=std::getenv("HALO2_REFERENCE_EARLY_EMISSIVE_PARTS");return !(value && *value);}();
+        const auto deferred_emissive=[&](unsigned material) {
+            return emissive_after_lighting && emissive_forward_materials[material] && environment_materials[material]==~0u &&
+                !after_fog[material] && !water_materials[material] && projected_decal_layers[material]==~0u &&
+                !texture_mapping_overlay(material) && !deferred_water_edge(material);
+        };
         auto draw_dynamic = [&](const std::vector<Draw>& list,int phase=-1) {
             vkCmdBindVertexBuffers(command, 0, 1, &debug_buffer, &offset);
             for (const auto &draw:list) if(draw.count && draw_visible(draw) && layer_enabled(draw.material) && !water_materials[draw.material] &&
                 projected_decal_layers[draw.material]==~0u &&
                 !texture_mapping_overlay(draw.material) &&
                 !deferred_water_edge(draw.material) &&
+                !deferred_emissive(draw.material) &&
                 (phase<0 || after_fog[draw.material]==bool(phase))) {
                 emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::scene_base);
             }
@@ -8168,6 +8561,10 @@ struct Renderer::Impl {
                         source_material_identities[material][1],draw.count);
                 }
             }
+            vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
+            for(const auto &draw:list)if(draw.count && draw_visible(draw) && layer_enabled(draw.material) &&
+                deferred_emissive(draw.material))
+                emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::scene_base);
             draw_overlays(list,false,debug_buffer,false,defer_texture_mapping);
             if(!defer_texture_mapping)draw_texture_mapping_overlays(list,debug_buffer);
             draw_overlays(list,true,debug_buffer,false,defer_texture_mapping);
@@ -8252,6 +8649,31 @@ struct Renderer::Impl {
             push_ordinary(camera_uniform);
             set_temporal_viewport(viewport);vkCmdSetScissor(command,0,1,&scissor);
         }
+#ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+        // TU1.5 31150/30EB0: each shadowed light's layer 10 casters into its
+        // own depth target (44360 clears depth to one). They depend only on
+        // the light and its casters, so every target is complete before the
+        // main pass in which the light's layer 11 comparison samples it.
+        if(effect_light_native && !raw_light_casters.empty()) {
+            std::map<unsigned,std::pair<std::array<std::uint16_t,2>,std::vector<std::size_t>>> targets;
+            for(const auto &[draw,target]:raw_light_casters) {
+                auto &entry=targets[target.first];entry.first=target.second;entry.second.push_back(draw);
+            }
+            for(const auto &[target,entry]:targets) {
+                std::array<VkClearValue,2> clear{};clear[1].depthStencil={1.f,0};
+                VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+                begin.renderPass=light_shadow_pass;begin.framebuffer=light_shadow_targets.at(target-1u).framebuffer;
+                begin.renderArea={{0,0},{light_shadow_size,light_shadow_size}};
+                begin.clearValueCount=unsigned(clear.size());begin.pClearValues=clear.data();
+                vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);
+                const VkViewport shadow_viewport{0,0,float(light_shadow_size),float(light_shadow_size),0,1};
+                const VkRect2D shadow_scissor{{0,0},{entry.first[0],entry.first[1]}};
+                vkCmdSetViewport(command,0,1,&shadow_viewport);vkCmdSetScissor(command,0,1,&shadow_scissor);
+                for(const auto draw:entry.second)record_native_world(*effect_light_native,command,draw);
+                vkCmdEndRenderPass(command);
+            }
+        }
+#endif
         const bool empty_full_surface_accumulation=full_surface_scene &&
             background_draws.empty() && dynamic_draws.empty() && foreground_draws.empty();
         if(accumulation_pass && !empty_full_surface_accumulation) {
@@ -8969,26 +9391,45 @@ struct Renderer::Impl {
                     record_path_visibility(i+1,view_draws[i],debug_buffer,{},debug_buffer,model_view,clip);
                 draw_dynamic(view_draws[i],v.atmosphere?0:-1);
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
-                if(pstencil_enabled && !pstencil_frame.lightmaps(i).empty()) {
+                // The 2003 layer6/7 composite runs twice. First here, against
+                // the dynamic models' own depth and before their environment
+                // and emission, where a lit caster surface cancels its prism
+                // exactly. The completed world depth does not exist yet, so
+                // world surfaces get the same mask in a second, world-only
+                // pass just before the dynamic lights; the casters' own
+                // visible surfaces are restored there so nothing darkens
+                // twice. HALO2_REFERENCE_PSTENCIL_NO_WORLD_SHADOWS omits the
+                // second pass for a paired isolation capture.
+                static const bool world_lightmap_shadow=[]{const auto* value=std::getenv("HALO2_REFERENCE_PSTENCIL_NO_WORLD_SHADOWS");return !(value && *value);}();
+                const auto pstencil_lightmap_composite=[&](bool world_only) {
+                    if(!pstencil_enabled || pstencil_frame.lightmaps(i).empty())return;
                     if(!v.source_view_shader_constants)
                         throw FormatError("pStencil baked shadows require the current source camera");
-                    std::vector<pstencil::VolumeDraw> masks;
-                    for(const auto& caster:pstencil_frame.lightmaps(i)) {
+                    const auto camera_for=[&](Vec3 light,float bias) {
                         pstencil::VolumeCamera camera;
                         for(unsigned row=0;row<4;++row)for(unsigned column=0;column<4;++column)
                             camera.matrix[column*4+row]=v.source_view_shader_constants->world[row][column];
                         camera.viewport={model_view.x,model_view.y,model_view.width,model_view.height};
                         camera.depth_row=v.source_view_shader_constants->world[3];
-                        camera.light={caster.position.x,caster.position.y,caster.position.z,pstencil::lightmap_shadow_extrusion};
-                        camera.control={model_uniform.eye.w,1,1,0};
-                        masks.push_back({caster.upload,camera});
-                    }
+                        camera.light={light.x,light.y,light.z,pstencil::lightmap_shadow_extrusion};
+                        camera.control={model_uniform.eye.w,1,1,bias};
+                        return camera;
+                    };
+                    std::vector<pstencil::VolumeDraw> masks;
+                    for(const auto& caster:pstencil_frame.lightmaps(i))
+                        masks.push_back({caster.upload,camera_for(caster.position,0.f)});
+                    std::optional<pstencil::VolumeDraw> owners;
+                    // The owner surface is drawn well in front of its completed
+                    // depth so every visible owner pixel passes LEQUAL.
+                    if(world_only)if(const auto* batch=pstencil_frame.lightmap_owners(i))
+                        owners=pstencil::VolumeDraw{batch->upload,camera_for({},-4096.f)};
                     capture_unknown();pstencil_render->begin(command,index);
-                    pstencil_render->lightmap(command,masks,temporal_viewport(model_view),clip);
+                    pstencil_render->lightmap(command,masks,temporal_viewport(model_view),clip,owners?&*owners:nullptr);
                     pstencil_render->end(command,framebuffers[index]);
                     set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
                     push_ordinary(model_uniform);
-                }
+                };
+                pstencil_lightmap_composite(false);
 #endif
                 draw_environment(view_draws[i],true);
 #if HALO2_SOURCE_DECALS_AVAILABLE
@@ -9089,6 +9530,9 @@ struct Renderer::Impl {
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                 }
 #endif
+#ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+                if(world_lightmap_shadow)pstencil_lightmap_composite(true);
+#endif
                 // Original2BCD0 runs31C80 after335E0, retaining the same world
                 // depth. Explicit submissions already contain source-cull and
                 // shader selections; preserve their complete light/pass order.
@@ -9140,7 +9584,7 @@ struct Renderer::Impl {
                         volume_camera.control={model_uniform.eye.w,1,1,0};
                         pstencil_render->light(command,light.upload,volume_camera,temporal_viewport(model_view),clip,[&] {
                             set_temporal_viewport(raw_light_viewport);vkCmdSetScissor(command,0,1,&clip);
-                            for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw))record_native_world(*effect_light_native,command,draw);
+                            for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw) && !raw_light_casters.contains(draw))record_native_world(*effect_light_native,command,draw);
                             set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
                             push_ordinary(model_uniform);
                             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
@@ -9154,7 +9598,7 @@ struct Renderer::Impl {
                     }
                     pstencil_render->end(command,framebuffers[index]);
                 } else if(!path_tracing_enabled) {
-                    for(const auto draw:raw_light_views[i]){capture_binding_only();record_native_world(*effect_light_native,command,draw);}
+                    for(const auto draw:raw_light_views[i])if(!raw_light_casters.contains(draw)){capture_binding_only();record_native_world(*effect_light_native,command,draw);}
                 }
                 if(!path_tracing_enabled && !raw_light_views[i].empty()) {
                     {set_temporal_viewport(model_view);}
@@ -9440,6 +9884,22 @@ struct Renderer::Impl {
                 if(v.atmosphere && bsp_postprocess) {
                     // 2C2F8 submits alpha-only layer 17 after FP; 2C322
                     // consumes that mask in 13870 before the authored HUD.
+                    // 44360 sets 492294 only when this view's collected layer
+                    // mask contains layer 17. It then clears target alpha, so
+                    // the mask holds these passes alone, and 214D0 carries
+                    // that mask through the filter chain into the composite.
+                    static const bool no_bloom_mask=[]{const auto* value=std::getenv("HALO2_REFERENCE_NO_BLOOM_MASK");return value && *value;}();
+                    bool bloom_mask=false;
+                    if(!no_bloom_mask)for(const auto &draw:view_draws[i]) {
+                        if(!draw_visible(draw))continue;
+                        for(const auto material:world_bloom[draw.material])if(layer_enabled(material)) {bloom_mask=true;break;}
+                        if(bloom_mask)break;
+                    }
+                    if(bloom_mask) {
+                        bsp_postprocess->record_bloom_mask_clear(i,post_target);
+                        capture_unknown();
+                        {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
+                    }
                     {push_ordinary(model_uniform);}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i])if(draw_visible(draw))for(const auto material:world_bloom[draw.material]) {
@@ -9449,7 +9909,7 @@ struct Renderer::Impl {
                         bind_draw_vertices(draw,debug_buffer);
                         draw_material_geometry(draw);
                     }
-                    bsp_postprocess->record_bloom(i,post_target);
+                    bsp_postprocess->record_bloom(i,post_target,bloom_mask);
                 }
                 //2BCB0/2C302 ->13850/13B5E: final flares follow foreground
                 // and the original screen-effect/bloom phase, before the HUD.
@@ -10004,6 +10464,8 @@ struct Renderer::Impl {
                     draws+=captured.draws;vertices+=captured.vertices;triangles+=scene->triangles.size();
                     lights+=scene->lights.size();emitters+=scene->emissive_count;gpu_bytes+=rt->allocated_bytes();
                     if(const auto& aliases=path_tracing_state->sky_storage[slot])gpu_bytes+=aliases->allocated_bytes();
+                    if(slot && path_tracing_state->ambient_storage[slot-1])
+                        gpu_bytes+=path_tracing_state->ambient_storage[slot-1]->allocated_bytes();
                 }
                 std::ostringstream receipt;
                 receipt<<"Path Tracing frame: {\"completed\":true,\"views\":"<<count
@@ -10097,7 +10559,8 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
     const SourceBspResidentPlan *bsp_resident_plan,
     const std::function<void()> &before_presentation,
     const Renderer *presentation_owner,const std::filesystem::path &shader_directory,
-    std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials) : impl_(std::make_shared<Impl>()) {
+    std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials,
+    const Cache *scene_cache) : impl_(std::make_shared<Impl>()) {
     if(!shader_directory.empty()) {
         impl_->shader_directory=shader_directory;
         std::cout<<"Pinned renderer shaders: "<<impl_->shader_directory.string()<<'\n';
@@ -10128,6 +10591,9 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
         impl_->measure_frames=true;
     }
     impl_->bsp_resident_plan=bsp_resident_plan;
+    if(scene_cache && std::ranges::any_of(mesh.materials,[](const auto& material) {
+        return pstencil::combined_visor_environment(material)!=nullptr;
+    }))impl_->pstencil_visor_cube=pstencil::load_reference_visor_cube(*scene_cache);
     impl_->shadow_residency(mesh,shadow_materials);
     impl_->raw_shadow_residency(mesh,raw_shadow_materials);
     impl_->initialize(window, mesh, validation,before_presentation);
@@ -10306,11 +10772,16 @@ RendererPathTracingResources Renderer::path_tracing_resources()const {
     usage.cpu_bytes=sizeof(Impl::PathTracingState);
     for(const auto& renderer:impl_->path_tracing_state->renderers)if(renderer) {
         ++usage.views;usage.gpu_bytes+=renderer->allocated_bytes();
+        usage.cpu_bytes+=renderer->cpu_bytes();
     }
     for(const auto& storage:impl_->path_tracing_state->sky_storage)if(storage) {
         usage.gpu_bytes+=storage->allocated_bytes();usage.cpu_bytes+=storage->cpu_bytes();
     }
+    for(const auto& storage:impl_->path_tracing_state->ambient_storage)if(storage) {
+        usage.gpu_bytes+=storage->allocated_bytes();usage.cpu_bytes+=storage->cpu_bytes();
+    }
     for(const auto& scene:impl_->path_tracing_state->scenes)if(scene) {
+        usage.cpu_bytes+=path_tracing::material_alias_cpu_bytes(*scene);
         usage.cpu_bytes+=scene->nodes.capacity()*sizeof(path_tracing::GpuNode)+
             scene->triangles.capacity()*sizeof(path_tracing::GpuTriangle)+
             scene->materials.capacity()*sizeof(path_tracing::GpuMaterial)+

@@ -48,9 +48,10 @@ struct SourcePhysicsContactRuntimeServices {
     // Full callee ownership includes its actual register/FP and stack ABI.
     // The call instruction has already pushed the real return address.
     // An absent owner stops there; it never returns fabricated contact data.
-    std::function<void(SourcePhysicsContactMemory &,
+    using RequiredOwner = std::function<void(SourcePhysicsContactMemory &,
         const SourcePhysicsContactRuntimeCall &, SourcePhysicsContactRuntimeAbi &,
-        const SourcePhysicsContactRecordObserver &)> required_owner;
+        const SourcePhysicsContactRecordObserver &)>;
+    RequiredOwner required_owner;
     // Optional exact cursor contract for the live owner. Outside the listed
     // service PCs and active traces, instruction() only publishes this cursor.
     // References outlive the synchronous native entry; other executors retain
@@ -89,6 +90,19 @@ struct SourcePhysicsContactRuntimeServices {
     std::function<std::optional<NativeTu15NormalizeOutcome>(SourcePhysicsContactMemory&,
         std::uint32_t,std::uint32_t,const SourcePhysicsContactRecordObserver&,
         NativeTu15NormalizeConstants)> normalize_vector_30bd0_guarded;
+    // An audited owner may certify its exact callable/body and captured owner
+    // for synchronous native parents. On every return or exception, that
+    // owner and its descendants preserve the caller's instruction callback,
+    // cursor descriptor and trace policy. A replacement/wrapper needs its own
+    // qualification. Matching immutable copies/moves may retain ownership.
+    // The matcher is observation-only, noexcept, and must check the actual
+    // callable/capture; a generic boolean or target-type guess is insufficient.
+    struct RequiredOwnerPolicy {
+        const std::type_info *callback_type{};
+        std::thread::id executor;
+        const void *owner{};
+        bool (*matches)(const RequiredOwner &,const void *) noexcept{};
+    } required_owner_policy;
 };
 // Canonical 1.1 entry identifies a statically compiled complete source body.
 // Image selection binds authenticated TU1.5 constants, targets and tables.

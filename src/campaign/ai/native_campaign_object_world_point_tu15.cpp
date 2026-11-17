@@ -41,8 +41,8 @@ bool ordered_equal(__m128 left,__m128 right) {
     return equal && ordered;
 }
 #endif
-template<class Sink> void object_point(const SourcePhysicsContactMemory &memory,
-    std::uint32_t object,NativeTu15PhysicsFrameFp &fp,const Sink &sink) {
+template<class Sink,class ParentFrame> void object_point(const SourcePhysicsContactMemory &memory,
+    std::uint32_t object,NativeTu15PhysicsFrameFp &fp,const Sink &sink,const ParentFrame &parent_frame) {
     const auto objects=read(memory,0x4ecbd0u);
     const auto rows=read(memory,objects+0x44u);
     const auto record=read(memory,rows+(object&0xffffu)*12u+8u);
@@ -58,6 +58,7 @@ template<class Sink> void object_point(const SourcePhysicsContactMemory &memory,
     const auto local_x=read(memory,record+0x64u);
     const auto local_y=read(memory,record+0x68u);
     const auto local_z=read(memory,record+0x6cu);
+    parent_frame();
     const auto node=std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(read(memory,record+0x18u,1))));
     const auto parent_record=read(memory,rows+(parent&0xffffu)*12u+8u);
     const auto offset=std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(read(memory,parent_record+0x116u,2))));
@@ -96,12 +97,19 @@ template<class Sink> void object_point(const SourcePhysicsContactMemory &memory,
 void native_campaign_object_world_point_tu15(SourcePhysicsContactMemory &memory,
     std::uint32_t object,std::uint32_t destination,NativeTu15PhysicsFrameFp &fp,
     const SourcePhysicsContactRecordObserver &observe) {
-    object_point(memory,object,fp,[&](unsigned axis,std::uint32_t bits,std::uint32_t site){publish(memory,observe,site,destination+axis*4u,bits);});
+    object_point(memory,object,fp,[&](unsigned axis,std::uint32_t bits,std::uint32_t site){publish(memory,observe,site,destination+axis*4u,bits);},[]{});
+}
+void native_campaign_object_world_point_frame_tu15(SourcePhysicsContactMemory &memory,
+    std::uint32_t object,std::uint32_t destination,std::uint32_t stack,std::uint32_t saved_edi,
+    NativeTu15PhysicsFrameFp &fp,const SourcePhysicsContactRecordObserver &observe) {
+    object_point(memory,object,fp,[&](unsigned axis,std::uint32_t bits,std::uint32_t site){publish(memory,observe,site,destination+axis*4u,bits);},[&]{
+        std::array<std::byte,4> raw{};for(unsigned n=0;n<4;++n)raw[n]=std::byte(saved_edi>>(n*8u));memory.write(stack-4u,raw);
+    });
 }
 std::array<std::uint32_t,3> native_campaign_object_world_point_value_tu15(
     const SourcePhysicsContactMemory &memory,std::uint32_t object,NativeTu15PhysicsFrameFp &fp) {
     std::array<std::uint32_t,3> point{};
-    object_point(memory,object,fp,[&](unsigned axis,std::uint32_t bits,std::uint32_t){point[axis]=bits;});
+    object_point(memory,object,fp,[&](unsigned axis,std::uint32_t bits,std::uint32_t){point[axis]=bits;},[]{});
     return point;
 }
 }

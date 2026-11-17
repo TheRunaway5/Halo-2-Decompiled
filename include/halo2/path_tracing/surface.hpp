@@ -4,7 +4,8 @@
 
 namespace halo2::path_tracing {
 enum class SurfaceFamily : std::uint32_t {None=0,TerrainBlend=1,LeafDetail=2,LeafDetailPerVertex=3,
-    BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5,OpaqueDetail=6,TerrainBlendThreeStage=7};
+    BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5,OpaqueDetail=6,TerrainBlendThreeStage=7,
+    TextureDetail=8,TextureTwoChangeColor=9,TextureFourChangeColor=10,DynamicDetail=11};
 inline constexpr std::uint32_t surface_flag=64u,surface_magic=0x53525448u,surface_record_words=52u;
 struct SurfaceSource {
     SurfaceFamily family=SurfaceFamily::None;
@@ -62,6 +63,18 @@ inline constexpr std::array<std::uint32_t,60> opaque_detail{
 inline constexpr auto opaque_detail_panel=[] {
     auto words=opaque_detail;words[6]=0x1d1d8020;words[32]=0x00010d00;return words;
 }();
+// Exact lightmap_dynamic_tex_detail body used by the capital cruiser. Its
+// separate lighting/specular RGB branches leave2*T0*T1 as diffuse albedo.
+// Final alpha is2*C24.a*T0.a*T1.a, independent of those lighting branches;
+// the following DST_ALPHA environment pass consumes that source mask.
+inline constexpr std::array<std::uint32_t,60> dynamic_detail{
+    0x4a201120,0x0c201819,0xcacc80cd,0x1d1d6a20,0x14145920,0x1d1d0000,0x1d181218,0x59200000,
+    0x0539000c,0x00001480,0xc0000000,0,0,0x0075f5ff,0,0xc0000000,0xc0000000,0,
+    0,0,0,0x00fcd1fc,0,0,0,0,0x000000ab,0x000000c8,0x00010d00,0x00000049,
+    0x000000d9,0x000000d0,0x000100d4,0x00000090,0x4a444b44,0x4a4b4a45,
+    0x0a010b02,0x1c013c02,0x05010809,0x1a010000,0x0c080a08,0x051d0000,0,0,0,
+    0x000030cd,0x000030ab,0x00000c00,0x00000500,0x00010058,0x000000a0,0x00010c00,
+    0x00010050,0x00011108,0x00018421,0,0,0,0,0};
 // The three-stage detail_blend_texture source blends T1/T2 with T0.a, then
 // multiplies T0.rgb. This body has no fourth detail/color stage.
 inline constexpr std::array<std::uint32_t,60> terrain_three_stage{
@@ -75,6 +88,21 @@ inline bool controls(const PixelProgram& program,const std::array<std::uint32_t,
         if(program.words[n]!=expected[n])return false;
     }
     return true;
+}
+inline std::array<std::uint32_t,60> texture_controls(unsigned stages) {
+    std::array<std::uint32_t,60> w{};
+    w[8]=stages==1?0x0c010000u:0x0c0f0000u;w[9]=stages==1?0x00001c80u:0x04051c80u;
+    w[53]=0x11100u|stages;w[54]=stages==1?0x21u:0x8021u;
+    constexpr std::array<std::uint32_t,8> rgb1{0x08090000},out1{0x100c0};
+    constexpr std::array<std::uint32_t,8> rgb4{0x010b020b,0x2c200c01,0x2d200d01,0x08090000},out4{0x30cd,0x400,0x500,0x100c0};
+    constexpr std::array<std::uint32_t,8> rgb7{0x010b020b,0x2c200c01,0x2d200d01,0x3c201c01,0x3b201b01,0x04050c0d,0x08090000},out7{0x30cd,0x400,0x500,0xc00,0xd00,0x45,0x100c0};
+    for(unsigned i=0;i<8;++i) {
+        w[34+i]=(stages==1?rgb1:stages==4?rgb4:rgb7)[i];
+        w[45+i]=(stages==1?out1:stages==4?out4:out7)[i];
+        w[i]=i+1==stages?0x18190000u:stages==7 && i==0?0x0b200000u:0u;
+        w[26+i]=(i+1==stages || (stages==7 && i==0))?0xc0u:0u;
+    }
+    return w;
 }
 inline ShaderVector argb(std::uint32_t c) {
     return {float((c>>16)&255u)/255.f,float((c>>8)&255u)/255.f,float(c&255u)/255.f,float(c>>24)/255.f};
@@ -91,21 +119,49 @@ inline bool qualified_opaque_detail(const Material& material) {
     return surface_detail::controls(material.forward_program,surface_detail::opaque_detail) ||
         surface_detail::controls(material.forward_program,surface_detail::opaque_detail_panel);
 }
-inline std::array<std::uint32_t,4> surface_constants(const Material& material,SurfaceFamily family) {
-    const auto& w=material.forward_program.words;
+inline std::array<std::uint32_t,4> surface_constants(const std::array<std::uint32_t,60>& w,SurfaceFamily family) {
     // Family6 uses no color constants in diffuse RGB or representative alpha.
     // Keep its resident record and image key invariant under color animation.
     if(family==SurfaceFamily::OpaqueDetail)return {};
+    if(family==SurfaceFamily::DynamicDetail)return {w[24],0,0,0};
+    if(family==SurfaceFamily::TextureDetail)return {w[43],0,0,0};
+    if(family==SurfaceFamily::TextureTwoChangeColor)return {w[11],w[12],0,0};
+    if(family==SurfaceFamily::TextureFourChangeColor)return {w[11],w[12],w[13],w[14]};
     if(family==SurfaceFamily::BumpLeafCoverage)return {w[13],w[22],w[43],w[44]};
     if(family==SurfaceFamily::BumpLeafCoveragePerVertex)return {w[15],w[17],w[43],w[44]};
     return {w[13],w[21],w[43],w[44]};
+}
+inline std::array<std::uint32_t,4> surface_constants(const Material& material,SurfaceFamily family) {
+    return surface_constants(material.forward_program.words,family);
 }
 inline std::optional<SurfaceSource> qualified_surface(const Material& material) {
     if(!material.forward_pass || material.forward_blend || material.forward_pass_index>=material.passes.size())return {};
     const auto uv=qualified_unlit_uv(material);if(!uv)return {};
     const auto& pass=material.passes[material.forward_pass_index];SurfaceSource out;out.uv=*uv;
-    if(qualified_opaque_detail(material)) {
+    const auto texture_family=[&](std::string_view name,unsigned stages) {
+        constexpr std::string_view prefix="shaders\\shader_passes\\texture_mapping\\";
+        std::string_view path=pass.name;
+        if(!path.starts_with(prefix))return false;
+        path.remove_prefix(prefix.size());
+        if(path.ends_with("_zwrite"))path.remove_suffix(7);
+        return uv->family==UnlitUvFamily::Texture &&
+            path==name &&
+            surface_detail::controls(material.forward_program,surface_detail::texture_controls(stages)) &&
+            (stages==1 || ((material.forward_program.words[10]&0xffffffu)==0xff0000u &&
+                          (material.forward_program.words[18]&0xffffffu)==0x00ff00u));
+    };
+    if(texture_family("default_texture",1)) {
+        out.family=SurfaceFamily::TextureDetail;out.stages=3;
+    } else if(texture_family("default_texture_two_change_color",4)) {
+        out.family=SurfaceFamily::TextureTwoChangeColor;out.stages=11;
+    } else if(texture_family("default_texture_four_change_color",7)) {
+        out.family=SurfaceFamily::TextureFourChangeColor;out.stages=11;
+    } else if(qualified_opaque_detail(material)) {
         out.family=SurfaceFamily::OpaqueDetail;out.stages=3;
+    } else if(uv->family==UnlitUvFamily::DynamicDetail &&
+        pass.name=="shaders\\shader_passes\\lightmap\\lightmap_tex_detail" &&
+        surface_detail::controls(material.forward_program,surface_detail::dynamic_detail)) {
+        out.family=SurfaceFamily::DynamicDetail;out.stages=3;
     } else if(uv->family==UnlitUvFamily::Texture &&
        (pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite" ||
         pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture") &&
@@ -167,7 +223,27 @@ inline std::optional<SurfaceSource> qualified_surface(const Material& material) 
 inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uint32_t,4>& colors,
                                   const std::array<ShaderVector,4>& samples) {
     const auto sat=[](float value){return std::clamp(value,0.f,1.f);};ShaderVector result{};
-    if(family==SurfaceFamily::TerrainBlend || family==SurfaceFamily::TerrainBlendThreeStage) {
+    if(family==SurfaceFamily::TextureDetail || family==SurfaceFamily::TextureTwoChangeColor ||
+       family==SurfaceFamily::TextureFourChangeColor) {
+        const auto first=surface_detail::argb(colors[0]),second=surface_detail::argb(colors[1]);
+        const auto third=surface_detail::argb(colors[2]),fourth=surface_detail::argb(colors[3]);
+        for(unsigned c=0;c<3;++c) {
+            const float base=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
+            float tint=first[c];
+            if(family!=SurfaceFamily::TextureDetail) {
+                const float a=(1.f-sat(samples[3][0]))+sat(samples[3][0])*first[c];
+                const float b=(1.f-sat(samples[3][1]))+sat(samples[3][1])*second[c];
+                tint=a*b;
+                if(family==SurfaceFamily::TextureFourChangeColor) {
+                    const float d=(1.f-sat(samples[3][2]))+sat(samples[3][2])*third[c];
+                    const float e=(1.f-sat(samples[3][3]))+sat(samples[3][3])*fourth[c];
+                    tint*=d*e;
+                }
+            }
+            result[c]=sat(base*tint);
+        }
+        result[3]=sat(std::max(samples[0][3],0.f)*std::max(samples[1][3],0.f));
+    } else if(family==SurfaceFamily::TerrainBlend || family==SurfaceFamily::TerrainBlendThreeStage) {
         const auto gain=surface_detail::argb(colors[2]),bias=surface_detail::argb(colors[3]);
         const float mask=sat(samples[0][3]);
         for(unsigned c=0;c<3;++c) {
@@ -184,6 +260,9 @@ inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uin
     } else if(family==SurfaceFamily::BumpLeafCoverage || family==SurfaceFamily::BumpLeafCoveragePerVertex) {
         for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
         result[3]=surface_detail::argb(colors[samples[2][3]>=.5f?0:1])[3];
+    } else if(family==SurfaceFamily::DynamicDetail) {
+        for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
+        result[3]=sat(2.f*surface_detail::argb(colors[0])[3]*std::max(samples[0][3],0.f)*std::max(samples[1][3],0.f));
     } else if(family==SurfaceFamily::OpaqueDetail) {
         for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
         // This family has no raster alpha test or blending. Retain the

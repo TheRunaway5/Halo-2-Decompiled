@@ -29,7 +29,9 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
         if(blocker)quad(geometry,-16384,-16384,16384,16384,0,{0,0,1},2);
         auto scene=pt::build_scene(geometry,materials,lights);
         for(auto& material:scene.materials)material.response={1,0,0,material.response[3]};
-        scene.materials[0].color_guide={1,sampler,0,2};
+        // Isolate secondary transport from the separately tested primary
+        // interior baseline. This receiver retains only its source hue.
+        scene.materials[0].color_guide={1,sampler,0,0};
         scene.materials[1].color_guide={1,sampler,0,qualified?2u:0u};
         Vertex a;a.lightmap=1;a.lightmap_uv={.5f,.5f};
         for(auto& triangle:scene.triangles)if(triangle.metadata[0]==1)
@@ -129,13 +131,16 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
     quad(background_geometry,-.25f,-.25f,.25f,.25f,-2,{0,0,1},2);
     std::array background_materials{white_material(),white_material(),white_material()};
     background_materials[1].diffuse=solid_texture({128,128,128,255});
-    auto background_scene=pt::build_scene(background_geometry,background_materials);
+    // The authored distant bank selects the outdoor policy. Its zero power
+    // isolates the unchanged proposal-hint behavior from direct sunlight.
+    pt::Light outdoor;outdoor.direction=Vec3{0,0,1}; // Authored black RGB, retained bank.
+    auto background_scene=pt::build_scene(background_geometry,background_materials,std::span(&outdoor,1));
     for(auto& material:background_scene.materials)material.response={1,0,0,material.response[3]};
     for(unsigned slot:{0u,1u})background_scene.materials[slot].color_guide={1,sampler,0,2};
     const std::array background_images{solid_texture({64,128,192,255}),solid_texture({128,128,128,255})};
     pt::refresh_color_guides(background_scene,background_images);
     background_scene.materials[2].emission={.001f,.001f,.001f,0};
-    pt::update_geometry(background_scene,background_geometry);
+    pt::update_geometry(background_scene,background_geometry,std::span(&outdoor,1));
     require(background_scene.emissive_count==2,"Background sampling control lacks its actual hidden emitter");
     const auto background=draw(background_scene,false);
     auto no_hint_scene=background_scene;no_hint_scene.materials[0].color_guide[3]=0;
@@ -144,6 +149,9 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
     require(no_hint_noise>10,"Background control did not establish nonzero proposal variance");
     require(background_noise<no_hint_noise*.2f,
         "Authored static-field sampling hint failed to reduce background noise");
+    std::cout<<"Secondary proposal controls: hint_mean="<<mean(background,2,8,56,8,56)
+        <<" no_hint_mean="<<mean(no_hint,2,8,56,8,56)<<" expected="<<expected(2)
+        <<" noise="<<background_noise<<','<<no_hint_noise<<'\n';
     require(std::abs(mean(background,2,8,56,8,56)-expected(2))<1.1f &&
         std::abs(mean(no_hint,2,8,56,8,56)-expected(2))<4.f*no_hint_noise/48.f+1.f,
         "Proposal-only irradiance hint changed constant-field lighting energy");

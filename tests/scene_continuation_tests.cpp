@@ -104,6 +104,22 @@ struct Clock final:PhysicsLiveClockSource {
     std::uint64_t cycles()const noexcept override{return counter.fetch_add(1000);}
     std::uint64_t utc_filetime()const noexcept override{return 132000000000000000ull;}
 };
+// The value snapshot the campaign renderer's shader inputs read during an
+// overlapped draw answers exactly what function_variable answers.
+void function_snapshot() {
+    auto c=content();SceneObjects scene(c,0,{});
+    const auto object=scene.resolve(0),other=scene.resolve(1);
+    scene.set_function_variable(object,17,0,0,0);scene.set_function_variable(object,17,1,60,10);
+    scene.set_function_variable(object,5,.25f,0,3);scene.set_function_variable(other,9,.5f,0,0);
+    for(int tick=0;tick<100;++tick) {
+        const auto all=scene.function_variables(object,tick);
+        check(all.size()==2 && all[0].first==5 && all[1].first==17,"Snapshot names differ");
+        check(scene.function_variable(object,5,tick)==all[0].second &&
+              scene.function_variable(object,17,tick)==all[1].second,"Snapshot values differ");
+    }
+    check(scene.function_variables(scene.resolve(2),10).empty(),"Object without variables has a snapshot");
+    scene.destroy(other);rejects([&]{(void)scene.function_variables(other,0);});
+}
 void native(const char *xbe,const char *map) {
     Cache cache(map,{},OriginalData::load_xbe(xbe));const auto authored=cache.load_content(0,true);
     const auto variant_type=source_game_variant_type(source_game_variant_default(0));
@@ -156,7 +172,7 @@ void native(const char *xbe,const char *map) {
 }
 }
 int main(int argc,char **argv)try {
-    std::cout<<std::unitbuf;owned();
+    std::cout<<std::unitbuf;owned();function_snapshot();
     if(argc==3){if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;native(argv[1],argv[2]);}
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

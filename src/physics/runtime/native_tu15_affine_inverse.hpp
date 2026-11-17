@@ -1,4 +1,5 @@
 #pragma once
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_affine_inverse_kernel.hpp"
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include "physics/runtime/native_tu15_mopp_ray_caller_frame.hpp"
@@ -105,6 +106,10 @@ template<class State>bool admitted(const State&s,Observation observation){
     // Actual-named generated copies own the TU1.5 operand image only. The
     // canonical/world owners retain the separately qualified disc mapping.
     if(observation==Observation::actual&&s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
+    // HALO2_CENSUS_NATIVE_BRIDGES: full census callbacks without a cursor.
+    // 144090..1441BA holds no live service PC and the frame writes the
+    // cursor only when there is one.
+    if(native_census_detail::uncursored(s,0x144090u,0x1441bau))return true;
     if(!s.services.instruction)return !s.instruction_cursor&&!s.literal_service_sites&&!s.observe;
     const auto*c=s.instruction_cursor;
     return s.literal_service_sites&&c&&c==&s.services.instruction_cursor&&c->position&&c->callback_type&&

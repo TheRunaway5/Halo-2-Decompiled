@@ -9,6 +9,23 @@
 using namespace halo2;
 void require(bool ok,const char* why){if(!ok)throw FormatError(why);}
 namespace {
+void all_visible_point_lights(const EffectLightDefinition& authored) {
+    auto projected=authored;
+    projected.bytes[4]=std::byte{2};
+    SourceEffectLightView view;
+    for(unsigned id=1;id<=5;++id) {
+        view.records.push_back({{.identity=id},id==5?&projected:&authored,{}});
+        view.candidates.push_back({.identity=id,.requested_fade=.75f,.coverage=16.f});
+    }
+    view.selected={{.identity=1,.requested_fade=.2f},{.identity=5,.requested_fade=.3f}};
+    pstencil::include_active_point_lights(view);
+    require(view.selected.size()==5,"pStencil retained the retail three-light budget");
+    for(const auto& light:view.selected)
+        require(light.requested_fade==(light.identity==5?.3f:.75f),
+            "pStencil point-light distance fade or existing projected-light selection changed");
+    pstencil::include_active_point_lights(view);
+    require(view.selected.size()==5,"Repeated point admission duplicated a light");
+}
 void checkpoint_roundtrip(const Cache &cache,pstencil::PointLights &lights,pstencil::PointLightOwner owner) {
     const auto spatial=cache.load_object_light_spatial_bsp(0);
     const auto geometry=cache.load_source_bsp_admission(0);
@@ -110,6 +127,7 @@ int main(int argc,char** argv){try {
     lights.synchronize(std::span(&owner,1),10);const auto born=lights.lights();
     require(born.size()==1,"plasma did not produce exactly its authored glow");
     const auto authored=load_effect_light(cache,born[0].definition);
+    all_visible_point_lights(authored);
     const auto expected=source_effect_light_state(authored,1,0,30,cache.original_data()->fade_curve);
     require(born[0].state.diffuse.x==expected.diffuse.x && born[0].state.diffuse.y==expected.diffuse.y &&
         born[0].state.diffuse.z==expected.diffuse.z,"plasma color differs from authored endpoints");

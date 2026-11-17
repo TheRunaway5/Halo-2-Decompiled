@@ -151,7 +151,10 @@ def main():
     from native_weapon_effect_state_bridge_tu15 import install_native_effect_creation
     source=install_native_effect_creation(source)
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    a.output.write_text(install_native_normalizer(source,'Tu15Literal'))
+    source=install_native_normalizer(source,'Tu15Literal')
+    from native_effect_reference_element_replacements import replace_effect_reference_element
+    from native_indexed_datum_gate_replacements import replace_indexed_datum_gate
+    a.output.write_text(replace_indexed_datum_gate(replace_effect_reference_element(source)))
     report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),particle_vtables=tables,preserved_existing_bodies=preserved,
         effect_loop_location=dict(entry='0017e160',bytes=226,caller='0018fa45',returned='0018fa4a',ret_bytes=8),
         physics_loop_location=dict(entry='00230b10',bytes=802,caller='0018fb2c',returned='0018fb31',ret_bytes=12))

@@ -1,12 +1,13 @@
 #include "physics/runtime/native_tu15_host_fp_io.hpp"
 #pragma once
 #include "halo2/native_tu15_bsp_surface_polygon_kernel.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/physics_contact_runtime.hpp"
 #include <cstdlib>
 
 namespace halo2::native_bsp_surface_polygon_detail {
 inline bool reference_mode(){static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_SURFACE_POLYGON");return p&&*p;}();return enabled;}
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 // Restore the exact preceding arithmetic context before shifts whose AF/OF
 // result is undefined. SAHF leaves OF from the seeded ADD intact. No native
@@ -22,7 +23,10 @@ inline std::uint32_t shifted_flags(std::uint32_t value,unsigned count,std::uint3
 struct Memory {
     const SourcePhysicsContactMemory&memory;
     std::uint32_t word(std::uint32_t at,unsigned width=4)const{
-        std::array<std::byte,4>bytes{};native_host_fp_io_detail::preserve([&]{memory.read(at,std::span(bytes).first(width));});std::uint32_t value{};
+        // Committed direct pages/read views are copied as the provider would;
+        // other operands keep the provider read (exact empty-stack preserve).
+        std::array<std::byte,4>bytes{};const auto out=std::span(bytes).first(width);
+        if(!native_raw_x87_detail::direct_read(memory,at,out))native_host_fp_io_detail::preserve_empty([&]{memory.read(at,out);});std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8*n);return value;
     }
 };
@@ -35,7 +39,9 @@ template<class State,class Before=Noop>bool bridge(State&s,Before before={}){
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
     if constexpr(requires{s.active_mmx;})if(s.active_mmx)return false;
     if((_mm_getcsr()&0x1f80u)!=0x1f80u)return false;
-    if(s.services.instruction){
+    // HALO2_CENSUS_NATIVE_BRIDGES: full callbacks without a cursor run the
+    // closure (every hook/cursor publication already handles a null cursor).
+    if(s.services.instruction&&!native_census_detail::uncursored(s,0x1e6e80u,0x1e6facu)){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*c=s.instruction_cursor;
         if((c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace))return false;
@@ -43,12 +49,13 @@ template<class State,class Before=Noop>bool bridge(State&s,Before before={}){
         for(const auto site:c->service_sites)if(site>=0x1e6e80u&&site<=0x1e6facu)return false;
     }
     auto&gp=s.gp;const auto entry_sp=gp[4],descriptor=gp[2],bitmap=gp[0];Memory memory{s.memory};
-    const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;native_host_fp_io_detail::preserve([&]{before(s,pc);});};
+    const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;
+        if(!native_raw_x87_detail::skip_hook<Before>())native_host_fp_io_detail::preserve_empty([&]{before(s,pc);});};
     const auto store=[&](std::uint32_t pc,std::uint32_t address,std::uint32_t value,bool stack=false){
         at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(4)};
-        if(s.observe){event.before.resize(4);native_host_fp_io_detail::preserve([&]{s.memory.read(address,event.before);});}
-        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8*n));native_host_fp_io_detail::preserve([&]{s.memory.write(address,event.written);});
-        if(stack)gp[4]=address;if(s.observe)native_host_fp_io_detail::preserve([&]{s.observe(event);});
+        if(s.observe){event.before.resize(4);if(!native_raw_x87_detail::direct_read(s.memory,address,event.before))native_host_fp_io_detail::preserve_empty([&]{s.memory.read(address,event.before);});}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8*n));native_host_fp_io_detail::preserve_empty([&]{s.memory.write(address,event.written);});
+        if(stack)gp[4]=address;if(s.observe)native_host_fp_io_detail::preserve_empty([&]{s.observe(event);});
     };
     const auto push=[&](std::uint32_t pc,std::uint32_t value){store(pc,gp[4]-4u,value,true);};
     const auto pop=[&](std::uint32_t pc){at(pc);const auto value=memory.word(gp[4]);gp[4]+=4u;return value;};

@@ -1,5 +1,7 @@
 // Offline physical i386 geometry observer. All changes precede the original
 // entry and contain declared inputs only; no instruction or outcome is supplied.
+// The one exception is a case's optional "query_names": the translated route's
+// reported MCC key joins at two pushed search keys (see the loop).
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/user.h>
@@ -41,13 +43,30 @@ int main(int argc,char**argv){try{
   for(const auto&b:c.at("banks"))memory(child.pid,b.at("address"),bytes(b.at("before")));
   const auto initial=c.at("gp").get<std::array<std::uint32_t,8>>();user_regs_struct regs{};request(PTRACE_GETREGS,child.pid,nullptr,&regs);regs.rax=initial[0];regs.rcx=initial[1];regs.rdx=initial[2];regs.rbx=initial[3];regs.rsp=initial[4];regs.rbp=initial[5];regs.rsi=initial[6];regs.rdi=initial[7];regs.rip=c.at("entry").get<std::uint32_t>();regs.eflags=c.value("eflags",0x202u);request(PTRACE_SETREGS,child.pid,nullptr,&regs);
   user_fpregs_struct fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);fp.cwd=c.at("before_fp")[0];fp.swd=c.at("before_fp")[1];fp.mxcsr=c.at("before_fp")[2];fp.ftw=0;std::memset(fp.st_space,0,sizeof(fp.st_space));const auto depth=c.at("live_x87").size();const auto top=(fp.swd>>11u)&7u;for(unsigned n=0;n<depth;++n){const auto b=bytes(c.at("live_x87")[n]);check(b.size()==10,"Invalid declared extended input");std::memcpy(reinterpret_cast<std::byte*>(fp.st_space)+n*16,b.data(),10);fp.ftw|=1u<<((top+n)&7u);}for(unsigned n=0;n<32;++n)fp.xmm_space[n]=0x6b000000u+c.at("id").get<unsigned>()*37u+n;if(c.contains("xmm"))for(unsigned n=0;n<8;++n)for(unsigned k=0;k<4;++k)fp.xmm_space[n*4+k]=c.at("xmm")[n][k];request(PTRACE_SETFPREGS,child.pid,nullptr,&fp);user_fpregs_struct entry_fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&entry_fp);check(entry_fp.cwd==fp.cwd&&entry_fp.swd==fp.swd&&entry_fp.mxcsr==fp.mxcsr,"Original declared controls were not installed exactly");
-  std::vector<std::byte>stack(12);const std::array<std::uint32_t,3>args{c.value("return_pc",stop),c.at("matrix"),c.at("source")};for(unsigned n=0;n<3;++n)for(unsigned k=0;k<4;++k)stack[n*4+k]=std::byte(args[n]>>(k*8u));memory(child.pid,initial[4],stack);
+  // Optional stack_arguments follow the two declared argument words.
+  std::vector<std::uint32_t>args{c.value("return_pc",stop),c.at("matrix").get<std::uint32_t>(),c.at("source").get<std::uint32_t>()};for(const auto&w:c.value("stack_arguments",J::array()))args.push_back(w.get<std::uint32_t>());std::vector<std::byte>stack(args.size()*4);for(std::size_t n=0;n<args.size();++n)for(unsigned k=0;k<4;++k)stack[n*4+k]=std::byte(args[n]>>(k*8u));memory(child.pid,initial[4],stack);
   auto retained=[&](std::uint32_t p,unsigned n){for(const auto&b:c.at("banks")){const auto first=b.at("address").get<std::uint32_t>();if(p>=first&&std::uint64_t(p-first)+n<=b.at("before").get_ref<const std::string&>().size()/2)return true;}return false;};
   J reads=J::array(),writes=J::array(),calls=J::array(),boundary=nullptr;std::set<std::uint32_t>executed;unsigned steps{},read_count{},write_count{};bool finished{};
   const auto fault=c.value("fault",J::object());const std::string phase=fault.value("phase","");const auto ordinal=fault.value("ordinal",0u);
   const auto max_steps=c.value("max_steps",5000u);check(max_steps>0&&max_steps<=100000u,"Original declared instruction budget exceeds limit");
+  // Optional "query_names" ({states: [[tu15, mcc]...], dual: [tu15, mcc]}):
+  // the translated route's weapon animation key joins on MCC caches
+  // (src/gameplay/weapons/source_weapon_animation_query_symbols_tu15.cpp)
+  // over the unchanged original. 1D5320 and 1D3D30 entries and 16AD45's
+  // four channel calls open scopes named by their caller. In the innermost
+  // scope the key pushed at 1E34A3 becomes the cache name of the state key a
+  // 169A56 caller's 1D5320 entered with, and the key pushed at 2A019A the
+  // cache name of the dual class. The pushed register is restored after the
+  // push and each join is reported ("query_joins"); the translated route's
+  // other join sites are refused. Without the field nothing changes.
+  struct QueryScope{std::uint32_t frame,state_key;bool state_names,class_names;};
+  std::vector<QueryScope>query_scopes;J query_joins=J::array();const bool query=c.contains("query_names");
+  std::map<std::uint32_t,std::uint32_t>state_names;std::array<std::uint32_t,2>dual{};
+  if(query){for(const auto&p:c.at("query_names").at("states"))state_names[p.at(0).get<std::uint32_t>()]=p.at(1).get<std::uint32_t>();dual=c.at("query_names").at("dual").get<std::array<std::uint32_t,2>>();}
+  const std::map<std::uint32_t,std::uint32_t>channel_calls{{0x16b0d1u,0x12000068u},{0x16b0e5u,0x08000061u},{0x16b108u,0x0a000069u},{0x16b128u,0x0e0000deu}};
+  const std::set<std::uint32_t>unemulated_joins{0x116570u,0x112401u,0x1125dbu,0x16b3f1u,0x115ccfu,0x115cd4u,0x115ce8u,0x115cedu,0x115d0cu,0x115d11u,0x115d2au,0x115d2fu,0x115d68u,0x115d83u};
   for(;steps<max_steps;++steps){
-   request(PTRACE_GETREGS,child.pid,nullptr,&regs);const auto pc=std::uint32_t(regs.rip);if(pc==stop||std::find(stop_entries.begin(),stop_entries.end(),pc)!=stop_entries.end()){finished=true;break;}const auto it=sites.find(pc);check(it!=sites.end(),"Original geometry escaped authenticated leaf bodies");executed.insert(pc);
+   request(PTRACE_GETREGS,child.pid,nullptr,&regs);const auto pc=std::uint32_t(regs.rip);if(pc==stop||std::find(stop_entries.begin(),stop_entries.end(),pc)!=stop_entries.end()){finished=true;break;}const auto it=sites.find(pc);if(it==sites.end()){std::cerr<<"Original case escaped: "<<c.at("name")<<" pc="<<std::hex<<pc<<std::dec<<"\n";throw std::runtime_error("Original geometry escaped authenticated leaf bodies");}executed.insert(pc);
    // Optional read-only observations at genuine function entries. No PC,
    // register, memory or callee outcome is changed by call tracing.
    if(metadata.contains("trace_calls"))for(const auto& trace:metadata.at("trace_calls"))if(pc==trace.at("entry").get<std::uint32_t>()) {
@@ -71,22 +90,39 @@ int main(int argc,char**argv){try{
     }
     calls.push_back(observed);
    }
+   int joined_register=-1;std::uint32_t canonical_key{};  // 7 EDI (1E34A3), 1 ECX (2A019A)
+   if(query){
+    const auto sp=std::uint32_t(regs.rsp);while(!query_scopes.empty()&&query_scopes.back().frame<sp)query_scopes.pop_back();
+    check(!unemulated_joins.contains(pc),"Original reached a weapon animation join the observer does not emulate");
+    const auto caller=[&]{const auto b=memory(child.pid,sp,4);std::uint32_t v{};std::memcpy(&v,b.data(),4);return v;};
+    if(pc==0x1d5320u){const bool first_person=caller()==0x169a56u;query_scopes.push_back({sp,std::uint32_t(regs.rax),first_person,first_person});}
+    else if(pc==0x1d3d30u)query_scopes.push_back({sp,0,false,caller()==0x16b402u});
+    else if(const auto call=channel_calls.find(pc);call!=channel_calls.end())query_scopes.push_back({sp-4u,0,false,std::uint32_t(regs.rdi)==call->second});
+    if(!query_scopes.empty()){
+     const auto&scope=query_scopes.back();
+     if(pc==0x1e34a3u&&scope.state_names&&std::uint32_t(regs.rdi)==scope.state_key&&state_names.contains(scope.state_key))joined_register=7;
+     if(pc==0x2a019au&&scope.class_names&&std::uint32_t(regs.rcx)==dual[0])joined_register=1;
+    }
+   }
    J pending_reads=J::array(),pending_writes=J::array();bool stop_before{};
    const bool empty_repeat=it->second.value("repeat_ecx",false)&&std::uint32_t(regs.rcx)==0;
-   if(!empty_repeat)for(const auto&o:it->second.at("operands")){const auto p=address(o,gp(regs)),n=o.at("bytes").get<unsigned>();if(!retained(p,n)){check(p<0x1000000u||p>=0x1004000u,"Original query escaped declared persistent operands");continue;}
+   if(!empty_repeat)for(const auto&o:it->second.at("operands")){const auto p=address(o,gp(regs)),n=o.at("bytes").get<unsigned>();if(!retained(p,n)){check(p<0x1000000u||p>=0x1004000u,"Original query escaped declared persistent operands");check(!(c.value("strict_writes",false)&&o.at("write").get<bool>()),"Original store escaped the declared banks");continue;}
     if(o.at("read").get<bool>()){if(phase=="before_read"&&read_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}++read_count;pending_reads.push_back(J{{"instruction",pc},{"address",p},{"bytes",n}});}
     if(o.at("write").get<bool>()){if(phase=="before_write"&&write_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}pending_writes.push_back(J{{"instruction",pc},{"address",p},{"bytes",n},{"before",hex(memory(child.pid,p,n))}});}
    }
    if(stop_before)break;
+   if(joined_register>=0){auto&key=joined_register==7?regs.rdi:regs.rcx;canonical_key=std::uint32_t(key);const auto cache=joined_register==7?state_names.at(canonical_key):dual[1];key=cache;request(PTRACE_SETREGS,child.pid,nullptr,&regs);query_joins.push_back(J::array({pc,canonical_key,cache}));}
    request(PTRACE_SINGLESTEP,child.pid);wait();check(WIFSTOPPED(status),"Original geometry left without a boundary");
+   if(joined_register>=0){request(PTRACE_GETREGS,child.pid,nullptr,&regs);(joined_register==7?regs.rdi:regs.rcx)=canonical_key;request(PTRACE_SETREGS,child.pid,nullptr,&regs);}
    if(WSTOPSIG(status)==SIGSEGV){if(c.value("actual_write_fault",false)){bool found=false;for(const auto&o:it->second.at("operands"))if(o.at("write").get<bool>()){boundary=J{{"phase","actual_write_fault"},{"instruction",pc},{"address",address(o,gp(regs))},{"bytes",o.at("bytes")}};found=true;break;}check(found,"Original fault has no write operand");break;}if(!c.value("alignment_fault",false)){std::cerr<<"Original query-start fault: "<<c.at("name")<<" pc="<<std::hex<<pc<<std::dec<<"\n";throw std::runtime_error("Unexpected original path input fault");}boundary=J{{"phase","alignment_fault"},{"instruction",pc}};break;}
    check(WSTOPSIG(status)==SIGTRAP,"Unexpected original geometry stop");for(const auto&r:pending_reads)reads.push_back(r);for(auto&w:pending_writes){w["written"]=hex(memory(child.pid,w.at("address").get<std::uint32_t>(),w.at("bytes").get<std::size_t>()));w.erase("bytes");writes.push_back(w);if(phase=="after_write"&&write_count==ordinal)boundary=J{{"phase",phase},{"instruction",pc},{"address",w.at("address")}};++write_count;}
    if(!boundary.is_null())break;
   }
   check(finished||!boundary.is_null(),"Original geometry did not reach its declared boundary");if(!phase.empty())check(!finished&&boundary.at("phase")==phase,"Original geometry prefix did not stop");request(PTRACE_GETREGS,child.pid,nullptr,&regs);request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);if(finished){check(fp.cwd==entry_fp.cwd&&((fp.swd^entry_fp.swd)&0x3800u)==0&&fp.ftw==entry_fp.ftw,"Original path start changed live x87 topology");for(unsigned n=0;n<depth;++n)check(!std::memcmp(reinterpret_cast<const std::byte*>(fp.st_space)+n*16,reinterpret_cast<const std::byte*>(entry_fp.st_space)+n*16,10),"Original path start changed a live x87 input");}
   J banks=J::array();for(const auto&b:c.at("banks"))banks.push_back(J{{"address",b.at("address")},{"after",hex(memory(child.pid,b.at("address"),b.at("before").get_ref<const std::string&>().size()/2))}});
+  const auto pending_values=c.value("pending_extended_sites",std::vector<std::uint32_t>{});const std::set<std::uint32_t> pending_extended_sites(pending_values.begin(),pending_values.end());
   J boundary_xmm=J::array();for(unsigned n=0;n<8;++n)boundary_xmm.push_back(J::array({fp.xmm_space[n*4],fp.xmm_space[n*4+1],fp.xmm_space[n*4+2],fp.xmm_space[n*4+3]}));
-  result.push_back(J{{"calls",calls},{"boundary_xmm",boundary_xmm},{"boundary_eflags",std::uint32_t(regs.eflags)&~0x100u},{"id",c.at("id")},{"completed",finished},{"boundary",boundary},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"live_x87_unchanged",finished},{"boundary_gp",gp(regs)},{"result_bits",fp.xmm_space[0]},{"pending_extended",!finished&&!boundary.is_null()&&boundary.value("instruction",0u)==0x266ef9u&&(boundary.value("phase",std::string{})=="before_write"||boundary.value("phase",std::string{})=="actual_write_fault")?hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space),10)):std::string{}},{"reads",reads},{"writes",writes},{"banks",banks},{"executed_sites",executed},{"original_instructions",steps}});if(c.contains("stop_before_entries"))result.back()["stopped_at"]=std::uint32_t(regs.rip);total+=steps;
+  result.push_back(J{{"calls",calls},{"boundary_xmm",boundary_xmm},{"boundary_eflags",std::uint32_t(regs.eflags)&~0x100u},{"id",c.at("id")},{"completed",finished},{"boundary",boundary},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"live_x87_unchanged",finished},{"boundary_gp",gp(regs)},{"result_bits",fp.xmm_space[0]},{"pending_extended",!finished&&!boundary.is_null()&&(boundary.value("instruction",0u)==0x266ef9u||pending_extended_sites.contains(boundary.value("instruction",0u)))&&(boundary.value("phase",std::string{})=="before_write"||boundary.value("phase",std::string{})=="actual_write_fault")?hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space),10)):std::string{}},{"reads",reads},{"writes",writes},{"banks",banks},{"executed_sites",executed},{"original_instructions",steps}});if(c.contains("stop_before_entries"))result.back()["stopped_at"]=std::uint32_t(regs.rip);if(query)result.back()["query_joins"]=query_joins;total+=steps;
  }
  std::ofstream out(argv[4]);out<<J{{"cases",result},{"original_instructions",total},{"instruction_patches",J::array()},{"supplied_original_outcomes",false}}.dump()<<'\n';check(bool(out),"Original geometry report failed");std::cout<<result.size()<<" physical original geometry cases, "<<total<<" unchanged instructions\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

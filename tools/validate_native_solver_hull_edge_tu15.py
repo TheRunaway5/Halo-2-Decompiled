@@ -3,6 +3,7 @@
 import copy,inspect,struct
 from pathlib import Path
 import validate_native_solver_hull_line_tu15 as line
+from native_solver_hull_edge_legacy_mutants import inject_edge_generation,retarget_edge_mutants
 ROOT=Path(__file__).resolve().parents[1]
 def cases(image):
  rows=[]
@@ -34,5 +35,6 @@ def main():
  text=text.replace("complete_body(code,0x3136a0)","complete_body(code,0x313470)")
  text=text.replace("('wrong_distance','subtract(subtract(first,transformed),vertex)','subtract(subtract(transformed,first),vertex)'),('wrong_direction','xor_bits(current_direction,sign)','current_direction'),('wrong_choice','second=(relation&0x100u)!=0','second=(relation&0x100u)==0')","('wrong_direction','xor_bits(axis,sign)','axis'),('wrong_choice','if(!(relation&0x100u)){','if(relation&0x100u){'),('wrong_scalar_output','output+0x30u,value','output+0x34u,value')")
  text=text.replace("'3132E8 child RMW write-fault remains separately open'","'No child RMW occurs in this selected helper; private-address faults remain outside this public DATA domain'")
- namespace=dict(line.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__);exec(text,namespace);return namespace['main']()
+ text=inject_edge_generation(text)
+ namespace=dict(line.__dict__,cases=cases,driver_source=driver_source,retarget_edge_mutants=retarget_edge_mutants,__doc__=__doc__);exec(text,namespace);return namespace['main']()
 if __name__=='__main__':raise SystemExit(main())

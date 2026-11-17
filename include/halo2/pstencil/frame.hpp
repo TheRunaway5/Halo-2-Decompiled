@@ -21,7 +21,7 @@ struct LightBatch {
 // receiver bank. All source geometry and palettes are borrowed for one draw.
 class Frame {
 public:
-    explicit Frame(std::size_t views):views_(views),lightmaps_(views){}
+    explicit Frame(std::size_t views):views_(views),lightmaps_(views),lightmap_owners_(views){}
     void add(std::size_t view,const EffectLightRawDraw&,std::size_t receiver,
         std::span<const std::size_t> specular={},bool collect_caster=true);
     void add_caster(std::size_t view,const PointCaster&);
@@ -32,11 +32,17 @@ public:
     void prepare(Render&);
     std::span<const LightBatch> lights(std::size_t view) const{return views_.at(view);}
     std::span<const LightBatch> lightmaps(std::size_t view) const{return lightmaps_.at(view);}
+    // All posed triangles of this view's sun/lightmap casters, uploaded as
+    // one batch; null when the view has none.
+    const LightBatch* lightmap_owners(std::size_t view) const {
+        const auto& owners=lightmap_owners_.at(view);return owners.volume.empty()?nullptr:&owners;
+    }
 private:
     LightBatch& light(std::size_t view,std::uint32_t identity,std::uint32_t domain,Vec3 position);
     void add_source(LightBatch&,const MenuWorldSourceBinding&,unsigned stipple_level=16);
     std::vector<std::vector<LightBatch>> views_;
     std::vector<std::vector<LightBatch>> lightmaps_;
+    std::vector<LightBatch> lightmap_owners_;
     std::size_t shadow_only_{},without_color_{},fractional_{};
 };
 } // namespace halo2::pstencil

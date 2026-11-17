@@ -2,7 +2,7 @@
 // Marker owners retain real lower calls and exact original memory ordering.
 void marker_matrix_locations(Memory &m,Abi &a,const Observer &o,const Services &s) {
     bool sse_active{};std::optional<SseEnvironment> environment;
-    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
     const auto right=[&](std::uint32_t value,unsigned count){const auto result=value>>count;iterator_logic_flags(r,result,4);a.eflags=(a.eflags&~1u)|((value>>(count-1u))&1u);return result;};
     const auto signed_word=[](std::uint32_t value){return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(value))));};
     instruction(0xbad60);a.gp[4]=iterator_flags(r,a.gp[4],8,4,true);
@@ -118,7 +118,8 @@ result_ready:
 }
 
 void marker_parent_unit(Memory &m,Abi &a,const Observer &o,const Services &s) {
-    const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+    if(halo2::native_marker_owner_detail::effect(m,a,s,o))return;
+    const auto instruction=[&](auto pc){if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
     const auto shift_left=[&](std::uint32_t value,unsigned count){
         count&=31u;if(!count)return value;const auto result=value<<count;
         iterator_logic_flags(r,result,4);const auto carry=(value>>(32u-count))&1u;
@@ -174,7 +175,8 @@ current_unit:
 }
 
 void marker_parent_mode(Memory &m,Abi &a,const Services &s) {
-    const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+    if(halo2::native_object_parent_mode_detail::effect(m,a,s))return;
+    const auto instruction=[&](auto pc){if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
     instruction(0xfc510);a.gp[2]=read(m,0x4ecbd0);
     instruction(0xfc516);a.gp[2]=read(m,a.gp[2]+0x44);
     instruction(0xfc519);a.gp[1]&=65535u;iterator_logic_flags(r,a.gp[1],4);

@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdexcept>
 #include <thread>
+#include <vector>
 
 namespace {
 using namespace halo2;
@@ -268,6 +269,64 @@ void speaker_reconfiguration() {
 }
 } // namespace
 
+// Mixbin-13 effect bus: dry routes are unchanged, the 0 dB mono send is
+// processed by native DSP record 1 in 32-sample blocks and returned to both
+// front channels one block later. Without an effect voice the bus is idle.
+void effect_send_bus() {
+  std::vector<float> stereo;
+  for (unsigned n = 0; n < 96; ++n) {
+    const float value = float(0.6 * std::sin(n * 0.37) * (n % 7 == 3 ? -1.2 : 1.0));
+    stereo.push_back(value); stereo.push_back(value);
+  }
+  const auto source = std::make_shared<const std::vector<float>>(stereo);
+  const auto run = [&](std::optional<SdlSoundEffectSend> effect) {
+    SdlSoundPlatform device(configuration(SdlSoundPlatformConfiguration::Delivery::Manual));
+    auto voice_parameters = parameters(1, -600, false);
+    voice_parameters.effect = effect;
+    const auto voice = device.create_voice(0x301, voice_parameters);
+    check(device.submit(voice, {source, 0, 96, 0x401}) == SdlSoundPlatform::Submission::Accepted,
+          "Effect packet was not accepted");
+    auto output = device.render(160);
+    close_voice(device, voice);
+    return output;
+  };
+  const auto dry = run(std::nullopt);
+  const double amplitude = std::pow(10.0, -600.0 / 2000.0);
+  for (unsigned n = 0; n < 160; ++n)
+    sample_near(dry[2 * n], n < 96 ? stereo[2 * n] * amplitude : 0.0);
+  auto parameters_1 = tu15_sound_mono_distortion::authored_initial_parameters();
+  parameters_1.gain = tu15_sound::Word24(0x200000);
+  const auto wet = run(SdlSoundEffectSend{parameters_1});
+  // Independent expectation through the same record-1 arithmetic.
+  tu15_sound_mono_distortion::State state{};
+  auto installed = parameters_1;
+  constexpr tu15_sound_mono_distortion::Controls controls{tu15_sound_mono_distortion::ScalingMode::none, false, false,
+      false, tu15_sound_mono_distortion::AddressingMode::linear, tu15_sound_mono_distortion::AddressingMode::linear,
+      tu15_sound_mono_distortion::AddressingMode::linear, tu15_sound_mono_distortion::AddressingMode::linear,
+      tu15_sound_mono_distortion::AddressingMode::linear};
+  std::vector<double> returned(160 + 32, 0.0);
+  for (unsigned block = 0; block < 5; ++block) {
+    std::array<tu15_sound::Word24, 32> words{};
+    for (unsigned i = 0; i < 32; ++i) {
+      const unsigned n = block * 32 + i;
+      const double send = n < 96 ? 0.5 * (stereo[2 * n] + stereo[2 * n + 1]) * amplitude : 0.0;
+      const auto scaled = std::clamp(std::nearbyint(send * 8388608.0), -8388608.0, 8388607.0);
+      words[i] = tu15_sound::Word24(std::uint32_t(std::int32_t(scaled)) & 0xffffffu);
+    }
+    tu15_sound_mono_distortion::process(controls, installed, state, words, words);
+    for (unsigned i = 0; i < 32; ++i)
+      returned[(block + 1) * 32 + i] = double(std::int32_t(words[i].bits << 8) >> 8) / 8388608.0;
+  }
+  bool audible = false;
+  for (unsigned n = 0; n < 160; ++n) {
+    const double expected = std::clamp(double(dry[2 * n]) + returned[n], -1.0, 1.0);
+    check(std::abs(double(wet[2 * n]) - expected) < 0.000001 && std::abs(double(wet[2 * n + 1]) - expected) < 0.000001,
+          "Effect bus output differs from dry plus record-1 return");
+    audible |= std::abs(returned[n]) > 0.0001;
+  }
+  check(audible, "Effect bus returned no processed signal");
+}
+
 int main(int argc, char **argv) {
   try {
     if (argc == 2 && std::string(argv[1]) == "--device-failure") {
@@ -288,7 +347,8 @@ int main(int argc, char **argv) {
     errors_and_flush_order();
     real_callback_consumption();
     speaker_reconfiguration();
-    std::cout << "nativeDevice=dummy realCallback=passed attachedPackets=2 rateControls=8 uncappedVoices=80 "
+    effect_send_bus();
+    std::cout << "effectBus=record1 nativeDevice=dummy realCallback=passed attachedPackets=2 rateControls=8 uncappedVoices=80 "
                  "retentionOrderedAccounting=passed independentPause=passed explicitRouting=passed "
                  "flushAndDeviceErrors=passed sourceAdmissionAndHardwareAudibility=unverified\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }

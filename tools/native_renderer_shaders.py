@@ -50,7 +50,9 @@ PATH_TRACING_VISIBILITY_FILES = frozenset({"path_tracing/depth.frag.spv"})
 PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv"})
 PLAYER_FLASH_FILES = frozenset({"player_flash_invert.frag.spv"})
 PLAYER_FLASH_EXECUTABLE_MARKER = b"player_flash_invert.frag.spv\0"
-AOT_FIXED_FILES = AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES | PLAYER_FLASH_FILES
+PSTENCIL_VOLUME_GEOMETRY_FILES = frozenset({"pstencil/volume.geom.spv"})
+PSTENCIL_VOLUME_GEOMETRY_MARKER = b"volume.geom.spv\0"
+AOT_FIXED_FILES = AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES | PLAYER_FLASH_FILES | PSTENCIL_VOLUME_GEOMETRY_FILES
 # This mode-availability diagnostic is retained by every engine exposing the
 # RT choice. Bind that executable feature to its complete fixed shader pair;
 # older qualified v2 executables remain admitted with their original fixed ABI.
@@ -60,6 +62,7 @@ PATH_TRACING_LIGHTING_MARKER = b"Path Tracing HDR lighting shader is unavailable
 PATH_TRACING_TEMPORAL_MARKER = b"Path Tracing temporal lighting shaders are unavailable in this runtime.\0"
 PATH_TRACING_TEMPORAL_FRAGMENTS = frozenset({"path_tracing/world.frag.spv", "path_tracing/lighting.frag.spv"})
 PATH_TRACING_SURFACE_MARKER = b"Path Tracing authored surface shaders are unavailable in this runtime.\0"
+PATH_TRACING_AMBIENT_SURFACE_MARKER = b"Path Tracing authored ambient surface shaders are unavailable in this runtime.\0"
 PATH_TRACING_SURFACE_FRAGMENTS = PATH_TRACING_TEMPORAL_FRAGMENTS | PATH_TRACING_VISIBILITY_FILES
 _GENERATED_PATH = re.compile(
     r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility|-source-depth|-path-tracing-source-depth)?\.vert|f-[0-9a-f]{64}\.frag)"
@@ -169,20 +172,30 @@ def _path_tracing_surface_abi(ops):
         opcode, vector = types.get(array[0], (None, ()))
         return opcode == 23 and len(vector) == 2 and vector[1] == 4 and types.get(vector[0]) == scalar
 
-    blocks = []
-    for pointer, storage in binding(4):
-        block = pointee(pointer, 2)
-        opcode, members = types.get(block, (None, ()))
-        if (storage == 2 and opcode == 30 and len(members) == 2 and
-                decorations.get((block, 2)) == [()] and
-                sorted(offsets.get(block, ())) == [(0, 0), (1, 304)] and
-                array_of_vector(members[0], (21, (32, 0)), 15) and
-                array_of_vector(members[1], (22, (32,)), 8)):
-            blocks.append(block)
-    if len(blocks) != 1:
+    def float_vector(identity):
+        opcode, vector = types.get(identity, (None, ()))
+        return opcode == 23 and len(vector) == 2 and vector[1] == 4 and types.get(vector[0]) == (22, (32,))
+
+    candidates = binding(4)
+    if len(candidates) != 1:
         return None
+    pointer, storage = candidates[0]
+    block = pointee(pointer, 2)
+    opcode, members = types.get(block, (None, ()))
+    if (storage != 2 or opcode != 30 or decorations.get((block, 2)) != [()] or
+            not members or not array_of_vector(members[0], (21, (32, 0)), 15)):
+        return None
+    member_offsets = sorted(offsets.get(block, ()))
+    version = None
+    if (len(members) == 2 and member_offsets == [(0, 0), (1, 304)] and
+            array_of_vector(members[1], (22, (32,)), 8)):
+        version = 1
+    elif (len(members) == 5 and member_offsets == [(0, 0), (1, 240), (2, 256), (3, 304), (4, 448)] and
+            all(float_vector(members[n]) for n in (1, 2, 4)) and
+            array_of_vector(members[3], (22, (32,)), 8)):
+        version = 2
     values = {scalar_constant(identity) for identity in constants}
-    return 1 if {0x53525448, 52} <= values else None
+    return version if {0x53525448, 52} <= values else None
 
 
 def native_module_contract(raw, name):
@@ -210,8 +223,10 @@ def native_module_contract(raw, name):
     # independently derived new ABI adds metadata to a staged module.
     if name in PATH_TRACING_TEMPORAL_FRAGMENTS and _path_tracing_temporal_abi(ops) == 2:
         contract['path_tracing_screen_abi'] = 2
-    if name in PATH_TRACING_SURFACE_FRAGMENTS and _path_tracing_surface_abi(ops) == 1:
-        contract['path_tracing_surface_abi'] = 1
+    if name in PATH_TRACING_SURFACE_FRAGMENTS:
+        surface_version = _path_tracing_surface_abi(ops)
+        if surface_version is not None:
+            contract['path_tracing_surface_abi'] = surface_version
     return contract
 
 
@@ -231,12 +246,14 @@ def _bound_shader_requirements(executable):
             lighting = data.find(PATH_TRACING_LIGHTING_MARKER) != -1
             temporal = data.find(PATH_TRACING_TEMPORAL_MARKER) != -1
             surface = data.find(PATH_TRACING_SURFACE_MARKER) != -1
+            ambient_surface = data.find(PATH_TRACING_AMBIENT_SURFACE_MARKER) != -1
             player_flash = data.find(PLAYER_FLASH_EXECUTABLE_MARKER) != -1
+            volume_geometry = data.find(PSTENCIL_VOLUME_GEOMETRY_MARKER) != -1
         if before != descriptor_identity(stream.fileno()) or before != path_identity(executable):
             raise ValueError("Native shader catalog executable changed during validation")
     if not paths:
         raise ValueError("Native executable has no bound per-program Vulkan catalog")
-    return paths, path_tracing, visibility, lighting, temporal, surface, player_flash
+    return paths, path_tracing, visibility, lighting, temporal, surface, player_flash, volume_geometry, ambient_surface
 
 
 def _module_contract_job(raw, name):
@@ -323,22 +340,29 @@ def validate_native_package(directory, *, expected_sha256=None, executable, work
             validate_module(row)
         while pending:
             completed()
-    bound_generated, path_tracing, visibility, lighting, temporal, surface, player_flash = _bound_shader_requirements(executable)
+    bound_generated, path_tracing, visibility, lighting, temporal, surface, player_flash, volume_geometry, ambient_surface = _bound_shader_requirements(executable)
     fixed = AOT_BASE_FIXED_FILES
     if player_flash:
         fixed |= PLAYER_FLASH_FILES
-    if path_tracing or visibility or lighting or temporal or surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
+    # Retained two-stage pStencil runtimes keep their authenticated ABI. The
+    # new depth/clipping owner requires the geometry stage it actually loads.
+    if volume_geometry:
+        fixed |= PSTENCIL_VOLUME_GEOMETRY_FILES
+    if path_tracing or visibility or lighting or temporal or surface or ambient_surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
         fixed |= PATH_TRACING_FILES
-    if visibility or lighting or temporal or surface or (PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
+    if visibility or lighting or temporal or surface or ambient_surface or (PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
         fixed |= PATH_TRACING_VISIBILITY_FILES
-    if lighting or temporal or surface or PATH_TRACING_LIGHTING_FILES & files.keys():
+    if lighting or temporal or surface or ambient_surface or PATH_TRACING_LIGHTING_FILES & files.keys():
         fixed |= PATH_TRACING_LIGHTING_FILES
     if not fixed <= files.keys():
         raise ValueError("Native shader package omits its fixed Vulkan ABI")
     if temporal and any(contracts[name].get('path_tracing_screen_abi') != 2
                         for name in PATH_TRACING_TEMPORAL_FRAGMENTS):
         raise ValueError("Path Tracing temporal shader lacks its 32-byte screen ABI")
-    if surface and any(contracts[name].get('path_tracing_surface_abi') != 1
+    if ambient_surface and any(contracts[name].get('path_tracing_surface_abi') != 2
+                               for name in PATH_TRACING_SURFACE_FRAGMENTS):
+        raise ValueError("Path Tracing shader lacks its authored ambient surface ABI")
+    if surface and not ambient_surface and any(contracts[name].get('path_tracing_surface_abi') != 1
                        for name in PATH_TRACING_SURFACE_FRAGMENTS):
         raise ValueError("Path Tracing shader lacks its authored surface ABI")
     if generated != bound_generated:

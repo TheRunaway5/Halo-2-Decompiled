@@ -6,7 +6,7 @@
 #include <span>
 
 namespace halo2::path_tracing {
-enum class UnlitUvFamily { None=0, Texture=1, LightmapDetail=2 };
+enum class UnlitUvFamily { None=0, Texture=1, LightmapDetail=2, DynamicDetail=3 };
 struct UnlitUv {
     UnlitUvFamily family=UnlitUvFamily::None;
     ShaderVector base{};
@@ -79,6 +79,36 @@ inline constexpr std::array<std::uint32_t,77> pervertex_detail_words{
     0x1011e800u,0x00000000u,0x0080a01bu,0x65fe1bfcu,
     0x3070e818u,0x00000000u,0x0081601bu,0xc5fe2868u,
     0x3070e801u};
+// Exact capital_ship_a/b dynamic-lighting body. Only oT0/oT1 are admitted
+// as unlit2D operands; the remaining outputs belong to native lighting.
+inline constexpr std::array<std::uint32_t,105> dynamic_detail_words{
+    0x001a2078u,0x00000000u,0x0060e01au,0x7c001468u,
+    0x2e500000u,0x00000000u,0x00a3691au,0xbc349000u,
+    0x28a00000u,0x00000000u,0x00a0081au,0x54349000u,
+    0x21b00000u,0x00000000u,0x00a0061au,0x54347000u,
+    0x24b00000u,0x00000000u,0x00a0041au,0x54345000u,
+    0x22b00000u,0x00000000u,0x00a3671au,0xbc347000u,
+    0x24a00000u,0x00000000u,0x00a3651au,0xbc345000u,
+    0x22a00000u,0x00000000u,0x00958215u,0x182b9affu,
+    0x3c900000u,0x00000000u,0x00a000dau,0xb5b56800u,
+    0x21a00000u,0x00000000u,0x00a0001au,0xa4354800u,
+    0x28b00000u,0x00000000u,0x08c0001bu,0x08361bfeu,
+    0x90a18800u,0x00000000u,0x08c0201bu,0x08363802u,
+    0xd0b84800u,0x00000000u,0x00c0401bu,0x08365800u,
+    0x20b02800u,0x00000000u,0x00c0601bu,0x08367800u,
+    0x20a01800u,0x00000000u,0x00824015u,0x942a5afcu,
+    0xbc90c848u,0x00000000u,0x0640005bu,0xb5fe2bffu,
+    0x17b40000u,0x00000000u,0x0040001au,0xa4002800u,
+    0x2ea00000u,0x00000000u,0x0041401au,0xc4355800u,
+    0x20b0e800u,0x00000000u,0x00826015u,0x942a7afcu,
+    0xf0b0c850u,0x00000000u,0x00828015u,0x942a9afdu,
+    0x30b0c858u,0x00000000u,0x00a3491au,0xac349000u,
+    0x20b08860u,0x00000000u,0x00a3471au,0xac347000u,
+    0x20904860u,0x00000000u,0x00a3451au,0xac345000u,
+    0x20902860u,0x00000000u,0x0080a0dau,0xb5febbfdu,
+    0x7090e818u,0x00000000u,0x0080a01au,0xa5febbfdu,
+    0x70a0e820u,0x00000000u,0x0081601au,0xc4aa286au,
+    0xf0b0e801u};
 template<std::size_t N> inline bool exact_vertex(std::span<const std::byte> bytes,
                                                     const std::array<std::uint32_t,N>& expected) {
     if(bytes.size()!=N*4)return false;
@@ -92,6 +122,23 @@ template<std::size_t N> inline bool exact_vertex(std::span<const std::byte> byte
 // The per-pixel detail body's oT3 is the separate lightmap stream; its
 // per-vertex sibling does not supply an unlit2D oT3. Neither is a raw-UV stage3
 // and neither may be sampled by this unlit surface adapter.
+inline std::optional<UnlitUv> completed_unlit_uv(UnlitUvFamily family,
+    const std::array<ShaderVector,8>& transforms) {
+    UnlitUv result;result.family=family;
+    result.base=transforms[0];result.stages[0]={1,1,0,0};
+    result.stages[1]=transforms[1];
+    const auto& c20=transforms[2];
+    if(result.family==UnlitUvFamily::Texture) {
+        result.stages[2]={c20[0],c20[1],0,0};result.stages[3]={c20[2],c20[3],0,0};
+    }else if(result.family==UnlitUvFamily::LightmapDetail) {
+        result.stages[2]=c20;result.stages[3]={0,0,0,0};
+    }else {
+        result.stages[2]=result.stages[3]={0,0,0,0};
+    }
+    for(float c:result.base)if(!std::isfinite(c))return {};
+    for(const auto& stage:result.stages)for(float c:stage)if(!std::isfinite(c))return {};
+    return result;
+}
 inline std::optional<UnlitUv> qualified_unlit_uv(const Material& material) {
     if(!material.forward_pass || material.forward_pass_index>=material.passes.size())return {};
     if(material.vertex_declaration && (material.vertex_declaration->semantics.size()<2 ||
@@ -109,19 +156,12 @@ inline std::optional<UnlitUv> qualified_unlit_uv(const Material& material) {
           matches(unlit_uv_detail::perpixel_detail_words)) ||
          (pass.vertex_shader=="rasterizer\\vertex_shaders_xbox\\lightmap_pervertex_tex_detail" &&
           matches(unlit_uv_detail::pervertex_detail_words))))result.family=UnlitUvFamily::LightmapDetail;
+    else if(material.forward_vertex==6 && pass.vertex_shader=="rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex_detail" &&
+        matches(unlit_uv_detail::dynamic_detail_words))result.family=UnlitUvFamily::DynamicDetail;
     else return {};
-    result.base=material.forward_transforms[0];result.stages[0]={1,1,0,0};
-    result.stages[1]=material.forward_transforms[1];
-    const auto& c20=material.forward_transforms[2];
-    if(result.family==UnlitUvFamily::Texture) {
-        result.stages[2]={c20[0],c20[1],0,0};result.stages[3]={c20[2],c20[3],0,0};
-    }else {
-        result.stages[2]=c20;result.stages[3]={0,0,0,0};
-    }
-    for(float c:result.base)if(!std::isfinite(c))return {};
-    for(const auto& stage:result.stages)for(float c:stage)if(!std::isfinite(c))return {};
-    return result;
+    return completed_unlit_uv(result.family,material.forward_transforms);
 }
+
 inline std::array<Vec2,4> unlit_uv(const UnlitUv& model,Vec2 raw) {
     const Vec2 base{raw.x*model.base[0]+model.base[2],raw.y*model.base[1]+model.base[3]};
     std::array<Vec2,4> result{};

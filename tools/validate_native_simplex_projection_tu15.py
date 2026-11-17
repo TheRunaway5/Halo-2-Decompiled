@@ -144,12 +144,15 @@ static void logical_compare_pop_two(WorldState&s){
         old_observer_before_pop_fault_protocol_not_qualified=True,unmodified_source_counterexample_retained=True),actual
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);p.add_argument('--hardware-only',action='store_true');args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path)
+    mode=p.add_mutually_exclusive_group();mode.add_argument('--hardware-only',action='store_true');mode.add_argument('--retained-mode',action='store_true');args=p.parse_args()
     if args.xbe is not None and not args.xbe.is_file():print('Authenticated TU1.5 XBE is not configured');return 77
     if args.hardware_only and not args.xbe:p.error('--hardware-only requires original XBE')
+    if args.retained_mode and args.xbe:p.error('Run the retained model and physical original as separate gates')
     if not os.environ.get('HALO2_TEST_SCRATCH'):p.error('Run through tools/run_test.py')
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);report=dict(passed=False,production_bound=False,scratch_owner=str(scratch),retained_large_artifacts=[])
     paths=['include/halo2/native_tu15_simplex_projection_kernel.hpp','src/physics/runtime/native_tu15_simplex_projection_abi.hpp','tests/native_tu15_simplex_projection_tests.cpp',str(Path(__file__).relative_to(ROOT)),'src/physics/runtime/native_tu15_raw_x87_scope.hpp','src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp','src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_world_runtime_internal.hpp','src/physics/runtime/physics_step_internal.hpp','include/halo2/native_tu15_simplex_direction_kernel.hpp','src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp','tools/validate_native_simplex_direction_tu15.py','tools/validate_native_tu15_prt_helpers.py','cmake/NativeTu15SimplexProjection.cmake']
+    paths.append('src/physics/runtime/native_tu15_host_fp_io.hpp')
     pins={name:sha(ROOT/name)for name in paths}
     try:
         report['reference'],block=reference(scratch);binary=scratch/'projection';command=[args.compiler,'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),'-I'+str(scratch),str(ROOT/'tests/native_tu15_simplex_projection_tests.cpp'),'-o',str(binary)]
@@ -157,14 +160,18 @@ def main():
         report['command']=command;built=subprocess.run(command,capture_output=True,text=True)
         if built.returncode:raise RuntimeError('Projection fixture compile failed:\n'+built.stderr[-10000:])
         if not args.hardware_only:
-            result=subprocess.run([str(binary)],capture_output=True,text=True);report['diagnostic']=result.stderr[-12000:]
+            invocation=[str(binary)]+(['--retained-mode']if args.retained_mode else [])
+            result=subprocess.run(invocation,capture_output=True,text=True);report['diagnostic']=result.stderr[-12000:]
             if result.returncode:raise RuntimeError('Projection fixture failed:\n'+report['diagnostic'])
             report['canonical']=json.loads(result.stderr.strip().splitlines()[-1])
-            old=subprocess.run([str(binary),'--unmodified-reference'],capture_output=True,text=True)
-            report['unmodified_reference_control']=dict(passed=old.returncode==0,exit_code=old.returncode,diagnostic=old.stderr[-3000:],qualified=False)
+            if args.retained_mode:
+                report['retained_transport']=dict(unmodified_reference=True,full_pre_io_packets=True,source_fp_pop_after_observer=True)
+            else:
+                old=subprocess.run([str(binary),'--unmodified-reference'],capture_output=True,text=True)
+                report['unmodified_reference_control']=dict(passed=old.returncode==0,exit_code=old.returncode,diagnostic=old.stderr[-3000:],qualified=False)
         else:report['canonical']=dict(executed=False,prior_unmodified_failure='canonical-sanitizers-r2.json; oldSW1120 vs native1320 C1 difference retained without masking')
         if args.xbe:report['original_hardware']=hardware(args,scratch,binary,block)
-        if not args.hardware_only:
+        if not(args.hardware_only or args.retained_mode):
             changes={
                 'wrong_projection_relation':('include/halo2/native_tu15_simplex_projection_kernel.hpp','if(d.relation&0x100u){','if(d.relation&0x4000u){'),
                 'stale_cube_operand':('include/halo2/native_tu15_simplex_projection_kernel.hpp','memory.scalar_read(P::projection_cube,d)','X::low(d.projection)'),

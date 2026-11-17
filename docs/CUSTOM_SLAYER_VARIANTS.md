@@ -45,9 +45,10 @@ Choose Slayer → Fiesta Slayer or Infection Slayer in the game, or launch:
 
 For a direct native runtime, add your normal map/shared-data options. Local
 Infection requires at least two players; System Link/ONLINE may gather remote
-players. Both custom modes use the native authoritative match, with original
-TU1.5 data supplying their existing weapon/animation/damage consumers. The
-separate source-VM world does not implement these newly authored rulesets.
+players. Both custom modes use the shared TU1.5 World for movement, contacts,
+inventory, damage, player birth/respawn, item timers, powerups and teleporters.
+The match extension owns their custom scoring, faction and round policies;
+these policies are newly authored rules rather than original Xbox variants.
 
 LAN and split-screen match editors keep each mode's defining rules fixed.
 Fiesta exposes score, time, player limit, lives, respawn/suicide penalties,

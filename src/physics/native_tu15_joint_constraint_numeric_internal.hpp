@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_physics_frame.hpp"
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include <cstring>
 #include <stdexcept>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -25,9 +26,10 @@ class Memory {
     SourcePhysicsContactMemory&memory_;const SourcePhysicsContactRecordObserver&observe_;
     void publish(std::uint32_t pc,std::uint32_t p,std::span<const std::byte>bytes){
         SourcePhysicsContactRecordStore event{pc,p,{},{}};
-        if(observe_){event.before.resize(bytes.size());memory_.read(p,event.before);}
+        const bool observed=native_tu15_observes_retained_store(memory_,observe_,pc,p,bytes.size());
+        if(observed){event.before.resize(bytes.size());memory_.read(p,event.before);}
         memory_.write(p,bytes);
-        if(observe_){event.written.assign(bytes.begin(),bytes.end());observe_(event);}
+        if(observed){event.written.assign(bytes.begin(),bytes.end());observe_(event);}
     }
 public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):memory_(m),observe_(o){}
@@ -42,12 +44,13 @@ public:
         // Preserve the pre-instruction native environment if the DATA write
         // itself faults; a post-store observer sees the completed FSTP phase.
         SourcePhysicsContactRecordStore event{pc,p,{},{}};
-        if(observe_){event.before.resize(4);memory_.read(p,event.before);}
+        const bool observed=native_tu15_observes_retained_store(memory_,observe_,pc,p,4);
+        if(observed){event.before.resize(4);memory_.read(p,event.before);}
         alignas(16)std::array<std::byte,108>before{};std::uint32_t bits;
         asm volatile("fnsave %0;frstor %0":"=m"(before)::"memory","st","st(1)","st(2)","st(3)","st(4)","st(5)","st(6)","st(7)");
         asm volatile("fstps %0":"=m"(bits)::"memory","st");std::array<std::byte,4>b{};for(unsigned n=0;n<4;++n)b[n]=std::byte(bits>>(n*8u));
         try{memory_.write(p,b);}catch(...){asm volatile("frstor %0"::"m"(before):"memory","st","st(1)","st(2)","st(3)","st(4)","st(5)","st(6)","st(7)");throw;}
-        if(observe_){event.written.assign(b.begin(),b.end());observe_(event);}
+        if(observed){event.written.assign(b.begin(),b.end());observe_(event);}
     }
 };
 inline Vector multiply(Vector a,Vector b){asm volatile("mulps %1,%0":"+x"(a):"x"(b):"memory");return a;}

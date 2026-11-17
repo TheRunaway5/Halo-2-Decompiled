@@ -41,8 +41,10 @@ inline WorldMaterialUniform native_material_gpu_uniform(WorldMaterialUniform val
 static_assert(std::is_standard_layout_v<WorldMaterialUniform>);
 static_assert(offsetof(WorldMaterialUniform,program)==0);
 static_assert(offsetof(WorldMaterialUniform,transforms)==240);
+static_assert(offsetof(WorldMaterialUniform,transforms)+sizeof(ShaderVector)==256);
 static_assert(offsetof(WorldMaterialUniform,flags)==288);
 static_assert(offsetof(WorldMaterialUniform,forward_transforms)==304);
+static_assert(offsetof(WorldMaterialUniform,specular)==448);
 static_assert(offsetof(WorldMaterialUniform,vertex_instructions)==464);
 static_assert(offsetof(WorldMaterialUniform,alpha_test)==3152);
 static_assert(offsetof(WorldMaterialUniform,texture_effects)==3168);

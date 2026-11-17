@@ -58,6 +58,9 @@ public:
   std::optional<std::uint32_t> command_actor()const{return current_actor_;}
   void wait_for_command();
   void command_ready(std::function<bool(std::uint32_t)> ready){NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;command_ready_=std::move(ready);}
+  // Called with the command actor before each command-script thread step and
+  // with nullopt after it (TU1.5 262590 publishes and clears the AI context).
+  void command_context(std::function<void(std::optional<std::uint32_t>)> context){NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;command_context_=std::move(context);}
   void start_level();
   void set_random_choice(RandomChoice);
   void tick(std::uint64_t tick);
@@ -149,6 +152,7 @@ private:
   std::optional<std::uint32_t> current_actor_;
   Thread *current_thread_{};
   std::function<bool(std::uint32_t)> command_ready_;
+  std::function<void(std::optional<std::uint32_t>)> command_context_;
   const ScriptNode &node(std::uint32_t) const;
   std::string string(std::uint32_t) const;
   ScriptValue literal(const ScriptNode &) const;

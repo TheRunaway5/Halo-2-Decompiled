@@ -1,10 +1,11 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_camera_collision_regions.hpp"
 #include <bit>
 namespace halo2 {
 namespace {
 std::uint32_t word(const SourcePhysicsContactMemory&m,std::uint32_t p,unsigned width=4){std::array<std::byte,4>b{};m.read(p,std::span(b).first(width));std::uint32_t n{};for(unsigned k=0;k<width;++k)n|=std::to_integer<unsigned>(b[k])<<(8*k);return n;}
 std::uint32_t sign_byte(std::uint32_t n){return std::uint32_t(std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(n))));}
-void store(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(8*k));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(o){e.before.resize(width);m.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m.write(p,std::span(b).first(width));if(o)o(e);}
+void store(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(8*k));SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m,o,pc,p,width);if(observed){e.before.resize(width);m.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m.write(p,std::span(b).first(width));if(observed)o(e);}
 }
 void native_tu15_begin_camera_collision_regions(SourcePhysicsContactMemory&m,std::uint32_t collision,
     std::uint32_t state,std::uint32_t iterator,std::uint32_t model,const SourcePhysicsContactRecordObserver&o){

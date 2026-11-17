@@ -191,6 +191,10 @@ struct SoundEvent {
   // Full, salted speaker identity from the actual HSC object argument.
   // A position alone cannot bind a voice to its original facial controller.
   std::uint32_t owner = null_datum;
+  // sound_impulse_start_effect: the sound effect collection tag datum and
+  // row its name resolved to (TU1.5 1903A0); NONE plays without an effect.
+  std::uint32_t effect_collection = null_datum;
+  std::uint32_t effect_row = null_datum;
 };
 class Simulation {
 public:
@@ -249,12 +253,16 @@ public:
   void step_unit_interactions(const Controls &);
   void configure_vehicle_rows(int engine,int timer_option=0){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;vehicle_engine_=engine;vehicle_timer_option_=timer_option;}
   void configure_vehicle_allegiance(std::function<bool(const Unit&,const Unit&)> fn){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;vehicle_allied_=std::move(fn);}
+  // The retained World runs original 15D890 over its own row bank. Native
+  // rows then only present each row's current generation (see 15AE70 loop).
+  void configure_source_netgame_rows(std::function<std::uint32_t(unsigned)> fn){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;source_netgame_rows_=std::move(fn);}
+  void adopt_source_netgame_rows();
   std::span<const NativeWeaponPickup> weapon_pickups()const{return campaign_weapon_pickups_;}
   void respawn(Spawn);
   void equip(std::uint32_t);
   std::size_t place_squad(const std::string &);
   void run_script(const std::string &name) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;scripts_->start(name);}
-  void start_level() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;scripts_->start_level();}
+  void start_level(std::optional<bool> campaign_starts_white = {});
   bool level_finished()const{return level_finished_;}
   bool reset_requested()const{return reset_requested_;}
   bool has_checkpoint() const { return bool(checkpoint_); }
@@ -488,6 +496,7 @@ private:
   std::vector<NetgameWeaponState> vehicle_rows_;
   int vehicle_engine_=2,vehicle_timer_option_{};
   std::function<bool(const Unit&,const Unit&)> vehicle_allied_;
+  std::function<std::uint32_t(unsigned)> source_netgame_rows_;
   void synchronize_weapon_pickups();
   void step_campaign_pickups(const Controls &);
   void equip_inventory(Unit &,std::uint32_t);

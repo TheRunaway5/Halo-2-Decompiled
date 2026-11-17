@@ -25,6 +25,12 @@ public:
         at(0x30ae38u);const auto emit=word(g[0]+4u);call(0x30ae38u,emit,0x30ae3bu);
         g[1]=g[0];at(0x30ae3du);call(0x30ae3du,0x2e30e0u,0x30ae42u);
         Base::store(0x30ae42u,0u,0u,[]{});
+        restore_frame();
+    }
+    // This continuation is also qualified from its separately declared
+    // original entry. It does not imply a successful preceding null store.
+    void restore_frame(){
+        auto&g=s_.gp;
         g[7]=pop(0x30ae4cu);g[6]=pop(0x30ae4du);g[3]=pop(0x30ae4eu);g[4]=g[5];
         g[5]=pop(0x30ae51u);pop(0x30ae52u);g[4]+=12u;
     }

@@ -52,6 +52,22 @@ def behavior_sentinel_inputs(image, frame_source=None):
     return reads, regions(points)
 
 
+def callback_priority_inputs(image):
+    # Actual behavior129's callback1CACA0 reads exactly this authored WORD.
+    # The following padding and unrelated mutable neighboring settings do not
+    # belong to this declaration. Like the existing behavior metadata, native
+    # admission is read-only for these consumed inputs even though the original
+    # file section is .data. This does not claim its original page was immutable.
+    code = _Code(image, '.text')
+    assert image.read(0x48b810, 4).hex() == '81000200'
+    assert int.from_bytes(image.read(0x48b820, 4), 'little') == 0x1caca0
+    assert bytes(code.at(0x1caca0).bytes).hex() == '66a1c8c74800'
+    assert bytes(code.at(0x1caca6).bytes).hex() == 'c20400'
+    assert image.read(0x48c7c8, 2).hex() == '0300'
+    return [dict(pc=0x1caca0, descriptor=0x48b810, address=0x48c7c8,
+        bytes=2, original_hex='0300', instruction_hex='66a1c8c74800')], [(0x48c7c8, 2)]
+
+
 def descriptor_inputs(image):
     assert hashlib.sha256(image.data).hexdigest() == NEW_PIN
     roots = struct.unpack('<131I', image.read(0x47b478, 131 * 4))
@@ -201,11 +217,12 @@ def main():
     image = Xbe(NEW_DEFAULT)
     records, constructors, ranges = descriptor_inputs(image)
     sentinel_reads, sentinel_ranges = behavior_sentinel_inputs(image, args.frame_source)
+    priority_reads, priority_ranges = callback_priority_inputs(image)
     children, child_ranges = child_selection_inputs(image, records)
     properties, property_ranges = property_selection_inputs(image)
     callback_rows, callback_ranges = descriptor_callback_tail_inputs(image,records)
     lines = ['// Authenticated TU1.5 AI descriptor interfaces; mutable CRT masks are excluded.']
-    for address, count in sentinel_ranges + ranges:
+    for address, count in sentinel_ranges + ranges + priority_ranges:
         raw = image.read(address, count)
         lines.append(f'literal(memory,0x{address:x}u,std::array<std::uint8_t,{count}>{{' +
             ','.join(f'0x{value:02x}' for value in raw) + '});')
@@ -246,6 +263,7 @@ def main():
     report = dict(original_xbe_sha256=NEW_PIN, records=records, mask_constructors=constructors,
         immutable_ranges=ranges, immutable_bytes=sum(n for _, n in ranges),
         behavior_sentinel_reads=sentinel_reads, behavior_sentinel_ranges=sentinel_ranges,
+        behavior_callback_priority_reads=priority_reads, behavior_callback_priority_ranges=priority_ranges,
         behavior_sentinel_frame_sha256='0faad001eff14edaaa31df28eddcde059ab855a5a3639fff4b81e3526ee15308',
         behavior_child_parents=children, behavior_child_selection_ranges=child_ranges,
         behavior_child_selection_bytes=sum(n for _, n in child_ranges),

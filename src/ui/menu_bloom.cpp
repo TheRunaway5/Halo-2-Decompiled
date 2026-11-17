@@ -12,7 +12,7 @@ CinematicBloomParameters cinematic_bloom_parameters(float threshold,float streng
     }
     return {std::clamp(threshold,0.f,1.f),std::clamp(strength,0.f,1.f)};
 }
-MenuBloom menu_bloom(float threshold,float strength) {
+MenuBloom menu_bloom(float threshold,float strength,bool mask) {
     MenuBloom out;
     const auto byte=[](float v){return std::uint32_t(std::nearbyint(double(std::clamp(v,0.f,1.f))*255.));};
     auto &t=out.threshold.words;
@@ -29,15 +29,20 @@ MenuBloom menu_bloom(float threshold,float strength) {
     b[45]=0x30c00;b[46]=0x30d00;b[47]=0x30c00;b[53]=0x11003;b[54]=0x8421;
     auto &c=out.composite.words;
     c[8]=0xc;c[10]=0xff000000|byte(strength)*0x010101;c[34]=0x08011800;c[45]=0x10c00;c[53]=0x11001;c[54]=1;
+    if(mask) {
+        // 21875..218B0 and 219C4..219F1: final A=R0 alpha with a zero E*F
+        // term, G=R1 alpha; the composite's D becomes C0 alpha (literal 1).
+        t[8]=0x1c0f000d;t[9]=0x0c111d00;c[34]=0x08011811;
+    }
     out.radii[0]=.5f;float step=1.f;
     const float passes=std::bit_cast<float>(0x407f7ceeu);
     for(unsigned i=0;i<4;++i) {out.radii[i+1]=std::clamp(passes-float(i),0.f,1.f)*step;step=(.75f+.5f)*step;}
     return out;
 }
 MenuBloom cinematic_bloom(float threshold,float strength,bool cinematic,
-    const CinematicBloomOverride &override) {
+    const CinematicBloomOverride &override,bool mask) {
     const auto parameters=cinematic_bloom_parameters(threshold,strength,cinematic,override);
-    auto out=menu_bloom(parameters.threshold,parameters.strength);
+    auto out=menu_bloom(parameters.threshold,parameters.strength,mask);
     if(!cinematic || !override.enabled)return out;
     const float amount=override.blur_amount==-1.f?std::bit_cast<float>(0x407f7ceeu):
         std::max(0.f,override.blur_amount);

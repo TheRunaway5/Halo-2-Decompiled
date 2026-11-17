@@ -218,7 +218,12 @@ SlayerRules native_engine_rules(const UiVariant &variant, bool team_session,bool
   // Round selector0 remains the default: original15DDC0 finishes index0
   // directly, so this admission does not require the later-round reset owner.
   for(const unsigned id : {1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,16u,17u,18u,15u,90u,89u,88u,76u,77u,78u,81u,82u,83u,24u,104u,105u}) permit(id);
-  if(custom!=CustomSlayer::none || defusal)permit(94);
+  if(custom!=CustomSlayer::none || defusal) {
+    permit(94);
+    // The shared native frame owns global camouflage. Match construction
+    // still requires its actual mechanical owner or a received source replica.
+    permit(21);
+  }
   if(!king)for(const unsigned id : {29u,30u})permit(id);
   if(king)for(const unsigned id : {38u,39u,40u,41u,42u})permit(id);
   if(teams && team_session) for(const unsigned id : {91u,23u,25u,26u}) permit(id);
@@ -418,6 +423,12 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
       rules_.custom==CustomSlayer::none && source_object_world_->uses_scenario_player_spawns(spawns_);
   if(rules_.requires_source_engine && !source_engine_owned_ && !source_replica_)
     throw FormatError("Selected multiplayer rules require the complete canonical source engine world");
+  // Stock 15EBA0 and the custom shared-mechanics frame both run original
+  // 15D890 over engine+7DC. Presentation adopts those rows; it must not run
+  // a second 15AE70 schedule that rebirths a live row through 15D4F0.
+  if(simulation_.source_physics_movement_ && !source_replica_ && (source_engine_owned_ ||
+      (source_game_context_.game_type==2 && rules_.custom!=CustomSlayer::none && !rules_.defusal)))
+    simulation_.configure_source_netgame_rows([this](unsigned row){return source_object_world_->netgame_object(row);});
   if(simulation_.source_physics_movement_)simulation_.source_vehicle_seat_query_=
       [this](auto unit,auto vehicle){return source_object_world_->vehicle_seat_target(unit,vehicle);};
   if(simulation_.source_physics_movement_)simulation_.source_device_script_=
@@ -438,7 +449,13 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
   }
   if(!rules_.requires_source_engine && rules_.source_engine!=2 && rules_.source_engine!=4 && !rules_.defusal)
     throw FormatError("Native match requires a bound original game engine");
-  if(!rules_.requires_source_engine && (rules_.player_flags&4u))
+  // Global camouflage needs the original per-player refresh and later action
+  // pass, or the completed body values received by a multiplayer replica.
+  const bool source_camouflage_available=source_engine_owned_ ||
+      (source_game_context_.game_type==2 && (source_replica_ ||
+       (simulation_.source_physics_movement_ &&
+        (rules_.custom!=CustomSlayer::none || rules_.defusal))));
+  if((rules_.player_flags&4u) && !source_camouflage_available)
     throw FormatError("Global camouflage requires its original timer, fade and render consumers");
   if(rules_.source_engine==4) {
     if(!rules_.requires_source_engine && ((rules_.king_flags&~15u) || rules_.king_move_seconds<0))
@@ -2705,7 +2722,8 @@ void MultiplayerMatch::step(
         } catch(const FormatError &) {} // A retired source generation has no action.
         if(!admitted)target={};
       }
-      source_object_world_->tu15_world().populate_weapon_selection(p.source_current_object,command,input.switch_weapon);
+      const bool zombie=rules_.custom==CustomSlayer::infection && (infection_zombies_&(1u<<i));
+      source_object_world_->tu15_world().populate_weapon_selection(p.source_current_object,command,input.switch_weapon && !zombie);
       source_object_world_->prepare_player_look(p.source_datum,p.source_current_object,command);
       source_object_world_->populate_weapon_targeting(p.source_datum,p.source_current_object,command);
       // A declared,validated external seat request retains its input boundary.
@@ -2713,6 +2731,13 @@ void MultiplayerMatch::step(
       if(target.object!=null_datum) {
         put(0x28,std::uint16_t(target.action)|(std::uint32_t(std::uint16_t(target.index))<<16));
         put(0x2c,target.object);
+      }
+      // Infection is an authored rule extension. Keep the completed native
+      // target query and button word; suppress only its weapon pickup actions.
+      // Other action targets and the independent melee target remain native.
+      if(zombie) {
+        const auto action=Bytes(command).u16(0x28);
+        if(action==1 || action==7) {put(0x28,0);put(0x2c,null_datum);}
       }
       source_object_world_->deliver_command(p.source_datum,p.source_current_object,command);
     }
@@ -2796,6 +2821,8 @@ void MultiplayerMatch::step(
     }
     if(simulation_.melee_impacts_.size()>64)
       simulation_.melee_impacts_.erase(simulation_.melee_impacts_.begin(),simulation_.melee_impacts_.end()-64);
+    // Present this tick's original 15D4F0 births before solving the scene.
+    if(simulation_.source_netgame_rows_)simulation_.adopt_source_netgame_rows();
     publish_source_scene_physics(simulation_.scene_,source_object_world_->memory(),source_object_world_->object_pool());
     adopt_source_devices();
     simulation_.synchronize_props();

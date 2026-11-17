@@ -155,12 +155,15 @@ const NativeObjectLifetimes &SceneObjects::object_lifetimes() const {
 }
 std::uint32_t SceneObjects::place(std::size_t placement,
                                   std::uint64_t creation_tick,SourceScenarioBirth birth,
-                                  std::uint32_t attachment_parent) {
+                                  std::uint32_t attachment_parent,std::uint32_t existing) {
   AuthorityCalls::Scope call(authority_calls_);
   if(source_replica_)throw FormatError("Source scene replica cannot construct an authoritative object");
   if (placement >= content_.objects.size())
     throw FormatError("object placement outside scenario");
   const auto &p = content_.objects[placement];
+  if(existing!=null_datum && (!source_owner_.create || p.netgame_row<0 || p.model_attachment ||
+      p.name>=0 || attachment_parent!=null_datum))
+    throw FormatError("Only an unattached source netgame generation can be adopted");
   if (p.definition == null_datum)
     throw FormatError("object placement has no definition");
   if (p.name >= 0) {
@@ -189,7 +192,8 @@ std::uint32_t SceneObjects::place(std::size_t placement,
   }
   if(p.type<0 || p.type>12)throw FormatError("scene object has unsupported original type");
   ++authority_calls_.mutations;
-  const auto handle=p.model_attachment && source_owner_.adopt_child ? source_owner_.adopt_child(p,attachment_parent) :
+  const auto handle=existing!=null_datum ? existing :
+      p.model_attachment && source_owner_.adopt_child ? source_owner_.adopt_child(p,attachment_parent) :
       source_owner_.create ? source_owner_.create(p,birth) : lifetime_owner().reserve(std::uint8_t(p.type));
   if(handle==null_datum)throw FormatError(source_owner_.create ?
       "original source rejected scene placement type="+std::to_string(p.type)+
@@ -214,7 +218,9 @@ std::uint32_t SceneObjects::place(std::size_t placement,
     render_attribution_at_birth=source_object_render_flag31_construction_event(
         0,definition).model_attribution_available;
   }
-  if(source_owner_.create)lifetime_owner().observe_source_birth(handle);
+  // An adopted original birth may already have a lifetime sidecar.
+  if(source_owner_.create && !(existing!=null_datum && lifetime_owner().contains(handle)))
+    lifetime_owner().observe_source_birth(handle);
   if (slot == objects_.size())objects_.push_back({});
   objects_[slot] = {handle, placement, actual.position, actual.rotation, actual.scale, true, false, false, false, int(bsp_)};
   objects_[slot].created_tick = creation_tick;
@@ -332,6 +338,13 @@ std::optional<float> SceneObjects::function_variable(std::uint32_t object,
   return v.duration && elapsed<v.duration
       ? float(elapsed)/float(v.duration)*(v.to-v.from)+v.from : v.to;
 }
+std::vector<std::pair<std::uint32_t,float>> SceneObjects::function_variables(std::uint32_t object,int tick) const {
+  get(object);
+  std::vector<std::pair<std::uint32_t,float>> result;
+  for(auto it=functions_.lower_bound({object,0u});it!=functions_.end() && it->first.first==object;++it)
+    result.emplace_back(it->first.second,*function_variable(object,it->first.second,tick));
+  return result;
+}
 void SceneObjects::set_function_variable(std::uint32_t object,std::uint32_t name,
     float value,float frames,int tick) {
   AuthorityCalls::Scope call(authority_calls_);
@@ -417,7 +430,7 @@ void Presentation::Transition::tick() {
 }
 Presentation::Presentation(const LevelContent &content, AnimationLoader loader)
     : content_(content), loader_(std::move(loader)) {}
-void Presentation::restore(const Presentation &saved) {
+void Presentation::restore(const Presentation &saved, bool retain_fade_color) {
   NativeAuthorityBoundary::Call call(authority_);
   if (&content_ != &saved.content_)
     throw FormatError("presentation checkpoint belongs to another level");
@@ -429,7 +442,8 @@ void Presentation::restore(const Presentation &saved) {
   letterbox_ = saved.letterbox_;
   hud_ = saved.hud_;
   fov_ = saved.fov_;
-  fade_color_ = saved.fade_color_;
+  if (!retain_fade_color)
+    fade_color_ = saved.fade_color_;
   camera_ = saved.camera_;
   camera_from_ = saved.camera_from_;
   camera_to_ = saved.camera_to_;

@@ -10,7 +10,7 @@
 #endif
 
 namespace halo2::native_fog_membership_detail {
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_FOG_MEMBERSHIP");return p&&*p;}();return value;}
 template<class State>bool admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)

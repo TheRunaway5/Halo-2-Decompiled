@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_node_resource_kernel.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include <cstdlib>
 
 namespace halo2::native_node_resource_detail {
@@ -7,7 +8,9 @@ inline bool reference_mode(){static const bool enabled=[]{const auto*p=std::gete
 template<class State,class Tail>bool bridge(State&s,Tail tail) {
     if(reference_mode()||s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
-    if(s.services.instruction) {
+    if(native_census_detail::uncursored(s,0x1e5af0u,0x1e5b24u)) {
+        // Census diagnostic: full callbacks without a cursor.
+    } else if(s.services.instruction) {
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*cursor=s.instruction_cursor;
         if((cursor->first_trace&&*cursor->first_trace)||(cursor->second_trace&&*cursor->second_trace))return false;

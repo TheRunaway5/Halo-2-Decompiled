@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_arena_schedule_policy.hpp"
 #include "halo2/native_tu15_arena_bootstrap.hpp"
 #include "halo2/native_tu15_arena_data.hpp"
 #include <condition_variable>
@@ -13,23 +14,7 @@ std::uint32_t word(const SourceRuntimeMemory& memory,std::uint32_t address) {
     std::uint32_t value=0;const auto bytes=memory.view(address,4);
     for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);return value;
 }
-struct WorkerIdleBarrier {
-    std::mutex mutex;
-    std::condition_variable changed;
-    unsigned waits=0;
-    void before_wait(std::uint32_t handle) {
-        if(handle!=0xf3000003u)return; // This owner's actual semaphore namespace.
-        std::lock_guard lock(mutex);++waits;changed.notify_all();
-    }
-    void finish_startup() {
-        std::unique_lock lock(mutex);
-        // Initial idle wait, then one after each of the two source jobs for
-        // each savegame file. A completion byte precedes free-list recycling;
-        // wait for the source worker itself to finish before stopping it.
-        if(!changed.wait_for(lock,std::chrono::seconds(5),[&]{return waits>=5;}))
-            throw std::runtime_error("Native arena worker did not retire its four startup file jobs");
-    }
-};
+using native_arena_schedule_detail::WorkerIdleBarrier;
 }
 NativeTu15ArenaBootstrap::NativeTu15ArenaBootstrap(const std::filesystem::path& directory) {
     if(directory.empty() || !std::filesystem::is_directory(directory))
@@ -38,7 +23,7 @@ NativeTu15ArenaBootstrap::NativeTu15ArenaBootstrap(const std::filesystem::path& 
     const auto idle=std::make_shared<WorkerIdleBarrier>();
     arena_owner_=std::make_unique<SourcePhysicsGameArenaNative>(bank,
         SourcePhysicsGameArenaConfiguration{directory,0x60110000u,{0x27f,0x1f80},
-            {[idle](std::uint32_t handle,std::stop_token){idle->before_wait(handle);},{}}});
+            {native_arena_schedule_detail::WorkerIdleBeforeWait{idle},{}}});
     constexpr std::uint32_t sp=0x600f0000u;
     for(const auto entry:{0x12cb70u,0x1221b0u,0x125280u}) {
         put(arena_owner_->memory(),sp,0x60300000u);

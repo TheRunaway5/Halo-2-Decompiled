@@ -15,6 +15,9 @@
 #include <cstring>
 #include <limits>
 #include <map>
+#include <openssl/evp.h>
+#include "halo2/original_data.hpp"
+#include <optional>
 #include <set>
 #include <thread>
 #include <sstream>
@@ -22,6 +25,20 @@
 
 namespace halo2 {
 namespace {
+// Typed input admission for the independently authenticated MCC global-10 role.
+// Its DX9 bytes remain asset data; the renderer executes the existing native
+// original kernel. Xbox and already-restored MCC owners retain their full checks.
+static bool admitted_mcc_lens_program(const Tag& tag,std::uint32_t requested,
+    std::span<const std::byte> payload,std::optional<OriginalData::Image> image) {
+    if(!image || *image!=OriginalData::Image::TitleUpdate15 || tag.datum!=requested ||
+       requested==0xffffffffu || tag.group!="vrtx" || !tag.address || tag.size!=1664 ||
+       payload.size()!=1664 || tag.name!="rasterizer\\vertex_shaders_dx9\\lens_flare")return false;
+    std::array<unsigned char,32> bytes{};unsigned count{};
+    if(EVP_Digest(payload.data(),payload.size(),bytes.data(),&count,EVP_sha256(),nullptr)!=1 || count!=32)return false;
+    constexpr char hex[]="0123456789abcdef";std::string actual;actual.reserve(64);
+    for(auto value:bytes){actual+=hex[value>>4];actual+=hex[value&15];}
+    return actual=="5110c8f9d7f86c11d1e6e883f5f98544aa9a83e4c273c86108a5923a17b1eb7e";
+}
 constexpr unsigned driver=0xf7200000u,fifo=0xf7210000u,headers=0xf7500000u,images=0xf7600000u;
 constexpr unsigned fifo_bytes=0x200000u;
 unsigned word(const SourcePhysicsContactMemory &m,unsigned p,unsigned size=4) {
@@ -71,10 +88,21 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         if(raster.u32(0x58)<=10)throw FormatError("Original lens vertex reference slot is absent");
         const Bytes shaders(c.read_tag_bytes(raster.u32(0x5c),raster.u32(0x58)*8u));
         if(shaders.u32(0x50)!=0x76727478u)throw FormatError("Original lens vertex slot is not vrtx");
+        const auto vertex_datum=shaders.u32(0x54);
+        const auto* vertex=c.query_tag({.handle=TagHandle{vertex_datum},.group=tag_groups::vertex_shader,.require_address=true});
+        if(!vertex)throw FormatError("Original lens vertex role has no actual typed owner");
+        if(c.is_mcc() && !c.is_preserved_native_shader(*vertex)) {
+            const auto original=c.original_data();
+            const auto image=original?std::optional{original->image}:std::nullopt;
+            if(!admitted_mcc_lens_program(*vertex,vertex_datum,c.tag_payload(vertex->handle()),image))
+                throw FormatError("MCC lens vertex role differs from the authenticated TU1.5 backend input");
+            static_assert(source_lens_vertex_bytes.size()==68);
+        } else {
         const auto program=c.load_vertex_shader_code(shaders.u32(0x54),0);
         if(program.size()!=source_lens_vertex_bytes.size())throw FormatError("Original lens vertex program differs");
         for(unsigned n=0;n<program.size();++n)if(std::to_integer<unsigned char>(program[n])!=source_lens_vertex_bytes[n])
             throw FormatError("Original lens vertex MOV program differs from the compiled owner");
+        }
         std::set<unsigned> bitmaps;std::map<unsigned,std::array<std::byte,0x74>> rows;
         std::vector<Material> pending_materials;
         bitmaps.insert(raster.u32(0x64)); // Original14540/14460 type0 default.

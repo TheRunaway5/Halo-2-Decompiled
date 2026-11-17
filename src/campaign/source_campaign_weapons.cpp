@@ -46,7 +46,6 @@ SourceCampaignWeaponFrame SourceCampaignWeapons::draw(MultiplayerObjectRuntime &
     std::uint64_t tick,float fraction,float seconds) {
     validate_render_fraction(fraction);
     SourceCampaignWeaponFrame result;std::set<std::uint32_t> seen;
-    std::map<std::uint32_t,std::vector<Transform>> rendered;
     struct Inputs {
         SourceWeaponShaderState shader;
         std::uint16_t damage_flags{};
@@ -88,7 +87,8 @@ SourceCampaignWeaponFrame SourceCampaignWeapons::draw(MultiplayerObjectRuntime &
             if(!inserted && (pose.definition!=unit.definition || pose.parent!=parent || tick<pose.tick))pose.history={};
             pose.definition=unit.definition;pose.parent=parent;pose.tick=tick;
             pose.history.capture_render(tick,*nodes);
-            rendered.emplace(unit.object,pose.history.sample_render(resource.model->hierarchy(),fraction,{},resource.model->scale_resets()));
+            result.rendered_nodes.emplace(unit.object,
+                pose.history.sample_render(resource.model->hierarchy(),fraction,{},resource.model->scale_resets()));
             Inputs actual;
             actual.damage_flags=read.operator()<std::uint16_t>(body+0x10au);
             actual.firing=source_weapon_firing_material_owner(world,unit.object,resource.definition);
@@ -104,7 +104,7 @@ SourceCampaignWeaponFrame SourceCampaignWeapons::draw(MultiplayerObjectRuntime &
                     read.operator()<std::int16_t>(body+0x20e),*resource.primary_charge_seconds,tick_seconds);
             inputs.emplace(unit.object,std::move(actual));
         }
-        auto vertices=resource.model->draw(unit.object,std::span{&unit,1},rendered.at(unit.object),view);
+        auto vertices=resource.model->draw(unit.object,std::span{&unit,1},result.rendered_nodes.at(unit.object),view);
         if(vertices.empty())continue;
         auto input=[actual=inputs.at(unit.object),object=unit.object,definition=resource.definition,tables=tables_,names=names_,seconds](std::uint32_t name) {
             if(!name)return 0.f;

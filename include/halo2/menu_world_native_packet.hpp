@@ -34,6 +34,11 @@ struct MenuWorldNativePacketInput {
   std::array<MenuWorldTextureCoordinates,4> texture_coordinates{
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized,
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized};
+  // A stage bound to a light shadow buffer: the fetch is the depth comparison
+  // (material texture effect z bit 1), with texel coordinates.
+  std::array<bool,4> shadow_compare{};
+  // The draw renders into a light shadow target (screen-linear Z depth).
+  bool linear_z_depth{};
   MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
   // Authored/material-completed XYZW coverage for the separate attribute bank.
   // A zero mask proves no values; the packet rejects every uncovered read.

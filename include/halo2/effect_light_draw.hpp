@@ -45,6 +45,13 @@ struct EffectLightRawDraw {
     std::uint32_t pstencil_light_domain{}; // Separate optional direct-light allocator.
     bool pstencil_casts_shadow=true;
     std::array<std::uint8_t,16> vertex_attribute_components{};
+    // A shadowed projected light's own depth target (TU1.5 48ED0, target 9),
+    // numbered from one within the frame; zero is none. A source layer 10
+    // draw renders into `shadow_generate`; a layer 11 comparison pass samples
+    // `shadow_sample` on its texture extern 13 stages. The extent is the
+    // original target viewport inside the 512x512 surface.
+    std::uint16_t shadow_generate{},shadow_sample{};
+    std::array<std::uint16_t,2> shadow_extent{};
 };
 // The original material upload covers c18..33 and3A550 covers c31..39.
 // Other owner/view constants survive, including compression/palette inputs

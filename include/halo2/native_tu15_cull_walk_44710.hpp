@@ -22,6 +22,14 @@ class PhysicsLiveWorldTu15;
 using NativeTu15CullFrustumEntry=std::function<bool(std::uint32_t,std::uint32_t,NativeTu15PhysicsFrameFp&)>;
 // Returns the final arithmetic context of this standalone source call. A
 // later prepare_source_call starts a fresh caller, as for the literal root.
+// Sphere entries run native 45550 (HALO2_REFERENCE_SPHERE_CULL=1 restores the
+// original; HALO2_SPHERE_CULL_ORACLE=1 compares every call's stores and FP).
 NativeTu15PhysicsFrameFp source_native_cull_walk_tu15(PhysicsLiveWorldTu15&,
     const NativeTu15CullFrustumEntry& = {});
+struct SourcePhysicsContactRuntimeAbi;
+// Whole 44710 at a native secondary-view caller (projected light, shadow
+// root): the call's FP words receive the completed state. Native by default;
+// HALO2_REFERENCE_SECONDARY_CULL=1 restores the original and
+// HALO2_SECONDARY_CULL_ORACLE=1 compares every non-stack store and FP word.
+void source_cull_walk_site_tu15(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&);
 }

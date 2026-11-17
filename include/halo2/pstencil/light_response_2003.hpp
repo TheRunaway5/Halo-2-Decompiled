@@ -7,8 +7,9 @@ namespace halo2::pstencil {
 std::uint32_t pack_light_rgb_2003(const std::array<float, 3> &);
 // Original981C0/952C0 accepts geometry0..3. The program constructor separates
 // sphere0 from the other three shapes; completed coordinates remain separate.
+// Preserve builtin6 ordinary, builtin9 shiny and builtin10 dull independently.
 PixelProgram light_utility_2003(unsigned geometry, unsigned diffuse_contrast, unsigned specular_contrast,
-                                int quality, bool dull);
+                                int quality, unsigned builtin);
 // Original964B0 builtin7. Colors are the completed original2F380 RGB words;
 // accepting packed values avoids inventing a different color quantizer here.
 PixelProgram dependent_light_2003(unsigned geometry, unsigned specular_mask, unsigned color_shift,

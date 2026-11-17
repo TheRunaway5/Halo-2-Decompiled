@@ -130,7 +130,8 @@ public:
 void run_model_3daf0_with_inline_cpu_bitmaps(SourceRuntimeMemory&bank,
     SourcePhysicsWorldRuntimeAbi&abi,SourcePhysicsFactoryFloatingPoint fp,
     const SourcePhysicsWorldRuntimeServices&input_services,
-    const SourcePhysicsContactRecordObserver&observe,const InlineBitmapFirstRow&input_provider){
+    const SourcePhysicsContactRecordObserver&observe,const InlineBitmapFirstRow&input_provider,std::uint32_t entry){
+    require(entry==0x3daf0u||entry==0xd3d90u,"Private inline bitmap root is neither 3DAF0 nor its D3D90 query");
     // Input wrappers must remain valid during ordinary callable copying. After
     // the copies, callbacks may release/reset their caller-side wrappers.
     const auto parent=input_services;
@@ -144,6 +145,6 @@ void run_model_3daf0_with_inline_cpu_bitmaps(SourceRuntimeMemory&bank,
         require(bool(parent.required_owner),"Private inline bitmap descendant has no actual bank owner");
         parent.required_owner(bank,call,state,observer);
     };
-    source_run_model_render_tu15(memory,0x3daf0u,abi,fp,services,observe);
+    source_run_model_render_tu15(memory,entry,abi,fp,services,observe);
 }
 }

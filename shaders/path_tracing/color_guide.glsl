@@ -1,4 +1,5 @@
-// Authored lighting RGB steers only diffuse sky/sun hue. Magnitude is removed.
+// Authored RGB supplies traced sky/sun hue; separately authenticated interior
+// and secondary diffuse fields also retain their native irradiance magnitude.
 layout(set=1,binding=8,std430) readonly restrict buffer TraceColorGuidePixels {uint traceColorGuidePixels[];};
 float traceSourceBrightness(vec3 c){return (c.r*.299+c.g*.587)+c.b*.114;}
 vec4 traceValidColorGuide(vec3 c){return vec4(c,traceSourceBrightness(c)>0.0?1.0:0.0);}

@@ -12,6 +12,7 @@ class SourceCharacterShaderInputs {
 public:
     SourceCharacterShaderInputs(const Cache &,std::uint32_t unit_definition);
     ShadowCasterSphere sphere(const Transform& node0,float object_scale)const;
+    // Copies the unit's damage/vitality values; the unit need not outlive it.
     ShaderInput input(const Unit&,float seconds)const;
     ObjectLightQueryContext light_query_context()const{return lighting_;}
     ObjectLightQueryContext light_query_context(const Unit&)const;

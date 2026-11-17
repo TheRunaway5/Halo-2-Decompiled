@@ -136,8 +136,15 @@ struct NativeWorldEffects::Impl {
     std::array<Delivery,SourceEffectLightDatumPool::capacity> deliveries;
     explicit LightWorld(const Cache& c)
         :resources(std::make_shared<const LightResources>(c)),spatial(resources->memberships.clusters.size()) {}
+    explicit LightWorld(std::shared_ptr<const LightResources> shared)
+        :resources(std::move(shared)),spatial(resources->memberships.clusters.size()) {}
   };
   std::unique_ptr<LightWorld> light_world;
+  // Separate pool for animated effect lights; see animated_light_view().
+  std::map<std::uint32_t,EffectLightDefinition> animated_light_definitions;
+  std::unique_ptr<LightWorld> animated_light_world;
+  SourceEffectLightQueryState animated_light_queries;
+  std::array<SourceShadowSelectionCache,4> animated_light_selection;
   std::map<unsigned,std::shared_ptr<const LightResources>> native_light_resources;
   std::map<std::uint32_t,EffectLightDefinition> native_light_definitions;
   std::set<std::uint32_t> native_light_supported;
@@ -169,6 +176,11 @@ struct NativeWorldEffects::Impl {
   SourceEffectLightLifetimeWorld light_inputs(std::uint64_t t) const {
     return {light_world->resources->locations,light_world->resources->memberships,light_world->resources->terrain.bsps[0],
       cache.original_data()->fade_curve,std::uint32_t(t),light_queries.epoch,30,0,true};
+  }
+  SourceEffectLightLifetimeWorld animated_light_inputs(std::uint64_t t) const {
+    const auto& resources=*animated_light_world->resources;
+    return {resources.locations,resources.memberships,resources.terrain.bsps[0],
+      cache.original_data()->fade_curve,std::uint32_t(t),animated_light_queries.epoch,30,0,true};
   }
   struct DecalDefinition {
     struct Sprite {
@@ -217,6 +229,7 @@ struct NativeWorldEffects::Impl {
     std::uint32_t light = none;
     std::uint32_t light_scale_a{},light_scale_b{};
     std::uint16_t sound_selector{};
+    bool animated_light{}; // Created in the separate animated pool.
   };
   struct LensPart {
     std::uint32_t definition{};
@@ -422,6 +435,9 @@ struct NativeWorldEffects::Impl {
        tick(o.tick),identity(o.identity),receipt_order(o.receipt_order),parents(o.parents),projectiles(o.projectiles),object_markers(o.object_markers),
        unavailable(o.unavailable),source_particle_effects(o.source_particle_effects),sounds(o.sounds),
        light_definitions(o.light_definitions),light_world(o.light_world?std::make_unique<LightWorld>(*o.light_world):nullptr),
+       animated_light_definitions(o.animated_light_definitions),
+       animated_light_world(o.animated_light_world?std::make_unique<LightWorld>(*o.animated_light_world):nullptr),
+       animated_light_queries(o.animated_light_queries),animated_light_selection(o.animated_light_selection),
        native_light_resources(o.native_light_resources),native_light_definitions(o.native_light_definitions),
        native_light_supported(o.native_light_supported),
        light_queries(o.light_queries),light_selection(o.light_selection),
@@ -600,7 +616,44 @@ struct NativeWorldEffects::Impl {
             part.location=marker(std::int16_t(parts.u16(a+4)));
             event.parts.push_back(std::move(part));
             unavailable.insert("Dynamic object light receiver/model submission and lens-flare owner remain unavailable");
-          } catch(const FormatError &e) { d.complete=false;unavailable.insert(e.what()); }
+          } catch(const FormatError &e) {
+            // An animated sphere the ordinary owner declines is ticked by
+            // the separate animated pool with original C2B30, so it no
+            // longer makes its effect graph incomplete. A frustum or an HSV
+            // light still declines the graph exactly as before.
+            bool animated_part=false;
+            try {
+              const auto tag=parts.u32(a+0x10);
+              auto animated=load_completed_effect_light(cache,tag);
+              if(animated.animation && !(animated.radius>0) && !(animated.specular_radius>0)) {
+                // No diffuse or specular radius (the plasma charge): like
+                // the other shipped lens-only lights it illuminates nothing
+                // and exists for its lens flare. It joins the ordinary pool,
+                // which already carries such lights, and is ticked there
+                // with the same C2B30 animation.
+                if(animated.lens!=none)
+                  missing("Light lens requires its original request/query/draw owner");
+                light_definitions.try_emplace(tag,std::move(animated));
+                Part part;part.decal=none;part.light=tag;
+                part.light_scale_a=parts.u32(a+0x30);part.light_scale_b=parts.u32(a+0x34);
+                part.location=marker(std::int16_t(parts.u16(a+4)));
+                event.parts.push_back(std::move(part));
+                unavailable.insert("Dynamic object light receiver/model submission and lens-flare owner remain unavailable");
+                animated_part=true;
+              } else if(animated.animation && animated.radius>0) {
+                if(animated.lens!=none)
+                  missing("Light lens requires its original request/query/draw owner");
+                animated_light_definitions.try_emplace(tag,std::move(animated));
+                Part part;part.decal=none;part.light=tag;part.animated_light=true;
+                part.light_scale_a=parts.u32(a+0x30);part.light_scale_b=parts.u32(a+0x34);
+                part.location=marker(std::int16_t(parts.u16(a+4)));
+                event.parts.push_back(std::move(part));
+                unavailable.insert("Dynamic object light receiver/model submission and lens-flare owner remain unavailable");
+                animated_part=true;
+              }
+            } catch(const FormatError&) {}
+            if(!animated_part){d.complete=false;unavailable.insert(e.what());}
+          }
         }
         if (parts.u32(a + 8) != 0x64656361u || parts.u32(a + 0x10) == none ||
             parts.u16(a) == 2 || (parts.u16(a + 6) & 8))
@@ -881,6 +934,16 @@ struct NativeWorldEffects::Impl {
             !source_effect_part_selector_admitted_tu15(part.sound_selector,*source_flags))continue;
         const auto markers=frames(e,part.location);
         for(const auto &marker:markers) {
+        if(part.light!=none && part.animated_light){
+          const auto &d=animated_light_definitions.at(part.light);const auto frame=basis(marker.forward,marker.up);
+          if(!animated_light_world)animated_light_world=light_world?
+              std::make_unique<LightWorld>(light_world->resources):std::make_unique<LightWorld>(cache);
+          const auto id=source_standalone_effect_light_create(animated_light_world->pool,animated_light_world->spatial,
+            d,part.light,source_effect_part_control(part.light_scale_a,part.light_scale_b,e.frame.scale_a,e.frame.scale_b),
+            marker.position,frame.forward,frame.up,animated_light_inputs(t));
+          if(id!=none)animated_light_world->deliveries[id&0xffffu]={e.owner,t,e.definition->datum};
+          continue;
+        }
         if(part.light!=none){
           const auto &d=light_definitions.at(part.light);const auto frame=basis(marker.forward,marker.up);
           // 17A8A0's world branch calls C0350 with object/node NONE. C0350
@@ -1524,6 +1587,9 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
     });
     if(i.light_world)source_standalone_effect_lights_advance(i.light_world->pool,i.light_world->spatial,
       [&](auto definition)->const EffectLightDefinition& {return i.light_definitions.at(definition);},i.light_inputs(t));
+    if(i.animated_light_world)source_standalone_effect_lights_advance(i.animated_light_world->pool,
+      i.animated_light_world->spatial,[&](auto definition)->const EffectLightDefinition& {
+        return i.animated_light_definitions.at(definition);},i.animated_light_inputs(t));
   }
   i.tick = tick + 1;
 }
@@ -1567,6 +1633,72 @@ SourceEffectLightView NativeWorldEffects::light_view(Vec3 camera_position,
   source_effect_lights_select(view,i.light_selection,
       std::bit_cast<std::int32_t>(collection.local_player),candidates,frame,cinematic);
   return view;
+}
+std::vector<std::uint32_t> NativeWorldEffects::animated_light_definitions() const {
+  std::vector<std::uint32_t> result;
+  for(const auto& [identity,definition]:impl_->animated_light_definitions)result.push_back(identity);
+  return result;
+}
+std::vector<NativeWorldEffects::AnimatedLight> NativeWorldEffects::animated_lights() const {
+  const auto& i=*impl_;std::vector<AnimatedLight> out;if(!i.animated_light_world)return out;
+  const auto& pool=i.animated_light_world->pool;
+  for(const auto id:pool.identities()) {
+    const auto light=source_standalone_effect_light(pool,id);
+    out.push_back({id,light.definition,light.birth,std::bit_cast<float>(pool.record(id)[0xcc/4]),
+        light.registration.position,light.state});
+  }
+  return out;
+}
+SourceEffectLightView NativeWorldEffects::animated_light_view(Vec3 camera_position,
+    const SourceEffectLightCollectionContext& collection,
+    const SourceEffectLightCandidateContext& candidates,std::int32_t frame,bool cinematic) {
+  auto& i=*impl_;
+  SourceEffectLightView view;
+  if(i.animated_light_world) {
+    const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {
+      return i.animated_light_definitions.at(id);
+    };
+    source_effect_lights_update_view(i.animated_light_world->pool,definition,camera_position);
+    view=source_effect_lights_query(i.animated_light_world->pool,i.animated_light_world->spatial,definition,
+        i.animated_light_queries,SourceEffectLightQueryKind::Main,collection);
+  } else view.epoch=++i.animated_light_queries.epoch;
+  source_effect_lights_select(view,i.animated_light_selection,
+      std::bit_cast<std::int32_t>(collection.local_player),candidates,frame,cinematic);
+  return view;
+}
+std::vector<WorldEffectLightReceiver> NativeWorldEffects::animated_light_receivers(
+    const SourceEffectLightView& lights,const SourceBspAdmissionBsp& geometry,
+    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals) {
+  auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
+  if(!i.animated_light_world)return out;
+  const auto& resources=*i.animated_light_world->resources;
+  const SourceEffectLightReceiverWorld world{resources.memberships,geometry,resources.locations,0,&resources.portals,open_portals};
+  const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {
+    return i.animated_light_definitions.at(id);
+  };
+  for(const auto& selected:lights.selected) {
+    if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue; //31C80: .07
+    const auto found=std::find_if(lights.records.begin(),lights.records.end(),
+        [&](const auto& r){return r.runtime.identity==selected.identity;});
+    if(found==lights.records.end() || !found->definition)
+      throw FormatError("Selected animated light lacks its current source record/definition");
+    const auto& r=found->runtime;
+    try {
+      const auto shape=source_effect_light_sphere(*found->definition,r.position,r.forward,r.up,r.state.size);
+      auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,
+          r.spatial_radius,shape,containing_fog,main_view,found->definition->flags);
+      const auto frustums=receiver.visibility.sphere_bank();
+      SourceEffectLightCollectionContext collection{};
+      collection.visibility.frustums=&frustums;collection.visibility.query_mode=receiver.query_mode;
+      collection.visibility.sphere_center=r.spatial_center;collection.visibility.sphere_radius=r.spatial_radius;
+      collection.flags=receiver.flags;collection.pass_mode=receiver.pass_mode;
+      collection.containing_cluster=receiver.location.cluster;collection.local_player=0xffffffffu;
+      const auto query=source_effect_lights_query(i.animated_light_world->pool,i.animated_light_world->spatial,
+          definition,i.animated_light_queries,SourceEffectLightQueryKind::Light,collection);
+      out.push_back({selected.identity,query.epoch,selected.requested_fade,std::move(receiver)});
+    }catch(const FormatError& error){i.unavailable.insert(std::string("Animated light receiver: ")+error.what());}
+  }
+  return out;
 }
 SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15& source,unsigned bsp,
     const SourceEffectLightCollectionContext& input,const SourceEffectLightCandidateContext& candidates,
@@ -1648,6 +1780,10 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
         std::bit_cast<std::int16_t>(std::uint16_t(at->runtime.attached_node)));
     auto pose=source.prepare_source_call(std::array{node,record+0x84u,record+0xacu,record+0xb8u});
     pose.gp[1]=owner;source.run_actual(0x1692e0u,pose);
+    if(pose.gp[0]&255u) {
+      at->first_person_marker=node;
+      at->first_person_root=source.render_object_root(owner);
+    }
     for(unsigned axis=0;axis<3;++axis) {
       const auto position=std::bit_cast<float>(word(record+0x84u+axis*4u));
       const auto forward=std::bit_cast<float>(word(record+0xacu+axis*4u));

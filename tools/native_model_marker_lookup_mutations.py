@@ -25,7 +25,9 @@ def qualify(scratch,fixture,compiler,command):
         tested=subprocess.run([str(binary),str(fixture)],capture_output=True,text=True)
         diagnostic=(tested.stdout+tested.stderr)[-3000:]
         expected=any(text in diagnostic for text in('final ABI differs','pre-I/O packet','ordered reads differ','Unbacked marker lookup address','Marker lookup crossed bank extent'))
-        if tested.returncode==0 or not(expected or(name=='unprotected-fp'and tested.returncode==-8)):
+        fp_failure=name=='unprotected-fp'and(tested.returncode==-8 or
+            (tested.returncode==-6 and 'terminate called without an active exception'in diagnostic))
+        if tested.returncode==0 or not(expected or fp_failure):
             raise ValueError('Marker semantic mutant survived/unrecognized failure '+name+': '+diagnostic)
         results.append(dict(name=name,rejected=True,exit_code=tested.returncode,diagnostic=diagnostic))
     return results

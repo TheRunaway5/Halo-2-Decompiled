@@ -5,9 +5,28 @@
 #include "source_decal_program.hpp"
 #include <bit>
 #include <map>
+#include <openssl/evp.h>
+#include "halo2/original_data.hpp"
+#include <optional>
 #include <set>
 
 namespace halo2 {
+namespace {
+// Typed input admission for the independently authenticated MCC global-3 role.
+// Its DX9 bytes remain asset data; the renderer executes the existing native
+// original kernel. Xbox and already-restored MCC owners retain their full checks.
+static bool admitted_mcc_decal_program(const Tag& tag,std::uint32_t requested,
+    std::span<const std::byte> payload,std::optional<OriginalData::Image> image) {
+    if(!image || *image!=OriginalData::Image::TitleUpdate15 || tag.datum!=requested ||
+       requested==0xffffffffu || tag.group!="vrtx" || !tag.address || tag.size!=2088 ||
+       payload.size()!=2088 || tag.name!="rasterizer\\vertex_shaders_dx9\\decal")return false;
+    std::array<unsigned char,32> bytes{};unsigned count{};
+    if(EVP_Digest(payload.data(),payload.size(),bytes.data(),&count,EVP_sha256(),nullptr)!=1 || count!=32)return false;
+    constexpr char hex[]="0123456789abcdef";std::string actual;actual.reserve(64);
+    for(auto value:bytes){actual+=hex[value>>4];actual+=hex[value&15];}
+    return actual=="d7b95bb3aeb1f62f3a4f4da793599007fa3c0ff6e749b88f29a93a9fdff1f0ab";
+}
+}
 struct SourceDecalScene::Impl {
     struct Definition {unsigned layer{},images{};std::vector<Texture> textures;};
     std::map<std::uint32_t,Definition> definitions;
@@ -21,6 +40,15 @@ struct SourceDecalScene::Impl {
         const Bytes raster(cache.read_tag_bytes(root.u32(0x10c),0x108));
         const Bytes shaders(cache.read_tag_bytes(raster.u32(0x5c),raster.u32(0x58)*8u));
         const auto datum=shaders.u32(3*8+4);
+        const auto* vertex=cache.query_tag({.handle=TagHandle{datum},.group=tag_groups::vertex_shader,.require_address=true});
+        if(!vertex)throw FormatError("Cached decal vertex role has no actual typed owner");
+        if(cache.is_mcc() && !cache.is_preserved_native_shader(*vertex)) {
+            const auto original=cache.original_data();
+            const auto image=original?std::optional{original->image}:std::nullopt;
+            if(shaders.u32(3*8)!=0x76727478u || !admitted_mcc_decal_program(*vertex,datum,cache.tag_payload(vertex->handle()),image))
+                throw FormatError("MCC decal vertex role differs from the authenticated TU1.5 backend input");
+            static_assert(source_decal_program_hash==0x8809e493f32bc92eull);
+        } else {
         const auto code=cache.load_vertex_shader_code(datum,0);
         const auto declaration=cache.load_source_vertex_declaration(datum,0);
         std::uint64_t hash=14695981039346656037ull;
@@ -28,6 +56,7 @@ struct SourceDecalScene::Impl {
         if(code.size()!=212 || declaration.class_index!=0 || hash!=source_decal_program_hash ||
            declaration.semantics!=std::vector<std::uint16_t>({0,3}))
             throw FormatError("Cached decal vertex program differs from compiled original");
+        }
         for(const auto &tag:cache.select_tags({.group=tag_groups::decal,.require_address=true}))try {
             const Bytes d(cache.tag_payload(tag.handle()));
             Definition def;def.layer=d.u16(4);(void)source_decal_layer_state_tu15(def.layer);

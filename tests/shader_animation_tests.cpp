@@ -103,6 +103,37 @@ int main(int argc, char **argv) {
     }
     check(cases == 693);
     Cache lockout(std::filesystem::path(argv[1])/"lockout.map");
+    const auto elite=lockout.query_tag({.group=tag_groups::biped,
+        .name="objects\\characters\\elite\\elite_mp"});
+    check(bool(elite));
+    const auto elite_functions=lockout.load_object_functions(elite->datum);
+    const auto burnt=std::ranges::find_if(elite_functions,[&](const auto &f){
+      return lockout.string_id(f.output)=="elite_burnt";
+    });
+    check(burnt!=elite_functions.end());
+    const auto original_builtins=ObjectFunctionBuiltins::from_cache(lockout);
+    check(burnt->input==original_builtins.one);
+    // Keep the actual authored curve while moving its constant input into
+    // MCC's string namespace. The old Xbox-only lookup left this function
+    // at zero and selected the burned armor bitmap even for a healthy Elite.
+    const ObjectFunctionBuiltins mcc_builtins{0x030005b2u,0x040005b3u};
+    auto mcc_burnt=*burnt;mcc_burnt.input=mcc_builtins.one;
+    const std::array mcc_functions{mcc_burnt};
+    const auto healthy=[&](std::uint32_t id){
+      return evaluate_object_function(mcc_functions,*tables,id,0,{}, {},true,mcc_builtins).value;
+    };
+    const auto untranslated=[&](std::uint32_t id){
+      return evaluate_object_function(mcc_functions,*tables,id,0,{}).value;
+    };
+    const auto original=evaluate_object_function(elite_functions,*tables,burnt->output,0,
+        {},{},true,original_builtins);
+    check(original.enabled && original.value==1 && healthy(burnt->output)==1);
+    check(untranslated(burnt->output)==0);
+    for(const auto names:{original_builtins,mcc_builtins}) {
+      const auto one=evaluate_object_function({},*tables,names.one,0,{},{},true,names);
+      const auto zero=evaluate_object_function({},*tables,names.zero,0,{},{},true,names);
+      check(one.enabled && one.value==1 && !zero.enabled && zero.value==0);
+    }
     // TU1.5 16F40 and 17530 share template bitmap slots. Elite detail slot1
     // remaps to material bitmap3; body armor starts with burned frame1.
     // Its authored frame animation must reach the same slot and select the
@@ -127,7 +158,10 @@ int main(int argc, char **argv) {
         check(material.animated_textures[1].size()==2 && material.texture_frames[1]==bitmap.index);
         // TU1.5 17530 evaluates elite_burnt inversely: input1 selects the
         // normal frame0; input0 selects the authored burned frame1.
-        const auto healthy=[](std::uint32_t id){return id==0x0b001a0au?1.f:0.f;};
+        if(std::string_view(leaf)!="head") {
+          animate_material_bitmaps(material,0,untranslated);
+          check(material.texture_frames[1]==1);
+        }
         check(animate_material_bitmaps(material,0,healthy)==(bitmap.index!=0));
         check(material.texture_frames[1]==0);
         const auto neutral=sample_object_texture(material.animated_textures[1][0],{0,0});

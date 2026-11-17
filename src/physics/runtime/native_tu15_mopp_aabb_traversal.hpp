@@ -1,4 +1,5 @@
 #pragma once
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_mopp_aabb_traversal_kernel.hpp"
 #include "halo2/physics_contact_runtime.hpp"
 #include <cstdlib>
@@ -344,7 +345,9 @@ template<bool CanonicalState,class State,class Call,class Before>bool bridge_pol
     if(reference_mode()||(s.image!=SourcePhysicsContactImage::TitleUpdate15&&s.image!=SourcePhysicsContactImage::MapPack11))return false;
     if constexpr(!requires{s.selected_observation_pcs;})if constexpr(!CanonicalState)return false;
     if(s.observe&&(!s.instruction_cursor||!s.instruction_cursor->observation_only_stores))return false;
-    if(s.services.instruction){
+    if(native_census_detail::uncursored(s,0x305e40u,0x30642cu)&&native_census_detail::uncursored(s,0x309940u,0x309f2cu)){
+        // Census diagnostic: full callbacks without a cursor.
+    }else if(s.services.instruction){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*c=s.instruction_cursor;
         if((c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace))return false;

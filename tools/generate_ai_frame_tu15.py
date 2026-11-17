@@ -141,7 +141,17 @@ def main():
         ' || '.join(f'p==0x{p:x}u' for p in [0x1d0670,*exported_helpers])+';}',source);assert n==1
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    a.output.write_text(replace_model_vector_length(replace_model_light_source(install_native_normalizer(install_native_difficulty_routes(add_hooks(source),'actual'),'Tu15Literal'))))
+    source=replace_model_vector_length(replace_model_light_source(install_native_normalizer(install_native_difficulty_routes(add_hooks(source),'actual'),'Tu15Literal')))
+    if {0x296180,0x2961f0}<=entries:
+        from native_codec_translation_replacements import replace_codec_translation
+        source=replace_codec_translation(source)
+    if 0xbcdf0 in entries:
+        from native_object_lookup_copies_replacements import replace_object_lookup_copies
+        source=replace_object_lookup_copies(source)
+    if 0x1cf0e0 in entries:
+        from native_node_progress_query_replacements import replace_node_progress_query
+        source=replace_node_progress_query(source)
+    a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),

@@ -9,7 +9,7 @@
 #endif
 
 namespace halo2::native_cluster_frustum_abi_detail {
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_CLUSTER_FRUSTUM");return p&&*p;}();return value;}
 template<class State>bool admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -39,9 +39,9 @@ template<unsigned Factor,class State>std::uint32_t multiply(State&s,std::uint32_
 }
 template<class State,class Call,class Before>class View {
     State&s_;Call&call_;Before&before_;native_raw_x87_detail::Scope<State>&scope_;
-    void at(std::uint32_t pc){if(s_.instruction_cursor&&s_.instruction_cursor->position)*s_.instruction_cursor->position=pc;scope_.io([&]{before_(s_,pc);});}
+    void at(std::uint32_t pc){if(s_.instruction_cursor&&s_.instruction_cursor->position)*s_.instruction_cursor->position=pc;if(!native_raw_x87_detail::skip_hook<Before>())scope_.io([&]{before_(s_,pc);});}
     std::uint32_t word(std::uint32_t pc,std::uint32_t address,unsigned width=4){
-        at(pc);std::array<std::byte,4>bytes{};scope_.io([&]{s_.memory.read(address,std::span(bytes).first(width));});
+        at(pc);std::array<std::byte,4>bytes{};if(!native_raw_x87_detail::direct_read(s_.memory,address,std::span(bytes).first(width)))scope_.io([&]{s_.memory.read(address,std::span(bytes).first(width));});
         std::uint32_t value{};for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8u*n);return value;
     }
     template<class Commit>void write(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width,Commit commit){

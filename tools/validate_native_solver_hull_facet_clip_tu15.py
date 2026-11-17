@@ -33,8 +33,27 @@ def driver_source():
  old='const auto result=native_tu15_minimum_solver_hull_facet(m,c.at("receiver"),fp,0,&stats);'
  new='const auto&a=c.at("arguments");const auto result=native_tu15_clip_solver_hull_facet(m,c.at("receiver"),a[0],a[1],a[2],fp,0,observer,&stats);'
  assert text.count(old)==1;return text.replace(old,new)
+_CLIP_VALUE=Path('src/physics/native_tu15_solver_hull_clip_value.hpp')
+_CLIP_KERNEL=Path('include/halo2/native_tu15_solver_hull_clip_kernel.hpp')
+_CLIP_INCLUDE='#include "native_tu15_solver_hull_clip_value.hpp"'
+def clip_variant(project,text,name,needle,replacement):
+ assert text.count(_CLIP_INCLUDE)==1
+ header=(ROOT/_CLIP_VALUE).read_text()
+ assert header.count(needle)==1,(name,needle)
+ filename=f'clip-{name}.hpp'
+ (project/filename).write_text(header.replace(needle,replacement,1))
+ return text.replace(_CLIP_INCLUDE,f'#include "{filename}"',1)
 def main():
  text=inspect.getsource(facet.main).replace('base.OWNERS=(0x3131b0,)','base.OWNERS=(0x3147d0,)').replace('counts[0]==76','counts[0]==56').replace('complete_body(code,0x3131b0)','complete_body(code,0x3147d0)').replace('native_tu15_solver_hull_polytope.cpp','native_tu15_solver_hull_polytope_state.cpp').replace('native_tu15_solver_hull_polytope.hpp','native_tu15_solver_hull_polytope_state.hpp').replace('physical.SP+4','physical.SP+16')
  text=text.replace("('wrong_stride','cursor+=0x140u','cursor+=0x100u'),('wrong_comparison','&1u)!=0','&1u)==0'),('wrong_identity','minimum=record;','minimum=record+0x10u;')", "('wrong_dot','sum_three(product)','scalar_bits(product)'),('wrong_upper_test','&1u)!=0','&1u)==0'),('wrong_result','result=2u','result=1u')")
- namespace=dict(facet.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__);exec(text,namespace);return namespace['main']()
+ namespace=dict(facet.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__)
+ if _CLIP_INCLUDE in (ROOT/'src/physics/native_tu15_solver_hull_polytope_state.cpp').read_text():
+  old="('wrong_dot','sum_three(product)','scalar_bits(product)'),('wrong_upper_test','&1u)!=0','&1u)==0'),('wrong_result','result=2u','result=1u')"
+  new="('wrong_dot','sum_three(multiply(normal,difference))','scalar_bits(multiply(normal,difference))'),('wrong_upper_test','&1u)!=0','&1u)==0'),('wrong_result','result_=2u','result_=1u')"
+  anchor="shutil.copyfile(ROOT/'src/physics/native_tu15_joint_constraint_numeric_internal.hpp',project/'native_tu15_joint_constraint_numeric_internal.hpp')"
+  assert text.count(old)==1 and text.count(' if cases is _MINIMUM_CASES:')==1 and text.count(anchor)==1
+  text=text.replace(old,new,1).replace(' if cases is _MINIMUM_CASES:',' if cases is _CLIP_CASES:',1)
+  text=text.replace(anchor,anchor+";shutil.copyfile(ROOT/'src/physics/native_tu15_solver_hull_clip_value.hpp',project/'native_tu15_solver_hull_clip_value.hpp')",1)
+  namespace.update(_CLIP_CASES=cases,minimum_variant=clip_variant,_MINIMUM_VALUE=_CLIP_VALUE,_MINIMUM_KERNEL=_CLIP_KERNEL)
+ exec(text,namespace);return namespace['main']()
 if __name__=='__main__':raise SystemExit(main())

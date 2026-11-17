@@ -97,11 +97,13 @@ def hardware(args,scratch,binary,blocks):
         original_immediate_shift_AF_counterexamples=list(shift_counterexamples.values()))
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);p.add_argument('--retained-mode',action='store_true');args=p.parse_args()
     if args.xbe is not None and not args.xbe.is_file():print('Authenticated TU1.5 XBE is not configured');return 77
+    if args.retained_mode and args.xbe:p.error('Run the retained model and physical original as separate gates')
     if not os.environ.get('HALO2_TEST_SCRATCH'):p.error('Run through tools/run_test.py')
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);report=dict(passed=False,production_bound=False,scratch_owner=str(scratch),retained_large_artifacts=[])
     paths=['include/halo2/native_tu15_simplex_candidate_kernel.hpp','src/physics/runtime/native_tu15_simplex_candidate_abi.hpp','tests/native_tu15_simplex_candidate_tests.cpp',str(Path(__file__).relative_to(ROOT)),'src/physics/runtime/native_tu15_raw_x87_scope.hpp','include/halo2/native_tu15_simplex_direction_kernel.hpp','src/physics/runtime/native_tu15_halfword_bit_query.hpp','src/physics/runtime/native_tu15_simplex_direction_abi.hpp','src/physics/runtime/physics_world_runtime_internal.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_step_internal.hpp']
+    paths.append('src/physics/runtime/native_tu15_host_fp_io.hpp')
     pins={name:sha(ROOT/name)for name in paths}
     try:
         bodies=original_bodies();body=next(iter(bodies.values()));contact=bodies['src/physics/runtime/physics_contact_runtime_generated.cpp']
@@ -125,6 +127,13 @@ def main():
         blocks[2]=blocks[2].replace('goto L30af10;','return true;')+'\nL30bae7:return false;\n'
         source='\n'.join('static bool run_'+str(n)+'(WorldState&s){\n'+block+'}\n'for n,block in enumerate(blocks))
         source+='static bool run_stage(WorldState&s,unsigned side){return side==0?run_0(s):side==1?run_1(s):run_2(s);}\n'
+        io=[]
+        for line in source.splitlines():
+            match=re.search(r'services.instruction\((0x[0-9a-f]+u)\)',line)
+            if match and re.search(r'\b[rvw]\(s.memory',line):io.append(match[1])
+        if len(io)!=len(set(io)):raise ValueError('Duplicate actual candidate I/O site')
+        source+='static bool io_pc(std::uint32_t pc){switch(pc){'+''.join('case '+site+':'for site in io)
+        source+='return true;default:return false;}}\n'
         (scratch/'simplex_candidate_reference.inc').write_text(source)
         needle='s.flags.shift(s.reg(0,4,0),0x4u,4)'
         if source.count(needle)!=3:raise ValueError('Candidate original immediate-SHL seam drift')
@@ -136,11 +145,14 @@ def main():
             normal_authority='Unmodified pinned translated source',
             fault_prefix_authority='Same pinned source with only immediateSHL flags computed by native hardware; unchangedi386packets independently required',
             unmodified_modeled_full_fault_flags_verified=False,modeled_reference_gap='AF cleared by translated Flags.shift; native immediateSHL preserves actual hardware output; no bits masked')
+        if args.retained_mode:
+            report['reference'].update(fault_prefix_authority='Unmodified pinned retained source',
+                unmodified_modeled_full_fault_flags_verified=True,full_pre_io_packets=True)
         binary=scratch/'candidate';command=[args.compiler,'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),'-I'+str(scratch),str(ROOT/'tests/native_tu15_simplex_candidate_tests.cpp'),'-o',str(binary)]
         if args.sanitizers:command[1:1]=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
         report['command']=command;result=subprocess.run(command,capture_output=True,text=True)
         if result.returncode:raise RuntimeError('Candidate fixture compile failed:\n'+result.stderr[-12000:])
-        result=subprocess.run([str(binary)],capture_output=True,text=True);report['diagnostic']=result.stderr[-12000:]
+        result=subprocess.run([str(binary)]+(['--retained-mode']if args.retained_mode else []),capture_output=True,text=True);report['diagnostic']=result.stderr[-12000:]
         if result.returncode:raise RuntimeError('Candidate fixture failed:\n'+report['diagnostic'])
         if args.xbe:report['original_hardware']=hardware(args,scratch,binary,blocks)
         kernel=ROOT/'include/halo2/native_tu15_simplex_candidate_kernel.hpp';text=kernel.read_text();report['semantic_mutants']={}
@@ -149,7 +161,7 @@ def main():
             'skip_third_vertex':('if(s.count==3u){','if(false){'),
             'reversed_projection':('N::subtract(s.candidate,point)','N::subtract(point,s.candidate)'),
         }
-        for name,(needle,replacement)in changes.items():
+        for name,(needle,replacement)in (()if args.retained_mode else changes.items()):
             if text.count(needle)!=1:raise ValueError('Candidate mutant seam drift: '+name)
             directory=scratch/name;(directory/'halo2').mkdir(parents=True);variant=text.replace(needle,replacement);(directory/'halo2/native_tu15_simplex_candidate_kernel.hpp').write_text(variant)
             changed=command.copy();at=changed.index('-I'+str(ROOT/'include'));changed[at:at]=['-I'+str(directory)];changed[-1]=str(directory/'mutant')

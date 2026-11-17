@@ -40,6 +40,8 @@
 #include "halo2/source_campaign_player_queries_tu15.hpp"
 #include "halo2/script_clock_builtin.hpp"
 #include "halo2/script_mcc_legacy_command.hpp"
+#include "halo2/native_campaign_script_host_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/source_workshop_script_actions.hpp"
 #include "halo2/script_null_global.hpp"
 #include "halo2/source_script_rumble_tu15.hpp"
@@ -546,7 +548,7 @@ void Simulation::restore_checkpoint() {
   prop_events_.clear();
   prop_removals_=checkpoint_->prop_removals;
   synchronize_props(true);
-  presentation_.restore(saved.presentation);
+  presentation_.restore(saved.presentation, bool(source_campaign_));
   peace_ = saved.peace;
   player_ = saved.player;
   actors_ = saved.actors;
@@ -796,7 +798,24 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
             return null_datum;
         }
         return id;
-      }, source_null_campaign_global,SourceHsObjectListServices{
+      }, [this](unsigned index,const std::optional<ScriptValue> &value)->ScriptValue {
+        // Campaign globals with original backing read and store the world:
+        // the 262590 AI command context and the AI enumeration shorts.
+        if(source_campaign_)if(const auto backed=native_campaign_script_tu15::backed_global(index)) {
+          if(backed->constant) {
+            if(value)throw FormatError("TU1.5 AI enumeration global "+std::to_string(index)+" is read-only");
+            return {backed->type,*backed->constant,{}};
+          }
+          auto bank=native_campaign_script_bank(source_campaign_->objects().tu15_world());
+          if(value) {
+            const auto bits=scalar_cast_bits(value->bits,value->type,backed->type);
+            if(backed->type==7)bank.store16(backed->address,std::uint16_t(bits));
+            else bank.store32(backed->address,bits);
+          }
+          return {backed->type,backed->type==7?std::uint32_t(bank.u16(backed->address)):bank.u32(backed->address),{}};
+        }
+        return source_null_campaign_global(index,value);
+      },SourceHsObjectListServices{
         [this]{if(multiplayer_script_lists_){auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();}if(script_lists_.size()>=65536 || next_script_list_==null_datum)throw FormatError("Native script list bank exhausted");const auto id=next_script_list_++;script_lists_.emplace(id,std::vector<std::uint32_t>{});return id;},
         [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}},clock_builtins);
   scripts_->set_random_choice([this](unsigned count,std::uint32_t visited) {
@@ -804,6 +823,11 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
     return source_hs_begin_random(random_state_,count,visited);
   });
   scripts_->command_ready([this](std::uint32_t actor){return !script_unit(actor).command.goal.has_value();});
+  scripts_->command_context([this](std::optional<std::uint32_t> unit) {
+    if(!source_campaign_)return;
+    auto bank=native_campaign_script_bank(source_campaign_->objects().tu15_world());
+    native_campaign_script_tu15::ai_command_context(bank,unit);
+  });
   for (const auto &squad : content.squads)
     if (squad.flags & (1 << 12))
       place_squad(squad.name);
@@ -1924,6 +1948,16 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
         float(std::max<int>(0,magazine.ticks))*tick_seconds:0.f;
   }
 }
+void Simulation::start_level(std::optional<bool> campaign_starts_white) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
+  ++authority_calls_.mutations;
+  if (content_.original_data && campaign_starts_white) {
+    // 1563E0 installs an immediate covered frame at campaign map startup.
+    const float channel = *campaign_starts_white ? 1.f : 0.f;
+    presentation_.fade({channel, channel, channel}, true, 0);
+  }
+  scripts_->start_level();
+}
 void Simulation::step(const Controls &controls) {
   NativeAuthorityBoundary::Call active(authority_calls_);
   step_impl(controls,{});
@@ -2324,6 +2358,21 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
 ScriptValue Simulation::host(const std::string &name,
                              const std::vector<ScriptValue> &args) {
   if(const auto command=mcc_script_legacy_command(name,args))return *command;
+  // Native semantic TU1.5 evaluator tails over the retained campaign world.
+  // random_range shares the original primary seed with begin_random here.
+  if(source_campaign_ && native_campaign_script_builtin_admitted_tu15(name)) {
+    auto &objects=source_campaign_->objects();auto &world=objects.tu15_world();
+    const NativeCampaignScriptHostServices services{&objects.memory(),
+        [&world](std::uint32_t address,std::span<const std::byte> bytes){world.write_source_call_input(address,bytes);},
+        [&world]{const auto abi=world.prepare_source_call();const auto &fp=abi.floating_point.value();
+          return NativeCampaignScriptFloatingPoint{fp.x87_control_word,fp.mxcsr};},
+        [this](std::uint32_t list){return script_objects(list);},
+        [this]{auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);
+          multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();},
+        [this](std::uint32_t list,std::uint32_t object){multiplayer_script_lists_->append(list,object);},
+        player_.source_datum};
+    if(const auto value=native_campaign_script_builtin_tu15(name,args,services))return *value;
+  }
   auto arity = [&](std::size_t count) {
     if (args.size() != count)
       throw FormatError("invalid " + name + " arity");
@@ -2615,6 +2664,13 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if(name=="cs_run_command_script" || name=="cs_command_script_running") {
     arity(2);if(args[1].type!=21)throw FormatError("Invalid command script reference");bool running=false;
+    if(source_campaign_) {
+      const auto script=std::int16_t(args[1].bits);
+      if(name=="cs_run_command_script") {
+        source_campaign_->run_command_script(args[0].bits,script);return {};
+      }
+      return ScriptValue::numeric(source_campaign_->command_script_running(args[0].bits,script),5);
+    }
     for(auto *actor:ai_units(args[0])) {
       if(name=="cs_run_command_script"){actor->command={};actor->command.active=true;actor->route.clear();scripts_->start_command(args[1].bits&65535,actor->source_datum);}
       else running|=scripts_->command_running(args[1].bits&65535,actor->source_datum);
@@ -2789,14 +2845,16 @@ ScriptValue Simulation::host(const std::string &name,
     arity(0);if(!predictor_)throw FormatError("Native asset residency unavailable");
     predictor_({Prediction::Barrier});return {};
   }
-  if(name=="object_type_predict") {
+  // TU1.5 shares evaluator 2AC180 between both names.
+  if(name=="object_type_predict" || name=="object_type_predict_high") {
     arity(1);
     if(args[0].type!=38)throw FormatError("Invalid object prediction argument");
     if(args[0].bits==null_datum)return {};
     if(!predictor_)throw FormatError("Native asset residency unavailable");
     predictor_({Prediction::Object,args[0].bits});return {};
   }
-  if(name=="objects_predict_high") {
+  // TU1.5 shares evaluator 2AC090 between both names.
+  if(name=="objects_predict_high" || name=="objects_predict") {
     arity(1);if(!predictor_)throw FormatError("Native asset residency unavailable");
     for(const auto handle:script_objects(args[0].bits))predictor_({Prediction::Model,script_unit(handle).definition.model,-1});
     return {};
@@ -2940,7 +2998,10 @@ ScriptValue Simulation::host(const std::string &name,
     // are a separate original-world service, not fabricated by this backend.
     return ScriptValue::numeric(player_.exists && !player_.vitality.dead && !revert_pending_ && !pending_bsp_,5);
   }
-  if(name=="game_save" || name=="game_save_unsafe") {arity(0);request_checkpoint();return {};}
+  // 2B3990/2B39F0/2B3A30 differ only in the original request priority. The
+  // native checkpoint owner commits any pending request at the tick boundary.
+  if(name=="game_save" || name=="game_save_unsafe" || name=="game_save_no_timeout" ||
+      name=="game_save_immediate") {arity(0);request_checkpoint();return {};}
   if(name=="game_save_cancel") {arity(0);save_pending_=false;return {};}
   if(name=="game_won") {
     arity(0);level_finished_=true;
@@ -3271,9 +3332,28 @@ ScriptValue Simulation::host(const std::string &name,
     }
     return {};
   }
-  if (name == "sound_impulse_start") {
-    if (args.size() != 3 || args[0].type != 32)
-      throw FormatError("invalid sound_impulse_start");
+  if(name=="object_set_velocity" && source_campaign_) {
+    // 2ABAB0/2ABB00 -> 1100C0 through the native motion owners.
+    if(args.size()!=2 && args.size()!=4)throw FormatError("invalid object_set_velocity arity");
+    const auto real=[&](std::size_t n){return n<args.size()?std::bit_cast<float>(scalar_cast_bits(args[n].bits,args[n].type,6)):0.f;};
+    const auto object=args[0].bits==0?player_.source_datum:args[0].bits;
+    native_campaign_object_set_velocity(source_campaign_->objects().tu15_world(),object,real(1),real(2),real(3));
+    return {};
+  }
+  if (name == "sound_impulse_start" || (name == "sound_impulse_start_effect" && source_campaign_)) {
+    const bool with_effect = name == "sound_impulse_start_effect";
+    if (args.size() != (with_effect ? 4u : 3u) || args[0].type != 32)
+      throw FormatError("invalid " + name);
+    // 2B3C30 passes the effect name to the same 18CAC0 owner; 1903A0 resolves
+    // it to a tagged collection row (the null effect and unknown names play
+    // with the sound's own playback, like the plain impulse).
+    std::uint32_t effect_collection = null_datum, effect_row = null_datum;
+    if (with_effect) {
+      auto bank = native_campaign_script_bank(source_campaign_->objects().tu15_world());
+      const auto reference = native_campaign_script_tu15::sound_effect_reference(bank, args[3].bits);
+      effect_collection = native_campaign_script_tu15::sound_effect_collection(bank, reference);
+      if (effect_collection != null_datum) effect_row = reference & 0x3fffffffu;
+    }
     const auto object=args[1].bits;
     const auto position=object==null_datum?Vec3{}:
         source_campaign_?source_scripted_sound_point_tu15(source_campaign_->objects().tu15_world(),
@@ -3281,7 +3361,7 @@ ScriptValue Simulation::host(const std::string &name,
         object==0?eye(player_):object_center(object);
     sounds_.push_back({args[0].bits,position,float(args[2].number()),
         object==null_datum?SoundEvent::NonSpatialImpulse:SoundEvent::Impulse,false,
-        object==0?player_.source_datum:object});
+        object==0?player_.source_datum:object,effect_collection,effect_row});
     if(sound_duration_) {
       auto at=std::find_if(impulse_clocks_.begin(),impulse_clocks_.end(),[&](const auto &clock){return clock.datum==args[0].bits || clock.datum==null_datum || clock.start+clock.duration<=ticks_;});
       if(at!=impulse_clocks_.end())*at={args[0].bits,ticks_,std::uint64_t(std::max(0.f,std::nearbyint(sound_duration_(args[0].bits)*30.f)))};

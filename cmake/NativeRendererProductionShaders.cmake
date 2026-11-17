@@ -10,7 +10,7 @@ set(native_renderer_fixed_shaders
     patchy_noise.vert.spv pstencil/lightmap.frag.spv pstencil/lightmap.vert.spv
     path_tracing/world.vert.spv path_tracing/world.frag.spv path_tracing/depth.frag.spv
     path_tracing/lighting.frag.spv
-    pstencil/volume.frag.spv pstencil/volume.vert.spv
+    pstencil/volume.frag.spv pstencil/volume.geom.spv pstencil/volume.vert.spv
     source_contrail.geom.spv source_contrail.vert.spv
     source_decal.geom.spv source_decal.vert.spv
     source_depth_color_writeback.comp.spv source_lens_draw.vert.spv

@@ -43,7 +43,7 @@ template<class State,class Before=Noop>struct Access {
     }
 };
 template<class State,class Before=Noop>bool run(State &s,Before before={}){
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x13fe00u,0x13fe4cu))return false;
     ++activity().calls;NativeTu15PageWindow data;data.owner=s.gp[1];data.candidate=s.gp[6];data.best=s.gp[7];Access<State,Before> access{s,before};
     native_tu15_prefer_page_window(access,data);return true;
 }

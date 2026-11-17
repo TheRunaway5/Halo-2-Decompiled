@@ -18,6 +18,10 @@ struct SourceEffectLightViewRecord {
     const EffectLightDefinition* definition;
     EffectLightViewFades fades;
     std::uint32_t definition_identity=0xffffffffu; // Actual occupied record+4.
+    // Present only after this view's actual1692E0 succeeds. Its marker uses
+    // the local primary first-person model, independently of WORLD attachment.
+    std::optional<std::uint32_t> first_person_marker;
+    std::uint32_t first_person_root=0xffffffffu;
 };
 struct SourceEffectLightView {
     std::uint32_t epoch{};

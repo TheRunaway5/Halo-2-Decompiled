@@ -17,7 +17,7 @@ def main():
     args=parser.parse_args()
     verify_shared_source(args.repo_root, Path(os.environ['HALO2_TEST_SCRATCH']))
     directory=args.repo_root/'tests/fixtures'
-    metadata=json.loads((directory/'mcc-native-character-shared-v4.json').read_bytes())
+    metadata=json.loads((directory/'mcc-native-character-shared-v5.json').read_bytes())
     if metadata['schema']!='H2_MCC_NATIVE_CHARACTER_SHARED_REGRESSION_V1' or metadata['source_policy_sha256']!=hashlib.sha256((args.repo_root/'tools/data/mcc-native-character-shared.json').read_bytes()).hexdigest():
         raise ValueError('Character fixture source policy changed')
     name=metadata['compressed_file']

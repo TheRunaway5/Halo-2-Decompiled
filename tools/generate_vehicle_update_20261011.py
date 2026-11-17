@@ -271,6 +271,12 @@ void source_run_physics_vehicle_update_runtime(M &m,std::uint32_t entry,
 '''
     from renderer_native_replacements import replace_render_root_alias_body
     generated=replace_render_root_alias_body(preamble+'\n\n'.join(bodies)+ending)
+    from native_vehicle_render_root_replacements import replace_vehicle_render_root
+    generated=replace_vehicle_render_root(generated)
+    from native_vehicle_effect_ratio_replacements import install as install_vehicle_effect_ratio
+    if paired['entries'].get('000d26c0')!=0xd3750:
+        raise ValueError('VehicleUpdate ratio does not map to the authenticated TU1.5 D3750 entry')
+    generated=install_vehicle_effect_ratio(generated)
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(generated)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),

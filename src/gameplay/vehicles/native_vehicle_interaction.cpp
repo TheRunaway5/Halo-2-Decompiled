@@ -124,6 +124,20 @@ NativeActionPrompt Simulation::unit_action_prompt(const Unit &u,NativeActionProm
  }
  return current;
 }
+void Simulation::adopt_source_netgame_rows() {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(!content_.unit_interactions || !source_netgame_rows_)return;
+  // Original 15D890/15D4F0 decide timers, empty seconds, destroy-on-respawn
+  // and births. Mirror each row's current generation and present any new
+  // one; source retirement already removes deleted generations.
+  for(const auto &[row,placement]:content_.unit_interactions->netgame_placements) {
+    auto &state=vehicle_rows_.at(row);
+    state={source_netgame_rows_(row),0,0};
+    if(state.object==null_datum)continue;
+    if(std::none_of(scene_.objects().begin(),scene_.objects().end(),[&](const auto &o){return o.handle==state.object;}))
+      scene_.adopt_source_placement(placement,state.object,ticks_);
+  }
+}
 bool Simulation::take_unit_action(Unit &u,const NativeActionPrompt &prompt) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
  if(content_.unit_interactions && u.source_parent!=null_datum && prompt.target.action==0 && prompt.target.object==u.source_parent && prompt.target.index==u.source_seat) {
@@ -164,7 +178,11 @@ void Simulation::step_unit_interactions(const Controls &input) {
  if(!content_.unit_interactions)return;
  const auto &assets=*content_.unit_interactions;
  //15AE70: each row updates once per source second, retaining its salted object.
- for(const auto &[row,placement]:assets.netgame_placements) {
+ // A retained World's original 15D890 owns these rows instead: a second
+ // schedule here would call 15D4F0 over a live row, unbinding the original
+ // generation and leaving it orphaned outside presentation.
+ if(source_netgame_rows_)adopt_source_netgame_rows();
+ else for(const auto &[row,placement]:assets.netgame_placements) {
   if(row%30!=ticks_%30)continue;
   const auto &definition=content_.netgame_equipment[row];
   if(source_netgame_equipment_selector(definition,true,vehicle_engine_)<0)continue;

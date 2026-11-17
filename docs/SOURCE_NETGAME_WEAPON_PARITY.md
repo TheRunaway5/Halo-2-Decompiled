@@ -246,3 +246,30 @@ and generic results, literal function metadata, both authored overlay
 fractions, and explicit rejection of seven unproved function branches. The
 held-weapon input API remains unchanged. This adds560 exact CPU output words
 to the404 camouflage/binding words and30993 birth/update/timer words.
+
+## Source-owned netgame rows and vehicle presentation (2026-11-11)
+
+When the retained World runs the stock engine (`15EBA0`) or the custom
+shared-mechanics frame, original `15D890` owns every netgame row: timers,
+respawn-on-empty, timer-start and destroy-on-respawn, through `15D4F0`
+births. Its thresholds come from the TU1.5 image. A vehicle counts as
+abandoned only beyond 10 world units from its row (`4500B8` = 100 squared)
+while unoccupied and with no player inside its bounding radius. Loose items
+are removed 30 s after a drop, corpses after 90 s (15 s above eight players),
+and garbage-flagged objects after 90 s (10 s) by `15C4E0`.
+
+The native `15AE70` vehicle loop previously ran a second schedule over the
+same rows. When the original fired first (destruction on timer-start-1 rows,
+or abandonment), its replacement was absent from the native scene, so it was
+physical but not drawn. The native timer later rebirthed the row through
+`15D4F0`, orphaning that invisible vehicle. Source-owned matches now
+configure `Simulation::configure_source_netgame_rows`. The native loop only
+adopts each row's current generation (`SceneObjects::adopt_source_placement`)
+before the tick's scene publication. Defusal and adapter matches keep their
+existing schedule.
+
+`native_mcc_netgame_respawn` (`netgame_respawn_tu15_tests`) checks Coagulation:
+initial births, a moved weapon replaced after its authored 50 s, a deleted
+Warthog after 75 s, and an abandoned Warthog removed and replaced after 90
+empty seconds. It also requires no unbound or undrawn vehicle at any tick.
+Evidence: `build/test-results/blood-respawn-20261111/respawn-coagulation.json`.

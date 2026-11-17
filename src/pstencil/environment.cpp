@@ -12,6 +12,10 @@ constexpr Reference references[]{
 };
 }
 const EnvironmentParameters* reference_environment_parameters(std::string_view shader) {
+    // The campaign and multiplayer visor bindings agree in all 81 resident
+    // May 2003 records, including the environment program and its constants.
+    if(shader=="objects\\characters\\masterchief_mp\\shaders\\masterchief_visor_mp")
+        shader="objects\\characters\\masterchief\\shaders\\masterchief_visor";
     const auto found=std::lower_bound(std::begin(references),std::end(references),shader,
         [](const auto& entry,std::string_view key){return entry.shader<key;});
     return found!=std::end(references) && found->shader==shader?&found->parameters:nullptr;

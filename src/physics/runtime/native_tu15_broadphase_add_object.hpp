@@ -9,7 +9,7 @@ inline ObjectActivity &object_activity(){thread_local ObjectActivity value;retur
 // DATA owners; their actual Havok allocation owners remain explicit residuals.
 template<class State,class Grow,class Insert,class Reindex,class Construct,class Destroy>
 bool add_object(State &s,Grow grow,Insert insert,Reindex reindex,Construct construct,Destroy destroy) {
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x2ec4b0u,0x2ec99fu))return false;
     ++object_activity().additions;auto &g=s.gp;
     const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;};
     const auto read=[&](std::uint32_t pc,std::uint32_t p,unsigned n=4){at(pc);return physics_step_detail::r(s.memory,p,n);};

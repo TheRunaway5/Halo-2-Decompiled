@@ -9,7 +9,8 @@ bool supports_texture_accumulation_2003(const Material&);
 // The caller completes the existing source-backed detail policy before the
 // private pass type changes; missing that context re-enables retail detail.
 Material adapt_texture_accumulation_2003(Material,std::optional<unsigned> neutral_detail_stage);
+std::optional<Material> adapt_actor_texture_accumulation_2003(Material,bool color_mask,bool neutral_detail);
 inline bool texture_accumulation_material_2003(const Material& m) {
-    return m.forward_pass && m.forward_vertex==3 && m.forward_blend==texture_accumulation_blend_2003;
+    return m.forward_pass && m.forward_blend==texture_accumulation_blend_2003;
 }
 }

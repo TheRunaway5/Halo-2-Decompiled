@@ -25,6 +25,9 @@ ENTRIES += (0x1e2b0,0x40e00,0x41630,0x42090,0x42750,0xc0700,0x179a40,0x17cd10)
 RETIRED_NATIVE_CAMERA_ENTRIES = frozenset((0x2c470, 0x144090))
 NATIVE_CAMERA_CALLS = ((0xc4879, 0x144090, 0xc487e, 'e812f80700'),)
 NATIVE_MODEL_DRAW_CALL=(0x136ce0,0x2cbd0,0x136ce5,'e8eb5eefff')
+# 1362A0/1365C0 light-geometry model builds keep the native 4B5C0 owner
+# (source_model_build) as their required child boundary.
+NATIVE_MODEL_BUILD_CALLS=((0x136501,0x4b5c0,0x136506,'e8ba50f1ff'),(0x136a27,0x4b5c0,0x136a2c,'e8944bf1ff'))
 # The old published address catalog also names these retired camera inputs.
 # Retain their identities without lowering either camera body again.
 NATIVE_CAMERA_ADDRESSES=(0x2c470,0x144090,0x46a140,0x46a22c,
@@ -143,7 +146,7 @@ def native_prefix_guard(instruction):
 
 def native_required_calls(*,get,keep_translated_model_call=False,**unused):
     def emit(instruction):
-        calls=NATIVE_CAMERA_CALLS+(()if keep_translated_model_call else(NATIVE_MODEL_DRAW_CALL,))
+        calls=NATIVE_CAMERA_CALLS+(()if keep_translated_model_call else(NATIVE_MODEL_DRAW_CALL,*NATIVE_MODEL_BUILD_CALLS))
         for site,target,continuation,raw in calls:
             if instruction.address!=site:continue
             assert instruction.mnemonic=='call' and instruction.operands[0].imm==target
@@ -178,7 +181,7 @@ def main():
     assert sha(NEW_DEFAULT) == NEW_PIN
     image = Xbe(NEW_DEFAULT)
     code = _Code(image, '.text')
-    for site, target, continuation, raw in (*NATIVE_CAMERA_CALLS,NATIVE_MODEL_DRAW_CALL):
+    for site, target, continuation, raw in (*NATIVE_CAMERA_CALLS,NATIVE_MODEL_DRAW_CALL,*NATIVE_MODEL_BUILD_CALLS):
         instruction = code.at(site)
         assert instruction.mnemonic == 'call' and instruction.operands[0].imm == target
         assert bytes(instruction.bytes).hex() == raw and site + instruction.size == continuation
@@ -263,6 +266,9 @@ def main():
     site,target,continuation,raw=NATIVE_MODEL_DRAW_CALL
     model_native=0x136a80 in entries and not args.keep_translated_model_call
     assert source.count(f's.required(0x{site:x}u,0x{target:x}u,false);')==int(model_native)
+    for (site,target,continuation,raw),caller in zip(NATIVE_MODEL_BUILD_CALLS,(0x1362a0,0x1365c0)):
+        lowered=caller in entries and not args.keep_translated_model_call
+        assert source.count(f's.required(0x{site:x}u,0x{target:x}u,false);')==int(lowered)
     if 0x136a80 in entries:assert 'static void run_2cbd0(WorldState &s)'in source
     assert source.count('} // namespace halo2')==1
     source=source.replace('} // namespace halo2',

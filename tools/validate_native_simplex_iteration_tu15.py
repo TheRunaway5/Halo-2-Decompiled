@@ -94,33 +94,38 @@ def reference(scratch):
     if n!=1 or corrected.count(add)!=1 or corrected.count(store)!=1:raise ValueError('Exact iteration FP primitive ledger drift')
     corrected=corrected.replace(add,'logical_double(s);').replace(store,'completed_fstp(s,0x30ea13u,0x14u+s.gp[4]);')
     labels={'30af4e':'paired_two_three','30af6c':'paired_three_two','30af9e':'segments','30b041':'second_face','30b086':'second_triangle','30b1b2':'first_face','30b1e3':'first_triangle','30b2e0':'degenerate','30b576':'second_edge','30b685':'first_edge','30b763':'points'}
-    source=resolver+'\n'+inverse+'\n'+primitive+'static Kind run_stage(WorldState&s){\n'+corrected+'\n'+''.join('L'+label+':return Kind::'+kind+';\n'for label,kind in labels.items())+'}\n'
+    def routine(name,body):
+        return 'static Kind '+name+'(WorldState&s){\n'+body+'\n'+''.join('L'+label+':return Kind::'+kind+';\n'for label,kind in labels.items())+'}\n'
+    source=resolver+'\n'+inverse+'\n'+primitive+routine('run_stage',corrected)+routine('run_unmodified',actual)
     (scratch/'simplex_iteration_reference.inc').write_text(source)
     return dict(complete_parent_body_sha256=BODIES,complete_resolver_inverse_sha256=pins,source_sha256=hashlib.sha256(source.encode()).hexdigest(),source_sites=17,
         original_software_FP_reference_unmodified=False,native_FP_primitives=['FLD','FADD','FSTP'],primitive_sha256=hashlib.sha256(primitive.encode()).hexdigest(),whole_parent_qualified=False),actual
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report',type=Path,required=True);p.add_argument('--compiler',default='c++');p.add_argument('--sanitizers',action='store_true');p.add_argument('--xbe',type=Path);p.add_argument('--retained-mode',action='store_true');args=p.parse_args()
     if args.xbe is not None and not args.xbe.is_file():return 77
+    if args.retained_mode and args.xbe:p.error('Run the retained model and physical original as separate gates')
     if not os.environ.get('HALO2_TEST_SCRATCH'):p.error('Run through tools/run_test.py')
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);report=dict(passed=False,production_bound=False,scratch_owner=str(scratch),retained_large_artifacts=[])
     paths=['include/halo2/native_tu15_simplex_iteration_kernel.hpp','src/physics/runtime/native_tu15_simplex_iteration_abi.hpp','tests/native_tu15_simplex_iteration_tests.cpp',str(Path(__file__).relative_to(ROOT)),'include/halo2/native_tu15_simplex_projection_kernel.hpp','src/physics/runtime/native_tu15_simplex_projection_abi.hpp','tools/validate_native_simplex_projection_tu15.py','src/physics/runtime/native_tu15_raw_x87_scope.hpp','src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp','src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp','src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_world_runtime_internal.hpp']
+    paths.append('src/physics/runtime/native_tu15_host_fp_io.hpp')
     hashes={name:sha(ROOT/name)for name in paths}
     try:
         report['reference'],block=reference(scratch);binary=scratch/'iteration';command=[args.compiler,'-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(ROOT/'include'),'-I'+str(ROOT/'src'),'-I'+str(scratch),str(ROOT/'tests/native_tu15_simplex_iteration_tests.cpp'),'-o',str(binary)]
         if args.sanitizers:command[1:1]=['-fsanitize=address,undefined','-fno-omit-frame-pointer']
         report['command']=command;built=subprocess.run(command,capture_output=True,text=True)
         if built.returncode:raise ValueError('Iteration fixture compile failed:\n'+built.stderr[-8000:])
-        result=subprocess.run([str(binary)],capture_output=True,text=True);report['diagnostic']=result.stderr[-6000:]
+        result=subprocess.run([str(binary)]+(['--retained-mode']if args.retained_mode else []),capture_output=True,text=True);report['diagnostic']=result.stderr[-6000:]
         if result.returncode:raise ValueError('Iteration fixture failed:\n'+report['diagnostic'])
         report['canonical']=json.loads(result.stderr.strip().splitlines()[-1])
+        if args.retained_mode:report['retained_transport']=dict(unmodified_reference=True,full_pre_io_packets=True,source_fp_pop_after_observer=True)
         if args.xbe:report['hardware']=hardware(args,scratch,binary,block)
         changes={
             'add_instead_of_packed_or':('include/halo2/native_tu15_simplex_iteration_kernel.hpp','d.packed=(d.first<<3u)|d.second;','d.packed=(d.first<<3u)+d.second;'),
             'wrong_counter_publication':('include/halo2/native_tu15_simplex_iteration_kernel.hpp','++d.iteration;','d.iteration+=2u;'),
             'wrong_edge_class':('src/physics/runtime/native_tu15_simplex_iteration_abi.hpp','case 0x30f175u:return Kind::first_edge;','case 0x30f175u:return Kind::second_edge;'),
         };report['semantic_mutants']={}
-        for name,(path,needle,replacement)in changes.items():
+        for name,(path,needle,replacement)in (()if args.retained_mode else changes.items()):
             text=(ROOT/path).read_text()
             if text.count(needle)!=1:raise ValueError('Iteration mutation seam drift: '+name)
             directory=scratch/name;relative=Path(path).relative_to('include'if path.startswith('include/')else'src');target=directory/relative;target.parent.mkdir(parents=True);variant=text.replace(needle,replacement);target.write_text(variant)

@@ -1,9 +1,18 @@
 # 30E930 convex simplex controller
 
-The complete native replacement is in progress. The generated parent remains
-unbound. Seven disjoint private stages cover 661 of the 1,020 original instructions.
+The complete typed native controller matches the unchanged original across
+all 1,020 instruction sites in three private whole-entry corpora.
+The generated parent remains unbound. The entry-to-return results are
+separate from the earlier focused stage checks and do not qualify retained
+source publication or production provider policy.
 The separate complete triangle child is default native in all three copies;
 its 137 sites do not increase that parent union or establish descendant closure.
+The complete paired `30D830` child now defaults native in both World/Contact
+copies, sharing one typed policy with its full retained ABI adapter and genuine
+Triangle/Closest child calls. Its322 sites likewise do not increase the parent
+union. Both compiler sanitizer, original-i386, retained-prefix, source-route
+and full-generation acceptance are recorded in
+`docs/native_replacement/30D830_simplex_paired.md`.
 
 ## Owners and algorithm
 
@@ -381,18 +390,36 @@ report `native-simplex-support.json`. Its bounded closure is
 All generated scratch is removed with no retained large artifacts. R17's
 immutable manifest is `87757b203cfa9c403bcb7032cf0830456788a5c9974003e95353d5be93e4330b`.
 
-Seven disjoint private stages now qualify 661 of the 1,020 parent sites.
-The remaining 359 comprise central reduction (268), segment-normal and
-triangle compaction continuations (63), and degenerate/general fallback (28).
-The complete parent and its default routing remain open. The complete `30D3F0` child now shares one DATA core and full raw ABI across
+The first seven private stages cover 661 parent sites. The additional
+central reduction paths (268), segment-normal and triangle compaction
+continuations (63), and degenerate/general fallback (28) close the
+remaining stage-site union. Both GCC and Clang sanitizers match:
+
+| Private stage | Original evidence per compiler |
+| --- | --- |
+| Paired dispatch (32 sites) | 80 genuine calls, 222 child entries, 720 full packets |
+| Face dispatch (32 sites) | 80 genuine Face Select and 9 nested Refine entries, 512 full packets |
+| Triangle and signed edge paths (154 sites) | 80 genuine Triangle returns and 96 declared backed geometry cases, 1,707 full packets |
+| Segment dispatch (42 sites) | 72 genuine Closest returns, 1,104 full packets |
+| Redispatch and degenerate marker (8 new sites) | 120 cases and all 11 original destinations, 440 full packets |
+| Segment normal and vertex compaction (63 new sites) | 96 declared backed cases, 574 full packets, including the already covered count tail |
+| Fallback and overlap cap (28 sites) | 45 real complete `30DE60` returns and 6 original overlap cases, 14,750 full packets |
+
+The bounded receipts are under
+`build/test-results/native-simplex-reduction-{paired,face,triangle,segments,redispatch,continuation}-20261111/`
+and `build/test-results/native-simplex-fallback-frame-20261111/`.
+All owners were removed. The six reduction checks compare hostile host-FP
+providers, separately from the backed composed fallback check. The
+source/default routing and wider provider effects remain open. The complete
+`30D3F0` child now shares one DATA core and full raw ABI across
 World, Contact and Scene default routes. Its unchanged-i386, both-compiler,
 reference-isolation and exact whole-generation evidence is recorded in
 `30D3F0_simplex_triangle.md`; the original parent body hashes remain unchanged.
 The separate full `30D5D0` face-selection and real `30D1A0` refinement
-dependencies are now default native as recorded below. The remaining paired
-and general reducers still need complete callee-entry/resumed GP, SIMD,
-live80 and caller-frame qualification; their scalar helpers alone do not
-establish that closure.
+dependencies are now default native as recorded below. The complete paired
+reducer is also qualified/default. The general reducer still needs complete
+callee-entry/resumed GP, SIMD, live80 and caller-frame qualification; its
+scalar helper alone does not establish that closure.
 
 ## Face-refinement dependency
 
@@ -406,6 +433,85 @@ Both compiler proofs cover all 189 parent and 131 genuine child hardware
 sites and 16,355 complete pre-I/O packets each. Its installed four-test
 registered cohort, independent source controls and exact complete477/82
 regeneration pass; see `30D5D0_simplex_face_select.md`. These separate child
-sites do not increase the seven-stage parent union. Next is the190-site
-`312620` closest-segments raw ABI underneath the still-open paired `30D830`
-reducer. Its new phased DATA kernel remains private and unqualified.
+sites do not increase the seven-stage parent union. The190-site `312620`
+closest-segments owner now also defaults natively in World, Contact and Scene,
+with256 unchanged-i386 calls/all190sites/17,139 complete pre-I/O packets per
+compiler, three-copy source/generation controls and its qualified actual
+`30EACC` handoff deferral. The five-test final registered cohort passes;
+see `312620_closest_segments.md`. The complete322-site paired `30D830`
+reducer now defaults native in World and Contact, composing real native
+Triangle and Closest owners. Both compiler original/retained-prefix/source
+proofs and the final five-test CMake cohort pass; see
+`30D830_simplex_paired.md`. The complete191-site `30DC10` boundary owner now
+defaults native in Primary and Scene, composing qualified actual Triangle and
+Closest owners only when no external provider is supplied. Present providers
+retain the exact existing dispatcher; own/child reference and refusal routes
+remain independently exercised. Both compiler original, retained protocol and
+six-copy source gates pass, along with final5/5 CMake, full regeneration/syntax
+and catalog24/24. See `30DC10_simplex_boundary.md`. Private complete
+`314710`→`313BB0` calls now match unchanged i386 under both sanitizers in
+the backed inline Zero-support scope; the original profile clock values
+are replayed only as external inputs. The 98-site `30DE60` seed stage
+also matches the original through those same real children and their
+return to `30E018`. A complete private `30DE60` controller now matches
+45 full original entry-to-RET16 cases and eight separately declared
+post-copyback cases with genuine descendants, and its independently
+qualified stage union covers all 725 sites. See
+`314710_solver_hull_context.md` and `30de60_simplex_hull_fallback.md`.
+Other support families, dynamic allocator effects, retained-source/default
+transport remain open.
+
+## Complete private controller
+
+GCC and Clang sanitizers each match all 188 original `30E930` entry-to-RET20
+calls across three backed polygon geometry corpora, covering all 1,020 sites
+in that full-entry union. They compare 58,584 complete pre-I/O packets,
+3,980 actual child-entry packets, 38,508 reads, 24,547 stores, and final
+GP/flags, SIMD, live 80-bit lanes and all banks. The initial 60 cases also
+execute ten real complete `30DE60`→`314710`→`313BB0` chains with
+genuine polygon support and active hull descendants. The final 32
+opposed-tip cases reach the second support score block at `30F381` with
+the real returned count 3. The reciprocal estimate uses the actual host
+CPU RSQRTSS instruction; the harness does not supply child outcomes.
+Reports are `build/test-results/native-simplex-owner-20261111/{clang,gcc}-r1.json`,
+`build/test-results/native-simplex-owner-geometry-20261111/{clang,gcc}-r1.json`
+and `build/test-results/native-simplex-owner-support-geometry-20261111/{clang,gcc}-r1.json`.
+All six owned original-run trees were removed. The private CMake overlay
+also passed both complete owner tests; its report is
+`build/test-results/native-simplex-owner-module-private-20261111/report.json`.
+The registered copy then passed both tests and the real cohort selector.
+See `build/test-results/native-simplex-owner-module-registered-20261111/report.json`;
+the bound reference controls and generated owners remain unchanged.
+
+## Retained source transport
+
+Whole-body backed replay first found a source/physical x87 C1 difference
+at `30EE76`. Using the retained projection exposed an independent
+modeled SHL AF difference at `30EEC0`. These are distinct source
+contracts, with no masked status or flags. Separate typed views for
+iteration, projection and candidate now match the unmodified retained
+World source under both sanitizers, including full pre-I/O packets and
+declared provider/observer failure prefixes:
+
+| Retained phase | Normal cases | Fault prefixes |
+| --- | ---: | ---: |
+| Iteration | 128 | 172 |
+| Projection | 128 | 460 |
+| Candidate | 288 | 788 |
+
+Their physical counterparts were rechecked separately. Reports are under
+`build/test-results/native-simplex-{iteration,projection,candidate}-retained-20261111/`.
+
+The private composed retained comparison replaces both `30E930` and
+its actual `30DE60` child with typed views on the candidate side and
+uses both exact World bodies on the reference side. GCC and Clang
+sanitizers each match 60 complete calls, including ten genuine nested
+hull returns, and 40 separately reached failure prefixes. The failure
+cases cover provider reads and write preimages, writes, completed
+observers, and the estimate service. Each compiler compares 29,003
+pre-I/O packets, 2,966 actual descendant entries, 18,528 completed reads,
+12,973 completed stores, and full stopped or returned ABI and banks.
+See `build/test-results/native-simplex-owner-retained-composed-20261111/{clang,gcc}-r1.json`.
+Both owned trees were removed. Live provider policy changes remain an
+independent admission and exact continuation problem; this test does not
+authorize a production prefix.

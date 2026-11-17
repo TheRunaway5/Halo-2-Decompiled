@@ -4,12 +4,14 @@
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
+#include "gameplay/objects/native_tu15_object_function_scalar_source_owner.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <openssl/sha.h>
 #include <sstream>
+#include <string_view>
 using namespace halo2;
 namespace {
 using Json=nlohmann::json;
@@ -182,8 +184,31 @@ Json model_loop_one_seam(const Cache &cache,bool mcc) {
         {"produced_function",expected},{"actual_consumer_calls",consumers},{"native_owner",0xbcb70u},
         {"scope","Actual generated model-region prefix through original request stores and complete nativeBCB70; no effect allocation or full-world result supplied"}};
 }
+
+int model_loop_one_regression(const char* path) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    try {
+        Cache cache(path);
+        check(cache.is_mcc(),"BCB70 producer requires the prepared MCC Cache");
+        check(cache.string_id(0x030005b2u)=="one" && cache.string_id(0x040005b3u)=="zero",
+            "BCB70's authenticated Cache names differ");
+        const Json result{{"passed",true},{"original",model_loop_one_seam(cache,false)},
+            {"mcc",model_loop_one_seam(cache,true)},
+            {"native_bcb70_entries",native_object_function_scalar_owner_detail::activity()}};
+        std::cout<<result.dump()<<'\n';
+        return 0;
+    } catch(const std::exception& error) {
+        std::cerr<<error.what()<<'\n';
+        return 1;
+    }
+#else
+    (void)path;
+    return 77;
+#endif
+}
 }
 int main(int argc,char **argv){
+    if(argc==3 && std::string_view(argv[1])=="--bcb70-producer")return model_loop_one_regression(argv[2]);
     if(argc>=3 && !*argv[2])return 77;
     Json report{{"passed",false},{"scope","Complete1046C0 with declared ABI inputs and independently executed original firing fixture; no gameplay or rendered result supplied"}};
     try{

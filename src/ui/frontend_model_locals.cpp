@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_packed_rotation_value.hpp"
 #include "halo2/frontend_model_locals.hpp"
 #include <algorithm>
 #include <cmath>
@@ -5,9 +6,7 @@
 namespace halo2 {
 namespace {
 float grip_norm(std::array<std::int16_t,4> quantized) {
-  const float x=quantized[0],y=quantized[1],z=quantized[2],w=quantized[3];
-  const float a=x*x+z*z,b=y*y+w*w;
-  return a+b;
+  return native_packed_rotation_detail::norm_value(quantized);
 }
 bool admitted(std::span<const std::uint32_t>mask,std::size_t n,std::size_t count) {
   if(mask.empty())return true;
@@ -17,11 +16,7 @@ bool admitted(std::span<const std::uint32_t>mask,std::size_t n,std::size_t count
 }
 std::array<float,4> frontend_grip_rotation(std::array<std::int16_t,4> input,
                                           float inverse_sqrt_seed) {
-  if(!(grip_norm(input)>0) || !std::isfinite(inverse_sqrt_seed) || inverse_sqrt_seed<=0)
-    throw FormatError("invalid original grip quaternion seed");
-  std::array<float,4> out;
-  for(unsigned i=0;i<out.size();++i)out[i]=float(input[i])*inverse_sqrt_seed;
-  return out;
+  return native_packed_rotation_detail::with_seed(input,inverse_sqrt_seed);
 }
 std::array<float,4> frontend_grip_rotation(std::array<std::int16_t,4> input) {
   const float norm=grip_norm(input);

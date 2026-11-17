@@ -4,7 +4,7 @@
 #include "halo2/tags/types.hpp"
 #include <functional>
 namespace halo2::private_cpu_bitmap {
-// Exact3DAF0 CPU bitmap boundary. The provider must authenticate
+// Exact3DAF0 (or its D3D90 query, entered from native 3DAF0) CPU bitmap boundary. The provider must authenticate
 // this exact requested full-salt handle + canonical root/current source, then
 // stage/refresh actual owned frame0 data through the retained Backing owner.
 using InlineBitmapFirstRow = std::function<unsigned(TagHandle requested,
@@ -17,5 +17,5 @@ void run_model_3daf0_with_inline_cpu_bitmaps(SourceRuntimeMemory&,
     SourcePhysicsWorldRuntimeAbi&,SourcePhysicsFactoryFloatingPoint,
     const SourcePhysicsWorldRuntimeServices&,
     const SourcePhysicsContactRecordObserver&,
-    const InlineBitmapFirstRow&);
+    const InlineBitmapFirstRow&,std::uint32_t entry=0x3daf0u);
 }

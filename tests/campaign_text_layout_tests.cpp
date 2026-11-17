@@ -50,6 +50,27 @@ int main(int argc,char** argv)try {
         const auto unprojected=read_campaign_titles(changed,false,{});
         for(unsigned row=0;row<2;++row)check(custom[row].bounds==unprojected[row].bounds,"Changed MCC title bank admitted a retail projection");
     }
+    // The actual scnr record for "One Size Fits All" in MCC 01a_tutorial.
+    constexpr std::array<std::uint32_t,9> armory_words{
+        0x070009b1u,0x04000064u,0x00500028u,0x00090001u,
+        0x00ffffffu,0,0x3f800000u,0x40800000u,0x3f800000u};
+    std::array<std::byte,36> armory_bank{};
+    for(std::size_t i=0;i<armory_words.size();++i)
+        for(unsigned byte=0;byte<4;++byte)
+            armory_bank[i*4+byte]=std::byte((armory_words[i]>>(byte*8))&255);
+    constexpr auto armory_scenario="scenarios\\solo\\01a_tutorial\\01a_tutorial";
+    const auto armory=read_campaign_titles(armory_bank,true,armory_scenario).front();
+    const auto armory_literal=read_campaign_titles(armory_bank,false,armory_scenario).front();
+    const auto armory_lines=campaign_text_layout::lines(font,"One Size Fits All",
+        armory.bounds[3]-armory.bounds[1]);
+    check(armory_lines.size()==1 && armory.bounds==std::array<std::int16_t,4>{422,0,480,590},
+        "MCC Armory chapter title wraps vertically or loses its Xbox position");
+    check(armory.text==armory_literal.text && armory.justification==1 && armory.font==9 &&
+        armory.fade_in==1 && armory.up_time==4 && armory.fade_out==1,
+        "Armory title projection changed its authored style or timing");
+    armory_bank[4]=std::byte{110};
+    check(read_campaign_titles(armory_bank,true,armory_scenario).front().bounds[0]==110,
+        "Armory chapter projection replaced custom bounds");
     // Actual untouched Xbox title1000087B, bounds350/0/480/595 and justification1.
     const auto rows=campaign_text_layout::lines(font,"COVENANT HOLY CITY, HIGH CHARITY|nNINTH AGE OF RECLAMATION",595);
     check(rows.size()==2,"Xbox |n title break is printed as literal text instead of producing two lines");

@@ -10,13 +10,24 @@ namespace {
 void check(VkResult result,const char* operation) {
     if(result!=VK_SUCCESS)throw FormatError(std::string("pStencil ")+operation+": "+std::to_string(result));
 }
+VolumeCamera raster_camera(VolumeCamera camera,const VkViewport& viewport) {
+    // The source program supplies W from its matrix; depth_row is unused in
+    // that mode. Transport the raster translation in its XY slots so the
+    // fragment reconstructs W in the unjittered source-window coordinates.
+    // Keep the portable 128-byte push range and the conventional depth row.
+    if(camera.control[2]!=0.f) {
+        camera.depth_row[0]=viewport.x-camera.viewport[0];
+        camera.depth_row[1]=viewport.y-camera.viewport[1];
+    }
+    return camera;
+}
 }
 struct Render::Impl {
     RenderContext context;
     VkImage depth{};VkDeviceMemory depth_memory{};VkImageView depth_view{};
     VkBuffer buffer{};VkDeviceMemory buffer_memory{};void* mapped{};
     VkDeviceSize capacity{};
-    VkPipelineLayout layout{};VkPipeline pipeline{};
+    VkPipelineLayout layout{};VkPipeline pipeline{},owner_pipeline{};
     VkPipelineLayout lightmap_layout{};VkPipeline lightmap_pipeline{};
     VkImage utility_image{};VkDeviceMemory utility_memory{};VkImageView utility_view{};
     VkRenderPass utility_pass{};VkFramebuffer utility_framebuffer{};
@@ -31,6 +42,7 @@ struct Render::Impl {
         if(buffer)vkDestroyBuffer(device,buffer,nullptr);
         if(buffer_memory)vkFreeMemory(device,buffer_memory,nullptr);
         if(pipeline)vkDestroyPipeline(device,pipeline,nullptr);
+        if(owner_pipeline)vkDestroyPipeline(device,owner_pipeline,nullptr);
         if(layout)vkDestroyPipelineLayout(device,layout,nullptr);
         if(lightmap_pipeline)vkDestroyPipeline(device,lightmap_pipeline,nullptr);
         if(lightmap_layout)vkDestroyPipelineLayout(device,lightmap_layout,nullptr);
@@ -179,11 +191,13 @@ struct Render::Impl {
         VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         layout_info.pushConstantRangeCount=1;layout_info.pPushConstantRanges=&range;
         check(vkCreatePipelineLayout(device,&layout_info,nullptr,&layout),"create volume layout");
-        const auto vertex=shader("volume.vert.spv");VkShaderModule fragment{};
+        const auto vertex=shader("volume.vert.spv");VkShaderModule geometry{},fragment{};
         try {
+            geometry=shader("volume.geom.spv");
             fragment=shader("volume.frag.spv");
             const VkPipelineShaderStageCreateInfo stages[]{
                 {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,vertex,"main",nullptr},
+                {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry,"main",nullptr},
                 {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment,"main",nullptr}};
             const VkVertexInputBindingDescription binding{0,sizeof(ShadowVertex),VK_VERTEX_INPUT_RATE_VERTEX};
             const VkVertexInputAttributeDescription attributes[]{
@@ -207,13 +221,21 @@ struct Render::Impl {
             VkPipelineColorBlendStateCreateInfo blend{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};blend.attachmentCount=1;blend.pAttachments=&attachment;
             const VkDynamicState dynamic_states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};
             VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};dynamic.dynamicStateCount=2;dynamic.pDynamicStates=dynamic_states;
-            VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};info.stageCount=2;info.pStages=stages;
+            VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};info.stageCount=3;info.pStages=stages;
             info.pVertexInputState=&vertices;info.pInputAssemblyState=&assembly;info.pViewportState=&viewport;
             info.pRasterizationState=&raster;info.pMultisampleState=&samples;info.pDepthStencilState=&stencil;
             info.pColorBlendState=&blend;info.pDynamicState=&dynamic;info.layout=layout;info.renderPass=context.continuation;
             check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&info,nullptr,&pipeline),"create capped-volume pipeline");
-        } catch(...) {if(fragment)vkDestroyShaderModule(device,fragment,nullptr);vkDestroyShaderModule(device,vertex,nullptr);throw;}
-        vkDestroyShaderModule(device,fragment,nullptr);vkDestroyShaderModule(device,vertex,nullptr);
+            // Caster-owner reset for the world-only composite: wherever a
+            // caster's own posed surface is the visible surface, restore the
+            // unshadowed reference. Its shadowing was already resolved
+            // against the exact model depth by the earlier composite.
+            auto owner=stencil;owner.depthCompareOp=VK_COMPARE_OP_LESS_OR_EQUAL;
+            owner.front={VK_STENCIL_OP_KEEP,VK_STENCIL_OP_REPLACE,VK_STENCIL_OP_KEEP,VK_COMPARE_OP_ALWAYS,255,255,shadow_stencil_clear};
+            owner.back=owner.front;info.pDepthStencilState=&owner;
+            check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&info,nullptr,&owner_pipeline),"create caster-owner pipeline");
+        } catch(...) {if(fragment)vkDestroyShaderModule(device,fragment,nullptr);if(geometry)vkDestroyShaderModule(device,geometry,nullptr);vkDestroyShaderModule(device,vertex,nullptr);throw;}
+        vkDestroyShaderModule(device,fragment,nullptr);vkDestroyShaderModule(device,geometry,nullptr);vkDestroyShaderModule(device,vertex,nullptr);
         create_lightmap();
     }
 };
@@ -292,7 +314,8 @@ void Render::light(VkCommandBuffer command,std::size_t batch,const VolumeCamera&
         vkCmdSetViewport(command,0,1,&viewport);vkCmdSetScissor(command,0,1,&clip);
         vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,p.pipeline);
         constexpr VkDeviceSize offset=0;vkCmdBindVertexBuffers(command,0,1,&p.buffer,&offset);
-        vkCmdPushConstants(command,p.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(camera),&camera);
+        const auto raster=raster_camera(camera,viewport);
+        vkCmdPushConstants(command,p.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(raster),&raster);
         vkCmdDraw(command,count,1,first,0);
     }
     receivers();
@@ -323,7 +346,8 @@ void Render::utility(VkCommandBuffer command,const std::function<void()>& receiv
     begin.clearValueCount=0;begin.pClearValues=nullptr;
     vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);
 }
-void Render::lightmap(VkCommandBuffer command,std::span<const VolumeDraw> draws,VkViewport viewport,VkRect2D clip) {
+void Render::lightmap(VkCommandBuffer command,std::span<const VolumeDraw> draws,VkViewport viewport,VkRect2D clip,
+    const VolumeDraw* owners) {
     const auto& p=*impl_;
     VkClearAttachment clear{};clear.aspectMask=VK_IMAGE_ASPECT_STENCIL_BIT;clear.clearValue.depthStencil.stencil=shadow_stencil_clear;
     const VkClearRect area{clip,0,1};vkCmdClearAttachments(command,1,&clear,1,&area);
@@ -332,7 +356,15 @@ void Render::lightmap(VkCommandBuffer command,std::span<const VolumeDraw> draws,
     constexpr VkDeviceSize offset=0;vkCmdBindVertexBuffers(command,0,1,&p.buffer,&offset);
     for(const auto& draw:draws) {
         const auto [first,count]=p.batches.at(draw.batch);
-        vkCmdPushConstants(command,p.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(draw.camera),&draw.camera);
+        const auto raster=raster_camera(draw.camera,viewport);
+        vkCmdPushConstants(command,p.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(raster),&raster);
+        vkCmdDraw(command,count,1,first,0);
+    }
+    if(owners) {
+        vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,p.owner_pipeline);
+        const auto [first,count]=p.batches.at(owners->batch);
+        const auto raster=raster_camera(owners->camera,viewport);
+        vkCmdPushConstants(command,p.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(raster),&raster);
         vkCmdDraw(command,count,1,first,0);
     }
     vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,p.lightmap_pipeline);

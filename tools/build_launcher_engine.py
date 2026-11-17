@@ -469,6 +469,27 @@ def loop_audio_location_qualification(output, source_cohort):
         scope='Complete mode2/mode3 source owners in the frozen build; exact original traces, writes and hardware ABI')
 
 
+def first_person_motion_qualification(output, source_cohort):
+    """Do not admit a skipped or nonmoving first-person continuity check."""
+    cases = []
+    for species, representation in (('human', 2), ('elite', 3)):
+        path = output / f'validation/evidence/native_tu15_first_person_motion_coherence_{species}.json'
+        if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 1024 * 1024:
+            raise RuntimeError('First-person motion qualification lacks a bounded ' + species + ' report')
+        data = json.loads(path.read_text())
+        if (not isinstance(data, dict) or data.get('passed') is not True or
+                data.get('representation') != representation or data.get('run_result') != 0 or
+                any(type(data.get(key)) is not int or data[key] < 20
+                    for key in ('moving_fractional_frames', 'body_frames'))):
+            raise RuntimeError('First-person motion qualification requires a passing moving ' + species + ' run')
+        cases.append(dict(species=species, report=str(path), report_sha256=digest(path),
+            moving_fractional_frames=data['moving_fractional_frames'], body_frames=data['body_frames']))
+    return dict(passed=True, cases=cases,
+        source_inventory_sha256=source_cohort['inventory_sha256'],
+        scope='Moving local-host Chief and Elite first-person CPU presentation in the frozen build; '
+              'no network-client, split-screen or Xbox framebuffer claim')
+
+
 def tool_source_path(path):
     """Generator code and authored inputs, excluding caches/build/editor outputs."""
     relative = Path(path)
@@ -488,6 +509,8 @@ def source_hashes(root):
                  tool_source_path(p.relative_to(root/'tools')))
     files.extend(p for p in (root / 'multiplayer/master_server').rglob('*') if p.is_file() and
                  tool_source_path(p.relative_to(root/'multiplayer/master_server')))
+    files.extend(p for p in (root / 'tests/pstencil').rglob('*') if p.is_file() and
+                 tool_source_path(p.relative_to(root/'tests/pstencil')))
     return {p.relative_to(root).as_posix(): digest(p) for p in sorted(files)}
 
 
@@ -507,6 +530,12 @@ def freeze_source(root, destination):
     for path in (root / 'tests').iterdir():
         if path.is_file():
             shutil.copy2(path, tests / path.name)
+        elif path.is_dir() and path.name == 'pstencil':
+            # These qualification tests compile their own captured surface
+            # program. Freeze it with the production volume shaders so an
+            # active renderer edit cannot change the oracle during the build.
+            shutil.copytree(path, tests / path.name,
+                            ignore=shutil.ignore_patterns('__pycache__', '.git', 'build'))
         elif path.is_dir() and path.name != '__pycache__':
             (tests / path.name).symlink_to(path, target_is_directory=True)
     # Native ONLINE validation executes this Python service with the frozen
@@ -649,10 +678,12 @@ def qualification_maps(prior, additional):
     return sorted(names)
 
 
-def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_driver=''):
-    log = scratch / f'{Path(name).stem}-{players}.log'
+def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_driver='',
+          graphics_mode='Original'):
+    suffix = '' if graphics_mode == 'Original' else '-' + graphics_mode.lower()
+    log = scratch / f'{Path(name).stem}-{players}{suffix}.log'
     preferences = scratch / 'smoke-preferences' / uuid.uuid4().hex
-    command = [str(runtime), '--multiplayer', '--graphics-mode', 'Original', '--map', str(maps / name),
+    command = [str(runtime), '--multiplayer', '--graphics-mode', graphics_mode, '--map', str(maps / name),
                '--shared-maps', str(maps), '--local-players', str(players),
                '--frames', '4', '--mute', '--viewport', '640', '480']
     # Exercise ordinary SDL/Vulkan frame submission, with no Xbox input,
@@ -675,7 +706,7 @@ def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_drive
             status = 'timeout'
     tail = log.read_bytes()[-12000:].decode(errors='replace')
     submitted = re.search(r'Multiplayer frames=(\d+) ticks=(\d+) players=(\d+) connected=(\d+) peak_players=(\d+)', tail)
-    return dict(map=name, local_players=players, command=command, exit_code=status,
+    return dict(map=name, local_players=players, graphics_mode=graphics_mode, command=command, exit_code=status,
                 passed=status == 0 and submitted is not None and int(submitted[1]) == 4 and
                     int(submitted[2]) > 0 and int(submitted[3]) == players and int(submitted[4]) == 1 and
                     int(submitted[5]) == players,
@@ -685,6 +716,29 @@ def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_drive
                 peak_players=int(submitted[5]) if submitted else 0, log_tail=tail)
 
 
+# One open-sky map, one enclosed map and one with scenery and vehicles.
+PSTENCIL_SMOKE_MAPS = ('coagulation.map', 'lockout.map', 'zanzibar.map')
+# Cache- and oracle-backed pStencil CTests that run inside the frozen build.
+PSTENCIL_QUALIFICATION_TARGETS = (
+    'pstencil_projected_light_tests', 'pstencil_elite_light_response_2003_tests',
+    'pstencil_elite_native_kernels_gpu_tests', 'pstencil_actor_material_bank_2003_tests',
+    'pstencil_elite_material_bank_2003_tests', 'pstencil_texture_accumulation_context_tests',
+    'pstencil_texture_accumulation_routing_tests', 'pstencil_texture_accumulation_2003_tests',
+    'pstencil_normal_accumulation_2003_tests', 'pstencil_projected_constants_2003_tests',
+    'pstencil_geometry_tests', 'pstencil_sun_shadow_tests', 'pstencil_campaign_shadow_eligibility_tests',
+    'pstencil_point_lights_tests', 'pstencil_volume_depth_gpu_tests',
+    'pstencil_texture_accumulation_gpu_tests', 'pstencil_projected_fog_tests',
+    'pstencil_animated_effect_lights_tests', 'pstencil_light_animation_tu15_tests')
+PSTENCIL_QUALIFICATION_TESTS = (
+    'pstencil_projected_light_selection', 'pstencil_elite_reference_response',
+    'pstencil_elite_native_kernels', 'pstencil_actor_material_bank', 'pstencil_elite_material_bank',
+    'pstencil_texture_accumulation_context', 'pstencil_texture_accumulation_routing',
+    'pstencil_original_texture_accumulation', 'pstencil_original_normal_accumulation',
+    'pstencil_original_projected_constants', 'pstencil_original_world_positions',
+    'pstencil_sun_shadow_bound', 'pstencil_campaign_shadow_eligibility', 'pstencil_plasma_point_light',
+    'pstencil_volume_depth_gpu',
+    'pstencil_texture_accumulation_gpu_composition', 'pstencil_projected_fog_alpha',
+    'pstencil_animated_effect_lights', 'pstencil_light_animation_original')
 RENDERER_4K_CASES = ('4:90:0:0', '4:150:10:110', '1:150:10:110', '2:150:10:110')
 
 
@@ -1104,6 +1158,7 @@ def worker(args):
                 custom_asset_inventory(root) != asset_pins or digest(manifest) != asset_manifest_pin):
             raise RuntimeError('Frozen custom assets must match their receipt and current Root inputs before qualification')
     map_pins = {name: digest(maps / name) for name in names}
+    motion_map_pin = digest(maps / 'lockout.map')
     grenade_map_pins = {name: digest(maps / name)
                         for name, _ in GRENADE_SHADOW_CASES.values()}
     smg_reference = smg_warthog_reference(source, maps)
@@ -1129,6 +1184,7 @@ def worker(args):
     report['build_configuration'] = configuration
     report['requested_additional_maps'] = sorted(set(getattr(args, 'qualify_map', [])))
     report['grenade_shadow_maps'] = grenade_map_pins
+    report['first_person_motion_map'] = dict(map='lockout.map', sha256=motion_map_pin)
     report['smg_warthog_reference'] = smg_reference
     report['tu15_gameplay_reference'] = gameplay_reference
     # A reused qualification belongs to this declared source/build pair, which
@@ -1158,6 +1214,7 @@ def worker(args):
                    '--target', 'frontend_custom_match_settings_tests',
                    '--target', 'frontend_match_customization_tests',
                    '--target', 'frontend_online_tests',
+                   '--target', 'mcc_gameplay_pause_assets_tests',
                    '--target', 'loop_audio_locations_tu15_tests',
                    '--target', 'native_weapon_effect_iterator_tu15_tests',
                    '--target', 'native_weapon_effect_iterator_callers_tu15_tests',
@@ -1188,14 +1245,17 @@ def worker(args):
                    '--target', 'native_tu15_overlap_query_handoff_tests',
                    '--target', 'native_mcc_gravlift_contact_tu15_tests',
                    '--target', 'native_mcc_custom_mechanics_tu15_tests',
+                   '--target', 'world_material_tests',
                    '--target', 'custom_mode_local_launch_tests',
                    '--target', 'native_first_person_registry_tu15_tests',
+                   '--target', 'first_person_motion_coherence_tu15_tests',
                    '--target', 'native_source_membership_tests',
                    '--target', 'native_mcc_unit_equipment_profile_tu15_tests',
                    '--target', 'native_mcc_custom_powerup_tu15_tests',
                    '--target', 'source_bsp_breakable_visibility_tu15_tests',
                    '--target', 'source_model_depth_input_tests',
                    '--target', 'world_effects_tests',
+                   '--target', 'object_lighting_tests',
                    '--target', 'native_late_effect_light_tu15_tests',
                    '--target', 'native_tu15_ui_script_startup_tests',
                    '--target', 'mcc_native_tex_bump_tests',
@@ -1209,8 +1269,9 @@ def worker(args):
                    '--target', 'mcc_native_env_illum_three_channel_probe',
                    '--target', 'mcc_native_tiling_specular_probe',
                    '--target', 'mcc_native_alpha_environment_probe',
-                   '--filter', '^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
-                   'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap|native_mcc_split_screen_menu_startup|'
+                   *[item for target in PSTENCIL_QUALIFICATION_TARGETS for item in ('--target', target)],
+                   '--filter', '^(' + '|'.join(PSTENCIL_QUALIFICATION_TESTS) + '|launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
+                   'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap|native_mcc_split_screen_menu_startup|native_mcc_campaign_pause_window|native_mcc_gameplay_pause_assets|'
                    'native_mcc_grenade_shadow_neutral|native_mcc_grenade_shadow_frag|native_mcc_grenade_shadow_plasma|'
                    'native_mcc_grenade_shadow_receiver|'
                    'native_mcc_friends_footer_anchor|'
@@ -1222,7 +1283,7 @@ def worker(args):
                    'mcc_shared_env_illum|mcc_native_pc_world_programs|mcc_native_pc_world_programs_generator|'
                    'mcc_native_pc_world_programs_source_controls|mcc_native_vehicle_restoration|mcc_native_vehicle_restoration_generator|'
                    'mcc_native_character_shared|mcc_native_character_shared_generator|mcc_native_character_shared_actual_source|'
-                   'object_function_symbol_namespace|'
+                   'object_function_symbol_namespace|retail_object_lighting|'
                    'mcc_native_meter|mcc_native_meter_generator|mcc_native_meter_actual_source|'
                    'mcc_frontend_submenus|mcc_frontend_selection_stability|'
                    'steam_workshop_content|steam_workshop_sweep_acceptance|steam_workshop_menu|steam_workshop_cache|'
@@ -1247,9 +1308,10 @@ def worker(args):
                    'original_object_name_lookup_tu15|original_workshop_camera_shared|'
                    'workshop_empty_prop_content|workshop_navigation_content|native_world_residuals_model_tu15|native_overlap_query_handoff_tu15|'
                    'native_mcc_gravlift_contact_(lockout|midship|coagulation)_[12]|'
-                   'native_mcc_custom_mechanics_tu15|'
+                   'native_mcc_custom_mechanics_tu15|native_mcc_powerup_material|'
                    'native_mcc_custom_mode_(local|render)_launch|'
                    'native_mcc_fp_registry_local_human|'
+                   'native_tu15_first_person_motion_coherence_(human|elite)|'
                    'native_source_nonplaying_membership|'
                    'native_cli_gameplay_routes_tu15|'
                    'native_mcc_unit_(equipment_profile|vitality_observer)_tu15|'
@@ -1268,6 +1330,10 @@ def worker(args):
                    '--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(root),
                    '--cmake-arg=-DHALO2_WORKSHOP_TEST_CACHE=' + str(cache[0]),
                    '--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=' + str(maps / default_map),
+                   '--cmake-arg=-DHALO2_REQUIRE_MCC_CAMPAIGN_PAUSE_TEST=ON',
+                   '--cmake-arg=-DHALO2_MCC_CAMPAIGN_PAUSE_MAP=' + str(maps / '00a_introduction.map'),
+                   '--cmake-arg=-DHALO2_FIRST_PERSON_BODY_MAP=' + str(maps / 'lockout.map'),
+                   '--cmake-arg=-DHALO2_POWERUP_MCC_MAP=' + str(maps / 'needle.map'),
                    '--cmake-arg=-DHALO2_MCC_ONLINE_PRESENTATION_MAP=' + str(maps / default_map),
                    '--cmake-arg=-DHALO2_MCC_GRAVLIFT_MAP_DIRECTORY=' + str(maps),
                    '--cmake-arg=-DHALO2_OBJECT_FUNCTION_MCC_MAP=' + str(maps / 'coagulation.map'),
@@ -1279,10 +1345,13 @@ def worker(args):
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
                    '--retain-report', 'engine-targets.txt',
                    '--retain-report', 'multiplayer-menu-startup.json',
+                   '--retain-report', 'campaign-pause-window.json',
                    '--retain-report', 'custom-mechanics.json',
                    '--retain-report', 'custom-mode-local-launch.json',
                    '--retain-report', 'custom-mode-render-launch.json',
                    '--retain-report', 'native_mcc_fp_registry_local_human.json',
+                   '--retain-report', 'native_tu15_first_person_motion_coherence_human.json',
+                   '--retain-report', 'native_tu15_first_person_motion_coherence_elite.json',
                    '--retain-report', 'native-cli-gameplay-routes.json',
                    '--retain-report', 'native-unit-equipment-profile.json',
                    '--retain-report', 'native-unit-vitality-observer.json',
@@ -1366,6 +1435,8 @@ def worker(args):
         print('Checking the complete qualification suite against the staged production shader bank…',flush=True)
         required_captures = ['multiplayer-menu-startup.json', 'friends-footer-anchor.json',
                              'loop-audio-locations.json', 'smg-warthog-audio.json', 'smg-warthog-audio.log']
+        required_captures.extend(f'native_tu15_first_person_motion_coherence_{species}.json'
+                                for species in ('human', 'elite'))
         required_captures.extend(f'grenade-shadow-{kind}.{suffix}'
             for kind in GRENADE_SHADOW_CASES for suffix in ('json', 'log'))
         for name in required_captures:
@@ -1408,6 +1479,7 @@ def worker(args):
             build, maps, output, executable_pin, grenade_map_pins)
         report['friends_footer_anchor'] = friends_footer_qualification(output, report['source_cohort'])
         report['loop_audio_locations'] = loop_audio_location_qualification(output, report['source_cohort'])
+        report['first_person_motion'] = first_person_motion_qualification(output, report['source_cohort'])
         report['smg_warthog_audio'] = smg_warthog_audio_qualification(
             build, source, maps, output, executable_pin, smg_reference)
         # An active frozen cohort can predate CMake's custom-source target.
@@ -1464,6 +1536,26 @@ def worker(args):
                     report['accepted_case_failures'].append(key)
                 else:
                     report['unresolved_case_failures'].append(key)
+        # The pStencil graphics mode shares the runtime but not the render
+        # path. Submit real frames through it too, so a broken stencil,
+        # light or material stage cannot publish behind Original-only checks.
+        report['pstencil_smoke'] = []
+        pstencil_cases = [(name, 1) for name in PSTENCIL_SMOKE_MAPS if (maps / name).is_file()]
+        if (default_map, 1) not in pstencil_cases:
+            pstencil_cases.insert(0, (default_map, 1))
+        pstencil_cases.append((default_map, 2))
+        for name, count in pstencil_cases:
+            print(f'Checking pStencil {name}, {count} local player(s), four submitted frames…', flush=True)
+            case = smoke(runtime, maps, name, count, scratch, args.timeout, root,
+                         prior.get('video_driver', '') if prior else '', graphics_mode='pStencil')
+            report['pstencil_smoke'].append(case)
+            if not case['passed']:
+                key = f'pStencil:{name}:{count}'
+                if key in (getattr(args, 'accept_smoke_failure', None) or []):
+                    print(f'Accepted failing smoke case {key}; recorded in the qualification', flush=True)
+                    report['accepted_case_failures'].append(key)
+                else:
+                    report['unresolved_case_failures'].append(key)
         if report['unresolved_case_failures']:
             raise RuntimeError('Current engine did not complete its actual MCC frame check: ' +
                                ', '.join(report['unresolved_case_failures']))
@@ -1485,6 +1577,7 @@ def worker(args):
         if (source_hashes(source) != pins or custom_asset_inventory(asset_root) != asset_pins or
                 (asset_manifest_pin is not None and digest(manifest) != asset_manifest_pin) or
                 any(digest(maps / name) != pin for name, pin in map_pins.items()) or
+                digest(maps / 'lockout.map') != motion_map_pin or
                 any(digest(maps / name) != pin for name, pin in grenade_map_pins.items())):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
         if not prepare_only and (selection.read_bytes() if selection.is_file() else None) != previous:

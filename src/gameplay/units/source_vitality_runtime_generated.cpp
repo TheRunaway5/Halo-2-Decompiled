@@ -1,3 +1,4 @@
+#include "gameplay/objects/native_tu15_object_body_canonical_source_owner.hpp"
 // BEGIN native difficulty parameter include
 #include "gameplay/objects/source_difficulty_parameter_native_tu15_internal.hpp"
 // END native difficulty parameter include
@@ -58,23 +59,24 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_bbcb0(WorldState &s) {
+    {switch(halo2::native_object_body_canonical_owner_detail::bridge<false>(s)){case 0u:break;case 0xffffffffu:return;case 0xbbcb1u:goto CanonicalObjectBodybbcb1;case 0xbbcb2u:goto CanonicalObjectBodybbcb2;case 0xbbcc1u:goto CanonicalObjectBodybbcc1;case 0xbbcc4u:goto CanonicalObjectBodybbcc4;case 0xbbcd3u:goto CanonicalObjectBodybbcd3;case 0xbbcd9u:goto CanonicalObjectBodybbcd9;case 0xbbcdcu:goto CanonicalObjectBodybbcdc;case 0xbbcf6u:goto CanonicalObjectBodybbcf6;case 0xbbd01u:goto CanonicalObjectBodybbd01;case 0xbbd06u:goto CanonicalObjectBodybbd06;case 0xbbd07u:goto CanonicalObjectBodybbd07;case 0xbbd08u:goto CanonicalObjectBodybbd08;default:throw std::runtime_error("Invalid native canonical object lookup continuation");}}
 if(s.services.instruction){s.services.instruction(0xbbcb0u);} s.push(0xbbcb0u,s.reg(6,4,0));
-if(s.services.instruction){s.services.instruction(0xbbcb1u);} s.push(0xbbcb1u,s.reg(7,4,0));
-if(s.services.instruction){s.services.instruction(0xbbcb2u);} s.set(6,s.reg(0,4,0),4,0);
+CanonicalObjectBodybbcb1: if(s.services.instruction){s.services.instruction(0xbbcb1u);} s.push(0xbbcb1u,s.reg(7,4,0));
+CanonicalObjectBodybbcb2: if(s.services.instruction){s.services.instruction(0xbbcb2u);} s.set(6,s.reg(0,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcb4u);} s.set(7,s.flags.logic((s.reg(7,4,0))^(s.reg(7,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcb6u);} s.flags.minus(s.reg(6,4,0),0xffffffffu,4);
 if(s.services.instruction){s.services.instruction(0xbbcb9u);} if(s.flags.zf)goto Lbbced;
 if(s.services.instruction){s.services.instruction(0xbbcbbu);} s.set(2,r(s.memory,(selected(0x4e78d0u,s.image)),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbbcc1u);} s.set(0,r(s.memory,(0x38u+s.gp[2]),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbbcc4u);} s.set(1,s.reg(6,4,0),4,0);
+CanonicalObjectBodybbcc1: if(s.services.instruction){s.services.instruction(0xbbcc1u);} s.set(0,r(s.memory,(0x38u+s.gp[2]),4),4,0);
+CanonicalObjectBodybbcc4: if(s.services.instruction){s.services.instruction(0xbbcc4u);} s.set(1,s.reg(6,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcc6u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0xffffu),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcccu);} s.flags.minus(s.reg(1,4,0),s.reg(0,4,0),4);
 if(s.services.instruction){s.services.instruction(0xbbcceu);} if(s.flags.sf==s.flags.of)goto Lbbced;
 if(s.services.instruction){s.services.instruction(0xbbcd0u);} s.set(0,r(s.memory,(0x24u+s.gp[2]),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbbcd3u);} s.set(0,s.flags.product(s.reg(0,4,0),s.reg(1,4,0)),4,0);
+CanonicalObjectBodybbcd3: if(s.services.instruction){s.services.instruction(0xbbcd3u);} s.set(0,s.flags.product(s.reg(0,4,0),s.reg(1,4,0)),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcd6u);} s.set(0,s.flags.plus(s.reg(0,4,0),r(s.memory,(0x44u+s.gp[2]),4),4),4,0);
-if(s.services.instruction){s.services.instruction(0xbbcd9u);} s.set(1,r(s.memory,(0x0u+s.gp[0]),2),2,0);
-if(s.services.instruction){s.services.instruction(0xbbcdcu);} s.flags.logic((s.reg(1,2,0))&(s.reg(1,2,0)),2);
+CanonicalObjectBodybbcd9: if(s.services.instruction){s.services.instruction(0xbbcd9u);} s.set(1,r(s.memory,(0x0u+s.gp[0]),2),2,0);
+CanonicalObjectBodybbcdc: if(s.services.instruction){s.services.instruction(0xbbcdcu);} s.flags.logic((s.reg(1,2,0))&(s.reg(1,2,0)),2);
 if(s.services.instruction){s.services.instruction(0xbbcdfu);} if(s.flags.zf)goto Lbbced;
 if(s.services.instruction){s.services.instruction(0xbbce1u);} s.set(1,sign_extend(s.reg(1,2,0),2),4,0);
 if(s.services.instruction){s.services.instruction(0xbbce4u);} s.set(6,s.flags.right(s.reg(6,4,0),0x10u,4,true),4,0);
@@ -85,14 +87,14 @@ Lbbced: if(s.services.instruction){s.services.instruction(0xbbcedu);} s.set(0,s.
 if(s.services.instruction){s.services.instruction(0xbbcefu);} s.flags.logic((s.reg(7,4,0))&(s.reg(7,4,0)),4);
 if(s.services.instruction){s.services.instruction(0xbbcf1u);} if(s.flags.zf)goto Lbbd06;
 if(s.services.instruction){s.services.instruction(0xbbcf3u);} s.set(1,r(s.memory,(0x3u+s.gp[7]),1),1,0);
-if(s.services.instruction){s.services.instruction(0xbbcf6u);} s.set(2,0x1u,4,0);
+CanonicalObjectBodybbcf6: if(s.services.instruction){s.services.instruction(0xbbcf6u);} s.set(2,0x1u,4,0);
 if(s.services.instruction){s.services.instruction(0xbbcfbu);} s.set(2,s.flags.shift(s.reg(2,4,0),s.reg(1,1,0),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbbcfdu);} s.flags.logic((r(s.memory,(0xcu+s.gp[4]),4))&(s.reg(2,4,0)),4);
-if(s.services.instruction){s.services.instruction(0xbbd01u);} if(s.flags.zf)goto Lbbd06;
+CanonicalObjectBodybbd01: if(s.services.instruction){s.services.instruction(0xbbd01u);} if(s.flags.zf)goto Lbbd06;
 if(s.services.instruction){s.services.instruction(0xbbd03u);} s.set(0,r(s.memory,(0x8u+s.gp[7]),4),4,0);
-Lbbd06: if(s.services.instruction){s.services.instruction(0xbbd06u);} s.set(7,s.pop(),4,0);
-if(s.services.instruction){s.services.instruction(0xbbd07u);} s.set(6,s.pop(),4,0);
-if(s.services.instruction){s.services.instruction(0xbbd08u);} s.pop();s.gp[4]+=4u;return;
+Lbbd06: CanonicalObjectBodybbd06: if(s.services.instruction){s.services.instruction(0xbbd06u);} s.set(7,s.pop(),4,0);
+CanonicalObjectBodybbd07: if(s.services.instruction){s.services.instruction(0xbbd07u);} s.set(6,s.pop(),4,0);
+CanonicalObjectBodybbd08: if(s.services.instruction){s.services.instruction(0xbbd08u);} s.pop();s.gp[4]+=4u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 

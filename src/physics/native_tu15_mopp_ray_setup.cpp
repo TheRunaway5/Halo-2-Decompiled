@@ -6,8 +6,9 @@ namespace {
 void byte(SourcePhysicsContactMemory&memory,const SourcePhysicsContactRecordObserver&observe,
     std::uint32_t pc,std::uint32_t address,std::uint8_t value){
     const std::array bytes{std::byte(value)};SourcePhysicsContactRecordStore event{pc,address,{},{}};
-    if(observe){event.before.resize(1);memory.read(address,event.before);event.written.assign(bytes.begin(),bytes.end());}
-    memory.write(address,bytes);if(observe)observe(event);
+    const bool observed=native_tu15_observes_retained_store(memory,observe,pc,address,1);
+    if(observed){event.before.resize(1);memory.read(address,event.before);event.written.assign(bytes.begin(),bytes.end());}
+    memory.write(address,bytes);if(observed)observe(event);
 }
 }
 static void prepare(SourcePhysicsContactMemory&memory,

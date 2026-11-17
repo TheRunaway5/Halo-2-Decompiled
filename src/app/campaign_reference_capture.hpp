@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/campaign_source_runtime.hpp"
 #include "halo2/model_skin_submission.hpp"
+#include "halo2/pstencil/shadow.hpp"
 #include "rendering/models/model_skin_cpu_materialization.hpp"
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
@@ -12,8 +13,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <mutex>
+#include <optional>
+#include <thread>
+#include <vector>
 
 namespace halo2::campaign_reference_capture {
+constexpr bool graphics_mode_allowed(pstencil::GraphicsMode mode) {
+  return mode==pstencil::GraphicsMode::Original || mode==pstencil::GraphicsMode::PathTracing;
+}
 // A finite external-input fixture, not an alternative game clock/scheduler.
 struct Options {
   float interval{},fraction{};
@@ -39,11 +47,23 @@ inline std::uint32_t seed(std::string_view text) {
     throw FormatError("Invalid campaign reference auxiliary seed");
   return result;
 }
+// The ordinary finite fixture is 600 frames. A caller may explicitly declare a
+// longer finite capture (later cinematic shots) without changing any timing.
+inline unsigned frame_limit() {
+  const auto *value=std::getenv("HALO2_REFERENCE_CAMPAIGN_CAPTURE_FRAME_LIMIT");
+  if(!value || !*value)return 600;
+  unsigned result{};
+  const std::string_view text(value);
+  const auto parsed=std::from_chars(text.data(),text.data()+text.size(),result);
+  if(parsed.ec!=std::errc{} || parsed.ptr!=text.data()+text.size() || result<600 || result>20000)
+    throw FormatError("Campaign reference capture frame limit must be 600..20000");
+  return result;
+}
 inline void validate(const Options &options,const Invocation &invocation) {
   // The caller explicitly admits --campaign or --play --place-squad. The
   // receipt always distinguishes the latter from natural mission startup.
   if(!invocation.campaign || !invocation.play || invocation.multiplayer || invocation.menu ||
-      !invocation.map_supplied || !invocation.mute || !invocation.frames || invocation.frames>600 ||
+      !invocation.map_supplied || !invocation.mute || !invocation.frames || invocation.frames>frame_limit() ||
       invocation.screenshot.empty() || invocation.incompatible)
     throw FormatError("Campaign reference capture requires a campaign scene, --map, explicit --frames 1..600, --screenshot and --mute; incompatible modes are rejected");
   if(!std::isfinite(options.interval) || options.interval<=0 || options.interval>.05f ||
@@ -153,6 +173,25 @@ class Trace {
   std::FILE *file_{};
   std::size_t bytes_{};
   std::uint64_t sequence_{};
+  // Render overlap: the holding thread's records queue, sequence unassigned,
+  // while an overlapped draw's own records are still to come. Records from
+  // other threads (draw-time observers) and interjected ones are written at
+  // once; release() then writes the queue, so the file keeps the serial order.
+  std::mutex mutex_;
+  std::optional<std::thread::id> holder_;
+  bool interjecting_{};
+  std::vector<nlohmann::json> held_;
+  void write(nlohmann::json &value) {
+    value["sequence"]=sequence_++;
+    auto text=value.dump();text+='\n';
+    // 64 MiB covers the ordinary 600-frame fixture; an explicitly declared
+    // longer capture scales the same per-frame allowance.
+    const std::size_t limit=std::size_t(64u*1024u*1024u)*((frame_limit()+599u)/600u);
+    if(text.size()>limit-bytes_)throw FormatError("Campaign reference trace exceeded its finite budget");
+    if(std::fwrite(text.data(),1,text.size(),file_)!=text.size() || std::fflush(file_)!=0)
+      throw FormatError("Campaign reference trace write failed");
+    bytes_+=text.size();
+  }
 public:
   explicit Trace(const std::filesystem::path &path) {
     Environment guard;owned_output(path);
@@ -180,13 +219,30 @@ public:
   Trace&operator=(const Trace&)=delete;
   template<class Fn> void record(Fn make) {
     Environment guard;
-    auto value=make();value["sequence"]=sequence_++;
-    auto text=value.dump();text+='\n';
-    constexpr std::size_t limit=64u*1024u*1024u;
-    if(text.size()>limit-bytes_)throw FormatError("Campaign reference trace exceeded its finite budget");
-    if(std::fwrite(text.data(),1,text.size(),file_)!=text.size() || std::fflush(file_)!=0)
-      throw FormatError("Campaign reference trace write failed");
-    bytes_+=text.size();
+    auto value=make();
+    std::lock_guard lock(mutex_);
+    if(holder_ && *holder_==std::this_thread::get_id() && !interjecting_){held_.push_back(std::move(value));return;}
+    write(value);
+  }
+  // A record's value evaluated now, under the same FP/errno isolation.
+  template<class Fn> nlohmann::json evaluate(Fn make) {Environment guard;return make();}
+  void hold() {
+    std::lock_guard lock(mutex_);
+    if(holder_)throw FormatError("Campaign reference trace is already held");
+    holder_=std::this_thread::get_id();
+  }
+  // Records fn makes on the holding thread precede the held queue.
+  template<class Fn> void interject(Fn fn) {
+    {std::lock_guard lock(mutex_);interjecting_=true;}
+    struct Done {Trace &trace;~Done(){std::lock_guard lock(trace.mutex_);trace.interjecting_=false;}} done{*this};
+    fn();
+  }
+  void release() {
+    Environment guard;
+    std::lock_guard lock(mutex_);
+    holder_.reset();
+    for(auto &value:held_)write(value);
+    held_.clear();
   }
 };
 }

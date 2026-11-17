@@ -394,6 +394,10 @@ public:
         return original_sound_catalog_;
     }
     const std::string& scenario() const { return scenario_; }
+    // TU1.5 15643B reads bit 7 of the active scenario flags.
+    bool campaign_starts_white() const {
+        return (Bytes(tag_payload(scenario_tag_)).u16(0x12) & 0x80) != 0;
+    }
     std::int16_t load_source_geometry_scenario_type() const; // Literal primaryscnr+10 for2F970.
     const std::filesystem::path& shared_directory() const { return shared_directory_; }
     const std::filesystem::path& path() const { return path_; }

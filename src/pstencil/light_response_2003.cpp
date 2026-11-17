@@ -21,10 +21,12 @@ std::uint32_t pack_light_rgb_2003(const std::array<float, 3> &color) {
     return result;
 }
 PixelProgram light_utility_2003(unsigned geometry, unsigned diffuse, unsigned specular, int quality,
-                                bool dull) {
-    if (geometry > 3 || diffuse > 3 || specular > 3 || quality < -1 || quality > 2)
+                                unsigned builtin) {
+    if (geometry > 3 || diffuse > 3 || specular > 3 || quality < -1 || quality > 2 ||
+        (builtin != 6 && builtin != 9 && builtin != 10))
         throw FormatError("2003 light utility selector outside verified constructor domain");
-    const auto index = unsigned(dull) * 64u + unsigned(geometry != 0) * 32u + unsigned(quality != 0) * 16u +
+    const auto family = builtin == 6 ? 0u : builtin == 9 ? 1u : 2u;
+    const auto index = family * 64u + unsigned(geometry != 0) * 32u + unsigned(quality != 0) * 16u +
                        diffuse * 4u + specular;
     return {utility_2003_programs[index], {}};
 }

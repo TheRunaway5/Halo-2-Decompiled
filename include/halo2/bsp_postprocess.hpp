@@ -28,9 +28,12 @@ struct BspPostprocessView {
     // a missing source screen context preserves 13870's null-pointer branch.
     std::optional<SourceBloomScreenContext> bloom_screen_context;
     Vec2 clip_planes{.015625f,1024.f};
-    // Original7/8 target dimensions own filter taps independently of the
-    // native allocation. Unset retains existing split/title/detail behavior.
-    std::optional<Vec2> source_bloom_filter_extent;
+    // This view's size in the original 640x480 raster. When the physical
+    // rectangle is larger, bloom thresholds the area-averaged original raster
+    // and filters in the original quarter-size target, so the glow covers the
+    // same part of the picture at every resolution. Unset retains the
+    // physical-size chain (title/detail callers).
+    std::optional<Vec2> source_logical_extent;
 };
 struct BspPostprocessTarget {
     VkCommandBuffer command{};
@@ -58,7 +61,12 @@ public:
     // continuation active; caller rebinds geometry state afterwards.
     // An inactive patchy view leaves the active render pass untouched.
     void record_patchy(std::size_t view,const BspPostprocessTarget &);
-    void record_bloom(std::size_t view,const BspPostprocessTarget &);
+    // mask: this view submitted source layer 17 (original 492294). Call
+    // record_bloom_mask_clear first, then draw that layer's alpha-only
+    // passes, then record_bloom with mask=true.
+    void record_bloom(std::size_t view,const BspPostprocessTarget &,bool mask=false);
+    // 44360 for layer 17: D3DCLEAR_TARGET_A of zero before the mask passes.
+    void record_bloom_mask_clear(std::size_t view,const BspPostprocessTarget &);
     // Combined form for callers whose view has no foreground geometry.
     void record(std::size_t view,const BspPostprocessTarget &);
 private:

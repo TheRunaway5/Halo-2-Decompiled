@@ -1,3 +1,4 @@
+#include "rendering/effects/native_tu15_effect_reference_element_admission.hpp"
 #include "physics/runtime/native_tu15_simplex_face_refine_source_owner.hpp"
 #include "physics/runtime/native_tu15_camera_instance_admission.hpp"
 #include "physics/runtime/native_tu15_bsp_segment.hpp"
@@ -23,6 +24,7 @@
 #include "halo2/source_weapon_animation_query_symbols_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
+#include "gameplay/objects/native_tu15_death_cycle_flight_query_source_owner.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
 namespace halo2 {
 namespace {
@@ -3490,6 +3492,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_e0900(WorldState &s) {
+    if(halo2::native_death_cycle_flight_query_owner_detail::bridge<false,false>(s,native_single_spill))return;
 if(s.services.instruction){s.services.instruction(0xe0900u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe0904u);} s.set(1,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe090au);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
@@ -9210,6 +9213,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_13a6b0(WorldState &s) {
+    if(halo2::native_effect_reference_element_detail::bridge(s,0x13a6b0u,[](auto&child,std::uint32_t target,std::uint32_t site){if(site==0x1780ecu){run_178070(child);return;}if(site==0x1780f4u){run_13a6b0(child);return;}dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x13a6b0u);} s.set(1,sign_extend(s.reg(2,2,0),2),4,0);
 if(s.services.instruction){s.services.instruction(0x13a6b3u);} s.push(0x13a6b3u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x13a6b4u);} s.set(6,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
@@ -11081,6 +11085,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_178070(WorldState &s) {
+    if(halo2::native_effect_reference_element_detail::bridge(s,0x178070u,[](auto&child,std::uint32_t target,std::uint32_t site){if(site==0x1780ecu){run_178070(child);return;}if(site==0x1780f4u){run_13a6b0(child);return;}dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x178070u);} s.set(2,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x178076u);} s.push(0x178076u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x178077u);} s.set(6,s.reg(1,4,0),4,0);
@@ -20911,6 +20916,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_22b790(WorldState &s) {
+    if(halo2::native_effect_reference_element_detail::bridge(s,0x22b790u,[](auto&child,std::uint32_t target,std::uint32_t site){if(site==0x1780ecu){run_178070(child);return;}if(site==0x1780f4u){run_13a6b0(child);return;}dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x22b790u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x22b794u);} s.set(2,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x22b79au);} w(s.memory,s.observe,0x22b79au,(selected(0x4u,s.image)+s.gp[1]),4,s.reg(0,4,0));
@@ -24788,7 +24794,7 @@ if(s.services.instruction){s.services.instruction(0x30adf7u);} s.set(0,s.fp.word
 if(s.services.instruction){s.services.instruction(0x30adf9u);} s.flags.logic((s.reg(0,1,8))&(selected(0x5u,s.image)),1);
 if(s.services.instruction){s.services.instruction(0x30adfcu);} if(s.flags.pf)goto L30ae55;
 if(s.services.instruction){s.services.instruction(0x30adfeu);} s.set(6,s.flags.plus(s.reg(6,4,0),s.reg(1,4,0),4),4,0);
-L30ae00: if(s.services.instruction){s.services.instruction(0x30ae00u);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+L30ae00: if(s.services.instruction){s.services.instruction(0x30ae00u);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 L30ae02: if(s.services.instruction){s.services.instruction(0x30ae02u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[6]),1),4,0);
 if(s.services.instruction){s.services.instruction(0x30ae05u);} s.flags.minus(s.reg(0,4,0),selected(0x6bu,s.image),4);
 if(s.services.instruction){s.services.instruction(0x30ae08u);} w(s.memory,s.observe,0x30ae08u,(selected(0x3cu,s.image)+s.gp[4]),4,selected(0x3e7u,s.image));
@@ -25125,7 +25131,7 @@ if(s.services.instruction){s.services.instruction(0x30b2bau);} s.xmm[3]=_mm_mul_
 if(s.services.instruction){s.services.instruction(0x30b2bdu);} s.xmm[4]=_mm_mul_ps(s.xmm[4],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x30b2c0u);} s.xmm[4]=_mm_add_ps(s.xmm[4],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x30b2c3u);} vw(s.memory,s.observe,0x30b2c3u,(selected(0x10u,s.image)+s.gp[2]),s.xmm[4]);
-L30b2c7: if(s.services.instruction){s.services.instruction(0x30b2c7u);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+L30b2c7: if(s.services.instruction){s.services.instruction(0x30b2c7u);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30b2c9u);} s.fp.push(ext(f(r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30b2cdu);} s.fp.st(0)=sub(s.fp.st(0),s.fp.st(1));
 if(s.services.instruction){s.services.instruction(0x30b2cfu);} w(s.memory,s.observe,0x30b2cfu,(selected(0x14u,s.image)+s.gp[4]),4,native_single_spill(s.fp.st(0),s.fp.status));s.fp.pop();
@@ -25428,8 +25434,8 @@ if(s.services.instruction){s.services.instruction(0x30b6a4u);} s.set(3,s.pop(),4
 if(s.services.instruction){s.services.instruction(0x30b6a5u);} s.set(4,s.reg(5,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x30b6a7u);} s.set(5,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x30b6a8u);} s.pop();s.gp[4]+=12u;return;
-L30b6ab: if(s.services.instruction){s.services.instruction(0x30b6abu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30b6adu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+L30b6ab: if(s.services.instruction){s.services.instruction(0x30b6abu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30b6adu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 L30b6af: if(s.services.instruction){s.services.instruction(0x30b6afu);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x30b6b0u);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x30b6b1u);} s.set(3,s.pop(),4,0);

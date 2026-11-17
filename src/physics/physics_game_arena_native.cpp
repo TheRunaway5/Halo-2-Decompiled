@@ -1,3 +1,8 @@
+#include "physics/runtime/native_tu15_arena_world_publication.hpp"
+#include "physics/runtime/native_tu15_arena_schedule_policy.hpp"
+#include "physics/runtime/native_tu15_arena_publication.hpp"
+#include "physics/runtime/native_tu15_required_owner_policy.hpp"
+#include <exception>
 #include "halo2/physics_game_arena_native.hpp"
 #include "halo2/physics_physical_storage_runtime.hpp"
 #include "physics/physics_game_arena_call_frames.hpp"
@@ -152,6 +157,7 @@ struct SourcePhysicsGameArenaNative::Impl {
       std::lock_guard lock(mutex); return bank.adjust_counter(p,width,delta);
     }
   } shared;
+  const std::thread::id parent_executor=std::this_thread::get_id();
   SourcePhysicsGameArenaConfiguration config;
   SourcePhysicsWorldRuntimeServices lower;
   SourcePhysicsContactRecordObserver observe;
@@ -246,9 +252,46 @@ struct SourcePhysicsGameArenaNative::Impl {
     require(worker && worker_joined && stopped_at_idle && workers.outcome(worker).state==NativeThreadState::Stopped,
             "Arena continuation requires joined source-idle worker");
   }
-  SourcePhysicsWorldRuntimeServices services(std::stop_token stop = {}) {
-    auto joined = lower;
-    joined.required_owner = [this,stop](auto &m,const auto &call,auto &abi,const auto &o) {
+  struct RequiredOwner {
+    Impl *const owner;
+    const std::stop_token stop;
+    void operator()(SourcePhysicsContactMemory &m,const SourcePhysicsContactRuntimeCall &call,
+                    SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &o)const {
+      owner->required_entry(m,call,abi,o,stop);
+    }
+    static bool matches(const SourcePhysicsWorldRuntimeServices::RequiredOwner &callback,
+                        const void *expected)noexcept {
+      const auto *actual=callback.target<RequiredOwner>();
+      return actual && actual->owner==expected && actual->owner &&
+          actual->owner->preserves_parent_instruction_policy();
+    }
+    static bool matches_publication(const SourcePhysicsWorldRuntimeServices &services,
+                                    const void *expected)noexcept {
+      const auto *actual=services.required_owner.target<RequiredOwner>();
+      return actual && actual->owner==expected && actual->owner &&
+          !services.instruction && !actual->owner->lower.instruction &&
+          native_required_owner_policy_detail::preserves_instruction_policy(services);
+    }
+    static bool matches_world_publication(const SourcePhysicsWorldRuntimeServices&services,
+        const void*expected,const SourcePhysicsGameArenaNative&arena)noexcept {
+      const auto*actual=services.required_owner.target<RequiredOwner>();
+      if(!actual||actual->owner!=expected||!actual->owner)return false;
+      const auto&owner=*actual->owner;
+      return owner.parent_executor==std::this_thread::get_id()&&!owner.observe&&
+          !owner.config.schedule.before_worker_wait&&!owner.config.schedule.before_main_yield&&
+          native_arena_world_publication_detail::Construction::qualified(arena,owner.shared.bank,owner.lower)&&
+          native_arena_world_publication_detail::same_instruction(services,owner.lower)&&
+          native_required_owner_policy_detail::preserves_instruction_policy(services);
+    }
+  };
+  bool preserves_parent_instruction_policy()const noexcept {
+    return parent_executor==std::this_thread::get_id() &&
+        native_arena_schedule_detail::preserves_parent_policy(config.schedule) &&
+        native_required_owner_policy_detail::preserves_instruction_policy(lower);
+  }
+  void required_entry(SourcePhysicsContactMemory &m,const SourcePhysicsContactRuntimeCall &call,
+                      SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &o,
+                      std::stop_token stop) {
       require(&m==&shared,"Native arena startup shared bank owner differs");
       bool authenticated=false;
       for(const auto &frame:physics_game_arena_frames::frames)
@@ -268,9 +311,14 @@ struct SourcePhysicsGameArenaNative::Impl {
         throw std::runtime_error(message.str());
       }
       lower.required_owner(m,call,abi,o);
-    };
+  }
+  SourcePhysicsWorldRuntimeServices services(std::stop_token stop = {}) {
+    auto joined = lower;
+    joined.required_owner=RequiredOwner{this,stop};
+    joined.required_owner_policy={&joined.required_owner.target_type(),parent_executor,this,&RequiredOwner::matches};
     return joined;
   }
+
   bool platform(const SourcePhysicsContactRuntimeCall &call,
                 SourcePhysicsWorldRuntimeAbi &abi,std::stop_token stop) {
     const auto sp=abi.gp[4];
@@ -464,8 +512,11 @@ void SourcePhysicsGameArenaNative::run(std::uint32_t entry,SourcePhysicsWorldRun
         impl_->config.floating_point,impl_->lower,impl_->physical,impl_->observe);
     return;
   }
+  const auto joined=impl_->services();
+  native_arena_world_publication_detail::Borrow published_world{*this,impl_->shared,joined,impl_.get(),&Impl::RequiredOwner::matches_world_publication};
+  native_arena_publication_detail::Borrow published{impl_->shared,joined,impl_.get(),&Impl::RequiredOwner::matches_publication};
   source_run_physics_game_arena_runtime(impl_->shared,entry,abi,SourcePhysicsContactImage::TitleUpdate15,
-      impl_->config.floating_point,impl_->services(),impl_->observe);
+      impl_->config.floating_point,joined,impl_->observe);
 }
 void SourcePhysicsGameArenaNative::stop(){
   std::unique_lock operation(impl_->operation_gate);

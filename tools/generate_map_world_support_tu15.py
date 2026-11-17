@@ -202,7 +202,15 @@ def main():
  generate(a,paired,runtime_header='halo2/source_map_world_support_tu15.hpp')
  #Rename the public dispatcher/ownership exports; instruction lowering and
  #original-address labels are unchanged from the shared generator's output.
- text=a.output.read_text().replace('source_run_physics_live_support_tu15','source_run_map_world_support_tu15').replace('source_physics_live_support_tu15_owns_entry','source_map_world_support_tu15_owns_entry');a.output.write_text(text)
+ text=a.output.read_text().replace('source_run_physics_live_support_tu15','source_run_map_world_support_tu15').replace('source_physics_live_support_tu15_owns_entry','source_map_world_support_tu15_owns_entry')
+ # Authenticate the fixed-image public owner after its actual export naming.
+ from native_diagnostic_stream_replacements import replace_diagnostic_stream
+ text=replace_diagnostic_stream(text)
+ from native_map_world_property_query_replacements import replace_map_world_property_queries
+ text=replace_map_world_property_queries(text)
+ from native_device_property_query_replacements import replace_device_property_query
+ text=replace_device_property_query(text)
+ a.output.write_text(text)
  report=json.loads(a.manifest.read_text());report['generated_cpp_sha256']=hashlib.sha256(a.output.read_bytes()).hexdigest();report['map_generator_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest();report['renamed_exports_only']=True;a.manifest.write_text(json.dumps(report,indent=2)+'\n')
  print(json.dumps(dict(entries=[f'{pc:08x}'for pc in ENTRIES],instructions=len(instructions),registrations=registrations,generated_cpp_sha256=report['generated_cpp_sha256'])))
 if __name__=='__main__':main()

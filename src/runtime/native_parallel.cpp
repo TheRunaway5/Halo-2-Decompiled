@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 #if defined(__x86_64__) || defined(_M_X64)
 #include <xmmintrin.h>
@@ -144,6 +145,9 @@ public:
 Pool& pool(){static Pool shared;return shared;}
 }
 namespace {
+class OverlapThread;
+// The innermost overlap the calling thread is running, for native_overlap_join.
+thread_local OverlapThread* active_overlap=nullptr;
 class OverlapThread {
     std::mutex mutex_;
     std::condition_variable wake_,done_;
@@ -187,7 +191,9 @@ public:
         wake_.notify_one();
         const int before_overlap=errno;
         std::exception_ptr overlap_error;
+        OverlapThread* const outer=std::exchange(active_overlap,this);
         try{overlap();}catch(...){overlap_error=std::current_exception();}
+        active_overlap=outer;
         const bool overlap_changed=errno!=before_overlap;
         {
             std::unique_lock lock(mutex_);
@@ -199,6 +205,20 @@ public:
         if(error_)std::rethrow_exception(error_);
         if(overlap_error)std::rethrow_exception(overlap_error);
     }
+    // From overlap on the calling thread: wait for the job, merge its sticky
+    // flags (idempotent; run() merges again) and hand over its exception, so
+    // run() does not rethrow it a second time. errno stays run()'s.
+    void join() {
+        std::exception_ptr error;
+        {
+            std::unique_lock lock(mutex_);
+            done_.wait(lock,[&]{return finished_;});
+            error=std::exchange(error_,nullptr);
+        }
+        if(sse_flags_)set_sse_csr(sse_csr()|sse_flags_);
+        if(x87_flags_&~x87_status())raise_x87_flags(x87_flags_);
+        if(error)std::rethrow_exception(error);
+    }
 };
 OverlapThread& overlap_thread(unsigned index) {
     static OverlapThread first,second;
@@ -208,6 +228,9 @@ OverlapThread& overlap_thread(unsigned index) {
 void native_overlap_run(const std::function<void()>& job,const std::function<void()>& overlap) {
     if(reference_serial || !host_fp_state){job();overlap();return;}
     overlap_thread(0).run(job,overlap);
+}
+void native_overlap_join() {
+    if(active_overlap)active_overlap->join();
 }
 void native_overlap_run2(const std::function<void()>& first,const std::function<void()>& second,
                          const std::function<void()>& overlap) {

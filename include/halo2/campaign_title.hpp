@@ -6,6 +6,69 @@
 #include <string_view>
 
 namespace halo2 {
+namespace campaign_title_detail {
+struct ChapterTitleBank {
+  std::string_view map;
+  unsigned first_text_index;
+  unsigned count;
+  bool alternate_bounds = false;
+};
+
+// Paired retail Xbox and MCC scenario title banks. The MCC chapter rectangle
+// [100,1024,40,80] is not an Xbox logical rectangle. Restore the corresponding
+// authored Xbox edges only for the stock rows with that layout.
+constexpr ChapterTitleBank chapter_banks[]{
+    {"01a_tutorial", 0x9b1, 1},
+    {"01b_spacestation", 0x9f4, 5},
+    {"03a_oldmombasa", 0xa6b, 3},
+    {"03b_newmombasa", 0xa59, 5},
+    {"04a_gasgiant", 0xa84, 2},
+    {"04b_floodlab", 0xaab, 3},
+    {"05a_deltaapproach", 0xa6c, 3},
+    {"05b_deltatowers", 0xa3f, 4},
+    {"06a_sentinelwalls", 0xa3f, 4, true},
+    {"06b_floodzone", 0xa2a, 4, true},
+    {"07a_highcharity", 0xa55, 4, true},
+    {"07b_forerunnership", 0xa15, 4},
+    {"08a_deltacliffs", 0xa16, 3},
+    {"08b_deltacontrol", 0xa22, 3},
+};
+
+inline void project_chapter_bounds(std::span<CampaignTitleDefinition> titles,
+                                   std::string_view scenario) {
+  constexpr std::string_view solo = "scenarios\\solo\\";
+  if (!scenario.starts_with(solo))
+    return;
+  scenario.remove_prefix(solo.size());
+  const auto separator = scenario.find('\\');
+  if (separator == std::string_view::npos)
+    return;
+  const auto map = scenario.substr(0, separator);
+  if (scenario.substr(separator + 1) != map)
+    return;
+
+  for (const auto &bank : chapter_banks) {
+    if (bank.map != map || bank.count != titles.size())
+      continue;
+    for (std::size_t i = 0; i < titles.size(); ++i) {
+      auto &title = titles[i];
+      if ((title.text & 0xffffffu) != bank.first_text_index + i || title.justification != 1)
+        continue;
+      if (title.font == 9 && title.bounds == std::array<std::int16_t, 4>{100, 1024, 40, 80}) {
+        title.bounds = bank.alternate_bounds
+            ? std::array<std::int16_t, 4>{425, 0, 480, 595}
+            : std::array<std::int16_t, 4>{422, 0, 480, 590};
+      } else if (bank.map == "06a_sentinelwalls" && title.text == 0x10000a42u &&
+                 title.font == 2 && title.bounds == std::array<std::int16_t, 4>{225, 1024, 100, 80}) {
+        // The last Quarantine Zone card uses the location-card layout.
+        title.bounds = {350, 0, 480, 595};
+      }
+    }
+    return;
+  }
+}
+} // namespace campaign_title_detail
+
 // Decode the complete scnr title bank at both content and text-loading seams.
 inline std::vector<CampaignTitleDefinition> read_campaign_titles(
     std::span<const std::byte> rows, bool mcc, std::string_view scenario) {
@@ -60,6 +123,8 @@ inline std::vector<CampaignTitleDefinition> read_campaign_titles(
   if (opening)
     for (auto &title : result)
       title.bounds = {350, 0, 480, 595};
+  if (mcc)
+    campaign_title_detail::project_chapter_bounds(result, scenario);
   return result;
 }
 } // namespace halo2

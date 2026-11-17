@@ -21,6 +21,8 @@ public:
     std::vector<Transform> sample(const RenderModel &,float fraction,
         std::optional<Transform> reference_frame={},std::span<const ModelScaleReset> resets={})const;
     bool paired()const{return paired_;}
+    // Completed tick of the current endpoint; meaningful once a bank is held.
+    std::uint64_t tick()const{return tick_;}
 private:
     void capture(std::uint64_t,std::span<const Transform>,std::optional<Transform>,bool render);
     std::uint64_t tick_{},previous_tick_{};

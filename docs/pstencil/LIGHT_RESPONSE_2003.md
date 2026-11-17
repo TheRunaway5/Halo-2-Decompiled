@@ -1,5 +1,15 @@
 # Recovered 2003 light response
 
+November 10, 2026: the installed native MCC build preserves builtin9 (shiny)
+and exact original Elite V10/V11 colors. See the [Elite correction](ELITE_VARIANT_PRESENTATION.md)
+for its 816 original constructor fixtures, native shader checks and supported
+material/delivery scope. Acceptance uses recovered logic rather than a required
+original framebuffer comparison. The older 560-fixture reproduction
+notes below refer to the earlier ordinary/dull-only cohort. Current generation
+uses `analysis/pstencil/elite-light-response-20261110/constructors.json` and can
+also check the source-owned shiny registry with
+`--fragment-registry shaders/native-programs/fragments/pstencil-shiny.json --check`.
+
 The original utility and dependent-light programs now have a native program
 constructor in `include/halo2/pstencil/light_response_2003.hpp` and
 `src/pstencil/light_response_2003.cpp`. The retained native candidates now use

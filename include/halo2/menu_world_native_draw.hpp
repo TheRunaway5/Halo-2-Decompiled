@@ -54,6 +54,9 @@ struct MenuWorldNativeDrawInput {
   // Native temporal raster extension, in physical pixels after the original
   // viewport conversion. Zero retains the original fragment/layout path.
   std::array<float,2> raster_offset{};
+  // A light shadow target: store screen-linear Z (the original Z buffer)
+  // instead of the main view's reconstructed W.
+  bool linear_z_depth{};
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,

@@ -5,8 +5,9 @@
 namespace halo2::native_mopp_ray_setup_detail {
 // Private actual-PC 30B890 caller view. No production/default binding.
 template<class State,class Before,class Dispatch>class Frame:
-    public native_mopp_ray_caller_detail::Frame<State,Before,native_mopp_ray_caller_detail::ScopeIo<State>> {
-    using Base=native_mopp_ray_caller_detail::Frame<State,Before,native_mopp_ray_caller_detail::ScopeIo<State>>;
+    public native_mopp_ray_caller_detail::IntegerFrame<State,Before,native_mopp_ray_caller_detail::ScopeIo<State>> {
+    using Vector=native_mopp_ray_setup_detail::Vector;
+    using Base=native_mopp_ray_caller_detail::IntegerFrame<State,Before,native_mopp_ray_caller_detail::ScopeIo<State>>;
     using Base::s_;using Base::at;using Base::word;using Base::io;using Base::push;using Base::pop;
     native_raw_x87_detail::Scope<State>&scope_;Dispatch&dispatch_;
     static auto packed(Vector value){return native_mopp_ray_detail::packed(value);}
@@ -93,7 +94,7 @@ public:
         Base::vector_store(kind==Store::start?0x30b90cu:0x30b91bu,s_.gp[1]+(kind==Store::start?0x20u:0x30u),packed(value));
     }
     void floating(std::uint32_t value){scope_.require_capacity(1);native_mopp_ray_detail::push(value);}
-    void divide_scalar(std::uint32_t value){native_mopp_ray_detail::divide(value);}
+    void divide_scalar(std::uint32_t value){asm volatile("fdivs %0"::"m"(value):"memory","st");}
     void multiply_scalar(std::uint32_t value){native_mopp_ray_detail::multiply(value);}
     void variables(){
         auto&g=s_.gp;Base::store(0x30b92eu,g[4]+0x28u,g[2],[]{});

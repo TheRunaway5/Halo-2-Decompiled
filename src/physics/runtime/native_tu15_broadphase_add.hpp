@@ -13,7 +13,7 @@ inline bool reference_mode() {
 // move; equal lower coordinates stop. Read each moved word immediately before
 // its publication so aliases retain the original ordered copy semantics.
 template<class State,class Reserve> bool insert_edges(State &s,Reserve reserve) {
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x2eafb0u,0x2eb04au))return false;
     ++activity().insertions;auto &g=s.gp;
     const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;};
     const auto read=[&](std::uint32_t pc,std::uint32_t p,unsigned n=4){at(pc);return physics_step_detail::r(s.memory,p,n);};

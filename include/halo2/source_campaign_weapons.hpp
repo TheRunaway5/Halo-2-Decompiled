@@ -25,6 +25,7 @@ struct SourceCampaignWeaponPending {
 struct SourceCampaignWeaponFrame {
     std::vector<SourceCampaignWeaponDraw> draws;
     std::vector<SourceCampaignWeaponPending> pending_overrides;
+    std::map<std::uint32_t,std::vector<Transform>> rendered_nodes;
 };
 // Resource residency is independent of player first-person/pickup eligibility.
 // Only completed original main units can submit an actual weapon owner. Source

@@ -32,6 +32,11 @@ if(BUILD_TESTING)
                 TIMEOUT 900 SKIP_RETURN_CODE 77)
         endif()
     endforeach()
+    # The original diagnostic observer has a fixed inner wall-clock limit.
+    set_tests_properties(original_tu15_native_mopp_ray_diagnostic_frame PROPERTIES RUN_SERIAL TRUE)
+    if(TEST original_tu15_native_mopp_ray_diagnostic_frame_release)
+        set_tests_properties(original_tu15_native_mopp_ray_diagnostic_frame_release PROPERTIES RUN_SERIAL TRUE)
+    endif()
     add_test(NAME original_tu15_native_mopp_ray_split_controller
         COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}" -B
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_mopp_ray_resume_frame_tu15.py"

@@ -116,9 +116,7 @@ SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderVie
 SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderView &view,
     SourceBspShaderLodAuxiliary auxiliary) const {
     const auto broken=source_bsp_broken_parts(parts_,view.breakable_visibility,bsp_index_);
-    const auto camera=source_shader_coverage_camera(view.camera);
-    const auto shader_view=source_shader_lod_view(view.outer_top,view.outer_bottom,
-        auxiliary.present,auxiliary.byte5);
+    const auto [camera,shader_view]=view.shader_lod_inputs(auxiliary.present,auxiliary.byte5);
     const auto multiplier=view.detail_multiplier.value_or(source_shader_lod_player_multiplier(view.local_players));
     SourceBspResidentViewPlan result;
     struct Decision {SourceBspPartBinding binding;SourceBspPartDecisionRecord record;};

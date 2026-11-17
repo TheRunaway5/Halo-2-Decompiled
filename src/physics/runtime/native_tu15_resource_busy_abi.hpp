@@ -55,7 +55,7 @@ template<class State,class Before=native_page_window_detail::Noop>struct QueryAc
     }
 };
 template<class State,class Before=native_page_window_detail::Noop>bool query(State &s,Before before={}){
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x4057f0u,0x405871u))return false;
     ++activity().queries;NativeTu15ResourceBusy data;data.resource=s.gp[1];QueryAccess<State,Before> memory{s,before};native_tu15_resource_is_busy(memory,data);return true;
 }
 template<class State,class Before=native_page_window_detail::Noop>struct CallbackAccess {
@@ -89,7 +89,7 @@ template<class State,class Before=native_page_window_detail::Noop>struct Callbac
     }
 };
 template<class State,class Call,class Before=native_page_window_detail::Noop>bool callback(State &s,Call call,Before before={}){
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x12fcb0u,0x12fd02u))return false;
     ++activity().callbacks;NativeTu15PageBusy data;CallbackAccess<State,Before> memory{s,before};
     const auto resource=[&](std::uint32_t,const NativeTu15PageBusy&){
         if(!query(s,before)){++activity().reference_queries;call(s,0x4057f0u,0x12fcf5u,false);}

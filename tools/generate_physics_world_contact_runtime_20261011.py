@@ -243,6 +243,10 @@ void source_run_physics_contact_runtime(M &m,std::uint32_t entry,
     generated=replace_simplex_triangle(generated)
     from native_simplex_face_select_replacements import replace_simplex_face_select
     generated=replace_simplex_face_select(generated)
+    from native_closest_segments_replacements import replace_closest_segments
+    generated=replace_closest_segments(generated)
+    from native_simplex_paired_replacements import replace_simplex_paired
+    generated=replace_simplex_paired(generated)
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(generated)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),

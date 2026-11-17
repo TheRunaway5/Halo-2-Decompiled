@@ -1,3 +1,4 @@
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/source_campaign_environment_view_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <algorithm>
@@ -67,11 +68,11 @@ SourceCampaignEnvironmentViewTu15 source_campaign_environment_view_tu15(
     const auto cluster_owner=0x4c6874u+local_view*4u,leaf_owner=0x4c6884u+local_view*4u;
     auto cluster=std::bit_cast<std::int32_t>(word(cluster_owner));
     auto leaf=std::bit_cast<std::int32_t>(word(leaf_owner));
-    auto query=world.prepare_source_call();const auto scratch=query.gp[4]+0x1000u;
-    world.write_source_call_input(scratch,std::as_bytes(std::span(&eye,1)));
-    query.gp[0]=0;query.gp[1]=word(bsp+0x18u);query.gp[2]=scratch;
-    world.run_actual(0x14cdb0u,query);
-    const auto selected=std::bit_cast<std::int32_t>(query.gp[0]);
+    // 14CDB0 from the root node of the collision BSP (native, oracle-proven
+    // with scenario_location) under the world's SSE controls.
+    const auto bank=native_campaign_script_bank(world,true);
+    const auto selected=std::bit_cast<std::int32_t>(native_campaign_script_tu15::bsp_leaf(bank,word(bsp+0x18u),
+        {std::bit_cast<std::uint32_t>(eye.x),std::bit_cast<std::uint32_t>(eye.y),std::bit_cast<std::uint32_t>(eye.z)}));
     const bool found=selected!=-1;
     if(found) {
         leaf=selected;

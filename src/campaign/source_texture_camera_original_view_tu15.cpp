@@ -1,4 +1,5 @@
 #include "halo2/source_texture_camera_producer_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <algorithm>
@@ -16,10 +17,13 @@ std::uint32_t word(const SourcePhysicsContactMemory &memory,std::uint32_t addres
 }
 void source_texture_camera_set_object_marker_tu15(PhysicsLiveWorldTu15 &world,
     std::uint32_t object,std::uint32_t marker,std::uint32_t fov_bits) {
-    auto call=world.prepare_source_call(std::array{marker,fov_bits});
-    call.gp[6]=object;world.run_actual(0x255e0u,call);
+    auto bank=native_campaign_script_bank(world,true);
+    native_campaign_script_tu15::texture_camera_set_object_marker(bank,object,marker,fov_bits); // native 255E0
 }
-void source_texture_camera_off_tu15(PhysicsLiveWorldTu15 &world) {world.call_actual(0x255c0u);}
+void source_texture_camera_off_tu15(PhysicsLiveWorldTu15 &world) {
+    auto bank=native_campaign_script_bank(world);
+    native_campaign_script_tu15::texture_camera_off(bank); // native 255C0
+}
 std::array<std::byte,0x118> source_texture_camera_pc_presented_view_tu15(
     std::span<const std::byte,0x118> original,const SourceTextureCameraPcPresentationTu15 &input) {
     const auto &camera=input.camera;const auto &lens=input.lens;

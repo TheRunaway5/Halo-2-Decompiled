@@ -27,7 +27,14 @@ KEY_FILES=tuple(dict.fromkeys(FILES+QUERY_FILES+(
     'tools/native_instanced_ray_callback_inputs.py',
     'tools/native_instanced_ray_callback_return_mutations.py',
     'tools/native_mopp_ray_query_profiles.py',
+    'tools/native_ray_filter_mutations.py',
     'src/physics/runtime/native_tu15_host_fp_io.hpp',
+    'include/halo2/native_tu15_mopp_ray_setup_kernel.hpp',
+    'src/physics/runtime/native_tu15_mopp_ray_setup_frame.hpp',
+    'include/halo2/native_tu15_ray_filter_kernel.hpp',
+    'src/physics/runtime/native_tu15_ray_filter_frame.hpp',
+    'include/halo2/native_tu15_shape_collection_kernel.hpp',
+    'src/physics/runtime/native_tu15_shape_collection_frame.hpp',
     'src/physics/runtime/native_tu15_mopp_ray_controller.hpp',
     'src/physics/runtime/native_tu15_mopp_ray_slab_frame.hpp',
     'src/physics/runtime/native_tu15_mopp_ray_diagnostic_frame.hpp',
@@ -51,9 +58,17 @@ def main():
     parser.add_argument('--source-routes',action='store_true');parser.add_argument('--require-binding',action='store_true')
     parser.add_argument('--semantic-mutants',action='store_true')
     parser.add_argument('--compose-queries',action='store_true')
+    parser.add_argument('--setup-caller',action='store_true')
+    parser.add_argument('--group-filter',action='store_true')
+    parser.add_argument('--array-collection',action='store_true')
+    parser.add_argument('--filter-mutants',action='store_true')
     parser.add_argument('--hostile-providers',action='store_true')
     parser.add_argument('--compiler',action='append');args=parser.parse_args()
     if args.hostile_providers and not args.compose_queries:parser.error('Hostile whole-query providers require --compose-queries')
+    if args.setup_caller and not args.compose_queries:parser.error('Actual setup callers require --compose-queries')
+    if args.group_filter and not args.setup_caller:parser.error('Actual group filters require defined ray metadata from --setup-caller')
+    if args.array_collection and not args.group_filter:parser.error('Array collection comparison requires --group-filter')
+    if args.filter_mutants and(not args.array_collection or args.smoke):parser.error('Filter mutations require the full --array-collection corpus')
     if not args.xbe.is_file():return 77
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']);args.output.mkdir(parents=True,exist_ok=False)
     report=dict(passed=False,production_binding=False,source_before=hashes(),owned_scratch=str(scratch),
@@ -66,6 +81,7 @@ def main():
         if args.smoke:selected=[selected[n]for n in (0,18,21,34,41,61)]
         pages={p for c in selected for bank in c['banks']for p in range(bank['address']&~0xfff,(bank['address']+len(bytes.fromhex(bank['before']))+0xfff)&~0xfff,0x1000)}
         pages.update((0x41c000,0x466000,0x46a000,0x4f4000,0x61000000));pages.update(range(0x62000000,0x62008000,0x1000))
+        if args.array_collection:pages.add(0x461000)
         regions=[]
         for page in sorted(pages):
             if regions and regions[-1][0]+regions[-1][1]==page:regions[-1]=(regions[-1][0],regions[-1][1]+0x1000)
@@ -81,6 +97,7 @@ def main():
                     banks[base][address-base:address-base+len(data)]=data
                 def word(address,value,width=4):put(address,int(value&((1<<(width*8))-1)).to_bytes(width,'little'))
                 for page in (0x41c000,0x466000,0x46a000):put(page,image.read(page,0x1000))
+                if args.array_collection:put(0x461000,image.read(0x461000,0x1000))
                 for bank in c['banks']:put(bank['address'],bytes.fromhex(bank['before']))
                 sp=0x62006000+len(rows)%16;variables=0x61000800;cache=0x61000900
                 collection=0x61000b00;table=0x61000b40;collector=0x61000c00;collector_table=0x61000c80;parent=0x61000d00
@@ -108,7 +125,27 @@ def main():
             from native_mopp_ray_query_profiles import compose
             rows=compose(image,rows,args.smoke)
             report['scope']='Private complete authored split/recursive/returned-query MOPP controller, all native subtree algorithms; no production MOPP binding'
-        owners=(0x30aa70,0x24dec0,0x24def0,0x24df20,*composition.OWNERS)
+        if args.setup_caller:
+            from native_mopp_ray_query_profiles import setup_callers
+            rows=setup_callers(image,rows)
+            report['scope']='Private actual30B890 caller, complete split/recursive MOPP and genuinely returned all-native scene query; no production setup/MOPP binding'
+        if args.group_filter:
+            # Collection-key and filter rejection inputs intentionally change
+            # which collector branches execute. Retain the first complete
+            # authored split's original caller DATA as independent callback
+            # controls, so the composition still proves every callback outcome.
+            callback_controls=copy.deepcopy(rows[:28])if not args.smoke else[]
+            from native_mopp_ray_query_profiles import group_filters
+            rows=group_filters(image,rows)
+            report['scope']='Private actual30B890/full MOPP with authored group-filter interfaces and genuinely returned all-native scene queries; no production setup/MOPP/filter binding'
+        if args.array_collection:
+            from native_mopp_ray_query_profiles import array_collections
+            rows=array_collections(image,rows)
+        if args.group_filter:
+            for row in callback_controls:
+                row.update(id=len(rows),name=row['name']+'_unfiltered_callback_control')
+                rows.append(row)
+        owners=((0x30b890,)if args.setup_caller else())+((0x2e9920,0x212330)if args.group_filter else())+((0x306220,0x306230)if args.array_collection else())+(0x30aa70,0x24dec0,0x24def0,0x24df20,*composition.OWNERS)
         import oracle_native_campaign_screen_lifecycle_tu15 as common
         common.ENTRIES=owners;original=common.metadata;code=common._Code(image,'.text')
         def metadata(image):
@@ -123,22 +160,43 @@ def main():
         excluded=(0x30aaa0,0x30aaa7)if args.compose_queries else (0x30aaa0,0x30aaa7,0x1441b7)
         io=[site['instruction']for site in meta['sites']if site['instruction']not in excluded and
             (site['operands']or code.at(site['instruction']).mnemonic in ('push','pop','ret','call'))]
+        if args.group_filter:io.append(0x212330)
         traces=[dict(entry=pc,gp=True,xmm=True)for pc in io]
         observed,authority=physical_original_dense(image,rows,scratch,entries=owners,regions=regions,trace_calls=traces,trace_extended=True,preserve_x87_prefix=True)
         normal_count=len(rows);prefixes=[];prefix_authority=None
         normal_sites=set().union(*(set(actual['executed_sites'])for actual in observed['cases']))
+        filter_coverage=None
+        if args.group_filter:
+            assert all(pc in normal_sites for pc in (0x2e9920,0x212330,0x212332,0x2e9974,0x30b615,0x30b617,0x30b61a,0x30b620)), 'Requested authored filter chain did not execute'
+            outcomes=[event['written']for case in observed['cases']for event in case['writes']if event['instruction']==0x2e9974]
+            assert outcomes.count('00')>0 and outcomes.count('01')>0,'Actual filter must accept and reject genuine mask queries'
+            filter_sites=set(common.complete_body(code,0x2e9920).code)
+            filter_coverage=dict(accepted_mask_stores=outcomes.count('01'),rejected_mask_stores=outcomes.count('00'),
+                owner_total_sites=len(filter_sites),owner_observed_sites=sorted(filter_sites&normal_sites),
+                owner_unobserved_sites=sorted(filter_sites-normal_sites),
+                same_nonzero_group_normal_paths_qualified=False,full_group_filter_normal_site_coverage=False,
+                authored_filter_table='41C654',authored_collection_table='466284',genuine_filter_info_owner='212330')
+            if args.array_collection:
+                assert all(pc in normal_sites for pc in (0x306220,0x306230,0x2e9950)), 'Actual array/filter same-group path did not execute'
+                assert not filter_sites-normal_sites,'Full authored filter branch coverage missing'
+                filter_coverage.update(same_nonzero_group_normal_paths_qualified=True,full_group_filter_normal_site_coverage=True,
+                    same_group_rejection_stores=sum(event['instruction']==0x2e9950 for case in observed['cases']for event in case['writes']),
+                    additional_authored_collection_table='461F98',genuine_additional_owners=['306220','306230'])
         if not args.smoke:
             callback_sites={site['instruction']for site in meta['sites']if 0x24def0<=site['instruction']<=0x24dfab}
-            assert len(callback_sites)==62 and callback_sites<=normal_sites
+            report['callback_coverage']=dict(total_sites=len(callback_sites),
+                observed_sites=sorted(callback_sites&normal_sites),missing_sites=sorted(callback_sites-normal_sites),
+                additional_unfiltered_controls=len(callback_controls)if args.group_filter else 0)
+            assert len(callback_sites)==62 and callback_sites<=normal_sites,report['callback_coverage']
             assert all(pc in normal_sites for pc in (0x24df6c,0x24df8d,0x24dfa0))
             # Exercise each real collector outcome and the duplicate fast return.
             # The query/BSP subtree has its own complete interruption proof; this
             # composition adds the newly returned parent/provider/callback seam.
             seeds={0,1}
-            for pc in (0x24df5c,0x24df6c,0x24df8d,0x24dfa0):
+            for pc in (0x24df5c,0x24df6c,0x24df8d,0x24dfa0,*((0x2e9950,)if args.array_collection else())):
                 match=next((i for i,actual in enumerate(observed['cases'])if pc in actual['executed_sites']),None)
                 if match is not None:seeds.add(match)
-            def new_seam(pc):return 0x30b5f5<=pc<=0x30b6a8 or 0x24dec0<=pc<=0x24dfab
+            def new_seam(pc):return 0x30b5f5<=pc<=0x30b6a8 or 0x24dec0<=pc<=0x24dfab or args.setup_caller and 0x30b890<=pc<=0x30b95c or args.group_filter and(0x2e9920<=pc<=0x2e9976 or 0x212330<=pc<=0x212332)or args.array_collection and 0x306220<=pc<=0x30623b
             by_site={site['instruction']:site for site in meta['sites']}
             for index in sorted(seeds):
                 row,actual=rows[index],observed['cases'][index];native_ordinal=0
@@ -165,11 +223,12 @@ def main():
                         prefixes.append(prefix)
             prefix_scratch=scratch/'prefixes';prefix_scratch.mkdir()
             prefix_observed,prefix_authority=physical_original_dense(image,prefixes,prefix_scratch,
-                entries=owners,regions=regions,trace_calls=traces,trace_extended=True,preserve_x87_prefix=True)
+                entries=owners,regions=regions,trace_calls=traces,trace_extended=True,preserve_x87_prefix=not args.setup_caller)
             rows+=prefixes;observed['cases']+=prefix_observed['cases']
         executed=set()
         for row,actual in zip(rows,observed['cases'],strict=True):
-            assert actual['completed']==(row['phase']=='normal')and actual['live_x87_unchanged']
+            assert actual['completed']==(row['phase']=='normal')
+            if row['phase']=='normal'or not args.setup_caller:assert actual['live_x87_unchanged']
             if row['phase']=='normal':assert actual['stopped_at']==0x63000000
             executed.update(actual['executed_sites'])
             row.update({key:actual[key]for key in ('boundary_gp','boundary_eflags','boundary_xmm','after_fp','boundary_live_x87','writes','calls')})
@@ -213,7 +272,7 @@ add_test(NAME callback_backend COMMAND callback_backend)
         if args.sanitizers:
             for target in ('mopp_leaf_query','callback_admission','callback_backend')if args.source_routes else ('mopp_leaf_query',):
                 cmake+=f'target_compile_options({target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)\ntarget_link_options({target} PRIVATE -fsanitize=address,undefined)\n'
-        (project/'CMakeLists.txt').write_text(cmake);results=[]
+        (project/'CMakeLists.txt').write_text(cmake);results=[];filter_mutants=[]
         for compiler in args.compiler or ('g++','clang++'):
             command=[sys.executable,'-B',str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),
                 '--output',str(args.output/Path(compiler).name),'--target','mopp_leaf_query','--filter','^(mopp_leaf_query(_reference|_unrelated_control)?|callback_admission(_reference)?|callback_backend)$',
@@ -226,6 +285,9 @@ add_test(NAME callback_backend COMMAND callback_backend)
                 for result in observations.values():
                     assert all(result[key]>0 for key in ('real_queries','real_query_hits','duplicate_instance_returns','any_hit_stores','replacement_stores','keep_stores'))
             results.append(dict(compiler=compiler,passed=True,observations=observations))
+            if args.filter_mutants:
+                from native_ray_filter_mutations import qualify as qualify_filters
+                filter_mutants.append(qualify_filters(scratch,args.output,rows,io,compiler,args.sanitizers))
         mutants=None
         if args.semantic_mutants:
             assert args.source_routes and not args.smoke,'Returned mutants require the full actual-source proof'
@@ -236,7 +298,7 @@ add_test(NAME callback_backend COMMAND callback_backend)
             normal_executed_sites=sorted(normal_sites),
             indirect_call_post_target_read_provider_write_failure_qualified=False,
             original_pre_io_packets=sum(len(row['calls'])for row in rows),inverse_sources=inverse_sources,
-            source_routes=source_routes,semantic_mutants=mutants,bsp_fp_io_installed=True,compilers=results)
+            source_routes=source_routes,semantic_mutants=mutants,bsp_fp_io_installed=True,actual_setup_caller=args.setup_caller,actual_group_filter=args.group_filter,group_filter_coverage=filter_coverage,filter_semantic_mutants=filter_mutants,compilers=results)
     except BaseException as error:report['error']=str(error)or repr(error);raise
     finally:
         report['source_after']=hashes()

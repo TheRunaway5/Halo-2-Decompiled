@@ -100,6 +100,8 @@ def main():
     a.output.write_text(install_paired_model_lookup(a.output.read_text()))
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     a.output.write_text(install_native_difficulty_routes(a.output.read_text(),'canonical'))
+    from native_object_lookup_canonical_replacements import replace_canonical_object_lookup
+    a.output.write_text(replace_canonical_object_lookup(a.output.read_text()))
     manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
     manifest['native_model_lookup']=dict(entry='d80a0',canonical_observation_ABI_preserved=True,
         original_execution_and_runtime_admission_required=True)

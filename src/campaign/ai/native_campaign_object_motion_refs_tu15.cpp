@@ -1,3 +1,5 @@
+#include "halo2/native_tu15_marker_owner_value.hpp"
+#include "halo2/native_tu15_object_parent_mode_value.hpp"
 #include "halo2/native_campaign_object_motion_refs_tu15.hpp"
 #include <array>
 #include <bit>
@@ -19,22 +21,10 @@ std::uint32_t object_record(const SourcePhysicsContactMemory &m,std::uint32_t ob
 }
 }
 bool native_campaign_object_pickup_parent_tu15(const SourcePhysicsContactMemory &m,std::uint32_t object) {
-    const auto record=object_record(m,object),flags=read(m,record+0x12cu,1);
-    return (flags&1u) && !(flags&2u);
+    return native_object_parent_mode_detail::value([&](auto address,unsigned width){return read(m,address,width);},object);
 }
 std::uint32_t native_campaign_object_marker_owner_tu15(const SourcePhysicsContactMemory &m,std::uint32_t object) {
-    while(true) {
-        const auto record=object_record(m,object),parent=read(m,record+0x14u);
-        if(parent!=none) {
-            const auto tag=read(m,record),tags=read(m,0x4f0414u),definition=read(m,tags+(tag&0xffffu)*16u+8u);
-            if(read(m,definition+2u,1)&0x10u){object=parent;continue;}
-        }
-        if(read(m,record+4u,1)&1u) {
-            const auto kind=read(m,record+0xaau,1);
-            if(((1u<<(kind&31u))&0x1cu) && native_campaign_object_pickup_parent_tu15(m,object))return read(m,record+0x154u);
-        }
-        return object;
-    }
+    return native_marker_owner_detail::value([&](auto address,unsigned width){return read(m,address,width);},object);
 }
 void native_campaign_object_motion_component_tu15(SourcePhysicsContactMemory &m,
     std::uint32_t component,std::uint32_t index,std::uint32_t destination,bool angular) {

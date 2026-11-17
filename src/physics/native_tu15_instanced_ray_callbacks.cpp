@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_instanced_ray_child_value.hpp"
 #include "halo2/native_tu15_instanced_ray_host_callbacks.hpp"
 #include "native_tu15_joint_constraint_numeric_internal.hpp"
@@ -6,8 +7,8 @@ namespace {
 void narrow(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,
     std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width){
     std::array<std::byte,4>b{};for(unsigned n=0;n<width;++n)b[n]=std::byte(value>>(n*8u));
-    SourcePhysicsContactRecordStore e{pc,p,{},{}};if(o){e.before.resize(width);m.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}
-    m.write(p,std::span(b).first(width));if(o)o(e);
+    SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m,o,pc,p,width);if(observed){e.before.resize(width);m.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}
+    m.write(p,std::span(b).first(width));if(observed)o(e);
 }
 }
 std::uint32_t native_tu15_resolve_instanced_ray_child(SourcePhysicsContactMemory&memory,

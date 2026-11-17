@@ -35,5 +35,9 @@ std::vector<std::uint32_t> source_campaign_resident_definitions_tu15(
 SourceCampaignCompletedViewTu15 source_campaign_completed_view_tu15(
     PhysicsLiveWorldTu15 &,const SourceTextureCameraScenePrefixTu15 &,
     const BspAtmosphere &,bool begin_frame,
-    std::optional<float> actual_horizontal_angle = {});
+    std::optional<float> actual_horizontal_angle = {},
+    // Physical height of the surface whose 640x480 layout owns this view.
+    // Shader coverage then keeps the original layout's height; zero retains
+    // the literal physical rectangle (fixed-size secondary targets).
+    std::int32_t source_layout_surface_height = 0);
 }

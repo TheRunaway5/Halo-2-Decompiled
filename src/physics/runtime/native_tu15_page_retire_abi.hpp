@@ -44,7 +44,7 @@ template<class State,class Before=native_page_window_detail::Noop>struct Access 
     }
 };
 template<class State,class Call,class Before=native_page_window_detail::Noop>bool run(State &s,Call call,Before before={}){
-    if(native_page_window_detail::reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(native_page_window_detail::reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x140310u,0x140387u))return false;
     ++activity().calls;NativeTu15PageRetirement data;data.owner=s.gp[7];data.datum=s.gp[3];Access<State,Before> access{s,before};
     struct Services {
         State &s;Call &call;Access<State,Before> &access;

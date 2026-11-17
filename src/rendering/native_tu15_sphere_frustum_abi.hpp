@@ -9,7 +9,7 @@
 
 namespace halo2::native_sphere_frustum_abi_detail {
 using namespace native_sphere_frustum_detail;
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_SPHERE_FRUSTUM");return p&&*p;}();return enabled;}
 template<class State>bool policy_admitted(const State&s){
 #if !(defined(__i386__) || defined(__x86_64__)) || defined(_MSC_VER)
@@ -57,7 +57,7 @@ template<class State,class Before,class Scope>class Frame {
     }
     void at(std::uint32_t pc){
         if(s_.instruction_cursor&&s_.instruction_cursor->position)*s_.instruction_cursor->position=pc;
-        scope_.io([&]{before_(s_,pc);});
+        if(!native_raw_x87_detail::skip_hook<Before>())scope_.io([&]{before_(s_,pc);});
     }
 public:
     using Scalar=__m128;
@@ -100,7 +100,7 @@ public:
         case Read::center_x:pc=std::array{0x18472au,0x184769u,0x1847a8u,0x1847e7u,0x184822u,0x184855u}[plane];address=s_.gp[1];if(plane==5)destination=0;break;
         case Read::plane_distance:pc=std::array{0x184732u,0x184771u,0x1847b0u,0x1847efu,0x18482au,0x184865u}[plane];address=s_.gp[0]+0x84u+plane*16u;break;
         }
-        at(pc);std::array<std::byte,4>bytes{};scope_.io([&]{s_.memory.read(address,bytes);});std::uint32_t word{};std::memcpy(&word,bytes.data(),4);const auto value=scalar(word);
+        at(pc);std::array<std::byte,4>bytes{};if(!native_raw_x87_detail::direct_read(s_.memory,address,bytes))scope_.io([&]{s_.memory.read(address,bytes);});std::uint32_t word{};std::memcpy(&word,bytes.data(),4);const auto value=scalar(word);
         if(destination)s_.xmm[*destination]=value;last_=Pending{kind,axis,plane};return value;
     }
     bool above(Scalar left,Scalar right,Comparison kind,const Work<Scalar>&d){
@@ -110,7 +110,7 @@ public:
     Visibility finish(Visibility value,const Work<Scalar>&d){
         complete(d);if(value==Visibility::outside)s_.gp[0]=s_.flags.logic(0,4);else s_.gp[0]=std::uint32_t(value);
         at(value==Visibility::outside?0x184874u:0x18489fu);std::array<std::byte,4>ignored{};
-        scope_.io([&]{s_.memory.read(s_.gp[4],ignored);});s_.gp[4]+=4u;return value;
+        if(!native_raw_x87_detail::direct_read(s_.memory,s_.gp[4],ignored))scope_.io([&]{s_.memory.read(s_.gp[4],ignored);});s_.gp[4]+=4u;return value;
     }
 };
 template<class State,class Before=Noop>bool bridge(State&s,Before before={}){

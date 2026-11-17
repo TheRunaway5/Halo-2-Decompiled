@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer.hpp"
+#include "halo2/desktop_session.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/frontend_emblem.hpp"
@@ -8,6 +9,7 @@
 #include <SDL.h>
 #include <algorithm>
 #include <bit>
+#include <fstream>
 #include <iostream>
 #include <set>
 #include <thread>
@@ -76,7 +78,8 @@ struct Host {
 int main(int argc,char **argv)try {
   check(argc==3 || argc==4 || argc==5,"Supply repository and output directories, and optional armor mode");
   const bool switching=argc==5 && std::string_view(argv[3])=="teams-switch";
-  const bool personal=argc==5 && std::string_view(argv[3])=="personal";
+  const bool secondary=argc==5 && std::string_view(argv[3])=="pathtracing-secondary";
+  const bool personal=secondary || (argc==5 && std::string_view(argv[3])=="personal");
   const bool native_map=switching || personal;
   const bool lan=argc==4 && std::string_view(argv[3])=="teams-lan";
   const bool teams=switching || (argc==4 && (std::string_view(argv[3])=="teams" || lan));
@@ -102,6 +105,24 @@ int main(int argc,char **argv)try {
     if(!std::filesystem::is_regular_file(options.map))return 77;
     options.source_object_world=true;
   }
+  if(secondary) {
+    const auto *all=std::getenv("HALO2_REFERENCE_ALL_MATERIALS");
+    check(!all || !*all,"Secondary armor check requires ordinary active material selection");
+    // A single first-person view has no other player's visible body to admit
+    // its full-model chest/emblem bank incidentally. That bank is consumed by
+    // the real Path Tracing reflection/shadow geometry collection only.
+    options.local_players=1;options.reference_render_fraction=.5f;
+    options.frames=0;options.capture_tick=4;options.reference_tick_cadence=true;
+    options.input_script=output/"pathtracing-secondary-input.tsv";
+    {
+      std::ofstream script(options.input_script);
+      for(unsigned tick=0;tick<options.capture_tick;++tick)script<<tick<<" 0 0 0 0 0 0\n";
+      check(bool(script),"Could not write bounded neutral secondary-material input script");
+    }
+    options.desktop=std::make_shared<DesktopSession>();
+    options.desktop->display_settings.graphics_mode=pstencil::GraphicsMode::PathTracing;
+    options.screenshot=output/"pathtracing-secondary-armor.ppm";
+  }
   if(switching) {
     options.frames=0;options.capture_tick=240;
     options.variant.values.set(22,1);options.input_instances.assign(pads->ids.begin(),pads->ids.end());
@@ -109,7 +130,7 @@ int main(int argc,char **argv)try {
   const std::array<std::array<std::uint8_t,9>,4> appearances{{
     {8,12,9,1,0,26,9,0,0}, {3,4,3,4,1,5,31,0,0},
     {8,12,9,1,0,63,0,1,0}, {3,4,5,6,1,0,12,0,0}}};
-  for(unsigned i=0;i<appearances.size();++i)
+  for(unsigned i=0;i<options.local_players;++i)
     options.selected_profiles.push_back(native_selected_player_configuration(
         "Armor "+std::to_string(i),appearances[i],teams?options.selected_teams[i]:-1));
   std::unique_ptr<Host> host;
@@ -202,10 +223,13 @@ int main(int argc,char **argv)try {
       "Actual pause switch/respawn missing: requests="+std::to_string(requested_views)+" teams="+
       std::to_string(accepted_teams[0])+","+std::to_string(accepted_teams[1])+","+
       std::to_string(accepted_teams[2])+","+std::to_string(accepted_teams[3]));
-  check(players==std::set<unsigned>{0,1,2,3} && programs>=4,
+  if(secondary)check(players==std::set<unsigned>{0} && programs>=1,
+      "Path Tracing secondary-only full-body armor did not receive its selected player's current material inputs");
+  else check(players==std::set<unsigned>{0,1,2,3} && programs>=4,
       "Actual four-view gameplay did not animate all selected player armor banks");
   check(std::filesystem::file_size(options.screenshot)>640u*480u*3u,"Actual multiplayer screenshot missing");
-  std::cout<<programs<<" actual multiplayer armor banks: four profiles, both species, "
+  std::cout<<programs<<" actual multiplayer armor banks: "
+      <<(secondary?"one first-person Path Tracing view, secondary full-body material, ":"four profiles, both species, ")
       <<(teams?"red/blue teams, ":"")<<"foreground/colors/toggle and Vulkan upload pass\n";
   return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

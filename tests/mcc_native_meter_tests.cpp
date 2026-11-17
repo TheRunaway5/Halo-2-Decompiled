@@ -60,11 +60,11 @@ int main(int argc,char** argv)try{
     {auto bad=f;bad.pass.datum^=0x10000u;reject(bad);}
     {auto bad=f;bad.vertex.datum^=0x10000u;reject(bad);}
     };
-    need(input.at("additional_cases").size()==1&&policy.at("additional_setups").size()==1,
+    need(input.at("additional_cases").size()==2&&policy.at("additional_setups").size()==2,
         "Weapon-pass contract census changed");
-    one(input,policy.at("setup"));one(input.at("additional_cases").front(),policy.at("additional_setups").front());
-    const auto contracts=mcc_resident_weapon_pass_contracts();need(contracts.size()==2,"Lost finite weapon-pass descriptor census");
-    for(unsigned i=0;i<contracts.size();++i){const auto& setup=i?policy.at("additional_setups").front():policy.at("setup");
+    one(input,policy.at("setup"));for(unsigned i=0;i<2;++i)one(input.at("additional_cases").at(i),policy.at("additional_setups").at(i));
+    const auto contracts=mcc_resident_weapon_pass_contracts();need(contracts.size()==3,"Lost finite weapon-pass descriptor census");
+    for(unsigned i=0;i<contracts.size();++i){const auto& setup=i?policy.at("additional_setups").at(i-1):policy.at("setup");
         need(contracts[i].stem==setup.at("source_stem").at("name").get<std::string>()&&
             contracts[i].pass==setup.at("source_pass").at("name").get<std::string>()&&
             contracts[i].vertex==setup.at("resident_vertex_records").front().at("name").get<std::string>(),

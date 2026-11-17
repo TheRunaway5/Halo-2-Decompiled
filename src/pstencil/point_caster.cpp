@@ -52,7 +52,7 @@ PointCasterBank::~PointCasterBank()=default;
 void PointCasterBank::collect(const SourceDrawUnitState& units,PhysicsLiveWorldTu15* world,
     const SourceEffectLightRuntime& light,const MenuWorldSourceConstants& constants,
     std::uint32_t domain,const std::function<bool(const SourceCullDrawUnit&)>& color_available,
-    std::vector<PointCaster>& output) {
+    std::vector<PointCaster>& output,const PresentedModelPalette& presented_palette) {
     auto& i=*impl_;
     for(unsigned n=units.main_prefix;n<units.draw_count;++n) {
         const auto& unit=units.units.at(n);
@@ -66,8 +66,9 @@ void PointCasterBank::collect(const SourceDrawUnitState& units,PhysicsLiveWorldT
             if(!world)throw FormatError("pStencil point caster has no actual model world");
             section=&i.section(MenuWorldSourceSectionKind::render_model,unit.words[1],unit.words[3]>>9&511u);
             const auto geometry=source_live_model_command_geometry_tu15(*world,unit);
-            palette=source_live_model_palette_rows_tu15(*world,unit,geometry);
             const auto object=Bytes(world->memory().view(unit.words[4],4)).u32(0);
+            palette=source_live_model_palette_rows_tu15(*world,unit,geometry,
+                presented_palette?presented_palette(object,unit.words[1]):std::span<const std::array<float,12>>{});
             owner={MenuWorldSourceOwnerKind::dynamic_object,section->raw->owner_datum(),object&65535u,object};
             if(color_available)available=color_available(unit);
         } else {

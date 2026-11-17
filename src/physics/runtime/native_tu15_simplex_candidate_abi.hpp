@@ -1,5 +1,7 @@
 #pragma once
+#include <cmath>
 #include "halo2/native_tu15_simplex_candidate_kernel.hpp"
+#include "physics/runtime/native_tu15_host_fp_io.hpp"
 #include "physics/runtime/native_tu15_simplex_direction_abi.hpp"
 
 namespace halo2::native_simplex_candidate_detail {
@@ -18,9 +20,13 @@ template<class State>std::uint32_t shift4(State&s,std::uint32_t value){
 }
 // Private/unbound continuation. This does not own or fabricate a shape virtual
 // support call. State is the true input resumed by that actual child.
-template<class State,class Before=Noop>struct Access {
-    State&s;native_raw_x87_detail::Scope<State>&fp;Before before{};
+template<class State,class Before=Noop,bool Retained=false>struct Access {
+    State&s;native_raw_x87_detail::Scope<State>* fp;Before before{};
     std::uint32_t last_branch{};
+    template<class Callback>void io(Callback&& callback){
+        if constexpr(Retained)native_host_fp_io_detail::preserve(std::forward<Callback>(callback));
+        else fp->io(std::forward<Callback>(callback));
+    }
     bool second(const Data&d)const{return d.side==Side::second;}
     std::uint32_t first_pc(const Data&d,std::uint32_t pc)const{
         if(d.side!=Side::first_late)return pc;
@@ -44,14 +50,14 @@ template<class State,class Before=Noop>struct Access {
     }
     void at(std::uint32_t pc){
         if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;
-        fp.io([&]{before(s,pc);});
+        io([&]{before(s,pc);});
     }
     std::uint32_t score_address(const Data&d)const{
         return s.gp[4]+(second(d)?0x34u:(d.side==Side::first_early?0x28u:0x40u))+d.comparison*4u;
     }
     std::uint32_t word_read(P,const Data&d,std::uint32_t address){
         at(second(d)?0x30f315u:first_pc(d,0x30eeb1u));std::uint32_t value;
-        fp.io([&]{value=physics_step_detail::r(s.memory,address,4);});s.gp[1]=value;return value;
+        io([&]{value=physics_step_detail::r(s.memory,address,4);});s.gp[1]=value;return value;
     }
     __m128 vector_read(P phase,const Data&d,std::uint32_t address){
         std::uint32_t pc{};unsigned r{};
@@ -60,14 +66,16 @@ template<class State,class Before=Noop>struct Access {
         case P::direction:pc=second(d)?0x30f31eu:first_pc(d,0x30eeb7u);r=2u;break;
         case P::candidate:
             s.gp[0]=(d.count+(second(d)?14u:2u));
-            s.gp[0]=shift4(s,s.gp[0]);
+            if constexpr(Retained)s.gp[0]=s.flags.shift(s.gp[0],4u,4u);
+            else s.gp[0]=shift4(s,s.gp[0]);
             pc=second(d)?0x30f329u:first_pc(d,0x30eec0u);r=second(d)?1u:0u;break;
         case P::third:pc=second(d)?0x30f381u:first_pc(d,0x30ef15u);r=second(d)?0u:1u;break;
         case P::second:pc=second(d)?0x30f3cbu:first_pc(d,0x30ef5cu);r=second(d)?0u:1u;break;
         default:throw std::runtime_error("Invalid simplex candidate vector phase");
         }
-        at(pc);if(address&15u)throw std::runtime_error("Native simplex candidate MOVAPS alignment");
-        __m128 value;fp.io([&]{value=physics_step_detail::v(s.memory,address);});s.xmm[r]=value;return value;
+        at(pc);
+        if constexpr(!Retained)if(address&15u)throw std::runtime_error("Native simplex candidate MOVAPS alignment");
+        __m128 value;io([&]{value=physics_step_detail::v(s.memory,address);});s.xmm[r]=value;return value;
     }
     void prepare(P,const Data&d){
         s.gp[0]=s.flags.minus(s.gp[1],2u,4);
@@ -75,11 +83,14 @@ template<class State,class Before=Noop>struct Access {
         last_branch=second(d)?0x30f37bu:first_pc(d,0x30ef0fu);
     }
     void bytes(std::uint32_t pc,std::uint32_t address,std::uint32_t value){
-        std::array<std::byte,4>written{};std::memcpy(written.data(),&value,4);
-        SourcePhysicsContactRecordStore event{pc,address,{},{}};
-        if(s.observe){event.before.resize(4);fp.io([&]{s.memory.read(address,event.before);});}
-        fp.io([&]{s.memory.write(address,written);});
-        if(s.observe){event.written.assign(written.begin(),written.end());fp.io([&]{s.observe(event);});}
+        if constexpr(Retained)io([&]{physics_step_detail::w(s.memory,s.observe,pc,address,4u,value);});
+        else{
+            std::array<std::byte,4>written{};std::memcpy(written.data(),&value,4);
+            SourcePhysicsContactRecordStore event{pc,address,{},{}};
+            if(s.observe){event.before.resize(4);io([&]{s.memory.read(address,event.before);});}
+            io([&]{s.memory.write(address,written);});
+            if(s.observe){event.written.assign(written.begin(),written.end());io([&]{s.observe(event);});}
+        }
     }
     void score_write(const Data&d,std::uint32_t bits){
         auto&x=s.xmm;const bool b=second(d);const bool last=d.comparison==2u;
@@ -107,14 +118,24 @@ template<class State,class Before=Noop>struct Access {
         const std::array second_compare{0x30f364u,0x30f3bcu,0x30f400u};
         const std::array second_branch{0x30f36du,0x30f3c5u,0x30f409u};
         const auto pc=[&](const auto&a,const auto&b){return second(d)?b[d.comparison]:first_pc(d,a[d.comparison]);};
-        const auto read=[&](std::uint32_t site,std::uint32_t address){at(site);std::uint32_t bits;fp.io([&]{bits=physics_step_detail::r(s.memory,address,4);});return bits;};
-        auto bits=read(pc(first_load,second_load),score_address(d));fp.require_capacity(1u);
-        asm volatile("flds %0;fabs"::"m"(bits):"memory","st");
+        const auto read=[&](std::uint32_t site,std::uint32_t address){at(site);std::uint32_t bits;io([&]{bits=physics_step_detail::r(s.memory,address,4);});return bits;};
+        if constexpr(Retained)s.require_x87();
+        auto bits=read(pc(first_load,second_load),score_address(d));
+        if constexpr(Retained){
+            s.fp.push(physics_step_detail::ext(physics_step_detail::f(bits)));s.fp.st(0)=std::fabs(s.fp.st(0));
+        }else{
+            fp->require_capacity(1u);asm volatile("flds %0;fabs"::"m"(bits):"memory","st");
+        }
         bits=read(pc(first_multiply,second_multiply),score_address(d));
-        asm volatile("fmuls %0"::"m"(bits):"memory","st");
+        if constexpr(Retained)s.fp.st(0)=physics_step_detail::mul(s.fp.st(0),physics_step_detail::ext(physics_step_detail::f(bits)));
+        else asm volatile("fmuls %0"::"m"(bits):"memory","st");
         bits=read(pc(first_compare,second_compare),s.gp[4]+0x10u);
-        std::uint16_t relation;asm volatile("fcomps %1;fnstsw %0":"=a"(relation):"m"(bits):"memory","st");
-        fp.publish();s.set(0,relation,2,0);
+        std::uint16_t relation;
+        if constexpr(Retained){s.fp.comparison(physics_step_detail::ext(physics_step_detail::f(bits)),1u);relation=s.fp.word();}
+        else{
+            asm volatile("fcomps %1;fnstsw %0":"=a"(relation):"m"(bits):"memory","st");fp->publish();
+        }
+        s.set(0,relation,2,0);
         s.flags.logic((relation>>8u)&(d.comparison?5u:0x41u),1);
         last_branch=pc(first_branch,second_branch);return relation;
     }
@@ -129,7 +150,15 @@ template<class State,class Before=Noop>struct Access {
 };
 template<class State,class Before=Noop>
 bool run_private_stage(State&s,Side side,Before before={}){
-    native_raw_x87_detail::Scope<State>fp{s};Access<State,Before>memory{s,fp,std::move(before)};
+    native_raw_x87_detail::Scope<State>fp{s};Access<State,Before>memory{s,&fp,std::move(before)};
+    Data data;data.side=side;data.work=s.gp[6];
+    data.count_address=side==Side::second?s.gp[7]:s.gp[6];
+    data.direction_address=side==Side::second?s.gp[4]+0x70u:s.gp[3];
+    return native_tu15_test_simplex_candidate(memory,data);
+}
+template<class State,class Before=Noop>
+bool run_private_retained_stage(State&s,Side side,Before before={}){
+    Access<State,Before,true>memory{s,nullptr,std::move(before)};
     Data data;data.side=side;data.work=s.gp[6];
     data.count_address=side==Side::second?s.gp[7]:s.gp[6];
     data.direction_address=side==Side::second?s.gp[4]+0x70u:s.gp[3];

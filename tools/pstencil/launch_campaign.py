@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Play the tested pStencil opening with current campaign assets."""
+"""Play campaign in pStencil on the launcher-selected native-kernel runtime.
+
+The default route reads gameplay-runtime-selection.json: the same qualified
+MCC/native runtime and prepared cache Halo2-Launcher uses. --legacy-runtime
+keeps the retained October opening bundle (TU1.5 XBE, Xbox disc maps) reachable
+as an explicit reference route; it is never a fallback.
+"""
 import hashlib
 import json
 import os
@@ -16,7 +22,36 @@ def verify(path,expected):
     with path.open('rb')as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
     if actual!=expected:raise SystemExit(f'Campaign input differs from the tested version: {path}')
 
+def current(arguments):
+    selection=json.loads((ROOT/'gameplay-runtime-selection.json').read_text())
+    if selection.get('schema')!='H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1':
+        raise SystemExit('Unsupported gameplay runtime selection')
+    runtime=ROOT/selection['runtime'];verify(runtime,selection['runtime_sha256'])
+    maps=ROOT/selection['cache']/'halo2/h2_maps_win64_dx11'
+    name='00a_introduction.map'
+    if '--map' in arguments:
+        at=arguments.index('--map')
+        if at+1>=len(arguments):raise SystemExit('--map requires a campaign cache name')
+        name=arguments[at+1];arguments=arguments[:at]+arguments[at+2:]
+    level=maps/Path(name).name
+    if not level.is_file():raise SystemExit(f'Campaign cache is not prepared: {level}')
+    if arguments==['--launcher-info']:
+        print(json.dumps(dict(runtime=str(runtime),runtime_sha256=selection['runtime_sha256'],
+            cache=str(ROOT/selection['cache']),default_map=name,viewport=[1920,1080],
+            initial_graphics_mode='pStencil',graphics_modes=['Original','pStencil'],
+            saved_switch='Video Settings > Graphics Mode',route='launcher-selected native runtime',
+            legacy_route='--legacy-runtime',full_presentation_verified=False),indent=2))
+        return
+    defaults=[]
+    for flag,values in (('--graphics-mode',['pStencil']),('--viewport',['1920','1080'])):
+        if flag not in arguments:defaults.extend([flag,*values])
+    command=[str(runtime),'--campaign','--map',str(level),'--shared-maps',str(maps),*defaults,*arguments]
+    os.chdir(ROOT);os.execv(str(runtime),command)
+
 def main():
+    arguments=sys.argv[1:]
+    if '--legacy-runtime' not in arguments:return current(arguments)
+    sys.argv[1:]=[value for value in arguments if value!='--legacy-runtime']
     manifest=selected_runtime(ROOT,json.loads((BUNDLE/'runtime.json').read_text()))
     runtime=ROOT/manifest['runtime'];shaders=ROOT/manifest['shader_directory']
     verify(runtime,manifest['runtime_sha256'])

@@ -12,6 +12,18 @@
 #include <utility>
 
 namespace halo2::pstencil {
+void include_active_point_lights(SourceEffectLightView& view) {
+    for(const auto& candidate:view.candidates) {
+        const auto light=std::ranges::find(view.records,candidate.identity,
+            [](const auto& row){return row.runtime.identity;});
+        if(light==view.records.end() || !light->definition || Bytes(light->definition->bytes).u16(4)!=0)
+            continue;
+        const auto selected=std::ranges::find(view.selected,candidate.identity,&SourceShadowCandidate::identity);
+        if(selected==view.selected.end())view.selected.push_back(candidate);
+        else *selected=candidate;
+    }
+}
+
 namespace {
 constexpr auto none=0xffffffffu;
 void put(SourceEffectLightDatumPool::Record& r,unsigned at,float value){r.at(at/4)=std::bit_cast<std::uint32_t>(value);}
@@ -84,13 +96,16 @@ struct PointLights::Impl {
             for(unsigned n=0;n<unsigned(block.count);++n) {
                 const auto at=n*24;if(rows.u32(at)!=0x6c696768u || rows.u32(at+4)==none)continue;
                 try {
-                    const auto id=rows.u32(at+4);auto d=load_effect_light(c,id);
+                    // An animated sphere is consumed only through its
+                    // completed native C2CB0/C2B30 record (native_required).
+                    const auto id=rows.u32(at+4);auto d=load_completed_effect_light(c,id);
                     // TU1.5 C2260 clears the timed flag for direct attached
                     // lights. C2CB0 supplies the actual function/color state;
                     // duration is not a standalone lifetime for this branch.
                     const auto color=std::bit_cast<std::int16_t>(rows.u16(at+12));
                     const bool native_required=rows.u32(at+16)!=0 ||
-                        (color>=0 && unsigned(color)<root.u32(0xac)) || d.duration!=0;
+                        (color>=0 && unsigned(color)<root.u32(0xac)) || d.duration!=0 ||
+                        effect_light_is_animated(d);
                     if(d.flags&1)continue; // Authored disabled light.
                     Attachment a{n,id,rows.u32(at+8),{},native_required};
                     if(a.marker) {

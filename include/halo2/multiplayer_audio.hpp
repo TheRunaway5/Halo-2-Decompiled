@@ -43,6 +43,10 @@ std::vector<MultiplayerAmbientTarget> multiplayer_ambient_targets(
     const MultiplayerAudioBsp &,const BspAtmosphere &,Vec3 listener,
     int cluster,float weather_intensity,bool weather_enabled);
 
+// A script impulse's sound effect (sound_impulse_start_effect): the sound
+// effect collection tag datum and row TU1.5 1903A0 resolved its name to.
+struct MultiplayerAudioEffect {std::uint32_t collection;std::uint32_t row;};
+
 enum class MultiplayerAudioKind {Impulse,FirstPerson,Ambient,Footstep,Shield,DamageVoice};
 struct MultiplayerAudioSubmission {
   MultiplayerAudioKind kind{};
@@ -299,7 +303,8 @@ public:
   std::optional<Voice> schedule_impulse(std::uint32_t sound,
       std::uint64_t presentation_frame,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
-      std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
+      std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={},
+      std::optional<MultiplayerAudioEffect> effect={});
   std::optional<VoiceReceipt> schedule_impulse_receipt(std::uint32_t sound,
       std::uint64_t presentation_frame,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
@@ -375,7 +380,8 @@ public:
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
   std::optional<Voice> schedule_impulse_at(std::uint32_t sound,Vec3 position,
       std::uint64_t presentation_frame,float control=1,
-      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu,
+      std::optional<MultiplayerAudioEffect> effect={});
   void ambient(std::span<const MultiplayerAmbientTarget>,float elapsed);
   void master_volume(float);
   void paused(bool);

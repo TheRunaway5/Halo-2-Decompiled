@@ -24,7 +24,7 @@ void require(bool value, const char *why) {
 }
 PixelProgram utility(const Json &in) {
     return pstencil::light_utility_2003(in["context_7438a8"], in["context_u176"], in["context_u178"],
-                                        in["global_48f346"], in["builtin"] == 10);
+                                        in["global_48f346"], in["builtin"]);
 }
 PixelProgram dependent(const Json &in, const std::array<std::uint32_t, 60> &words) {
     return pstencil::dependent_light_2003(in["context_7438a8"], in["context_u0dc"], in["global_7439dc"],
@@ -49,7 +49,7 @@ int main(int argc, char **argv) try {
         require(program.words == words, "Native constructor table differs from unchanged original output");
         (final ? dependents : utilities).push_back(&row);
     }
-    require(utilities.size() == 512 && dependents.size() == 48,
+    require(utilities.size() == 768 && dependents.size() == 48,
             "Original complete constructor coverage missing");
     const auto packed_diffuse = pstencil::pack_light_rgb_2003(
         original["declared_colors"]["007439bc"].template get<std::array<float, 3>>());
@@ -124,21 +124,23 @@ int main(int argc, char **argv) try {
             }
         }
     unsigned rejected{};
-    for (auto call : {0u, 1u, 2u, 3u})
+    for (auto call : {0u, 1u, 2u, 3u, 4u})
         try {
             if (call == 0)
-                pstencil::light_utility_2003(4, 0, 0, 0, false);
+                pstencil::light_utility_2003(4, 0, 0, 0, 6);
             if (call == 1)
-                pstencil::light_utility_2003(0, 4, 0, 0, false);
+                pstencil::light_utility_2003(0, 4, 0, 0, 6);
             if (call == 2)
                 pstencil::dependent_light_2003(0, 4, 0, 0, 0);
             if (call == 3)
                 pstencil::dependent_light_2003(0, 0, 3, 0, 0);
+            if (call == 4)
+                pstencil::light_utility_2003(0, 0, 0, 0, 8);
         } catch (const FormatError &) {
             ++rejected;
         }
-    require(rejected == 4, "Unknown light-response selectors were accepted");
-    std::cout << "560 complete original program matches; " << rgb_cases << " original RGB cases; "
+    require(rejected == 5, "Unknown light-response selectors were accepted");
+    std::cout << "816 complete original program matches; " << rgb_cases << " original RGB cases; "
               << fixtures.size() << " two-stage GPU fixtures (" << actual.size()
               << " stage results), maximum channel error " << maximum << "\n";
     return 0;

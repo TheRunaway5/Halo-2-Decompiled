@@ -1,7 +1,8 @@
 // Included inside the native weapon dispatcher's private namespace.
 // Complete TU1.5 1E11B0 owner; model marker records have a 12-byte stride.
 void marker_lookup(Memory &m,Abi &a,const Observer &o,const Services &s) {
-    const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};
+    if(halo2::native_model_marker_lookup_detail::effect(m,a,s,o))return;
+    const auto instruction=[&](auto pc){if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};
     IteratorRegisters r{a.gp,a.eflags};
     const auto signed_less=[&]{return bool(a.eflags&128u)!=bool(a.eflags&2048u);};
     instruction(0x1e11b0);a.gp[0]=none;iterator_logic_flags(r,a.gp[0],4);

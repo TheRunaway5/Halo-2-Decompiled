@@ -489,12 +489,12 @@ void export_world_adapters(Registry& out) {
         {"family","pstencil-texture"},{"operation","pstencil::texture_accumulation_2003"}});
     for(unsigned geometry=0;geometry<=3;++geometry)
         for(unsigned diffuse=0;diffuse<=3;++diffuse)for(unsigned specular=0;specular<=3;++specular)
-            for(int quality=-1;quality<=2;++quality)for(const bool dull:{false,true}) {
-                const auto program=pstencil::light_utility_2003(geometry,diffuse,specular,quality,dull);
+            for(int quality=-1;quality<=2;++quality)for(const unsigned builtin:{6u,9u,10u}) {
+                const auto program=pstencil::light_utility_2003(geometry,diffuse,specular,quality,builtin);
                 out.add_fragment(program,{{"kind","native-source-constructor"},
                     {"family","pstencil-light-utility"},{"also_family","pstencil-normal-utility"},
                     {"operation","pstencil::light_utility_2003"},{"geometry",geometry},{"diffuse",diffuse},
-                    {"specular",specular},{"quality",quality},{"dull",dull}});
+                    {"specular",specular},{"quality",quality},{"builtin",builtin}});
             }
     for(unsigned geometry=0;geometry<=3;++geometry)for(unsigned mask=0;mask<=3;++mask)
         for(unsigned shift=0;shift<=2;++shift)

@@ -2,19 +2,24 @@
 #include "halo2/math.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/multiplayer_network.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/object_initialization.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/player_action_edges.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <bit>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <numeric>
+#include <thread>
 
 using namespace halo2;
 namespace {
@@ -308,6 +313,302 @@ nlohmann::json zero_delay_infection(const FrontendContent &content,unsigned pres
       {"replacement_unit",current},{"native_source_deaths",match.player(slot).deaths-deaths},
       {"native_zombie_profile",true},{"host_factory_requested_by_test",false},{"native_life_trace",trace}};
 }
+
+nlohmann::json infection_pickups(const FrontendContent &content,unsigned preset,const std::filesystem::path &maps) {
+  nlohmann::json report={{"passed",false},{"cases",nlohmann::json::array()},
+      {"scope","Actual menu Infection, genuine native loose-weapon/profile inputs and ordinary pickup/dual/switch commands. No carried-item, target-query, inventory or command outcomes supplied."}};
+  for(const auto probe:{"human-pickup","zombie-pickup","zombie-dual","human-switch","zombie-switch"}) {
+    auto &result=report["cases"].emplace_back(nlohmann::json{{"case",probe},{"passed",false},{"samples",nlohmann::json::array()}});
+    try {
+      const bool zombie=std::string_view(probe).starts_with("zombie"),switching=std::string_view(probe).ends_with("switch");
+      const bool dual=std::string_view(probe)=="zombie-dual";
+      const auto launch=start(content,preset,2,false);
+      MultiplayerOptions options;options.map=maps/launch.map;options.shared_maps=maps;
+      options.variant=launch.variant;options.local_players=2;options.mute=true;
+      options.selected_profiles=launch.selected_profiles;options.input_instances=launch.input_instances;
+      options.source_object_savegame_directory=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/("infection-"+std::string(probe));
+      select_multiplayer_mode_authority(options);MultiplayerPreparedWorld prepared(options);
+      need(prepared.source_objects && prepared.source_objects->owns_physics() && !prepared.match.source_engine_owned() &&
+          prepared.rules.custom==CustomSlayer::infection,"Pickup policy control lost its actual native custom World");
+      auto &match=prepared.match;auto &objects=*prepared.source_objects;auto &world=objects.tu15_world();
+      for(unsigned tick=0;tick<15;++tick)match.step({});
+      const auto selected=std::ranges::find_if(prepared.local_slots,[&](const auto slot){return ((*match.player(slot).source_configuration)[0x40]==6)==zombie;});
+      need(selected!=prepared.local_slots.end(),"Pickup policy control lacks its actual faction participant");
+      const auto slot=*selected,player=match.player(slot).source_datum,unit=match.player(slot).source_current_object;
+      need(unit!=null_datum && objects.object_vitality(unit).body>0,"Pickup policy control has no living native actor");
+      std::uint32_t seed{};const auto choices=prepared.cache->multiplayer_weapon_choices();
+      const auto sword=source_starting_weapon(null_datum,17,null_datum,choices,seed);
+      const auto magnum=source_starting_weapon(null_datum,4,null_datum,choices,seed);
+      const auto smg=prepared.cache->slayer_starting_weapon(5);
+      const auto weapon_input=[&](std::uint32_t definition) {
+        const auto &weapon=prepared.content.weapons.at(definition);const auto loaded=std::min(std::max(0,weapon.capacity),std::max(0,weapon.initial_rounds));
+        return SourceUnitEquipmentWeaponInputTu15{definition,std::int16_t(loaded),std::int16_t(loaded),0x77656170u};
+      };
+      if(switching) {
+        // A sword-only inventory makes switch refusal vacuous. Declare a real
+        // second carried weapon through CF2E0; original birth/carry owns both
+        // full generations. The ordinary button must still obey the faction.
+        SourceUnitEquipmentProfileInputTu15 alternate;
+        alternate.weapons[0]=weapon_input(zombie?sword:smg);alternate.weapons[1]=weapon_input(magnum);
+        const auto supplied=world.apply_equipment_profile(unit,alternate);
+        need(supplied.weapons[0]!=null_datum && supplied.weapons[1]!=null_datum && supplied.weapons[0]!=supplied.weapons[1] &&
+            supplied.definitions[0]==alternate.weapons[0].definition && supplied.definitions[1]==magnum,
+            "Declared alternate profile did not birth/carry two actual weapon generations");
+        const DatumPool headers(world.memory(),world.source_object_pool());
+        for(unsigned index=0;index<2;++index)need(!headers.lookup(supplied.weapons[index]).empty(),
+            "Declared alternate profile lost its genuine full weapon generation");
+        result["declared_alternate_native_profile"]={{"weapons",supplied.weapons},{"definitions",supplied.definitions}};
+        for(unsigned tick=0;tick<6;++tick)match.step({});
+      }
+      const auto initial=world.player_equipment(unit);const auto initial_weapon=match.unit(slot).weapon.source_datum;
+      need(initial_weapon!=null_datum && initial.current[0]>=0 && unsigned(initial.current[0])<initial.definitions.size() &&
+          (!zombie || initial.definitions[unsigned(initial.current[0])]==sword),
+          "Pickup policy actor did not begin with its actual selected native loadout");
+      result.update({{"slot",slot},{"source_player",player},{"source_unit",unit},{"zombie",zombie},
+          {"initial_weapons",initial.weapons},{"initial_definitions",initial.definitions},{"initial_selected",initial_weapon}});
+      std::uint32_t pickup=null_datum;unsigned query_samples{};bool admitted{},admitted_before_input{};
+      if(!switching) {
+        const auto pose=objects.biped_motion(unit);const auto forward=pose.forward;
+        const auto point=pose.position+Vec3{forward.x*.5f,forward.y*.5f,.2f};const auto before_tick=match.state().tick;
+        pickup=world.create_weapon(smg,point);
+        need(pickup!=null_datum && !objects.object_body(pickup).is_null(),"Pickup fixture failed its genuine loose weapon birth");
+        const auto loose=match.state();const auto found=std::ranges::find(loose.world_weapons,pickup,&WorldWeaponPresentation::handle);
+        need(found!=loose.world_weapons.end() && found->definition==smg && objects.object_parent(pickup)==null_datum &&
+            loose.tick==before_tick && match.player(slot).source_current_object==unit,
+            "Declared loose pickup did not publish its exact native generation without advancing its actor/clock");
+        result["declared_loose_weapon"]={{"object",pickup},{"definition",smg},{"position",{point.x,point.y,point.z}}};
+      }
+      const auto threshold=source_pickup_hold_threshold(prepared.content.pickup_hold_seconds);
+      need(threshold>=0 && threshold<2000,"Pickup policy fixture lacks a bounded authored button hold");
+      std::array<Controls,multiplayer_capacity> controls{};
+      for(unsigned tick=0;tick<48;++tick) {
+        need(match.player(slot).source_current_object==unit && objects.object_vitality(unit).body>0,
+            "Pickup policy fixture changed or killed its genuine actor");
+        controls={};controls[slot].yaw=match.unit(slot).yaw;controls[slot].pitch=match.unit(slot).pitch;
+        // First obtain completed ordinary target queries. Then use hold and
+        // release edges; no explicit target or carry request enters the test.
+        if(switching)controls[slot].switch_weapon=tick==2;
+        else if(tick>=2 && tick<40) {
+          controls[slot].pickup=!dual;controls[slot].dual_wield=dual;
+          const auto held=std::uint16_t(std::min(65000,threshold+int((tick-2)*1000/30)));
+          controls[slot].pickup_milliseconds=dual?0:held;controls[slot].dual_wield_milliseconds=dual?held:0;
+        }
+        const auto target=world.player_action_target(player,unit);
+        if(target && target->object==pickup && (target->action==1 || target->action==7))++query_samples;
+        match.step(controls);const auto equipment=world.player_equipment(unit);
+        const auto current=match.unit(slot).weapon.source_datum;
+        const bool has=pickup!=null_datum && std::ranges::find(equipment.weapons,pickup)!=equipment.weapons.end();
+        const bool changed=switching?current!=initial_weapon:has;
+        admitted=admitted || changed;admitted_before_input=admitted_before_input || (tick<2 && changed);
+        result["samples"].push_back({{"tick",match.state().tick},{"pickup_down",controls[slot].pickup},
+            {"dual_down",controls[slot].dual_wield},{"switch_down",controls[slot].switch_weapon},
+            {"target_object",target?target->object:null_datum},{"target_action",target?target->action:0},
+            {"target_index",target?target->index:-1},{"selected",current},{"weapons",equipment.weapons}});
+      }
+      const auto completed=world.player_equipment(unit);
+      result.update({{"authored_hold_threshold_ms",threshold},{"exact_native_weapon_query_samples",query_samples},
+          {"ordinary_input_admitted",admitted},{"completed_weapons",completed.weapons},
+          {"admitted_before_button_input",admitted_before_input},
+          {"completed_selected",match.unit(slot).weapon.source_datum}});
+      if(!switching)need(query_samples>0,"Pickup fixture never exposed its exact loose generation through the original native weapon query");
+      if(zombie)need(!admitted && completed.weapons==initial.weapons && match.unit(slot).weapon.source_datum==initial_weapon,
+          "Native Infection zombie admitted an ordinary weapon pickup/dual/switch request");
+      else need(admitted && !admitted_before_input && (switching || query_samples>0),
+          "Eligible human never completed the ordinary native pickup/switch positive control");
+      if(!switching && !zombie) {
+        const auto body=world.source_object_body(pickup);const Bytes item(world.memory().view(body+0x12cu,0x2cu));
+        need(item.u32(0x28)==unit && (item.u32(0)&5u)==5u,
+            "Human positive pickup lacks original item owner/held flags");
+      }
+      result["passed"]=true;
+    }catch(const std::exception &error){result["error"]=error.what();}
+  }
+  report["passed"]=std::ranges::all_of(report["cases"],[](const auto &row){return row["passed"].template get<bool>();});
+  return report;
+}
+nlohmann::json custom_camouflage(const FrontendContent &content,unsigned preset,const std::filesystem::path &maps) {
+  nlohmann::json report={{"passed",false},{"cases",nlohmann::json::array()},
+      {"scope","Legal original variant parameter21 is the sole camouflage input. Ordinary native frames own grant, timers and body fade; all body/player observations are read-only. No powerup grant API, position input or bank outcomes supplied."}};
+  const auto launch=start(content,preset,2,false);
+  for(const bool custom:{false,true})for(const bool enabled:{false,true}) {
+    const auto name=std::string(custom?"fiesta":"classic")+(enabled?"-camouflage":"-no-camouflage");
+    auto &result=report["cases"].emplace_back(nlohmann::json{{"case",name},{"passed",false},{"samples",nlohmann::json::array()}});
+    try {
+      UiVariant variant=launch.variant;
+      if(!custom){variant=UiVariant{};variant.name="Classic Slayer";variant.engine=0;}
+      variant.values.set(21,enabled?1:0);
+      const auto requested=source_game_variant(variant);
+      need(source_game_variant_valid(requested) && source_game_variant_get(requested,21)==int(enabled),
+          "Camouflage control is not a legal original variant flag input");
+      MultiplayerOptions options;options.map=maps/launch.map;options.shared_maps=maps;options.variant=variant;
+      options.local_players=2;options.mute=true;options.selected_profiles=launch.selected_profiles;
+      options.input_instances=launch.input_instances;
+      options.source_object_savegame_directory=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/("global-"+name);
+      select_multiplayer_mode_authority(options);MultiplayerPreparedWorld prepared(options);
+      need(prepared.source_objects && prepared.source_objects->owns_physics() &&
+          prepared.match.source_engine_owned()!=custom,"Global camouflage lost its selected native mechanical frame owner");
+      auto &match=prepared.match;auto &objects=*prepared.source_objects;auto &world=objects.tu15_world();
+      need(source_game_variant_get(mechanical_settings(world),21)==int(enabled),
+          "Native mechanical variant lost its declared global camouflage input");
+      const auto slot=prepared.local_slots.front(),player=match.player(slot).source_datum,unit=match.player(slot).source_current_object;
+      need(player!=null_datum && unit!=null_datum,"Global camouflage has no genuine initial player/unit generations");
+      const DatumPool players(world.memory(),world.source_player_pool());
+      const DatumPool headers(world.memory(),world.source_object_pool());
+      const auto pool=Bytes(world.memory().view(world.source_player_pool(),0x4cu));
+      const auto player_row=pool.u32(0x44u)+(player&65535u)*pool.u32(0x24u),timer=player_row+0x198u;
+      need(!players.lookup(player).empty() && !headers.lookup(unit).empty(),"Global camouflage full source generations are absent");
+      std::array<std::uint64_t,2> frame_calls{},refresh_calls{},postpass_calls{};
+      std::vector<bool> refresh_stack;
+      std::uint64_t grant_stores{};nlohmann::json grants=nlohmann::json::array();
+      SourcePhysicsEntryObserverBinding entries(world.memory(),[&](bool entering,std::uint32_t owner,const SourcePhysicsWorldRuntimeAbi &abi) {
+        if(owner==0x15eba0u)++frame_calls[entering?0:1];
+        if(owner==0x1503d0u)++postpass_calls[entering?0:1];
+        if(owner==0x15dc90u) {
+          if(entering){const bool selected=abi.gp[6]==player;refresh_stack.push_back(selected);if(selected)++refresh_calls[0];}
+          else {need(!refresh_stack.empty(),"Native camouflage refresh returned without its entry");
+            if(refresh_stack.back())++refresh_calls[1];refresh_stack.pop_back();}
+        }
+      });
+      world.observe_physics_stores_read_only([&](std::uint32_t pc,const auto &store) {
+        // 154BD0 is an internal direct child of generated15DC90. Its exact
+        // selected-player timer store witnesses execution without pretending
+        // it reenters the public entry/return observer boundary.
+        if((pc!=0x154c14u && pc!=0x154c0eu) || store.address!=timer)return;
+        need(store.written.size()==2,"Native camouflage grant changed its original timer store width");
+        ++grant_stores;if(grants.size()<8)grants.push_back({{"instruction",pc},{"before",Bytes(store.before).u16(0)},
+            {"after",Bytes(store.written).u16(0)}});
+      });
+      struct Cleanup {PhysicsLiveWorldTu15 &world;~Cleanup(){world.observe_physics_stores_read_only({});}} cleanup{world};
+      bool active{},inactive=true;
+      for(unsigned tick=0;tick<30;++tick) {
+        match.step({});
+        need(match.player(slot).source_datum==player && match.player(slot).source_current_object==unit &&
+            !players.lookup(player).empty() && !headers.lookup(unit).empty() && objects.object_vitality(unit).body>0,
+            "Global camouflage fixture lost its living native player/unit generation");
+        const Bytes raw_player(std::as_bytes(players.lookup(player)));
+        need(raw_player.u32(0x2cu)==unit,"Global camouflage readback is not the native player's current full unit generation");
+        const auto ticks=std::bit_cast<std::int16_t>(raw_player.u16(0x198u));
+        const auto body=world.source_object_body(unit);const Bytes raw_body(world.memory().view(body+0x2b0u,12));
+        const auto primary=raw_body.f32(0),secondary=raw_body.f32(4),fade=raw_body.f32(8);
+        need(std::isfinite(primary) && std::isfinite(secondary) && std::isfinite(fade),"Native global camouflage fade became nonfinite");
+        const auto state=match.state();const auto &adopted=state.players.at(slot).source_camouflage;
+        need(match.player(slot).source_powerup_timers[0]==ticks &&
+            std::bit_cast<std::uint32_t>(adopted.primary)==raw_body.u32(0) &&
+            std::bit_cast<std::uint32_t>(adopted.secondary)==raw_body.u32(4) &&
+            std::bit_cast<std::uint32_t>(adopted.fade_speed)==raw_body.u32(8),
+            "Global camouflage completed native timers/body fade differ from their adopted view");
+        active=active || (ticks>0 && primary>0.f);inactive=inactive && ticks==0 && primary==0.f;
+        result["samples"].push_back({{"tick",state.tick},{"timer",ticks},{"primary",primary},{"secondary",secondary},{"fade_speed",fade}});
+      }
+      result.update({{"source_player",player},{"source_unit",unit},{"native_frame_entries_returns",frame_calls},
+          {"selected_refresh_entries_returns",refresh_calls},{"native_postpass_entries_returns",postpass_calls},
+          {"selected_native154BD0_timer_stores",grant_stores},{"grant_store_examples",grants}});
+      need(refresh_stack.empty() && postpass_calls[0]>0 && postpass_calls[0]==postpass_calls[1] &&
+          (custom?(refresh_calls[0]>0 && refresh_calls[0]==refresh_calls[1]):(frame_calls[0]>0 && frame_calls[0]==frame_calls[1])),
+          "Global camouflage did not complete its selected genuine frame/refresh/postpass owners");
+      need(enabled?(active && grant_stores>0):(inactive && grant_stores==0),
+          "Global camouflage flag did not select its original grant/timer/body fade behavior");
+      if(custom && enabled) {
+        const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(options.map,maps,0,
+            prepared.network_starting_weapon_identity()),variant);
+        LanHost host(match,0,fingerprint,variant,options.map.stem().string());
+        const auto description=query_lan_session(host.join_address());
+        need(description.fingerprint==fingerprint && description.variant.values==variant.values &&
+            source_game_variant_get(source_game_variant(description.variant),21)==1,
+            "Global camouflage LAN discovery changed its actual custom variant flag");
+        const std::array<std::uint8_t,9> appearance{};
+        const std::array<SourcePlayerConfiguration,1> profiles{
+            native_selected_player_configuration("Camouflage Peer",appearance,0)};
+        LanClient client(host.join_address(),fingerprint,1,{},profiles);
+        std::array<Controls,multiplayer_capacity> controls{};std::array<Controls,1> input{};
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+        while(!client.ready()) {
+          client.send(input);host.receive(controls);host.broadcast();client.receive();
+          need(client.error().empty(),"Global camouflage LAN admission failed: "+client.error());
+          need(std::chrono::steady_clock::now()<deadline,"Global camouflage LAN admission timed out");
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        nlohmann::json snapshots=nlohmann::json::array();
+        for(unsigned tick=0;tick<5;++tick) {
+          client.send(input);host.receive(controls);match.step(controls);host.broadcast();client.receive();
+          const auto authority=match.state();const auto &received=client.state();
+          const auto &sent=authority.players.at(slot),&decoded=received.players.at(slot);
+          const auto raw=Bytes(std::as_bytes(players.lookup(player)));
+          const auto timer_value=std::bit_cast<std::int16_t>(raw.u16(0x198u));
+          need(raw.u32(0x2cu)==unit && !headers.lookup(unit).empty(),
+              "LAN camouflage readback lost the selected current native unit generation");
+          const Bytes source_fade(world.memory().view(world.source_object_body(unit)+0x2b0u,12));
+          need(client.error().empty() && received.tick==authority.tick && sent.source_player==player &&
+              sent.source_unit==unit && decoded.source_player==player && decoded.source_unit==unit &&
+              timer_value>0 && match.player(slot).source_powerup_timers[0]==timer_value && sent.source_camouflage.primary>0.f &&
+              std::bit_cast<std::uint32_t>(sent.source_camouflage.primary)==source_fade.u32(0) &&
+              std::bit_cast<std::uint32_t>(sent.source_camouflage.secondary)==source_fade.u32(4) &&
+              std::bit_cast<std::uint32_t>(sent.source_camouflage.fade_speed)==source_fade.u32(8) &&
+              std::bit_cast<std::uint32_t>(decoded.source_camouflage.primary)==std::bit_cast<std::uint32_t>(sent.source_camouflage.primary) &&
+              std::bit_cast<std::uint32_t>(decoded.source_camouflage.secondary)==std::bit_cast<std::uint32_t>(sent.source_camouflage.secondary) &&
+              std::bit_cast<std::uint32_t>(decoded.source_camouflage.fade_speed)==std::bit_cast<std::uint32_t>(sent.source_camouflage.fade_speed),
+              "Actual LAN decode changed the current native actor's completed camouflage fade bits");
+          snapshots.push_back({{"tick",received.tick},{"source_player",player},{"source_unit",unit},
+              {"native_host_timer",timer_value},{"decoded_primary",decoded.source_camouflage.primary},
+              {"decoded_secondary",decoded.source_camouflage.secondary},{"decoded_fade_speed",decoded.source_camouflage.fade_speed}});
+        }
+        const auto &received=client.state();const auto origins=client.received_origins();
+        need(!origins.empty() && origins.back().tick()==received.tick && origins.back().encoded_body_bytes()>0 &&
+            received.source_body_poses_authoritative && received.source_scene_roots_authoritative,
+            "Global camouflage LAN state lost its authenticated source snapshot origin");
+        auto replica_options=options;replica_options.host_port=0;replica_options.join=host.join_address();
+        replica_options.local_players=1;replica_options.selected_profiles.assign(profiles.begin(),profiles.end());
+        replica_options.selected_teams.clear();replica_options.input_instances={-1};replica_options.variant=description.variant;
+        select_multiplayer_mode_authority(replica_options);MultiplayerPreparedWorld replica(replica_options);
+        need(!replica.source_objects && replica.local_slots.empty() && replica.rules.custom==CustomSlayer::fiesta &&
+            replica.match.session_configuration() &&
+            source_game_variant_get(source_game_variant(*replica.match.session_configuration()),21)==1 &&
+            std::ranges::none_of(replica.match.state().players,[](const auto &participant){return participant.connected;}),
+            "Global camouflage replica created physical authority/local units or lost its source flag");
+        replica.match.replicate_devices(received.devices);
+        replica.match.replicate_source_scene(received.source_scene_roots,received.source_body_poses);
+        replica.match.replicate_prop_removals(received.prop_removals);replica.match.replicate_prop_regions(received.prop_regions);
+        const auto &scene=replica.match.simulation().scene();
+        need(scene.source_replica() && scene.objects().size()==received.source_scene_roots.size(),
+            "Global camouflage replica did not consume the actual decoded source scene");
+        for(const auto &root:received.source_scene_roots) {
+          const auto &object=scene.get(root.object);
+          need(object.placement==root.placement && object.solved_transform &&
+              std::bit_cast<std::array<std::uint32_t,3>>(object.position)==
+                  std::bit_cast<std::array<std::uint32_t,3>>(root.transform.position),
+              "Global camouflage replica changed a decoded full generation/placement/pose");
+        }
+        const auto replica_tick=replica.match.state().tick;bool refused{};
+        try {replica.match.step({});}
+        catch(const FormatError &error){refused=std::string_view(error.what())=="Source replica cannot advance a locally invented physical world";}
+        need(refused && replica.match.state().tick==replica_tick && !replica.source_objects,
+            "Global camouflage replica advanced an invented native authority or timer");
+        result["lan_replica"]={{"passed",true},{"decoded_samples",snapshots},{"additional_native_host_ticks",5},
+            {"source_origin_bytes",origins.back().encoded_body_bytes()},{"applied_source_roots",received.source_scene_roots.size()},
+            {"replica_no_world_or_local_units",true},{"replica_step_refused",true},
+            {"scope","Host native timer is read-only source evidence. The wire carries only three completed body camouflage floats; decoded bits match, and the replica never simulates timers."}};
+      }
+      result["passed"]=true;
+    }catch(const std::exception &error){result["error"]=error.what();}
+  }
+  // Keep the historical synthetic adapter refusing this unsupported mechanic.
+  // It has no native bank, current player allocation or original fade owner.
+  try {
+    LevelContent synthetic;synthetic.player.datum=1;synthetic.player.vitality.health=100;
+    synthetic.player.height=1;synthetic.player.crouch_height=.6f;synthetic.player.radius=.2f;
+    synthetic.player.camera_height=.8f;synthetic.player.crouch_camera_height=.5f;
+    WeaponDefinition weapon;weapon.datum=3;weapon.capacity=20;weapon.initial_rounds=20;synthetic.weapons.emplace(3,weapon);
+    auto variant=launch.variant;variant.values.set(21,1);auto rules=slayer_rules(variant);rules.weapon=3;
+    const std::array<Spawn,1> starts{};bool refused{};
+    try {MultiplayerMatch unsupported(synthetic,0,starts,rules);}
+    catch(const FormatError &error){refused=std::string_view(error.what())=="Global camouflage requires its original timer, fade and render consumers";}
+    need(refused,"Synthetic custom adapter admitted global camouflage without its native owners");
+    report["synthetic_adapter_refusal"]={{"passed",true}};
+  }catch(const std::exception &error){report["synthetic_adapter_refusal"]={{"passed",false},{"error",error.what()}};}
+  report["passed"]=report["synthetic_adapter_refusal"]["passed"].get<bool>() &&
+      std::ranges::all_of(report["cases"],[](const auto &item){return item["passed"].template get<bool>();});
+  return report;
+}
 nlohmann::json lifecycle(MultiplayerPreparedWorld &prepared,const std::vector<Vec3> &canonical) {
   auto &match=prepared.match;auto &objects=*prepared.source_objects;auto &world=objects.tu15_world();
   const auto variant=*match.session_configuration();const auto kind=custom_slayer(variant);
@@ -584,13 +885,22 @@ nlohmann::json exercise(const FrontendContent &content,unsigned preset,unsigned 
 }
 }
 int main(int argc,char **argv)try {
-  need(argc==3 || (argc==4 && (std::string_view(argv[3])=="zero-delay" || std::string_view(argv[3])=="defusal-loadout")),
-      "Supply MCC_MAPS REPORT [zero-delay|defusal-loadout]");const std::filesystem::path maps=argv[1];
+  need(argc==3 || (argc==4 && (std::string_view(argv[3])=="zero-delay" || std::string_view(argv[3])=="defusal-loadout" ||
+      std::string_view(argv[3])=="infection-pickups" || std::string_view(argv[3])=="custom-camouflage")),
+      "Supply MCC_MAPS REPORT [zero-delay|defusal-loadout|infection-pickups|custom-camouflage]");const std::filesystem::path maps=argv[1];
   if(!std::filesystem::is_regular_file(maps/"mainmenu.map"))return 77;
   need(std::getenv("HALO2_TEST_SCRATCH"),"Custom mechanics requires tools/run_test.py owned scratch");
   Cache cache(maps/"mainmenu.map");need(cache.is_mcc(),"Custom mechanics requires genuine MCC maps");
   const auto content=cache.load_frontend();nlohmann::json report={{"passed",false},{"cases",nlohmann::json::array()}};
   if(argc==4) {
+    if(std::string_view(argv[3])=="custom-camouflage") {
+      const auto fiesta=std::ranges::find_if(content.bundled_variants,[](const auto &variant){return custom_slayer(variant)==CustomSlayer::fiesta;});
+      need(fiesta!=content.bundled_variants.end(),"Global camouflage control lacks its actual bundled Fiesta definition");
+      report["diagnostic_only"]=true;report["case"]="custom-camouflage";
+      report["custom_camouflage_controls"]=custom_camouflage(content,unsigned(fiesta-content.bundled_variants.begin()),maps);
+      report["passed"]=report["custom_camouflage_controls"]["passed"];
+      std::ofstream(argv[2])<<report.dump(2)<<'\n';std::cout<<report.dump()<<'\n';return report["passed"].get<bool>()?0:1;
+    }
     if(std::string_view(argv[3])=="defusal-loadout") {
       const auto defusal=std::ranges::find_if(content.bundled_variants,bomb_defusal_variant);
       need(defusal!=content.bundled_variants.end(),"Defusal diagnostic lacks the real bundled profile");
@@ -603,6 +913,12 @@ int main(int argc,char **argv)try {
       return custom_slayer(variant)==CustomSlayer::infection;
     });
     need(infection!=content.bundled_variants.end(),"Zero-delay diagnostic lacks the real bundled Infection profile");
+    if(std::string_view(argv[3])=="infection-pickups") {
+      report["diagnostic_only"]=true;report["case"]="infection-pickups";
+      report["infection_pickup_controls"]=infection_pickups(content,unsigned(infection-content.bundled_variants.begin()),maps);
+      report["passed"]=report["infection_pickup_controls"]["passed"];
+      std::ofstream(argv[2])<<report.dump(2)<<'\n';std::cout<<report.dump()<<'\n';return report["passed"].get<bool>()?0:1;
+    }
     report["diagnostic_only"]=true;report["case"]="zero-delay-infection4";
     try {report["zero_delay_infection_control"]=zero_delay_infection(content,unsigned(infection-content.bundled_variants.begin()),maps);report["passed"]=true;}
     catch(const std::exception &error) {report["error"]=error.what();}
@@ -677,6 +993,10 @@ int main(int argc,char **argv)try {
   need(infection!=content.bundled_variants.end(),"Zero-delay source control lacks the real bundled Infection profile");
   try {report["zero_delay_infection_control"]=zero_delay_infection(content,unsigned(infection-content.bundled_variants.begin()),maps);}
   catch(const std::exception &error) {++failures;report["zero_delay_infection_control"]={{"passed",false},{"error",error.what()}};}
+  report["infection_pickup_controls"]=infection_pickups(content,unsigned(infection-content.bundled_variants.begin()),maps);
+  if(!report["infection_pickup_controls"]["passed"].get<bool>())++failures;
+  report["custom_camouflage_controls"]=custom_camouflage(content,unsigned(fiesta-content.bundled_variants.begin()),maps);
+  if(!report["custom_camouflage_controls"]["passed"].get<bool>())++failures;
   report["passed"]=failures==0;std::ofstream(argv[2])<<report.dump(2)<<'\n';
   std::cout<<report.dump()<<'\n';return failures?1:0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

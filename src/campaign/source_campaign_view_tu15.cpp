@@ -150,6 +150,25 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
     // context pointer unset until this publication.
     const std::uint32_t main_context=0x556e18u;
     world.write_source_call_input(0x4cd3a0u,std::as_bytes(std::span(&main_context,1)));
+    // 1BE90 divides the shader level multipliers by the physical view height,
+    // and 2CBF0's coverage byte saturates at 1020 physical pixels. When this
+    // view's coverage is measured in the original 640x480 layout instead,
+    // the native collector's own multipliers (492348..492360, read by its
+    // level selection) must use the same height, or its commands and this
+    // owner's passes select different levels.
+    const std::int32_t physical_shader_height=std::int32_t(input.viewport[2])-std::int32_t(input.viewport[0]);
+    // 1BE90 runs again inside source_live_shadow_main_inputs_tu15 below, so
+    // the values are published both before BSP collection and after it.
+    const auto publish_shader_multipliers=[&] {
+        if(input.source_shader_height<=0 || input.source_shader_height==physical_shader_height)return;
+        const float height=float(input.source_shader_height);
+        const auto auxiliary=Bytes(memory.view(0x51df50u,4)).u32(0);
+        const bool cinematic=auxiliary && memory.view(auxiliary+5u,1)[0]!=std::byte{};
+        const float unit=1.f/height,zero=0.f/height;
+        const std::array<float,7> multipliers{unit,zero,zero,2.f/height,4.f/height,zero,cinematic?unit*2.f:unit};
+        world.write_source_call_input(0x492348u,std::as_bytes(std::span(multipliers)));
+    };
+    publish_shader_multipliers();
     const auto draw_context=Bytes(memory.view(0x4cd3a0u,4)).u32(0);
     const auto draw_mode=Bytes(memory.view(draw_context+0x2a78u,4)).u32(0);
     source_draw_units_begin(frame.units,draw_mode);source_bsp_range_arena_begin(frame.units.arena);
@@ -160,14 +179,16 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         NativeTu15PhysicsFrameFp fp{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
         auto services=source_draw_resource_services_tu15(world,fp);resources.services=&services;
         source_bsp_collect_draw_units(frame.units,frame.bsp,resources,
-            {draw_mode,0x71000000u,0,fog,source_shader_coverage_camera(input.rendering)});
+            {draw_mode,0x71000000u,0,fog,source_shader_coverage_camera(input.rendering,
+                std::int32_t(input.viewport[2])-std::int32_t(input.viewport[0]),input.source_shader_height)});
     }
     SourceLiveModelDrawContextTu15 context;
     context.entry.mode=context.draw.draw.mode=draw_mode;
     context.entry.eye=context.draw.eye=input.eye;context.forward=input.forward;
     context.entry.distance_scale=input.distance_scale;
     context.entry.coverage_multiplier=input.coverage_multiplier;
-    context.entry.coverage=source_shader_coverage_camera(input.rendering);
+    context.entry.coverage=source_shader_coverage_camera(input.rendering,
+        std::int32_t(input.viewport[2])-std::int32_t(input.viewport[0]),input.source_shader_height);
     context.entry.flags={0,std::int32_t(fog.classification),fog.planar_datum,
         fog.eye_fraction,fog.planar_only,std::uint8_t(fog.planar_flags)};
     context.draw.rendering=input.rendering;context.draw.viewport=input.viewport;
@@ -181,6 +202,7 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         frame.built.insert_or_assign(Bytes(collector.bytes).u32(0),collector);
     };
     source_live_shadow_main_inputs_tu15(world,context);
+    publish_shader_multipliers();
     if(consume_particles)world.call_actual(0xc35d0u);
     source_live_model_draws_tu15(world,frame.objects,frame.units,context);
     frame.base_draws=selected.copy(world,frame.units);

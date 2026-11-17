@@ -3,15 +3,96 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/mcc_sound_class_reference.hpp"
+#include "halo2/world_material.hpp"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <bit>
+#include <cstdlib>
 #include <iostream>
 #include <set>
 using namespace halo2;
 using Json=nlohmann::json;
+namespace {
+Json armory_prop_cases(const std::filesystem::path &maps,unsigned &failures) {
+    Cache cache(maps/"01a_tutorial.map");
+    const auto content=cache.load_content(0,false);
+    Json cases=Json::array();
+    std::optional<std::uint32_t> scenery_cart_model,prop_cart_model;
+    for(const auto &[type,name]:std::array<std::pair<int,const char*>,4>{{
+        {11,"objects\\gear\\human\\military\\case\\case"},
+        {11,"objects\\gear\\human\\military\\drum_12gal\\drum_12gal"},
+        {11,"objects\\cinematics\\human\\equipment_cart\\equipment_cart"},
+        {6,"objects\\cinematics\\human\\equipment_cart\\equipment_cart"}}}) {
+        Json row={{"name",name},{"type",type},{"passed",false}};
+        try {
+            const auto tag=cache.query_tag({.group=TagGroup{type==11?"bloc":"scen"},.name=name,.require_address=true});
+            if(!tag)throw FormatError("Actual Armory prop definition missing");
+            const auto placement=std::ranges::find_if(content.objects,[&](const auto &p){return p.type==type && p.definition==tag->datum;});
+            if(placement==content.objects.end())throw FormatError("Actual Armory prop placement missing");
+            const auto initial=cache.load_initial_model_definition(tag->datum);
+            row["definition"]=tag->datum;row["render_model"]=initial.render_model;
+            row["placement"]=placement->placement;
+            if(std::string_view(name).ends_with("equipment_cart"))
+                (type==6?scenery_cart_model:prop_cart_model)=initial.render_model;
+            auto preview=cache.load_model(tag->datum,true,placement->variant);
+            row["caller_admitted"]=source_campaign_lit_scenery(preview,*placement);
+            unsigned lit_materials=0,independent_refusals=0;
+            for(auto material:preview.mesh.materials) {
+                if(material.lods.empty())continue; // Reserved/non-shader material slot.
+                const auto layers=material.lods.at(material.selected_shader_lod).available_layers;
+                if(layers&((1u<<3)|(1u<<5))) {
+                    ++lit_materials;
+                    if(!prepare_independent_object_material(cache,material))++independent_refusals;
+                }
+            }
+            row["authored_lit_materials"]=lit_materials;
+            row["independent_fallback_refusals"]=independent_refusals;
+            SourceCampaignModel model(cache,*placement);Mesh resources;
+            // Only scenery has authored per-instance baked color streams.
+            model.prepare_materials(cache,resources,type==6);
+            unsigned dynamic_passes=0;
+            row["prepared_shaders"]=Json::array();
+            for(const auto &material:resources.materials) {
+                bool dynamic=false;
+                for(const Material *pass:std::array<const Material*,2>{&material,material.environment_pass.get()})if(pass && pass->forward_pass && pass->forward_pass_index<pass->passes.size())
+                    dynamic|=pass->passes[pass->forward_pass_index].implementation==2;
+                if(dynamic)++dynamic_passes;
+                row["prepared_shaders"].push_back({{"name",material.name},{"dynamic_implementation2",dynamic}});
+            }
+            row["dynamic_implementation2_materials"]=dynamic_passes;
+            if(!lit_materials || independent_refusals!=lit_materials || !dynamic_passes)
+                throw FormatError("Actual Armory model no longer proves authored dynamic lighting versus independent preview");
+            if(!row["caller_admitted"].get<bool>())
+                throw FormatError("Actual lit Armory BLOC is routed to independent preview instead of its native model lighting units");
+            row["passed"]=true;
+        } catch(const std::exception &e) {row["error"]=e.what();++failures;}
+        std::cout<<row.dump()<<'\n';cases.push_back(std::move(row));
+    }
+    if(!scenery_cart_model || scenery_cart_model!=prop_cart_model)
+        throw FormatError("SCEN/BLOC equipment-cart positive control no longer shares the same authored model");
+    return cases;
+}
+}
 int main(int argc,char**argv)try {
-    if(argc!=3)throw FormatError("Supply prepared MCC maps and output report");
+    if(argc<3 || argc>4 || (argc==4 && std::string_view(argv[3])!="--armory-props-only"))
+        throw FormatError("Supply prepared MCC maps, output report and optional --armory-props-only");
+    const bool armory_only=argc==4;
+    if(armory_only) {
+        const auto *scratch=std::getenv("HALO2_TEST_SCRATCH");
+        if(!scratch || !std::filesystem::path(scratch).is_absolute())
+            throw FormatError("Armory material regression requires run_test.py scratch");
+#if defined(_WIN32)
+        if(_putenv_s("XDG_CACHE_HOME",scratch))throw FormatError("Could not bind owned cache snapshots");
+#else
+        if(setenv("XDG_CACHE_HOME",scratch,1))throw FormatError("Could not bind owned cache snapshots");
+#endif
+        unsigned failures=0;
+        Json report={{"scope","Actual MCC Armory resource/caller admission; live native class, lighting banks and visible pixels require separate proof"}};
+        report["cases"]=armory_prop_cases(argv[1],failures);
+        report["failures"]=failures;report["passed"]=failures==0;
+        std::ofstream(argv[2])<<report.dump(2)<<'\n';
+        return failures?1:0;
+    }
     if(!std::filesystem::is_regular_file(std::filesystem::path(argv[1])/"01b_spacestation.map"))return 77;
     Json report={{"cases",Json::array()}};unsigned failures=0,checked=0,sound_namespaces=0;
     const std::set<std::string> leaves{"main_forward_view","scarab_leg_shell","scarab_big_turrets",

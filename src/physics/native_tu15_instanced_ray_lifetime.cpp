@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_instanced_ray_lifetime.hpp"
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include <stdexcept>
 namespace halo2 {
 namespace {
@@ -7,7 +8,7 @@ class Memory {
 public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):m_(m),o_(o){}
     std::uint32_t word(std::uint32_t p,unsigned width=4)const{std::array<std::byte,4>b{};m_.read(p,std::span(b).first(width));std::uint32_t n{};for(unsigned k=0;k<width;++k)n|=std::to_integer<unsigned>(b[k])<<(k*8u);return n;}
-    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(k*8u));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(o_){e.before.resize(width);m_.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m_.write(p,std::span(b).first(width));if(o_)o_(e);}
+    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(k*8u));SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m_,o_,pc,p,width);if(observed){e.before.resize(width);m_.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m_.write(p,std::span(b).first(width));if(observed)o_(e);}
 };
 }
 void native_tu15_reference_instanced_mopp_code(SourcePhysicsContactMemory&memory,std::uint32_t code,

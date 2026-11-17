@@ -15,7 +15,7 @@ inline bool reference_mode() {
 // EraseEdges and Reindex supply the two native packed-edge kernels.
 template<class State,class Call,class EraseEdges,class Reindex>
 bool run(State &s,Call call,EraseEdges erase_edges,Reindex reindex) {
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x2ec9b0u,0x2ecf67u))return false;
     ++activity().removals;
     auto &g=s.gp;
     const auto at=[&](std::uint32_t pc){if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;};

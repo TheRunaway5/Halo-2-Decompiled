@@ -168,6 +168,10 @@ void detach_actor(SourcePhysicsContactMemory &m,std::uint32_t clump,std::uint32_
     }
 }
 }
+void native_campaign_ai_clump_detach_actor_tu15(SourcePhysicsContactMemory &m,
+        std::uint32_t clump,std::uint32_t actor) {
+    detach_actor(m,clump,actor);
+}
 void native_campaign_ai_perception_group_retirement_tu15(SourcePhysicsContactMemory &m,
         std::uint32_t clump,std::uint32_t group,const NativeCampaignAiReferenceInvalidationServiceTu15 &service) {
     retire_group(m,clump,group,service);

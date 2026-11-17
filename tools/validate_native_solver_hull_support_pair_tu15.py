@@ -8,6 +8,7 @@ supplied. The16B transformed direction has an independent native DATA lifetime.
 import copy,inspect,struct
 from pathlib import Path
 import validate_native_solver_hull_append_tu15 as parent
+from native_solver_hull_support_pair_legacy_mutants import retarget_pair_mutants
 base=parent.base;ROOT=Path(__file__).resolve().parents[1]
 ORIGINAL_OBSERVER=base.observer_source
 def pair_observer_source():
@@ -51,5 +52,6 @@ def main():
  source=source.replace('"units=()"','"units=(\'native_tu15_contact_shape.cpp\',)"')
  source=source.replace(" source=source.replace('complete_body",''' source=source.replace("      if e['instruction']in seen:continue","      if not(0x313390<=e['instruction']<0x313470):continue\\n      if e['instruction']in seen:continue").replace("for n,e in enumerate(seed['writes']):","for n,e in enumerate(seed['writes']):\\n     if not(0x313390<=e['instruction']<0x313470):continue")
  source=source.replace('complete_body''')
- environment=dict(parent.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__);exec(source,environment);return environment['main']()
+ source=source.replace('environment=dict(base.__dict__,driver_source=driver_source,__doc__=__doc__);exec(source,environment)','source=retarget_pair_mutants(source);environment=dict(base.__dict__,driver_source=driver_source,__doc__=__doc__);exec(source,environment)',1)
+ environment=dict(parent.__dict__,cases=cases,driver_source=driver_source,retarget_pair_mutants=retarget_pair_mutants,__doc__=__doc__);exec(source,environment);return environment['main']()
 if __name__=='__main__':raise SystemExit(main())

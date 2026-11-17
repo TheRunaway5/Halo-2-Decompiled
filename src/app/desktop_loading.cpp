@@ -4,6 +4,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/vista_loading_thread.hpp"
 #include <SDL_vulkan.h>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <exception>
@@ -32,14 +33,14 @@ public:
   }
   ~DesktopLoadingBridge(){cancel();}
   void source_wait_assets(const GameplayFontSource& source) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(current_ || pending_ || snapshot_.active || worker_.joinable())
       throw FormatError("Source loading wait must be configured before its first renderer");
     if(source_wait_presentation_)throw FormatError("Source loading wait is already configured");
     source_wait_presentation_.emplace(source);
   }
   void network_transition_assets(std::shared_ptr<FrontendNetworkTransitionPainter> painter) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(current_ || pending_ || snapshot_.active || worker_.joinable())
       throw FormatError("Network transition dialog must be configured before its first renderer");
     if(transition_presentation_)throw FormatError("Network transition dialog is already configured");
@@ -47,18 +48,18 @@ public:
     transition_presentation_=std::move(painter);
   }
   void network_transition_status(FrontendNetworkTransitionStatus status) {
-    std::lock_guard lock(mutex_);transition_status_=status;
+    auto lock=control_lock();transition_status_=status;
     if(transition_active_ && snapshot_.active)snapshot_.network_transition=status;
   }
 
   std::shared_ptr<Renderer> make_renderer(SDL_Window *window,Mesh& mesh,bool validation,
       std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,
       const std::filesystem::path &shader_directory,
-      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials) {
+      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials,const Cache *scene_cache) {
     unsigned base{},source_base{},transition_base{};
     std::shared_ptr<Renderer> previous;
     {
-      std::lock_guard lock(mutex_);rethrow();
+      auto lock=control_lock();rethrow();
       if(!window || (window_ && window_!=window))throw FormatError("loading bridge window changed");
       window_=window;
       if(pending_)throw FormatError("a loading renderer handoff is already pending");
@@ -86,14 +87,14 @@ public:
     // The old device remains usable throughout new texture/geometry uploads.
     // Presentation transfer occurs immediately before the new swapchain.
     auto renderer=std::make_shared<Renderer>(window_,mesh,validation,shadows,bsp,[this] {
-      std::lock_guard lock(mutex_);rethrow();
+      auto lock=control_lock();rethrow();
       if(current_) {
         current_->release_presentation();
         retired_=std::move(current_);
       }
-    },previous.get(),shader_directory,raw_shadow_materials);
+    },previous.get(),shader_directory,raw_shadow_materials,scene_cache);
     {
-      std::lock_guard lock(mutex_);rethrow();
+      auto lock=control_lock();rethrow();
       pending_=renderer;pending_base_=base;pending_source_base_=source_base;
       pending_transition_base_=transition_base;
     }
@@ -103,7 +104,7 @@ public:
   void ready(const std::shared_ptr<Renderer>& renderer) {
     bool finish{},source_wait{};
     {
-      std::lock_guard lock(mutex_);rethrow();
+      auto lock=control_lock();rethrow();
       if(!renderer || renderer!=pending_)
         throw FormatError("loading handoff does not name its prepared renderer");
       finish=snapshot_.active;
@@ -126,7 +127,7 @@ public:
       // then the loader stops submitting. Source bootstrap may update images
       // and material buffers before its first world draw; it cannot race a
       // second queue/debug-buffer owner. The last loading surface stays up.
-      std::unique_lock lock(mutex_);
+      auto lock=control_lock();
       condition_.wait(lock,[this]{return cancelled_ || failure_ || source_wait_quiesced_;});
       rethrow();
     }
@@ -134,7 +135,7 @@ public:
   }
 
   void begin(bool source_wait=false,std::optional<FrontendNetworkTransitionStatus> transition={}) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(snapshot_.active || worker_.joinable())
       throw FormatError("Vista loading thread is already active");
     if(!current_ || pending_)
@@ -203,7 +204,7 @@ public:
 
   void join_with_fade() {
     {
-      std::lock_guard lock(mutex_);
+      auto lock=control_lock();
       if(!snapshot_.active){rethrow();return;}
       if(!failure_) {
         if(!current_ || pending_)throw FormatError("Vista loading fade requires the prepared presentation owner");
@@ -219,7 +220,7 @@ public:
     // The original joins its graphics thread after fade begin. There is no
     // estimated map duration, fixed loading dwell, or synthetic completion.
     if(worker_.joinable())worker_.join();
-    std::lock_guard lock(mutex_);snapshot_.active=false;capture_.clear();
+    auto lock=control_lock();snapshot_.active=false;capture_.clear();
     //66A0AB shuts down the independent ambience after the graphics join,
     // including a native presentation failure. Preserve the first failure.
     try{end_audio();}catch(...){if(!failure_)failure_=std::current_exception();}
@@ -230,30 +231,30 @@ public:
 
   void cancel() noexcept {
     {
-      std::lock_guard lock(mutex_);cancelled_=true;condition_.notify_all();
+      auto lock=control_lock();cancelled_=true;condition_.notify_all();
     }
     if(worker_.joinable())worker_.join();
-    std::lock_guard lock(mutex_);snapshot_.active=false;capture_.clear();
+    auto lock=control_lock();snapshot_.active=false;capture_.clear();
     try{end_audio();}catch(...){if(!failure_)failure_=std::current_exception();}
   }
   DesktopLoadingSnapshot snapshot() const {
-    std::lock_guard lock(mutex_);return snapshot_;
+    auto lock=control_lock();return snapshot_;
   }
   bool source_wait_configured() const {
-    std::lock_guard lock(mutex_);return bool(source_wait_presentation_);
+    auto lock=control_lock();return bool(source_wait_presentation_);
   }
   bool vista_configured() const {
-    std::lock_guard lock(mutex_);return bool(presentation_);
+    auto lock=control_lock();return bool(presentation_);
   }
   bool source_wait_active() const {
-    std::lock_guard lock(mutex_);return snapshot_.active && source_wait_active_;
+    auto lock=control_lock();return snapshot_.active && source_wait_active_;
   }
   bool network_transition_configured() const {
-    std::lock_guard lock(mutex_);return bool(transition_presentation_);
+    auto lock=control_lock();return bool(transition_presentation_);
   }
   void capture(const std::filesystem::path& path) {
     if(path.empty())throw FormatError("loading capture path is empty");
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(!snapshot_.active)throw FormatError("no active loading frame to capture");
     if(source_wait_active_ && source_wait_quiesced_)
       throw FormatError("Source loading capture must be queued before next-renderer admission");
@@ -261,12 +262,12 @@ public:
     capture_=path;condition_.notify_all();
   }
   void gain_service(std::function<void(std::uint32_t)> service) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(snapshot_.active)throw FormatError("loading gain service must be bound before loading");
     audio_.gain=std::move(service);
   }
   void audio_services(DesktopLoadingAudioServices services) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(snapshot_.active || worker_.joinable() || audio_active_)
       throw FormatError("loading audio services must be bound before loading");
     if(!services.begin || !services.gain || !services.end)
@@ -274,7 +275,7 @@ public:
     audio_=std::move(services);
   }
   void transition_audio_services(DesktopNetworkTransitionAudioServices services) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(snapshot_.active || worker_.joinable() || transition_audio_active_)
       throw FormatError("Network transition audio must be bound before loading");
     if(!services.begin || !services.update || !services.end)
@@ -282,13 +283,26 @@ public:
     transition_audio_=std::move(services);
   }
   void update_service(std::function<void()> service) {
-    std::lock_guard lock(mutex_);rethrow();
+    auto lock=control_lock();rethrow();
     if(snapshot_.active || worker_.joinable())
       throw FormatError("Loading update service must be bound before loading");
     update_=std::move(service);
   }
 
 private:
+  std::unique_lock<std::mutex> control_lock() const {
+    // A fast loading surface may never block at FIFO presentation. Advertise
+    // the control caller before contending for the frame mutex so the worker
+    // yields its next frame boundary to an actual waiting owner.
+    control_waiters_.fetch_add(1,std::memory_order_release);
+    std::unique_lock<std::mutex> lock(mutex_,std::defer_lock);
+    try {lock.lock();}
+    catch(...) {
+      control_waiters_.fetch_sub(1,std::memory_order_release);condition_.notify_all();throw;
+    }
+    control_waiters_.fetch_sub(1,std::memory_order_release);condition_.notify_all();
+    return lock;
+  }
   void start_completion_locked() {
     if(source_wait_active_)return;
     if(!snapshot_.active || completion_started_ || failure_)return;
@@ -337,6 +351,7 @@ private:
   void source_wait_loop() {
     for(;;) {
       std::unique_lock lock(mutex_);
+      condition_.wait(lock,[this]{return control_waiters_.load(std::memory_order_acquire)==0;});
       // The admitted surface may be quiescent during first-frame bootstrap.
       // Sound-class fades keep their independent wall clock in that interval.
       condition_.wait_for(lock,std::chrono::milliseconds(16),[this]{return cancelled_ || (current_ &&
@@ -373,7 +388,7 @@ private:
       }
       lock.unlock();
       // Original12E200's wait yields then presents/vblanks. Native FIFO owns
-      // actual frame pacing; this is cooperative scheduling, not a dwell.
+      // pacing; control admission above also works when FIFO does not block.
       std::this_thread::yield();
     }
   }
@@ -383,7 +398,8 @@ private:
   std::shared_ptr<FrontendNetworkTransitionPainter> transition_presentation_;
   std::vector<Vertex> transition_vertices_;
   mutable std::mutex mutex_;
-  std::condition_variable condition_;
+  mutable std::atomic<unsigned> control_waiters_{};
+  mutable std::condition_variable condition_;
   std::thread worker_;
   std::shared_ptr<Renderer> current_,pending_,retired_;
   unsigned current_base_{},pending_base_{};
@@ -445,10 +461,10 @@ void DesktopSession::network_transition_status(FrontendNetworkTransitionStatus s
 std::shared_ptr<Renderer> DesktopSession::make_renderer(Mesh& mesh,bool validation,
     std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,
       const std::filesystem::path &shader_directory,
-      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials) {
+      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials,const Cache *scene_cache) {
   if(!window_)throw FormatError("renderer requires the desktop window");
-  auto renderer=loading_?loading_->make_renderer(window_,mesh,validation,shadows,bsp,shader_directory,raw_shadow_materials):
-      std::make_shared<Renderer>(window_,mesh,validation,shadows,bsp,std::function<void()>{},nullptr,shader_directory,raw_shadow_materials);
+  auto renderer=loading_?loading_->make_renderer(window_,mesh,validation,shadows,bsp,shader_directory,raw_shadow_materials,scene_cache):
+      std::make_shared<Renderer>(window_,mesh,validation,shadows,bsp,std::function<void()>{},nullptr,shader_directory,raw_shadow_materials,scene_cache);
   renderer->share_display_settings(display_settings);
   return renderer;
 }

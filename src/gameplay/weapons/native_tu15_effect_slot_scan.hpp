@@ -2,14 +2,24 @@
 #include "halo2/native_tu15_bitmap_scan_kernel.hpp"
 #include "halo2/native_weapon_effect_birth_color_observer.hpp"
 #include "halo2/physics_world_runtime.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include <cstdlib>
 
 namespace halo2::native_effect_slot_scan_detail {
 inline bool reference_mode() {
     static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_EFFECT_SLOT_SCAN");return p&&*p;}();return enabled;
 }
+// HALO2_CENSUS_NATIVE_BRIDGES: full census callbacks without a cursor. The
+// natives behind this protocol (the 16EA60 slot scan, the 16E6A0 datum
+// allocator and the 145560 transform product) hold no live service PC and
+// write the cursor only when there is one, so they run natively; only their
+// own per-PC census counts disappear.
+inline bool census_callbacks(const SourcePhysicsWorldRuntimeServices&services) {
+    return native_census_detail::enabled()&&services.instruction&&!services.instruction_cursor.position;
+}
 inline bool admitted_protocol(const SourcePhysicsWorldRuntimeServices&services,const SourcePhysicsContactRecordObserver&observe) {
     if(!services.instruction)return !observe||NativeWeaponEffectBirthColorCollector::qualified(observe);
+    if(census_callbacks(services))return true;
     const auto&cursor=services.instruction_cursor;
     return cursor.position&&cursor.callback_type&&services.instruction.target_type()==*cursor.callback_type&&
         cursor.executor==std::this_thread::get_id()&&cursor.literal_service_sites&&
@@ -75,7 +85,7 @@ inline bool try_native(SourcePhysicsContactMemory&memory,std::array<std::uint32_
     std::uint32_t&flags,const SourcePhysicsWorldRuntimeServices&services,const SourcePhysicsContactRecordObserver&observe) {
     if(!admitted(services,observe))return false;
     const auto final_pc=run(memory,gp,flags,observe,services.instruction?services.instruction_cursor.position:nullptr);
-    if(services.instruction)*services.instruction_cursor.position=final_pc;
+    if(services.instruction&&services.instruction_cursor.position)*services.instruction_cursor.position=final_pc;
     return true;
 }
 } // namespace halo2::native_effect_slot_scan_detail

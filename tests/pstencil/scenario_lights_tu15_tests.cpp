@@ -1,6 +1,8 @@
 #include "halo2/pstencil/native_lights.hpp"
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
 #include "halo2/path_tracing/source_lights.hpp"
+#include "halo2/model_node_interpolation.hpp"
+#include "halo2/math.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/original_data.hpp"
@@ -87,6 +89,35 @@ int main(int argc,char**argv)try {
             const auto x=corner.x-rt.front().position.x,y=corner.y-rt.front().position.y,z=corner.z-rt.front().position.z;
             if(std::sqrt((x*x+y*y)+z*z)>rt.front().radius)
                 throw FormatError("Path Tracing radial bound clips a native projector corner");
+        }
+        // The real opening-cutscene projector supplies all six planes. Move
+        // that native shape through the same fractional frame sampler as a
+        // model, including rotation and scale, and retain every half-space.
+        RenderModel hierarchy;hierarchy.bones.resize(1);
+        Transform source,target;target.scale=2;target.position={2,-1,.5f};
+        target.basis={Vec3{0,1,0},Vec3{-1,0,0},Vec3{0,0,1}};
+        ModelNodeInterpolation presentation;presentation.capture(100,std::span(&source,1));
+        presentation.capture(101,std::span(&target,1));
+        for(float fraction:{0.f,.25f,.5f,.75f,1.f}) {
+            const auto shown=presentation.sample(hierarchy,fraction).front();
+            auto moved=rt.front();path_tracing::present_light_frame(moved,source,shown);
+            const auto transform=[&](Vec3 p) {return shown.position+
+                (shown.basis[0]*p.x+shown.basis[1]*p.y+shown.basis[2]*p.z)*shown.scale;};
+            if(length(moved.position-transform(rt.front().position))>1.e-4f ||
+               moved.radius!=rt.front().radius*shown.scale || moved.color.x!=rt.front().color.x ||
+               moved.color.y!=rt.front().color.y || moved.color.z!=rt.front().color.z || moved.intensity!=rt.front().intensity)
+                throw FormatError("Interpolated native projector changed its shape origin/radius/energy");
+            for(const auto corner:cameras.front().full_frustum.corners)for(unsigned p=0;p<6;++p) {
+                const auto& before=rt.front().planes[p];const auto& after=moved.planes[p];
+                const Vec3 normal{before[0],before[1],before[2]};
+                for(float displacement:{-.25f,0.f,.25f}) {
+                    const auto point=corner+normal*displacement;const auto transported=transform(point);
+                    const auto expected=dot(normal,point)-before[3];
+                    const auto actual=dot(Vec3{after[0],after[1],after[2]},transported)-after[3];
+                    if(std::abs(actual-expected)>2.e-4f)
+                        throw FormatError("Interpolated native projector changed a source frustum half-space");
+                }
+            }
         }
         std::cout<<"LIGHT "<<std::hex<<id<<" definition="<<row[1]<<std::dec
                  <<" placement="<<row[2]<<" flags="<<(row[0]>>16)<<'\n';

@@ -22,4 +22,8 @@ void native_campaign_ai_clump_retirement_tu15(SourcePhysicsContactMemory &,
 void native_campaign_ai_perception_group_retirement_tu15(SourcePhysicsContactMemory &,
     std::uint32_t clump_record,std::uint32_t group,
     const NativeCampaignAiReferenceInvalidationServiceTu15 &);
+// Complete2731E0: unlink the exact actor datum from a clump and detach its
+// perception associations through274970. Reuses the teardown's same owner.
+void native_campaign_ai_clump_detach_actor_tu15(SourcePhysicsContactMemory &,
+    std::uint32_t clump,std::uint32_t actor);
 }

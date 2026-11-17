@@ -711,7 +711,12 @@ void ScriptVm::tick(std::uint64_t tick) {
           if(!command_ready_(*t.actor))continue;
           t.command_wait=false;
         }
-        update(t, tick);
+        if(t.actor && command_context_) {
+          command_context_(t.actor);
+          try{update(t, tick);}
+          catch(...){try{command_context_(std::nullopt);}catch(...){}throw;}
+          command_context_(std::nullopt);
+        } else update(t, tick);
       } catch (const std::exception &e) {
         diagnostics_.push_back(program_.scripts[t.script].name + ": " +
                                e.what());

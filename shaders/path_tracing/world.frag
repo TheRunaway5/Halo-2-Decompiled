@@ -43,6 +43,7 @@ void main() {
 #endif
     TraceMaterial material=traceMaterials[traceMaterialIndex];
     vec4 sourceColor;if(!tracePrimarySurface(material,traceTexcoord,sourceColor))discard;
+    vec3 ownerAmbient=tracePrimarySourceAmbient(material,traceTexcoord);
     if(!traceAlphaPass(material,sourceColor.a))discard;
     vec3 dx=dFdx(traceWorld),dy=dFdy(traceWorld);
     vec3 geometric=traceNormalize(cross(dx,dy),vec3(0,0,1));
@@ -63,11 +64,20 @@ void main() {
     if(dot(normal,geometric)<0.0)normal=-normal;
     vec3 sourceTint=(material.texture.w&128u)!=0u?vec3(1):traceTint;
     vec3 albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(sourceColor.rgb*sourceTint,0.0,1.0);
+    // The retail independent environment pass is masked by the preceding
+    // texture pass's destination alpha. Apply it after reconstruction so its
+    // full-resolution authored texture detail is never spatially blurred.
+    float reflectionMask=(material.texture.w&2048u)!=0u?clamp(sourceColor.a,0.0,1.0):1.0;
+    float diffuseFraction=1.0-traceReflection(material,normal,incoming)*reflectionMask;
+    vec4 colorGuide=tracePrimaryColorGuide(material,traceLightmapIndex,traceLightmapUV,traceVertexRadiance);
+    bool primaryCachedStatic=tracePrimarySourceAvailable(material,colorGuide);
+    vec3 sourceBaseline=primaryCachedStatic?traceSourceIndirect(colorGuide):vec3(0);
+    sourceBaseline+=ownerAmbient;
     uvec2 at=uvec2(gl_FragCoord.xy);uint phase=uint(camera.viewport.z);
     vec3 diffuseLight,specularLight;
     if(phase==3u && traceLightingFilter(at,traceWorld,normal,traceMaterialIndex,material.response.x,
                                       max(length(dx),length(dy)),diffuseLight,specularLight)) {
-        vec3 radiance=albedo*diffuseLight+specularLight;
+        vec3 radiance=albedo*(sourceBaseline+diffuseLight*diffuseFraction)+specularLight*reflectionMask;
         if((material.texture.w&32u)!=0u)radiance+=traceEmission(material,traceTexcoord,sourceTint);
         pixel=vec4(clamp(traceFiniteLighting(radiance),vec3(0),vec3(1)),sourceColor.a);return;
     }
@@ -77,27 +87,28 @@ void main() {
         record=traceLightingRecord(at/max(traceVisibility.extent.w,1u));
         if(!traceLightingClaim(record,traceMaterialIndex))discard;
     }
-    vec4 colorGuide=tracePrimaryColorGuide(material,traceLightmapIndex,traceLightmapUV,traceVertexRadiance);
     uint frameSeed=phase>=2u?traceHash(traceVisibility.temporal.x+0x93d765ddu):0u;
     uint state=traceHash(uint(gl_FragCoord.x)+uint(gl_FragCoord.y)*65537u+traceMaterialIndex*8191u+frameSeed);
-    diffuseLight=vec3(0);specularLight=vec3(0);vec3 currentDirect=vec3(0);
+    diffuseLight=vec3(0);specularLight=vec3(0);vec3 currentDirect=vec3(0),currentDirectSpecular=vec3(0);
     const uint samples=uint(clamp(camera.viewport.x,1.0,2.0));
     [[dont_unroll]] for(uint sampleIndex=0u;sampleIndex<samples;++sampleIndex) {
-        vec3 diffuseSample,specularSample,directSample;
-        traceLighting(traceWorld,normal,geometric,incoming,material,albedo,colorGuide,state,diffuseSample,specularSample,directSample);
+        vec3 diffuseSample,specularSample,directSample,directSpecularSample;
+        traceLighting(traceWorld,normal,geometric,incoming,material,albedo,colorGuide,primaryCachedStatic,state,diffuseSample,specularSample,directSample,directSpecularSample);
         diffuseLight+=diffuseSample;specularLight+=specularSample;
         currentDirect+=directSample;
+        currentDirectSpecular+=directSpecularSample;
     }
     diffuseLight/=float(samples);specularLight/=float(samples);currentDirect/=float(samples);
+    currentDirectSpecular/=float(samples);
     if(phase==2u) {
-        traceLightingStore(record,diffuseLight,specularLight,currentDirect,traceWorld,normal,geometric,incoming,
+        traceLightingStore(record,diffuseLight,specularLight,currentDirect,currentDirectSpecular,traceWorld,normal,geometric,incoming,
                            traceMaterialIndex,material.response.x,max(length(dx),length(dy)),
                            max(material.response.y,material.response.z)>0.0);
         return;
     }
     // Thin silhouettes with no compatible grid sample retain a single normal
     // bounded trace. The ordinary resolve path performs no ray queries.
-    vec3 radiance=albedo*(diffuseLight+currentDirect)+specularLight;
+    vec3 radiance=albedo*(sourceBaseline+(diffuseLight+currentDirect)*diffuseFraction)+(specularLight+currentDirectSpecular)*reflectionMask;
     if((material.texture.w&32u)!=0u)radiance+=traceEmission(material,traceTexcoord,sourceTint);
     if(any(isnan(radiance)) || any(isinf(radiance)))radiance=vec3(0);
     // Same scene transfer as Original: no automatic white clear-coat or global

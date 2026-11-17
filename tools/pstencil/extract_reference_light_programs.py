@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Execute original utility/light program construction on declared input rows.
 
-This recovers complete builtin 6/7/10 programs before GPU submission. The
+This recovers complete builtin 6/7/9/10 programs before GPU submission. The
 context selector fields and renderer globals are explicit fixtures, not a
 captured original scene. No instructions or services are replaced.
 """
@@ -46,6 +46,17 @@ def main():
             selected.append(dict(pass_=row['tag'], builtin=builtin, cache_file_offset=offset))
     if {row['builtin'] for row in selected} != {6, 7, 10}:
         raise RuntimeError('Original utility/light resident selections missing')
+    # The interior cache has no Elite. Authenticate the exact Elite utility
+    # binding independently instead of inferring shiny from a material name.
+    from extract_elite_light_materials_2003 import extract
+    elite = extract()
+    for material in elite['materials']:
+        source = material['sources'][0]
+        selected.append(dict(builtin=material['parameters']['utility_builtin'],
+                             shader=material['shader'], cache_sha256=source['cache_sha256'],
+                             selector=source['fields'][1]))
+    if {row['builtin'] for row in selected} != {6, 7, 9, 10}:
+        raise RuntimeError('Original shiny resident selection missing')
 
     image = Xbe(reference)
     cpu = Uc(UC_ARCH_X86, UC_MODE_32)
@@ -70,7 +81,7 @@ def main():
     # lighting-model row. Keep literal context names pending its full crosswalk.
     fixtures = []
     for builtin, model, first, second, quality in itertools.product(
-            (6, 10), range(4), range(4), range(4), (-1, 0, 1, 2)):
+            (6, 9, 10), range(4), range(4), range(4), (-1, 0, 1, 2)):
         fixtures.append(dict(builtin=builtin, context_7438a8=model,
                              context_u176=first, context_u178=second,
                              global_48f346=quality))
@@ -108,7 +119,7 @@ def main():
     args.output.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(dict(fixtures=len(rows), authenticated_instructions=len(instructions),
         unique_programs={str(b): len({r['sha256'] for r in rows if r['inputs']['builtin'] == b})
-                         for b in (6, 7, 10)})))
+                         for b in (6, 7, 9, 10)})))
 
 
 if __name__ == '__main__':

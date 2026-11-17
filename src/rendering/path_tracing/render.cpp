@@ -1,5 +1,7 @@
 #include "halo2/path_tracing/render.hpp"
 #include "halo2/path_tracing/scene.hpp"
+#include "halo2/path_tracing/lighting_storage.hpp"
+#include "rendering/renderer/scene_pass_dependencies.hpp"
 #include "halo2/cache.hpp"
 #include <algorithm>
 #include <array>
@@ -57,10 +59,14 @@ std::uint64_t temporal_lighting_key(const Scene& scene,const GpuSceneUniform& un
     const auto add=[&](std::span<const std::byte> value) {
         for(const auto byte:value){key^=std::to_integer<unsigned>(byte);key*=1099511628211ull;}
     };
-    add(bytes(scene.lights));
     add(bytes(scene.color_guide_image_keys));
-    for(const auto& material:scene.materials)add(std::as_bytes(std::span(material.color_guide)));
-    add(std::as_bytes(std::span(uniform.counts).subspan(2,2)));
+    for(std::size_t n=0;n<scene.materials.size();++n) {
+        // Owner aliases carry current radiance and relocatable atlas headers.
+        // Their consumed state invalidates only affected triangle bounds below.
+        if(n<scene.material_source_roots.size() && scene.material_source_roots[n]!=n)continue;
+        add(std::as_bytes(std::span(scene.materials[n].color_guide)));
+    }
+    add(std::as_bytes(std::span(uniform.counts).subspan(3,1)));
     add(std::as_bytes(std::span(uniform.environment).first(3)));
     // Only actual admitted emitters participate. Unused UI/transparent roots
     // can have emissive constants without supplying any ray-scene triangles.
@@ -108,6 +114,32 @@ std::uint64_t temporal_lighting_key(const Scene& scene,const GpuSceneUniform& un
     }
     return key;
 }
+std::uint64_t direct_lighting_key(const Scene& scene) {
+    // Image/UV changes can alter alpha-tested shadow visibility even when
+    // the source triangle positions and light bank are unchanged.
+    std::uint64_t key=14695981039346656037ull;
+    const auto add=[&](std::uint32_t word){key^=word;key*=1099511628211ull;};
+    std::vector<bool> referenced(scene.materials.size());
+    for(const auto& triangle:scene.triangles) {
+        if(triangle.metadata[0]>=referenced.size())throw FormatError("Path Tracing alpha history lost its material");
+        referenced[triangle.metadata[0]]=true;
+    }
+    // Only alpha-tested materials can change the shadow shape through their
+    // authored image/UV animation without moving any vertices.
+    for(std::size_t index=0;index<scene.materials.size();++index) {
+        if(!referenced[index])continue;
+        if(index<scene.material_source_roots.size() && scene.material_source_roots[index]!=index)continue;
+        const auto& material=scene.materials[index];
+        if(!(material.texture[3]&(1u|8u)))continue;
+        add(std::uint32_t(index));
+        add(material.texture[3]);add(std::bit_cast<std::uint32_t>(material.response[3]));
+        for(const auto value:material.transform)add(std::bit_cast<std::uint32_t>(value));
+        if(index<scene.material_image_keys.size())for(const auto value:scene.material_image_keys[index]) {
+            add(std::uint32_t(value));add(std::uint32_t(value>>32));
+        }
+    }
+    return key;
+}
 }
 struct Render::Impl {
     RenderContext context;
@@ -145,12 +177,23 @@ struct Render::Impl {
     std::array<Buffer,10> buffers;
     // Binding9 is an immutable previous-frame snapshot. Keeping its read bank
     // separate avoids races when several current pixels reproject to the same
-    // old cell. Only the two bounded16-word histories are copied on the GPU.
+    // old cell. Only the two bounded22-word histories are copied on the GPU.
     struct alignas(16) HistoryCamera {
         std::array<std::array<float,16>,2> matrix{};
         std::array<std::array<float,4>,2> viewport{};
+        ShaderVector changed_occluder_min{},changed_occluder_max{};
+        ShaderVector changed_light_min{},changed_light_max{};
     };
-    static_assert(sizeof(HistoryCamera)==160);
+    static_assert(sizeof(HistoryCamera)==lighting_previous_header_bytes);
+    struct ShadowTriangle {
+        std::array<float,9> positions{};
+        std::array<float,6> alpha_uv{};
+        std::uint32_t material{},alpha_flags{};
+        std::uint64_t shading_key{},normal_key{};
+        bool operator==(const ShadowTriangle&)const=default;
+    };
+    std::vector<ShadowTriangle> previous_shadow_geometry;
+    std::vector<GpuLight> previous_shadow_lights;
     HistoryCamera current_history_camera{},previous_history_camera{};
     std::array<float,2> current_history_eye{},previous_history_eye{};
     std::uint32_t current_history_camera_mask{},previous_history_camera_mask{};
@@ -161,10 +204,96 @@ struct Render::Impl {
     bool uploaded{},visibility_ready{},visibility_recording{},lighting_ready{},lighting_recording{};
     bool history_reset_pending=true,lighting_key_valid{};
     std::uint32_t frame_serial{};
-    std::uint64_t lighting_key{};
+    std::uint64_t lighting_key{},direct_key{};
+    bool direct_history_reset=true;
+    static constexpr unsigned history_words=lighting_history_words;
     const Scene* uploaded_source{};
     unsigned lighting_scale=2;
     unsigned samples=1,bounces=1;
+    bool update_shadow_changes(const Scene& scene) {
+        const float limit=std::numeric_limits<float>::max();
+        auto& header=previous_history_camera;
+        header.changed_occluder_min={limit,limit,limit,0};header.changed_occluder_max={-limit,-limit,-limit,0};
+        header.changed_light_min={limit,limit,limit,0};header.changed_light_max={-limit,-limit,-limit,0};
+        const auto point=[](ShaderVector& minimum,ShaderVector& maximum,const float* position) {
+            for(unsigned axis=0;axis<3;++axis) {
+                minimum[axis]=std::min(minimum[axis],position[axis]);
+                maximum[axis]=std::max(maximum[axis],position[axis]);
+            }
+            minimum[3]=1;
+        };
+        const auto triangle_bounds=[&](const ShadowTriangle& triangle,unsigned changes=1u) {
+            const auto combined=unsigned(header.changed_occluder_min[3])|changes;
+            for(unsigned vertex=0;vertex<3;++vertex)
+                point(header.changed_occluder_min,header.changed_occluder_max,triangle.positions.data()+vertex*3);
+            header.changed_occluder_min[3]=float(combined);
+        };
+        std::vector<std::uint64_t> material_keys(scene.materials.size());
+        for(std::size_t n=0;n<scene.materials.size();++n)
+            if(n<scene.material_source_roots.size() && scene.material_source_roots[n]!=n &&
+               n<scene.material_image_keys.size()) {
+                // Alias keys contain only consumed constants, UVs, image
+                // identities and responses; atlas relocation is excluded.
+                // The alias's second lane is only a salted copy of this key.
+                material_keys[n]=scene.material_image_keys[n][0];
+            }
+        const bool resized=previous_shadow_geometry.size()!=scene.triangles.size();
+        if(resized)for(const auto& old:previous_shadow_geometry)triangle_bounds(old);
+        previous_shadow_geometry.resize(scene.triangles.size());
+        for(const auto& triangle:scene.triangles) {
+            const auto ordinal=std::bit_cast<std::uint32_t>(triangle.p0[3]);
+            if(ordinal>=previous_shadow_geometry.size())throw FormatError("Path Tracing shadow history lost source triangle identity");
+            ShadowTriangle current;current.material=triangle.metadata[0];
+            if(current.material>=scene.materials.size())throw FormatError("Path Tracing shadow history lost its material");
+            current.alpha_flags=scene.materials[current.material].texture[3]&(1u|8u);
+            if(current.alpha_flags)
+                current.alpha_uv={triangle.uv01[0],triangle.uv01[1],triangle.uv01[2],triangle.uv01[3],triangle.uv2[0],triangle.uv2[1]};
+            current.shading_key=material_keys[current.material];
+            const auto shade=[&](std::uint32_t value){current.shading_key^=value;current.shading_key*=1099511628211ull;};
+            for(const auto* values:{&triangle.uv01,&triangle.uv2,&triangle.color_guide})
+                for(const auto value:*values)shade(std::bit_cast<std::uint32_t>(value));
+            for(unsigned n=1;n<4;++n)shade(triangle.metadata[n]);
+            for(const auto* values:{&triangle.n0,&triangle.n1,&triangle.n2})for(unsigned axis=0;axis<3;++axis) {
+                current.normal_key^=std::bit_cast<std::uint32_t>((*values)[axis]);current.normal_key*=1099511628211ull;
+            }
+            for(unsigned axis=0;axis<3;++axis) {
+                current.positions[axis]=triangle.p0[axis];current.positions[axis+3]=triangle.p1[axis];
+                current.positions[axis+6]=triangle.p2[axis];
+            }
+            auto& previous=previous_shadow_geometry[ordinal];
+            const bool moved=resized || previous.positions!=current.positions || previous.material!=current.material ||
+                previous.alpha_uv!=current.alpha_uv || previous.alpha_flags!=current.alpha_flags;
+            // Moving skinning already changes reflected-geometry bounds. Do
+            // not additionally restart broad diffuse history for every posed
+            // normal; stationary normal-only animation still changes radiance.
+            const bool shaded=previous.shading_key!=current.shading_key || (!moved && previous.normal_key!=current.normal_key);
+            if(moved || shaded) {
+                unsigned changes=(moved?1u:0u)|(shaded?2u:0u);
+                if(shaded && (current.alpha_flags|previous.alpha_flags))changes|=1u;
+                if(!resized)triangle_bounds(previous,changes);
+                triangle_bounds(current,changes);previous=current;
+            }
+        }
+        bool distant_changed=false;
+        const auto light_bounds=[&](const GpuLight& light) {
+            if(light.position_radius[3]<0){distant_changed=true;return;}
+            ShaderVector minimum{},maximum{};
+            for(unsigned axis=0;axis<3;++axis) {
+                minimum[axis]=float(std::max(-double(limit),double(light.position_radius[axis])-light.position_radius[3]));
+                maximum[axis]=float(std::min(double(limit),double(light.position_radius[axis])+light.position_radius[3]));
+            }
+            point(header.changed_light_min,header.changed_light_max,minimum.data());
+            point(header.changed_light_min,header.changed_light_max,maximum.data());
+        };
+        for(std::size_t index=0;index<std::max(scene.lights.size(),previous_shadow_lights.size());++index) {
+            const bool old=index<previous_shadow_lights.size(),current=index<scene.lights.size();
+            if(old && current && !std::memcmp(&scene.lights[index],&previous_shadow_lights[index],sizeof(GpuLight)))continue;
+            if(old)light_bounds(previous_shadow_lights[index]);
+            if(current)light_bounds(scene.lights[index]);
+        }
+        previous_shadow_lights=scene.lights;
+        return distant_changed;
+    }
     void clear_environment()noexcept {
         for(auto& framebuffer:environment_framebuffers) {
             if(framebuffer)vkDestroyFramebuffer(context.device,framebuffer,nullptr);
@@ -423,22 +552,7 @@ struct Render::Impl {
         const VkAttachmentReference depth_reference{1,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
         VkSubpassDescription subpass{};subpass.pipelineBindPoint=VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount=1;subpass.pColorAttachments=&color_reference;subpass.pDepthStencilAttachment=&depth_reference;
-        std::array<VkSubpassDependency,2> dependencies{};
-        dependencies[0].srcSubpass=VK_SUBPASS_EXTERNAL;dependencies[0].dstSubpass=0;
-        dependencies[0].srcStageMask=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|
-            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependencies[0].dstStageMask=VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|
-            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependencies[0].srcAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dstAccessMask=VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[1].srcSubpass=0;dependencies[1].dstSubpass=VK_SUBPASS_EXTERNAL;
-        // Match the ordinary renderer's two dependencies as well as its
-        // attachment formats/subpass. Native sky pipelines remain compatible.
-        dependencies[1].srcStageMask=VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[1].dstStageMask=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].srcAccessMask=VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
+        const auto dependencies=detail::scene_pass_dependencies();
         VkRenderPassCreateInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};pass.attachmentCount=attachments.size();
         pass.pAttachments=attachments.data();pass.subpassCount=1;pass.pSubpasses=&subpass;
         pass.dependencyCount=dependencies.size();pass.pDependencies=dependencies.data();
@@ -469,12 +583,13 @@ struct Render::Impl {
     }
     VkDeviceSize visibility_bytes()const {
         //32-byte immutable frame header, full-resolution D32, current12-word
-        // records and separate16-word world/foreground history records.
-        return lighting_offset()+lighting_cells(visibility_extent,lighting_scale)*(12+2*16)*sizeof(std::uint32_t);
+        // records and separate world/foreground histories including direct
+        // diffuse/specular channels whose visibility can change independently.
+        return lighting_offset()+lighting_cells(visibility_extent,lighting_scale)*(12+2*history_words)*sizeof(std::uint32_t);
     }
     VkDeviceSize history_offset()const {return lighting_offset()+lighting_bytes();}
     VkDeviceSize history_bytes()const {
-        return lighting_cells(visibility_extent,lighting_scale)*2*16*sizeof(std::uint32_t);
+        return lighting_cells(visibility_extent,lighting_scale)*2*history_words*sizeof(std::uint32_t);
     }
     void write_previous_history_mask() {
         const auto mask=history_reset_pending?0u:previous_history_camera_mask;
@@ -492,7 +607,8 @@ struct Render::Impl {
                  properties.limits.maxStorageBufferRange);
         const std::array<std::uint32_t,8> dimensions{visibility_extent.width,visibility_extent.height,
             visibility_extent.width*visibility_extent.height,lighting_scale,frame_serial,
-            environment_nee_available()?1u:0u,history_reset_pending?0u:previous_history_camera_mask,0};
+            environment_nee_available()?1u:0u,history_reset_pending?0u:previous_history_camera_mask,
+            direct_history_reset?1u:0u};
         std::memcpy(buffer.mapped,dimensions.data(),sizeof(dimensions));buffer.populated=sizeof(dimensions);
         const auto previous_size=sizeof(HistoryCamera)+history_bytes();
         if(previous_size>properties.limits.maxStorageBufferRange)
@@ -558,15 +674,12 @@ struct Render::Impl {
         if(!extent.width || !extent.height ||
            extent.width>properties.limits.maxFramebufferWidth || extent.height>properties.limits.maxFramebufferHeight ||
            extent.width>properties.limits.maxImageDimension2D || extent.height>properties.limits.maxImageDimension2D ||
-           std::uint64_t(extent.width)*extent.height>std::numeric_limits<std::uint32_t>::max() ||
-           32+std::uint64_t(extent.width)*extent.height*sizeof(float)+(12+2*16)*sizeof(std::uint32_t)>properties.limits.maxStorageBufferRange)
+           std::uint64_t(extent.width)*extent.height>std::numeric_limits<std::uint32_t>::max())
             throw FormatError("Path Tracing visibility has an unsupported extent");
         if(extent.width==visibility_extent.width && extent.height==visibility_extent.height)return;
-        lighting_scale=2;
-        const auto depth_bytes=32+VkDeviceSize(extent.width)*extent.height*sizeof(float);
-        while(depth_bytes+lighting_cells(extent,lighting_scale)*(12+2*16)*sizeof(std::uint32_t)>
-              properties.limits.maxStorageBufferRange)
-            lighting_scale=std::min(std::max(extent.width,extent.height),lighting_scale*2);
+        const auto plan=lighting_storage_plan(extent.width,extent.height,properties.limits.maxStorageBufferRange);
+        if(!plan.scale)throw FormatError("Path Tracing visibility exceeds maxStorageBufferRange");
+        lighting_scale=plan.scale;
         constexpr auto usage=VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         VkImageFormatProperties support{};
         if(vkGetPhysicalDeviceImageFormatProperties(context.physical,VK_FORMAT_D32_SFLOAT,VK_IMAGE_TYPE_2D,
@@ -713,6 +826,10 @@ std::size_t Render::allocated_bytes()const noexcept {
     for(const auto& buffer:impl_->buffers)total+=std::size_t(buffer.allocation_bytes);
     return total;
 }
+std::size_t Render::cpu_bytes()const noexcept {
+    return impl_->previous_shadow_geometry.capacity()*sizeof(Impl::ShadowTriangle)+
+        impl_->previous_shadow_lights.capacity()*sizeof(GpuLight);
+}
 void Render::record_temporal_stats(VkCommandBuffer command)const {
     const auto& p=*impl_;if(!p.buffers[6].buffer || !p.visibility_extent.width)return;
     VkBufferMemoryBarrier barrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
@@ -734,12 +851,13 @@ Render::TemporalStats Render::temporal_stats()const {
     const auto materials=p.buffers[2].populated/sizeof(GpuMaterial);
     for(unsigned bank=0;bank<result.banks.size();++bank) {
         auto& stats=result.banks[bank];stats.sampled_cells=samples;std::uint32_t sum{};
-        const auto base=p.lighting_offset()+p.lighting_bytes()+bank*cells*16*sizeof(std::uint32_t);
+        const auto base=p.lighting_offset()+p.lighting_bytes()+bank*cells*p.history_words*sizeof(std::uint32_t);
         for(std::uint32_t sample=0;sample<samples;++sample) {
             const auto at=cells*sample/samples;
-            std::array<std::uint32_t,16> record;
+            std::array<std::uint32_t,Impl::history_words> record;
             std::memcpy(record.data(),static_cast<const std::byte*>(buffer.mapped)+base+at*sizeof(record),sizeof(record));
             if(record[7]==0xffffffffu || record[13]!=p.frame_serial)continue;
+            record[12]&=31u; // Upper27 bits identify the current reflection response.
             if(record[7]>=materials || record[12]<1 || record[12]>16)
                 throw FormatError("Path Tracing temporal diagnostics found an invalid completed history record");
             ++stats.sampled_valid_count;stats.maximum_count=std::max(stats.maximum_count,record[12]);sum+=record[12];
@@ -829,8 +947,11 @@ void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
     p.uploaded_color_guide_source=&scene;p.uploaded_color_guide_keys=scene.color_guide_image_keys;
     p.environment_fallback_available=uniform.environment[0]>0 || uniform.environment[1]>0 || uniform.environment[2]>0;
     const auto key=temporal_lighting_key(scene,uniform);
+    const auto direct_key=direct_lighting_key(scene);
+    const bool distant_changed=p.update_shadow_changes(scene);
+    p.direct_history_reset=p.uploaded_source!=&scene || !p.lighting_key_valid || p.direct_key!=direct_key || distant_changed;
     if(p.uploaded_source!=&scene || !p.lighting_key_valid || p.lighting_key!=key)p.history_reset_pending=true;
-    p.uploaded_source=&scene;p.lighting_key=key;p.lighting_key_valid=true;
+    p.uploaded_source=&scene;p.lighting_key=key;p.direct_key=direct_key;p.lighting_key_valid=true;
     if(++p.frame_serial==0)p.history_reset_pending=true;
     p.update_visibility_binding();p.uploaded=true;
 }

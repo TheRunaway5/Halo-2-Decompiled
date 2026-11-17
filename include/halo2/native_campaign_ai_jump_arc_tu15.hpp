@@ -39,6 +39,15 @@ NativeCampaignAiJumpArcValueTu15 native_campaign_ai_jump_arc_profile_tu15(
     const SourcePhysicsContactMemory &,const NativeCampaignAiJumpPointTu15 &first,
     const NativeCampaignAiJumpPointTu15 &second,std::uint32_t maximum_speed_bits,
     NativeTu15PhysicsFrameFp &);
+// Actual200420 profile: same fixed gravity/high-arc options, with the original
+// minimum-speed publication followed by direction, vertical velocity and
+// horizontal speed. Zero disables each scalar output. Straight FF580 fallback
+// publishes direction only, leaving these three scalar outputs untouched.
+bool native_campaign_ai_jump_arc_movement_profile_tu15(SourcePhysicsContactMemory &,
+    std::uint32_t first,std::uint32_t second,std::uint32_t maximum_speed_bits,
+    std::uint32_t direction,std::uint32_t minimum_speed,std::uint32_t vertical_velocity,
+    std::uint32_t horizontal_speed,NativeTu15PhysicsFrameFp &,
+    const SourcePhysicsContactRecordObserver & = {});
 // Actual278E60 jump link predicate. Secondary endpoints are optional as a pair.
 bool native_campaign_ai_jump_link_tu15(const SourcePhysicsContactMemory &,
     std::int16_t kind,const NativeCampaignAiJumpPointTu15 &from,

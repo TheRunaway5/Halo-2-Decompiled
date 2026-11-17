@@ -1,5 +1,6 @@
 #include "app/campaign_reference_capture.hpp"
 #include <fstream>
+#include <thread>
 #include <iostream>
 
 using namespace halo2;
@@ -13,6 +14,10 @@ template<class Fn> void reject(Fn fn) {
   need(failed,"Invalid capture invocation was admitted");
 }
 void admission() {
+  need(capture::graphics_mode_allowed(pstencil::GraphicsMode::Original),"Original capture rejected");
+  need(capture::graphics_mode_allowed(pstencil::GraphicsMode::PathTracing),"Path Tracing capture rejected");
+  need(!capture::graphics_mode_allowed(pstencil::GraphicsMode::pStencil),"pStencil capture admitted");
+  need(!capture::graphics_mode_allowed(static_cast<pstencil::GraphicsMode>(255)),"Unknown capture mode admitted");
   capture::Options options{1.f/30.f,.5f,0,"/trace.jsonl"};
   capture::Invocation invocation{true,true,false,false,true,true,false,60,"/frame.ppm"};
   capture::validate(options,invocation);
@@ -104,6 +109,29 @@ void trace_storage() {
     need(nlohmann::json::parse(line).at("sequence")==i,"Trace event order changed");
   }
   reject([&]{capture::Trace overwrite(path);});
+  std::filesystem::remove(path);
+  // Render overlap: held records follow interjected ones and those another
+  // thread writes meanwhile, so the file keeps the serial order.
+  {
+    capture::Trace trace(path);
+    trace.record([]{return nlohmann::json{{"event","draw_begin"}};});
+    trace.hold();
+    reject([&]{trace.hold();});
+    trace.record([]{return nlohmann::json{{"event","next_frame"}};});
+    std::thread([&]{trace.record([]{return nlohmann::json{{"event","draw_observer"}};});}).join();
+    trace.interject([&]{trace.record([]{return nlohmann::json{{"event","draw_complete"}};});});
+    trace.record([]{return nlohmann::json{{"event","next_frame_end"}};});
+    const auto value=trace.evaluate([]{return nlohmann::json{{"event","evaluated"}};});
+    trace.release();
+    trace.record([&]{return value;});
+  }
+  std::ifstream ordered(path);unsigned sequence=0;
+  for(const char *event:{"draw_begin","draw_observer","draw_complete","next_frame","next_frame_end","evaluated"}) {
+    need(bool(std::getline(ordered,line)),"Missing held trace event");
+    const auto parsed=nlohmann::json::parse(line);
+    need(parsed.at("event")==event && parsed.at("sequence")==sequence++,"Held trace event order differs from the serial order");
+  }
+  need(!std::getline(ordered,line),"Held trace wrote extra events");
   std::filesystem::remove(path);
 }
 }

@@ -58,6 +58,10 @@ public:
         if(!vertices.empty())chunks_.push_back(vertices);
         size_+=vertices.size();return first;
     }
+    // A worker may still be copying the finalized prefix when later owners
+    // append their own ranges. Reserving those chunk slots first keeps the
+    // chunk array in place, so the prefix copy never reads moved storage.
+    void reserve_late_chunks(std::size_t count) {chunks_.reserve(chunks_.size()+count);}
     void copy_to(void *destination) const {
         copy_to(destination,0,size_);
     }

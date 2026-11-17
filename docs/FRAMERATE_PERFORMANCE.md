@@ -494,3 +494,112 @@ HUD framebuffer and renderer logical-device tests also pass.
 
 Full campaign, action-heavy/full-roster matches, all maps, physical refresh
 measurement and other operating systems are outside this measurement scope.
+
+## Campaign: Armory first room (2026-11-13)
+
+This continues Codex's Armory investigation (`analysis/graphics-regression-20261113/`).
+A sampled main-thread profile (`native_cpu_profiler.c`, 500 Hz, frames 360–479)
+put 17.7% of the time in `Cache::load_source_bsp_metadata`. Every
+`load_menu_world_source_bsp_owner` call copied the whole resident sbsp payload
+(megabytes) into a `SourceTagMetadata` vector just to read one 88-byte instance
+row. It is reached for every BSP-instance draw, in native world owner validation,
+in pStencil projected-light palettes and in point casters, once per part.
+
+Fixes (all exact; same bytes, same order, same errors):
+
+- `src/ui/menu_world_source_geometry.cpp`: BSP owner/section reads borrow the
+  resident cache bytes (`resident_bsp_metadata`) instead of copying them.
+- `src/ui/menu_world_native_draw.cpp`:
+  - the per-draw pipeline lookup first tries a shortcut key that names the
+    static catalog SPIR-V span, instead of copying the full SPIR-V into a
+    `std::map` key on every draw;
+  - the previous frame's uniform buffers, descriptor pool and sets are reused
+    (the caller already guarantees the GPU finished, as the old destroy
+    required). A set is rewritten only when its buffer ranges change, and
+    always in triangle-vertex mode.
+- `MenuWorldSourceStorage::store_borrowed`: draws are stored from borrowed
+  bindings, without per-draw `MenuWorldSourceBinding` copies.
+- `src/app/main.cpp`: `campaign_world` keeps the unchanged BSP mesh as its
+  prefix between frames (`mesh_generation` advances on a BSP switch). Only the
+  per-frame debug/water tail is rewritten. `HALO2_REFERENCE_COPY_CAMPAIGN_WORLD`
+  still forces the full copy.
+
+Measured on the same tree (only the fix files differ), 1920x1018, interleaved
+pairs, host load about 4–5:
+
+| Mode | Before | After |
+|---|---|---|
+| Original | 82.3 / 78.0 ms (12.1 / 12.8 FPS) | 54.7 / 56.8 ms (18.3 / 17.6 FPS) |
+| pStencil | 101.9 / 73.7 ms | 48.5 / 52.5 ms (20.6 / 19.0 FPS) |
+
+In Original mode, renderer time went from 22 to 13.5 ms and native world
+prepare from 13.6 to 5.2 ms.
+
+Parity:
+
+- Deterministic `--campaign-reference-capture .05 0 305419896` on 01a: 300
+  frames at 1280x720 give identical frame and trace hashes for both builds,
+  repeated twice.
+- With `--validation` (Khronos layer), both builds produce zero messages and
+  identical frames.
+- pStencil cannot be captured in reference mode (the mode is rejected); its
+  changed paths are the same owner bytes.
+- `retail_menu_world_source_storage` and `retail_menu_world_source_pass` pass.
+
+Remaining main-thread cost after the fixes (about 56 ms/frame CPU) is mostly
+translated TU1.5 execution:
+
+- the shadow frame (30%): 134C00 portal visibility 11%, 136EA0 BSP
+  admission 7%, 44E80 4%, 136230 3%, shadow-mode 40E80 2%;
+- the pStencil light receiver, which runs translated 31570 once per projected
+  light (11%, included in the shadow-frame figure);
+- campaign object/AI simulation (21%) and campaign view collection (17%:
+  particles 6.7%, frustum cull 5%, live model draws 3.3%);
+- material root selection, which scans every world vertex per frame (about 3%).
+
+## Campaign native conversion, 2026-11-14
+
+This follows the user's direction: "we shouldnt be using translated shit at all
+it should just be native kernels". Each item below is proven against the
+physical original, keeps a `HALO2_REFERENCE_*` switch that restores the old
+route, and was checked for parity with the deterministic Armory capture. Every
+capture of the 1280x720 Armory run gives frame `5627a51b…` and trace `8a9b58b3…`.
+
+| Area | Native owners | Measured effect | Reference switch |
+|---|---|---|---|
+| Visibility bridges | Bridges under 136EA0 (direct-page reads, silent hooks, empty-stack `Scope::io`) | Armory 44 → 33 ms/frame on the same binary | `HALO2_REFERENCE_SCOPED_ACCESS=1` |
+| PVS flood | 1532A0 → 170C80 → 170FB0 → 44680 | −96.5k translated instructions/frame, about −0.5 ms | `HALO2_REFERENCE_PVS_FLOOD=1` |
+| Render commands, every view mode | 40E80 family at the projected-light and MP shadow-root sites; new 45550 and 458C0 kernels | about −22% of the census | `HALO2_REFERENCE_LIGHT_COMMANDS`, `_SHADOW_COMMANDS`, `_SECONDARY_CULL`, `_SPHERE_CULL` |
+| Projection executor | 44E80, 2E79A0, 2E6290, 2E7C40, 2E6ED0, 45A70, 309600, 3092A0 | census −41% (1.14M → 0.67M translated instructions/frame); family 141M → 1M per 300 frames | `HALO2_REFERENCE_PROJECTION_QUERY=1` |
+| Campaign render overlap | The draw runs on the render thread beside the next frame's input and simulation; an input-latency guard prevents added latency | least-loaded pairs 50 → 40 ms | `HALO2_REFERENCE_SYNC_RENDER=1` |
+| Node rebuild | BF050/BF0C0/BFF20/BFB90 at every call site, with C9070 and the function-value callbacks, the 283E10/284090/296890 codec owners, and C3750/1692E0/145070 placement | Census: Armory −13.4%, Coagulation 4p −27.9%. Armory frame rate 25.84 → 26.33 fps at load 3.5. The 2026-11-15 sweep of every MP map (1p and 4p, scripted input) and campaign 01a–08b: 1,594,436 calls, 0 differences, 0 refusals | native default; `HALO2_REFERENCE_NODE_REBUILD_TU15=1` |
+
+Notes on the measurements:
+
+- **Census.** Use `HALO2_CENSUS_NATIVE_BRIDGES=1` when taking an instruction
+  census. Without it, cursor-gated native bridges fall back to translated code
+  under `HALO2_REFERENCE_INSTRUCTION_CALLBACKS=1`, and the census overcounts
+  translated work.
+- **Light-model build (4B5C0).** The native light-model build (4B5C0) is
+  opt-in (`HALO2_NATIVE_LIGHT_MODEL_BUILD=1`). A per-byte store trace found
+  different node matrices in 5,100 of 13,193 calls, even though frames matched.
+  Work on that is continuing.
+- **Shared tree builds.** Builds of the shared tree go through
+  `scratchpad/build_perf.sh` (flock). A/B runs compare the same binary with a
+  reference switch on and off.
+
+Cumulative same-binary A/B (2026-11-14 23:00). One frozen shared build was run
+with every reference switch above set (old routes plus the synchronous draw)
+and again with all of them unset. The workload was the Armory first room at
+1904x1018, in interleaved pairs. Host load was 7–24, from concurrent agent
+builds, so absolute times are inflated about 2x against the quiet-host
+figures above.
+
+| Mode | Pair 1 | Pair 2 | Pair 3 |
+|---|---|---|---|
+| Original | 110.6 → 88.5 ms | 109.1 → 85.5 ms | 105.7 → 80.6 ms |
+| pStencil | 161.2 → 57.6 ms | 75.4 → 36.8 ms | 102.7 → 69.4 ms |
+
+Every pair favours native. On that build, with the Khronos validation layer,
+frames match the original baseline (`5627a51b…`, trace `8a9b58b3…`) with 0
+messages.

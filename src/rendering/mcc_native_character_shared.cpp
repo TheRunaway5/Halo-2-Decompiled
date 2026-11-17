@@ -122,11 +122,17 @@ static std::optional<MccOwnedShaderProjection> project_shared_profile(
         auto normalized_images=banks[0];
         for(unsigned i=0;i<profile->at("images").size();++i) {
             const auto& expected=profile->at("images").at(i);const auto handle=images.u32(i*12);
-            const auto* image=find(handle);
-            require(image&&image->datum==handle&&image->group=="bitm"&&image->address&&image->size>=76&&
-                image->group==expected.at(0).at(0).get<std::string>()&&image->name==expected.at(0).at(1).get<std::string>()&&
-                images.u32(i*12+4)==expected.at(1).get<unsigned>()&&images.u32(i*12+8)==expected.at(2).get<unsigned>()&&
-                owns_frame(handle,images.u32(i*12+4)),"Character image escaped its actual typed frame/setup");
+            if(expected.at(0).is_null()) {
+                require(handle==0xffffffffu&&expected.at(1).get<unsigned>()==0&&expected.at(2).get<unsigned>()==0&&
+                    images.u32(i*12+4)==0&&images.u32(i*12+8)==0,
+                    "Character NONE image differs from its exact paired literal tuple");
+            } else {
+                const auto* image=find(handle);
+                require(image&&image->datum==handle&&image->group=="bitm"&&image->address&&image->size>=76&&
+                    image->group==expected.at(0).at(0).get<std::string>()&&image->name==expected.at(0).at(1).get<std::string>()&&
+                    images.u32(i*12+4)==expected.at(1).get<unsigned>()&&images.u32(i*12+8)==expected.at(2).get<unsigned>()&&
+                    owns_frame(handle,images.u32(i*12+4)),"Character image escaped its actual typed frame/setup");
+            }
             word(normalized_images,i*12,0);
         }
         require(normalized_images==unhex(profile->at("source_banks").at("4")),"Complete character image setup changed");
@@ -138,6 +144,9 @@ static std::optional<MccOwnedShaderProjection> project_shared_profile(
             const auto input=overlays.u32(i*20);
             require((input?string_id(input):std::string{})==profile->at("input_names").at(i).get<std::string>(),
                 "Character animation input escaped its actual StringID namespace");
+            const auto range_input=overlays.u32(i*20+4);
+            require((range_input?string_id(range_input):std::string{})==profile->at("range_names").at(i).get<std::string>(),
+                "Character animation range escaped its actual StringID namespace");
             const auto expected=unhex(profile->at("curves").at(i));
             require(overlays.u32(i*20+12)==expected.size()&&!expected.empty(),"Character function extent changed");
             auto curve=source(overlays.u32(i*20+16),expected.size());
@@ -156,10 +165,11 @@ static std::optional<MccOwnedShaderProjection> project_shared_profile(
             word(normalized_runtime,offset,0);
         }
         require(normalized_runtime==unhex(profile->at("runtime_hex")),"Complete character runtime setup changed");
-        require(root.u32(44)<=64&&(root.u32(44)||!root.u32(48)),"Invalid character predicted resource extent");
-        const auto predictions=root.u32(44)?source(root.u32(48),std::size_t(root.u32(44))*8):std::vector<std::byte>{};
+        const auto expected_predictions=profile->at("prediction_roles").size();
+        require(expected_predictions<=96&&root.u32(44)==expected_predictions&&
+            (expected_predictions||!root.u32(48)),"Invalid character predicted resource extent");
+        const auto predictions=expected_predictions?source(root.u32(48),expected_predictions*8):std::vector<std::byte>{};
         const Bytes prediction_data(predictions);
-        require(root.u32(44)==profile->at("prediction_roles").size(),"Character predicted resource count changed");
         for(unsigned i=0;i<root.u32(44);++i) {
             const auto* image=find(prediction_data.u32(i*8+4));
             const auto& expected=profile->at("prediction_roles").at(i);
@@ -170,8 +180,10 @@ static std::optional<MccOwnedShaderProjection> project_shared_profile(
                 "Character prediction escaped its actual typed bitmap/frame");
         }
         // This finite data conversion preserves the admitted authored images,
-        // input IDs and full function bytes. Its other output banks are the
-        // complete paired original setup; no shader instructions are decoded.
+        // input IDs and full function bytes. Output banks use authenticated
+        // authored parameter-role conversions and paired original bindings;
+        // finite source-authored differences remain explicit in the profile.
+        // No shader instructions are decoded or substituted.
         for(unsigned i=1;i<fields.size();++i)if(i!=7)
             banks[i]=unhex(profile->at("native_banks").at(std::to_string(fields[i].first)));
         MccOwnedShaderProjection result{root_data,{}};

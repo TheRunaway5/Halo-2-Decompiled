@@ -1,3 +1,5 @@
+#include "physics/runtime/native_tu15_simplex_paired_source_owner.hpp"
+#include "physics/runtime/native_tu15_closest_segments_source_owner.hpp"
 #include "physics/runtime/native_tu15_simplex_face_select_source_owner.hpp"
 #include "physics/runtime/native_tu15_simplex_triangle_source_owner.hpp"
 #include "physics/runtime/native_tu15_polygon_features_abi.hpp"
@@ -6386,6 +6388,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_309d40(State &s) {
+    if(halo2::native_simplex_paired_owner_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site){dispatch(v,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x309d40u);} s.push(0x309d40u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x309d41u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x309d43u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(0xfffffff0u),4),4,0);
@@ -8465,6 +8468,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_30eb30(State &s) {
+    if(halo2::native_closest_segments_owner_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x30eb30u);} s.push(0x30eb30u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x30eb31u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x30eb33u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(0xfffffff0u),4),4,0);

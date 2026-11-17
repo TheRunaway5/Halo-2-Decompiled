@@ -36,7 +36,7 @@ def main():
  # Keep the actual PROCESS original entry; only the driver executes its prefix
  # until the source-authored public hull-query DATA boundary.
  text=text.replace("UNITS))","UNITS))")
- text=text.replace("'include/halo2/native_tu15_moving_shape_process.hpp'","'include/halo2/native_tu15_solver_hull_query.hpp','tools/observe_native_solver_hull_query_actual_tu15.cpp','tools/validate_native_solver_hull_query_actual_tu15.py'")
+ text=text.replace("'include/halo2/native_tu15_moving_shape_process.hpp'","'include/halo2/native_tu15_solver_hull_query.hpp','include/halo2/native_tu15_solver_hull_context_kernel.hpp','include/halo2/native_tu15_solver_hull_append_kernel.hpp','tools/observe_native_solver_hull_query_actual_tu15.cpp','tools/validate_native_solver_hull_query_actual_tu15.py'")
  text=text.replace("halo2/native_tu15_moving_shape_process.hpp", "halo2/native_tu15_solver_hull_query.hpp")
  text=text.replace('production_binding=False,first_actual_child_entry_only=True','production_binding=False,first_actual_child_entry_only=False,source_derived_standalone_child=True')
  text=text.replace("production_binding=False,first_actual_child_entry_only=False,source_derived_standalone_child=True)","production_binding=False,first_actual_child_entry_only=False,source_derived_standalone_child=True)")

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "halo2/native_tu15_sound_mono_distortion.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -30,11 +31,21 @@ struct SdlSoundRoute {
   float linear_gain;
 };
 
+// TU1.5 effect send (2290C0 -> 128CA2 -> driver +12 -> 2B96B0): the voice
+// keeps its dry routes and adds a 0 dB send to mixbin 13, the in-place input
+// of DSP record 1 (mono distortion). Creating the voice installs its record-1
+// parameters, as the voice's SetEffectData does; 1973E0/2275A0's mix-in voice
+// returns mixbin 13 to the front speakers at 0 dB.
+struct SdlSoundEffectSend {
+  tu15_sound_mono_distortion::Parameters parameters;
+};
+
 struct SdlSoundVoiceParameters {
   std::uint32_t relative_rate_bits;
   std::int32_t volume_hundredths_db;
   bool paused;
   std::vector<SdlSoundRoute> routes;
+  std::optional<SdlSoundEffectSend> effect{};
 };
 
 struct SdlSoundPlatformConfiguration {

@@ -8,6 +8,7 @@ uint textureAccumulationWord(uint index);
 #undef H2_COMBINER_WORD
 #include "world_combiner_specialization.glsl"
 #include "pstencil/texture_accumulation_2003_program.glsl"
+#include "source_alpha_test.glsl"
 bool originalPhase=false;
 uint textureAccumulationWord(uint index) {
     return originalPhase?originalTextureProgram[index]:h2CombinerWord(index);
@@ -24,10 +25,20 @@ vec4 fetchStage3D(uint stage,vec3 p) {return vec4(0);}
 #define TEXTURE_REJECT() discard
 #define TEXTURE_COLOR_SIGN(i) (material.textureEffects[i].y>>1u)
 #define TEXTURE_BUMP_MATRIX(i) material.bumpMatrices[i]
+#define TEXTURE_COORDINATE_W(i) ((material.alphaTest.w&(1u<<(i)))!=0u ? 1.0 : stageCoordinates[i].w)
 #include "texture_program.glsl"
 void main() {
     lightSurfaceDepth();
     vec4 samples[4];runTextureStages(samples);
+#ifdef H2_PSTENCIL_ONE_CHANGE_COLOR
+    // Layer 14 supplies base and RGB change-color mask. With a unit base
+    // the authored pass isolates the tint; stage 1 becomes neutral detail
+    // for the original target writer and does not contribute mask alpha.
+    vec4 colorInputs[4];for(uint s=0u;s<4u;++s)colorInputs[s]=samples[s];
+    colorInputs[0].rgb=vec3(1);
+    vec4 colorFactor=runCombiners(colorInputs,vec4(0),vec4(0));
+    samples[1]=vec4(vec3(128.0/255.0),1);
+#else
     // Admitted current color-change subgraphs are independent of base/detail
     // RGB until their final product. Unit product inputs recover that exact
     // authored color factor, including multi-region Elite/Chief rank colors.
@@ -36,6 +47,9 @@ void main() {
     colorInputs[0].rgb=vec3(1);colorInputs[1].rgb=vec3(.5);
     vec4 colorFactor=runCombiners(colorInputs,material.diffuseColor,
         material.flags.w!=0u?lightingDirection:vec4(0,0,0,1));
+#endif
+    if(material.alphaTest.x!=0u && !sourceAlphaTestPass(colorFactor.a,material.alphaTest.y,material.alphaTest.z&255u))
+        discard;
     originalPhase=true;
     // Current-asset color adaptation: the original mask lerp with a white
     // mask accepts the already-completed current color factor as its V10.

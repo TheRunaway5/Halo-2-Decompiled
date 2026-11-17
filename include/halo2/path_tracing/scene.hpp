@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include <array>
 #include <cstdint>
+#include <compare>
 #include <span>
 #include <optional>
 #include <vector>
@@ -25,6 +26,7 @@ struct alignas(16) GpuMaterial {
     std::array<std::uint32_t,4> texture{};
     ShaderVector transform{1,1,0,0};
     std::array<std::uint32_t,4> color_guide{}; // Source kind, sampler, border, qualified diffuse-energy decode.
+    ShaderVector glancing_tint{1,1,1,1}; // Current authored glancing reflection RGB, independent of facing.
 };
 struct alignas(16) GpuLight {
     ShaderVector position_radius{},color_intensity{};
@@ -37,6 +39,7 @@ struct Light {
     float intensity=1;
     std::array<ShaderVector,6> planes{};
     std::optional<Vec3> direction; // Direction TOWARD an authored distant emitter.
+    std::uint32_t source_identity=0xffffffffu; // CPU-only full native light generation.
 };
 struct alignas(16) GpuSceneUniform {
     // nodes, triangles, point lights, emissive triangle count.
@@ -44,7 +47,16 @@ struct alignas(16) GpuSceneUniform {
     ShaderVector environment{}; // Source sky RGB; w: uintBitsToFloat(emissive index offset).
 };
 static_assert(sizeof(GpuNode)==48 && sizeof(GpuTriangle)==160);
-static_assert(sizeof(GpuMaterial)==96 && sizeof(GpuLight)==128 && sizeof(GpuSceneUniform)==32);
+static_assert(sizeof(GpuMaterial)==112 && sizeof(GpuLight)==128 && sizeof(GpuSceneUniform)==32);
+struct MaterialAliasKey {
+    std::uint64_t owner{};
+    std::uint32_t material=0xffffffffu,lightmap=0xffffffffu;
+    auto operator<=>(const MaterialAliasKey&) const = default;
+};
+struct MaterialAliasImage {
+    std::array<std::uint64_t,2> key{};
+    std::array<std::uint32_t,3> image{}; // Absolute atlas offset, width, height.
+};
 struct Scene {
     std::vector<GpuNode> nodes;
     std::vector<GpuTriangle> triangles;
@@ -57,8 +69,14 @@ struct Scene {
     // only with the optional active scene and never own source asset bytes.
     std::vector<std::array<std::uint64_t,2>> material_image_keys;
     std::vector<std::uint32_t> material_texel_capacities;
-    // Source baked color guides; qualified secondary diffuse fields can also
-    // retain their authored irradiance magnitude. Never primary baked lighting.
+    // Compact per-owner metadata precedes shared source texels. These CPU
+    // identities do not change GPU record layouts or own native asset bytes.
+    std::uint32_t material_alias_prefix_words{};
+    std::vector<MaterialAliasKey> material_alias_keys;
+    std::vector<std::uint32_t> material_source_roots;
+    std::vector<MaterialAliasImage> material_alias_images;
+    // Source baked color guides; qualified interior primary and secondary
+    // diffuse fields also retain their authored irradiance magnitude.
     // This bounded atlas exists only with the active optional RT Scene.
     std::vector<std::uint32_t> color_guide_pixels{0,0,0,0};
     std::vector<std::array<std::uint64_t,2>> color_guide_image_keys;

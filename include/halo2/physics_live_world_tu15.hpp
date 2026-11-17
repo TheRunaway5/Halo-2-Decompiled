@@ -19,6 +19,7 @@
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_multiplayer_engine_entity_tu15.hpp"
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <thread>
 #include <utility>
@@ -275,6 +276,13 @@ public:
     // Explicit caller input, including retained native stack scratch. The
     // journal owns a copy; arbitrary memory writes remain unrecorded work.
     void write_source_call_input(std::uint32_t,std::span<const std::byte>);
+    // Optional owner-supplied correction of a completed 3DAF0 lighting bank,
+    // called by the model builder with the built object, its lighting metric
+    // and the returned bank address before the builder copies that bank. The
+    // callee may rewrite the bank and its cache record through the given
+    // memory; it must not re-enter this world.
+    void set_model_lighting_correction(std::function<void(std::uint32_t object,float metric,
+        std::uint32_t lighting,SourceRuntimeMemory& memory)>);
     // Semantic native cinematic mutations retain the world's executor and
     // publication barriers. Neither advances an original-address CPU owner.
     void stop_campaign_screen();

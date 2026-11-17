@@ -15,6 +15,23 @@ std::uint32_t projected_light_feature_mask(Vec3 completed_specular,float epsilon
 std::vector<Material> prepare_projected_light_material(const Cache&,const Material&,
     const EffectLightDefinition&,const EffectLightUniforms&,unsigned implementation,
     std::uint32_t feature_mask);
+// Source layer 11 `shadow_apply_combined` for a projected light: the alpha-only
+// pass 31150 submits before the light response. Implementation 2 (30D00 for a
+// specular light without a shadow buffer) writes the light's gel into target
+// alpha; shadow-buffer implementations are not admitted here.
+std::vector<Material> prepare_projected_light_alpha_material(const Cache&,const Material&,
+    const EffectLightDefinition&,const EffectLightUniforms&,unsigned implementation);
+std::vector<Material> complete_projected_light_alpha_constants(const Cache&,const Material&,
+    const EffectLightDefinition&,const EffectLightUniforms&,unsigned implementation);
+// A shadowed light's own shadow-buffer passes. Layer 10 (`shadow_generate`,
+// implementations 1 and 2 from 30CB0) draws a caster into the light's depth
+// target; layer 11 implementations 0 (one tap), 1 (three taps) and 6 (three
+// taps, the cinematic per-object buffer) write the comparison times the gel
+// into target alpha in place of implementation 2.
+std::vector<Material> prepare_projected_light_shadow_material(const Cache&,const Material&,
+    const EffectLightDefinition&,const EffectLightUniforms&,unsigned layer,unsigned implementation);
+std::vector<Material> complete_projected_light_shadow_constants(const Cache&,const Material&,
+    const EffectLightDefinition&,const EffectLightUniforms&,unsigned layer,unsigned implementation);
 // Complete only the per-light shader/constant/raster metadata. These results
 // contain no loaded images and are exclusively packet inputs for an already
 // resident material slot prepared by the full function above.

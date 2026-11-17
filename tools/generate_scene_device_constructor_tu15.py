@@ -267,6 +267,23 @@ def main():
     source=scan_include+source.replace(scan_include,'',1)
     from native_simplex_triangle_scene_replacements import replace_simplex_triangle_scene
     source=replace_simplex_triangle_scene(source)
+    # Common generation installs this owner before the wrapper's deterministic
+    # include layout. Rebind only its exact overlay last, preserving that layout
+    # and the canonical ordering of the independently installed sibling hooks.
+    from native_closest_segments_replacements import remove_closest_segments,replace_closest_segments
+    source=replace_closest_segments(remove_closest_segments(source))
+    from native_model_marker_lookup_replacements import replace_model_marker_lookup
+    source=replace_model_marker_lookup(source)
+    # Keep the later boundary owner after both independently owned leading
+    # includes once this wrapper has restored the deterministic Scene layout.
+    from native_simplex_boundary_replacements import remove_simplex_boundary,replace_simplex_boundary
+    source=replace_simplex_boundary(remove_simplex_boundary(source))
+    # Restore this exact owner after the wrapper's three leading sibling
+    # includes; the common generator already authenticates the same body.
+    from native_marker_owner_replacements import replace_marker_owner
+    source=replace_marker_owner(source)
+    from native_object_lookup_copies_replacements import replace_object_lookup_copies
+    source=replace_object_lookup_copies(source)
     a.output.write_text(source)
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(a.output), wrapper_sha256=sha(Path(__file__)),

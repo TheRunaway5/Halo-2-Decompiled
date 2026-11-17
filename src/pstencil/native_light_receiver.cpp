@@ -1,6 +1,8 @@
 #include "halo2/pstencil/native_light_receiver_tu15.hpp"
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/native_tu15_command_walk.hpp"
+#include "halo2/native_tu15_cull_walk_44710.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include <bit>
 #include <cstring>
@@ -125,11 +127,11 @@ NativeLightGeometry native_light_geometry_tu15(PhysicsLiveWorldTu15& world,
     world.run_actual(0x136230u,call);
     fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
     call=world.prepare_source_call();call.x87_status=fp.status;
-    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};world.run_actual(0x44710u,call);
+    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};source_cull_walk_site_tu15(world,call);
     fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
     call=world.prepare_source_call();call.gp[0]=0;call.x87_status=fp.status;
     call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
-    world.run_actual(0x40e80u,call);
+    source_command_frame_site_tu15(world,call,SourceCommandFrameSiteTu15::light);
     return {source_live_effect_light_state_tu15(world.memory()),
         source_live_effect_light_private_commands_tu15(world.memory()).legacy};
 }

@@ -876,6 +876,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       if(object.placement==binding.placement && object.handle!=null_datum)
         binding.handle=object.handle;
   std::set<unsigned> animation_faults;
+  // The builtin one/zero inputs carry the owning cache's string identities.
+  const auto object_function_builtins=ObjectFunctionBuiltins::from_cache(cache);
   auto update_animations = [&](double seconds) {
     // tick identifies the next VM update; object functions use the last
     // completed 30 Hz game tick, while shader scrolling samples render time.
@@ -904,7 +906,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
           return evaluate_object_function(owners[i]->functions,*material.animation.tables,
               name,float(object_tick)*(1.f/30.f),[&](std::uint32_t input) {
                 return scene.function_variable(owners[i]->handle,input,object_tick);
-              }).value;
+              },{},true,object_function_builtins).value;
         };
         if(model_owners[i])animate_frontend_model_material(material,seconds,input);
         else animate_forward_material(material,seconds,input);

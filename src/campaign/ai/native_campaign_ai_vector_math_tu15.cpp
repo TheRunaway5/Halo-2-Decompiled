@@ -148,6 +148,31 @@ NativeCampaignAiDistancePublicationTu15 native_campaign_ai_publish_perception_di
     throw std::runtime_error("Exact native TU1.5 vector arithmetic backend unavailable");
 #endif
 }
+std::uint32_t native_campaign_ai_normalize_vector2_tu15(SourcePhysicsContactMemory &memory,
+    std::uint32_t vector,NativeTu15PhysicsFrameFp &fp,const SourcePhysicsContactRecordObserver &observe) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::uint32_t magnitude{},x_result{},y_result{};unsigned char too_small{};
+    {
+        ArithmeticEnvironment environment(fp);
+        const auto y=read(memory,vector+4u),x=read(memory,vector);
+        asm volatile("flds %1\n\tflds %2\n\tfld %%st(0)\n\tfmul %%st(1)\n\tfld %%st(2)\n\tfmul %%st(3)\n\tfaddp\n\tfsqrt\n\tfstp %%st(2)\n\tfstp %%st(0)\n\tfsts %0\n\tfabs"
+            :"=m"(magnitude):"m"(y),"m"(x):"memory","st","st(1)","st(2)","st(3)");
+        const auto epsilon=read(memory,0x46a0ecu);
+        asm volatile("flds %1\n\tfcomip %%st(1),%%st\n\tfstp %%st(0)\n\tseta %0"
+            :"=qm"(too_small):"m"(epsilon):"memory","cc","st","st(1)");
+        if(!too_small) {
+            const auto one=scalar(read(memory,0x46a0d0u)),vx=scalar(read(memory,vector));
+            const auto inverse=divide(one,scalar(magnitude));
+            x_result=bits(multiply(vx,inverse));y_result=bits(multiply(inverse,scalar(read(memory,vector+4u))));
+        }
+    }
+    if(too_small)return 0;
+    publish(memory,observe,0x2b425u,vector,x_result);publish(memory,observe,0x2b429u,vector+4u,y_result);return magnitude;
+#else
+    (void)memory;(void)vector;(void)fp;(void)observe;
+    throw std::runtime_error("Exact native TU1.5 planar normalization unavailable");
+#endif
+}
 std::uint32_t native_campaign_ai_normalize_vector_tu15(SourcePhysicsContactMemory &memory,
     std::uint32_t vector,NativeTu15PhysicsFrameFp &fp,const SourcePhysicsContactRecordObserver &observe) {
     return native_tu15_normalize_vector_30bd0(memory,vector,fp,observe).xmm0_bits();
@@ -198,6 +223,18 @@ std::uint32_t native_campaign_ai_normalize_vector_value_tu15(const SourcePhysics
     return magnitude;
 #else
     (void)memory;(void)value;(void)fp;(void)publish;
+    throw std::runtime_error("Exact native TU1.5 vector arithmetic backend unavailable");
+#endif
+}
+
+std::uint32_t native_campaign_ai_normalize_vector_value_ordered_tu15(const SourcePhysicsContactMemory &memory,
+    std::array<std::uint32_t,3> &value,NativeTu15PhysicsFrameFp &fp) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    ArithmeticEnvironment environment(fp);
+    return normalize(memory,[&](unsigned axis){return value[axis];},
+        [&](unsigned axis,std::uint32_t bits,std::uint32_t){value[axis]=bits;}).xmm0_bits();
+#else
+    (void)memory;(void)value;(void)fp;
     throw std::runtime_error("Exact native TU1.5 vector arithmetic backend unavailable");
 #endif
 }

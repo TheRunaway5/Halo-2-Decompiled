@@ -1,7 +1,71 @@
 # pStencil graphics mode
 
-The installed gameplay runtime is **surface-alignment-live-v1**, via
-`./Halo2-pStencil`. It retains the live-v14 source/ABI and materials, with the
+**November 10, 2026:** Both launchers select native MCC build
+`d5c08bdaf2f24d7088d0c36611120498`. `./Halo2-pStencil` delegates to
+`Halo2-Launcher`, defaults to pStencil, and accepts explicit graphics mode, map
+and player overrides. The installed package's 3,360 native world, fragment and
+pStencil modules pass the structural instruction-bank-read audit. The installed
+pStencil shortcut submits three Lockout frames under Vulkan validation with no
+reported validation diagnostics.
+
+The [Elite shiny-kernel/source binding correction](ELITE_VARIANT_PRESENTATION.md)
+passes original-constructor and native GPU checks. The installed build passes
+all 126 qualification tests, all 27 map/player launch checks and frontend
+qualification. It includes the camouflage and Infection adapter repairs and
+Needle's authenticated overshield metadata profile. Acceptance for the Elite
+correction is matching recovered 2003 logic, without a required original
+framebuffer comparison. [Qualification](../../analysis/pstencil/elite-powerup-delivery-20261110/engine/report.json),
+[installed pStencil verification](../../analysis/pstencil/elite-powerup-delivery-20261110/installed-pstencil.json).
+**November 11, 2026:** `Halo2-pStencil-Campaign` now starts the
+launcher-selected native runtime directly (`--campaign` on the prepared MCC
+cache, pStencil by default, `--map NAME.map` for another mission). The
+retained October opening bundle remains reachable with `--legacy-runtime`.
+A 12-frame headless start of The Heretic exits cleanly without Vulkan
+validation lines; this is a launch check, not a campaign certification. The
+Armory still needs an AI bypass to start and The Great Journey stops on two
+unsupported script builtins, so campaign coverage beyond the opening is
+unverified. Sun volumes are bounded at their first receiver and more dynamic
+owners cast them; see [sun stencil shadows](SUN_SHADOWS.md). Animated sphere
+lights attached to objects (the red emergency lights among them) are now lit
+from their completed native record, camouflaged players cast a thinner or no
+shadow, and the retail projected shadow no longer doubles the stencil shadow;
+[the light rule page](POINT_LIGHT_RULE.md) has the per-map light inventory
+and what is still declined. Launcher qualification now builds and runs 17
+pStencil tests and submits pStencil frames on Coagulation, Lockout and
+Zanzibar plus a two-player split. World surfaces now receive the sun and
+lightmap stencil shadows through a second, world-only composite (before
+this the mask could only darken model pixels), the campaign flashlight
+switches on and is drawn as a projected light, and the armor emblem overlay
+no longer blackens the Chief's shoulder plates in campaign. World surfaces
+no longer show scattered black pixels where the texture target and the
+retained world depth disagreed by one step.
+
+Coverage facts established on 2026-11-11:
+
+- The 2003 material-bank audit (`pstencil_actor_material_bank`) passes on all
+  40 prepared maps, not only its seven registered ones: 365 unique character
+  and weapon shader paths, 7,984 recovered and 5,436 adapted native material
+  cases ([report](../../analysis/pstencil/actor-material-coverage-20261111/all-maps.json)).
+  It audits `objects\characters` and `objects\weapons`; vehicles, scenery
+  and world materials are outside it.
+- Normal accumulation, texture accumulation, light utility, dependent light,
+  the environment response and the combined visor are selected per material
+  inside the shared renderer, so multiplayer and campaign both run them for
+  admitted sphere lights. Projected (frustum) lights and their gels are
+  drawn by `pstencil::CampaignRenderer` in campaign and, since this date, by
+  the multiplayer runtime through the same `pstencil::ProjectedLights`
+  owner. The stage list is from reading the call sites, not from a
+  per-stage capture.
+- A pre-existing race is closed: pStencil appends its posed receiver ranges
+  to the frame's vertex upload plan while the presentation copy worker is
+  still reading that plan, and a chunk-array reallocation could leave the
+  worker copying from freed memory (one segfault in six scripted grenade
+  runs). The plan now reserves those chunk slots before the worker starts
+  (`FrameVertexUploadPlan::reserve_late_chunks`); eight of eight repeat runs
+  pass.
+
+The delivery notes below describe historical retained cohorts. The earlier
+gameplay runtime was **surface-alignment-live-v1**. It retains the live-v14 source/ABI and materials, with the
 [shadow-cap transform fix](SURFACE_CAP_ALIGNMENT.md). The actual TU1.5 Lockout
 captures pass in Original, pStencil and third person without script/validation
 errors. Original is byte-identical to live-v14. Its manifest verifies 65 SPVs,

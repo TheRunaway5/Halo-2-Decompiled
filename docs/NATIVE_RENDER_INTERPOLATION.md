@@ -66,6 +66,20 @@ Unchanged poses and current endpoints retain their original matrix words.
 Animation selection, events, ammo, damage, melee contacts, and source pose
 banks stay on their existing simulation clock.
 
+The host's in-frame `2BABC/3D2B0` FP group runs inside the presented WORLD
+scope, after the local unit has been moved to its sampled root. Its mode0
+lower-body record copies that already sampled WORLD bank. The renderer
+therefore keeps the post-tick `168DED` mode0 bank as the completed endpoint
+and does not retain the in-frame copy. Before this, the Elite lower body (legs
+and right upper arm/forearm) was interpolated twice. It trailed the
+camera-locked view by up to 0.077 world units per frame while moving. The
+connected Chief torso already samples the completed full-unit WORLD bank. If
+no post-tick bank exists, the in-frame copy is drawn unpaired at its shown root.
+`native_tu15_first_person_motion_coherence_{human,elite}` hold a real SDL move
+at the natural frame rate. They compare every frame's FP fractions, the
+production camera of completed banks, the weapon grip on the sampled hand, and
+the lower body and eye against their completed endpoints.
+
 The renderer decodes the actual graph/index selected by the original manager,
 including linked idle variants that are absent from an action-root preload.
 The idle audit traverses the authored linked chains for standing, crouched,

@@ -38,7 +38,7 @@ template<class State,class Before=native_page_window_detail::Noop>struct Access 
     void complete(P phase,const NativeTu15StackProbe&){at(phase==P::large_return?0x32a6a0u:0x32a678u);s.pop();}
 };
 template<class State,class Before=native_page_window_detail::Noop>bool run(State &s,Before before={},std::uint32_t canonical_pc_offset=0){
-    if(native_page_window_detail::reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(native_page_window_detail::reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x32a660u,0x32a6a0u))return false;
     ++activity().calls;NativeTu15StackProbe data;data.bytes=s.gp[0];data.entry_sp=s.gp[4];Access<State,Before> access{s,before,canonical_pc_offset};native_tu15_probe_stack(access,data);return true;
 }
 } // namespace halo2::native_stack_probe_detail

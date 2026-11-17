@@ -23,7 +23,7 @@ def main():
     spec = importlib.util.spec_from_file_location('meter_exporter', repo / 'tools/export_mcc_native_meter.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    _, fixture = module.generate(prepared)
+    _, fixture = module.generate(prepared,owner/'assets/imported'/module.AMMO_CACHE_SIBLING)
     with tempfile.TemporaryDirectory(prefix='mcc-meter-', dir=os.environ['HALO2_TEST_SCRATCH']) as folder:
         path = Path(folder) / 'fixture.json'
         path.write_bytes(module.canonical(fixture))

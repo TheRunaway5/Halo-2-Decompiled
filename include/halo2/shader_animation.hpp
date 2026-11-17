@@ -58,12 +58,21 @@ float shader_function_fraction(std::span<const std::byte>, float input,
 float shader_function_value(std::span<const std::byte>, float input,
                             float range, const ShaderFunctionTables &);
 std::uint32_t shader_function_color(std::span<const std::byte>, float fraction);
+// 108D90's builtin constant inputs "one" and "zero" as numbered by the cache
+// that owns the functions. The defaults are the Xbox disc identities; an MCC
+// cache numbers the same two symbols differently, and an authored
+// `one -> output` function evaluates to zero if they are not translated.
+struct ObjectFunctionBuiltins {
+  std::uint32_t one = 0x030005a6u, zero = 0x040005a7u;
+  static ObjectFunctionBuiltins from_cache(const class Cache &);
+};
 FunctionValue evaluate_object_function(std::span<const ObjectFunction>,
                                        const ShaderFunctionTables &,
                                        std::uint32_t name, float seconds,
                                        const ObjectFunctionInput &,
                                        const ObjectFunctionHandler & = {},
-                                       bool original_builtin_constants = true);
+                                       bool original_builtin_constants = true,
+                                       ObjectFunctionBuiltins = {});
 // Retail 174D0/17550/176A0/17960. Retains the selected pass and changes only
 // its animated constants. Per-object inputs are supplied by the scene owner.
 bool animate_forward_material(Material &, double seconds, const ShaderInput &);

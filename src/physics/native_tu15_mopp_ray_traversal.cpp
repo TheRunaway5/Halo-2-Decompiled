@@ -1,5 +1,6 @@
 #include "halo2/native_tu15_mopp_ray_traversal.hpp"
 #include "halo2/native_tu15_mopp_ray_traversal_kernel.hpp"
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include <cstring>
 #include <stdexcept>
 #include <type_traits>
@@ -62,8 +63,9 @@ public:
     void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width=4){
         std::array<std::byte,4>b{};for(unsigned k=0;k<4;++k)b[k]=std::byte(value>>(k*8u));
         SourcePhysicsContactRecordStore event{pc,p,{},{}};
-        if(observe_){event.before.resize(width);environment_.io([&]{memory_.read(p,event.before);});event.written.assign(b.begin(),b.begin()+width);}
-        environment_.io([&]{memory_.write(p,std::span(b).first(width));});if(observe_)environment_.io([&]{observe_(event);});
+        bool observed{};environment_.io([&]{observed=native_tu15_observes_retained_store(memory_,observe_,pc,p,width);});
+        if(observed){event.before.resize(width);environment_.io([&]{memory_.read(p,event.before);});event.written.assign(b.begin(),b.begin()+width);}
+        environment_.io([&]{memory_.write(p,std::span(b).first(width));});if(observed)environment_.io([&]{observe_(event);});
     }
     std::array<std::uint32_t,4> vector(std::uint32_t p)const{
         std::array<std::byte,16>b{};environment_.io([&]{memory_.read_vector(p,b);});std::array<std::uint32_t,4>v{};std::memcpy(v.data(),b.data(),16);return v;

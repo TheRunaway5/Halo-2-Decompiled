@@ -1,7 +1,11 @@
+#include "gameplay/weapons/native_tu15_marker_owner_admission.hpp"
+#include "gameplay/weapons/native_tu15_object_parent_mode_admission.hpp"
+#include "gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp"
 #include "native_tu15_effect_transform_product.hpp"
 #include "native_tu15_effect_datum_allocate.hpp"
 #include "native_tu15_effect_slot_scan.hpp"
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include <bit>
 #include <cfloat>
 #include <cstring>

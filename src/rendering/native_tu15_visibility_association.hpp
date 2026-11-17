@@ -10,7 +10,7 @@
 #endif
 
 namespace halo2::native_visibility_association_detail {
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_VISIBILITY_ASSOCIATION");return p&&*p;}();return value;}
 template<class State>bool policy_admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)

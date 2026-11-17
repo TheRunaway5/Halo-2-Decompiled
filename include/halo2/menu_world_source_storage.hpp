@@ -55,6 +55,8 @@ public:
   MenuWorldSourceStorage(const MenuWorldSourceStorage &)=delete;
   MenuWorldSourceStorage &operator=(const MenuWorldSourceStorage &)=delete;
   std::span<const MenuWorldSourceStoredDraw> store(std::span<const MenuWorldSourceBinding>);
+  // The same store over borrowed bindings (no per-draw binding copies).
+  std::span<const MenuWorldSourceStoredDraw> store_borrowed(std::span<const MenuWorldSourceBinding *const>);
 private:
   struct Impl;
   std::unique_ptr<Impl> impl_;

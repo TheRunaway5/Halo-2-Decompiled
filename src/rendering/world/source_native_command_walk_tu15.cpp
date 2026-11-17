@@ -5,6 +5,7 @@
 #include "halo2/native_tu15_render_prepare.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_live_shadow_storage_tu15.hpp"
+#include "halo2/source_native_store_oracle_tu15.hpp"
 #include "halo2/source_opaque_sort.hpp"
 #include "halo2/source_runtime_undo_journal.hpp"
 #include <algorithm>
@@ -25,7 +26,16 @@ struct QueueStats {
                 " appends="<<appends<<" comparisons="<<comparisons<<" mismatches="<<mismatches<<'\n';
     }
 };
+struct SiteStats {
+    std::atomic<std::uint64_t> native{},reference{},comparisons{},mismatched_calls{},mismatches{},native_bytes{},original_bytes{},fp_mismatches{};
+    void report(const char* name) const {
+        std::cerr<<"Site40E80 "<<name<<" stats: native="<<native<<" reference="<<reference<<" comparisons="<<comparisons<<
+            " mismatched_calls="<<mismatched_calls<<" mismatched_bytes="<<mismatches<<" fp_mismatches="<<fp_mismatches<<
+            " native_bytes="<<native_bytes<<" original_bytes="<<original_bytes<<'\n';
+    }
+};
 struct Stats {
+    SiteStats light_site,shadow_site;
     std::atomic<std::uint64_t> frames{},geometry{},parts{},emits{};
     std::atomic<std::uint64_t> native_parts{},reference_parts{},residual_parts{},model_parts{},plane_hits{},comparisons{},mismatches{};
     std::atomic<std::uint64_t> native_emits{},reference_emits{},residual_emits{},bank_appends{},transparent_appends{};
@@ -35,6 +45,9 @@ struct Stats {
     std::atomic<std::uint64_t> material_native{},material_reference{},material_residual{},
         material_accepted{},material_class_rejected{},material_post_rejected{};
     ~Stats(){
+        if(const auto* v=std::getenv("HALO2_NATIVE_COMMAND_SITE_STATS");v&&*v) {
+            light_site.report("light");shadow_site.report("shadow");
+        }
         if(const auto* v=std::getenv("HALO2_NATIVE_COMMAND_WALK_STATS");v&&*v)
             std::cerr<<"Native40E80 stats: frames="<<frames<<" geometry_calls="<<geometry<<
                 " part_calls="<<parts<<" emit_calls="<<emits<<'\n';
@@ -447,6 +460,45 @@ NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15& 
     s.producer_42750=[&](auto mask,auto& arithmetic){queue_sections(world,QueueProducer::sections,mask,arithmetic);};
     s.producer_41630=[&](auto& arithmetic){no_args(0x41630u,arithmetic);};
     native_tu15_command_frame_40e80(world.memory(),selector,fp,s);++stats().frames;return fp;
+}
+
+void source_command_frame_site_tu15(PhysicsLiveWorldTu15& world,SourcePhysicsContactRuntimeAbi& call,
+    SourceCommandFrameSiteTu15 site) {
+    const auto enabled=[](const char* flag){const auto* p=std::getenv(flag);return p&&*p&&*p!='0';};
+    static const bool light_reference=enabled("HALO2_REFERENCE_LIGHT_COMMANDS");
+    static const bool shadow_reference=enabled("HALO2_REFERENCE_SHADOW_COMMANDS");
+    static const bool oracle=enabled("HALO2_SECONDARY_COMMANDS_ORACLE");
+    const bool light=site==SourceCommandFrameSiteTu15::light;
+    auto& counters=light?stats().light_site:stats().shadow_site;
+    const auto selector=call.gp[0];
+    if(light?light_reference:shadow_reference) {++counters.reference;world.run_actual(0x40e80u,call);return;}
+    const auto publish=[&](const NativeTu15PhysicsFrameFp& fp) {
+        call.x87_status=fp.status;call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
+    };
+    if(!oracle) {++counters.native;publish(world.run_native_command_frame_tu15(selector));return;}
+    // Both runs start from the same fresh caller arithmetic state so their
+    // completed FP words are comparable; the original's result persists.
+    NativeTu15PhysicsFrameFp native_fp{};
+    auto original=world.prepare_source_call();original.gp[0]=selector;
+    SourceNativeStoreOracleTu15 compare;
+    compare.run(world.memory(),[&]{native_fp=world.run_native_command_frame_tu15(selector);},
+        [&]{world.run_actual(0x40e80u,original);});
+    ++counters.comparisons;counters.native_bytes+=compare.native_bytes;counters.original_bytes+=compare.original_bytes;
+    const auto& controls=original.floating_point.value();
+    const bool fp_differs=native_fp.control_word!=controls.x87_control_word||native_fp.status!=original.x87_status||
+        native_fp.mxcsr!=controls.mxcsr;
+    if(fp_differs)++counters.fp_mismatches;
+    if(compare.mismatches||fp_differs) {
+        ++counters.mismatched_calls;counters.mismatches+=compare.mismatches;
+        if(counters.mismatched_calls<=8) {
+            std::cerr<<"Site40E80 "<<(light?"light":"shadow")<<" oracle mismatch: bytes="<<compare.mismatches<<std::hex<<
+                " fp native="<<native_fp.control_word<<'/'<<native_fp.status<<'/'<<native_fp.mxcsr<<
+                " original="<<controls.x87_control_word<<'/'<<original.x87_status<<'/'<<controls.mxcsr;
+            for(const auto& m:compare.first)std::cerr<<" ["<<m.address<<' '<<unsigned(m.native)<<'/'<<unsigned(m.original)<<']';
+            std::cerr<<std::dec<<'\n';
+        }
+    }
+    call.x87_status=original.x87_status;call.floating_point=original.floating_point;
 }
 
 void source_native_transparent_collection_tu15(PhysicsLiveWorldTu15& world,SourcePhysicsContactRuntimeAbi& caller) {

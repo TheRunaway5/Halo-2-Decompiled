@@ -166,6 +166,9 @@ void source_run_physics_vehicle_environment_state_runtime(M &m,std::uint32_t ent
 }
 } // namespace halo2
 '''
+ if 0xbcdf0 in entries:
+  from native_vehicle_object_lookup_replacements import replace_vehicle_object_lookup
+  text=replace_vehicle_object_lookup(text)
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(text)
  manifest=dict(schema=1,parity_target='English TU1.5 only',generator_sha256=sha(__file__),research_sha256=sha(a.research),
   original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),native_entries={f'{p:08x}':q for p,q in entries.items()},

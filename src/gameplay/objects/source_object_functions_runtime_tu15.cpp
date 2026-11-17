@@ -1,15 +1,18 @@
 #include "halo2/source_object_functions_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <bit>
 namespace halo2 {
 void source_object_function_set_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t object,
     std::uint32_t name,float value,float frames) {
-    auto a=w.prepare_source_call(std::array{object,name,std::bit_cast<std::uint32_t>(value)});
-    a.xmm[4][0]=std::bit_cast<std::uint32_t>(frames);w.run_actual(0x10fc30u,a);
+    auto bank=native_campaign_script_bank(w,true);
+    native_campaign_script_tu15::object_set_function_variable(bank,object,name,
+        std::bit_cast<std::uint32_t>(value),std::bit_cast<std::uint32_t>(frames)); // native 10FC30
 }
 void source_object_function_clear_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t object,std::uint32_t name) {
-    auto a=w.prepare_source_call();a.gp[7]=object;a.gp[6]=name;w.run_actual(0x10fd50u,a);
+    auto bank=native_campaign_script_bank(w);
+    native_campaign_script_tu15::object_clear_function_variable(bank,object,name); // native 10FD50
 }
 void source_object_set_permutation_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t object,
     std::uint32_t region,std::uint32_t permutation) {
@@ -21,10 +24,10 @@ void source_object_set_permutation_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t ob
 }
 std::optional<float> source_object_function_value_tu15(PhysicsLiveWorldTu15 &w,
     std::uint32_t object,std::uint32_t name) {
-    const auto scratch=w.prepare_source_call().gp[4]+0x100u;
-    auto a=w.prepare_source_call(std::array{name,scratch,scratch+4u});a.gp[3]=object;
-    w.run_actual(0x10fb70u,a);if(!(a.gp[0]&255u))return {};
-    return Bytes(w.memory().view(scratch,4)).f32(0);
+    const auto bank=native_campaign_script_bank(w,true);
+    const auto found=native_campaign_script_tu15::object_function_value(bank,object,name); // native 10FB70
+    if(!found)return {};
+    return std::bit_cast<float>(found->value);
 }
 std::map<std::pair<std::uint32_t,std::uint32_t>,float> source_object_function_samples_tu15(PhysicsLiveWorldTu15 &w) {
     auto &m=w.memory();const auto p=Bytes(m.view(0x51daf4u,4)).u32(0);

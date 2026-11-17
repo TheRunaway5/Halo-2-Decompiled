@@ -198,6 +198,27 @@ public:
   std::vector<WorldEffectLightReceiver> light_receivers(const SourceEffectLightView&,
       const SourceBspAdmissionBsp&,std::span<const std::uint8_t> containing_fog,
       const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals);
+  // Effect lights whose definition has brightness/colour animation blocks
+  // (shell fire, coil, turret and module explosions, the plasma charge).
+  // They live in their own pool, ticked with the original C2B30 animation,
+  // so the ordinary pool's identities, occupancy and selection are exactly
+  // what they were. Only a pStencil presentation reads these.
+  std::vector<std::uint32_t> animated_light_definitions() const;
+  // Read-only tick state of that pool: the full light datum C2B30 hashes,
+  // its birth tick and authored control (+CC), and the completed state.
+  struct AnimatedLight {
+    std::uint32_t identity{},definition{},birth{};
+    float authored_control{};
+    Vec3 position;
+    EffectLightState state;
+  };
+  std::vector<AnimatedLight> animated_lights() const;
+  SourceEffectLightView animated_light_view(Vec3 camera_position,
+      const SourceEffectLightCollectionContext&,const SourceEffectLightCandidateContext&,
+      std::int32_t frame,bool cinematic=false);
+  std::vector<WorldEffectLightReceiver> animated_light_receivers(const SourceEffectLightView&,
+      const SourceBspAdmissionBsp&,std::span<const std::uint8_t> containing_fog,
+      const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals);
   std::vector<ParticleDraw> draw(const MuzzleEffectView &, float fraction,
                                  float seconds) const;
   std::vector<Vertex> decals(std::uint64_t tick, float fraction,

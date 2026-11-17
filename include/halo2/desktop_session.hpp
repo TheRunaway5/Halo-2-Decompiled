@@ -12,6 +12,7 @@
 #include <span>
 
 namespace halo2 {
+class Cache;
 class Renderer;
 class SourceBspResidentPlan;
 struct Mesh;
@@ -77,7 +78,8 @@ public:
       std::span<const SourceShadowPlanMaterial> shadow_materials={},
       const SourceBspResidentPlan *bsp_resident_plan=nullptr,
       const std::filesystem::path &shader_directory={},
-      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials={});
+      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials={},
+      const Cache *scene_cache=nullptr);
   // Called after actual GPU/audio initialization, before an ordinary frame.
   void renderer_ready(const std::shared_ptr<Renderer>&);
   void begin_loading();

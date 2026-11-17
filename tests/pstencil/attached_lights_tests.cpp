@@ -4,6 +4,8 @@
 #include "halo2/pstencil/native_light_constants_tu15.hpp"
 #include "halo2/pstencil/campaign_lights.hpp"
 #include "halo2/path_tracing/source_lights.hpp"
+#include "halo2/model_node_interpolation.hpp"
+#include "halo2/native_campaign_object_marker_request_tu15.hpp"
 #include "halo2/object_sky_lighting.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/source_portal_visibility.hpp"
@@ -142,6 +144,60 @@ int main(int argc,char** argv){try {
     require(rt!=rt_lights.end() && rt->radius==expected_shape.diffuse_radius &&
         same(rt->color,native.front().state.diffuse) && rt->intensity==native.front().state.brightness,
         "Path Tracing dropped an off-camera emitter or changed its native sphere/energy");
+    const auto attached_record=std::find_if(rt_records.begin(),rt_records.end(),[&](const auto& row) {
+        return row.runtime.identity==native.front().identity;
+    });
+    require(attached_record!=rt_records.end() && attached_record->runtime.owner==object &&
+        attached_record->runtime.attached_node>=0,"Native attachment lost its owner/marker node");
+    RenderModel fixture_hierarchy;fixture_hierarchy.bones.resize(1);
+    const auto marker_name=world.render_attachment_marker(object,attached_record->runtime.attached_node);
+    NativeTu15PhysicsFrameFp marker_fp;
+    const auto marker=native_campaign_object_marker_request_value_tu15(memory,object,false,marker_name,marker_fp);
+    const auto node_offset=std::bit_cast<std::int16_t>(Bytes(memory.view(body+0x116u,2)).u16(0));
+    Transform current_node;
+    std::memcpy(&current_node,memory.view(body+unsigned(node_offset)+marker.value.node*52u,52).data(),52);
+    auto previous_node=current_node;previous_node.position.x-=4;
+    const auto clock_address=word(0x51df54u);
+    const auto clock_before=std::vector<std::byte>(memory.view(clock_address,0x24u).begin(),memory.view(clock_address,0x24u).end());
+    const auto presented_owner_before=std::vector<std::byte>(memory.view(body,body_size).begin(),memory.view(body,body_size).end());
+    ModelNodeInterpolation presentation;
+    presentation.capture(100,std::span(&previous_node,1));
+    presentation.capture(101,std::span(&current_node,1));
+    for(const float fraction:{0.f,.25f,.5f,.75f,1.f}) {
+        const auto nodes=presentation.sample(fixture_hierarchy,fraction);
+        unsigned admitted{};
+        const auto shown=path_tracing::source_lights(world,std::span(&*attached_record,1),
+            [&](std::uint32_t full_owner,std::uint16_t node)->std::optional<Transform> {
+                require(full_owner==object && node==marker.value.node,
+                    "Path Tracing presentation changed native attachment ownership");
+                ++admitted;return nodes.front();
+            });
+        const auto expected_position=rt->position+(nodes.front().position-current_node.position);
+        require(admitted==1 && shown.size()==1 &&
+            length(shown.front().position-expected_position)<1.e-4f &&
+            shown.front().radius==rt->radius && same(shown.front().color,rt->color) &&
+            shown.front().intensity==rt->intensity && shown.front().planes==rt->planes,
+            "Path Tracing attached emitter did not follow the primary interpolation fraction");
+    }
+    const auto unobserved=path_tracing::source_lights(world,std::span(&*attached_record,1),
+        [](auto,auto)->std::optional<Transform>{return {};});
+    require(unobserved.size()==1 && same(unobserved.front().position,rt->position),
+        "Missing model presentation invented an attached-light transform");
+    auto foreground=*attached_record;foreground.first_person_marker=marker_name;foreground.first_person_root=object;
+    bool sampled_world=false;
+    const auto foreground_lights=path_tracing::source_lights(world,std::span(&foreground,1),
+        [&](auto,auto)->std::optional<Transform>{sampled_world=true;return previous_node;});
+    require(!sampled_world && foreground_lights.size()==1 && same(foreground_lights.front().position,rt->position),
+        "Native first-person light incorrectly received WORLD interpolation");
+    auto stale_record=*attached_record;stale_record.runtime.owner^=0x10000u;
+    bool stale_presentation=false;
+    try {(void)path_tracing::source_lights(world,std::span(&stale_record,1),
+        [&](auto,auto)->std::optional<Transform>{return previous_node;});}
+    catch(const FormatError&){stale_presentation=true;}
+    require(stale_presentation,"Path Tracing attached light accepted a stale full owner generation");
+    require(std::ranges::equal(clock_before,memory.view(clock_address,0x24u)) &&
+        std::ranges::equal(presented_owner_before,memory.view(body,body_size)),
+        "Path Tracing interpolation changed actual source clock or attachment owner state");
     require(snapshot().lights.records==before_view.lights.records,
         "Path Tracing source emitter extraction changed actual light state");
     ObjectSkyLightingDefinition source_sky;source_sky.outdoor_ambient={.1f,.2f,.3f};

@@ -47,6 +47,7 @@
 #include "halo2/source_device_event.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/multiplayer_world.hpp"
+#include "halo2/multiplayer_look_authority.hpp"
 #include "halo2/multiplayer_runtime_authority.hpp"
 #include "halo2/multiplayer_receipt_continuity.hpp"
 #include "halo2/multiplayer_pose_continuity.hpp"
@@ -134,6 +135,8 @@
 #include "halo2/source_combat_attachments.hpp"
 #include "halo2/effect_presentation_history.hpp"
 #include "halo2/pstencil/point_lights.hpp"
+#include "halo2/pstencil/projected_lights.hpp"
+#include "halo2/pstencil/native_light_receiver_tu15.hpp"
 #include "halo2/path_tracing/source_lights.hpp"
 #include "halo2/path_tracing/sky_lighting.hpp"
 #include "halo2/source_contrail_draw.hpp"
@@ -556,6 +559,26 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   const auto live_world=[&]{return &authority.world();};
   const auto live_host=[&]{return authority.host();};
   const auto live_client=[&]{return authority.client();};
+  if(options.capture_player_position) {
+    // Declared capture placement, before the first tick; never gameplay.
+    if(!options.capture_tick || options.local_players<1 || ids.empty())
+      throw FormatError("Player placement requires a finite local input-script capture");
+    auto* placed_world=live_world();
+    if(!placed_world->source_objects || !placed_world->source_objects->owns_physics())
+      throw FormatError("Player placement requires the native object world");
+    const auto placed=live_match().state();
+    placed_world->source_objects->tu15_world().set_object_position(
+        placed.players.at(ids.at(0)).source_unit,*options.capture_player_position);
+    // Capture-only: HALO2_REFERENCE_SECOND_PLAYER_POSITION="X Y Z" places the
+    // second local player, so one real view can watch the other's body.
+    if(const auto* second=std::getenv("HALO2_REFERENCE_SECOND_PLAYER_POSITION");second && *second && ids.size()>1) {
+      std::istringstream text(second);Vec3 position;
+      if(!(text>>position.x>>position.y>>position.z) || !std::isfinite(position.x+position.y+position.z))
+        throw FormatError("Invalid second player placement");
+      placed_world->source_objects->tu15_world().set_object_position(
+          placed.players.at(ids.at(1)).source_unit,position);
+    }
+  }
   std::array<Controls, multiplayer_capacity> controls{};
   for (auto id : ids)
     controls[id].yaw = live_match().unit(id).yaw;
@@ -1853,12 +1876,19 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::cout<<"Native map pickups and retained weapon inventory enabled\n";
   std::vector<std::optional<SkyDefinition>> skies;
   std::vector<std::optional<ObjectSkyLightingDefinition>> sky_lighting;
+  std::vector<std::optional<ObjectSkyLightingDefinition>> stencil_sky_lighting;
   path_tracing::SkyLighting path_tracing_sky_lighting;
   std::vector<std::optional<Visual>> sky_models;
   for(unsigned i=0;i<atmosphere.skies.size();++i) {
     skies.push_back(cache.load_sky(i));sky_models.emplace_back();
-    sky_lighting.push_back(cache.object_sky_lighting_available(i)?
-        cache.load_object_sky_lighting(i):std::optional<ObjectSkyLightingDefinition>{});
+    if(cache.object_sky_lighting_available(i)) {
+      sky_lighting.push_back(cache.load_object_sky_lighting(i));
+      stencil_sky_lighting.push_back(sky_lighting.back());
+    } else {
+      sky_lighting.emplace_back();
+      try {stencil_sky_lighting.push_back(cache.load_object_sky_lighting(i));}
+      catch(const FormatError&) {stencil_sky_lighting.emplace_back();}
+    }
     if(skies.back() && skies.back()->model!=null_datum)sky_models.back()=visual(skies.back()->model);
   }
   std::map<std::pair<unsigned,std::uint32_t>,std::unique_ptr<MultiplayerHud>> huds,offhand_huds,vehicle_huds;
@@ -1956,7 +1986,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     pause_menu=std::make_unique<GamePauseMenu>(cache.shared_directory(),options.ui_assets,mesh,false,
         pref?std::filesystem::path(pref.get())/"menu.cfg":std::filesystem::path{},options.menu_ui_assets,cache.path());
     pause_menu->online_match(bool(options.online_match));
-    const bool local_splitscreen=options.local_players>1 && !options.online_match &&
+    // TU1.5 screen195 (14A0D9 -> 239104) always lists End Game for a local
+    // game, whatever its local player count; 2394DF owns the confirmation.
+    // A one-player Split Screen match is the same offline local authority.
+    const bool local_splitscreen=options.local_players>0 && !options.online_match &&
         !options.host_port && options.join.empty();
     pause_menu->splitscreen_match(local_splitscreen);
     pause_menu->command([&,local_splitscreen](GamePauseAction action) {
@@ -2052,11 +2085,24 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   for(const auto id:pstencil_point_lights.definitions())
     if(std::find(all_effect_light_definitions.begin(),all_effect_light_definitions.end(),id)==all_effect_light_definitions.end())
       all_effect_light_definitions.push_back(id);
+  // Animated effect lights are drawn only by pStencil, from their own pool.
+  for(const auto id:world_effects.animated_light_definitions())
+    if(std::find(all_effect_light_definitions.begin(),all_effect_light_definitions.end(),id)==all_effect_light_definitions.end())
+      all_effect_light_definitions.push_back(id);
   SourceBspEffectLights bsp_effect_lights(cache,mesh,options.bsp,all_effect_light_definitions,
       source_model_resources?std::span<const std::uint32_t>(source_resident_models):std::span<const std::uint32_t>{});
   for(const auto& gap:bsp_effect_lights.unavailable())
     if(reported_world_effect_gaps.insert(gap).second)
       std::cerr<<"BSP effect light material boundary: "<<gap<<'\n';
+  // pStencil projected (frustum) lights: flashlights, headlights and placed
+  // spot lamps. The campaign bridge's owner is shared; its residency must be
+  // prepared before Renderer construction because Video Settings can switch
+  // the graphics mode later. Original never submits these draws.
+  std::unique_ptr<pstencil::ProjectedLights> pstencil_projected_lights;
+  if(source_model_resources)
+    pstencil_projected_lights=std::make_unique<pstencil::ProjectedLights>(cache,mesh,options.bsp,
+        std::make_shared<pstencil::SharedLightMaterials>(cache,mesh));
+  bool pstencil_projected_lights_available=bool(pstencil_projected_lights);
   // Native player shadow passes must be resident before Renderer uploads the
   // mesh, including when Video Settings changes the graphics mode later.
   std::unique_ptr<SourceShadowScene> source_shadow_scene;
@@ -2071,7 +2117,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   bind_water_pool_materials(water,mesh.materials);
   const auto source_materials_at_upload=mesh.materials.size();
   const auto renderer_owner=platform.desktop->make_renderer(mesh,options.validation,{},bsp_shaders?&*bsp_shaders:nullptr,
-      options.capture_shader_directory,source_shadow_scene?source_shadow_scene->resident():std::span<const SourceShadowRawPlanMaterial>{});
+      options.capture_shader_directory,
+      source_shadow_scene?source_shadow_scene->resident():std::span<const SourceShadowRawPlanMaterial>{},&cache);
   auto& renderer=*renderer_owner;
   if(source_particle_resources) {
     renderer.preload_particle_materials(source_particle_draws.resident_materials());
@@ -3093,8 +3140,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     const auto caller=source.prepare_source_call();
     return receiver->sample(source.memory(),caller,packet,expected,position,forward,up,cpu);
   };
+  // presented_world: the models came from the in-frame 2BABC/3D2B0 cache while
+  // SourcePresentedModelPoseScopeTu15 had moved units to their sampled roots.
+  // Its mode0 copy of the unit WORLD bank is then already a presentation, not
+  // a completed endpoint; the post-tick capture keeps that endpoint instead.
   const auto retain_fp_poses=[&](unsigned view,const auto &binding,const auto &player,
-      const std::vector<SourceFirstPersonModelTu15> &models,const Transform &camera) {
+      const std::vector<SourceFirstPersonModelTu15> &models,const Transform &camera,bool presented_world=false) {
     const std::array lifetime{binding.unit,binding.hands[0].weapon,binding.hands[1].weapon,
         player.source_parent,std::uint32_t(player.dead)};
     auto &history=source_fp_interpolation.at(view);
@@ -3108,6 +3159,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::set<FpPoseKey> present;
     for(const auto &model:models) {
       const FpPoseKey key{model.owner,model.render_model,model.mode};present.insert(key);
+      if(presented_world && model.mode==0)continue;
       history[key].capture(current.tick,model.nodes,model.mode==1?std::optional{camera}:std::nullopt);
     }
     std::erase_if(history,[&](const auto &entry){return !present.contains(entry.first);});
@@ -3641,7 +3693,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       for(unsigned player=0;player<object_slots;++player)mark_foreground(layer.materials[player],layer.count);
   }
   unsigned frames = 0, steps = 0, peak_players = 0;
-  struct ScriptedEffectInput {bool fire{},reload{},grenade{};std::optional<Vec2> look;Vec2 move;bool switch_grenade{},jump{},crouch{};};
+  struct ScriptedEffectInput {bool fire{},reload{},grenade{};std::optional<Vec2> look;Vec2 move;bool switch_grenade{},jump{},crouch{},use{};};
   std::map<unsigned, std::array<std::optional<ScriptedEffectInput>,4>> scripted_inputs;
   if (!options.input_script.empty()) {
     std::ifstream file(options.input_script);
@@ -3671,6 +3723,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           if(extra=="switch-grenade" && !input.switch_grenade)input.switch_grenade=true;
           else if(extra=="jump" && !input.jump)input.jump=true;
           else if(extra=="crouch" && !input.crouch)input.crouch=true;
+          else if(extra=="use" && !input.use)input.use=true; // Held action: pick up, board a seat.
           else if(extra=="move") {
             if(!(row>>input.move.x>>input.move.y) || !std::isfinite(input.move.x) || !std::isfinite(input.move.y) ||
                std::abs(input.move.x)>1.f || std::abs(input.move.y)>1.f)
@@ -4576,7 +4629,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       else if (e.type == SDL_MOUSEMOTION && e.motion.windowID == SDL_GetWindowID(platform.window) && SDL_GetRelativeMouseMode() && keyboard_view<options.local_players && !handoff_input_paused_at) {
         mouse_look.motion(e.motion.xrel,e.motion.yrel,platform.desktop->keyboard_settings,
             yaw[keyboard_view],pitch[keyboard_view]);
-        if(!options.source_object_world && !source_relative_look())pitch[keyboard_view]=std::clamp(pitch[keyboard_view],-1.5f,1.5f);
+        if(!multiplayer_source_look_authority(options.source_object_world,source_relative_look()))
+          pitch[keyboard_view]=std::clamp(pitch[keyboard_view],-1.5f,1.5f);
       } else if (e.type == SDL_KEYDOWN && e.key.windowID == SDL_GetWindowID(platform.window) && e.key.keysym.sym == SDLK_ESCAPE) {
         if (SDL_GetRelativeMouseMode())
           mouse_capture.release();
@@ -4700,7 +4754,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         pad_input.forward=mapped.forward;pad_input.right=mapped.right;
         local[i].forward=std::clamp(local[i].forward+pad_input.forward,-1.f,1.f);
         local[i].right=std::clamp(local[i].right+pad_input.right,-1.f,1.f);
-        controller_look(mapped,platform.desktop->controller_settings,elapsed,yaw[i],pitch[i],!options.source_object_world);
+        controller_look(mapped,platform.desktop->controller_settings,elapsed,yaw[i],pitch[i],
+            !multiplayer_source_look_authority(options.source_object_world,source_relative_look()));
         pad_zoom_pending[i]|=mapped.zoom&&!pad_zoom_held[i];pad_zoom_held[i]=mapped.zoom;
         pad_input.jump=mapped.jump;death_cycle_pressed[i]|=pad_input.jump&&!pad_previous[i].jump;
         pad_input.crouch=mapped.crouch;pad_input.reload=mapped.reload;pad_input.fire=mapped.fire;
@@ -5138,6 +5193,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             local[i].fire=input.fire;local[i].reload=input.reload;local[i].grenade=input.grenade;local[i].switch_grenade=input.switch_grenade;
             local[i].forward=input.move.x;local[i].right=input.move.y;
             local[i].jump=input.jump;local[i].crouch=input.crouch;
+            local[i].pickup=input.use;local[i].pickup_milliseconds=input.use?1000:0;
             if(input.look){yaw[i]=local[i].yaw=input.look->x;pitch[i]=local[i].pitch=input.look->y;}
           }
         }
@@ -5591,12 +5647,64 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::vector<std::vector<ModelObjectDraw>> model_object_draws(options.local_players);
     std::vector<std::vector<pstencil::LightmapCaster>> pstencil_lightmap_casters(options.local_players);
     std::vector<std::vector<pstencil::PointCaster>> pstencil_point_casters(options.local_players);
-    const auto collect_pstencil_lightmap=[&](unsigned view,std::span<const Vertex> vertices,const ObjectLightingCache& light) {
-      if(platform.desktop->display_settings.graphics_mode!=pstencil::GraphicsMode::pStencil || vertices.empty() ||
-          !light.sample_valid || !light.lighting_valid || dot(light.current.incident,light.current.incident)<1.e-8f)return;
+    // Completed native light view of each pStencil view, taken after that
+    // view's actual C35D0 update. Only its non-sphere lights are consumed.
+    std::vector<std::optional<SourceEffectLightView>> pstencil_native_light_views(options.local_players);
+    // Sun only. The 2003 lightmap-incident composite stays with its
+    // biped/vehicle call sites; every other drawn opaque owner casts when
+    // the map's sun actually reaches it.
+    // Isolation controls for paired captures: omit every sun/lightmap caster,
+    // or ignore camouflage so the caster keeps its full shadow.
+    static const bool no_lightmap_casters=[]{const auto* v=std::getenv("HALO2_REFERENCE_PSTENCIL_NO_SUN_SHADOWS");return v && *v;}();
+    static const bool ignore_camouflage=[]{const auto* v=std::getenv("HALO2_REFERENCE_PSTENCIL_IGNORE_CAMOUFLAGE");return v && *v;}();
+    // Capture log only: how many casters took the sun path and their lengths.
+    struct SunCasterCount {unsigned sun{},fallback{};float shortest=1.e30f,longest{};};
+    std::vector<SunCasterCount> pstencil_sun_counts(options.local_players);
+    static const bool far_sun_volumes=[]{const auto* v=std::getenv("HALO2_REFERENCE_PSTENCIL_FAR_SUN_VOLUMES");return v && *v;}();
+    const auto sun_extrusion=[&](Vec3 sun,Vec3 center,std::span<const Vertex> vertices) {
+      return far_sun_volumes?pstencil::sun_shadow_far_distance:
+          pstencil::sun_shadow_extrusion(surface_lighting,sun,center,vertices);
+    };
+    const auto collect_pstencil_sun=[&](unsigned view,std::span<const Vertex> vertices,float camouflage=0) {
+      if(no_lightmap_casters)return;
+      const auto opacity=pstencil::camouflaged_shadow_opacity(ignore_camouflage?0.f:camouflage);
+      if(platform.desktop->display_settings.graphics_mode!=pstencil::GraphicsMode::pStencil || vertices.empty() || !opacity)return;
+      Vec3 low=vertices.front().position,high=low;
+      for(const auto& vertex:vertices) {
+        const auto p=vertex.position;
+        low={std::min(low.x,p.x),std::min(low.y,p.y),std::min(low.z,p.z)};
+        high={std::max(high.x,p.x),std::max(high.y,p.y),std::max(high.z,p.z)};
+      }
+      const Vec3 center{(low.x+high.x)*.5f,(low.y+high.y)*.5f,(low.z+high.z)*.5f};
+      if(!std::isfinite(center.x+center.y+center.z))return;
+      if(const auto sun=pstencil::sun_shadow_direction(atmosphere,surface_lighting,stencil_sky_lighting,center)) {
+        pstencil_lightmap_casters[view].push_back({{vertices.begin(),vertices.end()},*sun,true,
+            sun_extrusion(*sun,center,vertices),opacity});
+        auto& count=pstencil_sun_counts[view];++count.sun;
+        count.shortest=std::min(count.shortest,pstencil_lightmap_casters[view].back().extrusion);
+        count.longest=std::max(count.longest,pstencil_lightmap_casters[view].back().extrusion);
+      }
+    };
+    const auto collect_pstencil_lightmap=[&](unsigned view,std::span<const Vertex> vertices,
+        const ObjectLightingCache& light,Vec3 center,bool ordinary_lighting=true,float camouflage=0) {
+      if(no_lightmap_casters)return;
+      const auto opacity=pstencil::camouflaged_shadow_opacity(ignore_camouflage?0.f:camouflage);
+      if(platform.desktop->display_settings.graphics_mode!=pstencil::GraphicsMode::pStencil || vertices.empty() || !opacity)return;
+      if(const auto sun=pstencil::sun_shadow_direction(atmosphere,surface_lighting,stencil_sky_lighting,center)) {
+        pstencil_lightmap_casters[view].push_back({{vertices.begin(),vertices.end()},*sun,true,
+            sun_extrusion(*sun,center,vertices),opacity});
+        auto& count=pstencil_sun_counts[view];++count.sun;
+        count.shortest=std::min(count.shortest,pstencil_lightmap_casters[view].back().extrusion);
+        count.longest=std::max(count.longest,pstencil_lightmap_casters[view].back().extrusion);
+        return;
+      }
+      if(!ordinary_lighting || !light.sample_valid || !light.lighting_valid ||
+         dot(light.current.incident,light.current.incident)<1.e-8f)return;
       // Only the actual biped/vehicle call sites use this owner. The 2003
       // composite uses the raw incident, independently of retail angle limits.
-      pstencil_lightmap_casters[view].push_back({{vertices.begin(),vertices.end()},light.current.incident});
+      pstencil_lightmap_casters[view].push_back({{vertices.begin(),vertices.end()},light.current.incident,false,
+          pstencil::sun_shadow_far_distance,opacity});
+      ++pstencil_sun_counts[view].fallback;
     };
     std::vector<SourceLiveShadowSelectionTu15> live_shadow_selections(options.local_players);
     std::vector<std::vector<SourceLiveShadowRootTu15>> live_shadow_roots(options.local_players);
@@ -6108,7 +6216,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         pitch[i] = 0;
       }
       dead[i] = p.dead;
-      if((!options.source_object_world && !source_relative_look()) || p.source_unit==null_datum) {p.yaw=yaw[i];p.pitch=pitch[i];}
+      if(!multiplayer_source_look_authority(options.source_object_world,source_relative_look()) ||
+          p.source_unit==null_datum) {p.yaw=yaw[i];p.pitch=pitch[i];}
       // The original client owned its look. Draw the host's processed angles
       // plus raw look it has not consumed yet, so aiming answers this frame
       // instead of a round trip later. Seats keep host angles: 18A300's seat
@@ -6291,6 +6400,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       // auxiliary layout state or fog override. Physical viewport aspect
       // already includes the Xbox widescreen pixel-aspect correction.
       const auto frustum_projection=source_frustum_projection(frustum_projection_input);
+      // Shader coverage keeps this view's height in the original 640x480
+      // layout: the source coverage byte saturates in physical pixels.
+      const std::int32_t shader_physical_height=std::int32_t(frustum_projection_input.outer[2])-
+          std::int32_t(frustum_projection_input.outer[0]);
+#ifdef HALO2_HELD_POSE_SHADING_REFERENCE
+      constexpr std::int32_t shader_source_height{};
+#else
+      static const bool physical_shader_coverage=[]{const auto* value=std::getenv("HALO2_REFERENCE_PHYSICAL_SHADER_COVERAGE");return value && *value;}();
+      const std::int32_t shader_source_height=physical_shader_coverage?0:std::int32_t(rect.bottom-rect.top);
+#endif
       const SourceViewProjectionInput render_camera_input{camera.position,view_forward,
           camera.oriented?camera.up:Vec3{0,0,1},.015625f,1024.f,{},
           frustum_projection.projection_program};
@@ -6472,6 +6591,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       const bool native_light_pool=source_render_world &&
           (render_settings.graphics_mode==pstencil::GraphicsMode::Original ||
            render_settings.graphics_mode==pstencil::GraphicsMode::PathTracing);
+      const bool stencil_lighting=render_settings.graphics_mode==pstencil::GraphicsMode::pStencil;
       if(native_light_pool) {
         // Selection follows this view's actualC35D0 in the main collector.
         // Do not advance the separate fallback cache before that producer.
@@ -6479,6 +6599,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }else {
         effect_light_views[i]=world_render_effects.light_view(camera.position,light_collection,
             light_candidates,std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
+        if(stencil_lighting)pstencil::include_active_point_lights(effect_light_views[i]);
         effect_light_receivers[i]=world_render_effects.light_receivers(effect_light_views[i],
             source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
       }
@@ -6486,17 +6607,113 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         raw_effect_lights[i]=bsp_effect_lights.draw(effect_light_views[i],effect_light_receivers[i],
             bsp_views[i],render_camera,fog,camera.position,source_rectangle(rect),
             {std::uint32_t(drawable_w),std::uint32_t(drawable_h)},options.local_players,models,
-            render_settings.graphics_mode==pstencil::GraphicsMode::pStencil?&pstencil_point_casters[i]:nullptr);
-        if(render_settings.graphics_mode==pstencil::GraphicsMode::pStencil) {
+            stencil_lighting?&pstencil_point_casters[i]:nullptr);
+        if(stencil_lighting && models && pstencil_projected_lights_available && pstencil_native_light_views[i]) {
+          // Sphere queries ran first while the context still owned the main
+          // frame, as in the campaign bridge. Every admitted visible
+          // non-sphere light then gets its whole native receiver, geometry
+          // and constants; none is substituted by a sphere.
+          const auto& native=*pstencil_native_light_views[i];
+          if(options.capture_tick) {
+            unsigned shaped{};
+            for(const auto& row:native.records)shaped+=row.definition && Bytes(row.definition->bytes).u16(4)!=0;
+            std::cout<<"pStencil native light view: view="<<i<<" records="<<native.records.size()
+              <<" projected_records="<<shaped<<" visible="<<native.visible.size()
+              <<" candidates="<<native.candidates.size()<<" selected="<<native.selected.size()<<'\n';
+            for(const auto& row:native.records)if(row.definition && Bytes(row.definition->bytes).u16(4)!=0)
+              std::cout<<"pStencil native projected record: definition="<<row.definition_identity
+                <<" identity="<<row.runtime.identity<<" owner="<<row.runtime.owner
+                <<" position="<<row.runtime.position.x<<','<<row.runtime.position.y<<','<<row.runtime.position.z
+                <<" forward="<<row.runtime.forward.x<<','<<row.runtime.forward.y<<','<<row.runtime.forward.z
+                <<" brightness="<<row.runtime.state.brightness<<" placement="<<row.runtime.scenario_placement
+                <<" flags="<<std::hex<<Bytes(row.definition->bytes).u32(0)<<std::dec
+                <<" owner_state="<<(row.runtime.owner!=null_datum?[&]{
+                    // Capture log only: the owner's unit light bit, intensity, timer and control word.
+                    auto& memory=models->world.memory();
+                    const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
+                    const auto body=word(word(word(0x4ecbd0u)+0x44u)+8u+(row.runtime.owner&65535u)*12u);
+                    std::ostringstream out;out<<std::hex<<word(body+0x134u)<<'/'<<word(body+0x148u)<<std::dec
+                      <<'/'<<Bytes(memory.view(body+0x264u,4)).f32(0)<<'/'<<Bytes(memory.view(body+0x268u,4)).f32(0)
+                      <<"/parent="<<std::hex<<word(body+0x14u)<<std::dec;
+                    return out.str();
+                  }():std::string("-"))
+                <<" function="<<(row.runtime.owner!=null_datum?[&]{
+                    // Capture log only: the native record's attachment function and header flags.
+                    auto& memory=models->world.memory();
+                    const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
+                    const auto pool=word(0x4ecbdcu),data=word(pool+0x44u);
+                    const auto at=data+(row.runtime.identity&65535u)*272u;
+                    return cache.string_id(word(at+0x50u))+" record_flags="+std::to_string(Bytes(memory.view(at+2u,2)).u16(0));
+                  }():std::string("-"))<<'\n';
+          }
+          for(const auto& candidate:native.candidates) {
+            const auto record=std::find_if(native.records.begin(),native.records.end(),
+                [&](const auto& row){return row.runtime.identity==candidate.identity;});
+            if(record==native.records.end() || !record->definition ||
+               !Bytes(record->definition->bytes).u16(4))continue;
+            const auto selected=std::find_if(native.selected.begin(),native.selected.end(),
+                [&](const auto& row){return row.identity==candidate.identity;});
+            const float fade=selected!=native.selected.end()?selected->requested_fade:candidate.requested_fade;
+            if(!(fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
+            try {
+              const auto receiver=pstencil::native_light_receiver_tu15(models->world,candidate.identity);
+              const auto geometry=pstencil::native_light_geometry_tu15(models->world,receiver);
+              auto projected=pstencil_projected_lights->draw(models->world,*record,fade,receiver,geometry,
+                  render_camera,camera.position,source_rectangle(rect),
+                  {std::uint32_t(drawable_w),std::uint32_t(drawable_h)},pstencil_point_casters[i],2);
+              if(options.capture_tick)
+                std::cout<<"pStencil projected light: definition="<<record->definition_identity
+                  <<" identity="<<candidate.identity<<" fade="<<fade<<" commands="<<projected.selected_commands
+                  <<" draws="<<projected.draws.size()<<'\n';
+              for(auto& draw:projected.draws)draw.pstencil_light_domain=2;
+              raw_effect_lights[i].insert(raw_effect_lights[i].end(),
+                  std::make_move_iterator(projected.draws.begin()),std::make_move_iterator(projected.draws.end()));
+            }catch(const FormatError& error) {
+              // A declined native owner leaves this light unlit; it is
+              // reported once and never replaced by an invented shape.
+              if(reported_world_effect_gaps.insert(std::string("pStencil projected light: ")+error.what()).second)
+                std::cerr<<"pStencil projected light boundary: "<<error.what()<<'\n';
+            }
+          }
+        }
+        if(stencil_lighting) {
+          // Animated effect lights (shell fire, explosions, the plasma
+          // charge) from their separate pool, ticked with original C2B30.
+          auto animated_view=world_render_effects.animated_light_view(camera.position,light_collection,
+              light_candidates,std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
+          pstencil::include_active_point_lights(animated_view);
+          const auto animated_receivers=world_render_effects.animated_light_receivers(animated_view,
+              source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
+          if(!animated_receivers.empty()) {
+            std::optional<SourceEffectLightModelViewTu15> animated_models;
+            if(models) {
+              animated_models.emplace(*models);animated_models->main_draws={};animated_models->main_collected={};
+              animated_models->context.built={};animated_models->current_lights={};
+            }
+            auto animated_draws=bsp_effect_lights.draw(animated_view,animated_receivers,bsp_views[i],render_camera,fog,
+                camera.position,source_rectangle(rect),{std::uint32_t(drawable_w),std::uint32_t(drawable_h)},
+                options.local_players,animated_models?&*animated_models:nullptr,&pstencil_point_casters[i],3);
+            for(auto& draw:animated_draws)draw.pstencil_light_domain=3;
+            if(options.capture_tick)for(const auto& record:animated_view.records)
+              std::cout<<"pStencil animated effect light: definition="<<record.definition_identity
+                <<" position="<<record.runtime.position.x<<','<<record.runtime.position.y<<','<<record.runtime.position.z
+                <<" diffuse="<<record.runtime.state.diffuse.x<<','<<record.runtime.state.diffuse.y<<','<<record.runtime.state.diffuse.z
+                <<" brightness="<<record.runtime.state.brightness<<" draws="<<animated_draws.size()<<'\n';
+            raw_effect_lights[i].insert(raw_effect_lights[i].end(),
+                std::make_move_iterator(animated_draws.begin()),std::make_move_iterator(animated_draws.end()));
+          }
+        }
+        if(stencil_lighting) {
           auto point_view=world_render_point_lights.view(camera.position,light_collection,light_candidates,
               std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
+          pstencil::include_active_point_lights(point_view);
           auto point_receivers=world_render_point_lights.receivers(point_view,source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
           std::vector<EffectLightRawDraw> point_draws;
           if(!point_receivers.empty()) {
             std::optional<SourceEffectLightModelViewTu15> point_models;
             if(models) {
               point_models.emplace(*models);point_models->main_draws={};point_models->main_collected={};
-              point_models->context.built={};
+              point_models->context.built={};point_models->current_lights={};
             }
             point_draws=bsp_effect_lights.draw(point_view,point_receivers,bsp_views[i],render_camera,fog,
                 camera.position,source_rectangle(rect),{std::uint32_t(drawable_w),std::uint32_t(drawable_h)},
@@ -6605,9 +6822,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             const Vec3 center{b.f32(0x30),b.f32(0x34),b.f32(0x38)};
             const auto metric=source_geometry_lod_distance(center,camera.position,source_angles.lighting_distance_scale);
             const auto coverage=source_shader_object_coverage(center,b.f32(0x3c),
-                context.entry.coverage_multiplier,source_shader_coverage_camera(render_camera));
+                context.entry.coverage_multiplier,source_shader_coverage_camera(render_camera,
+                    shader_physical_height,shader_source_height));
             const auto collector=source.build_world_model(owner,i,
                 options.local_players,frustum_projection.view_modifier,metric,coverage);
+            context.built(collector);
             if(path_tracing_active) {
               const Bytes c(collector.bytes);const auto count=std::bit_cast<std::int16_t>(c.u16(0x166u));
               if(count<0 || count>5)throw FormatError("Secondary native WORLD collector exceeds its model bank");
@@ -6620,9 +6839,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                   banks=weapon.gun.world_lods.get();
                 if(!banks || lod>=banks->size())
                   throw FormatError("Secondary native WORLD collector lost its prepared full-model LOD bank");
-                // Copy the actual completed world_current palette immediately.
-                // Native geometry reuse can skip137800, and therefore has no
-                // new rendered_world_nodes observation in this frame.
+                // The completed callback samples the primary WORLD bank.
+                // Native geometry reuse can skip137800; without a current
+                // sampled bank retain its actual resident palette instead.
                 const auto regions=c.u32(0x18u+row*4u);
                 if(regions>16)throw FormatError("Secondary native WORLD collector lost its selected-region bank");
                 std::vector<unsigned> sections;
@@ -6630,12 +6849,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                   const auto section=std::to_integer<unsigned>(c.slice(0x75u+row*16u+region,1).front());
                   if(section!=255)sections.push_back(section);
                 }
-                completed_secondary_geometry.at(i).insert_or_assign(c.u32(0x34u+row*4u),
+                const auto model_owner=c.u32(0x34u+row*4u);
+                const auto presented=completed_render_nodes.find(model_owner);
+                const auto nodes=presented==completed_render_nodes.end()?std::span<const Transform>{}:
+                    std::span<const Transform>{presented->second};
+                completed_secondary_geometry.at(i).insert_or_assign(model_owner,
                     CompletedSecondaryGeometry{model,lod,std::move(sections),source_live_model_collector_vertices_tu15(
-                        source,collector,row,banks->at(lod))});
+                        source,collector,row,banks->at(lod),nodes)});
               }
             }
-            context.built(collector);
           }
         };
         if(options.capture_third_person && body_present(world_current.players[id]))
@@ -6644,14 +6866,20 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         SourceObjectAdmissionInput input;input.containing_fog=containing_fog;
         SourceEffectLightModelViewTu15 models{source,source.admit_render_objects(visibility,input,bsp_views[i].associations),context,containing_fog};
         models.visibility=&visibility;
+        if(stencil_lighting && pstencil_projected_lights_available)models.current_lights=[&,i] {
+          // After this view's actual C35D0 update: read the completed native
+          // pool for its projected lights. The sphere view and receivers of
+          // the existing pStencil path are returned unchanged.
+          pstencil_native_light_views[i]=world_render_effects.source_light_view(source,options.bsp,
+              light_collection,light_candidates,std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
+          return std::pair{effect_light_views[i],effect_light_receivers[i]};
+        };
         if(native_light_pool)models.current_lights=[&,i] {
           auto lights=world_render_effects.source_light_view(source,options.bsp,light_collection,light_candidates,
               std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
           auto receivers=world_render_effects.source_light_receivers(source,options.bsp,lights,
               source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
           effect_light_views[i]=lights;effect_light_receivers[i]=receivers;
-          if(render_settings.graphics_mode==pstencil::GraphicsMode::PathTracing)
-            path_tracing_lights[i]=path_tracing::source_lights(source,lights.records);
           return std::pair{std::move(lights),std::move(receivers)};
         };
         models.diagnostic_native_light_seed=options.diagnostic_native_light_seed;
@@ -6678,8 +6906,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
 #else
         const auto source_policy=native_detail_policy(render_settings.detail,options.local_players);
 #endif
-        const SourceModelShaderView source_shader_view{source_shader_coverage_camera(render_camera),
-          source_shader_lod_view(frustum_projection_input.outer[0],frustum_projection_input.outer[2],false,false),
+        const SourceModelShaderView source_shader_view{source_shader_coverage_camera(render_camera,
+              shader_physical_height,shader_source_height),
+          source_shader_lod_view(frustum_projection_input.outer[0],frustum_projection_input.outer[2],
+              shader_source_height,false,false),
           source_policy.coverage_multiplier,source_policy.effect_scale,frustum_projection.view_modifier};
         models.main_collected=[&](const auto& bsp_main,const auto& main,const auto& main_context) {
           // Original ordinary queues precede main culling/command production.
@@ -6952,6 +7182,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               collect_world_model(player.secondary_weapon.datum);
             }
           }
+          if(native_light_pool)path_tracing_lights[i]=path_tracing::source_lights(source,effect_light_views[i].records,
+              [&](std::uint32_t owner,std::uint16_t node)->std::optional<Transform> {
+                const auto shown=completed_render_nodes.find(owner);
+                if(shown==completed_render_nodes.end() || std::size_t(node)>=shown->second.size())return {};
+                return shown->second.at(node);
+              });
         }
       });
       else collect_lights(nullptr);
@@ -7157,13 +7393,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
 #ifdef HALO2_HELD_POSE_SHADING_REFERENCE
       const auto detail_policy=held_pose_shading_reference_policy();
+      constexpr std::int16_t bsp_shader_lod_height{};
 #else
       const auto detail_policy=native_detail_policy(platform.desktop->display_settings.detail,options.local_players);
+      const auto bsp_shader_lod_height=std::int16_t(rect.bottom-rect.top);
 #endif
       const SourceBspShaderView bsp_shader_view{render_camera,bsp_views[i],
           frustum_projection_input.outer[0],frustum_projection_input.outer[2],
           options.local_players,frustum_projection.view_modifier,detail_policy.effect_scale,
-          bsp_breakable_visibility?std::span<const std::byte>(*bsp_breakable_visibility):std::span<const std::byte>{}};
+          bsp_breakable_visibility?std::span<const std::byte>(*bsp_breakable_visibility):std::span<const std::byte>{},
+          bsp_shader_lod_height};
       if(bsp_shaders) {
         bsp_vertex_plans[i]=bsp_shaders->select(bsp_shader_view);
         if(bsp_reference_scene) {
@@ -7228,9 +7467,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       // feature.2F970 additionally consumes the actual primaryscnr+10 type.
       object_view.source_4ba019=frustum_projection.view_modifier;
       object_view.shader=SourceModelShaderView{
-          source_shader_coverage_camera(render_camera),
+          source_shader_coverage_camera(render_camera,shader_physical_height,shader_source_height),
           source_shader_lod_view(frustum_projection_input.outer[0],
-              frustum_projection_input.outer[2],false,false),
+              frustum_projection_input.outer[2],shader_source_height,false,false),
           detail_policy.coverage_multiplier,
           detail_policy.effect_scale,
           frustum_projection.view_modifier};
@@ -7349,7 +7588,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                 v.handle,o.definition,draw.unit.words[1],draw.lod,depth_model,0,ordinals};
             attach_vehicle_skin(draws.back(),vehicle_skin(deferred,*depth_model,v.handle,o.definition,
                 draw.unit.words[1],draw.lod,vertices,ordinals));
-            collect_pstencil_lightmap(i,vertices,light);
+            collect_pstencil_lightmap(i,vertices,light,draw.sphere.center);
             if(options.vehicle_draw_observer)options.vehicle_draw_observer(i,v.handle,o.definition,
                 light.lighting,light.lighting_valid,draw.lod,vertices);
             if(options.vehicle_projection_observer)options.vehicle_projection_observer(i,v.handle,
@@ -7448,7 +7687,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             vehicle.initial.render_model,
             lod,vehicle.prt?&vehicle.prt->at(lod).model:&vehicle.lods[lod],0,ordinals};
         attach_vehicle_skin(draws.back(),std::move(native_skin));
-        if(ordinary_lighting)collect_pstencil_lightmap(i,vertices,light);
+        collect_pstencil_lightmap(i,vertices,light,sphere.center,ordinary_lighting);
         if(options.vehicle_draw_observer)options.vehicle_draw_observer(i,v.handle,o.definition,light.lighting,light.lighting_valid,lod,vertices);
         if(options.vehicle_projection_observer)options.vehicle_projection_observer(i,v.handle,
             vertices,source_view_constants.world,Vec2{float(physical(rect).width),float(physical(rect).height)});
@@ -7493,6 +7732,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             std::optional{draw.lighting}:std::nullopt,draw.colors,{},draw.prt,draw.camouflage,draw.skins});
         model_object_draws[i].back().source_model_selection=SourceModelDepthSelection{draw.object,draw.definition,
             draw.source_render_model,draw.source_lod,draw.source_model,0,draw.source_ordinals};
+        model_object_draws[i].back().pstencil_sun_caster=true;
         if(options.dynamic_draw_observer && !draw.vertices.empty())
           options.dynamic_draw_observer(i,draw.object,draw.definition,draw.vertices);
       }
@@ -7623,6 +7863,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               source_nodes,owner_vertices,source_draws?std::span<const SourceLiveModelBaseDrawTu15>(*source_draws):
                   std::span<const SourceLiveModelBaseDrawTu15>{});
         model_object_draws[i].push_back({owner_vertices,source_lighting.value_or(object_light_cache[id].lighting),{},owner_input});
+        model_object_draws[i].back().pstencil_sun_caster=true;
         if(const auto at=live_unit_depth[i].find(item.handle);at!=live_unit_depth[i].end())
           model_object_draws[i].back().source_model_selection=at->second;
       }
@@ -7716,6 +7957,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             }});
         if(const auto at=live_unit_depth[i].find(corpse.object);at!=live_unit_depth[i].end())
           draws.back().source_model_selection=at->second;
+        draws.back().pstencil_sun_caster=true;
         ++timing.bodies_drawn;
         if(options.animation_observer)options.animation_observer(i,corpse.player&65535u,
             {world_current.tick,corpse.object,null_datum,body.player.model.animation,null_datum,
@@ -7868,9 +8110,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           if(direct_pose) {
             if(!append_unit_base(world,body_handle(a),body.player_materials[j],object_light_cache[j]))
               player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
-            collect_pstencil_lightmap(i,std::span<const Vertex>(world).subspan(shadow_body_first),object_light_cache[j]);
+            collect_pstencil_lightmap(i,std::span<const Vertex>(world).subspan(shadow_body_first),
+                object_light_cache[j],object_owner_spheres[j].center,true,a.source_camouflage.primary);
+            const auto shadow_gun_first=world.size();
             if(!a.dead && body_gun && !append_unit_base(world,a.source_weapon,held->materials[j*2],object_light_cache[j]))
               body_gun->shaders->append_selected(world,posed_gun,collector,*object_view.shader,held->materials[j*2]);
+            collect_pstencil_sun(i,std::span<const Vertex>(world).subspan(shadow_gun_first),a.source_camouflage.primary);
           } else {
             if(selected_body)body_vertices=std::move(*selected_body);
             if(selected_weapon)gun_vertices=std::move(*selected_weapon);
@@ -7878,13 +8123,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               player.shaders->select(body_vertices,collector,*object_view.shader);
               append_world(world,std::move(body_vertices),body.player_materials[j]);
             }
-            collect_pstencil_lightmap(i,std::span<const Vertex>(world).subspan(shadow_body_first),object_light_cache[j]);
+            collect_pstencil_lightmap(i,std::span<const Vertex>(world).subspan(shadow_body_first),
+                object_light_cache[j],object_owner_spheres[j].center,true,a.source_camouflage.primary);
+            const auto shadow_gun_first=world.size();
             if(!a.dead && body_gun) {
               if(!append_unit_base(world,a.source_weapon,held->materials[j*2],object_light_cache[j])) {
                 body_gun->shaders->select(gun_vertices,collector,*object_view.shader);
                 append_world(world,std::move(gun_vertices),held->materials[j*2]);
               }
             }
+            collect_pstencil_sun(i,std::span<const Vertex>(world).subspan(shadow_gun_first),a.source_camouflage.primary);
           }
           if(!a.dead && handheld_visible && a.secondary_weapon.datum!=null_datum) {
             const auto &left_bank=body_guns.at(a.secondary_weapon.definition);
@@ -8028,6 +8276,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         pose_bodies(object_view,world,bindings,nullptr);
         if(verify_posing_lane)lane_end=LaneClock::now();
       }
+      // All posing for this view has joined. Corpses, loose weapons and
+      // other dynamic owners cast sun shadows too. Authored scenery, props
+      // and machines keep their baked lightmap shadow; vehicles and bodies
+      // were collected with their lightmap fallback; camouflage casts none.
+      for(const auto& draw:model_object_draws[i])
+        if(draw.pstencil_sun_caster && !draw.camouflage)collect_pstencil_sun(i,draw.vertices);
+      if(options.capture_tick && (pstencil_sun_counts[i].sun || pstencil_sun_counts[i].fallback))
+        std::cout<<"pStencil shadow casters: view="<<i<<" sun="<<pstencil_sun_counts[i].sun
+          <<" lightmap_fallback="<<pstencil_sun_counts[i].fallback<<" sun_extrusion="
+          <<(pstencil_sun_counts[i].sun?pstencil_sun_counts[i].shortest:0.f)<<".."<<pstencil_sun_counts[i].longest<<'\n';
       if(verify_posing_lane) {
         // List-identity oracle: the records that carry world offsets must be
         // the same under the lane and the sequential order (compare the lists
@@ -8076,7 +8334,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           options.node_observer(i,current.tick,{MultiplayerNodeStage::first_person_completed,
               model.owner,model.render_model,model.mode,animation_blend,model.nodes});
         const auto frame=camera_transform(camera.position,view_forward,source_up);
-        retain_fp_poses(i,registered_view,p,source_models,frame);
+        const bool presented_world=frame_source_model_world!=nullptr;
+        retain_fp_poses(i,registered_view,p,source_models,frame,presented_world);
         const auto &body=species_for(p);
         for(auto &model:source_models) {
           const RenderModel *skeleton=nullptr;
@@ -8093,8 +8352,17 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               skeleton=&visual.guns[i*2+hand].model;
           }
           if(!skeleton)throw FormatError("Original FP interpolation lost its authored model hierarchy");
-          const auto &history=source_fp_interpolation[i].at({model.owner,model.render_model,model.mode});
           const FpPoseKey key{model.owner,model.render_model,model.mode};
+          const auto retained=source_fp_interpolation[i].find(key);
+          if(presented_world && model.mode==0 &&
+              (retained==source_fp_interpolation[i].end() || retained->second.tick()!=current.tick)) {
+            // No post-tick completed bank for this record: its presented copy
+            // already sits at the shown root and is drawn as its own endpoint.
+            fp_sample_fractions.emplace(key,1.f);continue;
+          }
+          if(retained==source_fp_interpolation[i].end())
+            throw FormatError("Original FP interpolation lost its retained completed bank");
+          const auto &history=retained->second;
           const float fp_fraction=source_fp_pair_clocks[i][key].sample(current.tick,history.paired(),
               pose_values.source_fp_command_serial,animation_blend);
           fp_sample_fractions.emplace(key,fp_fraction);
@@ -8105,6 +8373,32 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         if(options.node_observer)for(const auto &model:source_models)
           options.node_observer(i,current.tick,{MultiplayerNodeStage::first_person_interpolated,
               model.owner,model.render_model,model.mode,fp_sample_fractions.at({model.owner,model.render_model,model.mode}),model.nodes});
+        if(path_tracing_active)for(const auto& light:effect_light_views[i].records) {
+          if(!light.first_person_marker || light.first_person_root!=registered_view.unit)continue;
+          // Successful1692E0 uses this local view's primary gun; its special
+          // hand marker uses the arms model. Its source frame is the actual
+          //1692E0/31B30 output retained in this light record, and the destination
+          // comes from the same sampled bank as the foreground skin.
+          const auto owner=*light.first_person_marker==0x0a0000b6u?registered_view.unit:registered_view.hands[0].weapon;
+          const auto shown=std::find_if(source_models.begin(),source_models.end(),[&](const auto& model) {
+            return model.mode==1 && model.owner==owner;
+          });
+          if(shown==source_models.end())continue;
+          const auto markers=source_model_markers(cache.load_source_tag_metadata(shown->render_model),*light.first_person_marker);
+          //16918F passes null permutations and max1 (1692A9/169339).
+          //168D76/16B240 already remapped the cached bank into model order.
+          const auto new_marker=pose_model_markers(markers,shown->nodes,{}, {},1);
+          if(new_marker.empty())throw FormatError("Path Tracing FP light lost its admitted native marker");
+          const auto emitter=std::find_if(path_tracing_lights[i].begin(),path_tracing_lights[i].end(),[&](const auto& value) {
+            return value.source_identity==light.runtime.identity;
+          });
+          if(emitter!=path_tracing_lights[i].end()) {
+            const auto& pose=new_marker.front().world;
+            path_tracing::present_light_frame(*emitter,
+                camera_transform(light.runtime.position,light.runtime.forward,light.runtime.up),
+                camera_transform(pose.position,pose.basis[0],pose.basis[2]));
+          }
+        }
       }
       if(source_fp && !source_models.empty()) {
         const auto &body=species_for(p);
@@ -8925,6 +9219,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     material_frame.add(hud_vertices);
     for(const auto &view:views) {
       material_frame.add(view.vertices);material_frame.add(view.foreground);
+      material_frame.add(view.path_tracing_body_occluders);
       material_frame.add(view.background);material_frame.add(view.water_reflection_background);
       for(const auto &binding:view.source_bsp_bindings)if(binding.material)material_frame.add(*binding.material);
       for(const auto &object:view.objects)material_frame.add(object.vertices);
@@ -9103,6 +9398,24 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         std::cout<<"Source swarm RNG: primary="<<Bytes(memory.view(rng,4)).u32(0)
             <<" auxiliary="<<Bytes(memory.view(rng+4u,4)).u32(0)<<'\n';
       }
+      for(const auto& vehicle:current.world_vehicles)
+        std::cout<<"Capture vehicle: placement="<<vehicle.placement<<" handle="<<vehicle.handle
+          <<" position="<<vehicle.transform.position.x<<','<<vehicle.transform.position.y<<','<<vehicle.transform.position.z
+          <<" forward="<<vehicle.transform.basis[0].x<<','<<vehicle.transform.basis[0].y<<','<<vehicle.transform.basis[0].z<<'\n';
+      for(unsigned row=0;row<content.netgame_equipment.size();++row) {
+        // Authored single-item powerup rows: equipment +12C kind 3 is camouflage.
+        const auto& placement=content.netgame_equipment[row];
+        if(placement.items.size()!=1 || placement.items.front().group!=0x65716970u)continue;
+        try {
+          const auto metadata=cache.load_source_tag_metadata(placement.items.front().definition);
+          const Bytes equipment(metadata.bytes_at(metadata.source_address(),metadata.size()));
+          std::cout<<"Capture powerup row: row="<<row<<" kind="<<equipment.u16(0x12c)
+            <<" position="<<placement.position.x<<','<<placement.position.y<<','<<placement.position.z<<'\n';
+        }catch(const FormatError&){}
+      }
+      for(const auto id:ids)
+        std::cout<<"Capture player camouflage: slot="<<id<<" primary="<<current.players[id].source_camouflage.primary
+          <<" secondary="<<current.players[id].source_camouflage.secondary<<'\n';
       std::cout << "Input capture tick=" << current.tick << " animation_fraction=" << animation_blend << " pose_tick=" << pose_tick;
       std::cout<<" capture_tick_cadence="<<options.reference_tick_cadence
           <<" capture_auxiliary_start="<<capture_auxiliary_start
@@ -9245,6 +9558,17 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       };
     }
     const auto submit=[&] {
+      // The May 2003 renderer has the stencil lightmap/sun shadow and no
+      // retail projected shadow buffer. With pStencil active a caster keeps
+      // exactly one shadow in single view, as it already does in split
+      // screen: native selection, history and receiver depth are unchanged
+      // and only the fixed-shadow GPU packets are omitted. Original keeps
+      // the retail pass.
+      // HALO2_REFERENCE_PSTENCIL_RETAIL_SHADOW keeps the retail packets for a
+      // paired isolation capture of exactly what this removes.
+      static const bool retail_shadow_control=[]{const auto* v=std::getenv("HALO2_REFERENCE_PSTENCIL_RETAIL_SHADOW");return v && *v;}();
+      if(platform.desktop->display_settings.graphics_mode==pstencil::GraphicsMode::pStencil && !retail_shadow_control)
+        for(auto& view:views)view.raw_source_shadow_gpu_disabled=true;
       // Pixel-isolation control: retain identical native selection, poses,
       // cameras, material completion and ordinary receiver depth. Only the
       // fixed-shadow GPU packets / additional ray occluders are omitted.

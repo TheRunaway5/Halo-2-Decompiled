@@ -6,9 +6,16 @@
 namespace halo2 {
 void validate_effect_light_draw(const EffectLightDraw &draw,const Material &resident){
     const auto &r=resident.forward_raster;
+    // Source layer 11 implementation 2 for a projected light: an unblended
+    // alpha-only write of the gel term, on the same commands and constants.
+    const bool alpha_only=r.color_write==0x01000000u;
+    // Source layer 10 for a shadowed projected light: a caster drawn into the
+    // light's own depth target, with no color write.
+    const bool depth_only=r.color_write==0;
     if(!resident.forward_pass || resident.forward_vertex!=6 ||
        !resident.vertex_bank || resident.vertex_bank->prt_inputs || resident.vertex_bank->camera_inputs ||
-       r.depth_function!=0x202 || !r.depth_enable || r.depth_write || r.color_write!=0x01010101 ||
+       !r.depth_enable || (depth_only?!r.depth_write || r.depth_function!=0x203:r.depth_function!=0x202 || r.depth_write) ||
+       (r.color_write!=0x01010101 && !alpha_only && !depth_only) ||
        draw.vertex_bank.range!=std::array<std::uint32_t,4>{34,6,0,0})
         throw FormatError("Unresolved original sphere diffuse draw binding");
     if(draw.vertices.size()%3)throw FormatError("Incomplete original sphere diffuse triangles");
@@ -29,6 +36,19 @@ void validate_effect_light_draw(const EffectLightDraw &draw,const Material &resi
         projected("lightaccum_frustum_no_specular") ||
         projected("lightaccum_frustum_no_specular_gel");
     const auto implementation=resident.passes[resident.forward_pass_index].implementation;
+    if(depth_only) {
+        if(!program.ends_with("\\shadow_buffer_generation") || (implementation!=1 && implementation!=2) || resident.forward_blend)
+            throw FormatError("Unresolved original projected light shadow generation pass");
+        return;
+    }
+    if(alpha_only) {
+        const bool one_tap=program.ends_with("\\shadow_buffer_application_1tap");
+        const bool three_tap=program.ends_with("\\shadow_buffer_application_3tap");
+        if(!((one_tap && (implementation==2 || implementation==0)) || (three_tap && (implementation==1 || implementation==6))) ||
+           resident.forward_blend)
+            throw FormatError("Unresolved original projected light alpha pass");
+        return;
+    }
     if((!sphere && !frustum) || (sphere && (implementation!=1 || resident.forward_blend!=10)) ||
        (frustum && resident.forward_blend!=3 && resident.forward_blend!=8 && resident.forward_blend!=10) ||
        (frustum && (implementation>4 || implementation==1)))
@@ -81,7 +101,10 @@ EffectLightRawDraw source_effect_light_raw_draw(unsigned slot,const Material &ma
                     " shader="+material.name);
         }
     }
-    if(pass.choice().layer!=12 ||
+    // Layer 11 is admitted only as the validated alpha-only light pass.
+    const bool alpha_layer=pass.choice().layer==11 && material.forward_raster.color_write==0x01000000u;
+    const bool generate_layer=pass.choice().layer==10 && material.forward_raster.color_write==0;
+    if((pass.choice().layer!=12 && !alpha_layer && !generate_layer) ||
        pass.shader()!=material.source_shader_datum || pass.choice().shader_lod!=material.selected_shader_lod ||
        pass.vertex_shader()!=source.vertex_shader() || source.draw().geometry->owner_datum()==0xffffffffu ||
        source.declaration().class_index>6 ||

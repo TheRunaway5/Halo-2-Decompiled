@@ -67,6 +67,18 @@ int main(int argc,char **argv)try {
     const Presentation saved=cuts;const auto expected=sample(cuts,.375f);
     for(int i=0;i<50;++i)cuts.tick();cuts.fade({1,1,1},true,0);cuts.restore(saved);
     check(same(sample(cuts,.375f),expected),"Screen restore borrowed the discarded timeline");
+    // Heretic's skip wrapper restores the covered checkpoint clock after the
+    // outro has written white to the external fade RGB bank.
+    Presentation heretic(content);
+    heretic.fade({},true,0);
+    const Presentation before_intro=heretic;
+    heretic.fade({1,1,1},true,15);
+    for(int i=0;i<15;++i)heretic.tick();
+    const auto white=heretic.effects();
+    check(white.fade==1 && white.fade_color.x==1 && white.fade_color.y==1 &&
+        white.fade_color.z==1,"Heretic outro did not reach opaque white");
+    heretic.restore(before_intro,true);
+    check(same(heretic.effects(),white),"Campaign revert replaced the outro's white with checkpoint black");
     const auto before=cuts.effects();
     for(float invalid:{-1.f,1.01f,std::numeric_limits<float>::infinity(),std::numeric_limits<float>::quiet_NaN()}) {
         bool failed{};try{(void)cuts.effects(invalid);}catch(const FormatError &){failed=true;}

@@ -764,7 +764,7 @@ if(BUILD_TESTING)
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
     add_library(native_tu15_sound_stream_service_bridge SHARED EXCLUDE_FROM_ALL
         tests/native_tu15_sound_stream_service_bridge.cpp src/audio/native_tu15_sound_kernels_resources.cpp
-        src/audio/sdl_sound_platform.cpp)
+        src/audio/sdl_sound_platform.cpp src/audio/dsp/native_tu15_sound_mono_distortion.cpp)
     target_include_directories(native_tu15_sound_stream_service_bridge PRIVATE include src)
     target_link_libraries(native_tu15_sound_stream_service_bridge PRIVATE nlohmann_json::nlohmann_json
         SDL2::SDL2 halo2_glm OpenSSL::Crypto Threads::Threads)
@@ -784,7 +784,8 @@ if(BUILD_TESTING)
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
     add_library(native_tu15_sound_stream_constructor_bridge SHARED EXCLUDE_FROM_ALL
         tests/native_tu15_sound_stream_constructor_bridge.cpp src/audio/native_tu15_sound_kernels_startup.cpp
-        src/audio/native_tu15_sound_kernels_resources.cpp src/audio/sdl_sound_platform.cpp)
+        src/audio/native_tu15_sound_kernels_resources.cpp src/audio/sdl_sound_platform.cpp
+        src/audio/dsp/native_tu15_sound_mono_distortion.cpp)
     target_include_directories(native_tu15_sound_stream_constructor_bridge PRIVATE include src)
     target_link_libraries(native_tu15_sound_stream_constructor_bridge PRIVATE nlohmann_json::nlohmann_json
         SDL2::SDL2 halo2_glm OpenSSL::Crypto Threads::Threads)
@@ -2174,6 +2175,9 @@ target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_phanto
 target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_pair_creation_queues.cpp)
 set_source_files_properties(src/physics/native_tu15_pair_creation_queues.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 
+# Native 1D8470 physics component reset (havok track binds it into 1CC310).
+target_sources(halo2_native_pair_consumer PRIVATE src/physics/native_tu15_component_reset.cpp)
+
 # Qualified native gameplay object deletion, tree detachment and spatial packets.
 target_sources(halo2_native_pair_consumer PRIVATE
     src/physics/native_tu15_object_deletion.cpp
@@ -2210,6 +2214,9 @@ else()
     endif()
 endif()
 target_link_libraries(halo2_native_pair_consumer PUBLIC halo2_native_main_heap)
+# Native object deletion (native_tu15_object_deletion.cpp) wakes ancestors
+# through native_tu15_wake_object_ancestors in halo2_native_object_velocity.
+target_link_libraries(halo2_native_pair_consumer PUBLIC halo2_native_object_velocity)
 target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_native_main_heap)
 
 add_library(halo2_native_raw_allocator STATIC

@@ -150,6 +150,38 @@ if(BUILD_TESTING)
         "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/custom-mechanics.json")
     set_tests_properties(native_mcc_custom_mechanics_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1200 RUN_SERIAL TRUE
         ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+    add_test(NAME native_mcc_infection_pickup_policy_tu15 COMMAND native_mcc_custom_mechanics_tu15_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/infection-pickup-policy.json" infection-pickups)
+    set_tests_properties(native_mcc_infection_pickup_policy_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+    add_test(NAME native_mcc_custom_camouflage_tu15 COMMAND native_mcc_custom_mechanics_tu15_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/custom-camouflage.json" custom-camouflage)
+    set_tests_properties(native_mcc_custom_camouflage_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data")
+    find_program(HALO2_GAMEPAD_LOOK_XVFB_RUN xvfb-run)
+    if(HALO2_GAMEPAD_LOOK_XVFB_RUN)
+        add_test(NAME native_mcc_multiplayer_gamepad_look_runtime
+            COMMAND "${HALO2_GAMEPAD_LOOK_XVFB_RUN}" -a -s "-screen 0 800x600x24"
+                $<TARGET_FILE:multiplayer_look_authority_tests> --runtime "${HALO2_OBJECTIVE_TEST_MAPS}"
+                "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-gamepad-look-runtime.json")
+        set_tests_properties(native_mcc_multiplayer_gamepad_look_runtime PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache;MESA_SHADER_CACHE_DIR=@HALO2_TEST_SCRATCH@/mesa-cache;__GL_SHADER_DISK_CACHE_PATH=@HALO2_TEST_SCRATCH@/nvidia-cache")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set_property(TEST native_mcc_multiplayer_gamepad_look_runtime APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=x11")
+        endif()
+    endif()
+    find_program(HALO2_CUSTOM_CAMOUFLAGE_XVFB_RUN xvfb-run)
+    if(HALO2_CUSTOM_CAMOUFLAGE_XVFB_RUN)
+        add_test(NAME native_mcc_custom_camouflage_runtime
+            COMMAND "${HALO2_CUSTOM_CAMOUFLAGE_XVFB_RUN}" -a -s "-screen 0 800x600x24"
+                $<TARGET_FILE:multiplayer_look_authority_tests> --camouflage-runtime "${HALO2_OBJECTIVE_TEST_MAPS}"
+                "${CMAKE_CURRENT_BINARY_DIR}/custom-camouflage-runtime.json")
+        set_tests_properties(native_mcc_custom_camouflage_runtime PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache;MESA_SHADER_CACHE_DIR=@HALO2_TEST_SCRATCH@/mesa-cache;__GL_SHADER_DISK_CACHE_PATH=@HALO2_TEST_SCRATCH@/nvidia-cache")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set_property(TEST native_mcc_custom_camouflage_runtime APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=x11")
+        endif()
+    endif()
     find_program(HALO2_CUSTOM_MODE_XVFB_RUN xvfb-run)
     if(HALO2_CUSTOM_MODE_XVFB_RUN)
         add_test(NAME native_mcc_custom_mode_render_launch

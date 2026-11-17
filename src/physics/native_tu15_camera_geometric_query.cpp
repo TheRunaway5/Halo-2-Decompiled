@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_camera_geometric_query.hpp"
 #include "halo2/native_tu15_bsp_segment_query.hpp"
 #include "halo2/native_tu15_camera_query_leaves.hpp"
@@ -18,7 +19,7 @@ class Memory {
 public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):m_(m),o_(o){}
     std::uint32_t word(std::uint32_t p,unsigned width=4)const{std::array<std::byte,4>b{};m_.read(p,std::span(b).first(width));std::uint32_t n{};for(unsigned k=0;k<width;++k)n|=std::to_integer<unsigned>(b[k])<<(8*k);return n;}
-    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(8*k));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(o_){e.before.resize(width);m_.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m_.write(p,std::span(b).first(width));if(o_)o_(e);}
+    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t n,unsigned width=4){std::array<std::byte,4>b{};for(unsigned k=0;k<width;++k)b[k]=std::byte(n>>(8*k));SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m_,o_,pc,p,width);if(observed){e.before.resize(width);m_.read(p,e.before);e.written.assign(b.begin(),b.begin()+width);}m_.write(p,std::span(b).first(width));if(observed)o_(e);}
 };
 std::uint32_t sign16(std::uint32_t n){return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(n))));}
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -54,7 +55,7 @@ bool native_tu15_query_camera_geometry(SourcePhysicsContactMemory&memory,
  if(stats)++stats->calls;
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
  Memory m(memory,observe);const auto bsp_global=m.word(0x4ecc18u);auto mask=q.mask;
- if(!(mask&0x1800000u))mask|=0x1800000u;
+ if(!(mask&0x1800000u)){mask|=0x1800000u;if(q.mask_slot)m.word(0x16c654u,q.mask_slot,mask);}
  const auto one=m.word(0x46a0d0u);const auto slot=std::uint16_t(m.word(0x474c24u,2));
  m.word(0x16c66du,q.result+4u,one);m.word(0x16c672u,q.result,0);
  m.word(0x16c679u,q.result+20u,0xffffffffu);m.word(0x16c67cu,q.result+24u,0xffffu,2);m.word(0x16c680u,q.result+26u,slot,2);
@@ -91,7 +92,7 @@ bool native_tu15_query_camera_geometry(SourcePhysicsContactMemory&memory,
   if((mask&14u)&&!(hit&&(mask&0x10000000u))){
    auto epoch=m.word(0x4f3ce4u)+1u;m.word(0x16c843u,0x4f3ce4u,epoch);m.word(0x16c849u,0x4f3ce1u,1,1);
    if(mask&4u){const auto serial=m.word(0x4f44ecu);m.word(0x16c852u,0x4f44ecu,serial+1u);m.word(0x16c858u,0x4f44e8u,1,1);}
-   if(mask&8u){const auto serial=m.word(0x4eabccu)+1u;m.word(0x16c871u,0x4eabccu,serial);m.word(0x16c877u,0x4eabc8u,1,1);if(!(mask&0x1fff0u))mask|=0x1fff0u;}
+   if(mask&8u){const auto serial=m.word(0x4eabccu)+1u;m.word(0x16c871u,0x4eabccu,serial);m.word(0x16c877u,0x4eabc8u,1,1);if(!(mask&0x1fff0u)){mask|=0x1fff0u;if(q.mask_slot)m.word(0x16c886u,q.mask_slot,mask);}}
    auto current_leaf_count=leaf_count;for(std::uint32_t index=0;std::int32_t(index)<std::int32_t(current_leaf_count);++index){
     if(index)epoch=m.word(0x4f3ce4u);
     const auto leaf=m.word(scratch.bsp_output+28u+index*4u);auto cluster=0xffffffffu;
@@ -143,21 +144,23 @@ bool native_tu15_query_camera_geometry(SourcePhysicsContactMemory&memory,
    if(mask&8u)m.word(0x16cc64u,0x4eabc8u,0,1);if(mask&4u)m.word(0x16cc70u,0x4f44e8u,0,1);m.word(0x16cc77u,0x4f3ce1u,0,1);
   }
  }
+ auto eax=q.displacement;
  auto fraction=scalar(m.word(q.result+4u));auto position=scalar(m.word(q.displacement));position=mul(position,fraction);position=add(position,scalar(m.word(q.origin)));m.word(0x16cca0u,q.result+8u,bits(position));
  position=mul(fraction,scalar(m.word(q.displacement+4u)));position=add(position,scalar(m.word(q.origin+4u)));m.word(0x16ccb1u,q.result+12u,bits(position));fraction=mul(fraction,scalar(m.word(q.displacement+8u)));fraction=add(fraction,scalar(m.word(q.origin+8u)));m.word(0x16ccc6u,q.result+16u,bits(fraction));
  if(hit&&(mask&0x20000000u)){
   if(stats)++stats->clearance_calls;std::uint32_t geometry{};
-  if(m.word(q.result)!=1u)geometry=child(0x16bb40u,[&]{return native_tu15_camera_query_collision_geometry(memory,q.result);});
+  if(m.word(q.result)!=1u){geometry=child(0x16bb40u,[&]{return native_tu15_camera_query_collision_geometry(memory,q.result);});eax=geometry;}
   const auto last_leaf=m.word(q.result+28u),position=q.result+8u;
-  const auto point_leaf=[&](std::uint32_t tree){return environment.dependency([&]{return child(0x14cdb0u,[&]{return native_tu15_constraint_effect_point_leaf(memory,tree,0,position,fp);});});};
+  const auto point_leaf=[&](std::uint32_t tree){eax=environment.dependency([&]{return child(0x14cdb0u,[&]{return native_tu15_constraint_effect_point_leaf(memory,tree,0,position,fp);});});return eax;};
   bool repair{};
   if(last_leaf!=0xffffffffu){const auto tree=m.word(0x4ecc0cu);repair=point_leaf(tree)!=last_leaf;}
-  if(!repair&&geometry){const auto geometry_leaf=m.word(q.result+76u);if(geometry_leaf!=0xffffffffu)repair=point_leaf(geometry)!=geometry_leaf;}
+  if(!repair){eax=geometry;if(geometry){const auto geometry_leaf=m.word(q.result+76u);if(geometry_leaf!=0xffffffffu)repair=point_leaf(geometry)!=geometry_leaf;}}
   if(repair){
    const auto nx=scalar(m.word(q.result+40u)),offset=scalar(m.word(0x46a38cu));auto component=mul(nx,offset);component=add(component,scalar(m.word(position)));m.word(0x16cd60u,position,bits(component));
    component=scalar(m.word(q.result+44u));component=mul(component,offset);component=add(component,scalar(m.word(position+4u)));m.word(0x16cd72u,position+4u,bits(component));
    component=scalar(m.word(q.result+48u));component=mul(component,offset);component=add(component,scalar(m.word(position+8u)));m.word(0x16cd87u,position+8u,bits(component));
-   const auto location=[&]{environment.dependency([&]{child(0x11e600u,[&]{native_tu15_constraint_effect_location(memory,position,q.result+28u,fp,observe);return false;});return false;});};
+   const auto location=[&]{NativeTu15ConstraintEffectLocationStats located;environment.dependency([&]{child(0x11e600u,[&]{native_tu15_constraint_effect_location(memory,position,q.result+28u,fp,observe,&located);return false;});return false;});
+    if(!located.no_active_bsp)eax=sign16(m.word(q.result+32u,2));};
    location();
    if(m.word(q.result+28u)==0xffffffffu||(geometry&&point_leaf(geometry)==0xffffffffu)){
     auto dot=scalar(m.word(q.result+48u));dot=mul(dot,scalar(m.word(q.displacement+8u)));auto y=scalar(m.word(q.result+44u));y=mul(y,scalar(m.word(q.displacement+4u)));dot=add(dot,y);auto x=scalar(m.word(q.displacement));x=mul(x,scalar(m.word(q.result+40u)));dot=add(dot,x);
@@ -174,7 +177,7 @@ bool native_tu15_query_camera_geometry(SourcePhysicsContactMemory&memory,
    }
   }
  }
- if(stats)++stats->completed;return hit;
+ if(stats){++stats->completed;stats->exit_eax=(eax&0xffffff00u)|unsigned(hit);}return hit;
 #else
  (void)memory;(void)q;(void)scratch;(void)fp;(void)depth;(void)services;(void)observe;throw std::runtime_error("Native camera geometric backend unavailable");
 #endif

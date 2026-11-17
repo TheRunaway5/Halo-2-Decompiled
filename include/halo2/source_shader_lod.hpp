@@ -25,6 +25,21 @@ struct SourceShaderCoverageCamera {
     float viewport_height_metric{}; //4B9ED0, actual2FD90 output+BC.
 };
 SourceShaderCoverageCamera source_shader_coverage_camera(const SourceViewProjectionBank &);
+// Original-raster layout of a native view. 2CBF0 stores coverage*.25 in a
+// byte, so coverage saturates at 1020 pixels: at 480 lines that is more than
+// two view heights, at 2160 lines less than half of one. A taller native view
+// would therefore cap every near model below the shader level the original
+// selects for the same picture. source_height is the view's height in the
+// original 640x480 layout; zero, or the physical height itself, leaves the
+// literal producers unchanged. Both functions must receive the same heights.
+SourceShaderCoverageCamera source_shader_coverage_camera(const SourceViewProjectionBank &,
+    std::int32_t physical_height,std::int32_t source_height);
+SourceShaderLodView source_shader_lod_view(std::int16_t top,std::int16_t bottom,
+    std::int32_t source_height,bool auxiliary_present,bool auxiliary_byte5);
+// Height of a view rectangle in the 640x480 layout of its surface, rounded to
+// the nearest line. A degenerate surface returns zero (physical layout).
+std::int32_t source_shader_original_height(std::int32_t physical_view_height,
+    std::int32_t physical_surface_height);
 // Original133390/133520/133790 coverage. Cluster bounds are the literal
 // +54..68 min/max bank; instance center/radius are actual+3C/+48; object
 // center/radius are the actual cached runtime sphere. No geometry fitting.

@@ -108,6 +108,10 @@ struct ModelObjectDraw {
     const SourceModelDepthInput* source_model_depth{};
     std::optional<SourceModelDepthSelection> source_model_selection;
     std::optional<std::uint32_t> source_object; // Full salted group/body owner.
+    // Collection-side mark only: a dynamic owner (corpse, loose weapon,
+    // dynamic object) whose posed geometry casts the pStencil sun shadow.
+    // The renderer never reads it; Original submission is unaffected.
+    bool pstencil_sun_caster{};
 };
 // Read-only CPU metadata for the material image cache at uniform upload.
 // A draw may instead bind a baked lightmap, accumulation/scope/water target,
@@ -395,7 +399,8 @@ public:
              const std::function<void()> &before_presentation = {},
              const Renderer *presentation_owner = nullptr,
              const std::filesystem::path &shader_directory = {},
-             std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials = {});
+             std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials = {},
+             const Cache *scene_cache = nullptr);
     ~Renderer();
     // Frontend worlds and model widgets retain native resolution while
     // players edit their saved world-upscaling choices.

@@ -1,5 +1,6 @@
 #include "halo2/native_parallel.hpp"
 #include <atomic>
+#include <chrono>
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
@@ -140,6 +141,28 @@ int main() {
         try{native_overlap_run([]{},[&]{native_overlap_run([]{},[]{});});need(!workers,"nested overlap call rejected");}
         catch(const std::logic_error&){need(true,"nested overlap call rejected");}
         int after=0;native_overlap_run([&]{after=1;},[]{});need(after==1,"overlap thread reusable after a rejected nesting");
+        // native_overlap_join: from overlap, the job has finished on return;
+        // its flags are visible at once and its exception surfaces there.
+        {
+            using halo2::native_overlap_join;
+            native_overlap_join();need(true,"join outside an overlap is a no-op");
+            std::atomic<int> job_state{0};int seen=-1;
+            native_overlap_run([&]{std::this_thread::sleep_for(std::chrono::milliseconds(20));job_state=1;},
+                               [&]{native_overlap_join();seen=job_state.load();native_overlap_join();});
+            need(seen==1,"join waits for the job");
+            _mm_setcsr(_mm_getcsr()&~0x3fu);bool flagged=false;
+            native_overlap_run([&]{volatile float z=divide(1.f,0.f);(void)z;},
+                               [&]{native_overlap_join();flagged=_mm_getcsr()&0x4u;});
+            need(flagged,"job's SSE flag merged at the join");
+            _mm_setcsr(_mm_getcsr()&~0x3fu);
+            bool after_join=false;
+            try{native_overlap_run([]{throw std::runtime_error("job");},[&]{native_overlap_join();after_join=true;});
+                need(false,"joined job exception propagated");}
+            catch(const std::runtime_error& e){need(std::string(e.what())=="job","job exception rethrown once from the join");}
+            need(!after_join,"join rethrew the job's exception inside overlap");
+            int reused=0;native_overlap_run([&]{reused=1;},[]{native_overlap_join();});need(reused==1,"overlap thread reusable after a join");
+            errno=0;native_overlap_run([]{errno=EIO;},[]{native_overlap_join();});need(errno==EIO,"job errno change still applied after a join");
+        }
         // native_overlap_run2: two jobs on two distinct threads, overlap on the caller.
         {
             using halo2::native_overlap_run2;

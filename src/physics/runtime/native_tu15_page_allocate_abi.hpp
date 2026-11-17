@@ -202,14 +202,14 @@ template<class State,class Call,class Before=native_page_window_detail::Noop>boo
 #if !(defined(__i386__) || defined(__x86_64__)) || defined(_MSC_VER)
     return false; // Exact undefined arithmetic flag backend is unavailable.
 #endif
-    if(reference_mode()||!native_partition_temporary_detail::admitted(s))return false;
+    if(reference_mode()||!native_partition_temporary_detail::admitted_census(s,0x13fe50u,0x14030bu))return false;
     ++activity().calls;Access<State,Before> access{s,before};D data;
     struct Services {
         State &s;Call &call;Access<State,Before> &access;
         void fallback(std::uint32_t owner,std::uint32_t site,bool tail=false){++activity().residuals[owner];call(s,owner,site,tail);}
         NativeTu15PageBusyResume busy(std::uint32_t owner,std::uint32_t,const D&){
             access.push(0x13ffa6u,s.gp[7]);access.push(0x13ffa7u,0x13ffa9u);access.before(s,owner);
-            if(owner==0x12fcb0u&&!native_resource_busy_detail::reference_mode()&&native_partition_temporary_detail::admitted(s)){
+            if(owner==0x12fcb0u&&!native_resource_busy_detail::reference_mode()&&native_partition_temporary_detail::admitted_census(s,0x12fcb0u,0x12fd02u)){
                 // Compose the same qualified DATA/ABI access owner, retaining
                 // the real nested query entry before its first instruction.
                 // Its separately bound facade needs no such hook in production.

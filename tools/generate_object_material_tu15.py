@@ -71,6 +71,8 @@ def main():
                             'bool source_object_material_tu15_owns_entry(std::uint32_t p) {return p==0x18b4c0u;}',
                             source)
     assert count == 1
+    from native_object_material_lookup_replacements import replace_object_material_lookup
+    source = replace_object_material_lookup(source)
     args.output.write_text(source)
     report_path = args.directory / 'generation.json'
     report = json.loads(report_path.read_text())

@@ -33,7 +33,7 @@ Data decoded_mip(const Texture &texture,const TextureMip &mip) {
     require(decoded.format==11 && decoded.layers==1 && decoded.mips.size()==1,"source BC3 diagnostic decode failed");return decoded.pixels;
   }
   require(texture.format==14,"unadmitted native bitmap format");
-  const Texture face{mip.width,mip.height,14,{bytes.begin(),bytes.end()},{{mip.width,mip.height,0,mip.size}},1};
+  const Texture face{mip.width,mip.height,14,TexturePixels(bytes),{{mip.width,mip.height,0,mip.size}},1};
   return prepare_xemu_bc1_texture(face).pixels;
 }
 void storage_controls(const Imported &native,const Fixture &expected) {

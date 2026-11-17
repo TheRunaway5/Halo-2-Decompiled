@@ -23,6 +23,7 @@
 // body runs, then requires identical stored bytes, general registers, vector
 // registers and flags.
 #include "physics/runtime/physics_step_internal.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include <array>
 #include <cstdint>
 #include <cstdlib>
@@ -71,6 +72,11 @@ template<class Flags> struct Machine {
     bool reset_x87_top{};
     bool clear_x87_c1{};
     std::uint16_t x87_c1{};
+    // The x87 register stack, for kernels that pop or push it (32CC0C).
+    // run() copies the caller's stack in; it is published, and compared in
+    // verify mode, only when a kernel sets x87_stack_owned.
+    struct X87Stack {std::array<long double,8> lanes{};unsigned count{},top{};std::uint16_t status{};} x87{};
+    bool x87_stack_owned{};
     // Integer work can defer flag publication until an exception boundary.
     // Native successful paths keep ordinary arithmetic; their final flags
     // remain explicit kernel outputs. No source instructions are replayed.
@@ -409,6 +415,128 @@ template<class Io,class Flags> void kernel_2e46e0(Io &io,Machine<Flags> &m) {
     pop(io,m,0x2e4753u);gp[4]+=8u;
 }
 
+// 14DD70 support (scene device). Admission: the x87 sequence below needs
+// two free logical slots, x87 (not MMX) ownership and masked x87 exceptions.
+template<class State> bool x87_room(const State &s,unsigned depth) {
+    if constexpr(requires{s.active_mmx;})if(s.active_mmx)return false;
+    if(s.fp.count+depth>8u)return false;
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::uint16_t control;asm volatile("fnstcw %0":"=m"(control));
+    return (control&0x3fu)==0x3fu;
+#else
+    return false;
+#endif
+}
+inline __m128 scalar_bits(std::uint32_t bits){return _mm_castsi128_ps(_mm_cvtsi32_si128(int(bits)));}
+inline __m128 ordered_sum_ss(__m128 a,__m128 b) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    asm volatile("addss %1,%0":"+x"(a):"x"(b));return a;
+#else
+    return _mm_add_ss(a,b);
+#endif
+}
+inline __m128 ordered_difference_ss(__m128 a,__m128 b) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    asm volatile("subss %1,%0":"+x"(a):"x"(b));return a;
+#else
+    return _mm_sub_ss(a,b);
+#endif
+}
+
+// 14DD70: distance of point EDX from the segment of record ECX (origin +8,
+// radius +0x14, row index +4 into the 16-byte rows [[EAX+0x18]+0xC]): the
+// projection t and the squared perpendicular distance d^2 are spilled to
+// [ESP] and [ESP+4]; within the radius the result is |t| (FLD/FABS/FSTP),
+// else sqrt((sqrt(d^2)-r)^2+t^2) (FLD/FSQRT/FLD/FSUB/FXCH/FSUB/FMULP/FLD/
+// FMUL/FADDP/FSQRT/FSTP), on the host x87 under the live control word.
+// XMM0 returns the result; C1 is the final FSTP's. RET 0.
+template<class Io,class Flags> void kernel_14dd70(Io &io,Machine<Flags> &m) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    auto &x=m.x;auto &gp=m.gp;
+    const auto load=[](std::uint32_t bits){return scalar_bits(bits);};
+    gp[4]=m.flags.minus(gp[4],8u,4);
+    x[2]=load(io.rd(0x14dd73u,gp[2]+4u,4));
+    x[2]=ordered_difference_ss(x[2],load(io.rd(0x14dd78u,gp[1]+0xcu,4)));
+    x[3]=load(io.rd(0x14dd7du,gp[2]+8u,4));
+    x[3]=ordered_difference_ss(x[3],load(io.rd(0x14dd82u,gp[1]+0x10u,4)));
+    x[1]=load(io.rd(0x14dd87u,gp[2],4));
+    x[1]=ordered_difference_ss(x[1],load(io.rd(0x14dd8bu,gp[1]+8u,4)));
+    push(io,m,0x14dd90u,gp[6]);
+    gp[6]=io.rd(0x14dd91u,gp[0]+0x18u,4);
+    gp[0]=io.rd(0x14dd94u,gp[1]+4u,4);
+    push(io,m,0x14dd97u,gp[7]);
+    gp[7]=io.rd(0x14dd98u,gp[6]+0xcu,4);
+    gp[0]=m.flags.shift(gp[0],4u,4);
+    x[0]=load(io.rd(0x14dd9eu,gp[0]+gp[7]+8u,4));
+    x[4]=load(io.rd(0x14dda4u,gp[0]+gp[7]+4u,4));
+    x[6]=load(io.rd(0x14ddaau,gp[0]+gp[7]+8u,4));
+    x[5]=load(io.rd(0x14ddb0u,gp[0]+gp[7]+4u,4));
+    gp[0]=m.flags.plus(gp[0],gp[7],4);
+    x[0]=ordered_mul_ss(x[0],x[3]);
+    x[4]=ordered_mul_ss(x[4],x[2]);
+    x[0]=ordered_sum_ss(x[0],x[4]);
+    x[4]=load(io.rd(0x14ddc4u,gp[0],4));
+    x[4]=ordered_mul_ss(x[4],x[1]);
+    x[0]=ordered_sum_ss(x[0],x[4]);
+    x[4]=load(io.rd(0x14ddd0u,gp[0],4));
+    x[5]=ordered_mul_ss(x[5],x[0]);
+    x[6]=ordered_mul_ss(x[6],x[0]);
+    x[2]=ordered_difference_ss(x[2],x[5]);
+    x[3]=ordered_difference_ss(x[3],x[6]);
+    x[4]=ordered_mul_ss(x[4],x[0]);
+    x[0]=x[3];
+    x[3]=load(io.rd(0x14ddebu,gp[0]+4u,4));
+    x[3]=ordered_mul_ss(x[3],x[5]);
+    x[5]=load(io.rd(0x14ddf4u,gp[0]+8u,4));
+    x[5]=ordered_mul_ss(x[5],x[6]);
+    x[3]=ordered_sum_ss(x[3],x[5]);
+    x[5]=load(io.rd(0x14de01u,gp[0],4));
+    x[5]=ordered_mul_ss(x[5],x[4]);
+    x[3]=ordered_sum_ss(x[3],x[5]);
+    io.st(0x14de0du,gp[4]+8u,4,low_bits(x[3]));
+    x[3]=ordered_mul_ss(x[2],x[2]);
+    x[1]=ordered_difference_ss(x[1],x[4]);
+    x[0]=ordered_mul_ss(x[0],x[0]);
+    x[2]=ordered_mul_ss(x[1],x[1]);
+    x[1]=load(io.rd(0x14de29u,gp[1]+0x14u,4));
+    x[0]=ordered_sum_ss(x[0],x[3]);
+    x[0]=ordered_sum_ss(x[0],x[2]);
+    x[2]=ordered_mul_ss(x[1],x[1]);
+    m.flags.scalar_compare(x[2],x[0],false);
+    gp[7]=pop(io,m,0x14de40u);
+    io.st(0x14de41u,gp[4]+8u,4,low_bits(x[0]));
+    gp[6]=pop(io,m,0x14de47u);
+    std::uint32_t result;std::uint16_t status;
+    if(!m.flags.cf) {
+        const auto t=io.rd(0x14de4au,gp[4],4);
+        asm volatile("flds %2\n\tfabs\n\tfstps %0\n\tfnstsw %1":"=m"(result),"=m"(status):"m"(t):"st");
+        io.st(0x14de4fu,gp[4],4,result);
+        x[0]=load(io.rd(0x14de52u,gp[4],4));
+    } else {
+        const auto d=io.rd(0x14de5bu,gp[4]+4u,4);
+        const auto r1=io.rd(0x14de63u,gp[1]+0x14u,4),r2=io.rd(0x14de68u,gp[1]+0x14u,4);
+        const auto t1=io.rd(0x14de6du,gp[4],4),t2=io.rd(0x14de70u,gp[4],4);
+        // Each m32 operand is an FLD m32 (the retained route's extended
+        // operand), so the sticky x87 flags equal the reference exactly; the
+        // hardware FSUB m32 raises no #D for a denormal beside a NaN. The
+        // ST(0)-destination forms avoid the AT&T FSUBR/FSUBRP ambiguity.
+        asm volatile("flds %2\n\tfsqrt\n\tfld %%st(0)\n\t"
+            "flds %3\n\tfsubr %%st(1),%%st\n\tfstp %%st(1)\n\tfxch %%st(1)\n\t"
+            "flds %4\n\tfsubr %%st(1),%%st\n\tfstp %%st(1)\n\tfmulp\n\t"
+            "flds %5\n\tflds %6\n\tfmulp\n\tfaddp\n\tfsqrt\n\tfstps %0\n\tfnstsw %1"
+            :"=m"(result),"=m"(status):"m"(d),"m"(r1),"m"(r2),"m"(t1),"m"(t2):"st","st(1)","st(2)");
+        io.st(0x14de77u,gp[4],4,result);
+        x[0]=load(io.rd(0x14de7au,gp[4],4));
+    }
+    m.clear_x87_c1=true;m.x87_c1=status&0x200u;
+    const bool near=!m.flags.cf;
+    gp[4]=m.flags.plus(gp[4],8u,4);
+    pop(io,m,near?0x14de5au:0x14de82u);
+#else
+    (void)io;(void)m;throw std::runtime_error("Native 14DD70 x87 backend unavailable");
+#endif
+}
+
 inline bool same_bits(__m128 a,__m128 b){return !std::memcmp(&a,&b,16);}
 
 // Verification re-enters the routine; the nested entry runs the original body.
@@ -421,26 +549,42 @@ template<class State,class Flags> void publish_machine(State &s,const Machine<Fl
     }
     if(m.reset_x87_top)s.fp.top=0;
     if(m.clear_x87_c1)s.fp.status=(s.fp.status&~0x200u)|m.x87_c1;
+    if(m.x87_stack_owned) {
+        if constexpr(requires{s.fp.lanes;s.fp.count;s.fp.top;s.fp.status;}) {
+            s.fp.lanes=m.x87.lanes;s.fp.count=m.x87.count;s.fp.top=m.x87.top;s.fp.status=m.x87.status;
+        } else throw std::runtime_error("Native x87 leaf requires its caller's x87 stack");
+    }
     for(unsigned i=0;i<8;++i)s.xmm[i]=m.x[i];
 }
-// Admission and dispatch. Reference re-enters the routine (verify mode only).
-template<class State,class Kernel,class Reference>
-bool run(State &s,Kernel kernel,Reference reference,std::uint32_t final_pc) {
+// Admission: the TU1.5 image with a literal cursor (no trace, observation-only
+// stores), no callbacks, or the census switch. pc receives the cursor.
+template<class State> bool admitted(const State &s,std::uint32_t *&pc) {
     if(reference_mode() || bypass() || s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
-    std::uint32_t *pc=nullptr;
+    pc=nullptr;
     if(s.services.instruction) {
         if constexpr(requires{s.literal_service_sites;s.instruction_cursor;}) {
+            // No leaf kernel holds a live service PC (census diagnostic only).
+            if(native_census_detail::uncursored(s,1u,0u)) {} else {
             if(!s.literal_service_sites || !s.instruction_cursor || !s.instruction_cursor->position)return false;
             const auto *cursor=s.instruction_cursor;
             if(s.observe && !cursor->observation_only_stores)return false;
             if((cursor->first_trace && *cursor->first_trace) || (cursor->second_trace && *cursor->second_trace))return false;
             pc=cursor->position;
+            }
         } else return false;
     }
+    return true;
+}
+// Admission and dispatch. Reference re-enters the routine (verify mode only).
+template<class State,class Kernel,class Reference>
+bool run(State &s,Kernel kernel,Reference reference,std::uint32_t final_pc) {
+    std::uint32_t *pc=nullptr;
+    if(!admitted(s,pc))return false;
     using Flags=std::remove_cvref_t<decltype(s.flags)>;
     Machine<Flags> m{s.gp,{},s.flags};
     if constexpr(requires{s.other_flags;})m.other_flags=s.other_flags;
     for(unsigned i=0;i<8;++i)m.x[i]=s.xmm[i];
+    if constexpr(requires{s.fp.lanes;s.fp.count;s.fp.top;s.fp.status;})m.x87={s.fp.lanes,s.fp.count,s.fp.top,s.fp.status};
     if(verify_mode()) {
         PureIo<std::remove_cvref_t<decltype(s.memory)>> io{s.memory,{},{}};
         kernel(io,m);
@@ -455,6 +599,10 @@ bool run(State &s,Kernel kernel,Reference reference,std::uint32_t final_pc) {
             if constexpr(requires{s.active_mmx;})same=same && !s.active_mmx;
         }
         if(m.clear_x87_c1)same=same && (s.fp.status&0x200u)==m.x87_c1;
+        if constexpr(requires{s.fp.lanes;s.fp.count;s.fp.top;s.fp.status;})if(m.x87_stack_owned) {
+            same=same && s.fp.count==m.x87.count && s.fp.top==m.x87.top && s.fp.status==m.x87.status;
+            for(unsigned i=0;i<m.x87.count && i<8;++i)same=same && !std::memcmp(&s.fp.lanes[i],&m.x87.lanes[i],10);
+        }
         for(unsigned i=0;i<8;++i)same=same && same_bits(m.x[i],s.xmm[i]);
         for(const auto &[address,bytes]:io.stores)for(unsigned i=0;i<bytes;++i)
             same=same && io.overlay.at(address+i)==std::byte(physics_step_detail::r(s.memory,address+i,1));

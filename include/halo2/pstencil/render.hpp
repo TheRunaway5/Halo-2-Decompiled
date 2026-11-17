@@ -15,6 +15,8 @@ struct RenderContext {
 struct VolumeBatch {std::span<const ShadowVertex> vertices;};
 struct VolumeCamera {
     std::array<float,16> matrix;
+    // Render transports raster translation in depth_row.xy for source-camera
+    // draws (control.z); conventional cameras keep the supplied depth row.
     ShaderVector depth_row,light,control;
     ShaderVector viewport;
 };
@@ -44,7 +46,10 @@ public:
     void utility(VkCommandBuffer,const std::function<void()>& receivers);
     // Independent layer6/7 mask and one RGB152/255 destination multiply.
     // Call before environment/emission and before all dynamic lights.
-    void lightmap(VkCommandBuffer,std::span<const VolumeDraw>,VkViewport,VkRect2D);
+    // With owners, the casters' own visible surfaces are restored to the
+    // unshadowed reference before the multiply (world-only composite).
+    void lightmap(VkCommandBuffer,std::span<const VolumeDraw>,VkViewport,VkRect2D,
+        const VolumeDraw* owners=nullptr);
     void end(VkCommandBuffer,VkFramebuffer original);
 private:
     struct Impl;std::unique_ptr<Impl> impl_;

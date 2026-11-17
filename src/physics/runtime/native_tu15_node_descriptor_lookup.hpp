@@ -68,7 +68,9 @@ template<class State,class Call,class Before=Noop>bool bridge(State&s,Call call,
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
     if constexpr(requires{s.active_mmx;})if(s.active_mmx)return false;
     if(s.observe&&!s.services.instruction)return false;
-    if(s.services.instruction){
+    if(native_census_detail::uncursored(s,0x1e3150u,0x1e31d3u)){
+        // Census diagnostic: full callbacks without a cursor.
+    }else if(s.services.instruction){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*c=s.instruction_cursor;
         if((c->first_trace&&*c->first_trace)||(c->second_trace&&*c->second_trace)||(s.observe&&!c->observation_only_stores))return false;

@@ -10,6 +10,9 @@ struct SourceEffectLightRuntime;
 }
 
 namespace halo2::pstencil {
+// The ordinary render's unremapped skin palette for a full object/model pair.
+using PresentedModelPalette=std::function<std::span<const std::array<float,12>>(
+    std::uint32_t object,std::uint32_t render_model)>;
 // Owned source position inputs from the actual light query, before color-view
 // availability and receiver range filtering. Shadow-only faces need no color
 // material/pass. The immutable geometry is shared; current palettes are copied.
@@ -29,7 +32,7 @@ public:
     void collect(const SourceDrawUnitState&,PhysicsLiveWorldTu15*,
         const SourceEffectLightRuntime&,const MenuWorldSourceConstants&,
         std::uint32_t domain,const std::function<bool(const SourceCullDrawUnit&)>& color_available,
-        std::vector<PointCaster>&);
+        std::vector<PointCaster>&,const PresentedModelPalette& presented_palette={});
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

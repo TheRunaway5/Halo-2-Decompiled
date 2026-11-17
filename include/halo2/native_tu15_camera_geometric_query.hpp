@@ -3,6 +3,10 @@
 namespace halo2 {
 struct NativeTu15CameraGeometricQuery {
     std::uint32_t mask{},origin{},displacement{},ignore_first{},ignore_second{},result{};
+    // Optional: the caller's mask argument word ([ESP+4] at entry). 16C620
+    // rewrites that stack argument at 16C654 and 16C886 when it widens the
+    // mask; zero leaves the argument word untouched (typed callers).
+    std::uint32_t mask_slot{};
 };
 struct NativeTu15CameraInstancedQuery {
     std::uint32_t cluster{},mask{},bsp_filter{},origin{},displacement{},result{};
@@ -21,6 +25,9 @@ struct NativeTu15CameraGeometricQueryServices {
 };
 struct NativeTu15CameraGeometricQueryStats {
     std::uint64_t calls{},completed{},bsp_calls{},bsp_hits{},cluster_visits{},instanced_calls{},dynamic_calls{},bridge_calls{},clearance_calls{},unbound_services{};
+    // EAX at the original 16CE94 RET of the last completed call: AL is the
+    // result, bits 8-31 the last value 16C620 or its children left in EAX.
+    std::uint32_t exit_eax{};
 };
 // Native16C620 typed parent. Instanced/dynamic services are explicit native
 // requirements; no virtual CPU fallback is available. Qualification domains

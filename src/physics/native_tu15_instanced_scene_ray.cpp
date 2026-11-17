@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_instanced_scene_ray.hpp"
 #include "native_tu15_joint_constraint_numeric_internal.hpp"
 namespace halo2 {
@@ -5,9 +6,9 @@ namespace {
 void narrow(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,
     std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width){
     std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
-    SourcePhysicsContactRecordStore e{pc,p,{},{}};
-    if(o){e.before.resize(width);m.read(p,e.before);e.written.assign(bytes.begin(),bytes.begin()+width);}
-    m.write(p,std::span(bytes).first(width));if(o)o(e);
+    SourcePhysicsContactRecordStore e{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m,o,pc,p,width);
+    if(observed){e.before.resize(width);m.read(p,e.before);e.written.assign(bytes.begin(),bytes.begin()+width);}
+    m.write(p,std::span(bytes).first(width));if(observed)o(e);
 }
 }
 bool native_tu15_query_instanced_scene_ray(SourcePhysicsContactMemory&memory,

@@ -24,7 +24,9 @@ def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def generate(a,paired,process_heap=False,*,complete_listings=False,
              runtime_header=None,runtime_function=None,extra_instruction=None,
              extra_preamble='',instruction_guard=None,extra_instruction_factory=None,
-             code_override=None,preserve_selected_addresses=False,retained_selected_addresses=()):
+             code_override=None,preserve_selected_addresses=False,retained_selected_addresses=(),
+             install_flight_property_query=False,install_codec_copy_rows=False,install_contact_predicate=False,
+             install_object_record_ratio=False,install_node_function_progress=False,install_object_function_query=False,install_object_ratio_caller=False,install_object_function_scalar=False,install_indexed_datum_gate=False):
     assert paired['image']=='English TU1.5' and paired['original_sha256']==NEW_PIN
     assert sha(NEW_DEFAULT)==NEW_PIN
     complete_listings=True
@@ -344,13 +346,31 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert i.bytes.hex()=='ff5060'
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
-            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40,0x17db3b,0x17db6d,0x1185f3,0xd5506,0x1714ac,0x179063):
+            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40,0x17db3b,0x17db6d,0x1185f3,0xd5506,0x1714ac,0x179063,
+                     0x182b17,0x182b26,0xbe892,0xbe941,0xb959c,0xb9757,0xba295,0x10f8b6,0x11dd5a,
+                     0xbb808,0xecb2b,0xed006,0xee80e,0xf0bca,0x1dc29f,0x16b1ad,0x16b78b,0x16940b,0x16b7f5,
+                     0xc100f,0xc3810,0xc2135,0xc2353):
                 # Preserve native publication even when the complete callee
                 # becomes internal to this composition. The required owner
                 # observes the real ABI and runs the original callee itself.
+                # 182B17/182B26 are 181DA0's decal bitmap residency queries:
+                # an MCC World substitutes its projected 116-byte frame row.
+                # BE892/BE941 are BE850's node rebuild calls (BF0C0/BFF20),
+                # and every BF050 caller except its own child recursion (B959C,
+                # B9757, BA295, 10F8B6, 11DD5A, BB808, ECB2B, ED006, EE80E,
+                # F0BCA, 1DC29F): the live World runs the native object
+                # factory owners. 16B1AD/16B78B/16940B (16AD45) and 16B7F5
+                # (169863) run the native first-person rebuild and state.
+                # C100F/C3810/C2135 (C4D30) and C2353 (C2CB0) run the light
+                # natives (tools/regenerate_light_caller_boundaries_tu15.py).
                 expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0,0x18cefc:0x223b20,
                           0x10517f:0x108a70,0x107c40:0x108a70,0x17db3b:0xc2380,0x17db6d:0xc2380,
-                          0x1185f3:0x13a030,0xd5506:0x13a030,0x1714ac:0x3bca0,0x179063:0x17c6e0}[p]
+                          0x1185f3:0x13a030,0xd5506:0x13a030,0x1714ac:0x3bca0,0x179063:0x17c6e0,
+                          0x182b17:0x12f800,0x182b26:0x12f910,0xbe892:0xbf0c0,0xbe941:0xbff20,
+                          0xb959c:0xbf050,0xb9757:0xbf050,0xba295:0xbf050,0x10f8b6:0xbf050,0x11dd5a:0xbf050,
+                          0xbb808:0xbf050,0xecb2b:0xbf050,0xed006:0xbf050,0xee80e:0xbf050,0xf0bca:0xbf050,0x1dc29f:0xbf050,
+                          0x16b1ad:0x16ad45,0x16b78b:0x16ad45,0x16940b:0x16ad45,0x16b7f5:0x169863,
+                          0xc100f:0xc4d30,0xc3810:0xc4d30,0xc2135:0xc4d30,0xc2353:0xc2cb0}[p]
                 assert op[0].type==2 and op[0].imm==expected
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
@@ -1319,9 +1339,21 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if 0x135970 in ENTRIES:
         from native_geometry_visibility_replacements import replace_geometry_visibility
         generated=replace_geometry_visibility(generated)
+    if 0x136ea0 in ENTRIES:
+        from native_bsp_admission_replacements import replace_bsp_admission
+        generated=replace_bsp_admission(generated)
+    if 0x135b60 in ENTRIES:
+        from native_object_admission_replacements import replace_object_admission
+        generated=replace_object_admission(generated)
+    if 0x44e80 in ENTRIES or 0x2e79a0 in ENTRIES or 0x2e7c40 in ENTRIES:
+        from native_projection_query_replacements import replace_projection_query
+        generated=replace_projection_query(generated)
     if 0x24dec0 in ENTRIES:
         from native_instanced_ray_child_replacements import replace_instanced_ray_child
         generated=replace_instanced_ray_child(generated)
+    if 0x2e8dd0 in ENTRIES:
+        from native_sphere_ray_cast_replacements import replace_sphere_ray_cast
+        generated=replace_sphere_ray_cast(generated)
     if 0x16b810 in ENTRIES:
         from native_camera_instance_admission_replacements import replace_camera_instance_admission
         generated=replace_camera_instance_admission(generated)
@@ -1346,6 +1378,120 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if 0x144090 in ENTRIES:
         from native_affine_inverse_replacements import replace_affine_inverse
         generated=replace_affine_inverse(generated)
+    if 0x312620 in ENTRIES:
+        from native_closest_segments_replacements import replace_closest_segments
+        generated=replace_closest_segments(generated)
+    if 0x1e11b0 in ENTRIES:
+        from native_model_marker_lookup_replacements import replace_model_marker_lookup
+        generated=replace_model_marker_lookup(generated,defer_sandbox=True)
+    if 0xfc510 in ENTRIES:
+        from native_object_parent_mode_replacements import replace_object_parent_mode
+        generated=replace_object_parent_mode(generated)
+    if 0x30dc10 in ENTRIES:
+        from native_simplex_boundary_replacements import replace_simplex_boundary
+        generated=replace_simplex_boundary(generated)
+    if 0xbacd0 in ENTRIES:
+        from native_marker_owner_replacements import replace_marker_owner
+        generated=replace_marker_owner(generated)
+    if 0x313290 in ENTRIES and paired['entries'].get('00313290')==0x313290:
+        from native_solver_hull_append_replacements import replace_solver_hull_append
+        generated=replace_solver_hull_append(generated)
+    if 0x2e8d20 in ENTRIES and paired['entries'].get('002e8d20')==0x2e8d20:
+        from native_zero_shape_support_replacements import replace_zero_shape_support
+        generated=replace_zero_shape_support(generated)
+    if 0x306790 in ENTRIES and paired['entries'].get('00306790')==0x306790:
+        from native_box_shape_support_replacements import replace_box_shape_support
+        generated=replace_box_shape_support(generated)
+    if 0x296180 in ENTRIES and paired['entries'].get('00296180')==0x296180:
+        from native_packed_rotation_replacements import replace_packed_rotation
+        generated=replace_packed_rotation(generated)
+    if 0x313390 in ENTRIES and paired['entries'].get('00313390')==0x313390:
+        from native_solver_hull_support_pair_replacements import replace_solver_hull_support_pair
+        generated=replace_solver_hull_support_pair(generated)
+    if 0x313470 in ENTRIES and paired['entries'].get('00313470')==0x313470:
+        from native_solver_hull_edge_replacements import replace_solver_hull_edge
+        generated=replace_solver_hull_edge(generated)
+    if {0x313290,0x313390,0x313560}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x313290,0x313390,0x313560)):
+        from native_solver_hull_initialize_replacements import replace_solver_hull_initialize
+        generated=replace_solver_hull_initialize(generated)
+    if {0x313290,0x313390,0x3136a0}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x313290,0x313390,0x3136a0)):
+        from native_solver_hull_line_replacements import replace_solver_hull_line
+        generated=replace_solver_hull_line(generated)
+    if 0x313300 in ENTRIES and paired['entries'].get('00313300')==0x313300:
+        from native_solver_hull_sample_replacements import replace_solver_hull_sample
+        generated=replace_solver_hull_sample(generated)
+    if 0x3131b0 in ENTRIES and paired['entries'].get('003131b0')==0x3131b0:
+        from native_solver_hull_minimum_replacements import replace_solver_hull_minimum
+        generated=replace_solver_hull_minimum(generated)
+    if 0x314870 in ENTRIES and paired['entries'].get('00314870')==0x314870:
+        from native_solver_hull_clear_replacements import replace_solver_hull_clear
+        generated=replace_solver_hull_clear(generated)
+    if 0x3147d0 in ENTRIES and paired['entries'].get('003147d0')==0x3147d0:
+        from native_solver_hull_clip_replacements import replace_solver_hull_clip
+        generated=replace_solver_hull_clip(generated)
+    if {0x296180,0x2961f0}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x296180,0x2961f0)):
+        from native_codec_translation_replacements import replace_codec_translation
+        generated=replace_codec_translation(generated)
+    if 0x296220 in ENTRIES and paired['entries'].get('00296220')==0x296220:
+        from native_codec_scale_replacements import replace_codec_scale
+        generated=replace_codec_scale(generated,defer_sandbox=True)
+    if 0x10de40 in ENTRIES and paired['entries'].get('0010de40')==0x10de40:
+        from native_object_type_query_replacements import replace_object_type_query
+        generated=replace_object_type_query(generated)
+    if {0x296180,0x296240}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x296180,0x296240)):
+        from native_codec_rotation_interpolation_replacements import replace_codec_rotation_interpolation
+        generated=replace_codec_rotation_interpolation(generated)
+    if {0x296180,0x2962f0}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x296180,0x2962f0)):
+        from native_codec_translation_interpolation_replacements import replace_codec_translation_interpolation
+        generated=replace_codec_translation_interpolation(generated)
+    if {0x296180,0x296620}<=set(ENTRIES) and all(paired['entries'].get(f'{entry:08x}')==entry for entry in(0x296180,0x296620)):
+        from native_codec_scale_interpolation_replacements import replace_codec_scale_interpolation
+        generated=replace_codec_scale_interpolation(generated)
+    if install_flight_property_query:
+        if paired['entries'].get('000e0900')!=0xe0900:
+            raise ValueError('Primary flight property query is absent from the authenticated entry list')
+        from native_flight_property_query_replacements import replace_flight_property_query
+        generated=replace_flight_property_query(generated)
+    if install_object_record_ratio:
+        if paired['entries'].get('00107140')!=0x107140:
+            raise ValueError('Primary object record ratio is absent from the authenticated entry list')
+        from native_object_record_ratio_replacements import replace_object_record_ratio
+        generated=replace_object_record_ratio(generated)
+    if install_node_function_progress:
+        if paired['entries'].get('000d3950')!=0xd3950:
+            raise ValueError('Primary node function progress is absent from the authenticated entry list')
+        from native_node_function_progress_replacements import replace_node_function_progress
+        generated=replace_node_function_progress(generated)
+    if install_object_function_query:
+        if paired['entries'].get('000c9070')!=0xc9070:
+            raise ValueError('Primary C9070 is absent from the authenticated entry list')
+        from native_object_function_query_replacements import replace_object_function_query
+        generated=replace_object_function_query(generated)
+    if install_object_ratio_caller:
+        if not install_object_record_ratio or paired['entries'].get('001046c0')!=0x1046c0:
+            raise ValueError('Primary 1046C0 and its actual record child must be authenticated')
+        from native_object_ratio_caller_replacements import replace_object_ratio_caller
+        generated=replace_object_ratio_caller(generated)
+    if install_object_function_scalar:
+        if paired['entries'].get('000bcb70')!=0xbcb70:
+            raise ValueError('Primary BCB70 is absent from the authenticated entry list')
+        from native_object_function_scalar_replacements import replace_object_function_scalar
+        generated=replace_object_function_scalar(generated)
+    if install_indexed_datum_gate:
+        if paired['entries'].get('0003eb10')!=0x3eb10:
+            raise ValueError('Primary 3EB10 is absent from the authenticated entry list')
+        from native_indexed_datum_gate_replacements import replace_indexed_datum_gate
+        generated=replace_indexed_datum_gate(generated)
+    if install_codec_copy_rows:
+        if any(paired['entries'].get(f'{entry:08x}')!=entry for entry in (0x2963d0,0x296410)):
+            raise ValueError('Primary codec copy group is absent from the authenticated entry list')
+        from native_codec_copy_replacements import replace_codec_copy
+        generated=replace_codec_copy(generated)
+    if install_contact_predicate:
+        if paired['entries'].get('00303800')!=0x303800:
+            raise ValueError('Primary contact predicate is absent from the authenticated entry list')
+        from native_contact_predicate_replacements import install as install_contact_predicate_owner
+        generated=install_contact_predicate_owner(generated)
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(generated)
@@ -1575,5 +1721,6 @@ def main():
     a.correspondence=a.manifest.with_name('tu15-bodies.json')
     a.correspondence.parent.mkdir(parents=True,exist_ok=True)
     a.correspondence.write_text(json.dumps(paired,sort_keys=True,indent=2)+'\n')
-    generate(a,paired,complete_listings=True)
+    generate(a,paired,complete_listings=True,install_flight_property_query=True,install_codec_copy_rows=True,
+             install_contact_predicate=True,install_object_record_ratio=True,install_node_function_progress=True,install_object_function_query=True,install_object_ratio_caller=True,install_object_function_scalar=True,install_indexed_datum_gate=True)
 if __name__=='__main__':main()

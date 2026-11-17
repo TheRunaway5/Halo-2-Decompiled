@@ -24,7 +24,21 @@ struct NativeParameters {
   std::array<double, 4> matrix;
   bool paused;
   std::array<double,4> routes{};
+  // Voice attenuation as a linear amplitude and the optional effect send.
+  double amplitude{};
+  std::optional<tu15_sound_mono_distortion::Parameters> effect;
 };
+
+// Mixbin samples are 24-bit fractions; float PCM [-1, 1) maps directly and
+// saturates like the mixbin accumulators.
+tu15_sound::Word24 mixbin_word(double sample) noexcept {
+  const auto scaled=std::clamp(std::nearbyint(sample*8388608.0),-8388608.0,8388607.0);
+  return tu15_sound::Word24(std::uint32_t(std::int32_t(scaled))&0xffffffu);
+}
+double mixbin_sample(tu15_sound::Word24 word) noexcept {
+  const auto value=std::int32_t(word.bits<<8)>>8;
+  return double(value)/8388608.0;
+}
 
 NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
   const float rate = std::bit_cast<float>(input.relative_rate_bits);
@@ -38,6 +52,8 @@ NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
   // Native amplitude conversion for an integer attenuation in 1/100 dB.
   // This is not a replacement for the source scalar/routing CPU owners.
   const double amplitude = std::pow(10.0, double(input.volume_hundredths_db) / 2000.0);
+  output.amplitude = amplitude;
+  if (input.effect) output.effect = input.effect->parameters;
   for (const auto &route : input.routes) {
     if (route.pcm_channel >= pcm_channels || route.output_channel >= pcm_channels ||
         !std::isfinite(route.linear_gain) || route.linear_gain < 0)
@@ -84,10 +100,11 @@ struct SdlSoundPlatform::State {
     std::optional<SdlSoundCompletionStatus> completed;
     std::shared_ptr<const unsigned char> record;
     std::optional<std::array<double,4>> matrix;
+    std::optional<double> amplitude;
     void routes(const NativeParameters& parameters) {
-      if(!pcm.volume_hundredths_db){matrix.reset();return;}
-      const double amplitude=std::pow(10.0,double(*pcm.volume_hundredths_db)/2000.0);
-      matrix=parameters.routes;for(auto& gain:*matrix)gain*=amplitude;
+      if(!pcm.volume_hundredths_db){matrix.reset();amplitude.reset();return;}
+      amplitude=std::pow(10.0,double(*pcm.volume_hundredths_db)/2000.0);
+      matrix=parameters.routes;for(auto& gain:*matrix)gain*=*amplitude;
     }
   };
   struct Stream {
@@ -208,6 +225,32 @@ struct SdlSoundPlatform::State {
   std::uint64_t presentation_frames = 0;
   bool paused = false;
   std::map<Voice, Stream> streams;
+  // Mixbin 13 and DSP record 1, active once an effect voice has existed.
+  // Frames are the original 32-sample DSP blocks: one block of latency.
+  struct EffectBus {
+    bool active{};
+    tu15_sound_mono_distortion::Parameters parameters=tu15_sound_mono_distortion::authored_initial_parameters();
+    tu15_sound_mono_distortion::State state{};
+    std::array<double,32> input{};
+    std::array<double,32> output{};
+    unsigned position{};
+  } effect_bus;
+  void effect_block() noexcept {
+    std::array<tu15_sound::Word24,32> block{};
+    for(unsigned i=0;i<32;++i)block[i]=mixbin_word(effect_bus.input[i]);
+    try {
+      constexpr tu15_sound_mono_distortion::Controls controls{tu15_sound_mono_distortion::ScalingMode::none,false,false,false,
+          tu15_sound_mono_distortion::AddressingMode::linear,tu15_sound_mono_distortion::AddressingMode::linear,
+          tu15_sound_mono_distortion::AddressingMode::linear,tu15_sound_mono_distortion::AddressingMode::linear,
+          tu15_sound_mono_distortion::AddressingMode::linear};
+      tu15_sound_mono_distortion::process(controls,effect_bus.parameters,effect_bus.state,block,block);
+      for(unsigned i=0;i<32;++i)effect_bus.output[i]=mixbin_sample(block[i]);
+    } catch(...) {
+      // Parameters are validated when installed; a failure silences the bus.
+      effect_bus.output.fill(0);effect_bus.active=false;
+    }
+    effect_bus.input.fill(0);effect_bus.position=0;
+  }
 
   explicit State(const SdlSoundPlatformConfiguration &configuration)
       : delivery(configuration.delivery),callback_frames(configuration.callback_frames),device_name(configuration.device_name) {
@@ -274,6 +317,7 @@ struct SdlSoundPlatform::State {
     std::fill(output,output+count*channels,0.f);
     for (std::size_t frame = 0; frame < count; ++frame) {
       std::array<double, pcm_channels> accumulated{};
+      double effect_send=0;
       if (!removed && !paused) for (auto &[id, stream] : streams) {
         (void)id;
         if (stream.parameters.paused) continue;
@@ -294,8 +338,21 @@ struct SdlSoundPlatform::State {
         const auto &matrix = packet?*packet:stream.parameters.matrix;
         accumulated[0] += sample[0] * matrix[0] + sample[1] * matrix[1];
         accumulated[1] += sample[0] * matrix[2] + sample[1] * matrix[3];
+        if (stream.parameters.effect) {
+          const auto &packet_amplitude=stream.pending()->amplitude;
+          effect_send += 0.5*(sample[0]+sample[1])*(packet_amplitude?*packet_amplitude:stream.parameters.amplitude);
+        }
         stream.cursor += stream.parameters.relative_rate;
         stream.advance();
+      }
+      if (effect_bus.active && !removed && !paused) {
+        // Mixbin 13 accumulates this frame's sends; the mix-in return plays
+        // the previous processed block to both front speakers at 0 dB.
+        effect_bus.input[effect_bus.position] += effect_send;
+        const double wet = effect_bus.output[effect_bus.position];
+        accumulated[0] += wet;
+        accumulated[1] += wet;
+        if (++effect_bus.position == 32) effect_block();
       }
       for (unsigned channel = 0; channel < pcm_channels; ++channel)
         output[frame * channels + channel] = float(std::clamp(accumulated[channel], -1.0, 1.0));
@@ -378,6 +435,10 @@ SdlSoundPlatform::Voice SdlSoundPlatform::create_voice_impl(
   State::Stream stream{};stream.channel_context=context;stream.record=record;stream.parameters=std::move(native);
   stream.start_frame=frame;stream.playback.publication_epoch=state_->epoch.load();
   state_->change();
+  if (stream.parameters.effect) {
+    state_->effect_bus.parameters=*stream.parameters.effect;
+    state_->effect_bus.active=true;
+  }
   state_->streams.emplace(voice,std::move(stream));
   ++state_->next_voice;
   return voice;
@@ -552,6 +613,7 @@ struct SdlSoundPlatform::SnapshotData {
     std::map<Voice,State::Stream> streams;
     std::uint64_t next_voice{},elapsed{},presentation{};
     bool paused{};
+    State::EffectBus effect_bus;
   } image;
   std::weak_ptr<State> owner;
   std::uint64_t device_generation{};
@@ -592,6 +654,7 @@ SdlSoundPlatform::Checkpoint SdlSoundPlatform::checkpoint() const {
     data->image.elapsed=state_->elapsed_frames;
     data->image.presentation=state_->presentation_frames;
     data->image.paused=state_->paused;
+    data->image.effect_bus=state_->effect_bus;
     data->device_generation=state_->device_generation;
     data->owner=state_;
   }
@@ -715,6 +778,7 @@ bool SdlSoundPlatform::commit(PreparedReplacement& prepared,HeldPublication& hel
   std::swap(state_->elapsed_frames,data.image.elapsed);
   std::swap(state_->presentation_frames,data.image.presentation);
   std::swap(state_->paused,data.image.paused);
+  std::swap(state_->effect_bus,data.image.effect_bus);
   ++state_->epoch;++state_->revision;
   data.consumed=true;
   return true;

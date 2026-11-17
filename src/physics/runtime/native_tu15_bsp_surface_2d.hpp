@@ -10,7 +10,10 @@ template<class State>void position(State& state,std::uint32_t site){if(state.ins
 struct Memory {
     const SourcePhysicsContactMemory& memory;
     std::uint32_t word(std::uint32_t at,unsigned width=4)const {
-        std::array<std::byte,4> bytes{};native_host_fp_io_detail::preserve([&]{memory.read(at,std::span(bytes).first(width));});std::uint32_t value{};
+        // Committed direct pages/read views are copied as the provider would;
+        // other operands keep the provider read (exact empty-stack preserve).
+        std::array<std::byte,4> bytes{};const auto out=std::span(bytes).first(width);
+        if(!native_raw_x87_detail::direct_read(memory,at,out))native_host_fp_io_detail::preserve_empty([&]{memory.read(at,out);});std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8u*n);return value;
     }
 };
@@ -22,7 +25,7 @@ inline std::uint32_t index_flags(std::uint32_t node){
     return flags|((overflow&1u)<<11u);
 }
 #endif
-struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
+struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 template<class State,class Before=Noop>bool bridge(State& state,Before before={}){
 #if !(defined(__i386__) || defined(__x86_64__)) || defined(_MSC_VER)
     return false;
@@ -38,14 +41,15 @@ template<class State,class Before=Noop>bool bridge(State& state,Before before={}
         for(const auto site:cursor->service_sites)if(site>=0x2a0230u&&site<=0x2a028du)return false;
     }
     auto& gp=state.gp;const auto node=gp[0],descriptor=gp[1],point_address=gp[2];Memory memory{state.memory};
-    const auto at=[&](std::uint32_t site){position(state,site);native_host_fp_io_detail::preserve([&]{before(state,site);});};
+    const auto at=[&](std::uint32_t site){position(state,site);
+        if(!native_raw_x87_detail::skip_hook<Before>())native_host_fp_io_detail::preserve_empty([&]{before(state,site);});};
     const auto push=[&](std::uint32_t pc,std::uint32_t value){
         // Preserve the existing State::push pre-store stack commitment.
         gp[4]-=4u;SourcePhysicsContactRecordStore event{pc,gp[4],{},std::vector<std::byte>(4)};
-        if(state.observe){event.before.resize(4);native_host_fp_io_detail::preserve([&]{state.memory.read(event.address,event.before);});}
+        if(state.observe){event.before.resize(4);if(!native_raw_x87_detail::direct_read(state.memory,event.address,event.before))native_host_fp_io_detail::preserve_empty([&]{state.memory.read(event.address,event.before);});}
         for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8u*n));
-        native_host_fp_io_detail::preserve([&]{state.memory.write(event.address,event.written);});
-        if(state.observe)native_host_fp_io_detail::preserve([&]{state.observe(event);});
+        native_host_fp_io_detail::preserve_empty([&]{state.memory.write(event.address,event.written);});
+        if(state.observe)native_host_fp_io_detail::preserve_empty([&]{state.observe(event);});
     };
     const auto pop=[&](){const auto value=memory.word(gp[4]);gp[4]+=4u;return value;};
     struct Point {const Memory& memory;std::uint32_t address;std::uint32_t word(unsigned lane)const{return memory.word(address+lane*4u);}}point{memory,point_address};

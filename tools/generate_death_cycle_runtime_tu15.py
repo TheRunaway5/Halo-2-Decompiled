@@ -511,7 +511,13 @@ def main():
     from native_model_region_state_kernel_tu15 import install_model_region_state_kernel
     source=install_model_region_state_kernel(source)
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
+    source=install_native_normalizer(source,'Tu15Literal')
+    from native_effect_reference_element_replacements import replace_effect_reference_element
+    source=replace_effect_reference_element(source)
+    if qualified is None:
+        from native_death_cycle_flight_query_replacements import replace_death_cycle_flight_query
+        source=replace_death_cycle_flight_query(source)
+    args.output.write_text(source)
     report = json.loads((args.directory / 'generation.json').read_text())
     report['bounded_blocks'] = {'000dbd64': {'stop_before': '000dbfcc',
         'scope': 'DBB90 physical delivery only; native caller frame'},

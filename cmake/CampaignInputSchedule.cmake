@@ -1,0 +1,12 @@
+include_guard(GLOBAL)
+add_executable(campaign_input_schedule_tests tests/campaign_input_schedule_tests.cpp)
+target_include_directories(campaign_input_schedule_tests PRIVATE include src)
+target_compile_features(campaign_input_schedule_tests PRIVATE cxx_std_20)
+target_link_libraries(campaign_input_schedule_tests PRIVATE nlohmann_json::nlohmann_json SDL2::SDL2)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(campaign_input_schedule_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(campaign_input_schedule_tests PRIVATE -fsanitize=address,undefined)
+endif()
+add_test(NAME campaign_input_schedule COMMAND campaign_input_schedule_tests)
+add_test(NAME campaign_armory_training_probe
+    COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_armory_training_probe_tests.py")

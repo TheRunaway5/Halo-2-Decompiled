@@ -21,7 +21,7 @@ def main():
     cache = args.cache.resolve(strict=True)
     policy = module.generate(cache)
     assert [(r["map"], len(r["records"])) for r in policy["maps"]] == [
-        ("needle", 35), ("street_sweeper", 36)]
+        ("needle", 98), ("street_sweeper", 95)]
     cases = 1
 
     with mock.patch.object(module, "RESIDENT_TEMPLATE_ROOTS", {}):

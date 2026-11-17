@@ -76,6 +76,7 @@ struct SourceEffectLightModelViewTu15 {
     // Actual native render request's optional object override. Ordinary
     // native views configure NONE;3D2B0 retains its director/unit decisions.
     std::uint32_t first_person_object_override=0xffffffffu;
+    pstencil::PresentedModelPalette presented_palette;
 };
 // Shared BSP/model part of31C80. Immutable cache resources are loaded before
 // renderer creation; tick state, selection and receiver queries come from the
@@ -99,7 +100,10 @@ public:
         std::array<std::uint32_t,2> surface,unsigned local_players,
         SourceEffectLightModelViewTu15* models=nullptr,
         std::vector<pstencil::PointCaster>* point_casters=nullptr,std::uint32_t light_domain=0,
-        const std::array<ShaderVector,12>* submitting_constants=nullptr);
+        const std::array<ShaderVector,12>* submitting_constants=nullptr,
+        // Native secondary queries retain model LOD/cache history even when
+        // another lighting backend does not consume their raster packets.
+        bool materialize_draws=true);
     const std::vector<std::string>& unavailable() const;
     // Actual immutable model sections admitted before renderer construction.
     std::size_t resident_model_sections()const noexcept;

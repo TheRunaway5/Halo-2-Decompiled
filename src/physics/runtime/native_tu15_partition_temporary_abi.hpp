@@ -32,6 +32,15 @@ template<class State> bool admitted(const State &s) {
     }
     return true;
 }
+// admitted(), plus the census diagnostic (HALO2_CENSUS_NATIVE_BRIDGES with
+// full callbacks and no cursor) for an owner whose native closure [first,last]
+// holds no live service PC. Production admission is unchanged.
+template<class State> bool admitted_census(const State &s,std::uint32_t first,std::uint32_t last) {
+    if(!native_census_detail::uncursored(s,first,last))return admitted(s);
+    if(reference_mode() || native_tu15_leaves::reference_mode() || s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
+    if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
+    return true;
+}
 // The DATA owner is shared with island repartitioning. This adapter supplies
 // only the original caller ABI at its named input/allocation/publication
 // boundaries. Actual slow arena and owned-allocation virtual owners remain

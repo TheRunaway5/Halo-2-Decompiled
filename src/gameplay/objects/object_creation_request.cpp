@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_object_body_value.hpp"
 #include "halo2/object_creation_request.hpp"
 #include <bit>
 #include <stdexcept>
@@ -32,16 +33,8 @@ public:
   Owner(const ObjectCreationRequestServices &p,const ObjectCreationRequestObserver &o)
       :services(p),observe(o) {}
   std::uint32_t body(std::uint32_t pool,std::uint32_t datum,std::uint32_t mask) const {
-    if(datum==0xffffffffu)return 0;
-    const auto index=datum&0xffffu;
-    if(std::int32_t(index)>=std::bit_cast<std::int32_t>(read(pool+0x38)))return 0;
-    const auto stride=read(pool+0x24);
-    const auto record=stride*index+read(pool+0x44);
-    const auto salt=std::uint16_t(read(record,2));
-    if(!salt || std::bit_cast<std::int16_t>(salt)!=
-                std::bit_cast<std::int16_t>(std::uint16_t(datum>>16)))return 0;
-    if(!(mask&(1u<<(read(record+3,1)&31))))return 0;
-    return read(record+8);
+    return native_object_body_detail::value(pool,datum,mask,
+        [this](std::uint32_t address,unsigned bytes){return read(address,bytes);});
   }
   void initialize(std::uint32_t target,std::uint32_t definition,std::uint32_t owner,
                   std::uint32_t location,std::uint32_t pool,

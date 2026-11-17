@@ -313,9 +313,16 @@ int main()try {
         "Ordinary diffuse material acquired an unsolicited shiny coat");
     Material visor=white();visor.name="objects\\characters\\masterchief\\shaders\\masterchief_visor";
     visor.environment_pass=std::make_shared<Material>();visor.environment_pass->forward_vertex=4;
+    visor.environment_pass->forward_diffuse={.9f,.65f,.2f,.7f};
+    visor.environment_pass->forward_specular={.7f,.3f,.1f,.9f};
     const auto polished=pt::material_response(visor);
-    require(std::abs(polished.response[1]-.4f)<1.e-6f && std::abs(polished.response[2]-.2f)<1.e-6f,
-        "Visor lost the authenticated source facing/glancing reflection strengths");
+    require(std::abs(polished.response[1]-.7f)<1.e-6f && std::abs(polished.response[2]-.9f)<1.e-6f,
+        "Path Tracing replaced current vanilla reflection strengths with the pStencil 2003 style");
+    require(std::abs(polished.base[0]-.9f)<1.e-6f && std::abs(polished.base[1]-.65f)<1.e-6f &&
+        std::abs(polished.base[2]-.2f)<1.e-6f,
+        "Path Tracing replaced the current vanilla reflection tint");
+    require(polished.glancing_tint[0]==.7f && polished.glancing_tint[1]==.3f && polished.glancing_tint[2]==.1f,
+        "Path Tracing dropped the independent authored glancing reflection tint");
     require(polished.response[0]<rough.response[0] && polished.base[0]>polished.base[2],
         "Visor lost its independent roughness/tinted reflection response");
     materials={white(),white()};materials[1].forward_vertex=2;materials[1].forward_diffuse={.5f,.1f,.02f,1};

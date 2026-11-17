@@ -72,12 +72,21 @@ bool Frame::empty() const {
 }
 void Frame::add_lightmap(std::size_t view,const LightmapCaster& caster,std::span<const std::uint8_t> materials) {
     if(caster.vertices.size()%3)throw FormatError("pStencil lightmap caster has incomplete triangles");
-    LightBatch batch{};batch.position=lightmap_light_origin(caster.incident);
+    // Every posed triangle of the owner, casting or not: the world-only
+    // composite excludes the owner's whole visible surface.
+    auto& owners=lightmap_owners_.at(view).volume;
+    for(const auto& vertex:caster.vertices)owners.push_back({vertex.position,0.f,16});
+    const auto stipple=shadow_stipple_level(caster.opacity);
+    if(!stipple)return;
+    LightBatch batch{};
+    if(!caster.sun)batch.position=lightmap_light_origin(caster.incident);
     constexpr std::array<std::array<std::uint16_t,3>,1> face{{{0,1,2}}};
     for(std::size_t first=0;first<caster.vertices.size();first+=3) {
         if(!shadow_casting_triangle(std::span<const Vertex,3>(caster.vertices.data()+first,3),materials))continue;
         const std::array points{caster.vertices[first].position,caster.vertices[first+1].position,caster.vertices[first+2].position};
-        append_volume(batch.volume,points,face,batch.position);++batch.dynamic_triangles;
+        if(caster.sun)append_sun_volume(batch.volume,points,face,caster.incident,caster.extrusion,stipple);
+        else append_volume(batch.volume,points,face,batch.position,stipple);
+        ++batch.dynamic_triangles;
     }
     if(!batch.volume.empty())lightmaps_.at(view).push_back(std::move(batch));
 }
@@ -101,6 +110,9 @@ void Frame::prepare(Render& renderer) {
     }
     for(auto& lights:lightmaps_)for(auto& light:lights) {
         light.upload=batches.size();batches.push_back({light.volume});
+    }
+    for(auto& owners:lightmap_owners_)if(!owners.volume.empty()) {
+        owners.upload=batches.size();batches.push_back({owners.volume});
     }
     renderer.prepare(batches);
 }

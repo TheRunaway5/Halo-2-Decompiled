@@ -433,6 +433,12 @@ void source_run_unit_animation_selection_1_1(M &m,std::uint32_t entry,
     if RUNTIME_FUNCTION=='source_run_unit_animation_selection_1_1' and 0x142d00 in ENTRIES:
         from native_affine_inverse_animation_replacements import replace_affine_inverse_animation
         source=replace_affine_inverse_animation(source)
+    if RUNTIME_FUNCTION=='source_run_death_startup_bodies_1_1' and 0x1dc8f0 in ENTRIES:
+        from native_model_marker_lookup_replacements import replace_model_marker_lookup
+        source=replace_model_marker_lookup(source)
+    if RUNTIME_FUNCTION=='source_run_death_startup_bodies_1_1':
+        from native_indexed_datum_gate_replacements import replace_indexed_datum_gate
+        source=replace_indexed_datum_gate(source)
     if not a.output.exists() or a.output.read_text()!=source:
         a.output.write_text(source)
     report=dict(schema=1,generator_sha256=sha(__file__),original_sha256=PIN,

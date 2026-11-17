@@ -1,3 +1,4 @@
+#include "halo2/native_tu15_retained_store_observation.hpp"
 #include "halo2/native_tu15_constraint_effect_location.hpp"
 #include <bit>
 #include <stdexcept>
@@ -20,9 +21,9 @@ std::uint32_t read(const SourcePhysicsContactMemory&m,std::uint32_t p,unsigned w
     for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(b[n])<<(8u*n);return value;
 }
 void store(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width=4){
-    std::array<std::byte,4>b{};for(unsigned n=0;n<width;++n)b[n]=std::byte(value>>(8u*n));SourcePhysicsContactRecordStore event{pc,p,{},{}};
-    if(o){event.before.resize(width);m.read(p,event.before);event.written.assign(b.begin(),b.begin()+width);}
-    m.write(p,std::span(b).first(width));if(o)o(event);
+    std::array<std::byte,4>b{};for(unsigned n=0;n<width;++n)b[n]=std::byte(value>>(8u*n));SourcePhysicsContactRecordStore event{pc,p,{},{}};const bool observed=native_tu15_observes_retained_store(m,o,pc,p,width);
+    if(observed){event.before.resize(width);m.read(p,event.before);event.written.assign(b.begin(),b.begin()+width);}
+    m.write(p,std::span(b).first(width));if(observed)o(event);
 }
 __m128 scalar(std::uint32_t value){return _mm_castsi128_ps(_mm_cvtsi32_si128(std::bit_cast<std::int32_t>(value)));}
 __m128 mul(__m128 a,__m128 b){asm volatile("mulss %1,%0":"+x"(a):"x"(b):"memory");return a;}

@@ -3,6 +3,7 @@
 // until its callers and the sphere/portal predicate have native owners too.
 // PortalTest is the explicit14CEA0 dependency; Recurse enters the same driver.
 #include "physics/runtime/native_tu15_matrix_leaves.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 
 namespace halo2::native_bsp_cluster_detail {
 inline bool reference() {
@@ -50,7 +51,10 @@ template<class State, class PortalTest, class Recurse>
 bool run(State &s, PortalTest portal_test, Recurse recurse) {
     if(reference() || s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
     std::uint32_t *cursor=nullptr;
-    if(s.services.instruction) {
+    if(native_census_detail::uncursored(s,0x14d0e0u,0x14d1f6u)) {
+        // Census diagnostic: full callbacks, no cursor (the children keep
+        // their own admission).
+    } else if(s.services.instruction) {
         if(!s.literal_service_sites || !s.instruction_cursor || !s.instruction_cursor->position)return false;
         const auto *policy=s.instruction_cursor;
         if((policy->first_trace && *policy->first_trace) || (policy->second_trace && *policy->second_trace) ||

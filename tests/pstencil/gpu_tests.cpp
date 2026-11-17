@@ -9,6 +9,10 @@
 #include <iostream>
 #include <sstream>
 
+#ifndef HALO2_PSTENCIL_FIXTURE_SHADER_DIR
+#define HALO2_PSTENCIL_FIXTURE_SHADER_DIR HALO2_PSTENCIL_SHADER_DIR
+#endif
+
 using namespace halo2;
 namespace {
 void require(bool b,const std::string& why){if(!b)throw FormatError(why);}
@@ -33,14 +37,14 @@ struct GPU {
         check(create(instance,&debug,nullptr,&messenger),"debug messenger");
         unsigned count{};check(vkEnumeratePhysicalDevices(instance,&count,nullptr),"physical count");
         std::vector<VkPhysicalDevice> devices(count);check(vkEnumeratePhysicalDevices(instance,&count,devices.data()),"physical devices");
-        for(auto candidate:devices) {VkPhysicalDeviceFeatures f;vkGetPhysicalDeviceFeatures(candidate,&f);if(f.depthClamp){physical=candidate;break;}}
-        require(physical,"no depth-clamp graphics device");
+        for(auto candidate:devices) {VkPhysicalDeviceFeatures f;vkGetPhysicalDeviceFeatures(candidate,&f);if(f.depthClamp && f.geometryShader){physical=candidate;break;}}
+        require(physical,"no depth-clamp/geometry graphics device");
         unsigned family_count{};vkGetPhysicalDeviceQueueFamilyProperties(physical,&family_count,nullptr);
         std::vector<VkQueueFamilyProperties> families(family_count);vkGetPhysicalDeviceQueueFamilyProperties(physical,&family_count,families.data());
         unsigned family=0;while(family<family_count && !(families[family].queueFlags&VK_QUEUE_GRAPHICS_BIT))++family;
         require(family<family_count,"no graphics queue");float priority=1;
         VkDeviceQueueCreateInfo queue_info{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};queue_info.queueFamilyIndex=family;queue_info.queueCount=1;queue_info.pQueuePriorities=&priority;
-        VkPhysicalDeviceFeatures enabled{};enabled.depthClamp=VK_TRUE;
+        VkPhysicalDeviceFeatures enabled{};enabled.depthClamp=enabled.geometryShader=VK_TRUE;
         VkDeviceCreateInfo device_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};device_info.queueCreateInfoCount=1;device_info.pQueueCreateInfos=&queue_info;device_info.pEnabledFeatures=&enabled;
         check(vkCreateDevice(physical,&device_info,nullptr,&device),"device");vkGetDeviceQueue(device,family,0,&queue);
         VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};pool_info.queueFamilyIndex=family;pool_info.flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -66,7 +70,7 @@ struct Fixture {
     std::vector<pstencil::ShadowVertex> scene;std::vector<Vec3> points;
     std::vector<std::array<std::uint16_t,3>> faces;
     unsigned captured_geometry{};
-    struct Push {glm::mat4 matrix;glm::vec4 color,viewport;};
+    struct Push {glm::mat4 matrix;glm::vec4 color,viewport,raster_offset;};
     Fixture(GPU& g,VkExtent2D extent,unsigned captured=0):gpu(g),size(extent),captured_geometry(captured) {
         color=target(VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_IMAGE_ASPECT_COLOR_BIT);
         depth=target(VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT);
@@ -126,12 +130,12 @@ struct Fixture {
         check(vkCreateRenderPass(gpu.device,&info,nullptr,&continuation),"fixture continuation");
     }
     VkShaderModule shader(const char* name) {
-        std::ifstream f(std::filesystem::path(HALO2_PSTENCIL_SHADER_DIR)/name,std::ios::binary|std::ios::ate);const auto length=f.tellg();require(length>0&&length%4==0,"fixture shader missing");std::vector<std::uint32_t> words(std::size_t(length)/4);f.seekg(0);f.read(reinterpret_cast<char*>(words.data()),length);
+        std::ifstream f(std::filesystem::path(HALO2_PSTENCIL_FIXTURE_SHADER_DIR)/name,std::ios::binary|std::ios::ate);const auto length=f.tellg();require(length>0&&length%4==0,"fixture shader missing");std::vector<std::uint32_t> words(std::size_t(length)/4);f.seekg(0);f.read(reinterpret_cast<char*>(words.data()),length);
         VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};info.codeSize=std::size_t(length);info.pCode=words.data();VkShaderModule s;check(vkCreateShaderModule(gpu.device,&info,nullptr,&s),"fixture shader");return s;
     }
     VkPipeline pipeline(bool light,bool masked) {
-        auto v=shader("fixture.vert.spv"),f=shader("fixture.frag.spv");
-        VkPipelineShaderStageCreateInfo stages[]{ {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,v,"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,f,"main",nullptr}};
+        auto v=shader("fixture.vert.spv"),g=shader("fixture.geom.spv"),f=shader("fixture.frag.spv");
+        VkPipelineShaderStageCreateInfo stages[]{ {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,v,"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,g,"main",nullptr},{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,f,"main",nullptr}};
         const VkVertexInputBindingDescription binding{0,sizeof(pstencil::ShadowVertex),VK_VERTEX_INPUT_RATE_VERTEX};const VkVertexInputAttributeDescription attribute{0,0,VK_FORMAT_R32G32B32A32_SFLOAT,0};
         VkPipelineVertexInputStateCreateInfo vertex{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};vertex.vertexBindingDescriptionCount=vertex.vertexAttributeDescriptionCount=1;vertex.pVertexBindingDescriptions=&binding;vertex.pVertexAttributeDescriptions=&attribute;
         VkPipelineInputAssemblyStateCreateInfo assembly{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};assembly.topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -143,26 +147,27 @@ struct Fixture {
         VkPipelineColorBlendAttachmentState blend_attachment{};blend_attachment.colorWriteMask=light?7:15;blend_attachment.blendEnable=light;blend_attachment.srcColorBlendFactor=blend_attachment.dstColorBlendFactor=VK_BLEND_FACTOR_ONE;blend_attachment.colorBlendOp=VK_BLEND_OP_ADD;
         VkPipelineColorBlendStateCreateInfo blend{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};blend.attachmentCount=1;blend.pAttachments=&blend_attachment;
         const VkDynamicState states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};dynamic.dynamicStateCount=2;dynamic.pDynamicStates=states;
-        VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};info.stageCount=2;info.pStages=stages;info.pVertexInputState=&vertex;info.pInputAssemblyState=&assembly;info.pViewportState=&viewport;info.pRasterizationState=&raster;info.pMultisampleState=&samples;info.pDepthStencilState=&depth_state;info.pColorBlendState=&blend;info.pDynamicState=&dynamic;info.layout=layout;info.renderPass=pass;
-        VkPipeline result;check(vkCreateGraphicsPipelines(gpu.device,VK_NULL_HANDLE,1,&info,nullptr,&result),"fixture pipeline");vkDestroyShaderModule(gpu.device,v,nullptr);vkDestroyShaderModule(gpu.device,f,nullptr);return result;
+        VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};info.stageCount=3;info.pStages=stages;info.pVertexInputState=&vertex;info.pInputAssemblyState=&assembly;info.pViewportState=&viewport;info.pRasterizationState=&raster;info.pMultisampleState=&samples;info.pDepthStencilState=&depth_state;info.pColorBlendState=&blend;info.pDynamicState=&dynamic;info.layout=layout;info.renderPass=pass;
+        VkPipeline result;check(vkCreateGraphicsPipelines(gpu.device,VK_NULL_HANDLE,1,&info,nullptr,&result),"fixture pipeline");vkDestroyShaderModule(gpu.device,v,nullptr);vkDestroyShaderModule(gpu.device,g,nullptr);vkDestroyShaderModule(gpu.device,f,nullptr);return result;
     }
-    std::vector<unsigned char> capture(const glm::mat4& matrix,bool enabled,bool split,unsigned lights,bool wdepth,bool lightmap=false,bool source_camera=false,unsigned stipple=16) {
+    std::vector<unsigned char> capture(const glm::mat4& matrix,bool enabled,bool split,unsigned lights,bool wdepth,bool lightmap=false,bool source_camera=false,unsigned stipple=16,glm::vec2 jitter={},glm::vec2 origin={}) {
         const std::array<Vec3,2> positions=captured_geometry?
             std::array<Vec3,2>{{{-215.60494995117188f,-148.60107421875f,21.80544090270996f},{2,-2,3}}}:
             std::array<Vec3,2>{{{-2,-2,3},{2,-2,3}}};std::array<std::vector<pstencil::ShadowVertex>,2> volumes;
         std::vector<pstencil::VolumeBatch> batches;
         for(unsigned i=0;i<lights;++i){pstencil::append_volume(volumes[i],points,faces,positions[i],stipple);batches.push_back({volumes[i]});}
         stencil->prepare(batches);gpu.begin();
-        const VkViewport viewport{0,0,float(size.width),float(size.height),0,1};const VkRect2D full{{0,0},size},clip{{0,0},{split?size.width/2:size.width,size.height}};
+        const VkViewport viewport{origin.x+jitter.x,origin.y+jitter.y,float(size.width),float(size.height),0,1};const VkRect2D full{{0,0},size},clip{{0,0},{split?size.width/2:size.width,size.height}};
         const VkClearValue clears[]{ {.color={{.05f,.05f,.05f,1}}},{.depthStencil={1,1}} };
         VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=pass;begin.framebuffer=framebuffer;begin.renderArea=full;begin.clearValueCount=2;begin.pClearValues=clears;
         vkCmdBeginRenderPass(gpu.command,&begin,VK_SUBPASS_CONTENTS_INLINE);vkCmdSetViewport(gpu.command,0,1,&viewport);vkCmdSetScissor(gpu.command,0,1,&full);
         constexpr VkDeviceSize offset=0;vkCmdBindVertexBuffers(gpu.command,0,1,&vertices.buffer,&offset);vkCmdBindPipeline(gpu.command,VK_PIPELINE_BIND_POINT_GRAPHICS,base);
-        const glm::vec4 surface{0,0,size.width,size.height};
+        const glm::vec4 surface{origin.x,origin.y,size.width,size.height};
         auto projected=source_camera && !captured_geometry?matrix*(16777215.f/1024.f):matrix;
         if(source_camera && !captured_geometry)for(unsigned column=0;column<4;++column)projected[column][1]*=-1;
         const float depth_control=(wdepth?-1.f:1.f)*(captured_geometry?float(2+captured_geometry):source_camera?2.f:1.f);
-        const Push ambient{projected,{.2f,.2f,.2f,depth_control},surface};vkCmdPushConstants(gpu.command,layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(ambient),&ambient);vkCmdDraw(gpu.command,unsigned(scene.size()),1,0,0);
+        const glm::vec4 raster_offset{jitter.x,jitter.y,0,0};
+        const Push ambient{projected,{.2f,.2f,.2f,depth_control},surface,raster_offset};vkCmdPushConstants(gpu.command,layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(ambient),&ambient);vkCmdDraw(gpu.command,unsigned(scene.size()),1,0,0);
         const auto camera_for=[&](unsigned i) {
             pstencil::VolumeCamera camera{};std::memcpy(camera.matrix.data(),&matrix,64);
             camera.control={wdepth?1.f:0.f,1,0,0};
@@ -188,7 +193,7 @@ struct Fixture {
             if(!std::getenv("PSTENCIL_TEST_OMIT_LIGHTMAP"))stencil->lightmap(gpu.command,draws,viewport,clip);
         }
         for(unsigned i=0;i<lights;++i) {
-            const auto draw=[&]{vkCmdSetViewport(gpu.command,0,1,&viewport);vkCmdSetScissor(gpu.command,0,1,&clip);vkCmdBindVertexBuffers(gpu.command,0,1,&vertices.buffer,&offset);vkCmdBindPipeline(gpu.command,VK_PIPELINE_BIND_POINT_GRAPHICS,enabled?stencil_light:original_light);const Push lighting{projected,{.1f,.15f,.2f,depth_control},surface};vkCmdPushConstants(gpu.command,layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(lighting),&lighting);vkCmdDraw(gpu.command,unsigned(scene.size()),1,0,0);};
+            const auto draw=[&]{vkCmdSetViewport(gpu.command,0,1,&viewport);vkCmdSetScissor(gpu.command,0,1,&clip);vkCmdBindVertexBuffers(gpu.command,0,1,&vertices.buffer,&offset);vkCmdBindPipeline(gpu.command,VK_PIPELINE_BIND_POINT_GRAPHICS,enabled?stencil_light:original_light);const Push lighting{projected,{.1f,.15f,.2f,depth_control},surface,raster_offset};vkCmdPushConstants(gpu.command,layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(lighting),&lighting);vkCmdDraw(gpu.command,unsigned(scene.size()),1,0,0);};
             if(enabled) {const auto camera=camera_for(i);stencil->light(gpu.command,i,camera,viewport,clip,draw);}else draw();
         }
         if(enabled)stencil->end(gpu.command,framebuffer);
@@ -240,17 +245,18 @@ void verify_floor_mask(VkExtent2D size,const glm::mat4& matrix,glm::vec3 eye,
     require(lit>500 && occluded>50,"analytic floor mask lacks both lit and shadowed samples");
     std::cout<<"Analytic point-light floor mask: lit="<<lit<<" shadowed="<<occluded<<" mismatches=0\n";
     if(source_camera) {
-        unsigned top{};
+        unsigned top{},false_shadows{};
         for(unsigned y=2;y+2<size.height;++y)for(unsigned x=2;x+2<size.width;++x) {
             auto far=inverse*glm::vec4(float(x)*2/size.width-1,float(y)*2/size.height-1,1,1);
             const auto ray=glm::vec3(far)/far.w-eye;if(ray.z>=0)continue;
             const auto p=eye+ray*((1.f-eye.z)/ray.z);
             if(std::abs(p.x)>.32f || std::abs(p.y)>.32f)continue;
             const auto at=(std::size_t(y)*size.width+x)*4;
-            require(original[at]==shadowed[at],"source viewport falsely self-shadowed a convex light-facing cap");++top;
+            false_shadows+=original[at]!=shadowed[at];++top;
         }
         require(top>40,"native viewport top-face self-shadow test lacks samples");
-        std::cout<<"Source near-cap alignment: light-facing pixels="<<top<<" false self-shadows=0\n";
+        std::cout<<"Source near-cap alignment: light-facing pixels="<<top<<" false self-shadows="<<false_shadows<<'\n';
+        require(!false_shadows,"source viewport falsely self-shadowed a convex light-facing cap");
     }
 }
 void ppm(const std::filesystem::path& path,VkExtent2D size,const std::vector<unsigned char>& bytes) {
@@ -269,22 +275,56 @@ int main(int argc,char** argv){try {
             -2955.285888671875f,8692.7216796875f,40896.71875f,-276993.78125f,
             5299.1171875f,-15082.564453125f,3588.770751953125f,-1205589.f,
             5299.0361328125f,-15082.333984375f,3588.716064453125f,-1205314.625f));
+        unsigned total_false_shadows{};
         for(unsigned captured=1;captured<=2;++captured) {
         const VkExtent2D size{1920,1080};Fixture fixture(gpu,size,captured);
-        const auto original=fixture.capture(source,false,false,1,true,false,true);
-        const auto shadowed=fixture.capture(source,true,false,1,true,false,true);
+        for(int step=-4;step<=4;++step) {
+        // Move the camera by sub-millimetre world increments around the
+        // captured view. A lit near cap must remain lit as integer W crosses
+        // quantization boundaries; this is not an image-equality motion test.
+        const float offset=float(step)*.000125f;
+        const auto moving=source*glm::translate(glm::mat4(1),glm::vec3(offset,offset*.5f,-offset*.25f));
+        const auto original=fixture.capture(moving,false,false,1,true,false,true);
+        const auto shadowed=fixture.capture(moving,true,false,1,true,false,true);
         const auto name=captured==1?"collar":"hand";
-        ppm(output/(std::string("captured-")+name+"-original.ppm"),size,original);
-        ppm(output/(std::string("captured-")+name+"-pstencil.ppm"),size,shadowed);
+        if(!step) {
+            ppm(output/(std::string("captured-")+name+"-original.ppm"),size,original);
+            ppm(output/(std::string("captured-")+name+"-pstencil.ppm"),size,shadowed);
+        }
         unsigned visible{},false_shadows{};
         for(std::size_t i=0;i<std::size_t(size.width)*size.height;++i) {
             if(original[i*4]<=50)continue;
             ++visible;false_shadows+=original[i*4]!=shadowed[i*4];
         }
-        std::cout<<"Captured "<<name<<": visible="<<visible<<" false self-shadows="<<false_shadows<<'\n';
+        std::cout<<"Captured "<<name<<" camera step="<<step<<": visible="<<visible<<" false self-shadows="<<false_shadows<<'\n';
         require(visible>100,"captured fixture has no visible surface");
-        require(!false_shadows,"actual campaign near-cap falsely self-shadows");
+        total_false_shadows+=false_shadows;
         }
+        // Production temporal viewports jitter rasterization after native
+        // window quantization. The surface subtracts that raster offset
+        // before ordered depth reconstruction; coincident caps must agree.
+        for(const auto raster:std::array<std::array<float,4>,6>{{
+                {0,0,.25f,-.375f},{0,0,-.375f,.125f},{0,0,0,.25f},{0,0,.375f,.375f},
+                {37,19,.1f,-.2f},{320,180,1.f/3.f,-1.f/6.f}}}) {
+            const glm::vec2 origin{raster[0],raster[1]},jitter{raster[2],raster[3]};
+            const auto original=fixture.capture(source,false,false,1,true,false,true,16,jitter,origin);
+            const auto shadowed=fixture.capture(source,true,false,1,true,false,true,16,jitter,origin);
+            const auto baked=fixture.capture(source,true,false,1,true,true,true,16,jitter,origin);
+            unsigned visible{},false_shadows{},false_lightmap_shadows{};
+            for(std::size_t i=0;i<std::size_t(size.width)*size.height;++i) {
+                if(original[i*4]<=50)continue;
+                ++visible;false_shadows+=original[i*4]!=shadowed[i*4];
+                false_lightmap_shadows+=original[i*4]!=baked[i*4];
+            }
+            std::cout<<"Captured "<<(captured==1?"collar":"hand")<<" viewport origin="<<origin.x<<','<<origin.y
+                <<" raster jitter="<<jitter.x<<','<<jitter.y
+                <<": visible="<<visible<<" false self-shadows="<<false_shadows
+                <<" false lightmap self-shadows="<<false_lightmap_shadows<<'\n';
+            require(visible>100,"jittered captured fixture has no visible surface");
+            total_false_shadows+=false_shadows+false_lightmap_shadows;
+        }
+        }
+        require(!total_false_shadows,"actual campaign near-cap falsely self-shadows during camera motion or raster jitter");
     }
     for(const auto size:{VkExtent2D{320,240},VkExtent2D{255,191},VkExtent2D{320,240}}) {
         Fixture fixture(gpu,size);
@@ -295,6 +335,8 @@ int main(int argc,char** argv){try {
             const auto matrix=projection*glm::lookAt(eye,target,glm::vec3(0,0,1));const bool split=lights==2;
             const auto before=fixture.capture(matrix,false,split,lights,wdepth,false,source_camera),enabled=fixture.capture(matrix,true,split,lights,wdepth,false,source_camera),after=fixture.capture(matrix,false,split,lights,wdepth,false,source_camera);
             if(view==0 && lights==1) {
+                std::cout<<"Analytic case: "<<size.width<<'x'<<size.height<<" W-depth="<<wdepth
+                    <<" source-camera="<<source_camera<<'\n';
                 verify_floor_mask(size,matrix,eye,before,enabled,source_camera);
                 const auto partial=fixture.capture(matrix,true,split,lights,wdepth,false,source_camera,8);
                 constexpr unsigned rank[16]{0,12,3,10,8,4,15,6,2,11,1,13,14,7,9,5};

@@ -1,5 +1,6 @@
 #pragma once
 #include "physics/runtime/physics_world_runtime_internal.hpp"
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/source_damage_model_native_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include <atomic>
@@ -21,7 +22,11 @@ constexpr bool damage_model_has_information_tu15(std::uint32_t count) {
 // adding salt checks or treating a nonzero negative count as present changes it.
 // The adapter keeps the original ABI, read/fault order and observation sites.
 template<class State,class Site>
-void damage_model_lookup_native_tu15(State &s,Site site) {
+void damage_model_lookup_native_tu15(State &s,Site report) {
+    // Census diagnostic: this complete native is not translated work.
+    const auto site=[&](std::uint32_t pack,std::uint32_t actual) {
+        if(!native_census_detail::skip_report(s.services,actual))report(pack,actual);
+    };
     SourcePhysicsEntryObservation diagnostic(s.memory,0xd80a0u,[&]{return s.save();});
     damage_model_native_calls.fetch_add(1,std::memory_order_relaxed);
     const auto object=s.gp[1];

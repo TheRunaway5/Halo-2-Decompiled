@@ -23,7 +23,19 @@ public:
         float selected_fade,const NativeLightReceiver&,const NativeLightGeometry&,
         const SourceViewProjectionBank&,Vec3 eye,std::array<std::int16_t,4> viewport,
         std::array<std::uint32_t,2> surface,std::vector<PointCaster>&,std::uint32_t domain,
-        const std::array<ShaderVector,12>* submitting_constants=nullptr);
+        const std::array<ShaderVector,12>* submitting_constants=nullptr,
+        const PresentedModelPalette& presented_palette={},
+        // Ordinary (non-stencil) rendering: submit the light's source layer 11
+        // alpha pass before its layer 12 response, as 31150 does.
+        bool original_alpha_layer=false,
+        // The frame's count of light shadow targets in use. Supplied by an
+        // ordinary-rendering caller that draws them (31150 feature bit 2);
+        // each shadowed light and each cinematic object takes the next one.
+        unsigned* shadow_targets=nullptr,
+        // Preserve native constants/selections while omitting host raster
+        // packets and stencil casters for another lighting backend.
+        bool materialize_draws=true);
+    static constexpr unsigned shadow_target_limit=8;
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

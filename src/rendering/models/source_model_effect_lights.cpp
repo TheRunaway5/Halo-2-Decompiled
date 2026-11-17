@@ -19,7 +19,7 @@ struct SourceModelEffectLights::Impl {
         std::span<const std::uint32_t> ids,std::shared_ptr<pstencil::SharedLightMaterials> shared):cache(c),
         materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
         geometry(std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_model_section(c,model,section))){
-        for(auto id:ids)lights.emplace(id,load_effect_light(cache,id));
+        for(auto id:ids)lights.emplace(id,load_completed_effect_light(cache,id));
         std::set<std::uint32_t> shaders;
         for(const auto& part:geometry->parts())if(part.shader!=0xffffffffu)shaders.insert(part.shader);
         const auto read=[&](std::uint32_t at,std::size_t n){return Bytes(cache.read_tag_bytes(at,n));};

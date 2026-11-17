@@ -7,7 +7,9 @@
 
 namespace halo2::pstencil {
 ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu15& world,
-    std::uint32_t light,const NativeLightReceiver& receiver) {
+    std::uint32_t light,const NativeLightReceiver& receiver,std::uint32_t layer,bool shadow,
+    std::uint32_t extra_features) {
+    if(layer<10 || layer>12)throw FormatError("Projected selection admits source layers 10, 11 and 12");
     const auto& memory=world.memory();
     const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
     const auto real=[&](std::uint32_t at){return std::bit_cast<float>(word(at));};
@@ -29,11 +31,13 @@ ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu
     const Vec3 specular{real(record+0xe0u)*factor,real(record+0xe4u)*factor,real(record+0xe8u)*factor};
     ProjectedLightSelection out;
     out.features=projected_light_feature_mask(specular,real(0x46a18cu),
-        receiver.shadow_enabled && (word(0x4ce2a0u)&0x400u),real(record+0x108u),metadata.u16(0x14));
-    constexpr std::uint32_t bank=0x4ce280u,capacity=2560u;
+        shadow && receiver.shadow_enabled && (word(0x4ce2a0u)&0x400u),real(record+0x108u),metadata.u16(0x14))|extra_features;
+    // 449AF8: layer 10 owns bank 2, layers 11 and 12 bank 1.
+    const std::uint32_t bank_index=layer==10?2u:1u,bank=0x4ce268u+bank_index*0x18u;
+    constexpr std::uint32_t capacity=2560u;
     std::array<std::uint32_t,6> header;
     std::memcpy(header.data(),memory.view(bank,sizeof(header)).data(),sizeof(header));
-    if(header[0]!=1024 || header[1]>header[0] || header[3]>header[1])
+    if((bank_index==1 && header[0]!=1024) || header[1]>header[0] || header[3]>header[1])
         throw FormatError("Projected selector lost its original command bank");
     const auto mask=word(0x4c6834u),previous_definition=word(0x4920e4u);
     const auto active=memory.view(0x4c6838u,1)[0];
@@ -45,8 +49,8 @@ ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu
         auto call=world.prepare_source_call(std::array{1u});const auto caller=call.gp[4];
         const auto output=caller-0xf000u,callee=caller-0xf01cu;
         put(caller-0xf008u,call.gp[5]);
-        const std::array arguments{word(caller),bank,1u,12u,output};put(callee,arguments);
-        call.gp[4]=callee;call.gp[0]=output;call.gp[3]=12;call.gp[5]=1;call.gp[7]=bank;
+        const std::array arguments{word(caller),bank,bank_index,layer,output};put(callee,arguments);
+        call.gp[4]=callee;call.gp[0]=output;call.gp[3]=layer;call.gp[5]=bank_index;call.gp[7]=bank;
         world.run_command_selection_tu15(call);
         const auto count=call.gp[0];
         if(call.gp[4]!=caller-0xf008u || count>capacity || count>header[1]-header[3])

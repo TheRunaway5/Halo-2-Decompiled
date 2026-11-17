@@ -251,6 +251,11 @@ struct MenuWorldSourceStorage::Impl {
     for(const auto &binding:bindings)next.push_back(stored(binding));
     draws=std::move(next);return draws;
   }
+  std::span<const MenuWorldSourceStoredDraw> store_borrowed(std::span<const MenuWorldSourceBinding *const> bindings) {
+    std::vector<MenuWorldSourceStoredDraw> next;next.reserve(bindings.size());
+    for(const auto *binding:bindings)next.push_back(stored(*binding));
+    draws=std::move(next);return draws;
+  }
 };
 
 MenuWorldSourceStorage::MenuWorldSourceStorage(MenuWorldSourceStorageContext context)
@@ -258,4 +263,6 @@ MenuWorldSourceStorage::MenuWorldSourceStorage(MenuWorldSourceStorageContext con
 MenuWorldSourceStorage::~MenuWorldSourceStorage()=default;
 std::span<const MenuWorldSourceStoredDraw> MenuWorldSourceStorage::store(
     std::span<const MenuWorldSourceBinding> bindings){return impl_->store(bindings);}
+std::span<const MenuWorldSourceStoredDraw> MenuWorldSourceStorage::store_borrowed(
+    std::span<const MenuWorldSourceBinding *const> bindings){return impl_->store_borrowed(bindings);}
 } // namespace halo2

@@ -73,6 +73,26 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
             'surface-wrong-magic.frag': positive.replace('0x53525448u', '0x53525449u'),
             'surface-wrong-record-words.frag': positive.replace('52u', '51u'),
         })
+        for name in ('surface.frag', 'surface-temporal.frag', 'surface-temporal-write.frag'):
+            text = sources[name].replace('layout(offset=304)vec4 forwardTransforms[8];',
+                'layout(offset=240)vec4 ambientBumpBase;layout(offset=256)vec4 ambientBumpDetail;'
+                'layout(offset=304)vec4 forwardTransforms[8];layout(offset=448)vec4 primaryAmbient;')
+            text = text.replace('return uint(m.program',
+                'color+=vec4(m.ambientBumpBase)+vec4(m.ambientBumpDetail)+vec4(m.primaryAmbient);return uint(m.program')
+            sources['ambient-'+name] = text
+        ambient = sources['ambient-surface-temporal.frag']
+        sources.update({
+            'ambient-wrong-base-offset.frag': ambient.replace('offset=240', 'offset=272'),
+            'ambient-wrong-detail-offset.frag': ambient.replace('offset=256', 'offset=272'),
+            'ambient-wrong-primary-offset.frag': ambient.replace('offset=448', 'offset=464'),
+            'ambient-integer-base.frag': ambient.replace('vec4 ambientBumpBase', 'uvec4 ambientBumpBase'),
+            'ambient-integer-detail.frag': ambient.replace('vec4 ambientBumpDetail', 'ivec4 ambientBumpDetail'),
+            'ambient-integer-primary.frag': ambient.replace('vec4 primaryAmbient', 'uvec4 primaryAmbient'),
+            'ambient-extra-member.frag': ambient.replace('vec4 primaryAmbient;', 'vec4 primaryAmbient;layout(offset=480)vec4 extra;'),
+        })
+        for member, offset in (('ambientBumpBase', 240), ('ambientBumpDetail', 256), ('primaryAmbient', 448)):
+            sources['ambient-missing-'+member+'.frag'] = ambient.replace(
+                f'layout(offset={offset})vec4 {member};', '').replace(f'vec4(m.{member})', 'vec4(0)')
         for name, text in sources.items():
             path = owner/('module.'+name)
             path.write_text(text)
@@ -81,6 +101,14 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
             if result.returncode:
                 raise RuntimeError(result.stdout+result.stderr)
             cls.code[name] = target.read_bytes()
+        for role, filename, extra in (('world', 'world.frag', []),
+                ('lighting', 'world.frag', ['-DH2_PATH_TRACING_LIGHTING_WRITE=1']), ('depth', 'depth.frag', [])):
+            target = owner/('actual-'+role+'.spv')
+            result = subprocess.run([compiler, '-V', '-I'+str(ROOT/'shaders'), *extra,
+                str(ROOT/'shaders/path_tracing'/filename), '-o', str(target)], capture_output=True, text=True)
+            if result.returncode:
+                raise RuntimeError(result.stdout+result.stderr)
+            cls.code['actual-'+role] = target.read_bytes()
 
     def setUp(self):
         self.f = fixture.NativeGameplayTestCapabilityTests()
@@ -131,7 +159,7 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
                                    b'\0'.join(name.encode() for name in self.generated)+b'\0'+
                                    shaders.PATH_TRACING_EXECUTABLE_MARKER+shaders.PATH_TRACING_VISIBILITY_MARKER+
                                    shaders.PATH_TRACING_LIGHTING_MARKER+shaders.PATH_TRACING_TEMPORAL_MARKER+
-                                   shaders.PATH_TRACING_SURFACE_MARKER)
+                                   shaders.PATH_TRACING_SURFACE_MARKER+shaders.PSTENCIL_VOLUME_GEOMETRY_MARKER)
         self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
         self.f.report['shaders'] = dict(binding='compiled-default', directory=str(self.f.shaders),
             **shaders.shader_capability(self.f.shaders, self.f.runtime))
@@ -188,8 +216,10 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
         marker = shaders.PATH_TRACING_TEMPORAL_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
-        marker = shaders.PATH_TRACING_SURFACE_MARKER.rstrip(b'\0').decode()
+        marker = shaders.PATH_TRACING_AMBIENT_SURFACE_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
+        marker = shaders.PSTENCIL_VOLUME_GEOMETRY_MARKER.rstrip(b'\0').decode()
+        self.assertIn('"'+marker+'"', (ROOT/'src/pstencil/render.cpp').read_text())
 
     def omit_path_tracing_modules(self, names):
         for name in names:
@@ -203,6 +233,20 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
     def test_path_tracing_executable_requires_its_complete_shader_pair(self):
         self.omit_path_tracing_modules(shaders.PATH_TRACING_FILES)
         self.assertFalse(self.f.available())
+
+    def test_pstencil_volume_geometry_executable_requires_its_geometry_stage(self):
+        self.omit_path_tracing_modules(shaders.PSTENCIL_VOLUME_GEOMETRY_FILES)
+        self.assertFalse(self.f.available())
+
+    def test_older_pstencil_executable_keeps_its_two_stage_volume_abi(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes().replace(shaders.PSTENCIL_VOLUME_GEOMETRY_MARKER, b''))
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.omit_path_tracing_modules(shaders.PSTENCIL_VOLUME_GEOMETRY_FILES)
+        self.assertTrue(self.f.available())
+
+    def test_pstencil_volume_geometry_module_must_be_a_geometry_stage(self):
+        with self.assertRaisesRegex(ValueError, 'execution model'):
+            self.replace_module('pstencil/volume.geom.spv', self.code['vert'])
 
     def test_overshield_flash_executable_requires_its_fixed_shader(self):
         self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.PLAYER_FLASH_EXECUTABLE_MARKER)
@@ -312,6 +356,82 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
                              shaders.native_module_contract(self.code['temporal.frag'], name))
         self.assertNotIn('path_tracing_surface_abi',
                          shaders.native_module_contract(self.code['surface-temporal.frag'], 'ui.frag.spv'))
+
+    def test_ambient_surface_contract_matches_actual_shader_roles(self):
+        for role in ('world', 'lighting', 'depth'):
+            with self.subTest(role=role):
+                contract = shaders.native_module_contract(self.code['actual-'+role], f'path_tracing/{role}.frag.spv')
+                self.assertEqual(contract.get('path_tracing_surface_abi'), 2)
+
+    def install_ambient_surface(self):
+        for name in shaders.PATH_TRACING_SURFACE_FRAGMENTS:
+            kind = ('surface-temporal-write.frag' if name == 'path_tracing/lighting.frag.spv' else
+                    'surface-temporal.frag' if name == 'path_tracing/world.frag.spv' else 'surface.frag')
+            self.replace_module(name, self.code['ambient-'+kind])
+
+    def upgrade_ambient_host(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.PATH_TRACING_AMBIENT_SURFACE_MARKER)
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.f.publish()
+
+    def test_ambient_host_accepts_exact_new_interface(self):
+        self.upgrade_ambient_host()
+        self.install_ambient_surface()
+        self.assertTrue(self.f.available())
+
+    def test_ambient_marker_requires_v2_without_legacy_feature_markers(self):
+        self.upgrade_ambient_host()
+        runtime = self.f.runtime.read_bytes()
+        for marker in (shaders.PATH_TRACING_EXECUTABLE_MARKER, shaders.PATH_TRACING_VISIBILITY_MARKER,
+                       shaders.PATH_TRACING_LIGHTING_MARKER, shaders.PATH_TRACING_TEMPORAL_MARKER,
+                       shaders.PATH_TRACING_SURFACE_MARKER):
+            runtime = runtime.replace(marker, b'')
+        self.f.runtime.write_bytes(runtime)
+        with self.assertRaisesRegex(ValueError, 'ambient surface ABI'):
+            shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+        self.install_ambient_surface()
+        shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+        self.omit_path_tracing_modules(shaders.PATH_TRACING_LIGHTING_FILES)
+        with self.assertRaisesRegex(ValueError, 'fixed Vulkan ABI'):
+            shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+
+    def test_ambient_host_rejects_v1_mixed_missing_shifted_and_mistyped_interfaces(self):
+        self.upgrade_ambient_host()
+        self.install_ambient_surface()
+        kinds = ['surface-temporal.frag']+[name for name in self.code if name.startswith('ambient-') and
+                 not name.startswith('ambient-surface')]
+        for name in shaders.PATH_TRACING_SURFACE_FRAGMENTS:
+            for kind in kinds:
+                with self.subTest(name=name, kind=kind):
+                    before = copy.deepcopy(self.package)
+                    path = self.f.shaders/name
+                    old = path.read_bytes()
+                    self.replace_module(name, self.code[kind])
+                    with self.assertRaisesRegex(ValueError, 'ambient surface ABI'):
+                        shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+                    path.write_bytes(old)
+                    self.rewrite_package(before)
+
+    def test_ambient_metadata_cannot_forge_a_v1_interface(self):
+        self.upgrade_ambient_host()
+        self.install_ambient_surface()
+        for name in shaders.PATH_TRACING_SURFACE_FRAGMENTS:
+            before = copy.deepcopy(self.package)
+            path = self.f.shaders/name
+            old = path.read_bytes()
+            row = self.replace_module(name, self.code['surface-temporal.frag'])
+            row['native_contract']['path_tracing_surface_abi'] = 2
+            self.rewrite_package()
+            with self.assertRaisesRegex(ValueError, 'falsified its executable contract'):
+                shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+            path.write_bytes(old)
+            self.rewrite_package(before)
+
+    def test_v1_surface_host_keeps_its_exact_historical_interface(self):
+        self.assertTrue(self.f.available())
+        self.install_ambient_surface()
+        with self.assertRaisesRegex(ValueError, 'authored surface ABI'):
+            shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
 
     def test_surface_host_rejects_old_or_incomplete_native_interfaces(self):
         kinds = ('temporal.frag', 'surface-missing-stage.frag', 'surface-cube-stage.frag',

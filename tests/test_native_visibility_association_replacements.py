@@ -48,6 +48,8 @@ class AssociationBinding(unittest.TestCase):
         for kind,path in(('bsp','src/rendering/world/source_bsp_admission.cpp'),('object','src/gameplay/objects/source_object_admission.cpp')):
             source=public.replace_public((ROOT/path).read_text(),kind)
             owner,_=public.OWNERS[kind];body=public.unique_function(source,owner)
+            restored=public.canonical_parent(body,kind)
+            if restored!=body:source=source.replace(body,restored,1);body=restored
             for old,new in(('out.associations','out.associations /* changed owner */'),('ordinal','ordinal /* altered */')):
                 self.assertIn(old,body)
                 with self.assertRaises(ValueError):public.replace_public(source.replace(body,body.replace(old,new,1),1),kind)

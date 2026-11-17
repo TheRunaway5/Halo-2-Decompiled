@@ -1,4 +1,5 @@
 #include "halo2/source_unit_cinematic_tu15.hpp"
+#include "halo2/native_campaign_script_world_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/cache.hpp"
 #include <bit>
@@ -11,7 +12,8 @@ void source_unit_cinematic_emotion_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t ob
     if(object==0xffffffffu)return; // Original2AD979..2AD97E admission.
     const auto factor=Bytes(w.memory().view(0x46a17cu,4)).f32(0);
     const auto seconds=source_unit_cinematic_emotion_seconds_tu15(frames,factor);
-    auto a=w.prepare_source_call(std::array{std::bit_cast<std::uint32_t>(weight),std::bit_cast<std::uint32_t>(seconds)});
-    a.gp[0]=object;a.gp[1]=name;w.run_actual(0x111080u,a);
+    auto bank=native_campaign_script_bank(w,true);
+    native_campaign_script_tu15::unit_set_emotion(bank,object,name,std::bit_cast<std::uint32_t>(weight),
+        std::bit_cast<std::uint32_t>(seconds)); // native 111080
 }
 }

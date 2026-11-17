@@ -13,6 +13,8 @@
 #include "halo2/effect_light.hpp"
 #include "halo2/pstencil/material.hpp"
 #include "halo2/pstencil/projected_light_material.hpp"
+#include "halo2/pstencil/reference_light_materials.hpp"
+#include "halo2/pstencil/texture_accumulation_2003.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -95,6 +97,7 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
             !(shadow_opacity && r.source==17 && (r.component&7)<4) &&
             !(camouflage && r.source==37 && (r.component&7)<4) &&
             !(effect_light && (r.source==5 || r.source==6) && (r.component&7)==4) &&
+            !(effect_light && r.source==17 && (r.component&7)<4) &&
             !(r.source==0 && r.component==4 && r.destination==0x800);
       }))
     return {};
@@ -182,6 +185,9 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
       const auto bitmap=source_shader_texture_reference(cache,camouflage_original->source_shader_datum,26);
       *stages[binding.stage]=cache.load_bitmap(bitmap.bitmap,bitmap.frame);continue;
     }
+    // Extern 13 is the selected light's shadow buffer. The renderer binds
+    // that light's current depth target per draw; no resident image exists.
+    if(effect_light && binding.external==13)continue;
     if(effect_light && binding.external==9) {
       *stages[binding.stage]=cache.load_effect_light_attenuation_bitmap();
       continue;
@@ -294,6 +300,14 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     std::vector<ShaderRemap> mappings;
     for(const auto&r:p.pixel_externs)if(r.source==5 || r.source==6)mappings.push_back(r);
     remap_pixel_externs(pass->forward_program,{},colors,mappings,p.fragments,m.shader_switches);
+    // Scalar extern 17 weights a light's shadow term in source layer 11
+    // (implementations 0, 1 and 6). The original supplies one for a dynamic
+    // light: its captured combiner constants are alpha 1.0 in every draw.
+    std::array<float,256> shadow_scalars{};shadow_scalars[17]=1.f;
+    std::vector<ShaderRemap> shadow_mappings;
+    for(const auto&r:p.pixel_externs)if(r.source==17 && (r.component&7)<4)shadow_mappings.push_back(r);
+    if(!shadow_mappings.empty())
+      remap_pixel_externs(pass->forward_program,shadow_scalars,{},shadow_mappings,p.fragments,m.shader_switches);
     pass->passes[selected].program=pass->forward_program;
     // The production VP conduit stores c18..33 in the material UBO and c34+
     // in the extended bank. 3A550 overwrites the overlapping c31..33 words.
@@ -369,6 +383,54 @@ std::optional<Material> pstencil::bind_texture_mapping_pass(const Cache& cache,c
   if(selected.size()!=1 || !authored.passes[selected[0]].vertex_shader.ends_with("\\stencil_texture"))return {};
   auto result=bind_pass(cache,authored,selected[0],3,false,nullptr,true);
   if(!result)return {};return std::move(*result);
+}
+
+std::optional<Material> pstencil::bind_actor_texture_mapping_pass(const Cache& cache,const Material& authored) {
+  if(!(authored.name.starts_with("objects\\characters\\") || authored.name.starts_with("objects\\weapons\\")) ||
+     !authored.template_name.starts_with("shaders\\shader_templates\\opaque\\"))
+    return {};
+  const auto base=layer_passes(authored,3,2);
+  if(base.size()!=1)return {};
+  const auto& combined=authored.passes[base[0]];
+  const auto leaf=combined.name.substr(combined.name.find_last_of('\\')+1);
+  const bool color_mask=leaf=="lightmap_tex_one_change_color";
+  const bool base_only=leaf=="lightmap_tex_env" || leaf=="lightmap_tex_env_no_bump" ||
+      leaf=="lightmap_tex" || leaf=="lightmap_tex_illum_alpha_test";
+  const bool alpha_test=leaf=="lightmap_tex_detail_alpha_test" || leaf=="lightmap_tex_detail_alpha_test_clamped" ||
+      leaf=="lightmap_tex_illum_alpha_test";
+  if(!color_mask && !base_only && leaf!="lightmap_tex_detail" &&
+     leaf!="lightmap_tex_detail_shiny" && leaf!="lightmap_tex_detail_no_specular" && !alpha_test)return {};
+  auto index=base[0];
+  if(color_mask) {
+    const auto texture=layer_passes(authored,14,0);
+    if(texture.size()!=1 || !authored.passes[texture[0]].name.ends_with("\\one_change_color"))return {};
+    index=texture[0];
+  }
+  const auto& pass=authored.passes[index];
+  if(!pass.vertex_shader.substr(pass.vertex_shader.find_last_of('\\')+1).starts_with("lightmap_dynamic"))
+    return {};
+  const auto* reference=reference_light_material(authored.name);
+  const bool neutral=base_only || (reference && reference->neutral_texture_detail);
+  const auto image_stage=[&](unsigned stage) {
+    return ((pass.program.words[54]>>(stage*5))&31u)==1 &&
+        std::ranges::any_of(pass.textures,[&](const auto& binding) {
+            return binding.stage==stage && !binding.external && binding.parameter!=255;
+        });
+  };
+  if(!image_stage(0) || ((color_mask || !neutral) && !image_stage(1)) || (alpha_test && !image_stage(2)))return {};
+  const ObjectLightingState lighting{};
+  auto bound=bind_pass(cache,authored,index,6,false,&lighting,true);
+  if(!bound || (!color_mask && bound->forward_blend) || bound->accumulation_texture ||
+     (alpha_test && !bound->forward_raster.alpha_test))return {};
+  if(color_mask) {
+    // The layer-14 pass only owns the RGB factor. The accumulation target
+    // needs the cull, coverage and depth comparison of the visible base.
+    auto coverage=bind_pass(cache,authored,base[0],6,false,&lighting,true,
+        nullptr,nullptr,nullptr,nullptr,false);
+    if(!coverage || coverage->forward_blend || coverage->forward_raster.alpha_test)return {};
+    bound->forward_raster=coverage->forward_raster;
+  }
+  return adapt_actor_texture_accumulation_2003(std::move(*bound),color_mask,neutral);
 }
 
 void bind_object_camouflage(Material &material,float camouflage,std::uint16_t control) {
@@ -537,6 +599,70 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,
   return result;
 }
 
+static std::vector<Material> projected_light_alpha_material(const Cache &cache,
+    const Material &authored,const EffectLightDefinition &definition,
+    const EffectLightUniforms &uniforms,unsigned implementation,bool load_images) {
+  const Bytes light(definition.bytes);
+  if(light.u16(4)==0 || implementation!=2 || (definition.flags&0x80000u) || light.u32(0xe0)!=0xffffffffu ||
+      light.u32(0xc4) || light.u32(0xcc) || light.u32(0xd4))
+    throw FormatError("Projected light alpha pass requires its static original gel branch");
+  const auto selected=layer_passes(authored,11,implementation);
+  std::vector<Material> result;
+  for(auto index:selected) {
+    auto context=authored;auto &source=context.passes[index];
+    if(!source.fragments.empty() || !source.pixel_externs.empty() || !source.vertex_externs.empty())
+      throw FormatError("Projected light alpha pass has an unresolved authored extern");
+    auto material=bind_pass(cache,context,index,6,false,nullptr,true,nullptr,nullptr,&uniforms,&definition,load_images);
+    if(!material)throw FormatError("Unresolved projected light alpha material binding");
+    result.push_back(std::move(*material));
+  }
+  return result;
+}
+static std::vector<Material> projected_light_shadow_material(const Cache &cache,
+    const Material &authored,const EffectLightDefinition &definition,
+    const EffectLightUniforms &uniforms,unsigned layer,unsigned implementation,bool load_images) {
+  const Bytes light(definition.bytes);
+  // Layer 10 implementations 1 and 2 draw a caster into the light's shadow
+  // buffer; layer 11 implementations 0, 1 and 6 write its comparison, times
+  // the gel, into target alpha.
+  const bool generate=layer==10 && (implementation==1 || implementation==2);
+  const bool apply=layer==11 && (implementation==0 || implementation==1 || implementation==6);
+  if(light.u16(4)==0 || (!generate && !apply) || (definition.flags&0x80000u) || light.u32(0xe0)!=0xffffffffu ||
+      light.u32(0xc4) || light.u32(0xcc) || light.u32(0xd4))
+    throw FormatError("Projected light shadow pass requires its static original shape/gel branch");
+  const auto selected=layer_passes(authored,layer,implementation);
+  std::vector<Material> result;
+  for(auto index:selected) {
+    auto context=authored;auto &source=context.passes[index];
+    if(!source.fragments.empty() || !source.vertex_externs.empty() ||
+        std::any_of(source.pixel_externs.begin(),source.pixel_externs.end(),[](const auto &r){return r.source!=17;}))
+      throw FormatError("Projected light shadow pass has an unresolved authored extern");
+    auto material=bind_pass(cache,context,index,6,false,nullptr,true,nullptr,nullptr,&uniforms,&definition,load_images);
+    if(!material)throw FormatError("Unresolved projected light shadow material binding");
+    result.push_back(std::move(*material));
+  }
+  return result;
+}
+std::vector<Material> pstencil::prepare_projected_light_shadow_material(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned layer,unsigned implementation) {
+  return projected_light_shadow_material(cache,authored,definition,uniforms,layer,implementation,true);
+}
+std::vector<Material> pstencil::complete_projected_light_shadow_constants(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned layer,unsigned implementation) {
+  return projected_light_shadow_material(cache,authored,definition,uniforms,layer,implementation,false);
+}
+std::vector<Material> pstencil::prepare_projected_light_alpha_material(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned implementation) {
+  return projected_light_alpha_material(cache,authored,definition,uniforms,implementation,true);
+}
+std::vector<Material> pstencil::complete_projected_light_alpha_constants(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned implementation) {
+  return projected_light_alpha_material(cache,authored,definition,uniforms,implementation,false);
+}
 static std::vector<Material> projected_light_material(const Cache &cache,
     const Material &authored,const EffectLightDefinition &definition,
     const EffectLightUniforms &uniforms,unsigned implementation,std::uint32_t feature_mask,bool load_images) {

@@ -156,6 +156,14 @@ def legacy_quaternion_layout(source):
     return source[:match.start()]+'static '+spill_helper+body+source[match.end():],True
 
 def observation_baseline(source):
+    from native_simplex_paired_replacements import remove_simplex_paired,replace_simplex_paired,INCLUDE as PAIRED_INCLUDE,PREFIX as PAIRED_PREFIX
+    if PAIRED_INCLUDE in source or PAIRED_PREFIX in source:
+        if replace_simplex_paired(source)!=source:raise ValueError('Incomplete native simplex-paired observation owner')
+        source=remove_simplex_paired(source)
+    from native_closest_segments_replacements import remove_closest_segments,replace_closest_segments,INCLUDE as CLOSEST_INCLUDE,PREFIX as CLOSEST_PREFIX
+    if CLOSEST_PREFIX in source or CLOSEST_INCLUDE in source:
+        if replace_closest_segments(source)!=source:raise ValueError('Incomplete native closest-segments observation owner')
+        source=remove_closest_segments(source)
     from native_simplex_face_select_replacements import remove_simplex_face_select,replace_simplex_face_select,INCLUDE as FACE_SELECT_INCLUDE,PREFIX as FACE_SELECT_PREFIX
     if FACE_SELECT_PREFIX in source or FACE_SELECT_INCLUDE in source:
         if replace_simplex_face_select(source)!=source:raise ValueError('Incomplete native simplex-face-select observation owner')
@@ -260,6 +268,10 @@ def main():
     output=replace_affine_inverse(output)
     from native_simplex_face_select_replacements import replace_simplex_face_select
     output=replace_simplex_face_select(output)
+    from native_closest_segments_replacements import replace_closest_segments
+    output=replace_closest_segments(output)
+    from native_simplex_paired_replacements import replace_simplex_paired
+    output=replace_simplex_paired(output)
     assert canonical(output)==source
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(output)
     report=dict(scope=__doc__,source_sha256=sha(args.source),canonical_baseline_sha256=BASELINE_SHA256,

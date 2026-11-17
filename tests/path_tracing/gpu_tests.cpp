@@ -42,6 +42,7 @@ struct Camera {
 static_assert(sizeof(Camera)==pt::Render::camera_bytes);
 struct Fixture {
     VkExtent2D target_extent{width,height};
+    unsigned environment_side=1;
     VkInstance instance{};VkPhysicalDevice physical{};VkDevice device{};VkQueue queue{};
     VkDebugUtilsMessengerEXT messenger{};
     PFN_vkDestroyDebugUtilsMessengerEXT destroy_messenger{};
@@ -324,14 +325,18 @@ struct Fixture {
     std::vector<std::uint8_t> draw(const pt::Scene& scene,std::span<const Vertex> primary,
         Vec3 environment={},const Camera& camera=Camera{},std::uint32_t material_override=~0u,bool visibility=false,
         bool filtered=false,const std::array<Vec3,6>* sky_faces=nullptr,bool advance_frame=true,
-        bool collect_temporal_stats=false,bool capture_frame=true,const VkViewport* actual_viewport=nullptr) {
+        bool collect_temporal_stats=false,bool capture_frame=true,const VkViewport* actual_viewport=nullptr,
+        std::span<const VkDescriptorSet> triangle_descriptors={}) {
         require(primary.size()<=24,"fixture primary vertex bank overflow");
+        require(triangle_descriptors.empty() ||
+            (primary.size()%3==0 && triangle_descriptors.size()==primary.size()/3),
+            "fixture per-triangle descriptor bank mismatch");
         std::memcpy(vertices.mapped,primary.data(),primary.size_bytes());
         visibility=visibility || filtered;
         const VkViewport viewport=actual_viewport?*actual_viewport:
             VkViewport{0,0,float(target_extent.width),float(target_extent.height),0,1};
         if(visibility)renderer->prepare_visibility(target_extent,viewport);
-        renderer->prepare_environment(VK_FORMAT_R8G8B8A8_UNORM,VK_FORMAT_D24_UNORM_S8_UINT,1,
+        renderer->prepare_environment(VK_FORMAT_R8G8B8A8_UNORM,VK_FORMAT_D24_UNORM_S8_UINT,environment_side,
             sky_faces!=nullptr || environment.x>0 || environment.y>0 || environment.z>0);
         if(advance_frame)renderer->upload(scene,scene.uniform(environment));
         begin();
@@ -347,7 +352,8 @@ struct Fixture {
             vkCmdBindVertexBuffers(command,0,1,&vertices.handle,&offset);
             for(std::size_t first=0;first<primary.size();first+=3) {
                 const auto selected=material_override==~0u?primary[first].material:material_override;
-                renderer->bind_visibility(command,material,0,std::as_bytes(std::span(&camera,1)),selected);
+                const auto descriptor=triangle_descriptors.empty()?material:triangle_descriptors[first/3];
+                renderer->bind_visibility(command,descriptor,0,std::as_bytes(std::span(&camera,1)),selected);
                 vkCmdDraw(command,3,1,unsigned(first),0);
             }
             renderer->end_visibility(command);
@@ -358,7 +364,8 @@ struct Fixture {
             vkCmdBindVertexBuffers(command,0,1,&vertices.handle,&offset);
             for(std::size_t first=0;first<primary.size();first+=3) {
                 const auto selected=material_override==~0u?primary[first].material:material_override;
-                renderer->bind_lighting(command,material,0,std::as_bytes(std::span(&camera,1)),selected);
+                const auto descriptor=triangle_descriptors.empty()?material:triangle_descriptors[first/3];
+                renderer->bind_lighting(command,descriptor,0,std::as_bytes(std::span(&camera,1)),selected);
                 vkCmdDraw(command,3,1,unsigned(first),0);
             }
             renderer->end_lighting(command);
@@ -369,9 +376,16 @@ struct Fixture {
         vkCmdBeginRenderPass(command,&render,VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(command,0,1,&viewport);vkCmdSetScissor(command,0,1,&scissor);
         vkCmdBindVertexBuffers(command,0,1,&vertices.handle,&offset);
-        if(material_override==~0u)renderer->bind(command,material,0,std::as_bytes(std::span(&camera,1)));
-        else renderer->bind(command,material,0,std::as_bytes(std::span(&camera,1)),material_override);
-        vkCmdDraw(command,primary.size(),1,0,0);vkCmdEndRenderPass(command);
+        if(triangle_descriptors.empty()) {
+            if(material_override==~0u)renderer->bind(command,material,0,std::as_bytes(std::span(&camera,1)));
+            else renderer->bind(command,material,0,std::as_bytes(std::span(&camera,1)),material_override);
+            vkCmdDraw(command,primary.size(),1,0,0);
+        } else for(std::size_t first=0;first<primary.size();first+=3) {
+            const auto selected=material_override==~0u?primary[first].material:material_override;
+            renderer->bind(command,triangle_descriptors[first/3],0,std::as_bytes(std::span(&camera,1)),selected);
+            vkCmdDraw(command,3,1,unsigned(first),0);
+        }
+        vkCmdEndRenderPass(command);
         if(collect_temporal_stats)renderer->record_temporal_stats(command);
         if(!capture_frame){submit();return {};}
         const VkBufferImageCopy copy{0,0,0,{VK_IMAGE_ASPECT_COLOR_BIT,0,0,1},{0,0,0},{target_extent.width,target_extent.height,1}};
@@ -602,7 +616,7 @@ int native_noise(const std::filesystem::path& shaders,VkExtent2D extent,bool fen
     return 0;
 }
 }
-int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,bool native_banks=false) {
+int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,bool native_banks=false,bool multiple_lights=false) {
     Fixture gpu;gpu.initialize(shaders,extent,true);gpu.fence_submissions=true;
     gpu.renderer->set_quality(1,1);
     auto black_emitter=white_material();black_emitter.diffuse=solid_texture({0,0,0,255});
@@ -630,8 +644,17 @@ int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,b
     pt::Light light;light.direction=Vec3{0,0,-1};light.color={.6f,.6f,.6f};
     std::array<Vec3,6> sky;sky.fill({.01f,.025f,.1f});
     if(native_banks)light.color={.6f,.3f,.15f};
-    const auto scene_left=pt::build_scene(left,materials,std::span(&light,1));
-    const auto scene_right=pt::build_scene(right,materials,std::span(&light,1));
+    std::array lights{light,light};
+    if(multiple_lights)for(auto& source:lights)source.color={light.color.x*.5f,light.color.y*.5f,light.color.z*.5f};
+    const auto light_bank=std::span(lights).first(multiple_lights?2:1);
+    const auto scene_left=pt::build_scene(left,materials,light_bank);
+    const auto scene_right=pt::build_scene(right,materials,light_bank);
+    auto halfway=left;
+    for(std::size_t index=0;index<halfway.size();++index) {
+        const auto a=left[index].position,b=right[index].position;
+        halfway[index].position={(a.x+b.x)*.5f,(a.y+b.y)*.5f,(a.z+b.z)*.5f};
+    }
+    const auto scene_halfway=pt::build_scene(halfway,materials,light_bank);
     Camera panned=camera;panned.matrix[12]-=16.f/float(extent.width);
     panned.eye[0]+=16.f*scale/float(extent.width);
     const auto render=[&](const pt::Scene& scene,const Camera& at,bool capture) {
@@ -643,6 +666,7 @@ int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,b
     };
     const auto reference_left=reference(scene_left,camera);
     const auto reference_right=reference(scene_right,camera);
+    const auto reference_halfway=reference(scene_halfway,camera);
     const auto camera_reference=reference(scene_left,panned);
     auto moving_scene=scene_left;
     for(unsigned frame=0;frame<15;++frame)render(moving_scene,camera,false);
@@ -655,7 +679,9 @@ int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,b
     // secondary-ray geometry. Endpoints use fresh-source frames, not a
     // renderer-specific expected image or the stale history under test.
     for(unsigned frame=0;frame<16;++frame)render(moving_scene,camera,false);
-    pt::update_geometry(moving_scene,right,std::span(&light,1));
+    pt::update_geometry(moving_scene,halfway,light_bank);
+    const auto shadow_halfway=render(moving_scene,camera,true);
+    pt::update_geometry(moving_scene,right,light_bank);
     const auto shadow_first=render(moving_scene,camera,true);
     render(moving_scene,camera,false);
     const auto shadow_third=render(moving_scene,camera,true);
@@ -684,11 +710,13 @@ int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,b
     std::cout<<"Path Tracing shadow disocclusion: {\"width\":"<<extent.width<<",\"height\":"<<extent.height
         <<",\"upscaler\":\"Off\",\"samples\":1,\"bounces\":1,\"warm_frames\":16,\"stop_frames\":3"
         <<",\"native_sky_bank\":"<<(native_banks?"true":"false")
+        <<",\"light_count\":"<<light_bank.size()
         <<",\"emissive_triangles\":"<<scene_left.emissive_count
         <<",\"reference_contrast\":"<<contrast
         <<",\"camera_first_error\":"<<error(camera_first,camera_reference)
         <<",\"camera_third_error\":"<<error(camera_third,camera_reference)
         <<",\"shadow_first_error\":"<<error(shadow_first,reference_right)
+        <<",\"shadow_halfway_error\":"<<error(shadow_halfway,reference_halfway)
         <<",\"shadow_third_error\":"<<error(shadow_third,reference_right)
         <<",\"old_shadow_residue\":"<<old_residue<<",\"new_shadow_residue\":"<<new_residue
         <<",\"warm_history_mean\":"<<warm_history.banks[0].mean_count
@@ -702,10 +730,12 @@ int shadow_disocclusion(const std::filesystem::path& shaders,VkExtent2D extent,b
         "RT lighting retained the prior screen position after camera motion stopped");
     require(old_residue<contrast*.1 && new_residue<contrast*.1,
         "RT lighting kept stale shadow visibility after the opaque blocker moved");
+    require(error(shadow_halfway,reference_halfway)<(native_banks?10:2),
+        "RT lighting did not follow the actual interpolated half-frame caster position");
     require(gpu.validation_errors.load()==0,"Shadow disocclusion fixture reported Vulkan errors");
     return 0;
 }
-int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D extent) {
+int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D extent,bool animated_lights=false) {
     Fixture gpu;gpu.initialize(shaders,extent,true);gpu.fence_submissions=true;
     gpu.renderer->set_quality(1,1);gpu.primary_color({.1f,.1f,.1f,1});
     auto black_emitter=white_material();black_emitter.diffuse=solid_texture({0,0,0,255});
@@ -731,11 +761,18 @@ int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D exten
     bank.source_camera_world[3]={0,0,16777215.f/scale,-origin.z*16777215.f/scale};
     std::memcpy(gpu.uniform.mapped,&bank,sizeof(bank));
     pt::Light light;light.direction=Vec3{0,0,-1};light.color={2,2,2};
+    std::array lights{light,light,pt::Light{}};
+    if(animated_lights) {
+        lights[0].color={1.8f,1.8f,1.8f};lights[1].color={.2f,.2f,.2f};
+        lights[2].position={origin.x+12*scale,origin.y+12*scale,origin.z-3*scale};
+        lights[2].radius=1;lights[2].color={1,.5f,.25f};
+    }
+    const auto light_bank=std::span(lights).first(animated_lights?3:1);
     std::array<Vec3,6> sky;sky.fill({.08f,.08f,.08f});
     // Unequal cube faces keep the continuation's indirect estimate stochastic
     // even when the primary sun is sampled deterministically every frame.
     sky[0]={1.2f,1.2f,1.2f};sky[3]={.8f,.8f,.8f};
-    const auto static_scene=pt::build_scene(geometry,materials,std::span(&light,1));
+    const auto static_scene=pt::build_scene(geometry,materials,light_bank);
     const auto raw=noise_metrics(gpu.draw(static_scene,primary,{},camera,~0u,false,false,&sky),extent);
     const auto render=[&](const pt::Scene& scene,bool capture) {
         return gpu.draw(scene,primary,{},camera,~0u,false,true,&sky,true,capture,capture);
@@ -750,7 +787,11 @@ int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D exten
             moved[n].position.x+=float(frame)*.1f*scale;
             moved[n].position.y+=float(frame%3)*.05f*scale;
         }
-        pt::update_geometry(moving_scene,moved,std::span(&light,1));
+        if(animated_lights) {
+            lights[2].position.x+=.1f*scale;
+            lights[2].color.x=.5f+float(frame)/32.f;
+        }
+        pt::update_geometry(moving_scene,moved,light_bank);
         if(frame!=15)render(moving_scene,false);
     }
     const auto animated=noise_metrics(render(moving_scene,true),extent);
@@ -787,7 +828,46 @@ int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D exten
 #include "temporal_reprojection_gpu_fixture.hpp"
 #include "source_indirect_gpu_fixture.hpp"
 #include "opaque_detail_gpu_fixture.hpp"
+#include "panel_detail_gpu_fixture.hpp"
+#include "capital_ship_gpu_fixture.hpp"
+#include "source_primary_gpu_fixture.hpp"
+#include "material_alias_gpu_fixture.hpp"
+#include "material_alias_history_gpu_fixture.hpp"
+#include "reflection_history_gpu_fixture.hpp"
+#include "vanilla_surface_gpu_fixture.hpp"
+#include "moving_light_sampling_gpu_fixture.hpp"
+#include "alpha_shadow_history_gpu_fixture.hpp"
 int main(int argc,char** argv)try {
+    if(argc==4 && std::string_view(argv[2])=="--material-alias-history")
+        return material_alias_history_gpu(argv[1],argv[3]);
+    if(argc==3 && std::string_view(argv[2])=="--foreground-reflection-turn")
+        return foreground_reflection_turn_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--reflected-object-history")
+        return reflected_object_history_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--unrelated-reflection-motion")
+        return unrelated_reflection_motion_gpu(argv[1]);
+    if(argc==5 && std::string_view(argv[2])=="--panel-detail")
+        return panel_detail_gpu(argv[1],argv[3],argv[4]);
+    if(argc==5 && std::string_view(argv[2])=="--capital-ship")
+        return capital_ship_gpu(argv[1],argv[3],argv[4]);
+    if(argc==3 && std::string_view(argv[2])=="--material-alias")
+        return material_alias_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--source-primary")
+        return source_primary_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--reflection-tint-history")
+        return reflection_tint_history_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--alpha-shadow-history")
+        return alpha_shadow_history_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--moving-light-sampling")
+        return moving_light_sampling_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--vanilla-surface")
+        return vanilla_surface_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--animated-light-noise")
+        return unrelated_motion_noise(argv[1],{512,288},true);
+    if(argc==3 && std::string_view(argv[2])=="--reflection-history")
+        return reflection_history_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--multiple-light-shadow-disocclusion")
+        return shadow_disocclusion(argv[1],{512,288},false,true);
     if(argc==3 && std::string_view(argv[2])=="--opaque-detail")
         return opaque_detail_gpu(argv[1]);
     if(argc==3 && std::string_view(argv[2])=="--source-indirect")
@@ -1073,6 +1153,8 @@ int main(int argc,char** argv)try {
     materials[0].name="objects\\characters\\masterchief\\shaders\\masterchief_visor";
     materials[0].environment_pass=std::make_shared<Material>();
     materials[0].environment_pass->forward_vertex=4;
+    materials[0].environment_pass->forward_diffuse={.96f,.86f,.75f,.4f};
+    materials[0].environment_pass->forward_specular={.89f,.74f,.54f,.2f};
     auto visor=pt::build_scene(geometry,materials);const auto visor_frame=gpu.draw(visor,primary);
     require(visor.materials[0].response[1]>0 && visor.materials[0].response[1]<=.4f &&
         diffuse.materials[0].response[1]==0 && diffuse.materials[0].response[0]>visor.materials[0].response[0],
@@ -1122,16 +1204,21 @@ int main(int argc,char** argv)try {
     std::array<pt::Light,2> unequal_lights{bright_sky,bright_sky};
     unequal_lights[0].color={1.8f,1.8f,1.8f};unequal_lights[1].color={.2f,.2f,.2f};
     const auto noisy_scene=pt::build_scene(filter_geometry,filter_materials,unequal_lights);
-    const auto noisy=gpu.draw(noisy_scene,primary);
-    const auto denoised=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true);
+    // Receiver-local source sampling removes the unequal-light bank variance.
+    // Unequal sky faces retain genuine stochastic transport for the spatial
+    // and temporal convergence checks below.
+    std::array<Vec3,6> noise_sky;noise_sky.fill({.1f,.1f,.1f});
+    noise_sky[0]={1,1,1};noise_sky[1]={.5f,.5f,.5f};
+    const auto noisy=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,false,&noise_sky);
+    const auto denoised=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true,&noise_sky);
     const auto reference_scene=pt::build_scene(primary,filter_materials,std::span(&bright_sky,1));
-    const auto reference=gpu.draw(reference_scene,primary);
+    const auto reference=gpu.draw(reference_scene,primary,{},Camera{},~0u,false,false,&noise_sky);
     require(std::abs(mean(denoised,0,8,56,8,56)-mean(reference,0,8,56,8,56))<8,
         "Filtered HDR irradiance was clamped before applying primary albedo or lost emitter-bank energy");
     require(deviation(denoised,0)<deviation(noisy,0)*.6f,
         "Bounded1/1 HDR lighting resolve did not reduce stochastic bank-selection noise");
     gpu.primary_color({1,1,1,1});
-    const auto hdr_white=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true);
+    const auto hdr_white=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true,&noise_sky);
     require(mean(hdr_white,0,8,56,8,56)>210,
         "Lighting resolve averaged display-clamped samples instead of linear HDR radiance");
 
@@ -1169,11 +1256,11 @@ int main(int argc,char** argv)try {
     // Independent frame seeds converge in the demodulated HDR history with
     // exactly the same1/1 ray budget and fixed allocated storage.
     gpu.primary_color({.1f,.1f,.1f,1});
-    const auto temporal_first=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true);
+    const auto temporal_first=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true,&noise_sky);
     const auto temporal_bytes=gpu.renderer->allocated_bytes();
     auto temporal_final=temporal_first;
     for(unsigned frame=1;frame<32;++frame)
-        temporal_final=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true);
+        temporal_final=gpu.draw(noisy_scene,primary,{},Camera{},~0u,false,true,&noise_sky);
     require(deviation(temporal_final,0)<deviation(temporal_first,0)*.6f &&
         std::abs(mean(temporal_final,0,8,56,8,56)-mean(reference,0,8,56,8,56))<8,
         "Fixed-budget temporal HDR accumulation did not converge without losing light energy");
@@ -1183,6 +1270,12 @@ int main(int argc,char** argv)try {
         m=white_material();m.specular_brightness=1;
     }
     auto history_scene=pt::build_scene({},history_materials);
+    // A reflection-only receiver isolates this history from diffuse sky
+    // transport, which intentionally keeps its independent valid samples when
+    // the eye moves. Red/blue sky swaps below are a correspondence sentinel.
+    for(auto& material:history_scene.materials) {
+        material.base=material.glancing_tint={1,1,1,1};material.response={.12f,1,1,0};
+    }
     std::array<Vec3,6> red_faces,blue_faces;red_faces.fill({1,0,0});blue_faces.fill({0,0,1});
     const auto warm_red=[&](std::span<const Vertex> bank,const Camera& camera=Camera{}) {
         for(unsigned frame=0;frame<8;++frame)

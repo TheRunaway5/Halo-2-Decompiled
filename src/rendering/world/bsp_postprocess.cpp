@@ -4,9 +4,11 @@
 #include "halo2/native_fragment_kernel.hpp"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <stdexcept>
 namespace halo2 {
 namespace {
@@ -33,14 +35,18 @@ struct BspPostprocess::Impl {
     VkImageView gradient{};
     std::map<std::uint32_t,std::vector<VkImageView>> noise_frames;
     std::uint32_t random{};
-    static constexpr unsigned slots=35; // 2 fog + threshold + 31 blur + composite.
+    // 2 fog + threshold + 31 blur + composite, then the layer-17 mask
+    // threshold, mask composite and the alpha-clear draw.
+    static constexpr unsigned slots=38,mask_threshold_slot=35,mask_composite_slot=36,mask_clear_slot=37;
     struct View {
         BspPostprocessView input;
         PatchyFogState state;
         BspPatchyFrame frame;
         BspBloomFrame bloom;
+        MenuBloom mask_programs;
         bool patchy{},scene_initialized{};
-        VkExtent2D size{},half{},quarter{};
+        VkExtent2D size{},half{},quarter{},source{};
+        bool source_raster{};
         Image noise,scene;
         std::array<Image,2> blur;
         VkFramebuffer noise_framebuffer{};
@@ -68,7 +74,7 @@ struct BspPostprocess::Impl {
             {0,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
             {1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr}}};
         make_layout(bloom_bindings,bloom_set_layout,bloom_layout);
-        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,180},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,4*slots}};
+        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4*(12+slots-2)},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,4*slots}};
         VkDescriptorPoolCreateInfo pi{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         pi.maxSets=4*slots;pi.poolSizeCount=2;pi.pPoolSizes=sizes;
         check(vkCreateDescriptorPool(context.device,&pi,nullptr,&pool),"BSP postprocess descriptor pool");
@@ -176,11 +182,14 @@ struct BspPostprocess::Impl {
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};samples.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
         VkPipelineColorBlendAttachmentState attachment{};attachment.colorWriteMask=0xf;attachment.blendEnable=blending!=0;
+        // 4: the layer-17 alpha clear. Colour is untouched; alpha becomes zero.
+        if(blending==4)attachment.colorWriteMask=VK_COLOR_COMPONENT_A_BIT;
         attachment.srcColorBlendFactor=blending==2?VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:VK_BLEND_FACTOR_ONE;
         attachment.dstColorBlendFactor=blending>=2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         attachment.srcAlphaBlendFactor=blending==2?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
             blending==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
-        attachment.dstAlphaBlendFactor=blending>=2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attachment.dstAlphaBlendFactor=blending==4?VK_BLEND_FACTOR_ZERO:
+            blending>=2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         attachment.colorBlendOp=attachment.alphaBlendOp=VK_BLEND_OP_ADD;
         VkPipelineColorBlendStateCreateInfo blend{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};blend.attachmentCount=1;blend.pAttachments=&attachment;
         const VkDynamicState dynamic_states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};
@@ -231,9 +240,22 @@ struct BspPostprocess::Impl {
         write.descriptorCount=unsigned(information.size());write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=information.data();
         vkUpdateDescriptorSets(context.device,1,&write,0,nullptr);
     }
-    void make_targets(View &view,VkExtent2D size) {
+    // The original 640x480 raster of a view, when the view is larger than it.
+    static std::optional<VkExtent2D> source_raster(const BspPostprocessView &input) {
+        if(!input.source_logical_extent)return std::nullopt;
+        const auto logical=*input.source_logical_extent;
+        if(!std::isfinite(logical.x) || !std::isfinite(logical.y) || logical.x<1 || logical.y<1 ||
+            logical.x>4095 || logical.y>4095)throw FormatError("BSP postprocess source raster outside its original bank");
+        const VkExtent2D source{unsigned(std::lround(logical.x)),unsigned(std::lround(logical.y))};
+        const auto &physical=input.rectangle.extent;
+        if(physical.width<source.width || physical.height<source.height ||
+            (physical.width==source.width && physical.height==source.height))return std::nullopt;
+        return source;
+    }
+    void make_targets(View &view,VkExtent2D size,std::optional<VkExtent2D> source) {
         release_targets(view);view.size=size;view.half={std::max(1u,(size.width+1)/2),std::max(1u,(size.height+1)/2)};
-        view.quarter={std::max(1u,(size.width+3)/4),std::max(1u,(size.height+3)/4)};
+        view.source_raster=bool(source);view.source=source.value_or(size);
+        view.quarter={std::max(1u,(view.source.width+3)/4),std::max(1u,(view.source.height+3)/4)};
         make_image(view.noise,view.half,VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
         make_image(view.scene,size,context.color_format,VK_IMAGE_USAGE_TRANSFER_DST_BIT);
         for(auto &image:view.blur)make_image(image,view.quarter,VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
@@ -249,7 +271,10 @@ struct BspPostprocess::Impl {
         }
         const std::array<VkImageView,4> target{view.noise.view,view.noise.view,view.noise.view,view.noise.view};
         image_binding(view.descriptors[1],2,target,clamp_sampler);
-        for(unsigned i=0;i<slots-2;++i) {
+        // The alpha clear samples nothing it uses; bind an always-valid image.
+        image_binding(view.descriptors[mask_clear_slot],0,{&gradient,1},clamp_sampler);
+        image_binding(view.descriptors[mask_threshold_slot],0,{&view.scene.view,1},clamp_sampler);
+        for(unsigned i=0;i<mask_threshold_slot-2;++i) {
             const auto image=i?view.blur[(i-1)%2].view:view.scene.view;
             image_binding(view.descriptors[i+2],0,{&image,1},clamp_sampler);
         }
@@ -262,7 +287,11 @@ struct BspPostprocess::Impl {
             if(!rectangle.extent.width || !rectangle.extent.height || rectangle.offset.x<0 || rectangle.offset.y<0 ||
                 std::uint64_t(rectangle.offset.x)+rectangle.extent.width>context.extent.width || std::uint64_t(rectangle.offset.y)+rectangle.extent.height>context.extent.height)
                 throw FormatError("BSP postprocess rectangle outside surface");
-            if(view.size.width!=rectangle.extent.width || view.size.height!=rectangle.extent.height)make_targets(view,rectangle.extent);
+            const auto source=source_raster(view.input);
+            const auto wanted=source.value_or(rectangle.extent);
+            if(view.size.width!=rectangle.extent.width || view.size.height!=rectangle.extent.height ||
+                view.source_raster!=bool(source) || view.source.width!=wanted.width || view.source.height!=wanted.height)
+                make_targets(view,rectangle.extent,source);
             const auto &sample=view.input.atmosphere;view.patchy=bool(sample.patchy);
             if(view.patchy) {
                 const auto definition=bank.patchy_definition(sample.patchy_datum);
@@ -301,9 +330,10 @@ struct BspPostprocess::Impl {
             const auto filters=unsigned(view.bloom.programs.radii.size());
             for(unsigned pass=0;pass<=filters;++pass) {
                 const auto physical=pass==filters?view.size:view.quarter;
-                const auto controls=source_bloom_filter_controls(pass<filters?view.bloom.programs.radii[pass]:0,
-                    {float(physical.width),float(physical.height)},
-                    pass<filters?view.input.source_bloom_filter_extent:std::nullopt);
+                auto controls=source_bloom_filter_controls(pass<filters?view.bloom.programs.radii[pass]:0,
+                    {float(physical.width),float(physical.height)});
+                // Threshold reads the original raster through its area average.
+                if(!pass && view.source_raster)controls[3]=float(view.source.width*4096u+view.source.height);
                 const auto& program=pass==0?view.bloom.programs.threshold:pass==filters?view.bloom.programs.composite:view.bloom.programs.blur;
                 view.pipelines[pass+2]=native_pipeline("bloom",program,bloom_layout,
                     pass==filters?context.color_pass:target_pass,
@@ -312,6 +342,30 @@ struct BspPostprocess::Impl {
                     controls,{0,0,1,1}};
                 write_uniform(view.uniforms[pass+2],uniform);
             }
+            // 214D0's 492294 branch: the same schedule with the mask-carrying
+            // threshold and composite. Blur passes are shared.
+            view.mask_programs=halo2::cinematic_bloom(view.bloom.threshold,view.bloom.strength,
+                cinematic,cinematic_override,true);
+            for(unsigned n=0;n<2;++n) {
+                const unsigned pass=n?filters:0,slot=n?mask_composite_slot:mask_threshold_slot;
+                const auto physical=n?view.size:view.quarter;
+                auto controls=source_bloom_filter_controls(n?0:view.mask_programs.radii[0],
+                    {float(physical.width),float(physical.height)});
+                if(!n && view.source_raster)controls[3]=float(view.source.width*4096u+view.source.height);
+                const auto& program=n?view.mask_programs.composite:view.mask_programs.threshold;
+                view.pipelines[slot]=native_pipeline("bloom",program,bloom_layout,
+                    n?context.color_pass:target_pass,n?(view.mask_programs.silver_bullet?2:3):0);
+                const BloomUniform uniform{native_fragment_uniform_words(program.words),controls,{0,0,1,1}};
+                write_uniform(view.uniforms[slot],uniform);
+                if(n) {
+                    const auto image=view.blur[(pass-1)%2].view;
+                    image_binding(view.descriptors[slot],0,{&image,1},clamp_sampler);
+                }
+            }
+            view.pipelines[mask_clear_slot]=native_pipeline("bloom",view.bloom.programs.composite,bloom_layout,
+                context.color_pass,4);
+            write_uniform(view.uniforms[mask_clear_slot],BloomUniform{
+                native_fragment_uniform_words(view.bloom.programs.composite.words),{0,1,1,0},{0,0,1,1}});
         }
     }
     void viewport(VkCommandBuffer command,VkRect2D rect) {
@@ -327,7 +381,16 @@ struct BspPostprocess::Impl {
         vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&descriptor,0,nullptr);
         vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
     }
-    void record(unsigned index,const BspPostprocessTarget &target,bool patchy,bool bloom) {
+    void record_mask_clear(unsigned index,const BspPostprocessTarget &target) {
+        if(index>=view_count)throw FormatError("BSP postprocess view outside prepared bank");
+        auto &view=views[index];const auto command=target.command;vkCmdEndRenderPass(command);
+        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,
+            view.pipelines[mask_clear_slot],bloom_layout,view.descriptors[mask_clear_slot],false);
+        VkRenderPassBeginInfo resume{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};resume.renderPass=context.continuation_pass;
+        resume.framebuffer=target.continuation_framebuffer;resume.renderArea={{0,0},context.extent};
+        vkCmdBeginRenderPass(command,&resume,VK_SUBPASS_CONTENTS_INLINE);viewport(command,view.input.rectangle);
+    }
+    void record(unsigned index,const BspPostprocessTarget &target,bool patchy,bool bloom,bool mask=false) {
         if(index>=view_count)throw FormatError("BSP postprocess view outside prepared bank");
         auto &view=views[index];
         patchy=patchy&&view.patchy;
@@ -365,9 +428,12 @@ struct BspPostprocess::Impl {
         vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,2,barriers.data());
         view.scene_initialized=true;
         const auto filters=unsigned(view.bloom.programs.radii.size());
-        for(unsigned pass_index=0;pass_index<filters;++pass_index)
-            pass(command,target_pass,view.blur_framebuffers[pass_index%2],view.quarter,{{0,0},view.quarter},view.pipelines[pass_index+2],bloom_layout,view.descriptors[pass_index+2],true);
-        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[filters+2],bloom_layout,view.descriptors[filters+2],false);
+        for(unsigned pass_index=0;pass_index<filters;++pass_index) {
+            const unsigned slot=mask && !pass_index?mask_threshold_slot:pass_index+2;
+            pass(command,target_pass,view.blur_framebuffers[pass_index%2],view.quarter,{{0,0},view.quarter},view.pipelines[slot],bloom_layout,view.descriptors[slot],true);
+        }
+        const unsigned composite=mask?mask_composite_slot:filters+2;
+        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[composite],bloom_layout,view.descriptors[composite],false);
         }
         VkRenderPassBeginInfo resume{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};resume.renderPass=context.continuation_pass;resume.framebuffer=target.continuation_framebuffer;
         resume.renderArea={{0,0},context.extent};vkCmdBeginRenderPass(command,&resume,VK_SUBPASS_CONTENTS_INLINE);viewport(command,view.input.rectangle);
@@ -390,6 +456,7 @@ void BspPostprocess::restore_state(const BspPostprocessState &state) {
     for(unsigned i=0;i<state.motion.size();++i)impl_->views[i].state=state.motion[i];
 }
 void BspPostprocess::record_patchy(std::size_t view,const BspPostprocessTarget &target) {impl_->record(unsigned(view),target,true,false);}
-void BspPostprocess::record_bloom(std::size_t view,const BspPostprocessTarget &target) {impl_->record(unsigned(view),target,false,true);}
+void BspPostprocess::record_bloom(std::size_t view,const BspPostprocessTarget &target,bool mask) {impl_->record(unsigned(view),target,false,true,mask);}
+void BspPostprocess::record_bloom_mask_clear(std::size_t view,const BspPostprocessTarget &target) {impl_->record_mask_clear(unsigned(view),target);}
 void BspPostprocess::record(std::size_t view,const BspPostprocessTarget &target) {impl_->record(unsigned(view),target,true,true);}
 } // namespace halo2

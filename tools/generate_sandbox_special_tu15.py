@@ -286,7 +286,13 @@ def main():
     source=source.replace(composition,composition+
         'SourceFirstPersonCompositionObserverTu15::entry(s.memory,s.save());\n')
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
+    from native_sandbox_dispatch_preservation import preserve
+    from native_model_marker_lookup_replacements import replace_model_marker_lookup
+    source=replace_model_marker_lookup(preserve(install_native_normalizer(source,'Tu15Literal')))
+    from native_object_lookup_copies_replacements import replace_object_lookup_copies
+    source=replace_object_lookup_copies(source)
+    from native_codec_scale_replacements import replace_codec_scale
+    args.output.write_text(replace_codec_scale(source))
     report = json.loads((args.directory/'generation.json').read_text())
     report['generated_cpp_sha256'] = sha(args.output)
     (args.directory/'generation.json').write_text(json.dumps(report, indent=2, sort_keys=True)+'\n')

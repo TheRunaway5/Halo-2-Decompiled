@@ -40,6 +40,8 @@ class GeometryBinding(unittest.TestCase):
     def test_other_public_queue_policies_remain_pinned(self):
         for kind,path in(('bsp','src/rendering/world/source_bsp_admission.cpp'),('object','src/gameplay/objects/source_object_admission.cpp')):
             source=public.replace_public((ROOT/path).read_text(),kind);owner=public.OWNERS[kind];body=public.unique_function(source,owner)
+            restored=public.canonical_parent(body,kind)
+            if restored!=body:source=source.replace(body,restored,1);body=restored
             for old,new in(('in.capacity'if kind=='object'else'in.instance_capacity','0u'),('out.associations','out.associations /* altered owner */')):
                 self.assertIn(old,body)
                 with self.assertRaises(ValueError):public.replace_public(source.replace(body,body.replace(old,new,1),1),kind)

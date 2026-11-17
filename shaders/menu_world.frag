@@ -25,6 +25,8 @@ layout(constant_id=0) const uint defaultTextureWMask=0u;
 // clamp16. The caller owns the mode; target size does not select it.
 layout(constant_id=1) const uint sourceWClipMode=0u;
 layout(constant_id=2) const uint sourceFogAlphaBound=0u;
+// A light shadow target (source layer 10) stores screen-linear Z.
+layout(constant_id=3) const uint sourceLinearZDepth=0u;
 layout(constant_id=61) const uint sourceDepthEncoding=0u;
 #ifdef H2_NATIVE_RASTER_OFFSET
 layout(push_constant) uniform NativeRasterOffset {
@@ -72,7 +74,34 @@ vec4 fetchStage2D(uint stage,vec2 p) {
     if(stage==2u)return texture(bump,p);
     return texture(lightmap,p);
 }
+// A light's shadow buffer (texture extern 13): the stage holds the light-view
+// D24 depth target and the fetch is the hardware depth comparison the original
+// selects with ShadowFunc GREATER. Coordinates arrive in texels with the
+// reference depth in D24 units; the result is one where the stored depth is
+// farther than the reference. Authored filtering is LINEAR, which on this
+// hardware filters the four comparison results, and the authored border
+// compares as lit.
+float sourceShadowTexel(uint stage,ivec2 texel,float reference) {
+    ivec2 size=ivec2(stageTextureExtent(stage));
+    if(any(lessThan(texel,ivec2(0))) || any(greaterThanEqual(texel,size)))return 1.0;
+    float stored;
+    if(stage==0u)stored=texelFetch(diffuse,texel,0).r;
+    else if(stage==1u)stored=texelFetch(detail,texel,0).r;
+    else if(stage==2u)stored=texelFetch(bump,texel,0).r;
+    else stored=texelFetch(lightmap,texel,0).r;
+    return floor(stored*16777215.0+0.5)>reference?1.0:0.0;
+}
+vec4 sourceShadowCompare(uint stage,vec4 p) {
+    if(p.w<=0.0)return vec4(1.0);
+    float reference=clamp(p.z/p.w,0.0,16777215.0);
+    vec2 texel=p.xy/p.w-vec2(0.5);
+    ivec2 base=ivec2(floor(texel));vec2 weight=fract(texel);
+    float lower=mix(sourceShadowTexel(stage,base,reference),sourceShadowTexel(stage,base+ivec2(1,0),reference),weight.x);
+    float upper=mix(sourceShadowTexel(stage,base+ivec2(0,1),reference),sourceShadowTexel(stage,base+ivec2(1,1),reference),weight.x);
+    return vec4(mix(lower,upper,weight.y));
+}
 vec4 fetchStageProjected2D(uint stage,vec4 p) {
+    if((material.textureEffects[stage].z&2u)!=0u)return sourceShadowCompare(stage,p);
     if((material.textureEffects[stage].y&1u)!=0u)p.xy/=stageTextureExtent(stage);
     if(stage==0u)return textureProj(diffuse,p.xyw);
     if(stage==1u)return textureProj(detail,p.xyw);
@@ -106,6 +135,7 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 #define MENU_WORLD_PROGRAM_WORD(i) material.program[(i)/4u][(i)%4u]
 #define MENU_WORLD_CLIP_RANGE() menuWorldDepth.clipRange
 #define MENU_WORLD_W_CLIP_MODE() sourceWClipMode
+#define MENU_WORLD_Z_DEPTH() (sourceLinearZDepth!=0u)
 #define MENU_WORLD_CLIP_REGION(i) menuWorldDepth.clipRegion[i]
 #define MENU_WORLD_DEPTH_FACTOR() menuWorldDepth.depthFactor
 #define MENU_WORLD_DEPTH_OFFSET() menuWorldDepth.depthOffset

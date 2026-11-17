@@ -28,6 +28,17 @@ def driver_source():
  old='native_tu15_process_moving_shape_contact(m,{c.at("receiver")},{c.at("arguments")[0]},{c.at("arguments")[1]},{c.at("arguments")[2]},c.at("arguments")[3],{c.at("relative")},fp,0,services,observer,&stats);'
  new='const auto result=native_tu15_minimum_solver_hull_facet(m,c.at("receiver"),fp,0,&stats);check(result==c.at("source_return"),name+" original facet DATA identity differs");'
  assert text.count(old)==1;return text.replace(old,new)
+_MINIMUM_CASES=cases
+_MINIMUM_VALUE=Path('include/halo2/native_tu15_solver_hull_minimum_value.hpp')
+_MINIMUM_KERNEL=Path('include/halo2/native_tu15_solver_hull_minimum_kernel.hpp')
+def minimum_variant(project,text,name,needle,replacement):
+ owning_include='#include "halo2/native_tu15_solver_hull_minimum_value.hpp"'
+ assert text.count(owning_include)==1
+ header=(ROOT/_MINIMUM_VALUE).read_text()
+ assert header.count(needle)==1,(name,needle)
+ filename=f'minimum-{name}.hpp'
+ (project/filename).write_text(header.replace(needle,replacement,1))
+ return text.replace(owning_include,f'#include "{filename}"',1)
 def main():
  base.OWNERS=(0x3131b0,);base.BOUNDARIES=();base.cases=cases
  meta=inspect.getsource(base.metadata).replace('counts[0]==274','counts[0]==76');namespace=dict(base.__dict__);exec(meta,namespace);base.metadata=namespace['metadata']
@@ -42,5 +53,12 @@ def main():
  source=source.replace("shutil.copyfile(ROOT/'src/physics/native_tu15_contact_unwind_internal.hpp',project/'native_tu15_contact_unwind_internal.hpp')","shutil.copyfile(ROOT/'src/physics/native_tu15_joint_constraint_numeric_internal.hpp',project/'native_tu15_joint_constraint_numeric_internal.hpp')")
  source=source.replace("source,ROOT/'include/halo2/native_tu15_moving_shape_process.hpp'","source,ROOT/'include/halo2/native_tu15_solver_hull_polytope.hpp'").replace('complete_body(code,0x2e5320)','complete_body(code,0x3131b0)')
  source=source.replace('remaining=[\'Returned cache and2F8B60 child closure, parent epilogue\'','scope=__doc__,full_returns=sum(not c.get("fault")and not c.get("observer_fault")for c in rows),remaining=[\'Fullpolytope/hullparentcomposition\'')
- namespace=dict(base.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__);exec(source,namespace);return namespace['main']()
+ if cases is _MINIMUM_CASES:
+  old="   assert needle in text;variants[name]=text.replace(needle,replacement);"
+  assert source.count(old)==1
+  source=source.replace(old,"   variants[name]=minimum_variant(project,text,name,needle,replacement);",1)
+  old="  files=[source,"
+  assert source.count(old)==1
+  source=source.replace(old,"  files=[ROOT/_MINIMUM_VALUE,ROOT/_MINIMUM_KERNEL,source,",1)
+ namespace=dict(base.__dict__,cases=cases,driver_source=driver_source,__doc__=__doc__,minimum_variant=minimum_variant,_MINIMUM_VALUE=_MINIMUM_VALUE,_MINIMUM_KERNEL=_MINIMUM_KERNEL);exec(source,namespace);return namespace['main']()
 if __name__=='__main__':raise SystemExit(main())

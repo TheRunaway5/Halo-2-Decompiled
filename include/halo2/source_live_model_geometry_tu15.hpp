@@ -61,8 +61,12 @@ std::vector<Vertex> source_live_model_selected_vertices_tu15(std::uint32_t owner
 // Materialize the completed collector's actual current1D690 palette before
 // another native query reuses its arena. This also owns the cache-reuse path,
 // which does not execute137800 or publish another WORLD-node observation.
+// A primary presentation bank, when supplied, owns this frame's secondary
+// skin too. Native selected regions/LOD remain unchanged; missing presentation
+// nodes keep the completed palette path above.
 std::vector<Vertex> source_live_model_collector_vertices_tu15(PhysicsLiveWorldTu15&,
-    const SourceObjectDrawCollector&,unsigned ordinal,const RenderModel&);
+    const SourceObjectDrawCollector&,unsigned ordinal,const RenderModel&,
+    std::span<const Transform> presented_nodes={});
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,
@@ -96,7 +100,8 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
 // TU1.5 4D820/15280 c50 upload selection, including the rigid single-matrix
 // branch and the selected region's actual remapped matrix range.
 std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
-    PhysicsLiveWorldTu15&,const SourceCullDrawUnit&,const SourceModelCommandGeometry&);
+    PhysicsLiveWorldTu15&,const SourceCullDrawUnit&,const SourceModelCommandGeometry&,
+    std::span<const std::array<float,12>> presented_palette={});
 // Read completed24020 c68.. banks by full owner and the draw's region ordinal.
 // Absent owner/zero node count preserves the original no-upload result.
 std::shared_ptr<const VertexProgramBank> source_live_model_prt_bank_tu15(

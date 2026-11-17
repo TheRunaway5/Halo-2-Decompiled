@@ -404,6 +404,11 @@ class EnginePromotionTests(unittest.TestCase):
                 passed=True,cases=22,comparisons=44,mode3_cases=6,mode2_cases=16,
                 original_xbe_sha256='21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd',
                 scope='Synthetic loop-location promotion-policy fixture; no original-call or gameplay claim')))
+            for species, representation in (('human', 2), ('elite', 3)):
+                (evidence.parent/f'native_tu15_first_person_motion_coherence_{species}.json').write_text(json.dumps(dict(
+                    passed=True, representation=representation, run_result=0,
+                    moving_fractional_frames=20, body_frames=20,
+                    scope='Synthetic promotion-policy fixture; no motion or gameplay claim')))
             smg_log = evidence.parent/'smg-warthog-audio.log'
             smg_log.write_text('Synthetic native SMG audio promotion-policy log; no gameplay claim\n')
             source = self.scratch/'source'
@@ -564,8 +569,11 @@ class EnginePromotionTests(unittest.TestCase):
                      'workshop_navigation_content','original_workshop_camera_shared',
                      'mcc_native_env_illum_three_channel','mcc_native_env_illum_three_channel_generator',
                      'mcc_native_tiling_specular','mcc_native_tiling_specular_generator',
-                     'mcc_native_alpha_environment','mcc_native_alpha_environment_generator']:
+                     'mcc_native_alpha_environment','mcc_native_alpha_environment_generator',
+                     'pstencil_campaign_shadow_eligibility','retail_object_lighting']:
             self.assertIn(name,filters[1])
+        self.assertIn('pstencil_campaign_shadow_eligibility_tests',commands[1])
+        self.assertIn('object_lighting_tests',commands[1])
         self.assertIn('multiplayer-menu-startup.json',commands[1])
         self.assertIn('friends-footer-anchor.json',commands[1])
         self.assertIn('loop-audio-locations.json',commands[1])
@@ -684,6 +692,50 @@ class EnginePromotionTests(unittest.TestCase):
                 self.assertEqual(report.get('smoke', []), [])
                 self.assertNotIn('friends_footer_anchor', report)
                 shutil.rmtree(self.scratch/'source')
+
+    def test_missing_or_nonmoving_first_person_proof_cannot_promote(self):
+        for mode in ('missing_human', 'missing_elite', 'failed', 'wrong_species', 'failed_run', 'stationary', 'no_body'):
+            with self.subTest(mode=mode):
+                def invalid_motion(command, **kwargs):
+                    result = self.build(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        species = 'human' if mode == 'missing_human' else 'elite'
+                        evidence = output/f'evidence/native_tu15_first_person_motion_coherence_{species}.json'
+                        if mode.startswith('missing_'):
+                            evidence.unlink()
+                        else:
+                            receipt = json.loads(evidence.read_text())
+                            if mode == 'failed': receipt['passed'] = False
+                            elif mode == 'wrong_species': receipt['representation'] = 2
+                            elif mode == 'failed_run': receipt['run_result'] = 1
+                            elif mode == 'stationary': receipt['moving_fractional_frames'] = 0
+                            elif mode == 'no_body': receipt['body_frames'] = 0
+                            evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'First-person motion qualification'):
+                    self.attempt(dict(passed=True), invalid_motion)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                for name in self.launcher_modes:
+                    self.assertEqual((self.root/name).read_text(), 'previous launcher')
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                shutil.rmtree(self.scratch/'source')
+
+    def test_motion_map_is_pinned_outside_the_smoke_map_cohort(self):
+        def changed_map(command, **kwargs):
+            result = self.build(command, **kwargs)
+            if '--build-only' not in command:
+                path = Path(next(value.split('=', 2)[2] for value in command
+                    if value.startswith('--cmake-arg=-DHALO2_FIRST_PERSON_BODY_MAP=')))
+                path.write_bytes(b'changed during motion qualification')
+            return result
+        with patch.object(engine, 'qualification_maps', return_value=['coagulation.map']):
+            with self.assertRaisesRegex(RuntimeError, 'MCC maps changed'):
+                self.attempt(dict(passed=True), changed_map)
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        for name in self.launcher_modes:
+            self.assertEqual((self.root/name).read_text(), 'previous launcher')
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
 
     def test_missing_or_partial_loop_audio_owner_proof_cannot_promote(self):
         for mode in ('missing','failed','partial_cases','observer_not_compared',
@@ -1146,6 +1198,21 @@ class EnginePromotionTests(unittest.TestCase):
         destination = self.scratch / 'frozen'
         pins = engine.freeze_source(self.root, destination)
         (self.root / 'CMakeLists.txt').write_text('next engine revision')
+        self.assertEqual(engine.source_hashes(destination), pins)
+        self.assertNotEqual(engine.source_hashes(self.root), pins)
+
+    def test_frozen_pstencil_oracle_survives_concurrent_fixture_edits(self):
+        fixture = self.root / 'tests/pstencil'
+        fixture.mkdir()
+        (fixture / 'gpu_tests.cpp').write_text('captured triangle regression\n')
+        (fixture / 'captured_surface.glsl').write_text('ordered original surface program\n')
+        destination = self.scratch / 'frozen'
+        pins = engine.freeze_source(self.root, destination)
+        self.assertFalse((destination / 'tests/pstencil').is_symlink())
+        (fixture / 'gpu_tests.cpp').write_text('next regression revision\n')
+        (fixture / 'captured_surface.glsl').write_text('next surface program\n')
+        self.assertEqual((destination / 'tests/pstencil/captured_surface.glsl').read_text(),
+                         'ordered original surface program\n')
         self.assertEqual(engine.source_hashes(destination), pins)
         self.assertNotEqual(engine.source_hashes(self.root), pins)
 
