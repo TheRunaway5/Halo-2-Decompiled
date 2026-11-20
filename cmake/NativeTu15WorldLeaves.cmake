@@ -89,4 +89,10 @@ if(BUILD_TESTING)
         "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_object_flag_update_tu15.py"
         --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-object-flag-update.json" --cases 10000 --jobs 2)
     set_tests_properties(native_tu15_object_flag_update PROPERTIES TIMEOUT 2400)
+    # 1D7260 body motion snapshot (child 1D8B20 through the unit's route).
+    add_test(NAME native_tu15_body_motion_snapshot
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --
+        "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_body_motion_snapshot_tu15.py"
+        --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-body-motion-snapshot.json" --cases 10000 --jobs 2)
+    set_tests_properties(native_tu15_body_motion_snapshot PROPERTIES TIMEOUT 2400)
 endif()

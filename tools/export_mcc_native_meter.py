@@ -203,6 +203,10 @@ def main():
     parser.add_argument('--fixture', type=Path)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
+    ammo_prepared = args.ammo_cache if args.ammo_cache else args.cache.parent / AMMO_CACHE_SIBLING
+    if args.check and (not (args.cache / 'native-shaders/coagulation/library.json').is_file() or
+                       not (ammo_prepared / 'halo2/h2_maps_win64_dx11/shared.map').is_file()):
+        raise SystemExit(77)
     policy, fixture = generate(args.cache,args.ammo_cache)
     if args.policy:
         text = json.dumps(policy, indent=2) + '\n'

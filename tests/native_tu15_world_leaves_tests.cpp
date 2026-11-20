@@ -1,5 +1,6 @@
 // Native TU1.5 physics world leaves (1F5FE0 collision surface polygon, 2E4550
-// relative transform, 303BA0 record copy, 2E47B0 transposed rotation) against
+// relative transform, 303BA0 record copy, 2E47B0 transposed rotation, 2E4760
+// rotation into world) against
 // the unmodified translated canonical bodies (packed SSE with the production
 // binder's explicit destinations), extracted by
 // tools/validate_native_world_leaves_tu15.py into world_<name>.inc with the
@@ -16,6 +17,7 @@
 // Modes: <cases> [census|verify]. Prints a JSON summary with branch coverage.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "physics/runtime/native_tu15_world_leaves.hpp"
+#include "native_tu15_world_leaves_remap.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -52,6 +54,7 @@ std::uint32_t sign_extend(std::uint32_t value,unsigned count) {
 #include "world_2e0a60.inc"
 #include "world_300100.inc"
 #include "world_2e0cc0.inc"
+#include "world_2e0c70.inc"
 } // namespace t_world
 using t_world::ObservedWorldState;
 
@@ -96,7 +99,7 @@ std::uint32_t special(std::mt19937 &rng) {
     return std::bit_cast<std::uint32_t>(value);
 }
 
-enum Owner : unsigned {k1f5fe0,k2e4550,k303ba0,k2e47b0,owners};
+enum Owner : unsigned {k1f5fe0,k2e4550,k303ba0,k2e47b0,k2e4760,owners};
 struct Case {Memory memory;SourcePhysicsWorldRuntimeAbi abi{};std::uint32_t mxcsr{0x1f80u};unsigned shape_kind{};Owner owner{};};
 
 constexpr std::uint32_t operands=0x10600000u;
@@ -105,7 +108,11 @@ Case author_block(std::mt19937 &rng,unsigned n,Owner owner) {
     Case c;c.owner=owner;auto &m=c.memory;
     const auto pick=[&](std::uint32_t k){return std::uint32_t(rng()%k);};
     const unsigned kind=(n/owners)%16;c.shape_kind=kind;
-    for(std::uint32_t at=operands;at<operands+0x400u;at+=4)m.put(at,pick(3)?special(rng):std::uint32_t(rng()));
+    // Kind 13: NaNs with distinct payloads in most words, so that both
+    // operands of a product or sum are NaNs (the first one's payload wins).
+    const auto payload=[&]{return 0x7f800001u|(std::uint32_t(rng())&0x807fffffu);};
+    for(std::uint32_t at=operands;at<operands+0x400u;at+=4)
+        m.put(at,kind==13 && pick(4)?payload():pick(3)?special(rng):std::uint32_t(rng()));
     std::uint32_t a=operands,b=operands+0x100u,dst=operands+0x200u;
     if(kind==2)dst=b;                  // in place
     if(kind==4)dst=a;                  // over the transform
@@ -198,7 +205,7 @@ Result execute(Memory &memory,const Case &c,bool is_native) {
     SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore &e){result.stores.push_back(e);};
     SourcePhysicsWorldRuntimeServices services;
     constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
-    if(is_native && census_mode) {
+    if(is_native && (census_mode || !leaves_remap::live_cursor)) {
         services.instruction=[](auto){throw std::runtime_error("Native world leaf delivered a translated instruction");};
     } else if(is_native) {
         services.instruction=[](auto){throw std::runtime_error("Native world leaf delivered a translated instruction");};
@@ -206,20 +213,23 @@ Result execute(Memory &memory,const Case &c,bool is_native) {
         cursor.callback_type=&services.instruction.target_type();cursor.executor=std::this_thread::get_id();
         cursor.literal_service_sites=true;cursor.observation_only_stores=true;
     } else services.instruction=[&](std::uint32_t pc){result.cursor=pc;};
+    SourcePhysicsWorldRuntimeServices outer;leaves_remap::wrap(services,outer);
     ObservedWorldState s{memory,observe,services,SourcePhysicsContactImage::TitleUpdate15};s.load(c.abi);
-    s.selected_observation_pcs=true;
+    s.selected_observation_pcs=!leaves_remap::enabled;
     const auto saved=_mm_getcsr();_mm_setcsr(c.mxcsr);
     try {
         if(is_native)switch(c.owner) {
         case k1f5fe0:result.admitted=leaves::bridge_1f5fe0(s,[](auto &v){t_world::run_1f16f0(v);});break;
         case k2e4550:result.admitted=leaves::bridge_2e4550(s,[](auto &v){t_world::run_2e0a60(v);});break;
         case k303ba0:result.admitted=leaves::bridge_303ba0(s,[](auto &v){t_world::run_300100(v);});break;
-        default:result.admitted=leaves::bridge_2e47b0(s,[](auto &v){t_world::run_2e0cc0(v);});break;
+        case k2e47b0:result.admitted=leaves::bridge_2e47b0(s,[](auto &v){t_world::run_2e0cc0(v);});break;
+        default:result.admitted=leaves::bridge_2e4760(s,[](auto &v){t_world::run_2e0c70(v);});break;
         } else switch(c.owner) {
         case k1f5fe0:t_world::run_1f16f0(s);break;
         case k2e4550:t_world::run_2e0a60(s);break;
         case k303ba0:t_world::run_300100(s);break;
-        default:t_world::run_2e0cc0(s);break;
+        case k2e47b0:t_world::run_2e0cc0(s);break;
+        default:t_world::run_2e0c70(s);break;
         }
     } catch(const std::exception &e){result.fault=e.what();}
     result.mxcsr=_mm_getcsr();_mm_setcsr(saved);
@@ -252,10 +262,10 @@ bool refused(SourcePhysicsContactImage image,bool selected,bool callbacks,bool t
 int main(int argc,char **argv)try {
     const unsigned cases=argc>1?unsigned(std::stoul(argv[1])):5000;
     const std::string mode=argc>2?argv[2]:"";
-    census_mode=mode=="census";verify=mode=="verify";
+    const auto base=leaves_remap::parse(mode);census_mode=base=="census";verify=base=="verify";
     if(census_mode)setenv("HALO2_CENSUS_NATIVE_BRIDGES","1",1);
     if(verify)setenv("HALO2_VERIFY_PHYSICS_WORLD_LEAVES","1",1);
-    std::mt19937 rng(0x1f5fe0u+(census_mode?1u:0u)+(verify?2u:0u));
+    std::mt19937 rng(0x1f5fe0u+(census_mode?1u:0u)+(verify?2u:0u)+(leaves_remap::enabled?4u:0u));
     std::uint64_t stores{},compared{},faults{};std::array<std::uint64_t,owners> per{};
     for(unsigned n=0;n<cases;++n) {
         auto c=author(rng,n);
@@ -294,10 +304,25 @@ int main(int argc,char **argv)try {
         if(!refused(SourcePhysicsContactImage::TitleUpdate15,true,true,true,false,0x1f80u))throw std::runtime_error("Active trace admitted");
         if(!refused(SourcePhysicsContactImage::TitleUpdate15,true,false,false,false,0x1d80u))throw std::runtime_error("Unmasked MXCSR admitted");
     }
-    std::printf("{\"cases\":%u,\"compared\":%llu,\"faults\":%llu,\"ordered_stores\":%llu,\"per_owner\":[%llu,%llu,%llu,%llu],"
+    // Under the composition's remap each owner refuses a table that does not
+    // map its canonical instructions with one delta, and a remap without a
+    // live cursor; with both it runs.
+    if(leaves_remap::enabled && !census_mode) {
+        constexpr std::uint32_t canonical[owners][2]{{0x1f16f0u,0x1f18b6u},{0x2e0a60u,0x2e0b55u},{0x300100u,0x30015eu},
+            {0x2e0cc0u,0x2e0d2cu},{0x2e0c70u,0x2e0cb4u}};
+        for(unsigned o=0;o<owners;++o) {
+            const auto ran=[&] {
+                std::mt19937 local(0x5eed0u+o);auto c=author(local,o);auto bank=c.memory.clone();
+                const auto r=execute(bank,c,true);return r.admitted || !r.fault.empty();
+            };
+            if(!leaves_remap::refuses_bad_remaps(canonical[o][0],canonical[o][1],ran))
+                throw std::runtime_error("A world leaf admitted a remap that does not cover it");
+        }
+    }
+    std::printf("{\"cases\":%u,\"compared\":%llu,\"faults\":%llu,\"ordered_stores\":%llu,\"per_owner\":[%llu,%llu,%llu,%llu,%llu],"
         "\"coverage\":%llu,\"branches\":%u,\"mode\":\"%s\"}\n",
         cases,(unsigned long long)compared,(unsigned long long)faults,(unsigned long long)stores,
-        (unsigned long long)per[0],(unsigned long long)per[1],(unsigned long long)per[2],(unsigned long long)per[3],
+        (unsigned long long)per[0],(unsigned long long)per[1],(unsigned long long)per[2],(unsigned long long)per[3],(unsigned long long)per[4],
         (unsigned long long)leaves::coverage().load(),unsigned(leaves::branch_count),mode.c_str());
     return 0;
 }catch(const std::exception &e){std::fprintf(stderr,"%s\n",e.what());return 1;}

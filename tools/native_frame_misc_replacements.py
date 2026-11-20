@@ -54,6 +54,21 @@ OWNERS = {
         include='#include "physics/runtime/native_tu15_environment_palette.hpp"\n',
         bridge='halo2::native_environment_palette_detail::bridge(s,[](auto &v){{{reference}(v);}})',
         direct=(), dispatched=()),
+    '153ba0': dict(
+        pin='42aefdb2ede564565e3d5e7fd3b54a227a98530f6d93f00efea62f6ef2c41a0c',
+        unit='#include "halo2/source_combat_action_tu15.hpp"',
+        include='#include "physics/runtime/native_tu15_player_action.hpp"\n',
+        bridge=('halo2::native_player_action_detail::bridge(s,[](auto &v){{{reference}(v);}},\n'
+                '        [](std::uint32_t p,SourcePhysicsContactImage image){{return canonical_branch(p,image);}},\n'
+                '        [](auto &v){{run_bd080(v);}},[](auto &v){{run_1540d0(v);}},[](auto &v){{run_153f20(v);}},\n'
+                '        [](auto &v){{run_154270(v);}},[](auto &v){{run_1541b0(v);}})'),
+        direct=('bd080', '1540d0', '153f20', '154270', '1541b0'), dispatched=()),
+    '131610': dict(
+        pin='70daa4bb9b4d19f1985efeef65b2f22d32a213b9cd7eaf4388e9374571b0449c',
+        unit='#include "halo2/source_campaign_environment_tu15.hpp"',
+        include='#include "physics/runtime/native_tu15_fog_mixers.hpp"\n',
+        bridge='halo2::native_fog_mixers_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_137ac0(v);}})',
+        direct=('137ac0',), dispatched=()),
 }
 
 
@@ -106,7 +121,7 @@ def admitted(canonical, name):
 # after the live checks on the restored MCC cache (2026-11-16 evening): Armory
 # parity in every role, and the MP and campaign verify sweep with 0
 # differences; see docs/native_replacement/REMAINING_TRANSLATED_20261115.md.
-BOUND = ('1306b0', 'd7230', '1eee80', '41970', '133a70')
+BOUND = ('1306b0', 'd7230', '1eee80', '41970', '133a70', '153ba0', '131610')
 
 
 def install(canonical, output, names=None):

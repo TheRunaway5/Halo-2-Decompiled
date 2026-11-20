@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Prove the native TU1.5 physics world leaves (1F5FE0, 2E4550, 303BA0, 2E47B0):
+"""Prove the native TU1.5 physics world leaves (1F5FE0, 2E4550, 303BA0, 2E47B0,
+2E4760):
 the logic in native_tu15_world_leaves_systems.hpp through the boundary adapters
 in native_tu15_world_leaves.hpp.
 
@@ -31,7 +32,7 @@ HEADER = ROOT / 'src/physics/runtime/native_tu15_world_leaves.hpp'
 SYSTEMS = ROOT / 'src/physics/runtime/native_tu15_world_leaves_systems.hpp'
 TEST = ROOT / 'tests/native_tu15_world_leaves_tests.cpp'
 HELPER = ROOT / 'tools/native_world_leaves_replacements.py'
-OWNERS = ('1f16f0', '2e0a60', '300100', '2e0cc0')
+OWNERS = ('1f16f0', '2e0a60', '300100', '2e0cc0', '2e0c70')
 UNREACHABLE = set()
 # Deliberate defects in the logic (SYSTEMS) and the boundary adapters (HEADER),
 # the same defect classes as the machine-shaped kernels' screen. Each must be
@@ -80,7 +81,29 @@ MUTANTS = [
     (SYSTEMS, 'rotate-lane', 'sse::multiply(transposed_column(rotation,1),splat(v,1));', 'sse::multiply(transposed_column(rotation,1),splat(v,2));'),
     (SYSTEMS, 'rotate-operand', 'sse::multiply(transposed_column(rotation,2),splat(v,2));', 'sse::multiply(splat(v,2),transposed_column(rotation,2));'),
     (HEADER, 'rotate-flags', 'gp[esp]=port.flags.logic(gp[esp]&0xfffffff0u,4);', 'gp[esp]&=0xfffffff0u;'),
+    # 2E4760 logic and adapter
+    (SYSTEMS, 'forward-sum-order', 'return {sse::add(sse::add(x_term,y_term),z_term),splat(v,0),y_term,z_term};',
+     'return {sse::add(sse::add(y_term,x_term),z_term),splat(v,0),y_term,z_term};'),
+    (SYSTEMS, 'forward-operand', 'const auto y_term=sse::multiply(rotation.column[1],splat(v,1));',
+     'const auto y_term=sse::multiply(splat(v,1),rotation.column[1]);'),
+    (SYSTEMS, 'forward-column', 'offsetof(HavokTransform,column[0])));\n    const auto rotated=rotate(rotation,v);',
+     'offsetof(HavokTransform,column[1])));\n    const auto rotated=rotate(rotation,v);'),
+    (HEADER, 'forward-eax', 'gp[eax]=frame.rotation_address;', 'gp[eax]=out;'),
+    (HEADER, 'forward-residue', 'port.set_xmm(0,rotated.value);port.set_xmm(1,rotated.x_splat);', 'port.set_xmm(0,rotated.value);port.set_xmm(1,rotated.y_term);'),
+    (HEADER, 'forward-flags', 'if(a==logic::havok_rotation::ForwardAccess::result)port.gp[esp]=port.flags.logic(port.gp[esp]&0xfffffff0u,4);',
+     'if(a==logic::havok_rotation::ForwardAccess::result)port.gp[esp]&=0xfffffff0u;'),
+    (HEADER, 'forward-ret', 'port.ret(0x2e47a4u,8u);', 'port.ret(0x2e47a4u,4u);'),
+    # remap admission (the phantom/world composition)
+    (HEADER, 'remap-delta-2e4760', 'inline constexpr Function f_2e4760[]{{0x2e4760u,0x2e47a4u,0x3af0u,0x3af0u}};',
+     'inline constexpr Function f_2e4760[]{{0x2e4760u,0x2e47a4u,0x3af0u,0x3b00u}};'),
+    (HEADER, 'remap-store-pc', '        return pc-function(pc).published_offset;',
+     '        return pc;'),
+    (HEADER, 'remap-function-range', 'for(const auto &f:remapped)if(pc>=f.first && pc<=f.last)return f;',
+     'for(const auto &f:remapped)if(pc>=f.first && pc<f.last)return f;'),
 ]
+
+
+REMAP = Path(__file__).resolve().with_name('native_world_leaves_remap_sites.py')
 
 
 def digest(path):
@@ -123,7 +146,11 @@ def main():
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Run through tools/run_test.py')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
-    sources = [UNIT, HEADER, SYSTEMS, TEST, args.helper.resolve(), Path(__file__).resolve()]
+    spec = importlib.util.spec_from_file_location('native_world_leaves_remap_sites', REMAP)
+    remap_sites = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remap_sites)
+    remap_sites.write(scratch, 'world_sites')
+    sources = [UNIT, HEADER, SYSTEMS, TEST, args.helper.resolve(), Path(__file__).resolve()] + remap_sites.SOURCES
     before = {(str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)): digest(path) for path in sources}
     text = UNIT.read_text()
     module = helper(args.helper)
@@ -154,6 +181,8 @@ def main():
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
+    # The phantom/world composition's canonical-PC remap (release, census, verify).
+    report['remap'] = remap_sites.run_modes(run, release, max(args.cases // 4, 1000))
     block = re.sub(r'//[^\n]*', '', re.search(r'enum Branch : unsigned \{(.*?)\};', HEADER.read_text(), re.S)[1])
     names = [name for name in re.sub(r'\s', '', block).split(',') if name and name != 'branch_count']
     coverage = result['coverage'] | verify['coverage']
@@ -162,6 +191,8 @@ def main():
     report.update(release=result, census=census, verify=verify, branches=names, covered=sorted(hit), missing=missing)
     if missing:
         raise ValueError(f'Uncovered native world leaf branches: {missing}')
+    if len(result['per_owner']) != len(OWNERS) or 0 in result['per_owner'] + verify['per_owner']:
+        raise ValueError(f"A native world leaf was never compared: {result['per_owner']}")
     if census['coverage'] == 0 or verify['coverage'] == 0:
         raise ValueError('Census or verify mode never admitted the native leaves')
     if not args.skip_sanitizers:
@@ -183,8 +214,13 @@ def main():
         except subprocess.CalledProcessError:
             return dict(name=name, rejected=False, error='mutant failed to compile')
         runs = subprocess.run([str(binary), str(args.mutant_cases)], capture_output=True, text=True)
+        mode = 'release'
+        if runs.returncode == 0:
+            # The composition's remap (admission, cursor and store PCs).
+            runs = subprocess.run([str(binary), str(max(args.mutant_cases // 3, 200)), 'remap'], capture_output=True, text=True)
+            mode = 'remap'
         binary.unlink()
-        return dict(name=name, rejected=runs.returncode != 0, diagnostic=runs.stderr.strip()[-200:])
+        return dict(name=name, rejected=runs.returncode != 0, mode=mode, diagnostic=runs.stderr.strip()[-200:])
     mutants = []
     if not args.skip_mutants:
         with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:

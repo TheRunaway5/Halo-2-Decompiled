@@ -211,7 +211,9 @@ def spatial_owner_bindings(canonical,output):
                         # Group H 2F36F0 child agent update (2F33B0 through its bound body; 2E4550 and 30BAD0 inline).
                         ('static void run_2efc30(ObservedWorldState','native_child_agents_replacements'),
                         # Group H E8D80 object flag update (vehicle update unit; its update functions through the dispatch).
-                        ('static void run_e7e60(VehicleState','native_object_flag_update_replacements')):
+                        ('static void run_e7e60(VehicleState','native_object_flag_update_replacements'),
+                        # Group H 1D7260 body motion snapshot (child 1D8B20 through the unit's route).
+                        ('static void run_1d29a0(ObservedWorldState','native_body_motion_snapshot_replacements')):
         if marker not in canonical:continue
         spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(name+'.py'))
         helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)

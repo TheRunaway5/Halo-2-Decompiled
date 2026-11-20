@@ -30,7 +30,14 @@ one, call it through its current route.
 | X. 169C46 / C2CB0 / C3430 light update / Havok shape builders / codec loops | the first-person caller and the light update chain | running agent (nodebuild) |
 | E. Effects | `death_cycle_runtime` and its copies (BA9E0, 176A40, 17C140, 252100, 178070, C3A20, 17C370, 17C5C0, 178110, 22B790, 251C80, 250780, 17BEB0, 30BD0, ...), `source_effect_particle_frame` / `_draw`, `source_effect_light_view` (C2A80, C3300, C35D0), `source_lens_flare` (20680, 17C710, 20700), `native_light_shape` C3AB0 | agent E |
 | F. Frame and gameplay misc | `source_multiplayer_engines` (1EEE80, 1EFD60, 1F0670, 1503D0, 153360, 154D00), `source_campaign_environment` (131AC0, 133A70, ...), `source_combat_action` (153BA0, 1540D0, E79C0, ...), `source_geometry_cache_frame` (1306B0, ...), `source_damage_delivery_runtime` (D8330, DB0A0), `source_model_render` (41970, D7230), `source_texture_camera_producer`, `source_map_world_support` | agent F |
-| Paused (safeguard stops) | `source_shadow_frame` remainder (1362A0, 134D30, 4BAE0, 1365C0, 136D50, 166C90), `source_scene_device_constructor` (1179C0, 10B840, ...), the 16C620 MP verify | waiting on the user |
+| S. Shadow frame (unpaused by the user 2026-11-18) | `source_shadow_frame` remainder (134D30, 1362A0, 1365C0, 4BAE0, 136D50, C3DC0/166C90, 135E00, 136230, 135690) | 2026-11-18 coordinator session |
+| Paused (safeguard stops) | `source_scene_device_constructor` remainder (118350, 1181F0, ...) | waiting on the user |
+
+From 2026-11-18 one coordinator session holds groups H, F, E and S, with one
+worker per group; it does every shared build (`tools/build_perf.sh`, which
+replaces the lost `scratchpad/build_perf.sh`) and every live check
+(`tools/perf_4k60/live_check.py`). See "Coordinator session (2026-11-18)" at
+the end.
 | Other session | `source_ai_frame` (1B0020, 1B01E0, 209F40, 1B08B0, ...), `source_ai_actor`, `source_campaign_runtime` AI owners | other session |
 
 ## Rules for every group
@@ -46,7 +53,8 @@ one, call it through its current route.
   - a live verify or differential in the Armory and in an MP sweep with
     scripted input (fire, grenade, jump, use, move);
   - frame parity, Armory frame `5627a51badf47762` / trace `8a9b58b38bef`.
-- **Shared tree builds** go only through `scratchpad/build_perf.sh`.
+- **Shared tree builds** go only through `tools/build_perf.sh` (it replaces
+  the session-local `scratchpad/build_perf.sh` named in older sections).
 - **Don't collide.** Before editing a file, check `git status` and its mtime.
   If another session changed it in the last hours and it is not yours, keep
   your edit surgical, or coordinate through this doc.
@@ -1814,3 +1822,213 @@ AABB query".
   case exits 0. The campaign 03a/05a cases exit with the pre-existing
   renderer-thread error, after identical verify lines.
 - **MP frame parity** (coagulation, motion, 3840x2160): `PASSED`.
+
+## Group H progress: 1D7260 and 2E4760 at its own body (2026-11-18)
+
+Details: [1F5FE0_world_leaves.md](1F5FE0_world_leaves.md), "1D7260 body motion
+snapshot" and "2E4760 at its own body".
+
+**Written, proven and registered (not yet built or live-checked): 1D7260**
+(canonical `run_1d29a0`, 1,494/frame). A havok component keeps one 0x60-byte
+slot per rigid body; 1D7260 refreshes one slot's snapshot of its body's
+position (child 1D8B20), linear and angular velocity (the zero vector when
+the body's byte at +40 is set). The body deactivation listener 2815F0 calls
+it for every body of a component.
+
+- Logic `body_motion_snapshot::refresh`; adapter `kernel_1d7260`/`SnapshotAbi`
+  and `bridge_1d7260`; 1D8B20 is a genuine child through the unit's route.
+  Coverage bits 132-133 (word 2, after E8D80); verify summary entry 1D7260
+  (`calls[18]`).
+- Binder `tools/native_body_motion_snapshot_replacements.py` (marker
+  `run_1d29a0(ObservedWorldState`), in `spatial_owner_bindings` and the cmake
+  helper list; CTest `native_tu15_body_motion_snapshot`.
+- Proof `native-tu15-body-motion-snapshot.json`: 20,000 comparisons, 748,112
+  ordered stores, 1,913 faults, 19,251 child calls; census 5,000, verify
+  5,000; ASan/UBSan 4,000 + 1,000 verify; 2/2 branches; 34/34 mutants (30
+  release, 4 verify).
+
+**2E4760 bound at its own body** (its remaining translated caller, 57/frame):
+`bridge_2e4760` (`calls[19]`), a `2e0c70` entry in
+`tools/native_world_leaves_replacements.py`, and a fifth owner in the world
+leaves harness. World leaves proof re-run: 40,000 comparisons (8,000 per
+owner), 666,706 ordered stores, 3,959 faults, census 10,000, verify 10,000,
+ASan/UBSan 8,000 + 1,000, 11/11 branches, 41/41 mutants.
+
+**Shared-header recheck** (4,000 cases, release/census/verify): child agents,
+structure AABB query, object flag update, convex pair, contact array,
+collection agent, local buffers, manifold, key sort, shape key filter, BSP
+child shape all pass.
+
+**Next:** shared build, then the Armory verify (expect `1D7260` and `2E4760`
+entries in `Physics world leaves verify:`), parity, census, MP sweep.
+
+## Group H: admission under the phantom composition's remap (2026-11-18)
+
+Live finding (coordinator): E8D80 ran 0 native calls in production. It is
+reached through the phantom/world composition, whose services wrap
+`instruction` in `PhysicsInstructionRemapTu15` (canonical -> TU1.5), so the
+state has no literal cursor and every group H bridge refused. The world unit
+entered through the composition's `world()` route also publishes canonical
+PCs (`selected_observation_pcs` off), which the bridges refused outright;
+every group H owner is in its `world_entries`.
+
+- `native_tu15_world_leaves.hpp`: each bridge names the functions its kernel
+  publishes (`published::f_<owner>`: the owner and its inline kernels, each
+  with its canonical delta; E8D80 publishes canonical PCs, delta 0xf20).
+  `admitted()` keeps the direct path unchanged; otherwise it takes the remap
+  when every canonical instruction of every listed function maps with that
+  function's one delta (both ends present; `remap_maps`, cached per table),
+  uses `live_cursor()` with the usual trace/observer/service-site checks, and
+  under the census switch without a live cursor admits as production now
+  does. `Port` publishes TU1.5 PCs to the cursor and canonical PCs to the
+  store observer (the composition's remapping observer) in that mode; the
+  verify replay compares canonical store PCs.
+- Harnesses: `tests/native_tu15_world_leaves_remap.hpp` adds modes `remap`,
+  `remap-census`, `remap-verify` to all 13 group H harnesses with the
+  composition's own `world_sites`/`vehicle_sites`
+  (`tools/native_world_leaves_remap_sites.py`); E8D80, world leaves and 1D7260
+  also check refusal of tables missing the first or last instruction, with
+  one uneven delta, shifted by 0x10, and of a remap without a live cursor.
+- Proof: E8D80 20,000 comparisons (figures unchanged), remap 5,000 / census
+  5,000 / verify 5,000, 28/28 mutants (6 remap mutants); world leaves 40,000
+  (unchanged), remap 10,000 x3, 44/44; 1D7260 20,000 (unchanged), remap
+  5,000 x3, 36/36; the other ten validators pass at 4,000 with remap modes.
+
+## Progress: Groups F, E, S, H live integration and full render-object submission chain (2026-11-19)
+
+Completed, proven, bound, built into `build-perf-4k60/halo2_native` (`sha256:
+6a400fcb7d27d8984dc96cc76a94201f30957a5cc5ca3f3e892b0ebc95deff3e`), and
+live-verified across the Armory and 8-map multiplayer sweep:
+
+1. **Group F (`153BA0` player action, 2,416/frame; `131610` fog mixers, 561/frame)**:
+   - `153BA0` (`src/physics/runtime/native_tu15_player_action_systems.hpp` +
+     `native_tu15_player_action.hpp`): 8,000 comparisons, 19/19 branches,
+     ASan/UBSan clean, 0 surviving mutants (`build/test-results/frame-misc-20261118/final-153ba0.json`).
+   - `131610` (`src/physics/runtime/native_tu15_fog_mixers_systems.hpp` +
+     `native_tu15_fog_mixers.hpp`): 8,000 comparisons (937,418 ordered stores,
+     7,325 children, 2,416 faults), census 2,000, verify 2,000, ASan/UBSan
+     clean, 26/26 branches, 30/30 semantic mutants rejected
+     (`build/test-results/frame-misc-20261118/final-131610.json`).
+   - Bound in `tools/native_frame_misc_replacements.py` and registered in
+     `cmake/NativeTu15FrameMisc.cmake`.
+
+2. **Group E (`251A60` / `250450` particle location update, 2,758/frame)**:
+   - `src/rendering/effects/native_tu15_particle_update_systems.hpp` +
+     `native_tu15_particle_update.hpp`: 60/60 particle branches and 59/59
+     effect-owner branches covered, ASan/UBSan clean, 153/153 mutants rejected
+     across the combined effect-owners + particle-update suite
+     (`build/test-results/effect-owners-20261118/validator.json`).
+   - Bound in `tools/native_effect_owner_replacements.py`.
+
+3. **Group S wave 1 (`134D30` cluster contents, 5,687/frame; `4BAE0` object fade, 3,652/frame; `136D50` PRT partition, 1,845/frame)**:
+   - `134D30`: physical i386 proof (`cluster-contents-full.json`,
+     `cluster-contents-clang.json`, `cluster-contents-sanitizers.json`).
+   - `136D50`: 220 physical i386 cases, 65/65 owned sites, ASan/UBSan clean,
+     13/13 semantic mutants rejected (`prt_partition_sanitizers.json`).
+   - `4BAE0`: 296 physical i386 cases, 127/127 reachable owned sites (3
+     mathematically unreachable clamp sites declared), ASan/UBSan clean, 15/15
+     semantic mutants rejected (`object_fade_sanitizers.json`).
+
+4. **Group S wave 2 — complete render-object submission chain, light volume shape, and view reset (`1362A0`, `1365C0`, `C3AB0`, `135E00`, `1373F0`, `136230` — 13,091/frame)**:
+   - **`135E00` object draw flags (1,011.5/frame, pure leaf)**:
+     `src/rendering/native_tu15_object_draw_flags_systems.hpp` +
+     `native_tu15_object_draw_flags.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/object_draw_flags.json`): 147
+     physical cases (64 normal, 83 prefix), 47/47 owned sites, ASan/UBSan
+     clean, 14/14 semantic mutants rejected.
+   - **`136230` render-object submission loop (605.7/frame)**:
+     `src/rendering/native_tu15_object_pass_systems.hpp` +
+     `native_tu15_object_pass.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/object_pass.json`): 338
+     physical cases (64 normal, 274 prefix), 42/42 owned sites, ASan/UBSan
+     clean, 12/12 semantic mutants rejected.
+   - **`1365C0` render-model hierarchy & layer splitter (2,376.6/frame, self-recursive)**:
+     `src/rendering/native_tu15_model_hierarchy_systems.hpp` +
+     `native_tu15_model_hierarchy.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/model_hierarchy.json`): 833
+     physical cases (48 normal, 785 prefix), 265/265 owned sites, ASan/UBSan
+     clean, 16/16 semantic mutants rejected.
+   - **`1362A0` render-object submission (6,706.5/frame, #1 largest remaining routine)**:
+     `src/rendering/native_tu15_object_submit_systems.hpp` +
+     `native_tu15_object_submit.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/object_submit.json`): 963
+     physical cases (48 normal, 915 prefix), 180/180 owned sites, ASan/UBSan
+     clean, 16/16 semantic mutants rejected.
+   - **`C3AB0` light volume shape builder (1,683.4/frame, pure leaf)**:
+     `src/rendering/native_tu15_light_shape_systems.hpp` +
+     `native_tu15_light_shape.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/light_shape.json`): 829
+     physical cases (40 normal, 789 prefix), 194/194 owned sites, ASan/UBSan
+     clean, 13/13 semantic mutants rejected. Bound in
+     `source_shadow_frame_tu15_generated.cpp` and
+     `native_light_shape_tu15_generated.cpp`.
+   - **`1373F0` render-view queue reset (707.5/frame, pure leaf)**:
+     `src/rendering/native_tu15_view_reset_systems.hpp` +
+     `native_tu15_view_reset.hpp`; physical i386 proof
+     (`build/test-results/shadow-frame-20261119/view_reset.json`): 156 physical
+     cases (24 normal, 132 prefix), 35/35 owned sites, ASan/UBSan clean, 10/10
+     semantic mutants rejected. Bound in
+     `source_shadow_frame_tu15_generated.cpp` and
+     `source_effect_particle_draw_tu15_generated.cpp`.
+   - Registered all Group S owners in `tools/native_source_prefixes.py` and
+     added CTests in `cmake/NativeTu15ClusterContents.cmake`.
+
+5. **Live verification on `build-perf-4k60/halo2_native` (`6a400fcb7d27d898`)**:
+   - **Armory parity + verify** (`build/test-results/shadow-frame-20261119/armory/armory.txt`):
+     `default`, `reference`, and `verify` all exit 0 with 0 validation messages
+     and exact frame/trace parity (`5627a51badf47762` / `8a9b58b38bef`, 300
+     frames). Live verify counters: Fog mixers 300 calls (105,000 accesses,
+     33,000 stores); Particle locations `251A60` 899 calls (510,233 accesses,
+     151,669 stores, 3,101 child boundaries); Effect owners `20680` 300,
+     `C35D0` 600, `176A40` 1,312 calls (866,540 accesses, 307,866 stores, 870
+     child boundaries); Player action 450 calls (250,990 accesses, 19,320
+     stores, 1,790 child boundaries); Physics world leaves including `E8D80`
+     890, `1D7260` 6,800, `2E4760` 711 calls (7,664,172 accesses, 2,932,343
+     stores, 141,919 child boundaries) — all 100% identical.
+   - **Armory census** (`build/test-results/shadow-frame-20261119/census/compare.txt`):
+     total translated instructions dropped from **205,889/frame** (reference)
+     to **123,771/frame** (native, **-82,118/frame** = **-39.9%**):
+     - `1362a0`: 6,706.5 -> **0.0/frame**
+     - `134d30`: 5,686.5 -> **0.0/frame**
+     - `4bae0`: 3,652.1 -> **0.0/frame**
+     - `153ba0`: 2,415.6 -> **0.0/frame**
+     - `1365c0`: 2,376.6 -> **0.0/frame**
+     - `250450`: 2,337.7 -> **0.0/frame**
+     - `e8d80`: 2,204.2 -> **0.0/frame**
+     - `136d50`: 1,845.0 -> **0.0/frame**
+     - `c3ab0`: 1,683.4 -> **1.7/frame** (0.0/frame in shadow frame and light shape)
+     - `1d7260`: 1,494.3 -> **0.0/frame**
+     - `135e00`: 1,011.5 -> **0.0/frame**
+     - `1373f0`: 707.5 -> **0.0/frame**
+     - `136230`: 605.7 -> **0.0/frame**
+     - `131610`: 561.0 -> **0.0/frame**
+     - `251a60`: 420.5 -> **0.0/frame**
+     - `2e4760`: 215.7 -> **0.0/frame**
+   - **Multiplayer verify sweep** (`build/test-results/shadow-frame-20261119/sweep/summary.json`):
+     8/8 maps (`coagulation:1`, `coagulation:4`, `headlong:4`, `zanzibar:1`,
+     `containment:4`, `burial_mounds:4`, `turf:1`, `waterworks:4`) exited 0
+     with 0 differing cases, 0 failures, and identical frame hashes across all
+     8 maps.
+
+6. **Group S wave 3 (`BBD10` object hierarchy root walk, 430.1/frame; `135690` render-view visibility setup, 396.0/frame)**:
+   - **`BBD10` object hierarchy root walk (`src/rendering/native_tu15_object_hierarchy_root_systems.hpp` + `native_tu15_object_hierarchy_root.hpp`)**:
+     Physical i386 proof (`build/test-results/shadow-frame-20261119/object_hierarchy_root.json`):
+     138 physical cases (64 normal, 74 prefix), 19/19 owned sites, ASan/UBSan
+     clean, 11/11 semantic mutants rejected. Bound in
+     `source_shadow_frame_tu15_generated.cpp` and
+     `source_ai_frame_tu15_generated.cpp`.
+   - **`135690` render-view visibility setup (`src/rendering/native_tu15_view_setup_systems.hpp` + `native_tu15_view_setup.hpp`)**:
+     Physical i386 proof (`build/test-results/shadow-frame-20261119/view_setup.json`):
+     902 physical cases (48 normal, 854 prefix), 120/120 owned sites,
+     ASan/UBSan clean, 12/12 semantic mutants rejected. Bound in
+     `source_shadow_frame_tu15_generated.cpp`.
+   - **Updated Armory census on `build-perf-4k60/halo2_native` (`5b7ab5790a0de084`)**
+     (`build/test-results/shadow-frame-20261119/census/compare.txt`):
+     total translated instructions dropped to **123,204/frame** (`36,961,290`
+     total vs `205,891/frame` reference; `135690`: `396.0 -> 0.0/frame`,
+     `bbd10`: `430.1 -> 259.1/frame`, `0.0/frame` in shadow frame and AI frame)
+     with exact frame/trace parity (`5627a51badf47762` / `8a9b58b38bef`).
+   - **Actionable Checklist for Subsequent Agents**: See
+     [REMAINING_TRANSLATED_CHECKLIST_20261119.md](REMAINING_TRANSLATED_CHECKLIST_20261119.md)
+     for the complete prioritized checklist of remaining translated routines by
+     group, 64 GB RAM guardrails, file-pin rules, and verification commands.

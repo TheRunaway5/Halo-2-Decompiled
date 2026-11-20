@@ -80,6 +80,7 @@ if(BUILD_TESTING)
     add_test(NAME pstencil_elite_reference_response COMMAND pstencil_elite_light_response_2003_tests
         ${PROJECT_SOURCE_DIR}/analysis/pstencil/elite-response-audit/original-utility-programs.json
         ${PROJECT_SOURCE_DIR}/analysis/pstencil/elite-light-response-20261110/reference-materials.json)
+    set_tests_properties(pstencil_elite_reference_response PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(pstencil_elite_native_kernels_gpu_tests tests/pstencil/elite_native_kernels_gpu_tests.cpp)
     target_link_libraries(pstencil_elite_native_kernels_gpu_tests PRIVATE halo2_pstencil Vulkan::Vulkan)
     add_test(NAME pstencil_elite_native_kernels COMMAND ${Python3_EXECUTABLE}

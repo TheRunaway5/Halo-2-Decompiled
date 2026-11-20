@@ -1,4 +1,5 @@
 #pragma once
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_sphere_frustum_kernel.hpp"
 #include "physics/runtime/physics_contact_runtime_internal.hpp"
 #include "physics/runtime/native_tu15_raw_x87_scope.hpp"
@@ -20,7 +21,10 @@ template<class State>bool policy_admitted(const State&s){
     // A cleared callable revokes the cached fast-route witness. The exact
     // retained body skips cursor publication when its callback is empty.
     if(!s.services.instruction&&(s.instruction_cursor||s.literal_service_sites))return false;
-    if(s.services.instruction){
+    // HALO2_CENSUS_NATIVE_BRIDGES: uncursored census callbacks run the native
+    // too, so an instruction census counts only translated code.
+    if(native_census_detail::uncursored(s,0x184690u,0x1849ffu)){
+    }else if(s.services.instruction){
         if(!s.literal_service_sites||!s.instruction_cursor||!s.instruction_cursor->position)return false;
         const auto*p=s.instruction_cursor;
         // State caches the initial fast-route witness. Recheck its live

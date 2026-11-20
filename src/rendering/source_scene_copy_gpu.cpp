@@ -23,6 +23,9 @@ struct SourceSceneCopyGpu::Impl {
     struct Image {VkImage image{};VkImageView view{};VkDeviceMemory memory{};};
     SourceSceneCopyGpuContext context;
     std::thread::id thread=std::this_thread::get_id();
+    void adopt_owner_thread() {
+        if(!pending)thread=std::this_thread::get_id();
+    }
     VkDescriptorSetLayout descriptors{};VkDescriptorPool pool{};VkDescriptorSet set{};
     VkPipelineLayout layout{};VkPipeline pipeline{};VkRenderPass pass{};VkFramebuffer framebuffer{};
     VkSampler sampler{};VkBuffer uniform{};VkDeviceMemory uniform_memory{};void *mapped{};
@@ -152,7 +155,7 @@ struct SourceSceneCopyGpu::Impl {
         vi.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};check(vkCreateImageView(context.device,&vi,nullptr,&out.view),"create scene-copy image view");
     }
     SourceSceneCopyGpuBinding prepare(const SourceSceneCopyGpuInput &in) {
-        owner();if(pending)throw FormatError("Scene-copy frame still owns pending GPU work");
+        adopt_owner_thread();owner();if(pending)throw FormatError("Scene-copy frame still owns pending GPU work");
         auto values=source_scene_copy_shader_uniform(in.copy,in.coordinate_extent);
         values.program=native_fragment_uniform_words(values.program);
         VkPhysicalDeviceProperties p;vkGetPhysicalDeviceProperties(context.physical,&p);
@@ -192,7 +195,7 @@ struct SourceSceneCopyGpu::Impl {
         }
     }
     SourceSceneCopyGpuImage record_unwritten_access(const SourceSceneCopyGpuUnwrittenAccess &in) {
-        owner();
+        adopt_owner_thread();owner();
         if(!prepared||!in.command||!in.completion||in.owner!=context.device||in.queue_family!=context.queue_family||
            !in.outside_render_pass||!in.exclusive_access||source_initialized)
             throw FormatError("Unwritten scene target lacks its actual allocation/command ownership");
@@ -202,7 +205,7 @@ struct SourceSceneCopyGpu::Impl {
         target_initialized=true;return {target.image,target.view,context.color_format,target_extent};
     }
     SourceSceneCopyGpuImage record(const SourceSceneCopyGpuRecord &in) {
-        owner();
+        adopt_owner_thread();owner();
         if(!prepared||!in.command||!in.source||!in.completion||in.owner!=context.device||in.format!=context.color_format||
            !same(in.extent,source_extent)||!(in.usage&VK_IMAGE_USAGE_TRANSFER_SRC_BIT)||
            in.layout!=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL||in.samples!=VK_SAMPLE_COUNT_1_BIT||in.mip_levels!=1||in.array_layers!=1||
@@ -230,7 +233,7 @@ struct SourceSceneCopyGpu::Impl {
         source_initialized=target_initialized=true;return {target.image,target.view,context.color_format,target_extent};
     }
     bool retire() {
-        owner();if(!pending)return true;const auto status=vkGetFenceStatus(context.device,pending);
+        if(!pending)return true;const auto status=vkGetFenceStatus(context.device,pending);
         if(status==VK_NOT_READY)return false;check(status,"retire scene-copy frame");pending={};recorded_command={};return true;
     }
     void discard(VkCommandBuffer reset_command) {

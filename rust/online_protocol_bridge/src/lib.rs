@@ -64,6 +64,8 @@ mod matchmaking_frontend_progress;
 use matchmaking_frontend_progress::*;
 mod matchmaking_frontend_presentation;
 use matchmaking_frontend_presentation::*;
+mod frontend_upscaling;
+use frontend_upscaling::frontend_upscaling_panel;
 mod matchmaking_frontend_party;
 use matchmaking_frontend_party::*;
 mod matchmaking_frontend_party_flow;
@@ -149,6 +151,31 @@ pub fn eos_sdk_worker_main() -> i32 {
 #[allow(unsafe_code)]
 #[cxx::bridge(namespace = "halo2::online_protocol_bridge")]
 mod ffi {
+    struct UpscalingPanelFacts {
+        method_enabled: bool,
+        selected: u32,
+        method_name: String,
+        quality_name: String,
+        choices: Vec<String>,
+    }
+
+    struct UpscalingPanelRow {
+        label: String,
+        opens_page: bool,
+        value: i32,
+    }
+
+    struct UpscalingPanel {
+        title: String,
+        description: String,
+        rows: Vec<UpscalingPanelRow>,
+        selected: u32,
+    }
+
+    extern "Rust" {
+        fn frontend_upscaling_panel(context: u32, facts: UpscalingPanelFacts) -> UpscalingPanel;
+    }
+
     struct NativeSessionConfig {
         origin: MatchmakingQosConfig, room:String, self_peer:u32, seats:Vec<NativeSessionSeat>,
         team_present:bool, team_mode:bool, protocol:u16, extension_floor:u32,

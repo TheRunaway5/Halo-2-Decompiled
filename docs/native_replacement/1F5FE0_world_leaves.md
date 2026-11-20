@@ -1252,3 +1252,54 @@ mutants were equivalent (the last CMP EBP,3C compares equal operands, EDI's
 inversion and the shift count are dead before any observation, and TEST AL's
 width is overwritten) and were replaced (the loop's last INC/CMP skipped,
 EDX's headers, ESI's word offset, AL's decision).
+
+## 1D7260 body motion snapshot
+
+1D7260 (canonical `run_1d29a0`; EAX = the body's index, [ESP+4] = the havok
+component; RET 4; 1,494 instructions/frame in the Armory) refreshes the
+snapshot at the start of one body slot of a havok component (the component's
+0x60-byte slots at +70): the position (written into the frame by 1D8B20,
+which reads the motion's +B0 or asks the component's frame 1D8B90 when the
+component's flag 0x40 is set), the linear velocity (motion +40) and the
+angular velocity (motion +50); a body whose byte at +40 is set gets the zero
+vector ([474D04]) for both. The slot is located before the position query;
+the body is read from the slot array as it is after it. The words are copied
+through the frame's locals in the original order (MOVSS keeps every bit).
+
+- **Logic:** `body_motion_snapshot::refresh` (`BodySlot`, `Locals`).
+- **Adapter:** `kernel_1d7260`/`SnapshotAbi`; 1D8B20 is a genuine child
+  through the unit's route (ECX = the component, EAX = the index, EDI = the
+  output, flags of ADD EBX,ESI). Exit: EAX/ECX/EDX the angular velocity, XMM0
+  a moving body's angular z, flags of ADD ESP,24. Coverage bits 132-133.
+- **Binder:** `tools/native_body_motion_snapshot_replacements.py` (pin; two
+  operands; no dispatch site; the child present); receipt entry `1d7260`.
+  Bridge `bridge_1d7260`; verify summary entry 1D7260.
+- **Proof:** `tools/validate_native_body_motion_snapshot_tu15.py` with
+  `tests/native_tu15_body_motion_snapshot_tests.cpp` (CTest
+  `native_tu15_body_motion_snapshot`). The 1D8B20 stand-in logs its entry
+  state, writes the position, and sometimes moves the slot array, flips the
+  motionless byte or replaces the motion. Fixtures: indices inside, below and
+  wrapping; the slot inside the frame (kind 13), the zero vector on the
+  locals (12), the motion's velocities and the body's motion pointer on the
+  locals (11), a straddled page (14), one page removed (15).
+
+| | |
+|---|---|
+| Release comparisons | 20,000, 748,112 ordered stores, 1,913 faults, 19,251 child calls |
+| Census / verify | 5,000 / 5,000 |
+| ASan/UBSan | 4,000 + 1,000 verify |
+| Branches | 2/2 (moving, motionless) |
+| Mutants rejected | 34/34 (30 release, 4 verify) |
+
+Report: `build/test-results/physics-world-leaves-20261115/native-tu15-body-motion-snapshot.json`.
+
+## 2E4760 at its own body
+
+2E4760 (`run_2e0c70`) ran native only inline in 2F8630. It is now also bound
+at its own body by the world leaves binder (`bridge_2e4760`, verify summary
+entry 2E4760); the binder's reference keeps explicit-destination SSE, as the
+convex pair binder already gave it. The world leaves harness has a fifth
+owner (the transform owners' fixture; kind 13 now fills the operands with NaN
+payloads so both operands of a product are NaNs). Re-run: 40,000 comparisons,
+666,706 ordered stores, 3,959 faults, census 10,000, verify 10,000, ASan/UBSan
+8,000 + 1,000, 11/11 branches, 41/41 mutants (7 new for 2E4760).

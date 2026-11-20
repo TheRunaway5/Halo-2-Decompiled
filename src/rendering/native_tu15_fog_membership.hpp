@@ -1,4 +1,5 @@
 #pragma once
+#include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_fog_membership_kernel.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include <cstdlib>
@@ -16,7 +17,10 @@ template<class State>bool admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     if(reference()||s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
     if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
-    if(s.services.instruction){
+    // HALO2_CENSUS_NATIVE_BRIDGES: uncursored census callbacks run the native
+    // too, so an instruction census counts only translated code.
+    if(native_census_detail::uncursored(s,0x171070u,0x1712ffu)){
+    }else if(s.services.instruction){
         const auto*c=s.instruction_cursor;
         if(!s.literal_service_sites||!c||c!=&s.services.instruction_cursor||!c->position||!c->callback_type||
            s.services.instruction.target_type()!=*c->callback_type||c->executor!=std::this_thread::get_id()||

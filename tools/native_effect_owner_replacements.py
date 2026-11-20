@@ -1,7 +1,9 @@
 """Bind the native TU1.5 effect owners (group E): the 20680 lens query reset
 (lens flare unit), the C35D0 / C3300 / C2A80 per-view light fades (effect
-light view unit) and the 176A40 / 252100 particle inputs (death cycle, combat
-action and particle frame units; 4EFA0 direct or dispatched).
+light view unit), the 176A40 / 252100 particle inputs (death cycle, combat
+action and particle frame units; 4EFA0 direct or dispatched) and the 251A60 /
+250450 particle location update (particle frame unit; its interface methods
+through the unit's dispatch).
 
 The prefix is installed only into the build-local specialized copy, and only
 when every canonical body of the owner's closure matches its pin (state type
@@ -24,18 +26,27 @@ PINS = {
     # Direct 4EFA0 body (combat action, particle frame) or its dispatch (death cycle).
     '252100': ('2a3e64f69f7a817e6d9c1053ebb1518c92147f57a929702d590a0231da628427',
                'd5ac4ac2180567668e0d597684f0d70a36bcb2a3f1d0fb06758e745d0c9cba8f'),
+    '251a60': '60a578e37f178203735d961e223ce3081c05633545d0c538e6fff6cd54f72272',
+    '250450': '23a056be893036ac4b0516b34326623a11fb9b5c2063326e7cd0232f6daf3660',
 }
 # Owner: (closure bodies, genuine children in bridge argument order).
 OWNERS = {
     '20680': (('20680',), ()),
     'c35d0': (('c35d0', 'c3300', 'c2a80'), ('16ea60',)),
     '176a40': (('176a40', '252100'), ('4efa0',)),
+    # 'dispatch': the closure's computed calls (interface methods), through the
+    # unit's dispatch at their own sites.
+    '251a60': (('251a60', '250450'), ('13a6b0', '251650', '16e8a0', '2c40d0', '2516c0', 'dispatch')),
 }
 # Children that may be entered through the unit's dispatch instead of a direct
 # body; their bridge lambda also receives the call site.
 SITED = {'4efa0'}
 INCLUDE = '#include "rendering/effects/native_tu15_effect_owners.hpp"\n'
 DETAIL = 'halo2::native_effect_owner_detail'
+# Owners whose adapter lives in another header: (include, detail namespace).
+ADAPTERS = {
+    '251a60': ('#include "rendering/effects/native_tu15_particle_update.hpp"\n', 'halo2::native_particle_update_detail'),
+}
 REPLAY = 'halo2::native_object_tick_detail'
 REFERENCES_BEGIN = '// BEGIN native effect owner references\n'
 REFERENCES_END = '// END native effect owner references\n'
@@ -58,6 +69,8 @@ def reference_name(name):
 
 
 def child_lambda(canonical, child):
+    if child == 'dispatch':
+        return '[](auto &v,std::uint32_t target,std::uint32_t site){dispatch(v,target,site,false);}'
     if child not in SITED:
         return f'[](auto &v){{run_{child}(v);}}'
     if body(canonical, child):
@@ -68,8 +81,9 @@ def child_lambda(canonical, child):
 def prefix(owner, canonical):
     lambdas = [f'[](auto &v){{{reference_name(owner)}(v);}}']
     lambdas += [child_lambda(canonical, child) for child in OWNERS[owner][1]]
+    detail = ADAPTERS.get(owner, (INCLUDE, DETAIL))[1]
     return (f'\n    // BEGIN native effect owner {owner}\n'
-            f'    if({DETAIL}::bridge_{owner}(s,' + ',\n        '.join(lambdas) + '))return;\n'
+            f'    if({detail}::bridge_{owner}(s,' + ',\n        '.join(lambdas) + '))return;\n'
             f'    // END native effect owner {owner}')
 
 
@@ -88,7 +102,7 @@ def reference(found, name, owner):
     text = re.sub(r'\brun_([0-9a-f]+)\(s\)', route, text)
     # A dispatched child: {const auto target=selected(0x...u,s.image);...dispatch(s,target,site,false);}
     for child in children:
-        if re.search(r'const auto target=selected\(0x' + child + r'u,s\.image\);', text):
+        if child == 'dispatch' or re.search(r'const auto target=selected\(0x' + child + r'u,s\.image\);', text):
             text = re.sub(r'\bdispatch\(s,target,0x[0-9a-f]+u,false\)', f'{REPLAY}::replay(s,target)', text)
     if re.search(r'\brun_[0-9a-f]+\(|\bdispatch\(|required\(', text) or not text.startswith('void '):
         raise ValueError(f'Effect owner reference {name} kept an unrouted child')
@@ -116,6 +130,8 @@ def admitted(canonical):
         # Every child keeps a direct body, or (SITED) the closure body that
         # calls it dispatches it and the unit holds no body for it.
         def routed(child):
+            if child == 'dispatch':
+                return bool(re.search(r'^static void dispatch\(', canonical, re.M))
             if body(canonical, child):
                 return True
             return child in SITED and any(f'const auto target=selected(0x{child}u,s.image);' in f[0] for f in found)
@@ -132,7 +148,7 @@ def admitted(canonical):
 # the restored MCC cache (2026-11-16 evening): Armory parity in every role, and
 # the MP and campaign verify sweep with 0 differences; see
 # docs/native_replacement/EFFECT_OWNERS_20680_C35D0_176A40.md.
-BOUND = ('20680', 'c35d0', '176a40')
+BOUND = ('20680', 'c35d0', '176a40', '251a60')
 
 
 def install(canonical, output):
@@ -158,6 +174,7 @@ def install(canonical, output):
         raise ValueError('Effect owner references need one unbound unit')
     block = REFERENCES_BEGIN + ''.join(references) + REFERENCES_END
     output = output[:first.start()] + block + output[first.start():]
-    if INCLUDE not in output:
-        output = INCLUDE + output
+    for include in dict.fromkeys(ADAPTERS.get(owner, (INCLUDE, DETAIL))[0] for owner in installed):
+        if include not in output:
+            output = include + output
     return output, installed

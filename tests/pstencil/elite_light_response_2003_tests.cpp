@@ -1,5 +1,6 @@
 #include "halo2/pstencil/light_response_2003.hpp"
 #include "halo2/pstencil/reference_light_materials.hpp"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -12,6 +13,8 @@ void require(bool condition, const char* message) {
 }
 int main(int argc, char** argv) try {
     require(argc == 3, "Supply original utility constructions and Elite resident bindings");
+    if (!std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(argv[2]))
+        return 77;
     nlohmann::json utilities, materials;
     std::ifstream(argv[1]) >> utilities;
     std::ifstream(argv[2]) >> materials;

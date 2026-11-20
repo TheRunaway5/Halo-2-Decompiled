@@ -36,6 +36,9 @@
 //                                              agents, one per child near body A
 //   object_flag_update::update         E8D80   an object's flags, kept or
 //                                              cleared by their update functions
+//   body_motion_snapshot::refresh      1D7260  a havok component's snapshot
+//                                              of one body's position and
+//                                              velocities
 //
 // This is the game logic only. The game's memory is the retained TU1.5 bank,
 // reached through a Memory object with typed loads and stores. Every access
@@ -3601,4 +3604,128 @@ template<class Memory,class Frame> bool update(Memory &memory,Frame &frame) {
     return memory.load8(result_read,local.result)!=0u;
 }
 } // namespace object_flag_update
+
+// --------------------------------------------------- body motion snapshot
+// 1D7260 (EAX = the body's index, [ESP+4] = the havok component; RET 4): a
+// havok component keeps one 0x60-byte slot per rigid body, and each slot
+// starts with a snapshot of its body's motion: the position, the linear
+// velocity and the angular velocity (three words each). This refreshes one
+// slot's snapshot. The position comes from 1D8B20 (the motion's position, or
+// the component's frame 1D8B90 when the component's flag 0x40 is set),
+// written into the frame; the velocities are the motion's, or the zero
+// vector when the body's byte at +40 is set. The body deactivation listener
+// (2815F0) calls it for every body of a component whose body went to sleep.
+//
+// The words are copied, never computed (the original moves the velocities
+// through MOVSS, which keeps every bit). They are staged in the frame's
+// locals and read back in the original's order; the access order is
+// observable (the store observer, a faulting read) and is kept.
+namespace body_motion_snapshot {
+namespace globals {
+inline constexpr std::uint32_t zero_vector=0x474d04u;  // a pointer to the zero hkVector4
+}
+inline constexpr std::uint32_t component_body_slots=0x70u;  // the component's BodySlot array (its count at +74)
+// A body slot (0x60 bytes); only the snapshot and the body are used here.
+struct BodySlot {
+    std::uint32_t position[3];
+    std::uint32_t linear_velocity[3];
+    std::uint32_t angular_velocity[3];
+    std::uint8_t not_used_24[0x1c];
+    std::uint32_t body;  // the rigid body
+    std::uint8_t not_used_44[0x1c];
+};
+static_assert(sizeof(BodySlot)==0x60 && offsetof(BodySlot,linear_velocity)==0x0c && offsetof(BodySlot,angular_velocity)==0x18 &&
+              offsetof(BodySlot,body)==0x40);
+// The rigid body: its motion, and a byte that makes both velocities zero
+// (the body is not moving; the byte's meaning is not established).
+inline constexpr std::uint32_t body_motion=0x3cu,body_motionless=0x40u;
+// The motion's velocities (the position, at +B0, is 1D8B20's).
+inline constexpr std::uint32_t motion_linear_velocity=0x40u,motion_angular_velocity=0x50u;
+
+// The argument and the frame's locals (addresses; the adapter's).
+struct Locals {
+    std::uint32_t component_argument;
+    std::uint32_t linear_velocity;   // three words
+    std::uint32_t angular_velocity;  // three words
+    std::uint32_t position;          // three words, written by 1D8B20
+};
+enum class Access {
+    component_argument,slots,slots_again,body_read,motionless,zero_vector,
+    // the linear velocity of a moving body, then of a motionless one
+    motion_read,linear_x,linear_x_staged,linear_y,linear_x_reload,linear_y_staged,linear_z,linear_z_staged,
+    zero_linear_x,zero_linear_y,zero_linear_z,zero_linear_y_staged,zero_linear_z_staged,
+    // the angular velocity of a moving body, then of a motionless one
+    motion_again,angular_x,angular_x_staged,angular_y,angular_y_staged,angular_z,angular_y_reload,angular_x_reload,
+    angular_z_staged,angular_z_reload,
+    zero_angular_x,zero_angular_y,zero_angular_z,
+    // the snapshot
+    position_x,slot_position_x,position_y,slot_position_y,position_z,slot_position_z,
+    slot_linear_x,linear_y_reload,slot_linear_y,linear_z_reload,slot_linear_z,
+    slot_angular_x,slot_angular_y,slot_angular_z
+};
+using Words=std::array<std::uint32_t,3>;
+
+// Frame (the adapter's): locals() and query_position() (1D8B20: the body's
+// position into the given address).
+template<class Memory,class Frame> void refresh(Memory &memory,Frame &frame,std::uint32_t index) {
+    using enum Access;
+    const auto &local=frame.locals();
+    const auto component=memory.load32(component_argument,local.component_argument);
+    // The slot is located before the position query; the body is read from
+    // the slot array as it is after it.
+    const auto slot=element(memory.load32(slots,at(component,component_body_slots)),index,sizeof(BodySlot));
+    frame.query_position(component,index,local.position);
+    const auto slot_now=element(memory.load32(slots_again,at(component,component_body_slots)),index,sizeof(BodySlot));
+    const auto body=memory.load32(body_read,at(slot_now,offsetof(BodySlot,body)));
+    const bool moving=memory.load8(motionless,at(body,body_motionless))==0u;
+    // The zero vector's address is read whether or not it is used.
+    const auto zero=memory.load32(zero_vector,globals::zero_vector);
+    const auto staged=[](std::uint32_t base,unsigned lane){return at(base,lane*4u);};
+
+    // The linear velocity: x is kept, y and z wait in the locals.
+    std::uint32_t linear_x_kept;
+    if(moving) {
+        const auto velocity=at(memory.load32(motion_read,at(body,body_motion)),motion_linear_velocity);
+        memory.store32(linear_x_staged,staged(local.linear_velocity,0),memory.load32(linear_x,staged(velocity,0)));
+        const auto y=memory.load32(linear_y,staged(velocity,1));
+        linear_x_kept=memory.load32(linear_x_reload,staged(local.linear_velocity,0));
+        memory.store32(linear_y_staged,staged(local.linear_velocity,1),y);
+        memory.store32(linear_z_staged,staged(local.linear_velocity,2),memory.load32(linear_z,staged(velocity,2)));
+    } else {
+        linear_x_kept=memory.load32(zero_linear_x,staged(zero,0));
+        const auto y=memory.load32(zero_linear_y,staged(zero,1));
+        const auto z=memory.load32(zero_linear_z,staged(zero,2));
+        memory.store32(zero_linear_y_staged,staged(local.linear_velocity,1),y);
+        memory.store32(zero_linear_z_staged,staged(local.linear_velocity,2),z);
+    }
+
+    // The angular velocity: a moving body's goes through the locals.
+    Words angular;
+    if(moving) {
+        const auto velocity=at(memory.load32(motion_again,at(body,body_motion)),motion_angular_velocity);
+        memory.store32(angular_x_staged,staged(local.angular_velocity,0),memory.load32(angular_x,staged(velocity,0)));
+        memory.store32(angular_y_staged,staged(local.angular_velocity,1),memory.load32(angular_y,staged(velocity,1)));
+        const auto z=memory.load32(angular_z,staged(velocity,2));
+        angular[1]=memory.load32(angular_y_reload,staged(local.angular_velocity,1));
+        angular[0]=memory.load32(angular_x_reload,staged(local.angular_velocity,0));
+        memory.store32(angular_z_staged,staged(local.angular_velocity,2),z);
+        angular[2]=memory.load32(angular_z_reload,staged(local.angular_velocity,2));
+    } else {
+        angular[0]=memory.load32(zero_angular_x,staged(zero,0));
+        angular[1]=memory.load32(zero_angular_y,staged(zero,1));
+        angular[2]=memory.load32(zero_angular_z,staged(zero,2));
+    }
+
+    // The snapshot, into the slot located before the query.
+    memory.store32(slot_position_x,at(slot,offsetof(BodySlot,position[0])),memory.load32(position_x,staged(local.position,0)));
+    memory.store32(slot_position_y,at(slot,offsetof(BodySlot,position[1])),memory.load32(position_y,staged(local.position,1)));
+    memory.store32(slot_position_z,at(slot,offsetof(BodySlot,position[2])),memory.load32(position_z,staged(local.position,2)));
+    memory.store32(slot_linear_x,at(slot,offsetof(BodySlot,linear_velocity[0])),linear_x_kept);
+    memory.store32(slot_linear_y,at(slot,offsetof(BodySlot,linear_velocity[1])),memory.load32(linear_y_reload,staged(local.linear_velocity,1)));
+    memory.store32(slot_linear_z,at(slot,offsetof(BodySlot,linear_velocity[2])),memory.load32(linear_z_reload,staged(local.linear_velocity,2)));
+    memory.store32(slot_angular_x,at(slot,offsetof(BodySlot,angular_velocity[0])),angular[0]);
+    memory.store32(slot_angular_y,at(slot,offsetof(BodySlot,angular_velocity[1])),angular[1]);
+    memory.store32(slot_angular_z,at(slot,offsetof(BodySlot,angular_velocity[2])),angular[2]);
+}
+} // namespace body_motion_snapshot
 } // namespace halo2::native_world_leaves

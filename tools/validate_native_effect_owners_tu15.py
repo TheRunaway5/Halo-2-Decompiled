@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prove the native TU1.5 effect owners (20680 lens query reset; C35D0 /
-C3300 / C2A80 per-view light fades; 176A40 / 252100 particle inputs).
+C3300 / C2A80 per-view light fades; 176A40 / 252100 particle inputs; 251A60 /
+250450 particle location update).
 
 Run through tools/run_test.py. Extracts the unmodified translated bodies from
 the checked-in lens flare and effect light view units (pinned) and the
@@ -24,6 +25,7 @@ import json
 import os
 from pathlib import Path
 import re
+import resource
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +39,9 @@ SYSTEMS = ROOT / 'src/rendering/effects/native_tu15_effect_owners_systems.hpp'
 SHARED = ROOT / 'src/physics/runtime/native_tu15_object_tick.hpp'
 SHARED_SYSTEMS = ROOT / 'src/physics/runtime/native_tu15_object_tick_systems.hpp'
 TEST = ROOT / 'tests/native_tu15_effect_owners_tests.cpp'
+PARTICLE_HEADER = ROOT / 'src/rendering/effects/native_tu15_particle_update.hpp'
+PARTICLE_SYSTEMS = ROOT / 'src/rendering/effects/native_tu15_particle_update_systems.hpp'
+PARTICLE_TEST = ROOT / 'tests/native_tu15_particle_update_tests.cpp'
 HELPER = ROOT / 'tools/native_effect_owner_replacements.py'
 # Branches no input can reach (see the owner doc): C3300 restores EDI from
 # its own push, so the loop handle is never -1 at C3631, and the scan start
@@ -45,6 +50,8 @@ HELPER = ROOT / 'tools/native_effect_owner_replacements.py'
 # before the call, so its zero-source path needs a 4EFA0 that returns a
 # nonzero EBX after the last input; the seeded cases have none.
 UNREACHABLE = {'lv_null_handle', 'lv_scan_negative', 'sa_zero_scan'}
+# The particle location's branches no input can reach: none so far.
+PARTICLE_UNREACHABLE = set()
 # (name, file, anchor, replacement[, harness mode]). The logic lives in
 # SYSTEMS and the ABI in the HEADER adapter; each mutant is an out-of-tree
 # copy of its file.
@@ -252,6 +259,59 @@ MUTANTS = [
     ('value-converted-lanes', HEADER, 'x[2]=replace_low(x[2],*result.converted);', 'x[2]=scalar(*result.converted);'),
     ('value-word-register', HEADER, 'case random_word:gp[current==Reader::particle_random_1_2?eax:ecx]=v;break;',
      'case random_word:gp[eax]=v;break;'),
+    # 251A60 / 250450 particle location update logic
+    ('particle-emitters-global', PARTICLE_SYSTEMS, 'emitters=0x52d718u;', 'emitters=0x52d71cu;'),
+    ('particle-particles-global', PARTICLE_SYSTEMS, 'particles=0x52d714u;', 'particles=0x52d718u;'),
+    ('particle-rest-threshold', PARTICLE_SYSTEMS, 'rest_speed_squared=0x46a4b0u;', 'rest_speed_squared=0x46a4b4u;'),
+    ('particle-updating-bit', PARTICLE_SYSTEMS, 'if(!((updating>>3)&kept.mark&0xffu))return frame.leave_emitter_update(Ending::idle);',
+     'if(!((updating>>2)&kept.mark&0xffu))return frame.leave_emitter_update(Ending::idle);'),
+    ('particle-cycles-bit', PARTICLE_SYSTEMS, 'step.cycles_flagged=((system_bits>>6)&kept.mark&0xffu)!=0;',
+     'step.cycles_flagged=((system_bits>>5)&kept.mark&0xffu)!=0;'),
+    ('particle-lod-positive', PARTICLE_SYSTEMS, 'step.lod_positive=sse::greater(lod,memory.load_float(zero,globals::zero));',
+     'step.lod_positive=sse::greater(memory.load_float(zero,globals::zero),lod);'),
+    ('particle-skip-flags', PARTICLE_SYSTEMS, 'if(flags_now&(particle_flags::dead|particle_flags::resting))step.motion=Motion::skipped;',
+     'if(flags_now&particle_flags::dead)step.motion=Motion::skipped;'),
+    ('particle-age-check', PARTICLE_SYSTEMS, 'else if(sse::below_or_unordered(one_value,memory.load_float(age_check,field(offsetof(ParticleDatum,age))))) {',
+     'else if(sse::greater(one_value,memory.load_float(age_check,field(offsetof(ParticleDatum,age))))) {'),
+    ('particle-speed-sum', PARTICLE_SYSTEMS, 'speed.x_squared_sum=sse::add(speed.x_squared_sum,speed.z_squared);',
+     'speed.x_squared_sum=sse::subtract(speed.x_squared_sum,speed.z_squared);'),
+    ('particle-rest-compare', PARTICLE_SYSTEMS, 'moves=sse::greater(speed.x_squared_sum,memory.load_float(rest_threshold,globals::rest_speed_squared));',
+     'moves=sse::greater(memory.load_float(rest_threshold,globals::rest_speed_squared),speed.x_squared_sum);'),
+    ('particle-unlanded-mask', PARTICLE_SYSTEMS, 'memory.store16(unlanded_store,field(offsetof(ParticleDatum,flags)),flags_now&0xffefu);',
+     'memory.store16(unlanded_store,field(offsetof(ParticleDatum,flags)),flags_now&0xfff7u);'),
+    ('particle-phase-order', PARTICLE_SYSTEMS,
+     '                memory.store16(unlanded_store,field(offsetof(ParticleDatum,flags)),flags_now&0xffefu);\n'
+     '                memory.store_float(phase_store,field(offsetof(ParticleDatum,phase)),turned);',
+     '                memory.store_float(phase_store,field(offsetof(ParticleDatum,phase)),turned);\n'
+     '                memory.store16(unlanded_store,field(offsetof(ParticleDatum,flags)),flags_now&0xffefu);'),
+    ('particle-min-compare', PARTICLE_SYSTEMS, 'const bool grows=sse::greater(current,memory.load_float(check,position(axis)));',
+     'const bool grows=sse::greater(memory.load_float(check,position(axis)),current);'),
+    ('particle-max-compare', PARTICLE_SYSTEMS, 'if(!sse::greater(value,memory.load_float(check,position(axis)))) {',
+     'if(sse::greater(value,memory.load_float(check,position(axis)))) {'),
+    ('particle-unlink-branch', PARTICLE_SYSTEMS, 'if(previous) {\n                memory.store32(previous_link,',
+     'if(!previous) {\n                memory.store32(previous_link,'),
+    ('particle-stop-bit', PARTICLE_SYSTEMS, 'bits&~system_flags::updating);', 'bits|system_flags::updating);'),
+    ('particle-size-greater', PARTICLE_SYSTEMS, 'size.lower_greater=sse::greater(size.lower,size.upper);',
+     'size.lower_greater=sse::greater(size.upper,size.lower);'),
+    ('particle-size-grew', PARTICLE_SYSTEMS, 'size.grew=sse::greater(largest,memory.load_float(size_maximum,local(LocationLocal::size)));',
+     'size.grew=sse::greater(memory.load_float(size_maximum,local(LocationLocal::size)),largest);'),
+    ('particle-undrawn-signed', PARTICLE_SYSTEMS, 'result.undrawn=signed_value(drawn)<signed_value(stamp);',
+     'result.undrawn=drawn<stamp;'),
+    ('particle-keep-undrawn', PARTICLE_SYSTEMS, 'definition_flags::keep_undrawn)!=0;', 'definition_flags::keep_undrawn)==0;'),
+    ('particle-center-half', PARTICLE_SYSTEMS, 'cx=sse::multiply(cx,half_value);cy=sse::multiply(cy,half_value);cz=sse::multiply(cz,half_value);',
+     'cx=sse::add(cx,half_value);cy=sse::multiply(cy,half_value);cz=sse::multiply(cz,half_value);'),
+    ('particle-group-sign', PARTICLE_SYSTEMS, 'element(tags,widen16(kept.definition),sizeof(TagInstance)));',
+     'element(tags,handle_index(kept.definition),sizeof(TagInstance)));'),
+    ('particle-extent-sub', PARTICLE_SYSTEMS, 'const auto ex=sse::subtract(grown.x_maximum,cx);',
+     'const auto ex=sse::subtract(cx,grown.x_maximum);'),
+    # 251A60 / 250450 particle location update adapter
+    ('particle-emitter-ret', PARTICLE_HEADER, 'this->ret(0x25077bu,0x18u);', 'this->ret(0x25077bu,0x14u);'),
+    ('particle-clear-args', PARTICLE_HEADER, 'kept.location=gp[ebx];kept.definition=gp[esi];kept.released=gp[edi];kept.emitter_table=gp[ebp];',
+     'kept.location=gp[ebx];kept.definition=gp[esi];kept.emitter_table=gp[ebp];'),
+    ('particle-select-call', PARTICLE_HEADER, 'this->call(0x251c3fu,0x251c42u,method,[&](State &v){method_child(v,method,0x251c3fu);});',
+     'this->call(0x251c3fu,0x251c43u,method,[&](State &v){method_child(v,method,0x251c3fu);});'),
+    ('particle-radius-c1', PARTICLE_HEADER, 'set_c1(rounded_up);this->s.fp.pop();',
+     '(void)rounded_up;this->s.fp.pop();'),
 ]
 
 
@@ -266,11 +326,11 @@ def helper():
     return module
 
 
-def compile_harness(scratch, name, includes, sanitizers=False):
+def compile_harness(scratch, name, includes, sanitizers=False, test=TEST):
     binary = scratch / name
     command = ['c++', '-std=c++20', '-O2', '-fno-fast-math', '-ffp-contract=off',
                *[f'-I{path}' for path in includes], f'-I{ROOT / "include"}', f'-I{ROOT / "src"}',
-               f'-I{scratch}', str(TEST), '-o', str(binary)]
+               f'-I{scratch}', str(test), '-o', str(binary)]
     if sanitizers:
         command[1:1] = ['-fsanitize=address,undefined', '-fno-sanitize-recover=all', '-fno-omit-frame-pointer']
     subprocess.run(command, check=True, cwd=scratch)
@@ -287,13 +347,27 @@ def run(binary, cases, mode=''):
 
 def check_binding(module):
     lens, light = LENS_UNIT.read_text(), LIGHT_UNIT.read_text()
-    units = [(lens, '20680'), (light, 'c35d0')] + [(path.read_text(), '176a40') for path in (STATE_UNIT, COMBAT_UNIT, DEATH_UNIT)]
-    for text, owner in units:
+    # The checks bind every proven owner, whatever BOUND holds.
+    bound = module.BOUND
+    module.BOUND = tuple(module.OWNERS)
+    try:
+        return check_bound_binding(module, lens, light)
+    finally:
+        module.BOUND = bound
+
+
+def check_bound_binding(module, lens, light):
+    units = [(lens, ['20680']), (light, ['c35d0']), (STATE_UNIT.read_text(), ['176a40', '251a60'])] + \
+        [(path.read_text(), ['176a40']) for path in (COMBAT_UNIT, DEATH_UNIT)]
+    for text, owners in units:
         output, installed = module.install(text, text)
-        if installed != [owner] or module.prefix(owner, text) not in output or module.REFERENCES_BEGIN not in output:
-            raise ValueError(f'Effect owner {owner} binding did not install')
+        if installed != owners or any(module.prefix(owner, text) not in output for owner in owners) or \
+                module.REFERENCES_BEGIN not in output:
+            raise ValueError(f'Effect owners {owners} binding did not install')
+        if '251a60' in owners and '#include "rendering/effects/native_tu15_particle_update.hpp"' not in output:
+            raise ValueError('Particle location binding did not include its adapter')
         if module.install(text, output)[1]:
-            raise ValueError(f'Effect owner {owner} binding is not idempotent')
+            raise ValueError(f'Effect owners {owners} binding is not idempotent')
     # A changed body anywhere in the closure keeps the translated route.
     for name, anchor, changed in (('20680', '0x531fc0u', '0x531fa0u'), ('c35d0', '0x110u', '0x10cu'),
                                   ('c3300', '0x46a0ccu', '0x46a0c8u'), ('c2a80', '0x46a178u', '0x46a17cu')):
@@ -305,20 +379,72 @@ def check_binding(module):
     state = STATE_UNIT.read_text()
     found = module.body(state, '252100')
     edited = state.replace(found[0], found[0].replace('0x46a160u', '0x46a164u', 1), 1)
-    if module.install(edited, edited)[1]:
+    if module.install(edited, edited)[1] != ['251a60']:
         raise ValueError('Effect owner binding accepted a changed 252100 body')
     # A direct-route 252100 without the 4EFA0 body it calls keeps the translated route.
     unrouted = state.replace(module.body(state, '4efa0')[0], '', 1)
-    if module.install(unrouted, unrouted)[1]:
+    if module.install(unrouted, unrouted)[1] != ['251a60']:
         raise ValueError('Effect owner binding accepted a missing 4EFA0 body')
+    # The particle location closure: a changed body, a missing child body, a
+    # missing dispatch or a non-identity operand keeps the translated route.
+    for name, anchor, changed in (('251a60', '0x46a0ccu', '0x46a0c8u'), ('250450', '0x46a4b0u', '0x46a4b4u')):
+        found = module.body(state, name)
+        edited = state.replace(found[0], found[0].replace(anchor, changed, 1), 1)
+        if edited == state or module.install(edited, edited)[1] != ['176a40']:
+            raise ValueError(f'Effect owner binding accepted a changed {name} body')
+    for child in ('2516c0', '2c40d0'):
+        missing = state.replace(module.body(state, child)[0], '', 1)
+        if module.install(missing, missing)[1] != ['176a40']:
+            raise ValueError(f'Effect owner binding accepted a missing {child.upper()} body')
+    undispatched = state.replace('static void dispatch(WorldState &s,', 'static void dispatched(WorldState &s,', 1)
+    if undispatched == state or module.install(undispatched, undispatched)[1] != ['176a40']:
+        raise ValueError('Effect owner binding accepted a missing dispatch')
+    remapped = state.replace('case 0x52d718u:return 0x52d718u;', 'case 0x52d718u:return 0x52d71cu;', 1)
+    if remapped == state or module.install(remapped, remapped)[1] != ['176a40']:
+        raise ValueError('Effect owner binding accepted a non-identity particle location operand')
     missing = light.replace(module.body(light, '16ea60')[0], '', 1)
     if module.install(missing, missing)[1]:
         raise ValueError('Effect owner binding accepted a missing 16EA60 body')
     mapped = light.replace('case 0x46a110u:return 0x46a110u;', 'case 0x46a110u:return 0x46a114u;', 1)
     if mapped == light or module.install(mapped, mapped)[1]:
         raise ValueError('Effect owner binding accepted a non-identity operand')
-    return dict(install=True, idempotent=True, units=len(units), changed_bodies_refused=5, missing_child_refused=2,
-                non_identity_refused=True)
+    return dict(install=True, idempotent=True, units=len(units), changed_bodies_refused=7, missing_child_refused=5,
+                non_identity_refused=2)
+
+
+def branch_names(header):
+    block = re.search(r'enum Branch : unsigned \{(.*?)\};', header.read_text(), re.S)[1]
+    block = re.sub(r'//[^\n]*', '', block)
+    return [name for name in re.sub(r'\s', '', block).split(',') if name and name != 'branch_count']
+
+
+def prove_particle(scratch, args):
+    """The particle location harness: every mode, coverage and sanitizers."""
+    release = compile_harness(scratch, 'particle-release', [], test=PARTICLE_TEST)
+    result = run(release, args.cases)
+    census = run(release, max(args.cases // 4, 1000), 'census')
+    verify = run(release, max(args.cases // 4, 1000), 'verify')
+    switched = run(release, max(args.cases // 8, 500), 'reference')
+    if switched['compared'] or not switched['refused']:
+        raise ValueError('The 251A60 reference switch did not keep 251A60 translated')
+    names = branch_names(PARTICLE_HEADER)
+    coverage = result['coverage'] | census['coverage'] | verify['coverage']
+    hit = {name for index, name in enumerate(names) if coverage >> index & 1}
+    missing = sorted(set(names) - hit - PARTICLE_UNREACHABLE)
+    reached_unreachable = sorted(hit & PARTICLE_UNREACHABLE)
+    report = dict(release=result, census=census, verify=verify, reference_switch=switched, branches=names,
+                  covered=sorted(hit), missing=missing, unreachable=sorted(PARTICLE_UNREACHABLE))
+    if reached_unreachable:
+        raise ValueError(f'Particle location branches documented as unreachable were reached: {reached_unreachable}')
+    if missing and not args.particle_only:
+        raise ValueError(f'Uncovered particle location branches: {missing}')
+    if not args.skip_sanitizers:
+        sanitized = compile_harness(scratch, 'particle-sanitized', [], sanitizers=True, test=PARTICLE_TEST)
+        report['sanitized'] = run(sanitized, max(args.cases // 5, 1000))
+        report['sanitized_verify'] = run(sanitized, 400, 'verify')
+        sanitized.unlink()
+    release.unlink()
+    return report
 
 
 def main():
@@ -329,18 +455,19 @@ def main():
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--skip-sanitizers', action='store_true')
     parser.add_argument('--skip-mutants', action='store_true')
+    parser.add_argument('--particle-only', action='store_true', help='investigation aid: only the particle location harness')
     args = parser.parse_args()
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Run through tools/run_test.py')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
     sources = [LENS_UNIT, LIGHT_UNIT, STATE_UNIT, COMBAT_UNIT, DEATH_UNIT, HEADER, SYSTEMS, SHARED, SHARED_SYSTEMS, TEST, HELPER,
-               Path(__file__).resolve()]
+               PARTICLE_HEADER, PARTICLE_SYSTEMS, PARTICLE_TEST, Path(__file__).resolve()]
     before = {str(path.relative_to(ROOT)): digest(path) for path in sources}
     module = helper()
     lens, light = LENS_UNIT.read_text(), LIGHT_UNIT.read_text()
     state, death = STATE_UNIT.read_text(), DEATH_UNIT.read_text()
     if module.admitted(lens) != ['20680'] or module.admitted(light) != ['c35d0'] or \
-            module.admitted(state) != ['176a40'] or module.admitted(death) != ['176a40'] or \
+            module.admitted(state) != ['176a40', '251a60'] or module.admitted(death) != ['176a40'] or \
             module.admitted(COMBAT_UNIT.read_text()) != ['176a40']:
         raise ValueError('Canonical effect owner bodies drifted from their pins')
     (scratch / 'state.inc').write_text(''.join(module.body(state, name)[0] + '\n' for name in ('252100', '176a40')))
@@ -355,15 +482,22 @@ def main():
     for name in ('252100', '176a40'):
         references += module.reference(module.body(state, name), name, '176a40')
     (scratch / 'references.inc').write_text(references)
+    (scratch / 'particle.inc').write_text(''.join(module.body(state, name)[0] + '\n' for name in ('250450', '251a60')))
+    (scratch / 'particle_references.inc').write_text(
+        ''.join(module.reference(module.body(state, name), name, '251a60') for name in ('250450', '251a60')))
     report = dict(passed=False, pins=module.PINS, binding=check_binding(module))
+    report['particle'] = prove_particle(scratch, args)
+    if args.particle_only:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+        print(json.dumps({key: report['particle'][key] for key in ('release', 'census', 'verify', 'reference_switch', 'missing')}))
+        return 0
     release = compile_harness(scratch, 'effect-release', [])
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
     switched = run(release, max(args.cases // 8, 500), 'reference')
-    block = re.search(r'enum Branch : unsigned \{(.*?)\};', HEADER.read_text(), re.S)[1]
-    block = re.sub(r'//[^\n]*', '', block)
-    names = [name for name in re.sub(r'\s', '', block).split(',') if name and name != 'branch_count']
+    names = branch_names(HEADER)
     coverage = result['coverage'] | census['coverage'] | verify['coverage'] | switched['coverage']
     hit = {name for index, name in enumerate(names) if coverage >> index & 1}
     missing = sorted(set(names) - hit - UNREACHABLE)
@@ -382,7 +516,7 @@ def main():
         report['sanitized_verify'] = run(sanitized, 400, 'verify')
         sanitized.unlink()
     release.unlink()
-    texts = {HEADER: HEADER.read_text(), SYSTEMS: SYSTEMS.read_text()}
+    texts = {path: path.read_text() for path in (HEADER, SYSTEMS, PARTICLE_HEADER, PARTICLE_SYSTEMS)}
 
     def screen(mutant):
         name, target, old, new = mutant[:4]
@@ -393,12 +527,16 @@ def main():
         directory = scratch / 'mutants' / name / 'rendering/effects'
         directory.mkdir(parents=True)
         (directory / target.name).write_text(text.replace(old, new, 1))
+        test = PARTICLE_TEST if target in (PARTICLE_HEADER, PARTICLE_SYSTEMS) else TEST
         try:
-            binary = compile_harness(scratch, f'mutant-{name}', [scratch / 'mutants' / name])
+            binary = compile_harness(scratch, f'mutant-{name}', [scratch / 'mutants' / name], test=test)
         except subprocess.CalledProcessError:
             return dict(name=name, rejected=False, error='mutant failed to compile')
         try:
-            runs = subprocess.run([str(binary), str(args.mutant_cases), *mode], capture_output=True, text=True, timeout=600)
+            def limit_memory():
+                resource.setrlimit(resource.RLIMIT_AS, (1 << 30, 1 << 30))
+            runs = subprocess.run([str(binary), str(args.mutant_cases), *mode], capture_output=True, text=True,
+                                  timeout=30, preexec_fn=limit_memory)
             rejected, diagnostic = runs.returncode != 0, runs.stderr.strip()[-200:]
         except subprocess.TimeoutExpired:
             rejected, diagnostic = True, 'timed out'

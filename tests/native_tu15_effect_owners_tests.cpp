@@ -346,7 +346,10 @@ template<class V> bool native(V &s,Owner owner) {
 }
 Result execute(Memory &memory,const Case &c,bool is_native) {
     Result result;
-    SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore &e){result.stores.push_back(e);};
+    SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore &e){
+        if(result.stores.size()>=100000)throw std::runtime_error("Store budget exceeded");
+        result.stores.push_back(e);
+    };
     SourcePhysicsWorldRuntimeServices services;
     constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
     if(is_native) {

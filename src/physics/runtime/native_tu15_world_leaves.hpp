@@ -19,7 +19,7 @@
 // tools/native_world_leaves_replacements.py installs the bridges into the
 // build-local specialized copy of the physics world unit, bound to the exact
 // canonical bodies they replace: 1F5FE0 (run_1f16f0), 2E4550 (run_2e0a60),
-// 303BA0 (run_300100) and 2E47B0 (run_2e0cc0).
+// 303BA0 (run_300100), 2E47B0 (run_2e0cc0) and 2E4760 (run_2e0c70).
 // HALO2_REFERENCE_PHYSICS_WORLD_LEAVES=1 restores the translated bodies.
 // HALO2_VERIFY_PHYSICS_WORLD_LEAVES=1 runs, for every admitted call, the native
 // leaf on the live bank while recording its ordered accesses (kind, pc,
@@ -34,6 +34,7 @@
 #include "physics/runtime/native_tu15_world_leaves_systems.hpp"
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <atomic>
 #include <bit>
 #include <cstdint>
@@ -74,7 +75,7 @@ enum ArrayBranch : unsigned {e_room=branch_count, e_grow, array_branch_end};
 // The coverage bits are coverage_words 64-bit words: branch b is bit b%64 of
 // word b/64. Word 0 keeps every owner before 1F76A0 at its original bit, so
 // their validators read it unchanged; the owners from 2F8630 to 2F36F0 read
-// words 0 and 1, and E8D80 reads word 2.
+// words 0 and 1, and E8D80 and 1D7260 read word 2.
 inline constexpr unsigned coverage_words=3u,coverage_bits=coverage_words*64u;
 static_assert(array_branch_end<=coverage_bits);
 inline std::atomic<std::uint64_t> &coverage(unsigned word=0u) {
@@ -159,18 +160,46 @@ template<class State> struct Trace {
     std::vector<std::uint64_t> time_stamps;  // the RDTSC service's results, served to the replay in order
 };
 
+// The functions whose instructions a bridge's kernel publishes: the owner and
+// the kernels it runs inline. Each function moved as one block between the
+// canonical image and TU1.5: an instruction is published as canonical +
+// published_offset (the physics world unit's kernels publish TU1.5 PCs, the
+// vehicle update unit's canonical ones), and its TU1.5 PC is canonical +
+// tu15_offset.
+struct Function {std::uint32_t first,last,published_offset,tu15_offset;};
+// Where a call publishes. Direct: the published PCs go to the cursor and to
+// the store observer. Remapped (the phantom composition's canonical-PC
+// remap, PhysicsInstructionRemapTu15): the cursor receives TU1.5 PCs and the
+// store observer, the composition's own remapping observer, canonical ones.
+struct Publication {
+    std::uint32_t *cursor{};
+    std::span<const Function> remapped;  // empty: direct
+    const Function &function(std::uint32_t pc)const {
+        for(const auto &f:remapped)if(pc>=f.first && pc<=f.last)return f;
+        throw std::logic_error("Native physics world leaf published an instruction outside its functions");
+    }
+    std::uint32_t cursor_pc(std::uint32_t pc)const {
+        if(remapped.empty())return pc;
+        const auto &f=function(pc);return pc-f.published_offset+f.tu15_offset;
+    }
+    std::uint32_t store_pc(std::uint32_t pc)const {
+        if(remapped.empty())return pc;
+        return pc-function(pc).published_offset;
+    }
+};
+
 // The original's memory, general registers and cursor, as one leaf call sees
 // them. Reads and stores use the unit's helpers; each first publishes its
 // instruction to the cursor (so a faulting access reports the original
 // instruction) and, in verify mode, is recorded.
 template<class State> struct Port {
     using Flags=std::remove_cvref_t<decltype(std::declval<State&>().flags)>;
-    State &s;std::uint32_t *cursor;Trace<State> *trace;
+    State &s;Publication publication;Trace<State> *trace;
     std::array<std::uint32_t,8> gp;Flags flags;
     std::array<std::uint64_t,coverage_words> hit{};
-    Port(State &state,std::uint32_t *c,Trace<State> *t):s(state),cursor(c),trace(t),gp(state.gp),flags(state.flags){}
+    Port(State &state,const Publication &p,Trace<State> *t):s(state),publication(p),trace(t),gp(state.gp),flags(state.flags){}
     void reached(unsigned branch){hit[branch/64u]|=std::uint64_t(1)<<(branch%64u);}
-    void at(std::uint32_t pc){if(cursor)*cursor=pc;}
+    void at(std::uint32_t pc){if(publication.cursor)*publication.cursor=publication.cursor_pc(pc);}
     void record(std::uint32_t kind,std::uint32_t pc,std::uint32_t address,unsigned width,const void *bytes) {
         if(!trace)return;
         Event e{kind,pc,address,width,{}};std::memcpy(e.bytes.data(),bytes,width);trace->events.push_back(e);
@@ -193,12 +222,13 @@ template<class State> struct Port {
         at(pc);const auto value=physics_step_detail::v(s.memory,address);record(0,pc,address,16,&value);return value;
     }
     void store(std::uint32_t pc,std::uint32_t address,unsigned width,std::uint64_t value) {
-        at(pc);physics_step_detail::w(s.memory,s.observe,pc,address,width,value);record(1,pc,address,width,&value);
+        at(pc);const auto site=publication.store_pc(pc);
+        physics_step_detail::w(s.memory,s.observe,site,address,width,value);record(1,site,address,width,&value);
     }
     // MOVAPS m128,xmm: the unit's two ordered 8-byte stores.
     void store_vector(std::uint32_t pc,std::uint32_t address,__m128 value) {
-        at(pc);physics_step_detail::vw(s.memory,s.observe,pc,address,value);
-        std::uint64_t half[2];std::memcpy(half,&value,16);record(1,pc,address,8,&half[0]);record(1,pc,address+8u,8,&half[1]);
+        at(pc);const auto site=publication.store_pc(pc);physics_step_detail::vw(s.memory,s.observe,site,address,value);
+        std::uint64_t half[2];std::memcpy(half,&value,16);record(1,site,address,8,&half[0]);record(1,site,address+8u,8,&half[1]);
     }
     void push(std::uint32_t pc,std::uint32_t value){gp[esp]-=4u;store(pc,gp[esp],4,value);}
     std::uint32_t pop(std::uint32_t pc){const auto value=read(pc,gp[esp],4);gp[esp]+=4u;return value;}
@@ -2109,8 +2139,8 @@ template<class State,class Children> void kernel_1f76a0(Port<State> &port,Childr
 // ECX = out, [ESP+4] = the rotation, [ESP+8] = the vector. PUSH EBP; MOV
 // EBP,ESP; the AND ESP,-16 before the store decides EFLAGS. EAX = the
 // rotation's address; XMM0 the result, XMM1 the x coordinate's broadcast,
-// XMM2 and XMM3 the z and y terms. RET 8. 2F8630 runs it inline; it is not
-// bound at its own body.
+// XMM2 and XMM3 the z and y terms. RET 8. 2F8630 runs it inline; its other
+// callers enter it at its own body (bridge_2e4760).
 constexpr std::uint32_t forward_instruction(logic::havok_rotation::ForwardAccess a) {
     using enum logic::havok_rotation::ForwardAccess;
     switch(a) {
@@ -4004,6 +4034,126 @@ template<class State,class Dispatch> void kernel_e8d80(Port<State> &port,Dispatc
     port.ret(0xe7ee6u,4u);port.publish(0xe7ee6u);
 }
 
+// ---- 1D7260 body motion snapshot ------------------------------------------
+// EAX = the body's index, [ESP+4] = the havok component; RET 4. SUB ESP,24;
+// EBX and EBP saved before the argument read, ESI and EDI after the slot
+// array's. T, the ESP after them: +10 the linear velocity, +1C the angular
+// velocity, +28 the position (1D8B20's output).
+// Registers: EBP = the component (then the motionless linear y and the
+// copied position words), EBX = the slot (+18 for the angular velocity),
+// ESI = index*60 (then the body, then the slot's words), EDI = the position's
+// address (then the linear velocity's x, y and z), CL = the motionless byte,
+// EDX = the zero vector's address. 1D8B20 (ECX = the component, EAX = the
+// index, EDI = the output; RET) is a genuine child through the unit's route.
+// At exit EAX, ECX and EDX are the angular velocity; XMM0 a moving body's
+// angular z (MOVSS); EFLAGS the final ADD ESP,24.
+inline constexpr std::uint32_t snapshot_position_target=0x1d8b20u,snapshot_position_return=0x1d7281u;
+constexpr std::uint32_t snapshot_instruction(logic::body_motion_snapshot::Access a) {
+    using enum logic::body_motion_snapshot::Access;
+    switch(a) {
+    case component_argument:return 0x1d7265u;case slots:return 0x1d7269u;case slots_again:return 0x1d7281u;case body_read:return 0x1d7284u;
+    case motionless:return 0x1d7288u;case zero_vector:return 0x1d728du;
+    case motion_read:return 0x1d7295u;case linear_x:return 0x1d7298u;case linear_x_staged:return 0x1d72a0u;case linear_y:return 0x1d72a6u;
+    case linear_x_reload:return 0x1d72abu;case linear_y_staged:return 0x1d72afu;case linear_z:return 0x1d72b5u;
+    case linear_z_staged:return 0x1d72bau;
+    case zero_linear_x:return 0x1d72c4u;case zero_linear_y:return 0x1d72c6u;case zero_linear_z:return 0x1d72c9u;
+    case zero_linear_y_staged:return 0x1d72ccu;case zero_linear_z_staged:return 0x1d72d0u;
+    case motion_again:return 0x1d72d8u;case angular_x:return 0x1d72dbu;case angular_x_staged:return 0x1d72e3u;
+    case angular_y:return 0x1d72e9u;case angular_y_staged:return 0x1d72eeu;case angular_z:return 0x1d72f4u;
+    case angular_y_reload:return 0x1d72f9u;case angular_x_reload:return 0x1d72fdu;case angular_z_staged:return 0x1d7301u;
+    case angular_z_reload:return 0x1d7307u;
+    case zero_angular_x:return 0x1d730du;case zero_angular_y:return 0x1d730fu;case zero_angular_z:return 0x1d7312u;
+    case position_x:return 0x1d7315u;case slot_position_x:return 0x1d731bu;case position_y:return 0x1d731du;
+    case slot_position_y:return 0x1d7321u;case position_z:return 0x1d7324u;case slot_position_z:return 0x1d7328u;
+    case slot_linear_x:return 0x1d732eu;case linear_y_reload:return 0x1d7330u;case slot_linear_y:return 0x1d7334u;
+    case linear_z_reload:return 0x1d7337u;case slot_linear_z:return 0x1d733eu;
+    case slot_angular_x:return 0x1d7342u;case slot_angular_y:return 0x1d7345u;case slot_angular_z:return 0x1d7349u;
+    }
+    return 0;
+}
+// 1D7260 (validated by tools/validate_native_body_motion_snapshot_tu15.py).
+enum SnapshotBranch : unsigned {m_moving=flag_update_branch_end,m_motionless,snapshot_branch_end};
+static_assert(snapshot_branch_end<=coverage_bits);
+
+template<class State,class Children> struct SnapshotAbi {
+    using Access=logic::body_motion_snapshot::Access;
+    Port<State> &port;Children &children;
+    std::uint32_t t;  // ESP after the saves
+    logic::body_motion_snapshot::Locals local{};
+    SnapshotAbi(Port<State> &p,Children &c,std::uint32_t entry):port(p),children(c),t(entry-0x34u) {
+        local={.component_argument=entry+4u,.linear_velocity=t+0x10u,.angular_velocity=t+0x1cu,.position=t+0x28u};
+    }
+    std::uint32_t &reg(unsigned r){return port.gp[r];}
+    // TEST CL,CL before each velocity.
+    void test_motionless(){port.flags.logic(reg(ecx)&0xffu,1);}
+
+    // ---- Schedule: before each access
+    std::uint32_t instruction(Access a,std::uint32_t) {
+        using enum logic::body_motion_snapshot::Access;
+        auto &flags=port.flags;
+        switch(a) {
+        case component_argument:port.push(0x1d7263u,reg(ebx));port.push(0x1d7264u,reg(ebp));break;
+        case motion_read:case zero_linear_x:
+            port.reached(a==motion_read?m_moving:m_motionless);
+            if(a==zero_linear_x)reg(eax)=reg(edx);  // MOV EAX,EDX
+            break;
+        case linear_x_staged:reg(eax)=flags.plus(reg(eax),logic::body_motion_snapshot::motion_linear_velocity,4);break;
+        case motion_again:case zero_angular_x:test_motionless();break;
+        case angular_x_staged:reg(eax)=flags.plus(reg(eax),logic::body_motion_snapshot::motion_angular_velocity,4);break;
+        case slot_position_x:reg(esi)=reg(ebx);break;
+        case slot_linear_x:reg(esi)=reg(ebx)+0xcu;break;
+        case slot_linear_z:reg(ebx)=flags.plus(reg(ebx),0x18u,4);break;
+        case slot_angular_x:reg(edi)=port.pop(0x1d7341u);break;
+        case slot_angular_y:reg(esi)=port.pop(0x1d7344u);break;
+        case slot_angular_z:reg(ebp)=port.pop(0x1d7348u);break;
+        default:break;
+        }
+        return snapshot_instruction(a);
+    }
+    // ---- Schedule: after each load
+    void loaded(Access a,std::uint32_t value) {
+        using enum logic::body_motion_snapshot::Access;
+        switch(a) {
+        case component_argument:case zero_linear_y:case position_x:case position_y:case position_z:reg(ebp)=value;break;
+        case slots:reg(ebx)=value;break;
+        case slots_again:case motion_read:case motion_again:case zero_linear_z:case angular_x_reload:case zero_angular_x:reg(eax)=value;break;
+        case body_read:reg(esi)=value;break;
+        case motionless:reg(ecx)=(reg(ecx)&0xffffff00u)|(value&0xffu);test_motionless();break;
+        case zero_vector:case angular_z_reload:case zero_angular_z:reg(edx)=value;break;
+        case linear_x_reload:case zero_linear_x:case linear_y_reload:case linear_z_reload:reg(edi)=value;break;
+        case angular_y_reload:case zero_angular_y:reg(ecx)=value;break;
+        case angular_z:port.set_xmm(0,scalar(std::bit_cast<float>(value)));break;  // MOVSS: the last XMM0 load
+        default:break;
+        }
+    }
+    // ---- Frame
+    const logic::body_motion_snapshot::Locals &locals()const{return local;}
+    // 1D8B20: PUSH ESI; LEA ESI,[EAX+EAX*2]; PUSH EDI; SHL ESI,5;
+    // LEA EDI,[ESP+28]; MOV ECX,EBP; ADD EBX,ESI; CALL.
+    void query_position(std::uint32_t component,std::uint32_t index,std::uint32_t position) {
+        auto &flags=port.flags;
+        port.push(0x1d726cu,reg(esi));reg(esi)=reg(eax)*3u;
+        port.push(0x1d7270u,reg(edi));reg(esi)=flags.shift(reg(esi),5u,4);
+        reg(edi)=reg(esp)+0x28u;reg(ecx)=reg(ebp);reg(ebx)=flags.plus(reg(ebx),reg(esi),4);
+        if(reg(ecx)!=component || reg(eax)!=index || reg(edi)!=position || reg(esp)!=t)
+            throw std::logic_error("Native 1D7260 position query arguments differ from the registers");
+        port.push(0x1d727cu,snapshot_position_return);
+        genuine_child(port,t,"1D7260",[&]{port.call_child(snapshot_position_target,children.position);});
+    }
+};
+template<class State,class Children> void kernel_1d7260(Port<State> &port,Children &children) {
+    auto &gp=port.gp;
+    const auto entry=gp[esp],index=gp[eax];
+    gp[esp]=port.flags.minus(gp[esp],0x24u,4);  // SUB ESP,24 (flags overwritten before any observation)
+    SnapshotAbi<State,Children> abi(port,children,entry);
+    Memory<Port<State>,SnapshotAbi<State,Children>> memory{port,abi};
+    logic::body_motion_snapshot::refresh(memory,abi,index);
+    if(gp[esp]!=abi.t+0xcu)throw std::logic_error("Native 1D7260 frame is unbalanced");
+    gp[ebx]=port.pop(0x1d734cu);
+    gp[esp]=port.flags.plus(gp[esp],0x24u,4);  // ADD ESP,24 decides the final flags
+    port.ret(0x1d7350u,4u);port.publish(0x1d7350u);
+}
+
 // ---- Admission, dispatch and verification ----------------------------------
 // Serves the translated reference's reads from the native record (same order,
 // address and width) and checks its stores (address, width, bytes). Its child
@@ -4059,14 +4209,14 @@ template<class State> void replay_child(State &s,std::uint32_t target) {
 }
 struct VerifySummary {
     // 1F5FE0, 2E4550, 303BA0, 2E47B0, 303EE0, 303C70, 303D00, 304350, 30CF40, 304130, 2F33B0, 1F76A0,
-    // 2F8630, 2E4FE0, 1F7C10, 1F6D10, 2F36F0, E8D80
-    std::atomic<std::uint64_t> calls[18]{},accesses{},stores{},children{};
+    // 2F8630, 2E4FE0, 1F7C10, 1F6D10, 2F36F0, E8D80, 1D7260, 2E4760
+    std::atomic<std::uint64_t> calls[20]{},accesses{},stores{},children{};
     ~VerifySummary() {
         std::uint64_t any=0;for(const auto &c:calls)any|=c.load();
         if(any)
             std::fprintf(stderr,"Physics world leaves verify: 1F5FE0 %llu, 2E4550 %llu, 303BA0 %llu, 2E47B0 %llu, 303EE0 %llu, "
                 "303C70 %llu, 303D00 %llu, 304350 %llu, 30CF40 %llu, 304130 %llu, 2F33B0 %llu, 1F76A0 %llu, "
-                "2F8630 %llu, 2E4FE0 %llu, 1F7C10 %llu, 1F6D10 %llu, 2F36F0 %llu, E8D80 %llu calls; "
+                "2F8630 %llu, 2E4FE0 %llu, 1F7C10 %llu, 1F6D10 %llu, 2F36F0 %llu, E8D80 %llu, 1D7260 %llu, 2E4760 %llu calls; "
                 "%llu ordered accesses (%llu stores) and %llu child boundaries identical, coverage %s\n",
                 (unsigned long long)calls[0].load(),(unsigned long long)calls[1].load(),(unsigned long long)calls[2].load(),
                 (unsigned long long)calls[3].load(),(unsigned long long)calls[4].load(),(unsigned long long)calls[5].load(),
@@ -4074,7 +4224,8 @@ struct VerifySummary {
                 (unsigned long long)calls[9].load(),(unsigned long long)calls[10].load(),(unsigned long long)calls[11].load(),
                 (unsigned long long)calls[12].load(),(unsigned long long)calls[13].load(),(unsigned long long)calls[14].load(),
                 (unsigned long long)calls[15].load(),(unsigned long long)calls[16].load(),
-                (unsigned long long)calls[17].load(),(unsigned long long)accesses.load(),
+                (unsigned long long)calls[17].load(),(unsigned long long)calls[18].load(),
+                (unsigned long long)calls[19].load(),(unsigned long long)accesses.load(),
                 (unsigned long long)stores.load(),(unsigned long long)children.load(),coverage_text().data());
     }
     // The coverage words as one hexadecimal number, most significant first.
@@ -4093,30 +4244,117 @@ inline VerifySummary &summary(){static VerifySummary value;return value;}
 // translated body.
 inline bool &bypass(){thread_local bool value=false;return value;}
 
+// The functions each bridge publishes (TU1.5 first and last instruction,
+// canonical delta), the owner first. The world unit publishes TU1.5 PCs, so
+// published_offset is the delta too; E8D80 publishes canonical PCs.
+namespace published {
+inline constexpr Function f_1f5fe0[]{{0x1f5fe0u,0x1f61a6u,0x48f0u,0x48f0u}};
+inline constexpr Function f_2e4550[]{{0x2e4550u,0x2e4645u,0x3af0u,0x3af0u}};
+inline constexpr Function f_303ba0[]{{0x303ba0u,0x303bfeu,0x3aa0u,0x3aa0u}};
+inline constexpr Function f_2e47b0[]{{0x2e47b0u,0x2e481cu,0x3af0u,0x3af0u}};
+inline constexpr Function f_2e4760[]{{0x2e4760u,0x2e47a4u,0x3af0u,0x3af0u}};
+inline constexpr Function f_303ee0[]{{0x303ee0u,0x303f46u,0x3ae0u,0x3ae0u},{0x303ba0u,0x303bfeu,0x3aa0u,0x3aa0u}};
+inline constexpr Function f_303c70[]{{0x303c70u,0x303cfdu,0x3aa0u,0x3aa0u}};
+inline constexpr Function f_303d00[]{{0x303d00u,0x303d99u,0x3aa0u,0x3aa0u}};
+inline constexpr Function f_304350[]{
+    {0x304350u,0x304ab7u,0x3ae0u,0x3ae0u},
+    {0x30bad0u,0x30bad5u,0x3af0u,0x3af0u},
+    {0x303c70u,0x303cfdu,0x3aa0u,0x3aa0u},
+    {0x303d00u,0x303d99u,0x3aa0u,0x3aa0u},
+    {0x303ee0u,0x303f46u,0x3ae0u,0x3ae0u},
+    {0x303ba0u,0x303bfeu,0x3aa0u,0x3aa0u},
+    {0x2e47b0u,0x2e481cu,0x3af0u,0x3af0u}
+};
+inline constexpr Function f_30cf40[]{{0x30cf40u,0x30d190u,0x3af0u,0x3af0u}};
+inline constexpr Function f_304130[]{{0x304130u,0x304341u,0x3ae0u,0x3ae0u}};
+inline constexpr Function f_2f33b0[]{{0x2f33b0u,0x2f3428u,0x3ac0u,0x3ac0u}};
+inline constexpr Function f_1f76a0[]{{0x1f76a0u,0x1f77abu,0x48f0u,0x48f0u}};
+inline constexpr Function f_2f8630[]{
+    {0x2f8630u,0x2f88c4u,0x3a60u,0x3a60u},
+    {0x2e4550u,0x2e4645u,0x3af0u,0x3af0u},
+    {0x2e4760u,0x2e47a4u,0x3af0u,0x3af0u}
+};
+inline constexpr Function f_2e4fe0[]{{0x2e4fe0u,0x2e5312u,0x3b00u,0x3b00u},{0x2e4550u,0x2e4645u,0x3af0u,0x3af0u}};
+inline constexpr Function f_1f7c10[]{{0x1f7c10u,0x1f7d79u,0x48f0u,0x48f0u}};
+inline constexpr Function f_1f6d10[]{{0x1f6d10u,0x1f6f98u,0x48f0u,0x48f0u},{0x2e4550u,0x2e4645u,0x3af0u,0x3af0u}};
+inline constexpr Function f_2f36f0[]{
+    {0x2f36f0u,0x2f3dd6u,0x3ac0u,0x3ac0u},
+    {0x2e4550u,0x2e4645u,0x3af0u,0x3af0u},
+    {0x30bad0u,0x30bad5u,0x3af0u,0x3af0u}
+};
+inline constexpr Function f_1d7260[]{{0x1d7260u,0x1d7350u,0x48c0u,0x48c0u}};
+inline constexpr Function f_e8d80[]{{0xe7e60u,0xe7ee6u,0x0u,0xf20u}};  // the vehicle update unit
+} // namespace published
+// True when the remap maps every canonical instruction of each function to
+// TU1.5 with that function's one delta (both ends present). The tables are
+// static, so a verified (table, functions) pair is remembered.
+inline bool remap_maps(const PhysicsInstructionRemapTu15 &mapped,std::span<const Function> functions) {
+    thread_local std::array<std::pair<const void*,const void*>,32> verified{};thread_local unsigned next{};
+    for(const auto &[table,plan]:verified)if(table==mapped.bindings.data() && plan==functions.data())return true;
+    const auto rows=mapped.bindings;
+    for(const auto &f:functions) {
+        const auto first=f.first-f.published_offset,last=f.last-f.published_offset;
+        auto row=std::lower_bound(rows.begin(),rows.end(),first,[](const auto &r,std::uint32_t pc){return r.key<pc;});
+        if(row==rows.end() || row->key!=first)return false;
+        for(;row!=rows.end() && row->key<=last;++row)if(row->value!=row->key+f.tu15_offset)return false;
+        if(std::prev(row)->key!=last)return false;
+    }
+    verified[next++%verified.size()]={mapped.bindings.data(),functions.data()};
+    return true;
+}
 // Admission keeps every case outside the authenticated domain translated:
-// another image, canonical observation PCs, unmasked MXCSR exceptions, active
-// traces, arbitrary store observers, full callbacks without a literal cursor
-// (except the census diagnostic) and service sites in the leaf.
-template<class State> bool admitted(const State &s,std::uint32_t first,std::uint32_t last,std::uint32_t *&cursor) {
+// another image, canonical observation PCs without the composition's remap,
+// unmasked MXCSR exceptions, active traces, arbitrary store observers, full
+// callbacks without a literal cursor (except the census diagnostic) and
+// service sites in the leaf. functions[0] is the owner.
+template<class State> bool admitted(const State &s,std::span<const Function> functions,Publication &out) {
     if(reference_mode() || bypass() || s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
-    if constexpr(requires{s.selected_observation_pcs;})if(!s.selected_observation_pcs)return false;
+    // The physics world unit publishes canonical PCs unless it selected
+    // TU1.5 observation PCs; the vehicle update unit always does.
+    bool canonical=true;
+    if constexpr(requires{s.selected_observation_pcs;})canonical=!s.selected_observation_pcs;
+    const auto &owner=functions.front();
     if((_mm_getcsr()&0x1f80u)!=0x1f80u)return false;
-    cursor=nullptr;
-    if(!s.services.instruction)return true;
-    if(native_census_detail::uncursored(s,first,last))return true;
-    if(!s.literal_service_sites || !s.instruction_cursor || !s.instruction_cursor->position)return false;
-    const auto *policy=s.instruction_cursor;
+    out={};
+    if(!canonical || owner.published_offset==0u) {
+        if(!s.services.instruction)return true;
+        if(native_census_detail::uncursored(s,owner.first,owner.last))return true;
+        if(s.literal_service_sites && s.instruction_cursor && s.instruction_cursor->position) {
+            const auto *policy=s.instruction_cursor;
+            if((policy->first_trace && *policy->first_trace) || (policy->second_trace && *policy->second_trace) ||
+                (s.observe && !policy->observation_only_stores))return false;
+            for(const auto site:policy->service_sites)if(site>=owner.first && site<=owner.last)return false;
+            out.cursor=policy->position;
+            return true;
+        }
+        if(!canonical)return false;
+    }
+    // The phantom composition's remap: the outer cursor holds TU1.5 PCs.
+    const auto *mapped=s.services.instruction?s.services.instruction.template target<PhysicsInstructionRemapTu15>():nullptr;
+    if(!mapped || !remap_maps(*mapped,functions))return false;
+    const auto in_functions=[&](std::uint32_t site) {
+        for(const auto &f:functions)if(site>=f.first-f.published_offset+f.tu15_offset && site<=f.last-f.published_offset+f.tu15_offset)return true;
+        return false;
+    };
+    const auto *policy=mapped->live_cursor();
+    if(!policy) {
+        // The census diagnostic's callbacks carry no cursor (as uncursored()).
+        if(!native_census_detail::enabled())return false;
+        for(const auto site:native_census_detail::service_sites)if(in_functions(site))return false;
+        out.remapped=functions;
+        return true;
+    }
     if((policy->first_trace && *policy->first_trace) || (policy->second_trace && *policy->second_trace) ||
         (s.observe && !policy->observation_only_stores))return false;
-    for(const auto site:policy->service_sites)if(site>=first && site<=last)return false;
-    cursor=policy->position;
+    for(const auto site:policy->service_sites)if(in_functions(site))return false;
+    out={policy->position,functions};
     return true;
 }
 // Run a leaf; in verify mode record it and replay the translated body.
-template<class State,class Reference,class Kernel> void execute(State &s,std::uint32_t *cursor,
+template<class State,class Reference,class Kernel> void execute(State &s,const Publication &publication,
     std::atomic<std::uint64_t> &calls,Reference reference,Kernel kernel) {
     const auto run=[&](Trace<State> *trace) {
-        Port<State> port(s,cursor,trace);
+        Port<State> port(s,publication,trace);
         const auto record=[&]{for(unsigned w=0;w<coverage_words;++w)coverage(w).fetch_or(port.hit[w],std::memory_order_relaxed);};
         try {kernel(port);} catch(...) {port.abandon();record();throw;}
         record();
@@ -4164,42 +4402,48 @@ template<class State,class Reference,class Kernel> void execute(State &s,std::ui
 }
 
 template<class State,class Reference> bool bridge_1f5fe0(State &s,Reference reference) {
-    std::uint32_t *cursor;if(!admitted(s,0x1f5fe0u,0x1f61a6u,cursor))return false;
-    execute(s,cursor,summary().calls[0],reference,[](Port<State> &port){kernel_1f5fe0(port);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_1f5fe0),publication))return false;
+    execute(s,publication,summary().calls[0],reference,[](Port<State> &port){kernel_1f5fe0(port);});
     return true;
 }
 template<class State,class Reference> bool bridge_2e4550(State &s,Reference reference) {
-    std::uint32_t *cursor;if(!admitted(s,0x2e4550u,0x2e4645u,cursor))return false;
-    execute(s,cursor,summary().calls[1],reference,[](Port<State> &port){kernel_2e4550(port);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2e4550),publication))return false;
+    execute(s,publication,summary().calls[1],reference,[](Port<State> &port){kernel_2e4550(port);});
     return true;
 }
 template<class State,class Reference> bool bridge_303ba0(State &s,Reference reference) {
-    std::uint32_t *cursor;if(!admitted(s,0x303ba0u,0x303bfeu,cursor))return false;
-    execute(s,cursor,summary().calls[2],reference,[](Port<State> &port){kernel_303ba0(port);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_303ba0),publication))return false;
+    execute(s,publication,summary().calls[2],reference,[](Port<State> &port){kernel_303ba0(port);});
     return true;
 }
 template<class State,class Reference> bool bridge_2e47b0(State &s,Reference reference) {
-    std::uint32_t *cursor;if(!admitted(s,0x2e47b0u,0x2e481cu,cursor))return false;
-    execute(s,cursor,summary().calls[3],reference,[](Port<State> &port){kernel_2e47b0(port);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2e47b0),publication))return false;
+    execute(s,publication,summary().calls[3],reference,[](Port<State> &port){kernel_2e47b0(port);});
+    return true;
+}
+// 2E4760 at its own body (2F8630 runs it inline instead).
+template<class State,class Reference> bool bridge_2e4760(State &s,Reference reference) {
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2e4760),publication))return false;
+    execute(s,publication,summary().calls[19],reference,[](Port<State> &port){kernel_2e4760(port);});
     return true;
 }
 // reference: the translated body with its 2E3250 call routed to replay_child;
 // reserve: the 2E3250 route.
 template<class State,class Reference,class Reserve> bool bridge_303ee0(State &s,Reference reference,Reserve reserve) {
-    std::uint32_t *cursor;if(!admitted(s,0x303ee0u,0x303f46u,cursor))return false;
-    execute(s,cursor,summary().calls[4],reference,[&](Port<State> &port){kernel_303ee0(port,reserve);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_303ee0),publication))return false;
+    execute(s,publication,summary().calls[4],reference,[&](Port<State> &port){kernel_303ee0(port,reserve);});
     return true;
 }
 // reference: the translated body with its dispatch calls routed to
 // replay_child; dispatch(state,target,site): the unit's dispatch.
 template<class State,class Reference,class Dispatch> bool bridge_303c70(State &s,Reference reference,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x303c70u,0x303cfdu,cursor))return false;
-    execute(s,cursor,summary().calls[5],reference,[&](Port<State> &port){kernel_303c70(port,dispatch);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_303c70),publication))return false;
+    execute(s,publication,summary().calls[5],reference,[&](Port<State> &port){kernel_303c70(port,dispatch);});
     return true;
 }
 template<class State,class Reference,class Dispatch> bool bridge_303d00(State &s,Reference reference,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x303d00u,0x303d99u,cursor))return false;
-    execute(s,cursor,summary().calls[6],reference,[&](Port<State> &port){kernel_303d00(port,dispatch);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_303d00),publication))return false;
+    execute(s,publication,summary().calls[6],reference,[&](Port<State> &port){kernel_303d00(port,dispatch);});
     return true;
 }
 // The translated children of 304350, each entered through the unit's route:
@@ -4213,9 +4457,9 @@ template<class Update,class Weld,class Confirm,class Report,class Dispatch,class
 };
 template<class State,class Reference,class Update,class Weld,class Confirm,class Report,class Dispatch,class Reserve>
 bool bridge_304350(State &s,Reference reference,Update update,Weld weld,Confirm confirm,Report report,Dispatch dispatch,Reserve reserve) {
-    std::uint32_t *cursor;if(!admitted(s,0x304350u,0x304ab7u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_304350),publication))return false;
     CollectionChildren<Update,Weld,Confirm,Report,Dispatch,Reserve> children{update,weld,confirm,report,dispatch,reserve};
-    execute(s,cursor,summary().calls[7],reference,[&](Port<State> &port){kernel_304350(port,children);});
+    execute(s,publication,summary().calls[7],reference,[&](Port<State> &port){kernel_304350(port,children);});
     return true;
 }
 // The translated children of 30CF40: reserve (2E31E0) and dispatch (the
@@ -4225,23 +4469,23 @@ bool bridge_304350(State &s,Reference reference,Update update,Weld weld,Confirm 
 template<class Reserve,class Dispatch> struct ReportChildren {Reserve reserve;Dispatch dispatch;};
 template<class State,class Reference,class Reserve,class Dispatch>
 bool bridge_30cf40(State &s,Reference reference,Reserve reserve,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x30cf40u,0x30d190u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_30cf40),publication))return false;
     ReportChildren<Reserve,Dispatch> children{reserve,dispatch};
-    execute(s,cursor,summary().calls[8],reference,[&](Port<State> &port){kernel_30cf40(port,children);});
+    execute(s,publication,summary().calls[8],reference,[&](Port<State> &port){kernel_30cf40(port,children);});
     return true;
 }
 // 304130's test (303800) is entered through the unit's dispatch. reference:
 // the translated body with it routed to replay_child.
 template<class State,class Reference,class Dispatch> bool bridge_304130(State &s,Reference reference,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x304130u,0x304341u,cursor))return false;
-    execute(s,cursor,summary().calls[9],reference,[&](Port<State> &port){kernel_304130(port,dispatch);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_304130),publication))return false;
+    execute(s,publication,summary().calls[9],reference,[&](Port<State> &port){kernel_304130(port,dispatch);});
     return true;
 }
 // 2F33B0 runs its recursion inline. reference: the translated body, whose
 // recursion re-enters the bound body with the native route bypassed.
 template<class State,class Reference> bool bridge_2f33b0(State &s,Reference reference) {
-    std::uint32_t *cursor;if(!admitted(s,0x2f33b0u,0x2f3428u,cursor))return false;
-    execute(s,cursor,summary().calls[10],reference,[](Port<State> &port){kernel_2f33b0(port);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2f33b0),publication))return false;
+    execute(s,publication,summary().calls[10],reference,[](Port<State> &port){kernel_2f33b0(port);});
     return true;
 }
 // 1F76A0's children: canonical(target) (the unit's canonical_branch(), which
@@ -4251,9 +4495,9 @@ template<class State,class Reference> bool bridge_2f33b0(State &s,Reference refe
 template<class Canonical,class Dispatch> struct FilterChildren {Canonical canonical;Dispatch dispatch;};
 template<class State,class Reference,class Canonical,class Dispatch>
 bool bridge_1f76a0(State &s,Reference reference,Canonical canonical,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x1f76a0u,0x1f77abu,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_1f76a0),publication))return false;
     FilterChildren<Canonical,Dispatch> children{canonical,dispatch};
-    execute(s,cursor,summary().calls[11],reference,[&](Port<State> &port){kernel_1f76a0(port,children);});
+    execute(s,publication,summary().calls[11],reference,[&](Port<State> &port){kernel_1f76a0(port,children);});
     return true;
 }
 // 2F8630's children: features (30E930) and points (30D350), each through the
@@ -4262,9 +4506,9 @@ bool bridge_1f76a0(State &s,Reference reference,Canonical canonical,Dispatch dis
 template<class Features,class Points> struct ClosestPointChildren {Features features;Points points;};
 template<class State,class Reference,class Features,class Points>
 bool bridge_2f8630(State &s,Reference reference,Features features,Points points) {
-    std::uint32_t *cursor;if(!admitted(s,0x2f8630u,0x2f88c4u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2f8630),publication))return false;
     ClosestPointChildren<Features,Points> children{features,points};
-    execute(s,cursor,summary().calls[12],reference,[&](Port<State> &port){kernel_2f8630(port,children);});
+    execute(s,publication,summary().calls[12],reference,[&](Port<State> &port){kernel_2f8630(port,children);});
     return true;
 }
 // 2E4FE0's children: may_sweep (283380), set_up_cache (309060) and
@@ -4276,9 +4520,9 @@ template<class MaySweep,class SetUpCache,class Query,class Dispatch> struct Swep
 };
 template<class State,class Reference,class MaySweep,class SetUpCache,class Query,class Dispatch>
 bool bridge_2e4fe0(State &s,Reference reference,MaySweep may_sweep,SetUpCache set_up_cache,Query query,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x2e4fe0u,0x2e5312u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2e4fe0),publication))return false;
     SweptPairChildren<MaySweep,SetUpCache,Query,Dispatch> children{may_sweep,set_up_cache,query,dispatch};
-    execute(s,cursor,summary().calls[13],reference,[&](Port<State> &port){kernel_2e4fe0(port,children);});
+    execute(s,publication,summary().calls[13],reference,[&](Port<State> &port){kernel_2e4fe0(port,children);});
     return true;
 }
 // 1F7C10's children: filter (1F76A0), polygon (1F5FE0) and is_static (283450),
@@ -4290,9 +4534,9 @@ template<class Filter,class Polygon,class IsStatic,class Dispatch> struct ChildS
 };
 template<class State,class Reference,class Filter,class Polygon,class IsStatic,class Dispatch>
 bool bridge_1f7c10(State &s,Reference reference,Filter filter,Polygon polygon,IsStatic is_static,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x1f7c10u,0x1f7d79u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_1f7c10),publication))return false;
     ChildShapeChildren<Filter,Polygon,IsStatic,Dispatch> children{filter,polygon,is_static,dispatch};
-    execute(s,cursor,summary().calls[14],reference,[&](Port<State> &port){kernel_1f7c10(port,children);});
+    execute(s,publication,summary().calls[14],reference,[&](Port<State> &port){kernel_1f7c10(port,children);});
     return true;
 }
 // 1F6D10's children: query_structure (2E9670), filter_keys (1F6FA0) and
@@ -4304,9 +4548,9 @@ template<class QueryStructure,class FilterKeys,class Filter,class Dispatch> stru
 };
 template<class State,class Reference,class QueryStructure,class FilterKeys,class Filter,class Dispatch>
 bool bridge_1f6d10(State &s,Reference reference,QueryStructure query_structure,FilterKeys filter_keys,Filter filter,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x1f6d10u,0x1f6f98u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_1f6d10),publication))return false;
     AabbQueryChildren<QueryStructure,FilterKeys,Filter,Dispatch> children{query_structure,filter_keys,filter,dispatch};
-    execute(s,cursor,summary().calls[15],reference,[&](Port<State> &port){kernel_1f6d10(port,children);});
+    execute(s,publication,summary().calls[15],reference,[&](Port<State> &port){kernel_1f6d10(port,children);});
     return true;
 }
 // 2F36F0's children: reserve (2E31E0), construct (2F3430), destroy (2F34D0)
@@ -4319,17 +4563,26 @@ template<class Reserve,class Construct,class Destroy,class Sort,class Dispatch> 
 };
 template<class State,class Reference,class Reserve,class Construct,class Destroy,class Sort,class Dispatch>
 bool bridge_2f36f0(State &s,Reference reference,Reserve reserve,Construct construct,Destroy destroy,Sort sort,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0x2f36f0u,0x2f3dd6u,cursor))return false;
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_2f36f0),publication))return false;
     ChildAgentChildren<Reserve,Construct,Destroy,Sort,Dispatch> children{reserve,construct,destroy,sort,dispatch};
-    execute(s,cursor,summary().calls[16],reference,[&](Port<State> &port){kernel_2f36f0(port,children);});
+    execute(s,publication,summary().calls[16],reference,[&](Port<State> &port){kernel_2f36f0(port,children);});
     return true;
 }
 // E8D80 (the vehicle update unit's VehicleState): its update functions go
 // through the unit's dispatch. reference: the translated body with the
 // dispatch routed to replay_child.
 template<class State,class Reference,class Dispatch> bool bridge_e8d80(State &s,Reference reference,Dispatch dispatch) {
-    std::uint32_t *cursor;if(!admitted(s,0xe7e60u,0xe7ee6u,cursor))return false;
-    execute(s,cursor,summary().calls[17],reference,[&](Port<State> &port){kernel_e8d80(port,dispatch);});
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_e8d80),publication))return false;
+    execute(s,publication,summary().calls[17],reference,[&](Port<State> &port){kernel_e8d80(port,dispatch);});
+    return true;
+}
+// 1D7260's child: position (1D8B20), through the unit's route. reference: the
+// translated body with it routed to replay_child.
+template<class Position> struct SnapshotChildren {Position position;};
+template<class State,class Reference,class Position> bool bridge_1d7260(State &s,Reference reference,Position position) {
+    Publication publication;if(!admitted(s,std::span<const Function>(published::f_1d7260),publication))return false;
+    SnapshotChildren<Position> children{position};
+    execute(s,publication,summary().calls[18],reference,[&](Port<State> &port){kernel_1d7260(port,children);});
     return true;
 }
 } // namespace halo2::native_world_leaves_detail

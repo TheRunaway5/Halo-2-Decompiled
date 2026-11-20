@@ -1,5 +1,6 @@
 """Bind the native TU1.5 physics world leaves (1F5FE0 collision surface polygon,
-2E4550 relative transform, 303BA0 record copy, 2E47B0 transposed rotation).
+2E4550 relative transform, 303BA0 record copy, 2E47B0 transposed rotation,
+2E4760 rotation into world).
 
 The prefix is installed only into the build-local specialized copy of the
 physics world unit, and only when the complete canonical body matches its pin
@@ -18,6 +19,7 @@ PINS = {
     '2e0a60': ('55f4ef2e24b85265d8a26ee3084ba99d9901b1da85b90f92e1560a2b801e3985', '2e4550', 'bridge_2e4550', {}),
     '300100': ('a338cf2eeba4c5cc1b6eded33e05c8bc9ceacc1041cc6ea6630845be5ccf2681', '303ba0', 'bridge_303ba0', {}),
     '2e0cc0': ('32776d387bf6764d699f02a5e5762bd532a6ca9be7d7801c0eed5f57945cab9d', '2e47b0', 'bridge_2e47b0', {}),
+    '2e0c70': ('879b5a694bd14b6ba40d1b6350c1c2c3a389b7da0043cdefc876aaa251a52924', '2e4760', 'bridge_2e4760', {}),
 }
 # Packed SSE: the first operand owns the NaN payload when both are NaNs. As for
 # 2E44D0/2E46E0, the translated reference keeps explicit destinations too;

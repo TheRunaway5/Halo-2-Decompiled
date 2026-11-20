@@ -113,6 +113,9 @@ MUTANTS = [
 ]
 
 
+REMAP = Path(__file__).resolve().with_name('native_world_leaves_remap_sites.py')
+
+
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -157,7 +160,11 @@ def main():
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Run through tools/run_test.py')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
-    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, BUFFERS, ARRAY, LEAVES, Path(__file__).resolve()]
+    spec = importlib.util.spec_from_file_location('native_world_leaves_remap_sites', REMAP)
+    remap_sites = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remap_sites)
+    remap_sites.write(scratch, 'world_sites')
+    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, BUFFERS, ARRAY, LEAVES, Path(__file__).resolve()] + remap_sites.SOURCES
     before = {str(path.relative_to(ROOT)): digest(path) for path in sources}
     text = UNIT.read_text()
     module = load(HELPER, 'native_collection_agent_replacements')
@@ -206,6 +213,8 @@ def main():
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
+    # The phantom/world composition's canonical-PC remap (release, census, verify).
+    report['remap'] = remap_sites.run_modes(run, release, max(args.cases // 4, 1000))
     header = HEADER.read_text()
     offset = (len(enum_names(header, 'Branch')) - 1 + len(enum_names(header, 'ArrayBranch')) - 1 +
               len(enum_names(header, 'LocalBufferBranch')) - 1)

@@ -26,6 +26,7 @@
 // Modes: <cases> [census|verify]. Prints a JSON summary with branch coverage.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "physics/runtime/native_tu15_world_leaves.hpp"
+#include "native_tu15_world_leaves_remap.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -212,12 +213,13 @@ template<class Native,class Translated> Result execute(Memory &memory,const Case
     constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
     if(is_native) {
         services.instruction=[](auto){throw std::runtime_error("Native object flag update delivered a translated instruction");};
-        if(!census_mode) {
+        if(!census_mode && leaves_remap::live_cursor) {
             auto &cursor=services.instruction_cursor;cursor.position=&result.cursor;cursor.service_sites=sites;
             cursor.callback_type=&services.instruction.target_type();cursor.executor=std::this_thread::get_id();
             cursor.literal_service_sites=true;cursor.observation_only_stores=true;
         }
     } else services.instruction=[&](std::uint32_t pc){result.cursor=pc;};
+    SourcePhysicsWorldRuntimeServices outer;leaves_remap::wrap(services,outer);
     ObservedWorldState s{memory,observe,services,SourcePhysicsContactImage::TitleUpdate15};
     try{s.load(c.abi);}catch(const std::exception &e){result.fault=e.what();return result;}
     const auto saved=_mm_getcsr();_mm_setcsr(c.mxcsr);
@@ -292,15 +294,26 @@ int compare(const char *owner,unsigned cases,std::uint32_t seed,Totals &totals,A
 int main(int argc,char **argv)try {
     const unsigned cases=argc>1?unsigned(std::stoul(argv[1])):4000;
     const std::string mode=argc>2?argv[2]:"";
-    census_mode=mode=="census";verify=mode=="verify";
+    const auto base=leaves_remap::parse(mode);census_mode=base=="census";verify=base=="verify";
     if(census_mode)setenv("HALO2_CENSUS_NATIVE_BRIDGES","1",1);
     if(verify)setenv("HALO2_VERIFY_PHYSICS_WORLD_LEAVES","1",1);
-    const std::uint32_t variant=(census_mode?1u:0u)+(verify?2u:0u);
+    const std::uint32_t variant=(census_mode?1u:0u)+(verify?2u:0u)+(leaves_remap::enabled?4u:0u);
     Totals flags;
-    if(compare("E8D80",cases,0xe8d80u+variant,flags,author_flags,
-        [](ObservedWorldState &s){return leaves::bridge_e8d80(s,[](auto &v){t_flags::native_world_leaves_reference_e7e60(v);},
-            [](auto &v,std::uint32_t target,std::uint32_t site){t_flags::dispatch(v,target,site,false);});},
-        [](ObservedWorldState &s){t_flags::run_e7e60(s);}))return 1;
+    const auto native=[](ObservedWorldState &s){return leaves::bridge_e8d80(s,[](auto &v){t_flags::native_world_leaves_reference_e7e60(v);},
+            [](auto &v,std::uint32_t target,std::uint32_t site){t_flags::dispatch(v,target,site,false);});};
+    const auto translated=[](ObservedWorldState &s){t_flags::run_e7e60(s);};
+    if(compare("E8D80",cases,0xe8d80u+variant,flags,author_flags,native,translated))return 1;
+    // Under the composition's remap the bridge refuses a table that does not
+    // map its canonical instructions with one delta, and a remap without a
+    // live cursor; with both it runs.
+    if(leaves_remap::enabled && !census_mode) {
+        const auto ran=[&] {
+            std::mt19937 local(0x5eed0u);auto c=author_flags(local,0);auto bank=c.memory.clone();
+            const auto r=execute(bank,c,true,native,translated);return r.admitted || !r.fault.empty();
+        };
+        if(!leaves_remap::refuses_bad_remaps(0xe7e60u,0xe7ee6u,ran))
+            throw std::runtime_error("E8D80 admitted a remap that does not cover it");
+    }
     std::printf("{\"cases\":%u,\"compared\":%llu,\"ordered_stores\":%llu,\"faults\":%llu,\"child_calls\":%llu,"
         "\"coverage\":%llu,\"coverage_high\":%llu,\"coverage_top\":%llu,\"mode\":\"%s\"}\n",
         cases,(unsigned long long)flags.compared,(unsigned long long)flags.stores,(unsigned long long)flags.faults,

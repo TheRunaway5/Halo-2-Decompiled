@@ -654,10 +654,11 @@ void codec_track(Frame& f,u32 decoder) {
     sparse_rotation(f,decoder==0x297270u?2u:1u);
     return;
   case 0x296db0u:    // scale, sparse keys
+  case 0x297550u:    // scale, sparse word keys
   case 0x296c60u:    // translation, sparse keys
   case 0x297400u: {  // translation, sparse word keys
-    const bool scale=decoder==0x296db0u;
-    const u32 key_width=decoder==0x297400u?2u:1u;
+    const bool scale=decoder==0x296db0u || decoder==0x297550u;
+    const u32 key_width=(decoder==0x297400u || decoder==0x297550u)?2u:1u;
     const u32 packed=f.r32(f.r32(data+(scale?0x10u:0xcu))+f.r32(codec_state+(scale?0x6cu:0x68u))*4u+data);
     const u32 count=packed&0xfffu,first=packed>>12;
     const u32 keys=f.r32(data+(scale?0x1cu:0x18u))+first*key_width+data;
@@ -839,7 +840,7 @@ void frames_direct(Frame& f,bool masked,bool events=false) {
     });
   }
 }
-// 285A70 (mode 1), 2868A0/2861A0 (mode 2, `root_only`, masked): kind 0
+// 285A70/285370 (mode 1), 2868A0/2861A0 (mode 2, `root_only`, masked): kind 0
 // through the inherited entry's remap. Mode 2 decodes translation and
 // scale for node 0 only.
 void frames_remapped(Frame& f,bool masked,bool root_only,bool events=false) {
@@ -881,7 +882,7 @@ void frames_layered(Frame& f,bool masked,bool blend,bool partial=false) {
     });
   }
 }
-// 290710 (mode 1), 291E30/2912A0 (mode 2): kind 3 through the remap; and
+// 290710/28FBA0 (mode 1), 291E30/2912A0 (mode 2): kind 3 through the remap; and
 // 28C8F0/28BF00 (kind 2, mode 1, `blend` false), whose translation and
 // scale layering takes output-first operands masked or not. Node 0's
 // decoded z translation is scaled by the entry's +18 first.
@@ -1014,10 +1015,39 @@ void frames_layered_second_masked(Frame& f,bool blend,bool partial=false) {
     });
   }
 }
+// 28B870/28C2C0 (kind 2, mode 1), 28F460/290030 (kind 3, mode 1),
+// 290B50/291740 (kind 3, mode 2), 287D00/2887F0 (kind 1, mode 1),
+// 289240/289D60 (kind 1, mode 2): remapped second-frame layered loops.
+void frames_layered_remapped_second(Frame& f,bool masked,bool root_only,bool blend,bool partial=false) {
+  u32 count=state(f,0x0cu);
+  reset_tracks(f);
+  for(u32 pass=0;pass<3u;++pass) {
+    set_state(f,0x70u,codec_temp);
+    flag_pass(f,state(f,0x40u+4u*pass),count,[]{},[&](u32 n,bool bit){
+      if(!bit)return;
+      u32 out=0;
+      if(remapped(f,n,masked,out)) {
+        decode_track(f,pass);
+        const u32 fraction=state(f,0x1cu),frame=state(f,0x14u),next=state(f,0x18u);
+        set_state(f,0x14u,state(f,0x54u));set_state(f,0x18u,state(f,0x58u));set_state(f,0x1cu,state(f,0x5cu));
+        set_state(f,0x70u,codec_second);
+        decode_track(f,pass);
+        blend_second(f,pass,false);
+        if(pass==1u && !n)f.w32(codec_temp+0x18u,f.mul(f.r32(state(f,0x28u)+0x18u),f.r32(codec_temp+0x18u)));
+        if(partial)layer_partial(f,pass,out);
+        else layer(f,pass,out,false,blend);
+        if(pass==2u && !root_only && (!partial || masked)){set_state(f,0x18u,next);set_state(f,0x14u,frame);}
+        else{set_state(f,0x14u,frame);set_state(f,0x18u,next);}
+        set_state(f,0x1cu,fraction);
+        set_state(f,0x70u,codec_temp);
+      }
+      count_track(f,pass);
+    });
+    if(pass==0u && root_only && s32(count)>1)count=1;
+  }
+}
 // 283570 with the selectors 2840D0 (kind 0), 2841B0 (kind 2), 284220
-// (kind 3), 284300/284390 (mode 2). Of the second-frame loops (+50 flag),
-// 28B080/28EAF0 and their masked forms 28A7D0/28E0B0 are native; the others
-// are refused by name.
+// (kind 3), 284300/284390 (mode 2).
 void codec_frames(Frame& f) {
   const u32 kind=state(f,0);
   if(kind>4u)return;
@@ -1025,10 +1055,9 @@ void codec_frames(Frame& f) {
   if(mode>2u)return;
   const bool masked=state(f,0x2cu)!=0,flag=f.r8(codec_state+0x50u)!=0;
   if(kind==1u) {  // 284140, 284330 (mode 2)
-    static constexpr const char* second[3][2]{{nullptr,nullptr},{"2887F0","287D00"},{"289D60","289240"}};
-    if(flag && mode!=0u)refuse(second[mode][masked],"animation codec kind 1 second-frame loop");
     if(flag) {
-      if(masked)frames_layered_second_masked(f,false,true);
+      if(mode!=0u)frames_layered_remapped_second(f,masked,mode==2u,false,true);
+      else if(masked)frames_layered_second_masked(f,false,true);
       else frames_layered_second(f,false,true);
     } else if(mode==0u)frames_layered(f,masked,false,true);
     else frames_layered_remapped(f,masked,mode==2u,false,true);
@@ -1046,13 +1075,14 @@ void codec_frames(Frame& f) {
       {{"28B080","28A7D0"},{"28C2C0","28B870"},{"284360","284360"}},
       {{"28EAF0","28E0B0"},{"290030","28F460"},{"291740","290B50"}}};
   static constexpr const char* unported[3][3][2]{
-      {{nullptr,nullptr},{nullptr,"285370"},{nullptr,nullptr}},
+      {{nullptr,nullptr},{nullptr,nullptr},{nullptr,nullptr}},
       {{nullptr,nullptr},{nullptr,nullptr},{"284360","284360"}},
-      {{nullptr,nullptr},{nullptr,"28FBA0"},{nullptr,nullptr}}};
+      {{nullptr,nullptr},{nullptr,nullptr},{nullptr,nullptr}}};
   const u32 k=kind==0u?0u:kind-1u;
   if(kind==2u && mode==2u)refuse("284360","animation codec kind 2 mode 2");
-  if(flag && kind!=0u && mode==0u){
-    if(masked)frames_layered_second_masked(f,kind==3u);
+  if(flag && kind!=0u){
+    if(mode!=0u)frames_layered_remapped_second(f,masked,mode==2u,kind==3u);
+    else if(masked)frames_layered_second_masked(f,kind==3u);
     else frames_layered_second(f,kind==3u);
     return;
   }

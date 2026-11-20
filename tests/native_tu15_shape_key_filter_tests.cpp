@@ -22,6 +22,7 @@
 // Modes: <cases> [census|verify].
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "physics/runtime/native_tu15_world_leaves.hpp"
+#include "native_tu15_world_leaves_remap.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -220,9 +221,10 @@ template<class Native,class Translated> Result execute(Memory &memory,const Case
             cursor.literal_service_sites=true;cursor.observation_only_stores=true;
         }
     } else services.instruction=[&](std::uint32_t pc){result.cursor=pc;};
+    SourcePhysicsWorldRuntimeServices outer;leaves_remap::wrap(services,outer);
     ObservedWorldState s{memory,observe,services,SourcePhysicsContactImage::TitleUpdate15};
     try{s.load(c.abi);}catch(const std::exception &e){result.fault=e.what();return result;}
-    s.selected_observation_pcs=true;
+    s.selected_observation_pcs=!leaves_remap::enabled;
     const auto saved=_mm_getcsr();_mm_setcsr(c.mxcsr);
     try {
         if(is_native)result.admitted=native(s);else translated(s);
@@ -295,10 +297,10 @@ int compare(const char *owner,unsigned cases,std::uint32_t seed,Totals &totals,A
 int main(int argc,char **argv)try {
     const unsigned cases=argc>1?unsigned(std::stoul(argv[1])):4000;
     const std::string mode=argc>2?argv[2]:"";
-    census_mode=mode=="census";verify=mode=="verify";
+    const auto base=leaves_remap::parse(mode);census_mode=base=="census";verify=base=="verify";
     if(census_mode)setenv("HALO2_CENSUS_NATIVE_BRIDGES","1",1);
     if(verify)setenv("HALO2_VERIFY_PHYSICS_WORLD_LEAVES","1",1);
-    const std::uint32_t variant=(census_mode?1u:0u)+(verify?2u:0u);
+    const std::uint32_t variant=(census_mode?1u:0u)+(verify?2u:0u)+(leaves_remap::enabled?4u:0u);
     Totals filter;
     if(compare("1F76A0",cases,0x1f76a0u+variant,filter,author_filter,
         [](ObservedWorldState &s){return leaves::bridge_1f76a0(s,[](auto &v){t_filter::native_world_leaves_reference_1f2db0(v);},

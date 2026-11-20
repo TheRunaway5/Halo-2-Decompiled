@@ -1092,21 +1092,21 @@ CODEC_BANK, CODEC_BANK_SIZE = 0x510ef0, 0xb4
 CODEC_CLEARED = 0x56e000
 FORMAT_TABLE, FORMATS = 0x48c33c, 9
 NATIVE_TRACK_DECODERS = [0x296180, 0x296680, 0x296450, 0x296240, 0x2963d0, 0x2961f0, 0x296410, 0x296220, 0x2cec60,
-                         0x296c60, 0x296db0, 0x296ad0, 0x297270, 0x297400, 0x296700, 0x296540, 0x2962f0, 0x296620,
+                         0x296c60, 0x296db0, 0x296ad0, 0x297270, 0x297400, 0x297550, 0x296700, 0x296540, 0x2962f0, 0x296620,
                          0x296890, 0x2969e0]
-UNPORTED_TRACK_DECODERS = {0x2cebe0, 0x2cec20, 0x297550, 0x296e90, 0x297030, 0x297180}
-FRAME_DECODERS = [0x2847d0, 0x284d30, 0x285a70, 0x2861a0, 0x2868a0, 0x28ada0, 0x28b5f0, 0x28e730, 0x28f110, 0x290710,
-                  0x2912a0, 0x291e30, 0x28b080, 0x28eaf0, 0x28a7d0, 0x28e0b0, 0x28c8f0, 0x28bf00,
+UNPORTED_TRACK_DECODERS = {0x2cebe0, 0x2cec20, 0x296e90, 0x297030, 0x297180}
+FRAME_DECODERS = [0x2847d0, 0x284d30, 0x285370, 0x285a70, 0x2861a0, 0x2868a0, 0x28ada0, 0x28b5f0, 0x28e730, 0x28f110, 0x28fba0, 0x290710,
+                  0x2912a0, 0x291e30, 0x28b080, 0x28eaf0, 0x28a7d0, 0x28e0b0, 0x28b870, 0x28c2c0, 0x28f460, 0x290030, 0x290b50, 0x291740,
+                  0x28c8f0, 0x28bf00,
                   # kind 4 (283E10's event orientations): modes 0/1/2, unmasked and masked
                   0x293290, 0x2928e0, 0x2947b0, 0x293cb0, 0x295da0, 0x295280,
-                  # kind 1 (284140/284330, 2026-11-15): mode 0 (with its second-frame
-                  # loops), mode 1 and mode 2, masked and unmasked
-                  0x287130, 0x287a20, 0x286b30, 0x287480, 0x2883c0, 0x288e70, 0x289920, 0x28a3f0]
-# Frame loops 283A90 never selects (second-frame flag, kind 1) or that no
+                  # kind 1 (284140/284330, 2026-11-15): mode 0/1/2, masked and unmasked, with second-frame loops
+                  0x287130, 0x287a20, 0x286b30, 0x287480, 0x287d00, 0x2887f0, 0x2883c0, 0x288e70, 0x289240, 0x289d60, 0x289920, 0x28a3f0]
+# Frame loops 283A90 never selects or that no
 # census executes; each is refused under its own address. Kind 4's
 # second-frame loops are 292C90/292280, 2940F0/2935C0 and 2956D0/294B80.
-FRAME_REFUSALS = {0x2887f0, 0x287d00, 0x289d60, 0x289240, 0x2843f0, 0x2849f0, 0x284ee0, 0x285370, 0x285630, 0x285cf0, 0x286460,
-                  0x28b870, 0x28c2c0, 0x284360, 0x28f460, 0x28fba0, 0x290030, 0x290b50, 0x291740,
+FRAME_REFUSALS = {0x2843f0, 0x2849f0, 0x284ee0, 0x285630, 0x285cf0, 0x286460,
+                  0x284360,
                   0x292c90, 0x292280, 0x2940f0, 0x2935c0, 0x2956d0, 0x294b80}
 # Resource cache miss (125FB0), pending request release (1262F0's call of
 # 16E8A0 at 0x126307: placement's datum deletes run 16E8A0 natively), load
@@ -1198,7 +1198,7 @@ def codec_block(world, rng, at, fmt, frames=4, nan=.01):
                 world.put(at + table + 4 * t, rng.randrange(0, 9) << 12 | rng.choice([0, 1, 2, 3, 5, 8]))
         sorted_keys(world, rng, at + 0x100, 18, words, frames)
         sorted_keys(world, rng, at + 0x140, 18, words, frames)
-        sorted_keys(world, rng, at + 0x180, 18, False, frames)
+        sorted_keys(world, rng, at + 0x180, 18, words, frames)
         quantized(world, rng, at + 0x200, 18 * 2)
         codec_floats(world, rng, at + 0x300, 18 * 3, span=8, nan=nan)
         codec_floats(world, rng, at + 0x400, 18, span=2)
@@ -1207,9 +1207,6 @@ def codec_block(world, rng, at, fmt, frames=4, nan=.01):
 def codec_streams(world, rng, at, fmt):
     for n in range(0x40):
         flags = 0 if rng.random() < .25 else rng.getrandbits(8)
-        # 297550 (format 5/7 scale) is not native: keep its stream mostly clear.
-        if fmt in (5, 7) and rng.random() < .9 and n % 12 >= 8:
-            flags = 0
         put8_(world, at + n, flags)
 
 

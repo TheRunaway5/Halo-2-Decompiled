@@ -1,4 +1,5 @@
 #pragma once
+#include "physics/runtime/physics_instruction_remap_tu15.hpp"
 #include <cstdint>
 #include <cstdlib>
 
@@ -17,10 +18,15 @@ inline bool enabled() noexcept {
 }
 inline constexpr std::uint32_t service_sites[]{0x38846eu,0x21f590u,0x33b595u};
 // True for full callbacks without a cursor when the switch is set and no
-// service PC lies in [first,last].
+// service PC lies in [first,last]. A canonical-PC remap (the phantom/vehicle
+// composition's PhysicsInstructionRemapTu15) never carries a cursor, so
+// production refuses a bridge there; the census refuses it too, unless the
+// bridge admits the remap itself, so it does not report work as native that
+// production still runs translated.
 template<class State>bool uncursored(const State&s,std::uint32_t first,std::uint32_t last) noexcept {
     if constexpr(requires{s.instruction_cursor;s.services.instruction;}) {
         if(!enabled()||!s.services.instruction||s.instruction_cursor)return false;
+        if(s.services.instruction.template target<PhysicsInstructionRemapTu15>())return false;
         for(const auto site:service_sites)if(site>=first&&site<=last)return false;
         return true;
     } else return false;

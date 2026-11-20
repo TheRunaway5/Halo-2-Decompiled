@@ -9,6 +9,10 @@ from pathlib import Path
 from validate_native_tu15_prt_helpers import physical_original
 OBSERVER=Path(__file__).resolve().parent/'observe_native_campaign_ai_vector_math_tu15.cpp'
 OBSERVER_PIN='2251db1c3798ffaf339662f94c980efcca1d3e022491ace9e0a1824bebb9605e'
+# The 2026-11-17 observer adds the opt-in "query_names" joins (weapon
+# animation keys) and "stack_arguments"; without those case fields it runs
+# the original exactly as the pinned form does.
+OBSERVER_PINS={OBSERVER_PIN,'3a451d8084a6ef9458104675137db871046fa83e44250eab06b683790a30c07c'}
 MARKER='if(c.contains("stop_before_entries"))result.back()["stopped_at"]=std::uint32_t(regs.rip);'
 EXTENSION='''{
  const unsigned boundary_top=(fp.swd>>11u)&7u;unsigned boundary_depth=0;
@@ -22,7 +26,7 @@ def observe(image,rows,scratch,**options):
     def read(path,*args,**kwargs):
         text=original_reader(path,*args,**kwargs)
         if path.resolve()==OBSERVER:
-            if hashlib.sha256(text.encode()).hexdigest()!=OBSERVER_PIN or text.count(MARKER)!=1:raise ValueError('Complete original geometry diagnostic observer drift')
+            if hashlib.sha256(text.encode()).hexdigest() not in OBSERVER_PINS or text.count(MARKER)!=1:raise ValueError('Complete original geometry diagnostic observer drift')
             return text.replace(MARKER,EXTENSION+MARKER,1)
         return text
     Path.read_text=read

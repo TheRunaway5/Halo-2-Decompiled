@@ -51,6 +51,9 @@ MUTANTS = [
 ]
 
 
+REMAP = Path(__file__).resolve().with_name('native_world_leaves_remap_sites.py')
+
+
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -90,7 +93,11 @@ def main():
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Run through tools/run_test.py')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
-    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, LEAVES, Path(__file__).resolve()]
+    spec = importlib.util.spec_from_file_location('native_world_leaves_remap_sites', REMAP)
+    remap_sites = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remap_sites)
+    remap_sites.write(scratch, 'world_sites')
+    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, LEAVES, Path(__file__).resolve()] + remap_sites.SOURCES
     before = {str(path.relative_to(ROOT)): digest(path) for path in sources}
     text = UNIT.read_text()
     module = load(HELPER, 'native_contact_array_replacements')
@@ -120,6 +127,8 @@ def main():
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
+    # The phantom/world composition's canonical-PC remap (release, census, verify).
+    report['remap'] = remap_sites.run_modes(run, release, max(args.cases // 4, 1000))
     block = re.search(r'enum ArrayBranch : unsigned \{(.*?)\};', HEADER.read_text(), re.S)[1]
     names = [name.split('=')[0] for name in re.sub(r'\s', '', block).split(',') if name and name != 'array_branch_end']
     leaf_count = len([name for name in re.sub(r'\s|//[^\n]*', '', re.search(r'enum Branch : unsigned \{(.*?)\};', HEADER.read_text(), re.S)[1]).split(',') if name and name != 'branch_count'])

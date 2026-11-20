@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include "ui/mcc_pc_frontend_string_ids.hpp"
 #include <SDL.h>
 #include <algorithm>
@@ -21,10 +22,29 @@ std::string low_string(const FrontendContent &content, const UiScreen &screen, u
   return detail::frontend_pc_compiled_low_localized(content, screen, low);
 }
 std::atomic<std::uint64_t> pc_instance{1ull << 63};
-std::string upscaling_description(Upscaler method) {
-  return method==Upscaler::Off?
-      "Upscaling is off. Choose a method to upscale the world. Menus and HUD stay at native resolution.":
-      "Upscale the 3D world. Menus and HUD stay at native resolution.";
+unsigned build_upscaling_presentation(MenuFrame &frame, const DisplaySettings &display) {
+  online_protocol_bridge::UpscalingPanelFacts facts{};
+  facts.method_enabled = display.upscaler != Upscaler::Off;
+  if (frame.context == 0) {
+    facts.method_name = upscaler_name(display.upscaler);
+    facts.quality_name = upscaling_quality_name(display.upscaling_quality, display.upscaler);
+  } else if (frame.context == 1) {
+    facts.selected = unsigned(display.upscaler);
+    for (unsigned i = 0; i <= unsigned(Upscaler::DLSS45); ++i)
+      facts.choices.push_back(upscaler_name(Upscaler(i)));
+  } else {
+    facts.selected = unsigned(display.upscaling_quality);
+    for (unsigned i = 0; i <= unsigned(UpscalingQuality::UltraPerformance); ++i)
+      facts.choices.push_back(upscaling_quality_name(UpscalingQuality(i), display.upscaler));
+  }
+  auto panel = online_protocol_bridge::frontend_upscaling_panel(frame.context, std::move(facts));
+  frame.title = std::string(panel.title);
+  frame.description = std::string(panel.description);
+  frame.entries.clear();
+  frame.entries.reserve(panel.rows.size());
+  for (const auto &row : panel.rows)
+    frame.entries.push_back({std::string(row.label), row.opens_page ? int(frame.screen) : -2, row.value});
+  return panel.selected;
 }
 } // namespace
 PcKeyboardSettings MenuState::pc_keyboard_settings() const {
@@ -347,24 +367,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
       }
       break;
     }
-    f.title="UPSCALING";
-    if(context==0) {
-      f.entries.push_back({std::string("Method: ")+upscaler_name(pc_display_.upscaler),int(vista_menu(274)),1});
-      f.entries.push_back({std::string("Quality: ")+upscaling_quality_name(pc_display_.upscaling_quality,pc_display_.upscaler),int(vista_menu(274)),2});
-      f.description=upscaling_description(pc_display_.upscaler);
-    } else if(context==1) {
-      f.title="UPSCALING METHOD";
-      for(unsigned i=0;i<3;++i)f.entries.push_back({upscaler_name(Upscaler(i)),-2,int(i)});
-      f.selected=unsigned(pc_display_.upscaler);
-      f.description="FSR supports a wide range of graphics cards. DLSS requires an NVIDIA RTX graphics card.";
-    } else {
-      f.title="QUALITY MODE";
-      for(unsigned i=0;i<6;++i)f.entries.push_back({upscaling_quality_name(UpscalingQuality(i),pc_display_.upscaler),-2,int(i)});
-      f.selected=unsigned(pc_display_.upscaling_quality);
-      f.description=pc_display_.upscaler==Upscaler::Off?
-          "Choose a quality mode, then select an upscaling method to enable it.":
-          "DLAA and Native AA render the world at full resolution. Other modes trade detail for performance.";
-    }
+    f.selected = build_upscaling_presentation(f, pc_display_);
     break;
   case 290:
     add(0x95f, -2, 0);
@@ -599,9 +602,7 @@ void MenuState::accept_pc() {
     if(!error.empty()){unavailable(error);return;}
     pc_display_=v;save();back();update_path_tracing_entry();
     if(id==274 && is_vista_settings(frame().screen,274) && frame().context==0) {
-      stack_.back().entries.at(0).label=std::string("Method: ")+upscaler_name(pc_display_.upscaler);
-      stack_.back().entries.at(1).label=std::string("Quality: ")+upscaling_quality_name(pc_display_.upscaling_quality,pc_display_.upscaler);
-      stack_.back().description=upscaling_description(pc_display_.upscaler);
+      build_upscaling_presentation(stack_.back(), pc_display_);
     } else if(id==274 && is_vista_settings(frame().screen,274) && frame().context==video_path_tracing_context) {
       stack_.back().entries.at(0).label="Ray Samples Per Pixel: "+std::to_string(pc_display_.path_tracing_samples);
       stack_.back().entries.at(1).label="Bounce Depth: "+std::to_string(pc_display_.path_tracing_bounces);

@@ -62,7 +62,23 @@ MUTANTS = [
     (HEADER, 'flags-esi-shift', 'reg(esi)=flags.shift(reg(esi),2u,4);', 'reg(esi)=flags.shift(reg(esi),3u,4);'),
     (HEADER, 'flags-ret', 'port.ret(0xe7ee6u,4u);port.publish(0xe7ee6u);', 'port.ret(0xe7ee6u,8u);port.publish(0xe7ee6u);'),
     (HEADER, 'flags-keep-al', 'port.flags.logic(reg(eax)&0xffu,1);\n        return (reg(eax)&0xffu)!=0u;', 'port.flags.logic(reg(eax)&0xffu,1);\n        return (reg(eax)&0xfffu)!=0u;'),
+    # remap admission (the phantom/world composition)
+    (HEADER, 'flags-remap-delta', 'inline constexpr Function f_e8d80[]{{0xe7e60u,0xe7ee6u,0x0u,0xf20u}};',
+     'inline constexpr Function f_e8d80[]{{0xe7e60u,0xe7ee6u,0x0u,0xf10u}};'),
+    (HEADER, 'flags-remap-uniform', 'for(;row!=rows.end() && row->key<=last;++row)if(row->value!=row->key+f.tu15_offset)return false;',
+     'for(;row!=rows.end() && row->key<=last;++row);'),
+    (HEADER, 'flags-remap-last', '        if(std::prev(row)->key!=last)return false;\n',
+     ''),
+    (HEADER, 'flags-remap-first', 'if(row==rows.end() || row->key!=first)return false;',
+     'if(row==rows.end())return false;'),
+    (HEADER, 'flags-remap-cursor-pc', 'const auto &f=function(pc);return pc-f.published_offset+f.tu15_offset;',
+     'const auto &f=function(pc);return pc-f.published_offset;'),
+    (HEADER, 'flags-remap-census', '        if(!native_census_detail::enabled())return false;\n',
+     ''),
 ]
+REMAP = Path(__file__).resolve().with_name('native_world_leaves_remap_sites.py')
+
+
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -120,7 +136,11 @@ def main():
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Run through tools/run_test.py')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
-    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, Path(__file__).resolve()]
+    spec = importlib.util.spec_from_file_location('native_world_leaves_remap_sites', REMAP)
+    remap_sites = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(remap_sites)
+    remap_sites.write(scratch, 'vehicle_sites')
+    sources = [UNIT, HEADER, SYSTEMS, TEST, HELPER, Path(__file__).resolve()] + remap_sites.SOURCES
     before = {str(path.relative_to(ROOT)): digest(path) for path in sources}
     text = UNIT.read_text()
     module = load(HELPER, 'native_object_flag_update_replacements')
@@ -150,6 +170,8 @@ def main():
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
+    # The phantom/world composition's canonical-PC remap (release, census, verify).
+    report['remap'] = remap_sites.run_modes(run, release, max(args.cases // 4, 1000))
     header = HEADER.read_text()
     # The bits after the earlier word-1 owners' in coverage word 1.
     offset = 64 + sum(len(enum_names(header, name)) - 1 for name in ('ClosestPointBranch', 'SweptPairBranch', 'ChildShapeBranch', 'AabbQueryBranch', 'ChildAgentBranch'))
@@ -189,6 +211,10 @@ def main():
         if runs.returncode == 0:
             runs = subprocess.run([str(binary), str(max(args.mutant_cases // 3, 200)), 'verify'], capture_output=True, text=True)
             mode = 'verify'
+        if runs.returncode == 0:
+            # The composition's remap (admission, cursor and store PCs).
+            runs = subprocess.run([str(binary), str(max(args.mutant_cases // 3, 200)), 'remap'], capture_output=True, text=True)
+            mode = 'remap'
         binary.unlink()
         return dict(name=name, rejected=runs.returncode != 0, mode=mode, diagnostic=runs.stderr.strip()[-200:])
     mutants = []

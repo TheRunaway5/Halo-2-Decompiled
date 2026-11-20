@@ -2,13 +2,13 @@
   "cache": "assets/imported/mcc-7fde0eefc11d4530beed3cb109781361",
   "default_map": "coagulation.map",
   "eos_worker": {
-    "bytes": 2192552,
+    "bytes": 2192808,
     "name": "eos_sdk_worker",
     "schema": "H2_EOS_SDK_WORKER_V1",
-    "sha256": "ea1370fa37eb39de360affada0dc9e5bb8468f29c9c14daaacd4856188de21ab"
+    "sha256": "40ba69dffeabbb417cad705e1b7245b063639fee23a97abe5420e034a869cbab"
   },
-  "inventory": "bin/engine-builds/24e55c67483a41b8b00df94a01ed21c4/runtime-files.json",
-  "inventory_sha256": "43265ab32f8083b7d26ee65b0e2a4cd0fdd2c7f2cedd75a1a872a64f2851debb",
+  "inventory": "bin/engine-builds/69ad70d80bfc487eb0ab81165a6d6a41/runtime-files.json",
+  "inventory_sha256": "d46c2247a6b03a6cb4339f809f530bec652b30d89bbb962f4945581a3ec2ffea",
   "local_players": 2,
   "maps": {
     "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
@@ -37,10 +37,10 @@
     "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044",
     "zanzibar.map": "2751a31d21e01ff516f4a4300602e101579a7df59364716e884f8f7c28bfa080"
   },
-  "qualification": "bin/engine-builds/24e55c67483a41b8b00df94a01ed21c4/qualification.json",
-  "qualification_sha256": "8915c55653df123df39a2b9b4b1c21cc93df782a160d23127b3a5d5e408a2e5e",
-  "runtime": "bin/engine-builds/24e55c67483a41b8b00df94a01ed21c4/halo2_native",
-  "runtime_sha256": "eb8538ef5057c20731c6785f6ff523a3fd6ac8899811611aa24323f64034e7b0",
+  "qualification": "bin/engine-builds/69ad70d80bfc487eb0ab81165a6d6a41/qualification.json",
+  "qualification_sha256": "8055f297d6b545db96ebb908e9abdc56f042af8e011825a2d1eacf142be6060a",
+  "runtime": "bin/engine-builds/69ad70d80bfc487eb0ab81165a6d6a41/halo2_native",
+  "runtime_sha256": "ba125be7ac13542d36173d83a15b603df7a1d7492b18c1f75891248e987a8cb5",
   "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
   "video_driver": "x11"
 }

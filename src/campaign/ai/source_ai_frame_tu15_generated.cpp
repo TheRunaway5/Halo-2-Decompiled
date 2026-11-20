@@ -1,3 +1,4 @@
+#include "rendering/native_tu15_object_hierarchy_root.hpp"
 #include "campaign/ai/native_campaign_ai_command_source_owner.hpp"
 #include "gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp"
 #include "physics/runtime/native_tu15_packed_rotation_source_owner.hpp"
@@ -2838,6 +2839,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_bbd10(WorldState &s) {
+    if(halo2::native_object_hierarchy_root_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0xbbd10u);} s.set(0,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xbbd15u);} s.push(0xbbd15u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0xbbd16u);} s.set(6,r(s.memory,(selected(0x44u,s.image)+s.gp[0]),4),4,0);

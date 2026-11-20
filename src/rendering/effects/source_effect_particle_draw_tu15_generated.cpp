@@ -1,3 +1,4 @@
+#include "rendering/native_tu15_view_reset.hpp"
 #include "gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp"
 #include "rendering/native_tu15_bsp_admission.hpp"
 #include "rendering/native_tu15_geometry_visibility.hpp"
@@ -3358,6 +3359,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_1373f0(WorldState &s) {
+    if(halo2::native_view_reset_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x1373f0u);} s.set(0,r(s.memory,(0xcu+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1373f3u);} s.push(0x1373f3u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x1373f4u);} s.push(0x1373f4u,s.reg(6,4,0));

@@ -239,7 +239,7 @@ std::optional<nlohmann::json> local_gameplay(const Installation &installation) {
   std::ifstream final_input(path);
   if(nlohmann::json::parse(final_input)!=record)
     throw std::runtime_error("The MCC multiplayer selection changed during admission");
-  return record;
+  return std::optional<nlohmann::json>{std::in_place,record};
 }
 fs::path selected_prebuilt_runtime(const Installation &installation) {
   const auto &root=installation.root;

@@ -71,7 +71,7 @@ CONTEXT=0x61001000;DESCRIPTOR=0x61004000;OBJECT_QUEUE=0x61006000;LIGHT_QUEUE=0x6
 OBJECT_TABLE=0x61007000;RECORDS=0x61008000;AUX=0x61009000
 HEADS=(0x6100a010,0x6100a110,0x6100a210);POOLS=(0x6100b000,0x6100c000,0x6100d000)
 LIGHTS=0x6100e000;BSP=0x6100f000;FOG=0x61013000;STACK=0x62002000
-FAMILIES=20
+FAMILIES=21
 def bits(value):return struct.unpack('<I',struct.pack('<f',value))[0]
 class World:
     def __init__(self,image,rng):
@@ -164,6 +164,26 @@ def specification(family,v,rng):
         p['clusters']=[3];p['coll'][3]=[1];p['noncoll'][3]=[11];p['lights'][3]=[0xa0000001]
         p['direct']=dict(owner=1,listed=[0x20001],count=1,links=(0xffff,),stamps=(0,),capacity=4,used=0)
         p['sky']=dict(visible=1,index=0,selection=0,count=1,owners=[3])
+    if family==20:
+        if v<4:
+            # A sky owner word with bit 15 set: MOVSX ESI,AX makes the head
+            # offset negative, so the sky lists come from heads[-2..-7].
+            owner=(0xfffe,0xfffc,0xfff9,0xfffe)[v]
+            p['sky']=dict(visible=1,index=v%2,selection=0,count=2,owners=[owner,owner])
+            p['coll'][owner]=([],[3],[4,5],[2])[v];p['noncoll'][owner]=([12],[],[13],[11,14])[v]
+        elif v<6:
+            # The object queue holds only object 2 and its flags stream ends at
+            # 135B60's saved EBP: its mark_primary (OR BYTE [flags+row*2+1],4,
+            # the cluster in fog) changes the fog word 135B60 hands back in EBP.
+            # The original passes that EBP to the following admissions.
+            p['fog']=1;p['clusters']=[1];p['coll'][1]=[2,3]if v==4 else[2];p['noncoll'][1]=[11]if v==4 else[11,12]
+            p['fog_alias']=True
+        else:
+            # Listed light indices whose low byte and the IMUL product's low
+            # byte differ in parity (0x10, 0x13, 0x70): the flags 1350D4 leaves
+            # reach the compared packet of the next read.
+            listed=[0x20010,0x20013,0x10070,0x20001]if v==6 else[0x20070,0x20005,0x20010]
+            p['direct']=dict(owner=v,listed=listed,count=len(listed),links=(0xffff,)*len(listed),stamps=(0,)*len(listed),capacity=16,used=0)
     if p['count']is None:p['count']=len(p['clusters'])
     return p
 def build(image,rng,family,v):
@@ -204,23 +224,29 @@ def build(image,rng,family,v):
         put(0x4eabd0+idx*4,stamp if stamped else stamp^(1<<((v+idx)%31)))
     # The object queue holds most objects (stamped admission finds its row).
     queue=OBJECT_QUEUE+v;rows_count=(10,6,12,3,8,0,11,5)[v]if stamped else(0,2,7,3)[v%4]
-    alias=p.get('pool_alias')
-    if alias:rows_count=1
-    put(queue,16);put(queue+4,rows_count,2);put(queue+8,0x4eabb3 if alias else queue+0x200);put(queue+12,queue+0x100);put(queue+16,queue+0x300);put(queue+20,queue+0x400)
+    alias=p.get('pool_alias');stack_alias=p.get('fog_alias')
+    if alias or stack_alias:rows_count=1
+    # 135B60's saved EBP: 134D30's ESP is sp-0x34 after its prologue, four
+    # arguments and the return address put 135B60's entry ESP at sp-0x48, and
+    # its SUB ESP,14; PUSH EBX; PUSH EBP saves EBP at sp-0x64 (row 0, +1).
+    flags_stream=0x4eabb3 if alias else sp-0x65 if stack_alias else queue+0x200
+    put(queue,16);put(queue+4,rows_count,2);put(queue+8,flags_stream);put(queue+12,queue+0x100);put(queue+16,queue+0x300);put(queue+20,queue+0x400)
     for row in range(16):
         idx=1+(row*7+v)%15;put(queue+0x100+row*4,handles[idx]if row%5!=4 else handles[idx]^0x10000)
         put(queue+0x200+row*2,rng.choice((0,0x100,0x400,0x800)),2);put(queue+0x400+row*2,0xffff if row%4==3 else(row*3)%11,2)
     put(queue+0x1fe,rng.getrandbits(16),2);put(queue+0x3fe,(v*5)%13,2)
-    if alias:put(queue+0x100,handles[2])
+    if alias or stack_alias:put(queue+0x100,handles[2])
     # Cluster partitions: heads per cluster, entries pools of ClusterEntry.
     owners=(lambda idx:handles[idx],lambda idx:handles[idx],lambda handle:handle)
+    signed=lambda cluster:cluster-0x10000 if cluster>=0x8000 else cluster
+    low=min([-1]+[signed(cluster)for lists in(p['coll'],p['noncoll'],p['lights'])for cluster in lists])
     for which,lists in enumerate((p['coll'],p['noncoll'],p['lights'])):
         heads=HEADS[which];pool=POOLS[which];size=p['sizes'][which];data=pool+0x100;put(0x4eabb0 if which==0 else 0x4eaba4 if which==1 else 0x4ecbe0,heads)
         put((0x4eabb4,0x4eaba8,0x4ecbe4)[which],pool);put(pool+0x24,size);put(pool+0x44,data)
-        for cluster in range(-1,16):put(heads+cluster*4,0xffffffff)
+        for cluster in range(low,16):put(heads+cluster*4,0xffffffff)
         allocated=1
         for cluster,items in lists.items():
-            cluster=cluster-0x10000 if cluster>=0x8000 else cluster
+            cluster=signed(cluster)
             previous=None
             for item in items:
                 entry=((0xe000+allocated)<<16)|allocated;datum=data+allocated*size;allocated+=1
@@ -336,6 +362,21 @@ def segmented(image,rows,scratch,calls,label):
         if rounds>48:raise ValueError('Cluster contents corpus exceeds its required call budget')
     return state,authority,rounds,instructions
 
+# Two earlier mutants are equivalent on every reachable input and are replaced
+# by the nearby observable ones beside them:
+#  - software-light-imul (IMUL ECX,ECX,110 at 1350D4 through the software
+#    product, which defines CF/OF and keeps SF/ZF/AF/PF): the hardware block
+#    differs only where the CPU redefines SF/ZF/AF/PF. The physical i386 host
+#    (AMD Zen 5) keeps them from the preceding AND; family 20 lists light
+#    indices 0x10/0x13/0x70, whose AND and product low bytes differ in parity,
+#    and the software product still matched. The index is at most 0xFFFF, so
+#    the product never overflows and CF/OF agree. Replaced by
+#    unseeded-light-imul (the hardware block without the AND's flags).
+#  - missing-end-or (OR reg,-1 at the end of an empty list as a plain move):
+#    each of the ten ORs is immediately followed by CMP reg,-1, with no access
+#    between them, and CMP defines all six status flags, so OR's flags are
+#    never observed. Replaced by empty-list-not-ended (OR's flags without its
+#    value), which the next packet sees in the register and CMP's flags.
 DEFINITIONS=(
  ('skip-machine-filter','src/rendering/native_tu15_cluster_contents_systems.hpp','admit=memory.load8(object_type,at(object,offsetof(ObjectData,type)))==machine_type;','admit=memory.load8(object_type,at(object,offsetof(ObjectData,type)))!=0xffu;'),
  ('reuse-pool-after-admission','src/rendering/native_tu15_cluster_contents_systems.hpp','            k.pool=memory.load32(collideable_pool_again,at(globals::collideable,offsetof(ClusterPartition,entries)));\n','            memory.load32(collideable_pool_again,at(globals::collideable,offsetof(ClusterPartition,entries)));\n'),
@@ -345,9 +386,9 @@ DEFINITIONS=(
  ('queue-fills-last-slot','src/rendering/native_tu15_cluster_contents_systems.hpp','    if(signed_value(count)>=signed_value(last))return frame.end_append(false);','    if(signed_value(count)>signed_value(last))return frame.end_append(false);'),
  ('kept-fog-from-logic','src/rendering/native_tu15_cluster_contents.hpp','            k.next=r(edi);k.inside_fog=r(ebp);\n            break;','            k.next=r(edi);\n            break;'),
  ('kept-next-ignored','src/rendering/native_tu15_cluster_contents.hpp','        k.next=r(edi);k.view=r(esi);k.position=r(ebp);','        k.view=r(esi);k.position=r(ebp);'),
- ('software-light-imul','src/rendering/native_tu15_cluster_contents.hpp','const auto product=light_datum_offset(r(ecx),f.bits());r(ecx)=product.value;f.load(product.flags);','r(ecx)=f.product(r(ecx),0x110u);'),
  ('software-sky-shift','src/rendering/native_tu15_cluster_contents.hpp','r(edx)=v;const auto offset=sky_head_offset(widen(r(eax)),f.bits());r(esi)=offset.value;f.load(offset.flags);','r(edx)=v;r(esi)=f.shift(widen(r(eax)),2u,4);'),
- ('missing-end-or','src/rendering/native_tu15_cluster_contents.hpp','        if(!walked_)r(site.owner_register)=s_.flags.logic(r(site.owner_register)|0xffffffffu,4);','        if(!walked_)r(site.owner_register)=0xffffffffu;'),
+ ('unseeded-light-imul','src/rendering/native_tu15_cluster_contents.hpp','light_datum_offset(r(ecx),f.bits())','light_datum_offset(r(ecx),0u)'),
+ ('empty-list-not-ended','src/rendering/native_tu15_cluster_contents.hpp','        if(!walked_)r(site.owner_register)=s_.flags.logic(r(site.owner_register)|0xffffffffu,4);','        if(!walked_)s_.flags.logic(r(site.owner_register)|0xffffffffu,4);'),
  ('uncertified-required-owner','src/rendering/native_tu15_cluster_contents.hpp','    if(!native_required_owner_policy_detail::preserves_instruction_policy(s.services))return false;','    if(!s.services.required_owner)return false;'),
  ('census-without-switch','src/rendering/native_tu15_cluster_contents.hpp','    if(native_census_detail::uncursored(s,0x134d30u,0x166bafu)){','    if(!s.instruction_cursor&&s.services.instruction){'),
 )
