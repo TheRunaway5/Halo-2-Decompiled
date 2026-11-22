@@ -33,7 +33,7 @@ void sign_in(MenuState &menu) {
   check(menu.frame().screen==6 && !menu.signed_in_profile().empty(),"ordered variant profile failed actual sign-in");
 }
 void lobby(MenuState &menu,unsigned protocol) {
-  sign_in(menu);choose(menu,protocol?3:2,30);choose(menu,0,14);
+  sign_in(menu);choose(menu,1,218); choose(menu,protocol?2:0,30);choose(menu,0,14);
 }
 void select_variant(MenuState &menu,unsigned index) {
   choose(menu,1,23);choose(menu,1,207);choose(menu,entry(menu,0),208);

@@ -103,6 +103,34 @@ struct SourcePhysicsContactRuntimeServices {
         const void *owner{};
         bool (*matches)(const RequiredOwner &,const void *) noexcept{};
     } required_owner_policy;
+    // Only the World can seal its immutable, address-stable services table.
+    // Copies used for remapping, observation or other owners start unsealed.
+    class ImmutableInstructionCursor {
+    public:
+        ImmutableInstructionCursor()=default;
+        ImmutableInstructionCursor(const ImmutableInstructionCursor &) noexcept {}
+        ImmutableInstructionCursor &operator=(const ImmutableInstructionCursor &) noexcept {
+            services_=nullptr;return *this;
+        }
+        bool identifies(const SourcePhysicsContactRuntimeServices &services)const noexcept {
+            return services_==&services;
+        }
+    private:
+        friend class PhysicsLiveWorldTu15;
+        // Set once during construction of the const table, before publication.
+        mutable const SourcePhysicsContactRuntimeServices *services_{};
+    } immutable_instruction_cursor;
+    // Optional grouped store for the forward 1C5993 and 27B2DD AI workspace
+    // clears. The World admits the exact services table and storage owner.
+    // A refusal leaves data and write accounting untouched for the scalar loop.
+    std::function<bool(const SourcePhysicsContactRuntimeServices &,
+        SourcePhysicsContactMemory &,std::uint32_t site,std::uint32_t workspace)> clear_ai_search_workspace;
+    // Optional synchronous 27C2B2 continuation. The exact live World keeps
+    // its native write policy lease through the retained stack/row effects.
+    // Refusal precedes the original instruction cursor and memory effects.
+    using AiPathEdgeRingCallback = void(*)(void *,std::uint32_t &);
+    std::function<bool(const SourcePhysicsContactRuntimeServices &,
+        SourcePhysicsContactMemory &,std::uint32_t stack,void *,AiPathEdgeRingCallback)> run_ai_path_edge_ring;
 };
 // Canonical 1.1 entry identifies a statically compiled complete source body.
 // Image selection binds authenticated TU1.5 constants, targets and tables.

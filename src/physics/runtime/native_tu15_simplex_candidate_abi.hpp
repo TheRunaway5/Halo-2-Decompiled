@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <cstdlib>
 #include "halo2/native_tu15_simplex_candidate_kernel.hpp"
 #include "physics/runtime/native_tu15_host_fp_io.hpp"
 #include "physics/runtime/native_tu15_simplex_direction_abi.hpp"
@@ -9,6 +10,14 @@ using Data=NativeTu15SimplexCandidate;
 using Side=NativeTu15SimplexCandidateSide;
 using P=NativeTu15SimplexCandidatePhase;
 using Noop=native_simplex_direction_detail::Noop;
+
+inline bool reference_candidate_read_scope() {
+    static const bool reference=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_SIMPLEX_CANDIDATE_READ_SCOPE");
+        return value && *value;
+    }();
+    return reference;
+}
 template<class State>std::uint32_t shift4(State&s,std::uint32_t value){
     const auto context=s.flags.bits();auto flags=((context&0xd5u)<<8u)|((context>>11u)&1u);
     std::uint32_t overflow{};
@@ -23,9 +32,24 @@ template<class State>std::uint32_t shift4(State&s,std::uint32_t value){
 template<class State,class Before=Noop,bool Retained=false>struct Access {
     State&s;native_raw_x87_detail::Scope<State>* fp;Before before{};
     std::uint32_t last_branch{};
+    const bool direct_reads=Retained && !reference_candidate_read_scope();
     template<class Callback>void io(Callback&& callback){
         if constexpr(Retained)native_host_fp_io_detail::preserve(std::forward<Callback>(callback));
         else fp->io(std::forward<Callback>(callback));
+    }
+    template<class Value,class Fallback>
+    Value read_operand(std::uint32_t address,Fallback&& fallback) {
+        Value value;
+        if constexpr(Retained) {
+            // Same ordinary page authority used by physics_step_detail::r/v.
+            // Copy immediately while topology is held on the source executor.
+            if(direct_reads)if(const auto* page=s.memory.direct_page(address,sizeof(value))) {
+                std::memcpy(&value,page->bytes+(address&4095u),sizeof(value));
+                return value;
+            }
+        }
+        io([&]{value=fallback();});
+        return value;
     }
     bool second(const Data&d)const{return d.side==Side::second;}
     std::uint32_t first_pc(const Data&d,std::uint32_t pc)const{
@@ -50,14 +74,18 @@ template<class State,class Before=Noop,bool Retained=false>struct Access {
     }
     void at(std::uint32_t pc){
         if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;
+        if constexpr(Retained && native_raw_x87_detail::silent_hook<Before>) {
+            if(direct_reads)return;
+        }
         io([&]{before(s,pc);});
     }
     std::uint32_t score_address(const Data&d)const{
         return s.gp[4]+(second(d)?0x34u:(d.side==Side::first_early?0x28u:0x40u))+d.comparison*4u;
     }
     std::uint32_t word_read(P,const Data&d,std::uint32_t address){
-        at(second(d)?0x30f315u:first_pc(d,0x30eeb1u));std::uint32_t value;
-        io([&]{value=physics_step_detail::r(s.memory,address,4);});s.gp[1]=value;return value;
+        at(second(d)?0x30f315u:first_pc(d,0x30eeb1u));
+        const auto value=read_operand<std::uint32_t>(address,[&]{return physics_step_detail::r(s.memory,address,4);});
+        s.gp[1]=value;return value;
     }
     __m128 vector_read(P phase,const Data&d,std::uint32_t address){
         std::uint32_t pc{};unsigned r{};
@@ -75,7 +103,8 @@ template<class State,class Before=Noop,bool Retained=false>struct Access {
         }
         at(pc);
         if constexpr(!Retained)if(address&15u)throw std::runtime_error("Native simplex candidate MOVAPS alignment");
-        __m128 value;io([&]{value=physics_step_detail::v(s.memory,address);});s.xmm[r]=value;return value;
+        const auto value=read_operand<__m128>(address,[&]{return physics_step_detail::v(s.memory,address);});
+        s.xmm[r]=value;return value;
     }
     void prepare(P,const Data&d){
         s.gp[0]=s.flags.minus(s.gp[1],2u,4);
@@ -118,7 +147,10 @@ template<class State,class Before=Noop,bool Retained=false>struct Access {
         const std::array second_compare{0x30f364u,0x30f3bcu,0x30f400u};
         const std::array second_branch{0x30f36du,0x30f3c5u,0x30f409u};
         const auto pc=[&](const auto&a,const auto&b){return second(d)?b[d.comparison]:first_pc(d,a[d.comparison]);};
-        const auto read=[&](std::uint32_t site,std::uint32_t address){at(site);std::uint32_t bits;io([&]{bits=physics_step_detail::r(s.memory,address,4);});return bits;};
+        const auto read=[&](std::uint32_t site,std::uint32_t address){
+            at(site);
+            return read_operand<std::uint32_t>(address,[&]{return physics_step_detail::r(s.memory,address,4);});
+        };
         if constexpr(Retained)s.require_x87();
         auto bits=read(pc(first_load,second_load),score_address(d));
         if constexpr(Retained){

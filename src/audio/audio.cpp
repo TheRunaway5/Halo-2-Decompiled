@@ -506,6 +506,13 @@ void AudioEngine::next_loop(VoiceId id, std::shared_ptr<const PcmSound> sound) {
       v.next = sound;
   SDL_UnlockAudioDevice(device_);
 }
+std::optional<std::size_t> AudioEngine::playback_position(VoiceId id) const {
+  SDL_LockAudioDevice(device_);
+  const auto voice = std::ranges::find(voices_, id, &Voice::id);
+  const auto position = voice == voices_.end() ? std::nullopt : std::optional{voice->cursor};
+  SDL_UnlockAudioDevice(device_);
+  return position;
+}
 std::size_t AudioEngine::active_voices() const {
   SDL_LockAudioDevice(device_);
   const auto count = voices_.size();

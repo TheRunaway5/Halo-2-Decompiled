@@ -29,10 +29,15 @@ const Register reserved("havok_reserved_body",[](auto& world,auto&,const auto& a
   return std::uint32_t(native_tu15_reserved_body_reference(world,{a.at(0)}));});
 const Register phantom_info("havok_aabb_phantom_info",[](auto& world,auto&,const auto& a){
   return f::havok_aabb_phantom_info(world,a.at(0));});
+const Register rigid_body_info("havok_rigid_body_info",[](auto& world,auto&,const auto& a){
+  return f::havok_rigid_body_info(world,a.at(0));});
 const Register phantom_construct("havok_aabb_phantom_construct",[](auto& world,auto&,const auto& a){
   return f::havok_aabb_phantom_construct(world,a.at(0),a.at(1));});
-const Register component_reset("havok_component_reset",[](auto& world,auto& bank,const auto& a){
-  auto fp=live(bank);f::havok_component_reset(world,a.at(0),fp);return 0u;});
+const auto reset_component=[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);f::havok_component_reset(world,a.at(0),fp);return 0u;};
+const Register component_reset("havok_component_reset",reset_component);
+const Register component_reset_rigid_body("havok_component_reset_rigid_body",reset_component);
+const Register component_reset_body_policy("havok_component_reset_body_policy",reset_component);
 // The last argument of the kernels below is the original entry ESP (the
 // harness SP), which names the stack local the original publishes.
 // A refusal of one of `owners` ends the case where the oracle stops the
@@ -53,9 +58,36 @@ const Register state_flags("havok_component_state_flags",[](auto& world,auto& ba
   auto fp=live(bank);
   return at_entry([&]{f::havok_component_state_flags(world,a.at(0),a.at(1),fp,a.size()>2?a.at(2):0u);},
       {"1D9510","1D73D0"});});
+const Register state_flags_remove("havok_component_state_flags_remove",[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);
+  const f::HavokComponentRemovalScope live_world;
+  return at_entry([&]{f::havok_component_state_flags(world,a.at(0),a.at(1),fp,a.at(2));},
+      {"1DD9A0","1DDBF0","1DD950","1DEF50"});});
+const Register state_flags_biped("havok_component_state_flags_biped",[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);
+  const f::HavokComponentRemovalScope live_world;
+  return at_entry([&]{f::havok_component_state_flags(world,a.at(0),a.at(1),fp,a.at(2));},{"1DDBF0","1DF380"});});
+const auto refresh_fixed_biped=[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);
+  const f::HavokComponentRemovalScope live_world;
+  f::havok_component_state_flags(world,a.at(0),a.at(1),fp,a.at(2));return 0u;};
+const Register state_flags_fixed_biped("havok_component_state_flags_fixed_biped",refresh_fixed_biped);
+const Register state_flags_fixed_biped_active("havok_component_state_flags_fixed_biped_active",refresh_fixed_biped);
 const Register component_refresh("havok_component_refresh",[](auto& world,auto& bank,const auto& a){
   auto fp=live(bank);
   return at_entry([&]{f::havok_component_refresh(world,a.at(0),fp);},{"1DEE30","1DD9A0","1DDBF0","1DD950","1DEF50"});});
+const Register biped_component_refresh("havok_component_refresh_biped",[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);
+  const f::HavokBipedRefreshServices services;
+  return at_entry([&]{f::havok_component_refresh(world,a.at(0),fp,&services);},{"1DDBF0","1DEFB0"});});
+const Register biped_controller("havok_component_refresh_biped_controller",[](auto& world,auto& bank,const auto& a){
+  auto fp=live(bank);
+  f::HavokBipedRefreshServices services;
+  services.construct_controller=[](auto& memory,const auto& request,auto& state){
+    if(f::havok_prepare_biped_controller(memory,request,state))
+      throw std::runtime_error("Native object factory: 1DF380 biped rigid-body construction is not native yet");
+  };
+  return at_entry([&]{f::havok_component_refresh(world,a.at(0),fp,&services);},{"1DF380"});});
 const Register component_remove("havok_component_remove",[](auto& world,auto& bank,const auto& a){
   auto fp=live(bank);f::havok_component_remove(world,a.at(0),fp,a.at(1));return 0u;});
 const Register component_add("havok_component_add",[](auto& world,auto& bank,const auto& a){

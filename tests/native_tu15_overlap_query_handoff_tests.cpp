@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 using namespace halo2;
@@ -140,6 +141,7 @@ int main()try{
             "Invalid sphere query caller entered native work");
     }
     const SourcePhysicsContactRuntimeCall capsule_call{0x2f1806u,0x2fab70u,false};
+    const SourcePhysicsContactRuntimeCall inverted_pair_call{0x2f7038u,0x2fab70u,false};
     const auto capsule_input=[](std::uint32_t distance){
         auto m=initial();m.put(sp,0x2f180du);
         m.put(base+0x100u,base+0x300u);m.put(base+0x108u,base+0x500u);
@@ -151,10 +153,12 @@ int main()try{
         m.put(base+0x1100u,base+0x700u);m.put(base+0x704u,0x30ba80u);
         m.writes=0;m.reads=0;return m;
     };
+    for(const auto &[call,return_pc]:{std::pair{capsule_call,0x2f180du},std::pair{inverted_pair_call,0x2f703fu}})
     for(const auto distance:{0u,0x3f800000u,0x40000000u,0x40400000u,0x7fc12345u}){
         auto m=capsule_input(distance);auto a=abi();const auto before=a;const auto arguments=m.data;
+        m.put(sp,return_pc);
         NativeTu15OverlapQueryHandoffActivity stats;
-        check(native_tu15_handoff_overlap_query(m,capsule_call,a,policy(),{},{},&stats),
+        check(native_tu15_handoff_overlap_query(m,call,a,policy(),{},{},&stats),
             "Actual cdecl sphere/capsule query caller was not owned");
         auto expected=before.gp;expected[4]+=4u;
         check(a.gp==expected&&a.eflags==before.eflags&&a.fs_base==before.fs_base,
@@ -170,7 +174,7 @@ int main()try{
         check(flag[0]==std::byte(overlap?1u:0xa5u)&&flag[1]==std::byte{0xa5}&&
             flag[2]==std::byte{0xa5}&&flag[3]==std::byte{0xa5},"Sphere/capsule query changed strict overlap or collector padding");
     }
-    for(unsigned input=0;input<16;++input){
+    for(unsigned input=0;input<19;++input){
         auto m=capsule_input(0u);auto a=abi();auto p=policy();auto c=capsule_call;bool trace=true;
         switch(input){
         case 0:c.instruction++;break;case 1:c.tail=true;break;case 2:m.put(sp,0x2f1809u);break;
@@ -181,6 +185,9 @@ int main()try{
         case 11:p.stack_end=sp+19u;break;case 12:p.data_first=sp-0x1000u;break;
         case 13:p.data_first=base-16u;break;case 14:p.stack_first=sp+1u;break;
         case 15:c.instruction=0x2f6fabu;break;
+        case 16:m.put(sp,0x2f703fu);break;
+        case 17:c=inverted_pair_call;break;
+        case 18:c={0x2f7038u,0x2f9ca0u,false};m.put(sp,0x2f703fu);break;
         }
         m.writes=0;const auto before=a.gp;NativeTu15OverlapQueryHandoffActivity stats;bool caught{};
         try{native_tu15_handoff_overlap_query(m,c,a,p,{},{},&stats);}catch(const std::runtime_error&){caught=true;}

@@ -15,7 +15,7 @@ template<class State,class Call,class Before,bool Actual> class Io {
     void at(std::uint32_t pc){
         const auto observed=observe_pc(pc);
         if(s_.instruction_cursor&&s_.instruction_cursor->position)*s_.instruction_cursor->position=observed;
-        fp_.io([&]{before_(s_,observed);});
+        if(!native_raw_x87_detail::skip_hook<Before>())fp_.io([&]{before_(s_,observed);});
     }
     std::uint32_t read(std::uint32_t address,unsigned width){
         std::uint32_t value;fp_.io([&]{value=physics_step_detail::r(s_.memory,address,width);});return value;

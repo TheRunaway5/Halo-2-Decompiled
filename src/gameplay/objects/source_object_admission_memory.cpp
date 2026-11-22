@@ -1,5 +1,7 @@
 #include "halo2/source_object_admission_memory.hpp"
 #include "halo2/source_object_spatial_pool.hpp"
+#include <bit>
+#include <cstring>
 
 namespace halo2 {
 SourceObjectClusterMemberships source_object_cluster_memberships(
@@ -54,6 +56,16 @@ SourceObjectAdmission source_object_admission_memory(const SourcePortalVisibilit
     const auto load=[&](SourceObjectSpatialPool& out,std::uint32_t heads,std::uint32_t entries) {
         const auto h=header(entries,32);
         const auto raw=read(h.u32(0x44),2048*32),links=read(heads,out.heads.size()*4);
+        if constexpr(std::endian::native==std::endian::little) {
+            static_assert(sizeof(out.entries.records)==2048u*32u);
+            const auto head_bytes=out.heads.size()*sizeof(std::uint32_t);
+            const auto row_bytes=sizeof(out.entries.records);
+            if(links.size()>=head_bytes && raw.size()>=row_bytes) {
+                if(head_bytes)std::memcpy(out.heads.data(),links.slice(0,head_bytes).data(),head_bytes);
+                std::memcpy(out.entries.records.data(),raw.slice(0,row_bytes).data(),row_bytes);
+                return;
+            }
+        }
         for(unsigned n=0;n<out.heads.size();++n)out.heads[n]=links.u32(n*4);
         for(unsigned n=0;n<2048;++n)for(unsigned k=0;k<8;++k)out.entries.records[n][k]=raw.u32(n*32+k*4);
     };

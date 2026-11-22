@@ -32,7 +32,7 @@ def main():
     appearance = create + ["select:1", "accept"]
     icon = appearance + ["select:5", "accept"]
     # A source-supported unavailable engine reaches the production error pane.
-    error = create + ["back", "select:2", "accept", "accept", "select:1", "accept",
+    error = create + ["back", "select:1", "accept", "select:0", "accept", "accept", "select:1", "accept",
                       "select:1", "accept", "select:1", "accept", "select:0", "accept", "select:0", "accept"]
     sizes = [("4x3", 640, 480), ("16x9", 1280, 720), ("16x10", 1280, 800),
              ("21x9", 1680, 720), ("user", 2560, 1437), ("odd", 1001, 601)]

@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <atomic>
+#include <bit>
 #if defined(__linux__)
 #include <linux/membarrier.h>
 #include <sys/syscall.h>
@@ -24,7 +25,10 @@ struct NativeWriteGuards {
     // Writes ending at or below a guard's bound cannot reach its protection.
     std::map<const SourceRuntimeMemory *,std::map<const void *,std::uint64_t>> guard_bounds;
     // One counter per bank replaces observers whose only effect is a serial.
-    struct WriteSerial {std::shared_ptr<SourceRuntimeWriteSerial::Counters> count;std::size_t subscribers{};};
+    struct WriteSerial {
+        std::shared_ptr<SourceRuntimeWriteSerial::Counters> count;
+        std::size_t subscribers{},every_store_subscribers{};
+    };
     std::map<const SourceRuntimeMemory *,WriteSerial> serials;
     std::map<const SourceRuntimeMemory *,std::map<const void *,SourceRuntimeWriteGuard>> observers;
     std::map<const SourceRuntimeMemory *,std::map<const void *,SourceRuntimeWriteGuard>> topology;
@@ -56,6 +60,7 @@ struct NativeWriteGuards {
     std::atomic<bool> writer{false};
 };
 NativeWriteGuards &native_write_guards(){static NativeWriteGuards guards;return guards;}
+thread_local NativeWriteGuards::DispatchSlot *write_executor_slot{};
 struct DispatchSlotOwner {
     NativeWriteGuards &registry;
     NativeWriteGuards::DispatchSlot slot;
@@ -64,7 +69,10 @@ struct DispatchSlotOwner {
     }
     ~DispatchSlotOwner() {
         std::lock_guard lock(registry.slot_mutex);std::erase(registry.slots,&slot);
-        if(registry.owner==&slot){registry.owner=nullptr;registry.owner_vacant.store(true,std::memory_order_relaxed);}
+        if(registry.owner==&slot){
+            write_executor_slot=nullptr;
+            registry.owner=nullptr;registry.owner_vacant.store(true,std::memory_order_relaxed);
+        }
     }
 };
 NativeWriteGuards::DispatchSlot &dispatch_slot(NativeWriteGuards &registry) {
@@ -73,7 +81,8 @@ NativeWriteGuards::DispatchSlot &dispatch_slot(NativeWriteGuards &registry) {
 void claim_dispatch_owner(NativeWriteGuards &registry,NativeWriteGuards::DispatchSlot &slot) {
     std::lock_guard lock(registry.slot_mutex);
     if(registry.owner || !registry.asymmetric_barrier)return;
-    registry.owner=&slot;slot.owner=true;registry.owner_vacant.store(false,std::memory_order_relaxed);
+    registry.owner=&slot;slot.owner=true;write_executor_slot=&slot;
+    registry.owner_vacant.store(false,std::memory_order_relaxed);
 }
 // Held with the unique registry mutex for every dispatch-visible change.
 // New dispatchers see the writer flag and wait on the shared mutex instead.
@@ -202,7 +211,11 @@ SourceRuntimePolicyChange::~SourceRuntimePolicyChange() {
     if(!--found->second.changes)registry.policies.erase(found);
 }
 SourceRuntimeNativeWriteLease::SourceRuntimeNativeWriteLease(const SourceRuntimeMemory &memory,
-    std::span<const SourceRuntimeNativeWriteRange> ranges,std::span<const void *const> allowed) noexcept {
+    std::span<const SourceRuntimeNativeWriteRange> ranges,std::span<const void *const> allowed) noexcept
+    :SourceRuntimeNativeWriteLease(memory,ranges,allowed,nullptr) {}
+SourceRuntimeNativeWriteLease::SourceRuntimeNativeWriteLease(const SourceRuntimeMemory &memory,
+    std::span<const SourceRuntimeNativeWriteRange> ranges,std::span<const void *const> allowed,
+    const SourceRuntimeWriteSerial *serial_owner) noexcept {
     using Reason=SourceRuntimeNativeWriteRefusal;
     try {
         if(ranges.empty()){refusal_=Reason::Range;return;}
@@ -218,6 +231,13 @@ SourceRuntimeNativeWriteLease::SourceRuntimeNativeWriteLease(const SourceRuntime
         }
         for(const auto &range:ranges)
             if(!range.bytes||range.bytes>0x100000000ull-range.address){refusal_=Reason::Range;return;}
+        if(serial_owner) {
+            const auto serial=registry.serials.find(&memory);
+            if(serial_owner->memory_!=&memory || serial==registry.serials.end() ||
+               serial->second.count!=serial_owner->counters_ || serial->second.every_store_subscribers) {
+                refusal_=Reason::Observer;return;
+            }
+        }
         if(const auto observers=registry.observers.find(&memory);observers!=registry.observers.end())
             for(const auto &[owner,callback]:observers->second) {
                 (void)callback;
@@ -268,21 +288,31 @@ void source_runtime_unregister_write_observer(const SourceRuntimeMemory &memory,
     remove_policy(&NativeWriteGuards::observers,memory,owner);
 }
 namespace {
-void count_write(SourceRuntimeWriteSerial::Counters &counters,bool owner) noexcept {
-    if(owner)counters.owner.store(counters.owner.load(std::memory_order_relaxed)+1,std::memory_order_relaxed);
-    else counters.shared.fetch_add(1,std::memory_order_relaxed);
+void count_write(SourceRuntimeWriteSerial::Counters &counters,bool owner,std::uint64_t words=1) noexcept {
+    if(owner)counters.owner.store(counters.owner.load(std::memory_order_relaxed)+words,std::memory_order_relaxed);
+    else counters.shared.fetch_add(words,std::memory_order_relaxed);
 }
-void dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memory,std::uint32_t address,std::size_t bytes,bool observe,bool owner) {
-    struct Dispatch {
-        const SourceRuntimeMemory *memory{};
-        std::shared_ptr<const NativeWriteGuards::WriteEpoch> epoch;
-        std::array<const SourceRuntimeWriteGuard *,16> guards{},observers{};
-        std::array<std::uint64_t,16> bounds{};
-        SourceRuntimeWriteSerial::Counters *serial{};
-        std::size_t guard_count{},observer_count{};
-        bool complete{},active{};
-    };
-    thread_local Dispatch cached;
+struct WriteDispatch;
+thread_local const WriteDispatch *warm_write_dispatch{};
+struct WriteDispatch {
+    const SourceRuntimeMemory *memory{};
+    std::shared_ptr<const NativeWriteGuards::WriteEpoch> epoch;
+    std::array<const SourceRuntimeWriteGuard *,16> guards{},observers{};
+    std::array<std::uint64_t,16> bounds{};
+    std::uint64_t guard_floor{};
+    SourceRuntimeWriteSerial::Counters *serial{};
+    std::size_t guard_count{},observer_count{};
+    bool complete{},active{};
+    ~WriteDispatch(){warm_write_dispatch=nullptr;}
+};
+thread_local WriteDispatch cached;
+const bool fuse_direct_stores=[] {
+    const auto *value=std::getenv("HALO2_REFERENCE_DIRECT_WRITE_FUSION");
+    return !(value && *value);
+}();
+template<bool Store>
+bool dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memory,std::uint32_t address,
+    std::size_t bytes,bool observe,bool owner,std::byte *destination=nullptr,const std::byte *input=nullptr) {
     const auto limit=std::uint64_t(address)+bytes;
     // The borrowed callbacks stay alive until this dispatch completes. Recursive
     // writes use the original lookup so another bank cannot replace the outer
@@ -291,6 +321,7 @@ void dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memor
         if(cached.memory!=&memory || cached.epoch!=registry.write_epoch) {
             cached.memory=&memory;cached.epoch=registry.write_epoch;
             cached.guard_count=cached.observer_count=0;cached.complete=true;cached.serial=nullptr;
+            cached.guard_floor=std::numeric_limits<std::uint64_t>::max();
             const auto bounds=registry.guard_bounds.find(&memory);
             if(const auto bank=registry.banks.find(&memory);bank!=registry.banks.end()) {
                 if(bank->second.size()>cached.guards.size())cached.complete=false;
@@ -298,6 +329,7 @@ void dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memor
                     std::uint64_t bound=0;
                     if(bounds!=registry.guard_bounds.end())
                         if(const auto found=bounds->second.find(owner);found!=bounds->second.end())bound=found->second;
+                    cached.guard_floor=std::min(cached.guard_floor,bound);
                     cached.bounds[cached.guard_count]=bound;cached.guards[cached.guard_count++]=&callback;
                 }
             }
@@ -307,15 +339,29 @@ void dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memor
             }
             if(const auto serial=registry.serials.find(&memory);serial!=registry.serials.end())
                 cached.serial=serial->second.count.get();
+            warm_write_dispatch=&cached;
         }
         if(cached.complete) {
+            // Inert guards and absent observers cannot reenter dispatch. Keep
+            // the per-store serial under the same borrow without a callback scope.
+            if(limit<=cached.guard_floor && (!observe || !cached.observer_count)) {
+                if(observe && cached.serial)count_write(*cached.serial,owner);
+                if constexpr(Store) {
+                    // No policy callback could have changed the direct page.
+                    if(fuse_direct_stores) {
+                        transfer(destination,input,bytes);
+                        return true;
+                    }
+                }
+                return false;
+            }
             struct Active {bool &flag;explicit Active(bool &p):flag(p){flag=true;}~Active(){flag=false;}} active(cached.active);
             for(std::size_t i=0;i<cached.guard_count;++i)if(limit>cached.bounds[i])(*cached.guards[i])(address,bytes);
             if(observe) {
                 if(cached.serial)count_write(*cached.serial,owner);
                 for(std::size_t i=0;i<cached.observer_count;++i)(*cached.observers[i])(address,bytes);
             }
-            return;
+            return false;
         }
     }
     if(const auto bank=registry.banks.find(&memory);bank!=registry.banks.end()) {
@@ -326,15 +372,17 @@ void dispatch_write(NativeWriteGuards &registry,const SourceRuntimeMemory &memor
             guard(address,bytes);
         }
     }
-    if(!observe)return;
+    if(!observe)return false;
     if(const auto serial=registry.serials.find(&memory);serial!=registry.serials.end())
         count_write(*serial->second.count,owner);
     if(const auto bank=registry.observers.find(&memory);bank!=registry.observers.end())
         for(const auto &[owner,observer]:bank->second){(void)owner;observer(address,bytes);}
+    return false;
 }
-}
-void source_runtime_validate_write(const SourceRuntimeMemory &memory,std::uint32_t address,std::size_t bytes,bool observe) {
-    if(!bytes)return;
+template<bool Store>
+bool validate_or_store(const SourceRuntimeMemory &memory,std::uint32_t address,std::size_t bytes,
+    bool observe,std::byte *destination=nullptr,const std::byte *input=nullptr) {
+    if(!bytes)return false;
     auto &registry=native_write_guards();
     auto &slot=dispatch_slot(registry);
     if(!registry.reference_dispatch) {
@@ -360,8 +408,7 @@ void source_runtime_validate_write(const SourceRuntimeMemory &memory,std::uint32
                 explicit Borrow(NativeWriteGuards::DispatchSlot &p):slot(p){++slot.depth;}
                 ~Borrow(){if(!--slot.depth)slot.active.store(false,std::memory_order_release);}
             } borrow(slot);
-            dispatch_write(registry,memory,address,bytes,observe,slot.owner);
-            return;
+            return dispatch_write<Store>(registry,memory,address,bytes,observe,slot.owner,destination,input);
         }
     }
     std::shared_lock lock(registry.mutex);
@@ -373,9 +420,57 @@ void source_runtime_validate_write(const SourceRuntimeMemory &memory,std::uint32
         explicit DispatchDepth(NativeWriteGuards::DispatchSlot &p):slot(p){++slot.depth;}
         ~DispatchDepth(){--slot.depth;}
     } depth(slot);
-    dispatch_write(registry,memory,address,bytes,observe,slot.owner);
+    dispatch_write<false>(registry,memory,address,bytes,observe,slot.owner);
+    return false;
 }
-SourceRuntimeWriteSerial::SourceRuntimeWriteSerial(const SourceRuntimeMemory &memory):memory_(&memory) {
+}
+void source_runtime_validate_write(const SourceRuntimeMemory &memory,std::uint32_t address,std::size_t bytes,bool observe) {
+    (void)validate_or_store<false>(memory,address,bytes,observe);
+}
+namespace {
+const bool reference_warm_scalar_store=[] {
+    const auto *value=std::getenv("HALO2_REFERENCE_WARM_SCALAR_STORE");
+    return value && *value;
+}();
+bool try_warm_scalar_store(const SourceRuntimeMemory &memory,std::uint32_t address,
+    std::span<const std::byte> input,std::byte *destination=nullptr) noexcept {
+    const auto size=input.size();
+    if(size!=1u && size!=2u && size!=4u)return false;
+    // A cold executor must reach ordinary write() before it has a usable
+    // slot and policy cache. Neither acquisition belongs in this route.
+    const auto *cache=warm_write_dispatch;
+    auto *slot=write_executor_slot;
+    if(!slot || slot->depth || !cache || cache->memory!=&memory || !cache->complete || cache->active ||
+       cache->observer_count || std::uint64_t(address)+size>cache->guard_floor)return false;
+    if(!destination) {
+        const auto *page=memory.direct_page(address,size);
+        if(!page || !page->writable)return false;
+        destination=page->bytes+(address&4095u);
+    }
+    auto &registry=native_write_guards();
+    // Keep the cached serial and permissions alive through the transfer using
+    // the same asymmetric borrow as the ordinary write. A writer or an old
+    // epoch leaves this attempt untouched for the caller's scoped fallback.
+    slot->active.store(true,std::memory_order_relaxed);
+    std::atomic_signal_fence(std::memory_order_seq_cst);
+    const bool admitted=!registry.writer.load(std::memory_order_acquire) && cache->epoch==registry.write_epoch;
+    if(admitted) {
+        if(cache->serial)count_write(*cache->serial,true);
+        if(size==4u)std::memmove(destination,input.data(),4u);
+        else if(size==2u)std::memmove(destination,input.data(),2u);
+        else std::memmove(destination,input.data(),1u);
+    }
+    slot->active.store(false,std::memory_order_release);
+    return admitted;
+}
+}
+bool SourceRuntimeMemory::try_callback_free_write(std::uint32_t address,std::span<const std::byte> input) noexcept {
+    return try_warm_scalar_store(*this,address,input);
+}
+SourceRuntimeWriteSerial::SourceRuntimeWriteSerial(const SourceRuntimeMemory &memory)
+    :SourceRuntimeWriteSerial(memory,Visibility::EveryStore) {}
+SourceRuntimeWriteSerial::SourceRuntimeWriteSerial(const SourceRuntimeMemory &memory,Visibility visibility)
+    :memory_(&memory),visibility_(visibility) {
     SourceRuntimePolicyChange admission(memory);
     const auto epoch=std::make_shared<NativeWriteGuards::WriteEpoch>();
     auto created=std::make_shared<Counters>();
@@ -385,6 +480,7 @@ SourceRuntimeWriteSerial::SourceRuntimeWriteSerial(const SourceRuntimeMemory &me
     auto &serial=registry.serials[&memory];
     if(!serial.count)serial.count=std::move(created);
     ++serial.subscribers;
+    if(visibility_!=Visibility::CallBoundary)++serial.every_store_subscribers;
     counters_=serial.count;
     base_=serial.count->owner.load(std::memory_order_relaxed)+serial.count->shared.load(std::memory_order_relaxed);
     registry.write_epoch=epoch;
@@ -396,11 +492,33 @@ SourceRuntimeWriteSerial::~SourceRuntimeWriteSerial() {
     std::unique_lock lock(registry.mutex);
     WriteQuiescence quiescent(registry);
     const auto serial=registry.serials.find(memory_);
-    if(serial!=registry.serials.end() && !--serial->second.subscribers)registry.serials.erase(serial);
+    if(serial!=registry.serials.end()) {
+        if(visibility_!=Visibility::CallBoundary)--serial->second.every_store_subscribers;
+        if(!--serial->second.subscribers)registry.serials.erase(serial);
+    }
     registry.write_epoch=epoch;
 }
 std::uint64_t SourceRuntimeWriteSerial::load() const noexcept {
     return counters_->owner.load(std::memory_order_relaxed)+counters_->shared.load(std::memory_order_relaxed)-base_;
+}
+bool source_runtime_try_write_words(SourceRuntimeMemory &memory,std::uint32_t address,std::span<const std::uint32_t> words,
+    const SourceRuntimeWriteSerial &serial,std::span<const void *const> inert_observers) noexcept {
+    if(std::endian::native!=std::endian::little || words.empty() ||
+       words.size()>(0x100000000ull-address)/sizeof(std::uint32_t))return false;
+    const auto input=std::as_bytes(words);
+    const SourceRuntimeNativeWriteRange range{address,input.size()};
+    const SourceRuntimeNativeWriteLease lease(memory,std::span(&range,1),inert_observers,&serial);
+    if(!lease)return false;
+    const auto target=memory.try_write_extent(address,input.size());
+    if(!target)return false;
+    // Overlapping input could be changed by earlier scalar writes. Keep that
+    // sequence on the caller's ordinary fallback.
+    const std::less<const std::byte*> before;
+    if(before(target->data(),input.data()+input.size()) &&
+       before(input.data(),target->data()+target->size()))return false;
+    count_write(*serial.counters_,dispatch_slot(native_write_guards()).owner,words.size());
+    std::memcpy(const_cast<std::byte*>(target->data()),input.data(),input.size());
+    return true;
 }
 void source_runtime_register_topology_guard(const SourceRuntimeMemory &memory,const void *owner,SourceRuntimeWriteGuard guard){
     install_policy(&NativeWriteGuards::topology,memory,owner,guard,

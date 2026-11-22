@@ -8,12 +8,54 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include <algorithm>
 #include <bit>
+#include <cerrno>
+#include <cfenv>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <unistd.h>
 using namespace halo2;
 void require(bool b,const char*s){if(!b)throw FormatError(s);}
+void compare_packet_materials(const Cache& cache,const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned layer,unsigned implementation,unsigned features) {
+ const auto reference=[&] {
+  if(layer==12)return pstencil::complete_projected_light_constants(cache,authored,definition,uniforms,implementation,features);
+  if(layer==11 && implementation==2)return pstencil::complete_projected_light_alpha_constants(cache,authored,definition,uniforms,implementation);
+  return pstencil::complete_projected_light_shadow_constants(cache,authored,definition,uniforms,layer,implementation);
+ };
+ std::fenv_t saved;std::fegetenv(&saved);const int original_errno=errno;
+ for(const int mode:{FE_TONEAREST,FE_DOWNWARD,FE_UPWARD,FE_TOWARDZERO}) {
+  std::fesetround(mode);std::feclearexcept(FE_ALL_EXCEPT);errno=0;
+  const auto full=reference();
+  const auto flags=std::fetestexcept(FE_ALL_EXCEPT),full_errno=errno;
+  std::feclearexcept(FE_ALL_EXCEPT);errno=0;
+  const auto packets=pstencil::complete_projected_light_packet_materials(cache,authored,definition,uniforms,layer,implementation,features);
+  require(flags==std::fetestexcept(FE_ALL_EXCEPT) && full_errno==errno && std::fegetround()==mode,
+      "Packet completion changed FP effects");
+  require(packets.size()==full.size(),"Packet completion changed ordered pass count");
+  for(unsigned i=0;i<packets.size();++i) {
+   const auto& a=full[i];const auto& b=packets[i];
+   const auto& p=a.passes.at(a.forward_pass_index);const auto& q=b.passes.at(b.forward_pass_index);
+   require(p.template_pass==q.template_pass && p.implementation==q.implementation && p.vertex_shader==q.vertex_shader &&
+       a.source_shader_datum==b.source_shader_datum && a.selected_shader_lod==b.selected_shader_lod,
+       "Packet completion changed ordered pass lineage");
+   const auto remaps=[](const auto& lhs,const auto& rhs) {
+    return std::ranges::equal(lhs,rhs,[](const auto& l,const auto& r) {
+     return l.source==r.source && l.destination==r.destination && l.component==r.component;
+    });
+   };
+   require(remaps(p.vertex_remaps,q.vertex_remaps) && remaps(p.vertex_externs,q.vertex_externs) &&
+       !std::memcmp(&p.constants,&q.constants,sizeof(p.constants)),"Packet completion changed attribute ownership");
+   const auto da=source_effect_light_draw(0,a,{}),db=source_effect_light_draw(0,b,{});
+   require(da.program.words==db.program.words && da.program.fragment_offsets==db.program.fragment_offsets &&
+       !std::memcmp(&da.constants,&db.constants,sizeof(da.constants)) &&
+       !std::memcmp(&da.vertex_bank,&db.vertex_bank,sizeof(da.vertex_bank)),"Packet completion changed draw constants");
+   require(a.forward_raster==b.forward_raster && a.forward_blend==b.forward_blend &&
+       a.texture_states==b.texture_states,"Packet completion changed raster or texture state");
+  }
+ }
+ std::fesetenv(&saved);errno=original_errno;
+}
 int main(int argc,char**argv){try{
  require(argc==3,"Supply native TU1.5 image and opening cache");Cache cache(argv[2]);
  const auto files=std::filesystem::temp_directory_path()/("pstencil-frustum-"+std::to_string(getpid()));
@@ -43,8 +85,11 @@ int main(int argc,char**argv){try{
    <<" clusters="<<receiver.view.visibility.clusters.size()<<" frustums="<<receiver.view.visibility.frustums.size()
    <<" shift="<<constants.color_shift<<" virtual_origin="<<constants.constants[0][0]<<','<<constants.constants[0][1]<<','<<constants.constants[0][2]<<'\n';
   for(auto m:authored)for(unsigned lod=0;lod<m.lods.size();++lod){m.selected_shader_lod=lod;
+   for(const unsigned impl:{1u,2u})compare_packet_materials(cache,m,definition,constants,10,impl,0);
+   for(const unsigned impl:{0u,1u,2u,6u})compare_packet_materials(cache,m,definition,constants,11,impl,0);
    for(const unsigned mask:{0u,2u,4u,6u}){
     const auto impl=pstencil::projected_light_implementation(definition.flags,mask,m.shader_switches[4]!=0);
+    compare_packet_materials(cache,m,definition,constants,12,impl,mask);
     const auto prepared=pstencil::prepare_projected_light_material(cache,m,definition,constants,impl,mask);
     const auto fast=pstencil::complete_projected_light_constants(cache,m,definition,constants,impl,mask);
     require(fast.size()==prepared.size(),"Resident constant completion changed the pass count");

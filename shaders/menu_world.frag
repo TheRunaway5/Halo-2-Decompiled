@@ -2,6 +2,18 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_control_flow_attributes : require
 #extension GL_EXT_demote_to_helper_invocation : require
+#ifdef H2_PROJECTED_DEPTH_QUAD
+#extension GL_KHR_shader_subgroup_vote : require
+#extension GL_EXT_shader_quad_control : require
+#extension GL_EXT_maximal_reconvergence : require
+layout(full_quads) in;
+layout(quad_derivatives) in;
+layout(constant_id=4) const uint projectedQuadMode=1u;
+layout(set=2,binding=0) uniform sampler2D projectedSceneDepth;
+#define MENU_WORLD_ENTRY_CONTROL [[maximally_reconverges]]
+#else
+#define MENU_WORLD_ENTRY_CONTROL
+#endif
 #define H2_FIXED_STAGE_UNROLL [[unroll]]
 layout(location=0) in vec4 v_vtxD0;
 layout(location=1) in vec4 v_vtxD1;
@@ -151,7 +163,7 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 // unavailable: packet admission rejects every attempt to consume it.
 #define H2_COMBINER_FOG() (sourceFogAlphaBound!=0u?vec4(0.0,0.0,0.0,clamp(v_vtxFog,0.0,1.0)):vec4(0.0))
 #include "menu_world_fragment.glsl"
-void main() {
+void main() MENU_WORLD_ENTRY_CONTROL {
     stageCoordinates[0]=v_vtxT0;stageCoordinates[1]=v_vtxT1;
     stageCoordinates[2]=v_vtxT2;stageCoordinates[3]=v_vtxT3;
     for(uint stage=0u;stage<4u;++stage)

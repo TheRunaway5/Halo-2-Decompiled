@@ -70,9 +70,23 @@ void native_tu15_step_physics_frame_with_residuals(SourcePhysicsContactMemory&m,
       stats->native_memory_pressure_unbound_services+=activity.unbound_services;
     }};
     try{
-      // Object trimming/removal/cleanup children remain deliberately empty.
-      // A selected source child counts/refuses at its actual boundary.
-      native_tu15_collect_memory_pressure(m,f,{},observe,&activity);
+      NativeTu15MemoryPressureServices memory_services;
+      memory_services.trim_objects=[&](bool,auto& arithmetic) {
+        check(!state.active_mmx&&state.x87_depth<=1,
+              "Native Havok statistics requires a qualified live x87 stack");
+        native_tu15_record_havok_memory_statistics(m,arithmetic,observe);
+      };
+      memory_services.remove_candidate=[&](auto request,auto&) {
+        return native_tu15_reclaim_memory_if_no_candidate(m,request,&activity);
+      };
+      // Bind the complete cleanup pair to the same retained world and allocator state.
+      memory_services.begin_cleanup=[&](auto& arithmetic) {
+        call(0x1cb330u,{},{},{},0,arithmetic);
+      };
+      memory_services.finish_cleanup=[&](auto& arithmetic) {
+        call(0x1cb220u,{},{},{},0,arithmetic);
+      };
+      native_tu15_collect_memory_pressure(m,f,memory_services,observe,&activity);
     }catch(...){aggregate();if(stats)++stats->native_memory_pressure_refusals;throw;}
     aggregate();if(stats)++stats->native_memory_pressure_completions;
   };

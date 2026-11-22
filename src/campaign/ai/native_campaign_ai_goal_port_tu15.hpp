@@ -3,6 +3,7 @@
 // scoring callees: retained memory in original order and width, one SSE
 // scalar instruction per call under the caller's MXCSR, and the original x87
 // sequences under the caller's control word. Not a public interface.
+#include "halo2/detail/physics_scalar_memory.hpp"
 #include "halo2/native_campaign_ai_area_perform_tu15.hpp"
 #include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/physics_world_runtime.hpp"
@@ -37,10 +38,7 @@ public:
     // One 8-byte operand (FLD QWORD).
     std::array<std::byte,8> r64(u32 address)const{std::array<std::byte,8> raw{};memory.read(address,raw);return raw;}
     void w(u32 site,u32 address,u32 value,unsigned width)const {
-        SourcePhysicsContactRecordStore event{site,address,{},std::vector<std::byte>(width)};
-        if(observe){event.before.resize(width);memory.read(address,event.before);}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));
-        memory.write(address,event.written);if(observe)observe(event);
+        physics_step_detail::w(memory,observe,site,address,width,value);
     }
     void w8(u32 site,u32 address,u32 value)const{w(site,address,value,1);}
     void w16(u32 site,u32 address,u32 value)const{w(site,address,value,2);}

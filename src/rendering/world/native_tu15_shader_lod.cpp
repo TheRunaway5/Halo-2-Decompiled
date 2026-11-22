@@ -1,5 +1,5 @@
 #include "halo2/native_tu15_shader_lod.hpp"
-#include "halo2/detail/native_tu15_arithmetic_environment.hpp"
+#include "native_tu15_command_arithmetic.hpp"
 #include <bit>
 #include <stdexcept>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -34,8 +34,9 @@ bool at_least(Scalar metric,Scalar threshold) {
 }
 #endif
 }
-NativeTu15ShaderLod1bf30 native_tu15_shader_lod_1bf30(const SourcePhysicsContactMemory& m,
-    std::uint32_t bias,std::uint32_t shader,std::uint32_t metric_bits,NativeTu15PhysicsFrameFp& fp) {
+NativeTu15ShaderLod1bf30 detail::command_shader_lod(const SourcePhysicsContactMemory& m,
+    std::uint32_t bias,std::uint32_t shader,std::uint32_t metric_bits,NativeTu15PhysicsFrameFp& fp,
+    CommandArithmeticPolicy policy) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     const auto tags=word(m,0x4f0414u);
     const auto group_at=tags+16u*std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(shader))));
@@ -43,7 +44,7 @@ NativeTu15ShaderLod1bf30 native_tu15_shader_lod_1bf30(const SourcePhysicsContact
     const auto count=word(m,lod_block(m,tags,shader));
     auto arithmetic=fp;std::uint32_t index{};
     {
-        detail::NativeTu15ArithmeticEnvironment environment(arithmetic);
+        CommandArithmeticScope environment(arithmetic,policy);
         auto metric=scalar(metric_bits);
         if(word(m,0x4c6839u,1))metric=mul(metric,scalar(word(m,0x46a11cu)));
         if(bias!=5u) {
@@ -63,8 +64,13 @@ NativeTu15ShaderLod1bf30 native_tu15_shader_lod_1bf30(const SourcePhysicsContact
     arithmetic.control_word=fp.control_word;fp=arithmetic;
     return {final,final<signed_word(count),{scan,final}};
 #else
-    (void)m;(void)bias;(void)shader;(void)metric_bits;(void)fp;
+    (void)m;(void)bias;(void)shader;(void)metric_bits;(void)fp;(void)policy;
     throw std::invalid_argument("Exact native1BF30 arithmetic backend unavailable");
 #endif
+}
+
+NativeTu15ShaderLod1bf30 native_tu15_shader_lod_1bf30(const SourcePhysicsContactMemory& m,
+    std::uint32_t bias,std::uint32_t shader,std::uint32_t metric_bits,NativeTu15PhysicsFrameFp& fp) {
+    return detail::command_shader_lod(m,bias,shader,metric_bits,fp,detail::CommandArithmeticPolicy::Full);
 }
 }

@@ -1,6 +1,5 @@
 #include "halo2/native_tu15_command_emit.hpp"
-#include "halo2/detail/native_tu15_arithmetic_environment.hpp"
-#include "halo2/native_tu15_shader_lod.hpp"
+#include "native_tu15_command_arithmetic.hpp"
 #include <algorithm>
 #include <bit>
 #include <stdexcept>
@@ -87,8 +86,9 @@ std::uint32_t bits(Scalar value){return std::uint32_t(_mm_cvtsi128_si32(_mm_cast
 Scalar mul(Scalar a,Scalar b){asm volatile("mulss %1,%0":"+x"(a):"x"(b):"memory");return a;}
 Scalar sub(Scalar a,Scalar b){asm volatile("subss %1,%0":"+x"(a):"x"(b):"memory");return a;}
 Scalar add(Scalar a,Scalar b){asm volatile("addss %1,%0":"+x"(a):"x"(b):"memory");return a;}
-std::uint32_t metric_bits(const EmitMemory& m,std::uint32_t coverage,std::uint32_t packet,NativeTu15PhysicsFrameFp& fp) {
-    detail::NativeTu15ArithmeticEnvironment environment(fp);
+std::uint32_t metric_bits(const EmitMemory& m,std::uint32_t coverage,std::uint32_t packet,NativeTu15PhysicsFrameFp& fp,
+    detail::CommandArithmeticPolicy policy) {
+    detail::CommandArithmeticScope environment(fp,policy);
     auto metric=_mm_setzero_ps();asm volatile("cvtsi2ss %1,%0":"+x"(metric):"r"(coverage):"memory");
     metric=mul(metric,scalar(m.word(packet+0x28u)));
     metric=mul(metric,scalar(m.word(0x473644u)));
@@ -96,9 +96,10 @@ std::uint32_t metric_bits(const EmitMemory& m,std::uint32_t coverage,std::uint32
 }
 
 void emit_bank(EmitMemory& m,int category,std::uint32_t shader,std::uint32_t definition,
-               std::uint32_t metric,std::uint32_t token,const NativeTu15CommandEmitArgs& a,NativeTu15PhysicsFrameFp& fp) {
+               std::uint32_t metric,std::uint32_t token,const NativeTu15CommandEmitArgs& a,NativeTu15PhysicsFrameFp& fp,
+               detail::CommandArithmeticPolicy policy) {
     if(category<0)return; // 40E24 rejects -1 before calling 1BF30.
-    const auto lod=native_tu15_shader_lod_1bf30(m,m.word(definition+0x3cu,2),shader,metric,fp);
+    const auto lod=detail::command_shader_lod(m,m.word(definition+0x3cu,2),shader,metric,fp,policy);
     if(!lod.accepted)return;
     const auto header=0x4ce268u+24u*std::uint32_t(category);
     const auto count=m.word(header+4u);
@@ -161,8 +162,8 @@ void emit_transparent(EmitMemory& m,std::uint32_t shader,std::uint32_t definitio
 }
 #endif
 
-NativeTu15CommandEmitStores native_tu15_command_emit_41030(const SourcePhysicsContactMemory& memory,
-    const NativeTu15CommandEmitArgs& a,NativeTu15PhysicsFrameFp& fp) {
+NativeTu15CommandEmitStores detail::command_emit(const SourcePhysicsContactMemory& memory,
+    const NativeTu15CommandEmitArgs& a,NativeTu15PhysicsFrameFp& fp,CommandArithmeticPolicy policy) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     NativeTu15CommandEmitStores staged;
     EmitMemory m(memory,staged);auto arithmetic=fp;
@@ -173,13 +174,13 @@ NativeTu15CommandEmitStores native_tu15_command_emit_41030(const SourcePhysicsCo
         const auto coverage=a.coverage&255u;
         const auto token=(((coverage<<16u)|a.unit)<<8u)|a.part;
         const auto type=m.word(part,2);
-        const auto metric=metric_bits(m,coverage,a.packet,arithmetic);
+        const auto metric=metric_bits(m,coverage,a.packet,arithmetic,policy);
         if(type==0||type==5)return;
         const auto base=m.word(a.packet);
         if(base==none)return;
         const auto shader=a.shader==none?base:a.shader;
         const auto definition=tag_definition(m,tags,shader);
-        const auto lod=native_tu15_shader_lod_1bf30(m,m.word(definition+0x3cu,2),shader,metric,arithmetic);
+        const auto lod=command_shader_lod(m,m.word(definition+0x3cu,2),shader,metric,arithmetic,policy);
         const auto block=lod_block(m,shader);
         const auto layers=layer(m,block,std::uint32_t(lod.index));
         if(a.shader!=none) {
@@ -190,16 +191,21 @@ NativeTu15CommandEmitStores native_tu15_command_emit_41030(const SourcePhysicsCo
         if((layers&0xffff7fffu)||grouped) {
             const auto flags=m.word(unit);
             const bool cat1=flags&2u,cat2=(flags&4u)&&a.mode!=3u;
-            if(cat1&&cat2&&a.mode!=0)emit_bank(m,2,shader,definition,metric,token,a,arithmetic);
+            if(cat1&&cat2&&a.mode!=0)emit_bank(m,2,shader,definition,metric,token,a,arithmetic,policy);
             const auto category=a.mode==0?0:cat1?1:cat2?2:-1;
-            emit_bank(m,category,shader,definition,metric,token,a,arithmetic);
+            emit_bank(m,category,shader,definition,metric,token,a,arithmetic,policy);
         }
         if((layers&0x8000u)&&!grouped&&a.mode==0)emit_transparent(m,shader,definition,token,a.packet,arithmetic);
     };
     run();arithmetic.control_word=fp.control_word;fp=arithmetic;return staged;
 #else
-    (void)memory;(void)a;(void)fp;
+    (void)memory;(void)a;(void)fp;(void)policy;
     throw std::invalid_argument("Exact native41030 arithmetic backend unavailable");
 #endif
+}
+
+NativeTu15CommandEmitStores native_tu15_command_emit_41030(const SourcePhysicsContactMemory& memory,
+    const NativeTu15CommandEmitArgs& args,NativeTu15PhysicsFrameFp& fp) {
+    return detail::command_emit(memory,args,fp,detail::CommandArithmeticPolicy::Full);
 }
 }

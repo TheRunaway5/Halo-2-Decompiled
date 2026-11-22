@@ -12,7 +12,20 @@
   "configured_production_target_ids": [
     "halo2_physics_vehicle_update::@6890427a1f51a3e7e1df"
   ],
-  "gate_sources": {},
+  "gate_sources": {
+    "src/physics/vehicles/native_tu15_vehicle_effect_ratio_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_VEHICLE_EFFECT_RATIO"
+      ],
+      "sha256": "118aadf0ac538fc02867f3976caf3265e1975506ae8ec67de5f13ec32930faa0"
+    },
+    "src/rendering/models/native_tu15_vehicle_render_root_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_VEHICLE_RENDER_ROOT"
+      ],
+      "sha256": "db3fab5817c6ad5074b5052dfdf6d945953950226bc9d6002508b10edca7c652"
+    }
+  },
   "internal_dispatch_identity_evidence": {
     "map-pack11": {
       "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
@@ -30,7 +43,10 @@
     "halo2_physics_vehicle_update"
   ],
   "production_scope": "static_production_candidate",
-  "reference_verification_gate_names": [],
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_VEHICLE_EFFECT_RATIO",
+    "HALO2_REFERENCE_VEHICLE_RENDER_ROOT"
+  ],
   "routine_count": 22,
   "routines": [
     {
@@ -43,7 +59,7 @@
         "map-pack11": "b8250",
         "tu15": "b9390"
       },
-      "line": 55,
+      "line": 57,
       "literal_dispatch_required_targets": [],
       "observed_entry": "b9390",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -64,7 +80,7 @@
         "map-pack11": "b8630",
         "tu15": "b9770"
       },
-      "line": 85,
+      "line": 87,
       "literal_dispatch_required_targets": [
         "b7e50"
       ],
@@ -93,7 +109,7 @@
         "map-pack11": "b86c0",
         "tu15": "b9800"
       },
-      "line": 136,
+      "line": 138,
       "literal_dispatch_required_targets": [],
       "observed_entry": "b9800",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -116,7 +132,7 @@
         "map-pack11": "baa80",
         "tu15": "bbbc0"
       },
-      "line": 193,
+      "line": 195,
       "literal_dispatch_required_targets": [
         "b7e50",
         "1d9f10"
@@ -143,7 +159,7 @@
         "map-pack11": "bb0c0",
         "tu15": "bc200"
       },
-      "line": 258,
+      "line": 260,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bc200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -156,9 +172,9 @@
     },
     {
       "admission_prefix_calls": [
-        "native_tu15_render_object_ownership_bridge"
+        "halo2::native_vehicle_render_root_detail::bridge"
       ],
-      "body_sha256": "d994bffa4b3bdfb01348123a547485a987341a1178043c81810e7cb716734aac",
+      "body_sha256": "10a2762cdc9611afa42f39627f512a8290aed64a0b26bc5aa3e3bb39dea26722",
       "callback_image_scope": "tu15-observation-remap-or-map-pack11",
       "direct_run_symbols": [],
       "function_name": "run_bbe70",
@@ -167,16 +183,51 @@
         "map-pack11": "bbe70",
         "tu15": "bcfb0"
       },
-      "line": 369,
+      "line": 371,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
-        "native_tu15_render_object_ownership_bridge"
+        "halo2::native_vehicle_render_root_detail::bridge"
       ],
       "observed_entry": "bcfb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "bcfb0",
-      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_vehicle_render_root_replacements.py",
+        "binder_sha256": "7a63f37799e0ee89ef0a8f4001ea93d9164b7ca7c5bbf608ee123035a2b48f83",
+        "entry_symbol": "bbe70",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact VehicleUpdate canonical BBE70/actual BCFB0 source owner preserves each live direct or literal callback and the genuine Phantom remap. Empty-callback admission keeps the existing native renderer bridge. The independent retained reference body and MapPack11 are unchanged; sibling World/ModelRender copies and full runtime remain separate.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_render_object_ownership.hpp": "7cc750b0bbb557966e94528d6f0dafe6ac0d39f965be9dc3899f99c89b70e674",
+          "include/halo2/native_tu15_render_root_kernel.hpp": "c2a14da0872af4ad529b13e33a209ac087ec80525cf9e9a9f5a0db3e1bb6ec87",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/rendering/models/native_tu15_render_object_ownership_bridge.hpp": "0946f38229da11dee0354c10af8302f3b3885b2c32c3c0532959efe57b403acd",
+          "src/rendering/models/native_tu15_render_ownership_detail.hpp": "47b3b49b57bbd1feb82ad9ee9b83d774becf89cfb7c013cc9e12af07e4fdedaf",
+          "src/rendering/models/native_tu15_render_ownership_transport.hpp": "40737b62d5e5e6aabfc3a2049225df042fa20e65b02bfab99ff0c522023cff8d",
+          "src/rendering/models/native_tu15_vehicle_render_root_source_frame.hpp": "265f274bb485cdbf2b4fc61dab1dd420dd395b935301e0536c827931ad75cbfd",
+          "src/rendering/models/native_tu15_vehicle_render_root_source_owner.hpp": "db3fab5817c6ad5074b5052dfdf6d945953950226bc9d6002508b10edca7c652"
+        },
+        "source_sha256": "6dc694cb32081cfb086b05759661e9dc7da9dd2198e5936ecda502f44494d269",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "VehicleState",
       "symbol": "bbe70",
       "symbol_kind": "address-named"
@@ -231,7 +282,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "7ce128976a92d65eb1cf072c32570fe48531f676995c7705b841a105d489fd88",
+      "admission_prefix_calls": [
+        "halo2::native_vehicle_effect_ratio_owner_detail::bridge"
+      ],
+      "body_sha256": "48836fdb2fef81bee673c673ded814dd33733df8d4bf16c1e5690f6050f1d880",
       "callback_image_scope": "tu15-observation-remap-or-map-pack11",
       "direct_run_symbols": [],
       "function_name": "run_d26c0",
@@ -242,11 +296,66 @@
       },
       "line": 460,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_vehicle_effect_ratio_owner_detail::bridge"
+      ],
       "observed_entry": "d3750",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "d3750",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "actual_tu15_entry": "d3750",
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_vehicle_effect_ratio_replacements.py",
+        "binder_sha256": "d78694cef7b015356ace989621d37541e3ffeb7783367e901bd7c153548a35da",
+        "entry_symbol": "d26c0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact TU15 VehicleUpdate canonical D26C0 / actual D3750 keeps all 34 direct or prepared source callback sites and the genuine Phantom mapping. Unsupported FP/MMX and MapPack11 retain their authored route. The existing BBE70 sibling, exported chain and C9070 parent remain separate.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_mopp_aabb_projection_kernel.hpp": "1c825ce247993ad1be5452631bc710514480895164de6b343f26c18c6a0c94b8",
+          "include/halo2/native_tu15_mopp_aabb_traversal_kernel.hpp": "f4be3a1b5d8d3c0be69d1d444a5cce18e635a189ad1aba351608eee3c0298b5b",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_vehicle_effect_ratio_kernel.hpp": "406d5706f7a6cf5668ade970b53b15cc59d3e9d6f7f04a90d3232cb24c1ede60",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/vehicles/native_tu15_vehicle_effect_ratio_ordered.hpp": "0cbd62c8bcce99d79044aaa394a89c7488befd88a00aa1705c5fbeac14487de0",
+          "src/physics/vehicles/native_tu15_vehicle_effect_ratio_source_frame.hpp": "107e2010246fdd24d0c70404c0b3111634025fcbbf7b14fa098c410a4a756c71",
+          "src/physics/vehicles/native_tu15_vehicle_effect_ratio_source_owner.hpp": "118aadf0ac538fc02867f3976caf3265e1975506ae8ec67de5f13ec32930faa0"
+        },
+        "source_sha256": "6dc694cb32081cfb086b05759661e9dc7da9dd2198e5936ecda502f44494d269",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "native_vehicle_render_root_replacements.py": "7a63f37799e0ee89ef0a8f4001ea93d9164b7ca7c5bbf608ee123035a2b48f83",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "VehicleState",
       "symbol": "d26c0",
       "symbol_kind": "address-named"
@@ -261,7 +370,7 @@
         "map-pack11": "e7e30",
         "tu15": "e8d50"
       },
-      "line": 498,
+      "line": 499,
       "literal_dispatch_required_targets": [],
       "observed_entry": "e8d50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -282,7 +391,7 @@
         "map-pack11": "e7e60",
         "tu15": "e8d80"
       },
-      "line": 518,
+      "line": 519,
       "literal_dispatch_required_targets": [],
       "observed_entry": "e8d80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -306,7 +415,7 @@
         "map-pack11": "f0eb0",
         "tu15": "f1dd0"
       },
-      "line": 573,
+      "line": 574,
       "literal_dispatch_required_targets": [],
       "observed_entry": "f1dd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -327,7 +436,7 @@
         "map-pack11": "f11a0",
         "tu15": "f20c0"
       },
-      "line": 751,
+      "line": 752,
       "literal_dispatch_required_targets": [],
       "observed_entry": "f20c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -348,7 +457,7 @@
         "map-pack11": "f1270",
         "tu15": "f2190"
       },
-      "line": 815,
+      "line": 816,
       "literal_dispatch_required_targets": [],
       "observed_entry": "f2190",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -369,7 +478,7 @@
         "map-pack11": "f1d00",
         "tu15": "f2c20"
       },
-      "line": 908,
+      "line": 909,
       "literal_dispatch_required_targets": [],
       "observed_entry": "f2c20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -390,7 +499,7 @@
         "map-pack11": "f2960",
         "tu15": "f3880"
       },
-      "line": 920,
+      "line": 921,
       "literal_dispatch_required_targets": [],
       "observed_entry": "f3880",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -413,7 +522,7 @@
         "map-pack11": "1105e0",
         "tu15": "111500"
       },
-      "line": 948,
+      "line": 949,
       "literal_dispatch_required_targets": [],
       "observed_entry": "111500",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -436,7 +545,7 @@
         "map-pack11": "115600",
         "tu15": "116520"
       },
-      "line": 983,
+      "line": 984,
       "literal_dispatch_required_targets": [],
       "observed_entry": "116520",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -457,7 +566,7 @@
         "map-pack11": "1c8430",
         "tu15": "1cd6a0"
       },
-      "line": 1012,
+      "line": 1013,
       "literal_dispatch_required_targets": [
         "1d8eb0",
         "1d9080",
@@ -484,7 +593,7 @@
         "map-pack11": "1d43c0",
         "tu15": "1d8c80"
       },
-      "line": 1130,
+      "line": 1131,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8c80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -505,7 +614,7 @@
         "map-pack11": "1d44c0",
         "tu15": "1d8d80"
       },
-      "line": 1158,
+      "line": 1159,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8d80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -526,7 +635,7 @@
         "map-pack11": "208ed0",
         "tu15": "20d7d0"
       },
-      "line": 1186,
+      "line": 1187,
       "literal_dispatch_required_targets": [],
       "observed_entry": "20d7d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -540,7 +649,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/physics/vehicles/physics_vehicle_update_generated.cpp",
-  "source_bytes": 132187,
+  "source_bytes": 132404,
   "source_filename_scope": "generated",
-  "source_sha256": "9cc849e731ef1366fc2d4afffa816410505a93523017fd592f181aa7d92647c7"
+  "source_sha256": "6dc694cb32081cfb086b05759661e9dc7da9dd2198e5936ecda502f44494d269"
 }

@@ -35,7 +35,7 @@ Json armory_prop_cases(const std::filesystem::path &maps,unsigned &failures) {
             if(std::string_view(name).ends_with("equipment_cart"))
                 (type==6?scenery_cart_model:prop_cart_model)=initial.render_model;
             auto preview=cache.load_model(tag->datum,true,placement->variant);
-            row["caller_admitted"]=source_campaign_lit_scenery(preview,*placement);
+            row["caller_admitted"]=source_campaign_lit_object(preview,*placement);
             unsigned lit_materials=0,independent_refusals=0;
             for(auto material:preview.mesh.materials) {
                 if(material.lods.empty())continue; // Reserved/non-shader material slot.
@@ -50,20 +50,27 @@ Json armory_prop_cases(const std::filesystem::path &maps,unsigned &failures) {
             SourceCampaignModel model(cache,*placement);Mesh resources;
             // Only scenery has authored per-instance baked color streams.
             model.prepare_materials(cache,resources,type==6);
-            unsigned dynamic_passes=0;
+            unsigned dynamic_passes=0,default_passes=0;
             row["prepared_shaders"]=Json::array();
             for(const auto &material:resources.materials) {
-                bool dynamic=false;
-                for(const Material *pass:std::array<const Material*,2>{&material,material.environment_pass.get()})if(pass && pass->forward_pass && pass->forward_pass_index<pass->passes.size())
-                    dynamic|=pass->passes[pass->forward_pass_index].implementation==2;
+                bool dynamic=false,default_lighting=false;
+                for(const Material *pass:std::array<const Material*,2>{&material,material.environment_pass.get()})if(pass && pass->forward_pass && pass->forward_pass_index<pass->passes.size()) {
+                    const auto implementation=pass->passes[pass->forward_pass_index].implementation;
+                    dynamic|=implementation==2;
+                    default_lighting|=implementation==3;
+                }
                 if(dynamic)++dynamic_passes;
+                if(default_lighting)++default_passes;
                 row["prepared_shaders"].push_back({{"name",material.name},{"dynamic_implementation2",dynamic}});
             }
             row["dynamic_implementation2_materials"]=dynamic_passes;
+            row["default_implementation3_materials"]=default_passes;
             if(!lit_materials || independent_refusals!=lit_materials || !dynamic_passes)
                 throw FormatError("Actual Armory model no longer proves authored dynamic lighting versus independent preview");
             if(!row["caller_admitted"].get<bool>())
                 throw FormatError("Actual lit Armory BLOC is routed to independent preview instead of its native model lighting units");
+            if(type==11 && !default_passes)
+                throw FormatError("Armory BLOC has no authored implementation 3 for the default lighting class");
             row["passed"]=true;
         } catch(const std::exception &e) {row["error"]=e.what();++failures;}
         std::cout<<row.dump()<<'\n';cases.push_back(std::move(row));

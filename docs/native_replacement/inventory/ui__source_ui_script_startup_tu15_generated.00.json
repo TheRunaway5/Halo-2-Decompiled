@@ -726,8 +726,8 @@
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "WorldState",

@@ -64,8 +64,9 @@ struct Perform {
         abi.xmm[0]={r(0x46a118u),0,0,0};w(0x1cadd6u,f+0x7du,1,1);w(0x1caddbu,f+0x80u,abi.xmm[0][0]);
         const auto path=acquire(f,0x1cade4u);
         call=f;push(call,0);push(call,f+0x38u);push(call,0x1cadf9u);
-        NativeCampaignAiPathMemoryWordsTu15 query(memory,f+0x38u),policy(memory,f+0x1cu);
-        native_campaign_ai_path_workspace_initialize_tu15(memory,path,query,&policy,nullptr,0,observe);
+        // 1CADF4 passes EBX as the transport words and clears ECX (policy).
+        NativeCampaignAiPathMemoryWordsTu15 query(memory,f+0x38u),transport(memory,f+0x1cu);
+        native_campaign_ai_path_workspace_initialize_tu15(memory,path,query,nullptr,&transport,0,observe);
         child(0x1cadf9u,0x27b2b0u,{path,0,f+0x38u,f+0x1cu,f,bp,path,f+0x1cu});
         const bool found=(abi.gp[0]&0xffu)!=0;state=r(bp+0xcu);
         if(!(r(state+0xcu,1)&1u)) {

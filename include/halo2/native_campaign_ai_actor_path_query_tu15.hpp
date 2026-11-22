@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/native_campaign_ai_area_perform_tu15.hpp"
 #include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/physics_world_runtime.hpp"
 
@@ -7,11 +8,11 @@ namespace halo2 {
 // 275E90: EDX is the actor, plain RET; populate its +27C framed point once.
 // Actual stack words, including the uninitialized high half read at2014A7,
 // remain in caller memory. Uncached 275CB0/275BA0 are native; their
-// Biped cached-point children E20F0/202660/2185E0, vehicle F35D0,
-// scenario 276E10 and aim-origin BBF20 refuse by name.
+// The vehicle branch follows the caller-provided F35D0 geometry owner.
 void native_campaign_ai_actor_path_query_call_tu15(SourcePhysicsContactMemory &,
     std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &,
-    const SourcePhysicsContactRecordObserver & = {});
+    const SourcePhysicsContactRecordObserver & = {},
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point = {});
 
 // Actual 26A380 ABI with the native 2013B0 owner bound. The query receives
 // the real caller frame and saved EBP/ESI/EDI words; caller-saved scratch

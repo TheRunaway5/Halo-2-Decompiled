@@ -59,7 +59,7 @@ MenuState selected(const FrontendContent& content,unsigned variant,bool lan,
   MenuState menu(content,preferences);menu.accept();choose(menu,0,167);
   menu.text("Custom One");menu.commit_text();menu.back();
   need(menu.frame().screen==6,"Custom profile failed to reach the main menu");
-  choose(menu,lan?3:2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,lan?2:0,30);choose(menu,0,14);
   need(menu.controller_slot(21,true)==0 && menu.controller_slot(22,true)==1 && menu.frame().screen==10,
        "Custom match could not join its second local controller");
   choose(menu,0,167);menu.text("Custom Two");menu.commit_text();menu.back();
@@ -74,7 +74,7 @@ MenuState selected(const FrontendContent& content,unsigned variant,bool lan,
 }
 MenuState resumed(const FrontendContent& content,const std::filesystem::path& preferences) {
   MenuState menu(content,preferences);menu.accept();choose(menu,row_destination(menu,-3),6);
-  choose(menu,3,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,2,30);choose(menu,0,14);
   need(menu.controller_slot(21,true)==0 && menu.controller_slot(22,true)==1,
        "Reloaded custom match could not join its local controllers");
   choose(menu,row_value(menu,1),14);

@@ -22,6 +22,7 @@ CASE = re.compile(r'case (0x[0-9a-f]+)u:return (0x[0-9a-f]+)u;')
 CALL = re.compile(r'\bselected\(\s*(0x[0-9a-f]+)u\s*,\s*'
                   r'([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\)')
 INSTRUCTION = re.compile(r'if\(s\.services\.instruction\)\{s\.services\.instruction\((0x[0-9a-f]+u)\);\}')
+REGISTER_POP = re.compile(r'^s\.instruction_literal\((0x[0-9a-f]+)u\); s\.set\(([0123567]),s\.pop\(\),4,0\);$', re.M)
 NON_CODE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', re.S)
 CURSOR_STATE_HEADERS = ('physics/runtime/physics_contact_runtime_internal.hpp', 'physics/runtime/physics_world_runtime_internal.hpp',
     'physics/vehicles/physics_vehicle_runtime_internal.hpp', 'physics/vehicles/physics_vehicle_motion_internal.hpp',
@@ -30,6 +31,37 @@ CURSOR_STATE_HEADERS = ('physics/runtime/physics_contact_runtime_internal.hpp', 
 
 def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+def group_literal_stack_pops(output):
+    # Full-line matching retains labels and their independently reachable
+    # entries. The +1 source PC check is the encoding for these register POPs.
+    service_sites = {0x38846e, 0x21f590, 0x33b595}
+    code = NON_CODE.sub(lambda match: ' ' * len(match[0]), output)
+    runs = []
+    for match in REGISTER_POP.finditer(code):
+        pc = int(match[1], 16)
+        if pc in service_sites:
+            continue
+        if runs and runs[-1][-1].end() + 1 == match.start() and int(runs[-1][-1][1], 16) + 1 == pc:
+            runs[-1].append(match)
+        else:
+            runs.append([match])
+    parts, start, groups = [], 0, 0
+    for run in runs:
+        if not 2 <= len(run) <= 5:
+            continue
+        first, last = run[0], run[-1]
+        registers = ','.join(match[2] for match in run)
+        # Keep fallback lines outside the canonical grammar so processing a
+        # prepared source with other retained callbacks stays idempotent.
+        fallback = '\n'.join('    ' + line for line in output[first.start():last.end()].splitlines())
+        parts.extend((output[start:first.start()], f'if(!s.try_pop_registers<{registers}>({last[1]}u)){{\n',
+                      fallback, '\n}'))
+        start = last.end()
+        groups += 1
+    parts.append(output[start:])
+    return ''.join(parts), groups
 
 
 # Native leaf kernels (src/physics/runtime/native_tu15_matrix_leaves.hpp),
@@ -141,7 +173,10 @@ LEAVES = {
     # operands (AI frame, scene device, effect particle units).
     '145560': (('3ce39c1046f43fec27fe7f65c35755ca56024dcdae65bdebd4ec4e2377171b62', '6ab5af55d5cce6547098d13f85c4169b2dc1364b50c382161698df28bac38169'), 'kernel_145560', 0x14566e),
     '144cf0': (('c6d3ad70a57319f692018045a3de73c341b85bf996fbd1330fcd7e9afc1fc032', 'a12dcc069c07b58c31058558e0e6ea247781974bd56ca73d0c3872affb17cf58'), 'kernel_144cf0', 0x144e4e),
-    '2e44d0': ('9f79312f94c4df9caf23dd8e6c012cefe64749e9f7548b557d7375d8618919f1', 'kernel_2e44d0', 0x2e4540),
+    '2e44d0': (('9f79312f94c4df9caf23dd8e6c012cefe64749e9f7548b557d7375d8618919f1',
+                '8f1da631535132b0d8777a0a859b8a8b2aafb2088ff67ec211595c04c2c09c1f'), 'kernel_2e44d0', 0x2e4540),
+    # The World copy uses canonical symbols and can publish selected TU1.5 PCs.
+    '2e09e0': ('6a65335e40158ccee2ab6add74c0ed2d8ae4ce30791068a36abf4c293257747f', 'kernel_2e44d0', 0x2e4540),
     '2e46e0': ('198a8866775ff17db3d72b629e04d42e4b9772cddbe9e79257d986711ee667c9', 'kernel_2e46e0', 0x2e4753),
     '14cdb0': ('f747aad6a36fcee70a3af5ab504d7fa8d9027e392c2175bee747f0bbb2752e30', 'kernel_14cdb0', 0),
     '14ce30': ('e88ee3cb90b6c51bf61c5eeed47db65740c8eef039f31ae55adb65a05f55d069', 'kernel_14ce30', 0),
@@ -178,9 +213,11 @@ def spatial_owner_bindings(canonical,output):
                         ('static void run_16c620(','native_collision_ray_replacements'),
                         # Device update callbacks 1179C0/10B840 (scene device unit).
                         ('static void run_1179c0(','native_device_update_replacements'),
+                        ('static void run_1c58e0(','native_campaign_ai_workspace_replacements'),
                         # Group L live-support leaves: the helper matches each pinned body
                         # in any unit (C9550, 1EC970, 1F7F60, 171010, C1E90, 110350).
                         ('static void run_','native_live_support_leaves_replacements'),
+                        ('void source_run_physics_live_support_tu15(','native_object_hierarchy_root_replacements'),
                         # Group F frame/gameplay owners: the helper matches each pinned
                         # owner and its unit itself (1306B0, D7230, 1EEE80, ...).
                         ('static void run_','native_frame_misc_replacements'),
@@ -204,6 +241,9 @@ def spatial_owner_bindings(canonical,output):
                         ('static void run_1f2db0(ObservedWorldState','native_shape_key_filter_replacements'),
                         # Group H 2F8630 closest point and 2E4FE0 swept pair (2E4550/2E4760 inline).
                         ('static void run_2f4bd0(ObservedWorldState','native_convex_pair_replacements'),
+                        # Havok active-island byte query in World and scene devices.
+                        ('static void run_3121a0(ObservedWorldState','native_phantom_island_replacements'),
+                        ('static void run_315c90(WorldState','native_phantom_island_replacements'),
                         # Group H 1F7C10 BSP child shape (1F76A0 and 1F5FE0 through their bound bodies).
                         ('static void run_1f3320(ObservedWorldState','native_bsp_child_shape_replacements'),
                         # Group H 1F6D10 structure AABB query (1F76A0 through its bound body; 2E4550 inline).
@@ -300,12 +340,15 @@ def install_leaves(canonical, output):
         if not original:
             continue
         state = original[1]
-        if digest(original[0].replace(state + ' &s', 'STATE &s')) not in (expected if isinstance(expected, tuple) else (expected,)):
+        pin = digest(original[0].replace(state + ' &s', 'STATE &s'))
+        if pin not in (expected if isinstance(expected, tuple) else (expected,)):
             continue
-        if name in ('14cea0', '123210', '243450', '145560', '144cf0', '14dd70'):
+        if name in ('14cea0', '123210', '243450', '145560', '144cf0', '14dd70', '2e44d0', '2e09e0'):
             mapping=MAPPING.search(canonical)
             addresses={int(a,16):int(b,16) for a,b in CASE.findall(mapping['cases'])}
             if any(addresses.get(int(call[1],16))!=int(call[1],16) for call in CALL.finditer(original[0])):
+                continue
+            if name=='2e09e0' and addresses.get(0x2e09e0)!=0x2e44d0:
                 continue
         current = leaf_body(output, name)
         if not current:
@@ -340,9 +383,16 @@ def install_leaves(canonical, output):
         # bridge: the partitioner owns only hex-named bodies with the
         # canonical trailer, and the original instructions stay intact.
         start = current[0].index('{\n') + 2
-        admission='s.selected_observation_pcs && ' if name=='2e6240' else ''
+        admission='s.selected_observation_pcs && ' if name in ('2e6240', '2e09e0') else ''
         if name=='14dd70':admission='halo2::native_tu15_leaves::x87_room(s,2u) && '
-        marker = (f'    // BEGIN native leaf{name}\n'
+        override = ''
+        if name=='2e09e0' or (name=='2e44d0' and pin==LEAVES['2e44d0'][0][1]):
+            override = ('    static const bool reference_transform = [] {\n'
+                        '        const auto* value = std::getenv("HALO2_REFERENCE_COLLISION_TRANSFORM_COMPOSE");\n'
+                        '        return value && *value;\n'
+                        '    }();\n')
+            admission += '!reference_transform && '
+        marker = (f'    // BEGIN native leaf{name}\n' + override +
                   f'    if({admission}halo2::native_tu15_leaves::run(s,[](auto &io,auto &m){{halo2::native_tu15_leaves::{kernel}(io,m);}},\n'
                   f'        [](auto &r){{run_{name}(r);}},0x{final_pc:x}u))return;\n'
                   f'    // END native leaf{name}\n')
@@ -1103,6 +1153,18 @@ def specialize(text):
         output=particle_record.retag_specialized(text,output)
         particle_record_entries=particle_record.installed_entries(output)
     receipt['native_particle_record_entries']=particle_record_entries
+    grouped_stack_pops=0
+    if cursor_calls and ('void source_run_ai_frame_tu15(' in text or 'void source_run_physics_live_support_tu15(' in text):
+        output,grouped_stack_pops=group_literal_stack_pops(output)
+    receipt['grouped_stack_pops']=grouped_stack_pops
+    if 'void source_run_ai_frame_tu15(' in text:
+        # The path ring adds a caller marker to LiveState. The earlier
+        # object-owner checks must authenticate the original State first.
+        ring_spec=importlib.util.spec_from_file_location('native_campaign_ai_path_ring_binding',
+            Path(__file__).with_name('native_campaign_ai_workspace_replacements.py'))
+        ring_helper=importlib.util.module_from_spec(ring_spec);ring_spec.loader.exec_module(ring_helper)
+        output,path_ring_entries=ring_helper.install_path_ring(text,output)
+        if path_ring_entries:receipt.setdefault('native_spatial_owners',[]).extend(path_ring_entries)
     receipt['specialized_sha256']=digest(output)
     return output, receipt
 
@@ -1116,8 +1178,12 @@ def main():
         parser.error('Specialized operands must use a separate build-local output')
     output, receipt = specialize(args.source.read_text())
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(output)
-    args.output.with_suffix('.operands.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    # A binder update can rerun specialization for many independent units.
+    # Keep their compiled objects reusable when their generated bytes agree.
+    receipt_path = args.output.with_suffix('.operands.json')
+    for path, content in ((args.output, output), (receipt_path, json.dumps(receipt, indent=2) + '\n')):
+        if not path.is_file() or path.read_text() != content:
+            path.write_text(content)
     print(json.dumps({key: value for key, value in receipt.items() if key != 'bindings'}))
 
 

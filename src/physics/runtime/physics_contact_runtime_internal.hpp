@@ -3,6 +3,8 @@
 #include "physics/runtime/physics_solver_internal.hpp"
 #include "physics/runtime/native_tu15_normalize_vector_bridge.hpp"
 #include <algorithm>
+#include <bit>
+#include <cstdlib>
 #include <cstring>
 
 namespace halo2::physics_contact_runtime_detail {
@@ -109,25 +111,45 @@ inline std::uint32_t integer_spill(long double x,std::uint16_t &status) {
     throw std::runtime_error("Original contact integer spill backend unavailable");
 #endif
 }
+inline bool reference_scalar_stack_pops() noexcept {
+    static const bool reference=[] {
+        const auto *p=std::getenv("HALO2_REFERENCE_SCALAR_STACK_POPS");return p && *p;
+    }();
+    return reference;
+}
 struct State {
     M &memory;const O &observe;const SourcePhysicsContactRuntimeServices &services;SourcePhysicsContactImage image;
     std::array<std::uint32_t,8> gp;__m128 xmm[8];Flags flags;ExtendedStack fp;
     std::uint32_t fs_base{},other_flags{};
-    const SourcePhysicsContactRuntimeServices::InstructionCursor *instruction_cursor=
+    using InstructionCursor=SourcePhysicsContactRuntimeServices::InstructionCursor;
+    static bool has_literal_service_sites(const InstructionCursor &cursor) {
+        return cursor.literal_service_sites && cursor.service_sites.size()==3 &&
+            cursor.service_sites[0]==0x38846eu &&
+            cursor.service_sites[1]==0x21f590u &&
+            cursor.service_sites[2]==0x33b595u;
+    }
+    const InstructionCursor *instruction_cursor=
         services.instruction && services.instruction_cursor.position &&
         services.instruction_cursor.callback_type &&
         services.instruction.target_type()==*services.instruction_cursor.callback_type &&
         services.instruction_cursor.executor==std::this_thread::get_id()?
         &services.instruction_cursor:nullptr;
-    const bool literal_service_sites=instruction_cursor && instruction_cursor->literal_service_sites &&
-        instruction_cursor->service_sites.size()==3 &&
-        instruction_cursor->service_sites[0]==0x38846eu &&
-        instruction_cursor->service_sites[1]==0x21f590u &&
-        instruction_cursor->service_sites[2]==0x33b595u;
-    const SourcePhysicsContactRuntimeServices::InstructionCursor *live_instruction_cursor()const {
+    const bool literal_service_sites=instruction_cursor && has_literal_service_sites(*instruction_cursor);
+    // World states run on the executor's synchronous stack. Required-owner
+    // calls transport the ABI, and a copied State must recheck its executor.
+    struct ImmutableCursorAdmission {
+        const InstructionCursor *cursor{};
+        explicit ImmutableCursorAdmission(const InstructionCursor *value):cursor(value) {}
+        ImmutableCursorAdmission(const ImmutableCursorAdmission &) noexcept {}
+    };
+    const ImmutableCursorAdmission immutable_cursor{
+        literal_service_sites && services.immutable_instruction_cursor.identifies(services)?
+        instruction_cursor:nullptr};
+    const InstructionCursor *live_instruction_cursor()const {
         // Services are referenced, not copied. A provider may replace their
         // callback or policy after State cached its initial admission witness.
         const auto *cursor=instruction_cursor;
+        if(cursor && cursor==immutable_cursor.cursor)return cursor;
         return services.instruction && cursor==&services.instruction_cursor &&
             cursor->position && cursor->callback_type &&
             services.instruction.target_type()==*cursor->callback_type &&
@@ -140,10 +162,9 @@ struct State {
         // Generated callers supply a literal, so the compiler folds this
         // predicate without instantiating a separate function per source PC.
         if(pc!=0x38846eu && pc!=0x21f590u && pc!=0x33b595u) {
-            if(const auto *cursor=live_instruction_cursor();literal_service_sites && cursor &&
-               cursor->literal_service_sites && cursor->service_sites.size()==3 &&
-               cursor->service_sites[0]==0x38846eu && cursor->service_sites[1]==0x21f590u &&
-               cursor->service_sites[2]==0x33b595u) {
+            if(const auto *cursor=instruction_cursor;literal_service_sites && cursor &&
+               (cursor==immutable_cursor.cursor ||
+                (live_instruction_cursor() && has_literal_service_sites(*cursor)))) {
                 if(!(cursor->first_trace && *cursor->first_trace) &&
                     !(cursor->second_trace && *cursor->second_trace)) {
                     *cursor->position=pc;return;
@@ -178,12 +199,40 @@ struct State {
         const auto mask=Flags::mask(n)<<shift;gp[i]=(gp[i]&~mask)|((x<<shift)&mask);
     }
     void push(std::uint32_t site,std::uint32_t x) {gp[4]-=4;w(memory,observe,site,gp[4],4,x);}
+    // The build-local binder supplies only adjacent, unlabeled one-byte
+    // POPs with ordinary register targets and no instruction service site.
+    template<unsigned... Registers> bool try_pop_registers(std::uint32_t final_pc) {
+        static_assert(sizeof...(Registers)>=2 && sizeof...(Registers)<=5);
+        static_assert(((Registers<8u && Registers!=4u) && ...));
+        if constexpr(std::endian::native!=std::endian::little)return false;
+        const auto *cursor=immutable_cursor.cursor;
+        if(image!=SourcePhysicsContactImage::TitleUpdate15 || !cursor || observe || reference_scalar_stack_pops() ||
+           (cursor->first_trace && *cursor->first_trace) ||
+           (cursor->second_trace && *cursor->second_trace))return false;
+        std::array<std::uint32_t,sizeof...(Registers)> words;
+        const auto *page=memory.direct_page(gp[4],sizeof(words));
+        // The individual POPs still own page crossings, faults and hooks.
+        if(!page)return false;
+        std::memcpy(words.data(),page->bytes+(gp[4]&4095u),sizeof(words));
+        unsigned index=0;
+        ((gp[Registers]=words[index++]),...);
+        gp[4]+=std::uint32_t(sizeof(words));
+        *cursor->position=final_pc;
+        return true;
+    }
     std::uint32_t pop() {const auto x=r(memory,gp[4]);gp[4]+=4;return x;}
     void load(const SourcePhysicsContactRuntimeAbi &a) {
         if(a.active_mmx)throw std::runtime_error("Required original active MMX register-file owner unavailable");
+        load_scalar_state(a);
+    }
+protected:
+    // This imports the scalar packet. A World caller validates the distinct
+    // MMX view before importing the same fields and retains its alias itself.
+    void load_scalar_state(const SourcePhysicsContactRuntimeAbi &a) {
         gp=a.gp;fs_base=a.fs_base;other_flags=a.eflags&~0x8d5u;flags.load(a.eflags);
         if(a.x87_depth>8)throw std::runtime_error("Invalid original contact x87 depth");
         fp.lanes=a.x87;fp.count=a.x87_depth;fp.status=a.x87_status;fp.top=(a.x87_status>>11u)&7u;
+        bool restore_exceptions=true;
         if(a.floating_point) {
             const auto p=*a.floating_point;
             if((p.x87_control_word&0x3fu)!=0x3fu||(p.mxcsr&0x1f80u)!=0x1f80u)
@@ -191,13 +240,20 @@ struct State {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
             asm volatile("fldcw %0"::"m"(p.x87_control_word):"memory");
             _mm_setcsr(p.mxcsr);
+            // All exceptions are masked by the just-validated source control.
+            // An equal sticky status with no pending summary needs no
+            // environment round trip. Keep the old load for every change.
+            std::uint16_t status;
+            asm volatile("fnstsw %%ax":"=a"(status)::"memory");
+            restore_exceptions=(status&0xbfu)!=(a.x87_status&0x3fu);
 #else
             throw std::runtime_error("Required original contact control word backend unavailable");
 #endif
         }
-        source_load_x87_exception_flags(a.x87_status);
+        if(restore_exceptions)source_load_x87_exception_flags(a.x87_status);
         for(unsigned n=0;n<8;++n)xmm[n]=_mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a.xmm[n].data())));
     }
+public:
     SourcePhysicsContactRuntimeAbi save()const {
         SourcePhysicsContactRuntimeAbi a{};a.gp=gp;a.fs_base=fs_base;a.eflags=other_flags|flags.bits();a.x87=fp.lanes;a.x87_depth=fp.count;a.x87_status=fp.word();
         std::uint16_t cw;

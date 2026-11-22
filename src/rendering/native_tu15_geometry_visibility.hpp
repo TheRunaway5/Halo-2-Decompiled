@@ -40,6 +40,10 @@ template<class State>bool admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 namespace N=native_bsp_surface_2d_detail;
 template<class Scope>struct Io {Scope*scope;template<class Callback>void operator()(Callback&&callback){scope->io(std::forward<Callback>(callback));}};
+inline bool reference_frustum_scope() {
+    static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_GEOMETRY_FRUSTUM_SCOPE");return p&&*p;}();
+    return reference;
+}
 struct Comparison {bool below{};std::uint32_t flags{};};
 inline Comparison compare(N::Scalar left,N::Scalar right){
     unsigned char below,equal,unordered;
@@ -49,18 +53,36 @@ inline Comparison compare(N::Scalar left,N::Scalar right){
 template<class State,class Call,class Before>class View:public native_mopp_ray_caller_detail::Frame<State,Before,Io<native_raw_x87_detail::Scope<State>>> {
     using Scope=native_raw_x87_detail::Scope<State>;
     using Base=native_mopp_ray_caller_detail::Frame<State,Before,Io<Scope>>;
-    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::push;using Base::pop;
+    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::pop;
     Call&call_;Scope&scope_;
+    bool borrow_frustum_{}, callback_free_stack_{}, touched_x87_{};
     std::uint32_t read(std::uint32_t pc,std::uint32_t address,unsigned width=4){at(pc);return word(address,width);}
+    void push(std::uint32_t pc,std::uint32_t value){
+        if(!callback_free_stack_ || s_.observe){Base::push(pc,value);return;}
+        at(pc);
+        const auto address=s_.gp[4]-4u;
+        const auto bytes=std::bit_cast<std::array<std::byte,4>>(value);
+        if(native_cluster_frustum_abi_detail::try_secondary_stack_write(s_.memory,address,bytes)) {
+            s_.gp[4]=address;
+            return;
+        }
+        Base::store(pc,address,value,[&]{s_.gp[4]=address;},true);
+    }
     void byte_store(std::uint32_t pc,std::uint32_t address,std::uint32_t value){
-        at(pc);SourcePhysicsContactRecordStore event{pc,address,{},{}};
+        at(pc);
+        const std::array bytes{std::byte(value)};
+        if(callback_free_stack_ && !s_.observe &&
+           native_cluster_frustum_abi_detail::try_secondary_stack_write(s_.memory,address,bytes))return;
+        SourcePhysicsContactRecordStore event{pc,address,{},{}};
         if(s_.observe){event.before.resize(1);io([&]{s_.memory.read(address,event.before);});}
-        const std::array bytes{std::byte(value)};io([&]{s_.memory.write(address,bytes);});
+        io([&]{s_.memory.write(address,bytes);});
         if(s_.observe){event.written.assign(bytes.begin(),bytes.end());io([&]{s_.observe(event);});}
     }
 public:
     using Scalar=N::Scalar;
-    View(State&s,Call&call,Before&before,Scope&scope):Base{s,before,Io<Scope>{&scope}},call_(call),scope_(scope){}
+    View(State&s,Call&call,Before&before,Scope&scope,bool borrow_frustum,bool callback_free_stack=false)
+        :Base{s,before,Io<Scope>{&scope}},call_(call),scope_(scope),borrow_frustum_(borrow_frustum),
+         callback_free_stack_(callback_free_stack){}
     static Scalar add(Scalar a,Scalar b){return N::add(a,b);}
     static Scalar subtract(Scalar a,Scalar b){return N::subtract(a,b);}
     static Scalar multiply(Scalar a,Scalar b){return N::multiply(a,b);}
@@ -81,7 +103,8 @@ public:
         auto&g=s_.gp;g[0]=std::uint32_t(std::int32_t(std::int16_t(read(0x1359a1u,g[4]+0x1cu,2))));
         s_.xmm[7]=N::scalar(read(0x1359a6u,g[4]+0x10u));push(0x1359acu,g[7]);g[7]=read(0x1359adu,g[6]);
         push(0x1359afu,g[5]);push(0x1359b0u,g[1]);push(0x1359b1u,0x1359b6u);
-        scope_.child([&]{call_(s_,Child::frustum,before_);});
+        if(!borrow_frustum_ || !native_cluster_frustum_abi_detail::bridge_borrowed(s_,scope_,before_,callback_free_stack_))
+            scope_.child([&]{call_(s_,Child::frustum,before_);});
         s_.set(3,g[0]&255u,1,0);s_.flags.logic(g[3]&255u,1);g[7]=pop(0x1359bau);return (g[3]&255u)!=0;
     }
     bool contained(){const auto value=read(0x1359bdu,s_.gp[5],1);s_.flags.minus(value,0u,1);return value!=0;}
@@ -110,7 +133,9 @@ public:
         s_.xmm[0]=d.combined_radius;s_.xmm[1]=d.radius_squared;s_.xmm[2]=d.y;s_.xmm[3]=d.square_x;s_.xmm[4]=d.distance_squared;
         const auto comparison=compare(d.radius_squared,d.distance_squared);s_.flags.load(comparison.flags);return !comparison.below;
     }
+    bool touched_x87() const noexcept { return touched_x87_; }
     void sphere_containment(){
+        touched_x87_=true;
         auto&g=s_.gp;scope_.require_capacity(5);
         auto value=read(0x135a7fu,g[6]+0x2a68u);asm volatile("flds %0"::"m"(value):"memory","st");s_.set(3,g[0]&255u,1,0);
         value=read(0x135a87u,g[1]);asm volatile("fsubs %0"::"m"(value):"memory","st");
@@ -139,16 +164,40 @@ public:
     std::uint32_t finish(){auto&g=s_.gp;g[6]=pop(0x135a11u);g[5]=pop(0x135a12u);s_.set(0,g[3]&255u,1,0);g[3]=pop(0x135a15u);pop(0x135a16u);g[4]+=32u;return g[0];}
     std::uint32_t outside(){auto&g=s_.gp;g[6]=pop(0x135acbu);g[5]=pop(0x135accu);s_.set(0,s_.flags.logic(0u,1),1,0);g[3]=pop(0x135acfu);pop(0x135ad0u);g[4]+=32u;return g[0];}
 };
-template<class State,class Call,class Before=Noop>bool run_with(State&s,Call call,Before before={}){
+template<class State,class Call,class Before>bool run(State&s,Call& call,Before& before,bool borrow_frustum){
     if(!admitted(s))return false;
-    native_raw_x87_detail::Scope scope{s};View view{s,call,before,scope};admit(view);return true;
+    native_raw_x87_detail::Scope scope{s};View view{s,call,before,scope,borrow_frustum};admit(view);return true;
+}
+template<class State,class Call,class Before=Noop>bool run_with(State&s,Call call,Before before={}){
+    return run(s,call,before,false);
 }
 template<class State,class Call,class Before=Noop>bool bridge(State&s,Call fallback,Before before={}){
-    return native_geometry_visibility_detail::run_with(s,[&](auto&child,Child which,auto&observe){
+    auto call=[&](auto&child,Child which,auto&observe){
         if(which==Child::frustum){if(native_cluster_frustum_abi_detail::bridge(child,observe))return;}
         else if(native_bsp_queue_find_detail::bridge(child,observe))return;
         fallback(child,which,observe);
-    },std::move(before));
+    };
+    return run(s,call,before,!reference_frustum_scope());
+}
+// Borrow only the authenticated secondary
+// collector's empty source register file. Ordinary I/O retains its Scope
+// paths. A nested authored child still uses its existing dispatch fallback.
+template<class State,class Call,class Before>bool borrow_object_child(
+    State&s,native_raw_x87_detail::Scope<State>&scope,Call call,Before&before,bool callback_free_stack=false) {
+    if(s.observe || s.fp.top || !native_raw_x87_detail::skip_hook<Before>() ||
+       !s.live_instruction_cursor() || s.gp[0]!=0x5598f8u ||
+       reference_frustum_scope() || !scope.admits_empty_frustum_child(s) || !admitted(s))return false;
+    const auto sp=s.gp[4];
+    if(sp<0x60000000u || sp>0x63ffffb4u)return false;
+    std::uint32_t caller{};
+    if(!native_raw_x87_detail::direct_read(s.memory,sp+0x48u,std::as_writable_bytes(std::span(&caller,1))) ||
+       (caller!=0x134e2fu && caller!=0x134ee5u))return false;
+    View view{s,call,before,scope,true,callback_free_stack};
+    admit(view);
+    // Mode0 is SSE/integer and preserves the published x87 file. If an
+    // ordinary provider updates the live mode, retain the true x87 result.
+    if(view.touched_x87())scope.publish();
+    return true;
 }
 #else
 template<class State,class...Args>bool run_with(State&,Args&&...){return false;}

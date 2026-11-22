@@ -139,6 +139,8 @@
 !/tests/fixtures/native_tu15_camera_frame_policy.json.gz
 !/tests/fixtures/native_tu15_render_camera_packet_v2.json.gz
 !/tests/fixtures/native_campaign_transition_participants_tu15.json.gz
+!/tests/fixtures/native_campaign_ai_behavior_129_perform_tu15.json.gz
+!/tests/fixtures/native_campaign_hs_combat_status_abort_tu15.json.gz
 !/tests/fixtures/mcc-native-world-cooked-v1.json
 !/tests/fixtures/mcc-native-world-cooked-v1.json.zlib
 !/tests/fixtures/mcc-native-world-animated-v1.json

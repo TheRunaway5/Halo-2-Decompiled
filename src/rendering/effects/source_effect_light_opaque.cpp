@@ -120,14 +120,18 @@ unsigned source_effect_light_opaque_select(const SourcePartCommandBank& bank,
     }
     source_opaque_sort(records.first(count));return count;
 }
+MenuWorldSourceTopology source_effect_light_part_topology(const SourceCullDrawUnit& unit,
+    const SourceBspRangeGeometry& geometry,unsigned part) {
+    if(part>=geometry.parts.size())throw FormatError("source sphere range part missing");
+    const auto part_flags=Bytes(geometry.parts[part]).u16(2);
+    return (unit.words[0]&0x200u) && !(part_flags&8u)?
+        MenuWorldSourceTopology::triangle_strip:MenuWorldSourceTopology::triangle_list;
+}
 SourceOpaquePartRanges source_effect_light_part_ranges(const SourceCullDrawUnit& unit,
     const SourceBspRangeGeometry& geometry,unsigned part,const SourceBspRangeArena& arena,
     std::uint32_t arena_address) {
-    if(part>=geometry.parts.size())throw FormatError("source sphere range part missing");
-    const auto part_flags=Bytes(geometry.parts[part]).u16(2);
     SourceOpaquePartRanges result;
-    result.topology=(unit.words[0]&0x200u) && !(part_flags&8u)?
-        MenuWorldSourceTopology::triangle_strip:MenuWorldSourceTopology::triangle_list;
+    result.topology=source_effect_light_part_topology(unit,geometry,part);
     result.filtered=(unit.words[0]&0x40u) && unit.words[5] && geometry.subpart_count!=0;
     std::span<const std::uint32_t> mask;
     if(result.filtered) {

@@ -16,6 +16,24 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 from validate_ai_hardware_step_reference_tu15 import validate as validate_hardware_step
 from mcc_script_builtin_hooks import add_hooks
+from native_campaign_ai_tick_replacements import replace_campaign_ai_tick
+
+def route_sound_duration(source, image, entries):
+    if 0x21f6b0 not in entries:
+        return source
+    assert {0x21f590, 0x21f6b0} <= entries
+    # Original 21F6B0 pushes SampleSize and pitch row, then calls its
+    # duration leaf. Live MCC needs its World-owned original timing operands.
+    assert image.read(0x21f6f1, 11).hex() == '5057e898feffff0fbf4702'
+    old = ('if(s.services.instruction){s.services.instruction(0x21f6f3u);} '
+           's.push(0x21f6f3u,selected(0x21f6f8u,s.image));run_21f590(s);')
+    new = ('if(s.services.instruction){s.services.instruction(0x21f6f3u);} '
+           's.push(0x21f6f3u,selected(0x21f6f8u,s.image));'
+           'if(s.image==SourcePhysicsContactImage::TitleUpdate15 && s.services.required_owner)'
+           '{s.required(0x21f6f3u,selected(0x21f590u,s.image),false);}'
+           'else run_21f590(s);')
+    assert source.count(old) == 1
+    return source.replace(old,new)
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
@@ -151,7 +169,8 @@ def main():
     if 0x1cf0e0 in entries:
         from native_node_progress_query_replacements import replace_node_progress_query
         source=replace_node_progress_query(source)
-    a.output.write_text(source)
+    source=route_sound_duration(source,image,entries)
+    a.output.write_text(replace_campaign_ai_tick(source))
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),

@@ -2,7 +2,10 @@
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_bsp_admission_kernel.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
+#include <bit>
 #include <cstdlib>
+#include <cstring>
+#include <optional>
 #include <thread>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include "halo2/native_tu15_id_search_kernel.hpp"
@@ -19,6 +22,18 @@ namespace halo2::native_bsp_admission_detail {
 enum class Child {cluster_fog,instance_fog,merge_fog,geometry,association,geometry_frustum,geometry_auxiliary};
 struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_ADMISSION");return p&&*p;}();return value;}
+inline bool reference_callback_free_writes(){
+    static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_CALLBACK_FREE_WRITES");return p&&*p;}();
+    return value;
+}
+inline bool reference_callback_free_pushes(){
+    static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_CALLBACK_FREE_PUSHES");return p&&*p;}();
+    return value;
+}
+inline bool reference_instance_scan(){
+    static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_BSP_INSTANCE_SCAN");return p&&*p;}();
+    return value;
+}
 template<class State>bool policy_admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     if(s.image!=SourcePhysicsContactImage::TitleUpdate15||!native_raw_x87_detail::supported(s)||s.fp.count>3)return false;
@@ -43,6 +58,36 @@ template<class State>bool policy_admitted(const State&s){
 template<class State>bool admitted(const State&s){return !reference()&&policy_admitted(s);}
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 namespace N=native_bsp_surface_2d_detail;
+template<class Before,class State>bool admits_ordinary_queue_scan(const State&s,std::uint32_t count){
+    if(count<16u || count>0x7fffu || s.observe || !native_raw_x87_detail::skip_hook<Before>())return false;
+    if(!s.services.instruction)return !s.instruction_cursor && !s.literal_service_sites;
+    const auto* cursor=s.live_instruction_cursor();
+    return cursor && s.literal_service_sites && !(cursor->first_trace&&*cursor->first_trace) &&
+        !(cursor->second_trace&&*cursor->second_trace);
+}
+
+// Return the first matching row, or count on a miss. A declined extent leaves
+// all source accesses and the first fault to the owner's ordered loop.
+inline std::optional<std::uint32_t> scan_ordinary_queue(const SourcePhysicsContactMemory& memory,
+    std::uint32_t handles,std::uint32_t count,std::uint32_t key){
+    const auto bytes=memory.try_read_view(handles,count*4u);
+    if(!bytes || bytes->size()!=count*4u)return std::nullopt;
+    const auto needle=_mm_set1_epi32(std::bit_cast<std::int32_t>(key));
+    std::uint32_t n=0;
+    for(;n+4u<=count;n+=4u) {
+        __m128i rows;
+        std::memcpy(&rows,bytes->data()+n*4u,sizeof(rows));
+        const auto mask=unsigned(_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(rows,needle))));
+        if(mask)return n+std::countr_zero(mask);
+    }
+    for(;n<count;++n) {
+        std::uint32_t handle;
+        std::memcpy(&handle,bytes->data()+n*4u,sizeof(handle));
+        if(handle==key)break;
+    }
+    return n;
+}
+
 struct BitLocation {std::uint32_t count{},word{},mask{},flags{};};
 inline BitLocation cluster_bit(std::uint32_t index){
     auto count=index,word=index;std::uint32_t mask,ah;unsigned char overflow;
@@ -62,17 +107,46 @@ inline std::pair<std::uint32_t,std::uint32_t> doubled(std::uint32_t value,std::u
     return{value,((ah>>8u)&0xd5u)|(std::uint32_t(overflow)<<11u)|2u};
 }
 template<class Scope>struct Io {Scope*scope;template<class Callback>void operator()(Callback&&callback){scope->io(std::forward<Callback>(callback));}};
+template<class State,class Before>
+bool owns_secondary_stack(const State&s){
+    if constexpr(!std::is_same_v<Before,Noop>)return false;
+    if(reference_callback_free_pushes() || native_raw_x87_detail::scoped_access_reference() ||
+       s.observe || s.fp.count || s.fp.top || !s.live_instruction_cursor())return false;
+    const auto sp=s.gp[4];
+    if(sp<0x60000080u || sp>0x600ffff8u || (sp&3u))return false;
+    std::array<std::uint32_t,2> frame{};
+    return native_raw_x87_detail::direct_read(s.memory,sp,std::as_writable_bytes(std::span(frame))) &&
+        frame[0]==0x134caau && frame[1]==0x5598f8u;
+}
 template<class State,class Call,class Before>class View:public native_mopp_ray_caller_detail::Frame<State,Before,Io<native_raw_x87_detail::Scope<State>>> {
     using Scope=native_raw_x87_detail::Scope<State>;
     using Base=native_mopp_ray_caller_detail::Frame<State,Before,Io<Scope>>;
-    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::push;using Base::pop;
-    Scope&scope_;Call&call_;bool opened_{},first_instance_{};
+    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::pop;
+    Scope&scope_;Call&call_;bool callback_free_writes_,callback_free_pushes_,opened_{},first_instance_{};
+    void push(std::uint32_t pc,std::uint32_t value){
+        if(!callback_free_pushes_){Base::push(pc,value);return;}
+        at(pc);
+        const auto address=s_.gp[4]-4u;
+        const auto bytes=std::bit_cast<std::array<std::byte,4>>(value);
+        if(address>=0x60000000u && address<=0x600ffffcu &&
+           s_.memory.try_callback_free_write(address,bytes)) {
+            s_.gp[4]=address;
+            return;
+        }
+        Base::store(pc,address,value,[&]{s_.gp[4]=address;},true);
+    }
     std::uint32_t read(std::uint32_t pc,std::uint32_t address,unsigned width=4){at(pc);return word(address,width);}
+    template<bool ParkX87>void write_bytes(std::uint32_t address,std::span<const std::byte> bytes){
+        if constexpr(!ParkX87)
+            if(callback_free_writes_ && !s_.observe && s_.memory.try_callback_free_write(address,bytes))return;
+        io([&]{s_.memory.write(address,bytes);});
+    }
+    template<bool ParkX87=false>
     void write(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width=4){
         at(pc);SourcePhysicsContactRecordStore event{pc,address,{},{}};
         if(s_.observe){event.before.resize(width);io([&]{s_.memory.read(address,event.before);});}
         std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
-        io([&]{s_.memory.write(address,std::span(bytes).first(width));});
+        write_bytes<ParkX87>(address,std::span(bytes).first(width));
         if(s_.observe){event.written.assign(bytes.begin(),bytes.begin()+width);io([&]{s_.observe(event);});}
     }
     template<class Operation>void modify(std::uint32_t pc,std::uint32_t address,unsigned width,Operation operation){
@@ -80,12 +154,30 @@ template<class State,class Call,class Before>class View:public native_mopp_ray_c
         SourcePhysicsContactRecordStore event{pc,address,{},{}};
         if(s_.observe){event.before.resize(width);io([&]{s_.memory.read(address,event.before);});}
         std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
-        io([&]{s_.memory.write(address,std::span(bytes).first(width));});s_.flags=flags;
+        write_bytes<false>(address,std::span(bytes).first(width));s_.flags=flags;
         if(s_.observe){event.written.assign(bytes.begin(),bytes.begin()+width);io([&]{s_.observe(event);});}
     }
     static std::uint32_t signed_half(std::uint32_t value){return std::uint32_t(std::int32_t(std::int16_t(value)));}
     static bool less(std::uint32_t a,std::uint32_t b){return std::bit_cast<std::int32_t>(a)<std::bit_cast<std::int32_t>(b);}
     static std::uint32_t bits(N::Scalar value){return std::bit_cast<std::uint32_t>(_mm_cvtss_f32(value));}
+    bool try_merge_instance_scan(){
+        auto&g=s_.gp;const auto count=g[6];
+        if(reference_instance_scan() || !admits_ordinary_queue_scan<Before>(s_,count))return false;
+        std::uint32_t handles;
+        if(!native_raw_x87_detail::direct_read(s_.memory,g[1]+12u,std::as_writable_bytes(std::span(&handles,1))))
+            return false;
+        const auto index=scan_ordinary_queue(s_.memory,handles,count,g[2]);
+        if(!index)return false;
+        const bool found=*index<count;
+        // The source advances EAX even on a hit; a miss retains the last
+        // probed EDI. A nonfinal hit takes the next iteration's TEST exit.
+        at(0x13734au);
+        g[3]=handles;s_.set(3,found,1,0);
+        g[7]=found?*index:count-1u;g[0]=g[7]+1u;
+        s_.flags.minus(g[0],count,4);
+        if(found&&g[0]<count)s_.flags.logic(1u,1);
+        return true;
+    }
     static std::uint32_t compare_radius(){
         std::uint32_t ah;unsigned char overflow;
         asm volatile("fcomip %%st(1),%%st;fstp %%st(0);lahf;seto %1":"=a"(ah),"=qm"(overflow)::"cc","memory","st","st(1)");
@@ -102,7 +194,10 @@ template<class State,class Call,class Before>class View:public native_mopp_ray_c
         bool absent()const{return false;}
     };
 public:
-    View(State&s,Call&call,Before&before,Scope&scope):Base{s,before,Io<Scope>{&scope}},scope_(scope),call_(call){}
+    View(State&s,Call&call,Before&before,Scope&scope):Base{s,before,Io<Scope>{&scope}},scope_(scope),call_(call),
+        callback_free_writes_(!reference_callback_free_writes() && native_raw_x87_detail::skip_hook<Before>() &&
+                              !s.fp.count && !s.fp.top),
+        callback_free_pushes_(owns_secondary_stack<State,Before>(s)){}
     template<class Operation>void retained_modify(std::uint32_t pc,std::uint32_t address,unsigned width,Operation operation){modify(pc,address,width,operation);}
     bool begin(){
         auto&g=s_.gp;g[4]=s_.flags.minus(g[4],0x3cu,4);push(0x136ea3u,g[5]);g[5]=read(0x136ea4u,g[4]+0x44u);
@@ -137,23 +232,23 @@ public:
         g[0]=s_.flags.plus(g[0],g[3],4);x[2]=N::multiply(x[2],x[3]);x[1]=N::multiply(x[1],x[3]);x[5]=N::subtract(x[5],x[2]);
         write(0x136f90u,g[4]+0x48u,bits(x[5]));auto value=read(0x136f96u,g[4]+0x48u);asm volatile("flds %0"::"m"(value):"memory","st");
         value=read(0x136f9au,g[4]+0x48u);asm volatile("fmuls %0"::"m"(value):"memory","st");
-        x[4]=N::subtract(x[4],x[1]);write(0x136fa2u,g[4]+0x44u,bits(x[4]));value=read(0x136fa8u,g[4]+0x44u);asm volatile("flds %0"::"m"(value):"memory","st");
+        x[4]=N::subtract(x[4],x[1]);write<true>(0x136fa2u,g[4]+0x44u,bits(x[4]));value=read(0x136fa8u,g[4]+0x44u);asm volatile("flds %0"::"m"(value):"memory","st");
         value=read(0x136facu,g[4]+0x44u);asm volatile("fmuls %0"::"m"(value):"memory","st");
         x[0]=N::multiply(x[0],x[3]);x[3]=N::scalar(read(0x136fb4u,g[0]+0x58u));x[3]=N::subtract(x[3],x[0]);
-        asm volatile("faddp %%st,%%st(1)":::"memory","st","st(1)");write(0x136fbfu,g[4]+0x40u,bits(x[3]));
+        asm volatile("faddp %%st,%%st(1)":::"memory","st","st(1)");write<true>(0x136fbfu,g[4]+0x40u,bits(x[3]));
         value=read(0x136fc5u,g[4]+0x40u);asm volatile("flds %0"::"m"(value):"memory","st");
         g[0]=read(0x136fc9u,g[5]+0x2a60u);s_.flags.logic((g[0]>>8u)&2u,1);const bool clipping=!s_.flags.zf;
         value=read(0x136fd2u,g[4]+0x40u);asm volatile("fmuls %0"::"m"(value):"memory","st");
-        write(0x136fd6u,g[4]+0x1cu,g[1]);asm volatile("faddp %%st,%%st(1);fsqrt":::"memory","st","st(1)");
+        write<true>(0x136fd6u,g[4]+0x1cu,g[1]);asm volatile("faddp %%st,%%st(1);fsqrt":::"memory","st","st(1)");
         if(clipping){
             x[3]=N::scalar(read(0x136fe0u,g[5]+0x2a90u));x[0]=N::multiply(x[0],N::scalar(read(0x136fe8u,g[5]+0x2a88u)));
             x[3]=N::multiply(x[3],x[2]);x[2]=N::scalar(read(0x136ff4u,g[5]+0x2a8cu));x[2]=N::multiply(x[2],x[1]);
             x[3]=N::add(x[3],x[2]);x[3]=N::add(x[3],x[0]);x[3]=N::subtract(x[3],N::scalar(read(0x137008u,g[5]+0x2a94u)));
             x[0]=_mm_setzero_ps();s_.set(3,s_.flags.logic(0u,1),1,0);auto result=native_geometry_visibility_detail::compare(x[0],x[3]);s_.flags.load(result.flags);
-            write(0x137018u,g[4]+0x24u,bits(x[3]));write(0x13701eu,g[4]+0x50u,0u,1);
+            write<true>(0x137018u,g[4]+0x24u,bits(x[3]));write<true>(0x13701eu,g[4]+0x50u,0u,1);
             if(!s_.flags.cf&&!s_.flags.zf)s_.set(3,1u,1,0);
             result=native_geometry_visibility_detail::compare(x[3],x[0]);s_.flags.load(result.flags);
-            if(!s_.flags.cf&&!s_.flags.zf)write(0x13702cu,g[4]+0x50u,1u,1);
+            if(!s_.flags.cf&&!s_.flags.zf)write<true>(0x13702cu,g[4]+0x50u,1u,1);
             value=read(0x137031u,g[4]+0x24u);asm volatile("flds %0;fabs;fxch %%st(1)"::"m"(value):"memory","st","st(1)");
             s_.flags.load(compare_radius());if(s_.flags.cf)return;
         }else asm volatile("fstp %%st(0)":::"memory","st");
@@ -248,7 +343,7 @@ public:
         g[7]=s_.flags.logic(0xffffffffu,4);s_.set(3,s_.flags.logic(0u,1),1,0);g[0]=s_.flags.logic(0u,4);s_.flags.logic(g[6],4);
         // The source retains the last probed cursor even on an unsuccessful
         // lookup, and tests a successful match at the next loop boundary.
-        if(less(0u,g[6])){
+        if(less(0u,g[6]) && !try_merge_instance_scan()){
             do{
                 s_.flags.logic(g[3]&255u,1);if(!s_.flags.zf)break;
                 g[3]=read(0x137344u,g[1]+12u);g[7]=signed_half(g[0]);

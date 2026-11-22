@@ -6,6 +6,7 @@
 namespace halo2 {
 class PhysicsLiveWorldTu15;
 namespace pstencil {
+struct CampaignLightingPassTimings;
 struct NativeLightReceiver {
     SourceEffectLightReceiverView view;
     SourceObjectAdmission objects;
@@ -16,8 +17,9 @@ struct NativeLightReceiver {
 // generation and wholeC3DC0 cameras. The ordinary camera/queues must already
 // have their real native publication. This advances native query state;
 // consume/copy its queues before another secondary query reuses them.
+// Consumers of the live context can omit the host snapshot.
 NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15&,
-    std::uint32_t light);
+    std::uint32_t light,bool snapshot_host_view=true,CampaignLightingPassTimings* timings=nullptr);
 // Whole31570/31500/C5170/C3820 after the actual main-view light update.
 // Native shape, local-owner and cinematic feature gates are retained.
 bool native_light_render_admission_tu15(PhysicsLiveWorldTu15&,std::uint32_t light);
@@ -28,6 +30,6 @@ struct NativeLightGeometry {
 // Whole31EDA..31172 owners. Native BSP/model collection, PRT, culling and
 // command generation consume the already completed secondary query directly.
 NativeLightGeometry native_light_geometry_tu15(PhysicsLiveWorldTu15&,
-    const NativeLightReceiver&);
+    const NativeLightReceiver&,CampaignLightingPassTimings* timings=nullptr);
 }
 }

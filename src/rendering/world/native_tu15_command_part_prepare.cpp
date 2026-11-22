@@ -1,5 +1,5 @@
 #include "halo2/native_tu15_command_part_prepare.hpp"
-#include "halo2/detail/native_tu15_arithmetic_environment.hpp"
+#include "native_tu15_command_arithmetic.hpp"
 #include <bit>
 #include <stdexcept>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -42,13 +42,13 @@ bool positive(Scalar a) {
 }
 #endif
 }
-NativeTu15PartPacket45cd0 native_tu15_command_part_prepare_45cd0(const SourcePhysicsContactMemory& m,
+NativeTu15PartPacket45cd0 detail::command_part_prepare(const SourcePhysicsContactMemory& m,
     std::uint32_t unit,std::uint32_t part,std::uint32_t matrix,const std::array<std::byte,44>& initial,
-    NativeTu15PhysicsFrameFp& fp) {
+    NativeTu15PhysicsFrameFp& fp,CommandArithmeticPolicy policy) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     NativeTu15PartPacket45cd0 out;out.bytes=initial;
     const auto store=[&](std::uint32_t pc,unsigned offset,std::uint32_t value,unsigned n=4) {
-        out.stores.push_back({pc,offset,value,n});
+        out.append({pc,offset,value,n});
         for(unsigned i=0;i<n;++i)out.bytes[offset+i]=std::byte(value>>(8*i));
     };
     const auto at=0x4c6958u+32u*std::uint32_t(half(unit));
@@ -69,7 +69,7 @@ NativeTu15PartPacket45cd0 native_tu15_command_part_prepare_45cd0(const SourcePhy
     // reserved bit6 that FLDENV/FNSTCW canonicalize on the host.
     const auto original_control=fp.control_word;auto arithmetic=fp;
     {
-        detail::NativeTu15ArithmeticEnvironment environment(arithmetic);
+        CommandArithmeticScope environment(arithmetic,policy);
         const auto p=read(m,geometry+4u)+72u*std::uint32_t(half(part));
         store(0x45d8cu,0x10,0);
         const auto lod=read(m,p+0x2cu);store(0x45daeu,0x28,positive(scalar(lod))?lod:read(m,0x46a0d0u));
@@ -136,8 +136,14 @@ NativeTu15PartPacket45cd0 native_tu15_command_part_prepare_45cd0(const SourcePhy
     }
     arithmetic.control_word=original_control;fp=arithmetic;return out;
 #else
-    (void)m;(void)unit;(void)part;(void)matrix;(void)initial;(void)fp;
+    (void)m;(void)unit;(void)part;(void)matrix;(void)initial;(void)fp;(void)policy;
     throw std::runtime_error("Exact native45CD0 arithmetic backend unavailable");
 #endif
+}
+
+NativeTu15PartPacket45cd0 native_tu15_command_part_prepare_45cd0(const SourcePhysicsContactMemory& m,
+    std::uint32_t unit,std::uint32_t part,std::uint32_t matrix,const std::array<std::byte,44>& initial,
+    NativeTu15PhysicsFrameFp& fp) {
+    return detail::command_part_prepare(m,unit,part,matrix,initial,fp,detail::CommandArithmeticPolicy::Full);
 }
 }

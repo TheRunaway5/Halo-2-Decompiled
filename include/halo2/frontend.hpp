@@ -38,6 +38,8 @@
 
 namespace halo2 {
 inline constexpr unsigned online_server_browser_context = 1;
+// The main menu uses the stock options dialog (218) for both branches.
+inline constexpr unsigned multiplayer_options_context = 1;
 class DesktopSession;
 class FrontendSession;
 // Literal wigl sound-table indices used by original236299 / Vista61DD04.
@@ -367,6 +369,7 @@ struct VistaLeaveTaskScreenOwner {
 };
 struct MenuFrame {
   unsigned screen = 9, selected{}, context{};
+  bool multiplayer_options() const { return screen == 218 && context == multiplayer_options_context; }
   std::uint32_t parameter{};
   std::string title, description;
   std::vector<MenuEntry> entries;
@@ -499,6 +502,7 @@ public:
   // retains directory authentication/history and cannot enter the old session
   // browser's Create/Back/Leave lifecycle.
   unsigned screen_layout(const MenuFrame &frame) const {
+    if (frame.multiplayer_options()) return 60; // Illustrated game selection.
     return content_.vista && frame.screen == 219 &&
         frame.context == online_server_browser_context ? vista_menu(13) : frame.screen;
   }
@@ -709,6 +713,7 @@ public:
   FrontendAppearance profile_appearance() const;
   std::string profile_service_tag() const;
   FrontendAppearance appearance() const;
+  unsigned appearance_value_id(const MenuEntry &) const;
   std::optional<FrontendLobbyView> lobby_view() const;
   void set_session_countdown(std::optional<std::int32_t> stage) { session_countdown_=stage; }
   const UiLobbyMap *focused_lobby_map(const MenuFrame &) const;
@@ -733,6 +738,7 @@ private:
   std::optional<WorkshopMission> workshop_mission_;
   bool workshop_preparing_{};
   MenuFrame build_pc(unsigned, unsigned) const;
+  bool build_shell_settings(MenuFrame &) const;
   void accept_pc();
   std::optional<unsigned> binding_action_;
   unsigned binding_slot_{};

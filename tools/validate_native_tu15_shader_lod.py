@@ -64,6 +64,12 @@ def cases(image):
             (0,1,5,6,0x40000001,0x80000005,0xffffffff)):add(shader=shader,bias=bias)
     for metric,fp,modifier in itertools.product(special,fps,(0,1)):add(metric=metric,fp=fp,modifier=modifier,bias=5)
     for group in (0x5052544d,0x70727433):add(group=group)
+    for fp,depth in (((0x003f,0x3925,0x3fc1),1),
+                     ((0x077f,0x6941,0x9fa2),3),
+                     ((0x0e3f,0x2d40,0x5f84),2)):
+        add(metric=0x7f812345,fp=fp,modifier=1)
+        result[-1]['name']=f'sse-scope-depth-{depth}'
+        result[-1]['live_x87']=[struct.pack('<QH',0x8000000000000000+k,0x3fff).hex() for k in range(depth)]
     return result
 
 

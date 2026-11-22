@@ -140,17 +140,17 @@ int main(int argc, char **argv) try {
   MenuState guest_exit(content);
   guest_exit.open(6);
   check(guest_exit.signed_in_profile().empty() &&
-      guest_exit.frame().entries.size() == 7 &&
-      guest_exit.frame().entries.at(4).destination == 19 &&
+      guest_exit.frame().entries.size() == 5 &&
+      guest_exit.frame().entries.at(2).destination == 19 &&
       guest_exit.frame().entries.back().label == "EXIT GAME",
       "Exit Game must follow Mods as the final main-menu option");
   guest_exit.move(-1);
-  check(guest_exit.frame().selected == 6 && !guest_exit.quit,
+  check(guest_exit.frame().selected == 4 && !guest_exit.quit,
       "keyboard/controller focus does not wrap to Exit Game");
   guest_exit.move(1);
   check(guest_exit.frame().selected == 0 && !guest_exit.quit,
       "Exit Game focus does not wrap back to Campaign");
-  guest_exit.move(6);
+  guest_exit.move(4);
   guest_exit.accept();
   check(guest_exit.quit && !guest_exit.launch && guest_exit.frame().screen == 6,
       "Exit Game did not request shutdown from the unsigned main menu");
@@ -159,7 +159,7 @@ int main(int argc, char **argv) try {
   profile_exit.back();
   check(profile_exit.frame().screen == 6 && !profile_exit.signed_in_profile().empty(),
       "Exit Game mouse fixture did not sign in");
-  click(profile_exit, painter, Action::Entry, 6);
+  click(profile_exit, painter, Action::Entry, 4);
   check(profile_exit.quit && !profile_exit.launch && profile_exit.frame().screen == 6,
       "Exit Game click did not request shutdown from the signed-in main menu");
   MenuState state(content);
@@ -190,7 +190,7 @@ int main(int argc, char **argv) try {
   check(state.frame().screen == 47, "inline B CANCEL failed");
   state.back(); state.back();
   check(state.frame().screen == 6, "main menu route failed");
-  state.select(2); state.accept(); state.accept();
+  state.select(1); state.accept(); state.select(0); state.accept(); state.accept();
   check(state.frame().screen == 14, "lobby route failed");
   state.set_multiplayer_map_validator([](const FrontendLaunch &) { throw FormatError("Mouse Continue regression"); });
   state.select(0); state.accept();

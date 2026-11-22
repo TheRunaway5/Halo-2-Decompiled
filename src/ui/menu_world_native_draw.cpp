@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -170,11 +171,26 @@ struct Buffer {
   VkDeviceSize size{},allocation_size{};void *mapped{};bool coherent{};
 };
 struct PreparedDraw {
-  MenuWorldSourceStoredDraw geometry;
+  const MenuWorldSourceDrawGeometry *geometry{};
   VkPipeline pipeline{};
   VkDescriptorSet uniforms{},material{};
   std::uint32_t material_offset{};
   std::array<float,2> raster_offset{};
+  bool projected_depth{};
+};
+struct ProjectedDepthBindings {
+  explicit ProjectedDepthBindings(VkDevice owner):device(owner){}
+  ~ProjectedDepthBindings() {
+    if(layout)vkDestroyPipelineLayout(device,layout,nullptr);
+    if(pool)vkDestroyDescriptorPool(device,pool,nullptr);
+    if(set_layout)vkDestroyDescriptorSetLayout(device,set_layout,nullptr);
+  }
+  VkDevice device{};
+  VkDescriptorSetLayout set_layout{};
+  VkDescriptorPool pool{};
+  VkDescriptorSet set{};
+  VkPipelineLayout layout{};
+  MenuWorldProjectedDepthSource source{};
 };
 struct Frame {
   explicit Frame(VkDevice owner):device(owner){}
@@ -188,6 +204,7 @@ struct Frame {
   std::vector<Written> written;
   std::unique_ptr<Buffer> vertex,fragment;
   std::vector<std::unique_ptr<Buffer>> triangles;
+  std::vector<MenuWorldSourceStoredDraw> reference_geometry;
   std::vector<PreparedDraw> draws;
 };
 }
@@ -199,6 +216,7 @@ struct MenuWorldNativeDraw::Impl {
   VkPhysicalDeviceMemoryProperties memory_properties{};
   VkDescriptorSetLayout draw_layout{};
   VkPipelineLayout layout{},temporal_layout{};
+  std::unique_ptr<ProjectedDepthBindings> projected_depth_bindings;
   VkShaderModule geometry_shader{};
   std::map<std::string_view,VkShaderModule> fragment_modules;
   VkDeviceSize vertex_stride{},fragment_stride{};
@@ -209,6 +227,7 @@ struct MenuWorldNativeDraw::Impl {
   // and compared word by word for every draw of every frame.
   std::map<std::vector<std::uint32_t>,VkPipeline> pipeline_shortcuts;
   std::vector<std::uint32_t> shortcut_identity;
+  std::vector<const MenuWorldSourceDrawGeometry *> retained_geometry;
   // spare holds the previous frame's resources for reuse; it is never recorded.
   std::unique_ptr<Frame> frame,spare;
   explicit Impl(MenuWorldNativeDrawContext input):context(input),geometry({input.device,input.physical,input.triangle_vertices}) {
@@ -222,6 +241,7 @@ struct MenuWorldNativeDraw::Impl {
     spare.reset();pipeline_shortcuts.clear();
     for(const auto &[key,pipeline]:pipelines)vkDestroyPipeline(context.device,pipeline,nullptr);
     pipelines.clear();
+    projected_depth_bindings.reset();
     for(const auto &[key,module]:vertex_modules)vkDestroyShaderModule(context.device,module,nullptr);
     vertex_modules.clear();
     if(geometry_shader)vkDestroyShaderModule(context.device,geometry_shader,nullptr);
@@ -239,6 +259,37 @@ struct MenuWorldNativeDraw::Impl {
     create.codeSize=words.size_bytes();create.pCode=words.data();VkShaderModule result{};
     check(vkCreateShaderModule(context.device,&create,nullptr,&result),"create raw world shader module");
     return result;
+  }
+  void bind_projected_depth(const MenuWorldProjectedDepthSource &source) {
+    if(!projected_depth_bindings) {
+      auto next=std::make_unique<ProjectedDepthBindings>(context.device);
+      const VkDescriptorSetLayoutBinding binding{0,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
+      VkDescriptorSetLayoutCreateInfo set_layout{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+      set_layout.bindingCount=1;set_layout.pBindings=&binding;
+      check(vkCreateDescriptorSetLayout(context.device,&set_layout,nullptr,&next->set_layout),"create projected depth set layout");
+      const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1};
+      VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+      pool.maxSets=1;pool.poolSizeCount=1;pool.pPoolSizes=&size;
+      check(vkCreateDescriptorPool(context.device,&pool,nullptr,&next->pool),"create projected depth descriptor pool");
+      VkDescriptorSetAllocateInfo allocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+      allocate.descriptorPool=next->pool;allocate.descriptorSetCount=1;allocate.pSetLayouts=&next->set_layout;
+      check(vkAllocateDescriptorSets(context.device,&allocate,&next->set),"allocate projected depth descriptor set");
+      const VkDescriptorSetLayout layouts[]{context.material_layout,draw_layout,next->set_layout};
+      const VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT,0,112};
+      VkPipelineLayoutCreateInfo create{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+      create.setLayoutCount=3;create.pSetLayouts=layouts;
+      create.pushConstantRangeCount=1;create.pPushConstantRanges=&push;
+      check(vkCreatePipelineLayout(context.device,&create,nullptr,&next->layout),"create projected depth pipeline layout");
+      projected_depth_bindings=std::move(next);
+    }
+    auto &bindings=*projected_depth_bindings;
+    if(bindings.source.view==source.view && bindings.source.sampler==source.sampler)return;
+    const VkDescriptorImageInfo image{source.sampler,source.view,VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstSet=bindings.set;write.dstBinding=0;write.descriptorCount=1;
+    write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
+    vkUpdateDescriptorSets(context.device,1,&write,0,nullptr);
+    bindings.source=source;
   }
   void initialize() {
 #ifdef __APPLE__
@@ -327,15 +378,14 @@ struct MenuWorldNativeDraw::Impl {
     if(!input.vertex_shader || !input.material_set ||
         input.material_offset%properties.limits.minUniformBufferOffsetAlignment)
       throw FormatError("raw world draw has no catalog/material or an unaligned material offset");
-    (void)menu_world_vertex_catalog_lookup(std::span(input.vertex_shader,1),
-        input.source.program_bytes(),input.source.declaration());
+    (void)menu_world_vertex_catalog_lookup(std::span(input.vertex_shader,1),input.source);
     if(context.triangle_vertices&&(input.vertex_shader->triangle_abi!=1||input.vertex_shader->triangle_spirv.size()<5||
         input.vertex_shader->triangle_spirv[0]!=0x07230203u||input.vertex_shader->triangle_spirv[1]!=0x00010600u||input.vertex_shader->triangle_spirv[4]))
       throw FormatError("raw world triangle vertex catalog is absent or incompatible");
     if(!input.source.external_attribute_registers().empty()) {
       if(input.vertex_shader->abi!=menu_world_vertex_attribute_catalog_abi && input.vertex_shader->abi!=menu_world_renderer_vertex_catalog_abi)
         throw FormatError("raw world draw constant attributes require their native attribute ABI");
-      const auto& reads=menu_world_vertex_metadata_lookup(input.source.program_bytes(),input.source.declaration()).consumed_input_components;
+      const auto& reads=menu_world_vertex_metadata_lookup(input.source).consumed_input_components;
       for(const auto reg:input.source.external_attribute_registers())
         if((input.vertex_attribute_components[reg]&reads[reg])!=reads[reg])
           throw FormatError("raw world draw consumes unbound external attribute components");
@@ -366,13 +416,13 @@ struct MenuWorldNativeDraw::Impl {
       if(!std::isfinite(value))throw FormatError("raw world completed combiner float bank is missing");
     (void)fixed_state(input);
   }
-  std::vector<std::uint32_t> key(const MenuWorldSourceStoredDraw &draw,
+  std::vector<std::uint32_t> key(const MenuWorldSourceDrawGeometry &draw,
       const MenuWorldVertexCatalogEntry &entry,const FixedState &state,bool by_span=false) const {
     std::vector<std::uint32_t> result;
     key_into(result,draw,entry,state,by_span);
     return result;
   }
-  void key_into(std::vector<std::uint32_t> &result,const MenuWorldSourceStoredDraw &draw,
+  void key_into(std::vector<std::uint32_t> &result,const MenuWorldSourceDrawGeometry &draw,
       const MenuWorldVertexCatalogEntry &entry,const FixedState &state,bool by_span) const {
     const auto pass=handle_word(context.render_pass);
     result.assign({
@@ -410,15 +460,13 @@ struct MenuWorldNativeDraw::Impl {
     result.insert(result.end(),entry.spirv.begin(),entry.spirv.end());
     if(context.triangle_vertices)result.insert(result.end(),entry.triangle_spirv.begin(),entry.triangle_spirv.end());
   }
-  VkPipeline pipeline(const MenuWorldSourceStoredDraw &draw,const MenuWorldNativeDrawInput &input) {
+  VkPipeline pipeline(const MenuWorldSourceDrawGeometry &draw,const MenuWorldNativeDrawInput &input,bool projected_depth) {
     if(draw.topology!=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST || draw.index_type!=VK_INDEX_TYPE_UINT16 ||
         !draw.index_count || !draw.indices.buffer || draw.vertex_buffers.empty())
       throw FormatError("raw world draw is not a nonempty source-ordered ushort triangle list");
-    const auto default_texture_w=menu_world_vertex_metadata_lookup(
-        input.source.program_bytes(),input.source.declaration()).default_texture_w_mask;
+    const auto default_texture_w=menu_world_vertex_metadata_lookup(input.source).default_texture_w_mask;
     const auto state=fixed_state(input);
     const bool temporal=input.raster_offset!=std::array<float,2>{};
-    const auto fragment_path=native_fragment_kernel_path(temporal?"menu-temporal":"menu",input.fragment_program);
     const auto finish=[&](std::vector<std::uint32_t> &identity) {
       identity.push_back(default_texture_w);
       identity.push_back(std::uint32_t(input.w_clip_mode));
@@ -427,6 +475,7 @@ struct MenuWorldNativeDraw::Impl {
       identity.push_back(temporal);
       for(unsigned i=0;i<60;++i)
         identity.push_back((i>=10 && i<26) || i==43 || i==44?0:input.fragment_program[i]);
+      if(projected_depth)identity.push_back(1u);
     };
     key_into(shortcut_identity,draw,*input.vertex_shader,state,true);finish(shortcut_identity);
     if(const auto found=pipeline_shortcuts.find(shortcut_identity);found!=pipeline_shortcuts.end())return found->second;
@@ -434,6 +483,8 @@ struct MenuWorldNativeDraw::Impl {
     if(const auto found=pipelines.find(identity);found!=pipelines.end()) {
       pipeline_shortcuts.emplace(shortcut_identity,found->second);return found->second;
     }
+    const auto family=projected_depth?"menu-projected-depth-quad":temporal?"menu-temporal":"menu";
+    const auto fragment_path=native_fragment_kernel_path(family,input.fragment_program);
     auto fragment=fragment_modules.find(fragment_path);
     if(fragment==fragment_modules.end()) {
       const auto handle=module(shader(context.shader_directory/fragment_path));
@@ -448,13 +499,16 @@ struct MenuWorldNativeDraw::Impl {
       try {found=vertex_modules.emplace(std::move(words),handle).first;}
       catch(...) {vkDestroyShaderModule(context.device,handle,nullptr);throw;}
     }
-    const std::array<std::uint32_t,5> specialization_values{default_texture_w,std::uint32_t(input.w_clip_mode),std::uint32_t(input.fog_alpha_bound),std::uint32_t(context.depth_encoding),std::uint32_t(input.linear_z_depth)};
+    const std::array<std::uint32_t,6> specialization_values{default_texture_w,std::uint32_t(input.w_clip_mode),std::uint32_t(input.fog_alpha_bound),std::uint32_t(context.depth_encoding),std::uint32_t(input.linear_z_depth),2u};
     const VkSpecializationMapEntry specialization_entries[]{{0,0,sizeof(std::uint32_t)},
         {1,sizeof(std::uint32_t),sizeof(std::uint32_t)},
         {2,2*sizeof(std::uint32_t),sizeof(std::uint32_t)},
         {61,3*sizeof(std::uint32_t),sizeof(std::uint32_t)},
-        {3,4*sizeof(std::uint32_t),sizeof(std::uint32_t)}};
-    const VkSpecializationInfo projection{5,specialization_entries,sizeof(specialization_values),specialization_values.data()};
+        {3,4*sizeof(std::uint32_t),sizeof(std::uint32_t)},
+        {4,5*sizeof(std::uint32_t),sizeof(std::uint32_t)}};
+    const auto specialization_count=projected_depth?6u:5u;
+    const VkSpecializationInfo projection{specialization_count,specialization_entries,
+        specialization_count*sizeof(std::uint32_t),specialization_values.data()};
     const VkPipelineShaderStageCreateInfo stages[]{
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,found->second,"main",nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry_shader,"main",nullptr},
@@ -481,7 +535,8 @@ struct MenuWorldNativeDraw::Impl {
     create.stageCount=context.triangle_vertices?2:3;create.pStages=context.triangle_vertices?triangle_stages:stages;create.pVertexInputState=&vertex;create.pInputAssemblyState=&assembly;
     create.pViewportState=&viewport;create.pRasterizationState=&raster;create.pMultisampleState=&samples;
     create.pDepthStencilState=&depth;create.pColorBlendState=&blend;create.pDynamicState=&dynamic;
-    create.layout=temporal?temporal_layout:layout;create.renderPass=context.render_pass;
+    create.layout=projected_depth?projected_depth_bindings->layout:temporal?temporal_layout:layout;
+    create.renderPass=context.render_pass;
     VkPipeline result{};const auto status=vkCreateGraphicsPipelines(context.device,VK_NULL_HANDLE,1,&create,nullptr,&result);
     if(status!=VK_SUCCESS) {
       if(result)vkDestroyPipeline(context.device,result,nullptr);
@@ -492,32 +547,59 @@ struct MenuWorldNativeDraw::Impl {
     pipeline_shortcuts.emplace(shortcut_identity,result);
     return result;
   }
-  void prepare(std::span<const MenuWorldNativeDrawInput> inputs) {
+  void prepare(std::span<const MenuWorldNativeDrawInput> inputs,const MenuWorldProjectedDepthSource *projected_depth=nullptr) {
     // Caller has completed all uses. Clearing first prevents recording any
     // stale prepared state after validation/allocation/pipeline failure.
     // The completed frame's buffers, pool and sets are kept for reuse.
     if(frame)spare=std::move(frame);
     if(inputs.empty())return;
-    if(inputs.size()>std::numeric_limits<std::uint32_t>::max()/2u)
-      throw FormatError("raw world draw descriptor count overflow");
-    std::vector<const MenuWorldSourceBinding *> bindings;bindings.reserve(inputs.size());
-    for(const auto &input:inputs){validate(input);bindings.push_back(&input.source);}
-    const auto stored=geometry.store_borrowed(bindings);
+    if(projected_depth && (!projected_depth->view || !projected_depth->sampler || context.triangle_vertices ||
+        context.depth_encoding!=SourceDepthStorageEncoding::native_d24 || properties.limits.maxBoundDescriptorSets<3))
+      throw FormatError("Projected receiver depth source has no compatible owned view");
+    constexpr auto max_draws=std::numeric_limits<std::uint32_t>::max()/2u;
+    if(inputs.size()>max_draws)throw FormatError("raw world draw descriptor count overflow");
+    std::size_t draw_count{};
+    for(const auto &input:inputs) {
+      if(input.depth_neighbour_steps && (input.depth_neighbour_steps>8 || context.triangle_vertices ||
+          context.depth_encoding!=SourceDepthStorageEncoding::native_d24 || input.linear_z_depth ||
+          !input.forward.depth_enable || input.forward.depth_write || input.forward.depth_function!=0x202u))
+        throw FormatError("raw world depth candidates require a D24 projected receiver");
+      if(projected_depth && !input.linear_z_depth && (!input.depth_neighbour_steps || input.raster.stencil.enabled ||
+          input.raster_offset!=std::array<float,2>{}))
+        throw FormatError("Projected receiver continuation requires compact read-only depth geometry");
+      const auto count=1+2*input.depth_neighbour_steps;
+      if(count>max_draws-draw_count)throw FormatError("raw world draw descriptor count overflow");
+      draw_count+=count;
+      validate(input);
+    }
+    if(projected_depth)bind_projected_depth(*projected_depth);
+    static const bool reference=[]{const auto *p=std::getenv("HALO2_REFERENCE_RAW_WORLD_DRAW_LAYOUT");return p && *p;}();
+    const bool retain_geometry=!context.triangle_vertices && !reference;
+    std::span<const MenuWorldSourceStoredDraw> stored;
+    if(retain_geometry) {
+      retained_geometry.clear();retained_geometry.reserve(inputs.size());
+      for(const auto &input:inputs)retained_geometry.push_back(&geometry.retain_geometry(input.source));
+    } else {
+      std::vector<const MenuWorldSourceBinding *> bindings;bindings.reserve(inputs.size());
+      for(const auto &input:inputs)bindings.push_back(&input.source);
+      stored=geometry.store_borrowed(bindings);
+    }
     auto next=spare?std::move(spare):std::make_unique<Frame>(context.device);
     next->draws.clear();next->triangles.clear();
-    const auto vertex_bytes=multiplied(vertex_stride,inputs.size()),fragment_bytes=multiplied(fragment_stride,inputs.size());
+    next->reference_geometry.clear();
+    if(!retain_geometry)next->reference_geometry.assign(stored.begin(),stored.end());
+    const auto vertex_bytes=multiplied(vertex_stride,inputs.size()),fragment_bytes=multiplied(fragment_stride,draw_count);
     if(!next->vertex || next->vertex->size<vertex_bytes || !next->fragment || next->fragment->size<fragment_bytes) {
       // New buffer handles may reuse retired values: rewrite every set.
       next->written.assign(next->written.size(),{});
       next->vertex.reset();next->fragment.reset();
       next->vertex=buffer(vertex_bytes);next->fragment=buffer(fragment_bytes);
     }
-    if(!next->pool || inputs.size()>next->pool_sets) {
+    if(!next->pool || draw_count>next->pool_sets) {
       if(next->pool){vkDestroyDescriptorPool(context.device,next->pool,nullptr);next->pool={};}
       next->sets.clear();next->written.clear();next->pool_sets=0;
       // Headroom keeps a varying draw count from recreating the pool.
-      const auto capacity=std::uint32_t(std::min<std::size_t>(std::max<std::size_t>(inputs.size(),inputs.size()+inputs.size()/2),
-          std::numeric_limits<std::uint32_t>::max()/2u));
+      const auto capacity=std::uint32_t(std::min(draw_count+draw_count/2,std::size_t(max_draws)));
       const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,capacity*2u},
           {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,capacity*2u}};
       VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
@@ -525,8 +607,8 @@ struct MenuWorldNativeDraw::Impl {
       check(vkCreateDescriptorPool(context.device,&pool,nullptr,&next->pool),"create raw world per-draw descriptor pool");
       next->pool_sets=capacity;
     }
-    if(next->sets.size()<inputs.size()) {
-      const auto missing=inputs.size()-next->sets.size();
+    if(next->sets.size()<draw_count) {
+      const auto missing=draw_count-next->sets.size();
       std::vector<VkDescriptorSetLayout> layouts(missing,draw_layout);
       std::vector<VkDescriptorSet> added(missing);
       VkDescriptorSetAllocateInfo allocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
@@ -536,47 +618,62 @@ struct MenuWorldNativeDraw::Impl {
       next->written.resize(next->sets.size());
     }
     const auto &sets=next->sets;
-    next->draws.reserve(inputs.size());
+    next->draws.reserve(draw_count);
     for(std::size_t i=0;i<inputs.size();++i) {
       const auto &input=inputs[i];
+      const MenuWorldSourceDrawGeometry &draw=retain_geometry?*retained_geometry[i]:next->reference_geometry[i];
       std::memcpy(static_cast<std::byte *>(next->vertex->mapped)+i*vertex_stride,&input.vertex,sizeof(input.vertex));
       std::memcpy(static_cast<std::byte *>(next->vertex->mapped)+i*vertex_stride+sizeof(input.vertex),
           input.vertex_attributes.data(),sizeof(input.vertex_attributes));
-      std::memcpy(static_cast<std::byte *>(next->fragment->mapped)+i*fragment_stride,&input.fragment,sizeof(input.fragment));
       std::array<VkDescriptorBufferInfo,4> buffers{{
           {next->vertex->handle,i*vertex_stride,(input.vertex_shader->abi==menu_world_vertex_attribute_catalog_abi ||
               input.vertex_shader->abi==menu_world_renderer_vertex_catalog_abi)?
               sizeof(MenuWorldVertexAttributeUniforms):sizeof(MenuWorldVertexUniforms)},
-          {next->fragment->handle,i*fragment_stride,sizeof(MenuWorldFragmentUniforms)}}};
+          {next->fragment->handle,0,sizeof(MenuWorldFragmentUniforms)}}};
       if(context.triangle_vertices) {
-        const auto words=menu_world_triangle_storage(stored[i]);
+        const auto words=menu_world_triangle_storage(next->reference_geometry[i]);
         const auto bytes=words.size()*sizeof(std::uint32_t);
         if(bytes>properties.limits.maxStorageBufferRange)throw FormatError("world triangle metadata exceeds storage buffer device range");
         auto metadata=buffer(bytes,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
         std::memcpy(metadata->mapped,words.data(),bytes);flush(*metadata);
-        const auto &raw=stored[i].raw_storage;
+        const auto &raw=draw.raw_storage;
         buffers[2]={raw.buffer,raw.offset,raw.size};buffers[3]={metadata->handle,0,bytes};
         next->triangles.push_back(std::move(metadata));
       }
-      const auto descriptor_count=context.triangle_vertices?4u:2u;
-      auto &written=next->written[i];
-      const auto same=[](const VkDescriptorBufferInfo &a,const VkDescriptorBufferInfo &b) {
-        return a.buffer==b.buffer && a.offset==b.offset && a.range==b.range;
+      const bool sample_projected_depth=projected_depth && !input.linear_z_depth;
+      const auto handle=pipeline(draw,input,sample_projected_depth);
+      const auto append=[&](const MenuWorldFragmentUniforms &fragment) {
+        const auto index=next->draws.size();
+        buffers[1].offset=index*fragment_stride;
+        std::memcpy(static_cast<std::byte *>(next->fragment->mapped)+buffers[1].offset,&fragment,sizeof(fragment));
+        const auto descriptor_count=context.triangle_vertices?4u:2u;
+        auto &written=next->written[index];
+        const auto same=[](const VkDescriptorBufferInfo &a,const VkDescriptorBufferInfo &b) {
+          return a.buffer==b.buffer && a.offset==b.offset && a.range==b.range;
+        };
+        // Triangle metadata buffers are new each prepare, so those sets are always written.
+        if(context.triangle_vertices || written.count!=2 || !same(written.buffers[0],buffers[0]) ||
+            !same(written.buffers[1],buffers[1])) {
+          written.count=0;
+          VkWriteDescriptorSet writes[4]{};
+          for(unsigned binding=0;binding<descriptor_count;++binding) {
+            writes[binding]={VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};writes[binding].dstSet=sets[index];writes[binding].dstBinding=binding;
+            writes[binding].descriptorCount=1;writes[binding].descriptorType=binding<2?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;writes[binding].pBufferInfo=&buffers[binding];
+          }
+          vkUpdateDescriptorSets(context.device,descriptor_count,writes,0,nullptr);
+          if(!context.triangle_vertices){written.buffers={buffers[0],buffers[1]};written.count=2;}
+        }
+        next->draws.push_back({&draw,handle,sets[index],input.material_set,input.material_offset,input.raster_offset,sample_projected_depth});
       };
-      // Triangle metadata buffers are new each prepare, so those sets are always written.
-      if(!context.triangle_vertices && written.count==2 && same(written.buffers[0],buffers[0]) && same(written.buffers[1],buffers[1])) {
-        next->draws.push_back({stored[i],pipeline(stored[i],input),sets[i],input.material_set,input.material_offset,input.raster_offset});
-        continue;
-      }
-      written.count=0;
-      VkWriteDescriptorSet writes[4]{};
-      for(unsigned binding=0;binding<descriptor_count;++binding) {
-        writes[binding]={VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};writes[binding].dstSet=sets[i];writes[binding].dstBinding=binding;
-        writes[binding].descriptorCount=1;writes[binding].descriptorType=binding<2?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;writes[binding].pBufferInfo=&buffers[binding];
-      }
-      vkUpdateDescriptorSets(context.device,descriptor_count,writes,0,nullptr);
-      if(!context.triangle_vertices){written.buffers={buffers[0],buffers[1]};written.count=2;}
-      next->draws.push_back({stored[i],pipeline(stored[i],input),sets[i],input.material_set,input.material_offset,input.raster_offset});
+      const auto steps=int(input.depth_neighbour_steps);
+      const auto append_neighbour=[&](int step) {
+        auto fragment=input.fragment;
+        fragment.depth_factor_offset[1]+=float(step);
+        append(fragment);
+      };
+      for(int step=-steps;step<0;++step)append_neighbour(step);
+      for(int step=1;step<=steps;++step)append_neighbour(step);
+      append(input.fragment);
     }
     flush(*next->vertex);flush(*next->fragment);frame=std::move(next);
   }
@@ -584,12 +681,12 @@ struct MenuWorldNativeDraw::Impl {
       const std::function<void(const MenuWorldNativeDrawObservation &)> &observer) const {
     if(!command || !frame || index>=frame->draws.size())
       throw FormatError("raw world record has no matching prepared draw");
-    const auto &draw=frame->draws[index];const auto &geometry=draw.geometry;
+    const auto &draw=frame->draws[index];const auto &geometry=*draw.geometry;
     const bool temporal=draw.raster_offset!=std::array<float,2>{};
-    const auto active_layout=temporal?temporal_layout:layout;
+    const auto active_layout=draw.projected_depth?projected_depth_bindings->layout:temporal?temporal_layout:layout;
     vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,draw.pipeline);
-    const VkDescriptorSet sets[]{draw.material,draw.uniforms};
-    vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,active_layout,0,2,sets,1,&draw.material_offset);
+    const VkDescriptorSet sets[]{draw.material,draw.uniforms,draw.projected_depth?projected_depth_bindings->set:VK_NULL_HANDLE};
+    vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,active_layout,0,draw.projected_depth?3u:2u,sets,1,&draw.material_offset);
     if(temporal) {
       const std::array<float,4> offset{draw.raster_offset[0],draw.raster_offset[1],0,0};
       vkCmdPushConstants(command,active_layout,VK_SHADER_STAGE_FRAGMENT_BIT,112,16,offset.data());
@@ -609,6 +706,8 @@ struct MenuWorldNativeDraw::Impl {
 MenuWorldNativeDraw::MenuWorldNativeDraw(MenuWorldNativeDrawContext context):impl_(std::make_unique<Impl>(context)){}
 MenuWorldNativeDraw::~MenuWorldNativeDraw()=default;
 void MenuWorldNativeDraw::prepare(std::span<const MenuWorldNativeDrawInput> inputs){impl_->prepare(inputs);}
+void MenuWorldNativeDraw::prepare(std::span<const MenuWorldNativeDrawInput> inputs,
+    const MenuWorldProjectedDepthSource &depth){impl_->prepare(inputs,&depth);}
 void MenuWorldNativeDraw::record(VkCommandBuffer command,std::size_t index,
     const std::function<void(const MenuWorldNativeDrawObservation &)> &observer) const{impl_->record(command,index,observer);}
 std::size_t MenuWorldNativeDraw::size() const{return impl_->frame?impl_->frame->draws.size():0;}

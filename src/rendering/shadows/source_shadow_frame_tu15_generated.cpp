@@ -1,3 +1,5 @@
+#include "pstencil/native_tu15_light_point_transform.hpp"
+#include "pstencil/native_tu15_light_view.hpp"
 #include "rendering/native_tu15_view_setup.hpp"
 #include "rendering/native_tu15_object_hierarchy_root.hpp"
 #include "rendering/native_tu15_view_reset.hpp"
@@ -32,6 +34,7 @@
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "halo2/source_presented_model_pose_tu15.hpp"
 #include "rendering/shadows/source_shadow_native_prefix_tu15_internal.hpp"
+#include "rendering/native_tu15_receiver_transfers.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
@@ -9807,7 +9810,7 @@ if(s.services.instruction){s.services.instruction(0xc3e42u);} w(s.memory,s.obser
 if(s.services.instruction){s.services.instruction(0xc3e46u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xc3e48u);} w(s.memory,s.observe,0xc3e48u,(selected(0x10u,s.image)+s.gp[4]),4,s.reg(7,4,0));
 if(s.services.instruction){s.services.instruction(0xc3e4cu);} s.set(1,selected(0x6fu,s.image),4,0);
-if(s.services.instruction){s.services.instruction(0xc3e51u);} while(s.gp[1]){w(s.memory,s.observe,0xc3e51u,s.gp[7],4,s.gp[0]);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xc3e51u);}
+if(s.services.instruction){s.services.instruction(0xc3e51u);} if(!native_receiver_transfers::clear_camera(s,0xc3e51u))while(s.gp[1]){w(s.memory,s.observe,0xc3e51u,s.gp[7],4,s.gp[0]);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xc3e51u);}
 if(s.services.instruction){s.services.instruction(0xc3e53u);} s.set(7,s.flags.logic((s.reg(7,4,0))^(s.reg(7,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xc3e55u);} s.flags.minus(r(s.memory,(selected(0x0u,s.image)+s.gp[3]),2),s.reg(7,2,0),2);
 if(s.services.instruction){s.services.instruction(0xc3e58u);} s.xmm[1]=s.xmm[0];
@@ -10219,7 +10222,7 @@ if(s.services.instruction){s.services.instruction(0xc45c6u);} w(s.memory,s.obser
 if(s.services.instruction){s.services.instruction(0xc45cbu);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xc45cdu);} s.set(1,selected(0x6fu,s.image),4,0);
 if(s.services.instruction){s.services.instruction(0xc45d2u);} s.set(7,s.reg(6,4,0),4,0);
-if(s.services.instruction){s.services.instruction(0xc45d4u);} while(s.gp[1]){w(s.memory,s.observe,0xc45d4u,s.gp[7],4,s.gp[0]);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xc45d4u);}
+if(s.services.instruction){s.services.instruction(0xc45d4u);} if(!native_receiver_transfers::clear_camera(s,0xc45d4u))while(s.gp[1]){w(s.memory,s.observe,0xc45d4u,s.gp[7],4,s.gp[0]);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xc45d4u);}
 if(s.services.instruction){s.services.instruction(0xc45d6u);} s.set(1,(selected(0x1cu,s.image)+s.gp[3]),4,0);
 if(s.services.instruction){s.services.instruction(0xc45d9u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xc45dbu);} s.set(2,(selected(0x3cu,s.image)+s.gp[6]),4,0);
@@ -11405,6 +11408,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_134c00(WorldState &s) {
+    if(halo2::native_light_view_detail::bridge(s,[](auto& child,auto target,auto site){dispatch(child,target,site,false);}))return;
 if(s.services.instruction){s.services.instruction(0x134c00u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x134c02u);} s.push(0x134c02u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x134c03u);} s.push(0x134c03u,s.reg(5,4,0));
@@ -15017,6 +15021,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 
 
 static void run_1454d0(WorldState &s) {
+    if(halo2::native_light_point_transform_detail::bridge(s))return;
 if(s.services.instruction){s.services.instruction(0x1454d0u);} s.push(0x1454d0u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x1454d1u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x1454d3u);} s.set(1,r(s.memory,(selected(0x8u,s.image)+s.gp[5]),4),4,0);

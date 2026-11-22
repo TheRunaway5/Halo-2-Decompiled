@@ -8,57 +8,150 @@
 namespace halo2 {
 namespace {
 #include "ui/vista/vista_keyboard_presets.inc"
-// PC 634CB6..634E0B/641333: original advanced editor action label order.
-constexpr std::uint32_t editor_labels[]{
-    0x2100082e, 0x1e000832, 0x1b000833, 0x1d000830, 0x1e000831, 0x16000834,
-    0x18000835, 0x19000857, 0x1b000858, 0x1b000859, 0x1c00085a, 0x1f00082f,
-    0x16000836, 0x2200085c, 0x1f000837, 0x2000083b, 0x1d00085e, 0x1f00083d,
-    0x2100085f, 0x1f00083c, 0x1e000838, 0x1d00083e, 0x18000956, 0x20000855,
-    0x1f000861, 0x1e000862, 0x17000864, 0x21000865, 0x1e000866, 0x21000867,
-    0x2300097f, 0x1e000868, 0x1d000869, 0x20000856, 0x1e00086b, 0x1c00086c,
-    0x1600086d, 0x19000962, 0x1a000963, 0x1d00086e, 0x1b00086f, 0x28000978,
-    0x1e00097e};
 std::string low_string(const FrontendContent &content, const UiScreen &screen, unsigned low) {
   return detail::frontend_pc_compiled_low_localized(content, screen, low);
 }
 std::atomic<std::uint64_t> pc_instance{1ull << 63};
-unsigned build_upscaling_presentation(MenuFrame &frame, const DisplaySettings &display) {
-  online_protocol_bridge::UpscalingPanelFacts facts{};
-  facts.method_enabled = display.upscaler != Upscaler::Off;
-  if (frame.context == 0) {
-    facts.method_name = upscaler_name(display.upscaler);
-    facts.quality_name = upscaling_quality_name(display.upscaling_quality, display.upscaler);
-  } else if (frame.context == 1) {
-    facts.selected = unsigned(display.upscaler);
-    for (unsigned i = 0; i <= unsigned(Upscaler::DLSS45); ++i)
-      facts.choices.push_back(upscaler_name(Upscaler(i)));
-  } else {
-    facts.selected = unsigned(display.upscaling_quality);
-    for (unsigned i = 0; i <= unsigned(UpscalingQuality::UltraPerformance); ++i)
-      facts.choices.push_back(upscaling_quality_name(UpscalingQuality(i), display.upscaler));
+namespace bridge = online_protocol_bridge;
+
+bridge::VideoPanelFacts video_facts(const DisplaySettings &display, unsigned width,
+                                  unsigned height, FullscreenMode fullscreen) {
+  return {
+      .window = {width, height},
+      .internal = {display.internal_width, display.internal_height},
+      .graphics_mode = unsigned(display.graphics_mode),
+      .path_tracing = display.graphics_mode == pstencil::GraphicsMode::PathTracing,
+      .fullscreen = unsigned(fullscreen),
+      .upscaler = unsigned(display.upscaler),
+      .upscaling_quality = unsigned(display.upscaling_quality),
+      .upscaling_enabled = display.upscaler != Upscaler::Off,
+      .brightness = display.brightness,
+      .gamma = display.gamma,
+      .detail = display.detail,
+      .safe_area = display.safe_area,
+      .field_of_view = display.field_of_view,
+      .vehicle_field_of_view = display.vehicle_field_of_view,
+      .crt_filter = display.crt_filter,
+      .vertical_split = display.two_player_split != TwoPlayerSplit::Horizontal,
+      .ray_samples = display.path_tracing_samples,
+      .bounce_depth = display.path_tracing_bounces,
+  };
+}
+
+void read_keyboard_options(const MenuState &state, PcKeyboardSettings &keys) {
+  keys.sensitivity = std::clamp(state.profile_option(0x380, 3), 1, 10);
+  keys.invert = state.profile_option(0x381) != 0;
+  keys.auto_center = state.profile_option(0x382) != 0;
+  keys.dual_wield_invert = state.profile_option(0x383) != 0;
+}
+
+int saved_binding(const MenuState &state, unsigned action, bool secondary, int fallback) {
+  const int binding = state.profile_option((secondary ? 0x440 : 0x400) + action, fallback);
+  return valid_pc_binding(binding) ? binding : fallback;
+}
+
+bridge::PcSettingsFacts settings_facts(const MenuState &state, unsigned screen, unsigned context,
+                                       std::optional<unsigned> row = {}, int binding_action = -1) {
+  bridge::PcSettingsFacts facts{};
+  facts.gameplay_overlay = state.game_pause();
+  const auto &display = state.pc_display_settings();
+  facts.volume = display.volume;
+  facts.speakers = display.speakers;
+  facts.subtitles = display.subtitles;
+  if (screen == 243)
+    facts.keyboard_preset = state.profile_option(0x384, 4);
+  const bool shared_choice = screen == 42 || screen == 44;
+  if ((screen == 200 && row) || screen == 40 || screen == 41 || screen == 43 ||
+      screen == 183 || (shared_choice && context == 1)) {
+    const auto controller = state.controller_settings();
+    facts.sticks = controller.sticks;
+    facts.buttons = controller.buttons;
+    facts.controller_sensitivity = controller.sensitivity;
+    facts.controller_invert = controller.invert;
+    facts.controller_auto_center = controller.auto_center;
+    facts.vibration = controller.vibration;
   }
-  auto panel = online_protocol_bridge::frontend_upscaling_panel(frame.context, std::move(facts));
+  if ((screen == 258 && row && *row > 0) || screen == 245 || screen == 294 ||
+      (shared_choice && context != 1)) {
+    PcKeyboardSettings keys;
+    read_keyboard_options(state, keys);
+    facts.keyboard_sensitivity = unsigned(keys.sensitivity);
+    facts.keyboard_invert = keys.invert;
+    facts.keyboard_auto_center = keys.auto_center;
+    facts.dual_wield_invert = keys.dual_wield_invert;
+  }
+  if (screen == 258 && row == 0u) {
+    const PcKeyboardSettings defaults;
+    const auto keyboard = state.pc_keyboard_settings();
+    facts.default_bindings = keyboard.bindings == defaults.bindings && keyboard.secondary == defaults.secondary;
+  }
+  if (screen == 253 && binding_action >= 0 && unsigned(binding_action) < pc_action_count) {
+    const PcKeyboardSettings defaults;
+    facts.primary_binding = unsigned(saved_binding(state, binding_action, false, defaults.bindings[binding_action]));
+    facts.secondary_binding = unsigned(saved_binding(state, binding_action, true, defaults.secondary[binding_action]));
+  }
+  return facts;
+}
+
+std::string settings_text(const bridge::SettingsText &text, const FrontendContent &content,
+                       unsigned screen, Upscaler upscaler) {
+  const auto source_screen = [&]() -> const UiScreen & {
+    return content.screen(text.screen ? vista_menu(text.screen) : screen);
+  };
+  std::string result(text.text);
+  using Source = bridge::SettingsTextSource;
+  switch (text.source) {
+  case Source::Literal: break;
+  case Source::PcBinding: result += pc_binding_name(int(text.key)); break;
+  case Source::LocalizedLowId: result += low_string(*content.vista, source_screen(), text.key); break;
+  case Source::LocalizedId:
+    result += detail::frontend_pc_compiled_localized(*content.vista, source_screen(), text.key);
+    break;
+  case Source::GraphicsMode: result += pstencil::graphics_mode_name(pstencil::GraphicsMode(text.key)); break;
+  case Source::FullscreenMode: result += fullscreen_mode_name(FullscreenMode(text.key)); break;
+  case Source::Upscaler: result += upscaler_name(Upscaler(text.key)); break;
+  case Source::UpscalingQuality: result += upscaling_quality_name(UpscalingQuality(text.key), upscaler); break;
+  }
+  result.append(text.suffix.data(), text.suffix.size());
+  return result;
+}
+
+unsigned present_settings_panel(MenuFrame &frame, const FrontendContent &content,
+                                const bridge::SettingsPanel &panel, Upscaler upscaler) {
   frame.title = std::string(panel.title);
-  frame.description = std::string(panel.description);
+  frame.description = settings_text(panel.description, content, frame.screen, upscaler);
   frame.entries.clear();
   frame.entries.reserve(panel.rows.size());
-  for (const auto &row : panel.rows)
-    frame.entries.push_back({std::string(row.label), row.opens_page ? int(frame.screen) : -2, row.value});
+  for (const auto &row : panel.rows) {
+    const auto destination = row.vista_route ? int(vista_menu(unsigned(row.destination))) : row.destination;
+    frame.entries.push_back({settings_text(row.label, content, frame.screen, upscaler), destination, row.value});
+  }
   return panel.selected;
+}
+
+unsigned build_video_presentation(MenuFrame &frame, const FrontendContent &content,
+                                  const bridge::VideoPanelFacts &facts,
+                                  std::span<const std::pair<unsigned, unsigned>> modes = {}) {
+  const auto screen = vista_settings_kind(frame.screen);
+  std::vector<bridge::VideoModeSize> sizes;
+  if (screen == 269) {
+    sizes.reserve(modes.size());
+    for (const auto &[width, height] : modes)
+      sizes.push_back({width, height});
+  }
+  const auto panel = bridge::frontend_video_panel(
+      screen, frame.context, facts, {sizes.data(), sizes.size()},
+      minimum_field_of_view, maximum_field_of_view);
+  const auto upscaler = Upscaler(facts.upscaler);
+  return present_settings_panel(frame, content, panel, upscaler);
 }
 } // namespace
 PcKeyboardSettings MenuState::pc_keyboard_settings() const {
   PcKeyboardSettings value;
-  value.sensitivity = std::clamp(profile_option(0x380, 3), 1, 10);
-  value.invert = profile_option(0x381, 0) != 0;
-  value.auto_center=profile_option(0x382,0)!=0;value.dual_wield_invert=profile_option(0x383,0)!=0;
+  read_keyboard_options(*this, value);
   for (unsigned i = 0; i < pc_action_count; ++i) {
-    const auto a = profile_option(0x400 + i, value.bindings[i]);
-    const auto b = profile_option(0x440 + i, value.secondary[i]);
-    if (valid_pc_binding(a))
-      value.bindings[i] = a;
-    if (valid_pc_binding(b))
-      value.secondary[i] = b;
+    value.bindings[i] = saved_binding(*this, i, false, value.bindings[i]);
+    value.secondary[i] = saved_binding(*this, i, true, value.secondary[i]);
   }
   return value;
 }
@@ -160,30 +253,6 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
       f.entries.push_back({"Exit To Desktop",-117,0});
     }
     break;
-  case 259:
-    add(0x2ef,vista_menu(200));add(0x7c2,vista_menu(260));
-    add(0x81f,vista_menu(262));add(0x820,vista_menu(261));
-    break;
-  case 200:
-    add(0x3dd,vista_menu(41),1);add(0x3de,vista_menu(40),1);add(0x3df,vista_menu(42),1);
-    add(0x3e0,vista_menu(43),1);add(0x3e1,vista_menu(44),1);add(0x3e2,vista_menu(183),1);
-    break;
-  case 40:
-    add(1,-2,0);add(0x3e4,-2,1);add(0x3e5,-2,2);add(0x3e6,-2,3);
-    f.selected=controller_settings().buttons;
-    break;
-  case 41:
-    add(1,-2,0);add(0x2f5,-2,1);add(0x2f6,-2,2);add(0x2f7,-2,3);
-    f.selected=controller_settings().sticks;
-    break;
-  case 43:
-    add(0x308,-2,1);add(0x309,-2,0);
-    f.selected=controller_settings().invert?0:1;
-    break;
-  case 183:
-    add(0x182,-2,1);add(0x183,-2,0);
-    f.selected=controller_settings().vibration?0:1;
-    break;
   case 6:
     //Actual40A781 row formatter, six datums from40B5A8/60D1FD. The
     //otherwise-present SPLIT SCREEN string is not a Vista main-menu row.
@@ -193,200 +262,18 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
   case 182:
     //63941D installs a task callback; there is no selectable/cancel row.
     break;
-  case 19:
-    add(0x197, 193);
-    add(0x198, 60, 1);
-    add(0x820, vista_menu(256));
-    add(0x81f, vista_menu(257));
-    add(0x976, vista_menu(296));
-    add(0x821, vista_menu(297));
+  case 19: case 259: case 200: case 40: case 41: case 42: case 43: case 44: case 183:
+  case 257: case 263: case 267: case 268: case 242: case 296: case 297:
+  case 258: case 243: case 253: case 294: case 245: case 295: {
+    const auto panel = bridge::frontend_pc_settings_panel(local, context, settings_facts(*this, local, context),
+        {pc_action_labels.data(), pc_action_labels.size()});
+    f.selected = present_settings_panel(f, content_, panel, pc_display_.upscaler);
     break;
-  case 257:
-    add(0x876, vista_menu(263));
-    add(0x87a, vista_menu(267));
-    add(0x2f1, vista_menu(242));
-    add(0x88a, vista_menu(268));
-    break;
-  case 263:
-    add(0x957, -2, 0);
-    for (unsigned i=0;i<10;++i) add(0x880+i,-2,int(i+1));
-    f.selected=pc_display_.volume;
-    break;
-  case 267:
-    for (unsigned i=0;i<5;++i) add(0x87b+i,-2,int(i));
-    f.selected=pc_display_.speakers;
-    break;
-  case 268:
-    add(0x895,-2,0); add(0x896,-2,1); f.selected=1;
-    break;
-  case 242:
-    add(1,-2,0); add(0x182,-2,1); add(0x183,-2,2);
-    f.selected=pc_display_.subtitles;
-    break;
-  case 296:
-    add(0x977,-2,0);
-    f.entries.front().label="System Default";
-    f.description="Native LAN uses the operating system's network routing.";
-    break;
-  case 297:
-    f.title="ABOUT HALO 2 NATIVE";
-    break;
-  case 258:
-    // PC 65975E table and 6598F5 dispatch (all six source rows).
-    add(0x7c2, vista_menu(content_.gameplay_overlay?244:243));
-    add(0x3df, vista_menu(42));
-    add(0x3e0, vista_menu(294));
-    add(0x3e1, vista_menu(44));
-    add(0x7c7, vista_menu(245));
-    add(0x848, vista_menu(295));
-    break;
-  case 243:
-    // PC 641051/6410A5: four live rows; custom has source enum4.
-    add(0x83f, -2, 0);
-    add(0x840, -2, 1);
-    add(0x841, -2, 2);
-    add(0x843, vista_menu(content_.gameplay_overlay?254:253), 4);
-    f.selected=unsigned(std::clamp(profile_option(0x384,4),0,4));if(f.selected==4)f.selected=3;
-    break;
-  case 253:
-    f.description = "Enter: primary binding   X: secondary binding   "
-                    "Backspace: clear   Esc: cancel";
-    for (auto sid : editor_labels) {
-      const auto at =
-          std::find(pc_action_labels.begin(), pc_action_labels.end(), sid);
-      f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, s, sid), -2,
-                           sid == 0x2100082e || sid == 0x1f00082f ||
-                                   sid == 0x20000855 || sid == 0x20000856
-                               ? -2
-                           : at == pc_action_labels.end()
-                               ? -1
-                               : int(at - pc_action_labels.begin())});
-    }
-    f.selected = 1;
-    break;
-  case 42:
-    for (unsigned i = 0; i < 10; ++i)
-      add(0x3cf + i, -2, i + 1);
-    f.selected = unsigned((context==1?controller_settings().sensitivity:pc_keyboard_settings().sensitivity) - 1);
-    break;
-  case 294:
-  case 44:
-  case 245:
-    add(0x309, -2, 0);
-    add(0x308, -2, 1);
-    if(local==44)f.selected=context==1?controller_settings().auto_center:pc_keyboard_settings().auto_center;
-    if(local==245)f.selected=pc_keyboard_settings().dual_wield_invert;
-    if (local == 294)
-      f.selected = pc_keyboard_settings().invert;
-    break;
-  case 295:
-    add(0x846, -2, 0);
-    add(0x847, -2, 1);
-    f.selected = 1;
-    break;
-  case 256:
-    f.entries.push_back({"Graphics Mode",int(vista_menu(271)),int(video_graphics_mode_context)});
-    // PC 6487D3 jump table: eight source rows, including LOD.
-    f.entries.push_back({"Fullscreen Mode",int(vista_menu(271)),0});
-    add(0x897, vista_menu(269));
-    f.entries.push_back({"Internal Resolution",int(vista_menu(269)),1});
-    add(0x89a, vista_menu(272));
-    add(0x89c, vista_menu(273));
-    f.entries.push_back({"Upscaling",int(vista_menu(274)),0});
-    add(0x95e, vista_menu(290));
-    add(0x907, vista_menu(285));
-    f.entries.push_back({"Field of View",int(vista_menu(272)),int(video_fov_context)});
-    f.entries.push_back({"Vehicle Field of View",int(vista_menu(272)),int(video_vehicle_fov_context)});
-    f.entries.push_back({"CRT Filter",-2,0});
-    f.entries.push_back({"2-Player Split Screen",-2,1});
-    add(0x89f, vista_menu(276));
-    if(pc_display_.graphics_mode==pstencil::GraphicsMode::PathTracing)
-      f.entries.push_back({"Path Tracing Quality",int(vista_menu(274)),int(video_path_tracing_context)});
-    break;
-  case 269:
-    if (context == 1) {
-      f.title="INTERNAL RESOLUTION";
-      f.entries.push_back({"Match Screen Resolution",-2,-1});
-    }
-    for (unsigned i = 0; i < pc_video_modes_.size(); ++i) {
-      auto [w, h] = pc_video_modes_[i];
-      f.entries.push_back(
-          {std::to_string(w) + " x " + std::to_string(h), -2, int(i)});
-      if (w == (context == 1 ? pc_display_.internal_width : pc_width_) &&
-          h == (context == 1 ? pc_display_.internal_height : pc_height_))
-        f.selected = i + (context == 1 ? 1 : 0);
-    }
-    break;
-  case 271:
-    if(context==video_graphics_mode_context) {
-      f.title="GRAPHICS MODE";
-      for(const auto mode:{pstencil::GraphicsMode::Original,pstencil::GraphicsMode::pStencil,
-                           pstencil::GraphicsMode::PathTracing})
-        f.entries.push_back({pstencil::graphics_mode_name(mode),-2,int(mode)});
-      f.selected=unsigned(pc_display_.graphics_mode);
-      f.description=std::string("Current mode: ")+pstencil::graphics_mode_name(pc_display_.graphics_mode)+".";
-      break;
-    }
-    f.title="FULLSCREEN MODE";
-    f.entries.push_back({"Windowed",-2,int(FullscreenMode::Windowed)});
-    f.entries.push_back({"Fullscreen",-2,int(FullscreenMode::Fullscreen)});
-    f.entries.push_back({"Borderless Fullscreen",-2,int(FullscreenMode::BorderlessFullscreen)});
-    f.selected=unsigned(pc_fullscreen_mode_);
-    break;
-  case 272:
-    if(context==video_fov_context || context==video_vehicle_fov_context) {
-      const bool vehicle=context==video_vehicle_fov_context;
-      f.title=vehicle?"VEHICLE FIELD OF VIEW":"FIELD OF VIEW";
-      f.description=vehicle?"70 degrees preserves the Xbox TU1.5 vehicle camera. Higher values widen its view.":"Widen the view while on foot.";
-      for(unsigned degrees=minimum_field_of_view;degrees<=maximum_field_of_view;++degrees)
-        f.entries.push_back({std::to_string(degrees)+" degrees",-2,int(degrees)});
-      f.selected=(vehicle?pc_display_.vehicle_field_of_view:pc_display_.field_of_view)-minimum_field_of_view;
-      break;
-    }
-    for (unsigned i = 0; i < 10; ++i)
-      add(0x8ac + i, -2, i);
-    f.selected = pc_display_.brightness;
-    break;
-  case 273:
-    for (unsigned i = 0; i < 11; ++i)
-      add(0x8b6 + i, -2, i);
-    f.selected = pc_display_.gamma;
-    break;
-  case 274:
-    if(context>=video_path_tracing_context) {
-      f.title="PATH TRACING QUALITY";
-      f.description="More ray samples and bounces increase GPU cost. Both default to 1.";
-      if(context==video_path_tracing_context) {
-        f.entries.push_back({"Ray Samples Per Pixel: "+std::to_string(pc_display_.path_tracing_samples),int(vista_menu(274)),int(video_path_tracing_samples_context)});
-        f.entries.push_back({"Bounce Depth: "+std::to_string(pc_display_.path_tracing_bounces),int(vista_menu(274)),int(video_path_tracing_bounces_context)});
-      } else {
-        const bool samples=context==video_path_tracing_samples_context;
-        f.title=samples?"RAY SAMPLES PER PIXEL":"BOUNCE DEPTH";
-        f.entries.push_back({"1",-2,1});f.entries.push_back({"2",-2,2});
-        f.selected=(samples?pc_display_.path_tracing_samples:pc_display_.path_tracing_bounces)-1;
-      }
-      break;
-    }
-    f.selected = build_upscaling_presentation(f, pc_display_);
-    break;
-  case 290:
-    add(0x95f, -2, 0);
-    add(0x960, -2, 1);
-    add(0x961, -2, 2);
-    f.selected=pc_display_.detail;
-    break;
-  case 285:
-    add(0x183, -2, 0);
-    add(0x182, -2, 1);
-    f.selected=pc_display_.safe_area;
-    break;
-  case 293:
-    f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, s, 0x02000f02), -2, 0});
-    break;
-  case 276:
-    add(0x8a0, -2, 0);
-    add(0x8a1, -2, 1);
-    f.selected = 1;
+  }
+  case 256: case 269: case 271: case 272: case 273:
+  case 274: case 276: case 285: case 290: case 293:
+    f.selected = build_video_presentation(f, content_,
+        video_facts(pc_display_, pc_width_, pc_height_, pc_fullscreen_mode_), pc_video_modes_);
     break;
   default:
     throw FormatError("unimplemented source Vista settings route");
@@ -397,78 +284,19 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
                                       unsigned column) const {
   if (index >= f.entries.size())
     return {};
-  const auto k = pc_keyboard_settings();
-  if (is_vista_settings(f.screen, 253)) {
-    if (column == 3)
-      return {};
-    const auto a = f.entries[index].value;
-    if (a == -2)
-      return {};
-    if (a < 0)
-      return column == 1 ? "Unavailable" : std::string{};
-    if (binding_action_ == unsigned(a) &&
-        ((column == 2) == bool(binding_slot_)))
-      return "Press a key or mouse button";
-    return pc_binding_name(column == 2 ? k.secondary[a] : k.bindings[a]);
+  if (is_vista_settings(f.screen, 256) || is_vista_settings(f.screen, 274)) {
+    const auto facts = video_facts(pc_display_, pc_width_, pc_height_, pc_fullscreen_mode_);
+    const auto text = bridge::frontend_video_value(vista_settings_kind(f.screen), f.context, index, facts);
+    return settings_text(text, content_, f.screen, pc_display_.upscaler);
   }
-  if(is_vista_settings(f.screen,200)) {
-    const auto c=controller_settings();const auto &screen=content_.screen(f.screen);
-    if(index==0)return low_string(*content_.vista, content_.screen(vista_menu(41)),c.sticks==0?1:0x2f4+c.sticks);
-    if(index==1)return low_string(*content_.vista, content_.screen(vista_menu(40)),c.buttons==0?1:0x3e3+c.buttons);
-    if(index==2)return std::to_string(c.sensitivity);
-    if(index==3||index==4)return low_string(*content_.vista, screen,(index==3?c.invert:c.auto_center)?0x308:0x309);
-    if(index==5)return low_string(*content_.vista, content_.screen(vista_menu(183)),c.vibration?0x182:0x183);
-  }
-  if (is_vista_settings(f.screen, 258)) {
-    if (index == 0) {
-      const PcKeyboardSettings defaults;
-      if(k.bindings==defaults.bindings && k.secondary==defaults.secondary)return "MCC Default";
-      return low_string(*content_.vista, content_.screen(content_.gameplay_overlay?vista_menu(244):f.screen), 0x844);
-    }
-    if (index == 1)
-      return std::to_string(k.sensitivity);
-    if (index == 2)
-      return low_string(*content_.vista, content_.screen(f.screen), k.invert ? 0x308 : 0x309);
-    if(index==3||index==4)return low_string(*content_.vista, content_.screen(f.screen),(index==3?k.auto_center:k.dual_wield_invert)?0x308:0x309);
-  }
-  if (is_vista_settings(f.screen, 256)) {
-    if (index == 0)
-      return pstencil::graphics_mode_name(pc_display_.graphics_mode);
-    --index;
-    if (index == 0)
-      return fullscreen_mode_name(pc_fullscreen_mode_);
-    if (index == 1)
-      return std::to_string(pc_width_) + " x " + std::to_string(pc_height_);
-    const auto &s=content_.screen(f.screen);
-    if(index==2 && pc_display_.upscaler!=Upscaler::Off)return "Automatic";
-    if(index==2)return pc_display_.internal_width ? std::to_string(pc_display_.internal_width)+" x "+std::to_string(pc_display_.internal_height) : "Match Screen";
-    if(index==3)return low_string(*content_.vista, s,0x8ac+pc_display_.brightness);
-    if(index==4)return low_string(*content_.vista, s,0x8b6+pc_display_.gamma);
-    if(index==5)return upscaler_name(pc_display_.upscaler);
-    if(index==6)return low_string(*content_.vista, s,0x95f+pc_display_.detail);
-    if(index==7)return low_string(*content_.vista, content_.screen(vista_menu(285)),pc_display_.safe_area?0x182:0x183);
-    if(index==8)return std::to_string(pc_display_.field_of_view);
-    if(index==9)return std::to_string(pc_display_.vehicle_field_of_view);
-    if(index==10)return pc_display_.crt_filter?"On":"Off";
-    if(index==11)return pc_display_.two_player_split==TwoPlayerSplit::Horizontal?"Horizontal":"Vertical";
-    if(index==13)return std::to_string(pc_display_.path_tracing_samples)+
-        (pc_display_.path_tracing_samples==1?" sample, ":" samples, ")+
-        std::to_string(pc_display_.path_tracing_bounces)+(pc_display_.path_tracing_bounces==1?" bounce":" bounces");
-  }
-  if(is_vista_settings(f.screen,274) && f.context==video_path_tracing_context) {
-    if(index==0)return std::to_string(pc_display_.path_tracing_samples);
-    if(index==1)return std::to_string(pc_display_.path_tracing_bounces);
-  }
-  if(is_vista_settings(f.screen,274) && f.context==0) {
-    if(index==0)return upscaler_name(pc_display_.upscaler);
-    if(index==1)return upscaling_quality_name(pc_display_.upscaling_quality,pc_display_.upscaler);
-  }
-  if(is_vista_settings(f.screen, 257)) {
-    if(index==0)return pc_display_.volume ? std::to_string(pc_display_.volume) : low_string(*content_.vista, content_.screen(f.screen),0x957);
-    if(index==1)return low_string(*content_.vista, content_.screen(f.screen),0x87b+pc_display_.speakers);
-    if(index==2)return low_string(*content_.vista, content_.screen(f.screen),pc_display_.subtitles==0?1:pc_display_.subtitles==1?0x182:0x183);
-  }
-  return {};
+  const auto screen = vista_settings_kind(f.screen);
+  if (!is_vista_menu(f.screen) || (screen != 200 && screen != 253 && screen != 257 && screen != 258))
+    return {};
+  const int action = f.entries[index].value;
+  const int capturing_slot = binding_action_ == unsigned(action) ? int(binding_slot_ != 0) : -1;
+  const auto text = bridge::frontend_pc_settings_value(screen, index, column, action, capturing_slot,
+      settings_facts(*this, screen, f.context, index, action));
+  return settings_text(text, content_, f.screen, pc_display_.upscaler);
 }
 void MenuState::bind_pc_input(int binding) {
   if (!binding_action_ || !valid_pc_binding(binding))
@@ -500,16 +328,24 @@ void MenuState::accept_pc() {
   const auto f = frame();
   const auto e = f.entries.at(f.selected);
   const auto id = vista_settings_kind(f.screen);
-  const auto update_path_tracing_entry=[&] {
-    if(stack_.empty() || !is_vista_settings(stack_.back().screen,256))return;
-    auto& frame=stack_.back();auto& entries=frame.entries;
-    const auto entry=std::find_if(entries.begin(),entries.end(),[](const auto& row) {
-      return row.destination==int(vista_menu(274)) && row.value==int(video_path_tracing_context);
-    });
-    if(pc_display_.graphics_mode==pstencil::GraphicsMode::PathTracing) {
-      if(entry==entries.end())entries.push_back({"Path Tracing Quality",int(vista_menu(274)),int(video_path_tracing_context)});
-    } else if(entry!=entries.end())entries.erase(entry);
-    if(!entries.empty())frame.selected=std::min(frame.selected,unsigned(entries.size()-1));
+  const auto refresh_video_summary = [&] {
+    if (stack_.empty())
+      return;
+    auto &parent = stack_.back();
+    const bool overview = is_vista_settings(parent.screen, 256);
+    const bool scaling = id == 274 && is_vista_settings(parent.screen, 274) &&
+        (parent.context == 0 || parent.context == video_path_tracing_context);
+    if (!overview && !scaling)
+      return;
+    build_video_presentation(parent, content_,
+        video_facts(pc_display_, pc_width_, pc_height_, pc_fullscreen_mode_));
+    if (overview) {
+      const auto count = unsigned(parent.entries.size());
+      const auto visible = content_.screen(parent.screen).panes.front().lists.front().visible;
+      parent.selected = std::min(parent.selected, count - 1);
+      // Restoring defaults can remove the Path Tracing Quality row.
+      parent.first_visible = std::min(parent.first_visible, count - std::min(count, visible));
+    }
   };
   if(f.context==1 && (id==40 || id==41 || id==42 || id==43 || id==44 || id==183)) {
     const unsigned key=id==41?0x390:id==40?0x391:id==42?0x392:id==43?0x393:id==44?0x394:0x395;
@@ -565,7 +401,7 @@ void MenuState::accept_pc() {
       unavailable(error);return;
     }
     pc_display_=value;
-    update_path_tracing_entry();
+    refresh_video_summary();
     save();++revision;return;
   }
   if (id==272 || id==273 || id==274 || id==290 || id==285 ||
@@ -600,13 +436,7 @@ void MenuState::accept_pc() {
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
     const auto error=pc_display_adapter_(v);
     if(!error.empty()){unavailable(error);return;}
-    pc_display_=v;save();back();update_path_tracing_entry();
-    if(id==274 && is_vista_settings(frame().screen,274) && frame().context==0) {
-      build_upscaling_presentation(stack_.back(), pc_display_);
-    } else if(id==274 && is_vista_settings(frame().screen,274) && frame().context==video_path_tracing_context) {
-      stack_.back().entries.at(0).label="Ray Samples Per Pixel: "+std::to_string(pc_display_.path_tracing_samples);
-      stack_.back().entries.at(1).label="Bounce Depth: "+std::to_string(pc_display_.path_tracing_bounces);
-    }
+    pc_display_=v;save();back();refresh_video_summary();
     return;
   }
   if (id == 42 || id == 294 || id==44 || id==245) {

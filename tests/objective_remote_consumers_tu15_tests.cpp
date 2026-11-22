@@ -26,7 +26,7 @@ FrontendLaunch launch(const FrontendContent& content,const std::filesystem::path
     const std::string& variant,const std::string& name,bool guest) {
     MenuState menu(content);need(menu.controller_slot(100,true)==0,"Remote objective host controller missing");
     menu.accept();choose(menu,0,167);menu.text(name);menu.commit_text();menu.back();
-    need(menu.frame().screen==6,"Remote objective profile sign-in failed");choose(menu,2,30);
+    need(menu.frame().screen==6,"Remote objective profile sign-in failed");choose(menu,1,218); choose(menu,0,30);
     if(guest) {
         need(menu.controller_slot(101,true)==1 && menu.frame().screen==10,"Remote objective guest controller missing");
         menu.accept();menu.text("Remote Guest");menu.commit_text();menu.back();

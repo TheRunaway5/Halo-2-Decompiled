@@ -15,7 +15,7 @@ inline void native_hs_command_test_call(halo2::SourcePhysicsContactMemory &memor
         native_hs_command_test_call(memory,target,frame,observe);
     };
     switch(entry) {
-    case 0x2b2470u:case 0x2b2670u:case 0x210a10u:case 0x2b1200u:
+    case 0x2b2340u:case 0x2b2470u:case 0x2b2670u:case 0x210a10u:case 0x2b1200u:
     case 0x2b0e30u:case 0x2b1000u:case 0x2b10b0u:case 0x2b11b0u:case 0x2b1300u:case 0x2b2410u:
         native_campaign_hs_command_builtins_call_tu15(memory,entry,abi,{child},observe);return;
     case 0x280c90u:case 0x280d70u:
@@ -29,6 +29,9 @@ inline void native_hs_command_test_call(halo2::SourcePhysicsContactMemory &memor
         SourcePhysicsWorldRuntimeServices services;
         services.required_owner=[&](auto &,const auto &call,auto &frame,const auto &){
             if(call.target==0x212130u)throw NativeCampaignAiPerformRequiredOwnerTu15(call.instruction,call.target);
+            if(call.target==0x2b2340u && (call.tail || call.instruction!=0x211c1bu ||
+                    frame.gp[0]!=0x1b8u || frame.gp[2]!=0x458d9cu))
+                throw NativeCampaignAiPerformRequiredOwnerTu15(call.instruction,call.target);
             child(call.instruction,call.target,frame);
         };
         source_run_ai_frame_tu15(memory,entry,abi,*abi.floating_point,services,observe);return;

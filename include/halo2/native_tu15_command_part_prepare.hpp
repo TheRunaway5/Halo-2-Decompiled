@@ -1,7 +1,6 @@
 #pragma once
 #include "halo2/native_tu15_physics_frame.hpp"
 #include <array>
-#include <vector>
 
 namespace halo2 {
 // TU1.5 45CD0 owns only these caller-packet stores. Preserve both the literal
@@ -13,7 +12,13 @@ struct NativeTu15PartPacketStore {
 struct NativeTu15PartPacket45cd0 {
     bool accepted{};
     std::array<std::byte,44> bytes{};
-    std::vector<NativeTu15PartPacketStore> stores;
+    void append(NativeTu15PartPacketStore store) {stores_.at(size_)=store;++size_;}
+    std::span<const NativeTu15PartPacketStore> stores() const {return std::span(stores_).first(size_);}
+private:
+    // Four common stores, one plane flag, four plane words, three origin
+    // words, and four transformed plane words in the BSP instance case.
+    std::array<NativeTu15PartPacketStore,16> stores_{};
+    std::size_t size_{};
 };
 // Whole 45CD0 plus its read-only palette, material-visibility and transparent
 // plane hash callees. Reads the actual populated table; never rebuilds it from

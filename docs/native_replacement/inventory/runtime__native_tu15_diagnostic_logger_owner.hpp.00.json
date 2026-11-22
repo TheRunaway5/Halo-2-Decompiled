@@ -1,0 +1,70 @@
+{
+  "callback_image_scope": "tu15",
+  "cmake_registration_sites": [],
+  "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+  "configured_production_target_ids": [],
+  "gate_sources": {},
+  "internal_dispatch_identity_evidence": {},
+  "part": 0,
+  "production_candidate_targets": [
+    "halo2_systems"
+  ],
+  "production_scope": "static_production_include_candidate",
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_DIAGNOSTIC_LOGGER"
+  ],
+  "routine_count": 1,
+  "routines": [
+    {
+      "admission_prefix_calls": [
+        "activity",
+        "catch",
+        "defined",
+        "else",
+        "input_supported",
+        "instruction",
+        "io",
+        "load",
+        "native_diagnostic_logger_detail::run_private",
+        "pop",
+        "reference",
+        "run",
+        "save"
+      ],
+      "body_sha256": "713d9479d9e0335b93b4afcce2774b7b036d786477bf6de7e89c97e5cfa69ffa",
+      "callback_image_scope": "tu15",
+      "direct_run_symbols": [],
+      "function_name": "run",
+      "instruction_callback_sites": 2,
+      "line": 35,
+      "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "native_diagnostic_logger_detail::run_private"
+      ],
+      "observed_entry": "2e16d0",
+      "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
+      "observed_map_pack11_entry": null,
+      "observed_tu15_entry": "2e16d0",
+      "route_status": "literal_observer_boundary_requires_semantic_review",
+      "state_type": "local-state",
+      "symbol": "run",
+      "symbol_kind": "descriptive"
+    }
+  ],
+  "schema": "native-migration-source-inventory-v1",
+  "source": "src/runtime/native_tu15_diagnostic_logger_owner.hpp",
+  "source_bytes": 3559,
+  "source_filename_scope": "nongenerated",
+  "source_inclusion_candidates": [
+    {
+      "including_source": "src/physics/physics_live_world_tu15.cpp",
+      "line": 2,
+      "preprocessor_admission_qualified": false,
+      "production_candidate_targets": [
+        "halo2_systems"
+      ],
+      "registered_source": "src/physics/physics_live_world_tu15.cpp"
+    }
+  ],
+  "source_sha256": "e4d54a16bde360b713a35eaf43bb3f7b96bf56cb73cce226484483de00429971"
+}

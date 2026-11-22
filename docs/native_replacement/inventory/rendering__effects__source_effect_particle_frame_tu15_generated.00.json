@@ -4,7 +4,7 @@
     {
       "command": "target_sources",
       "file": "cmake/PhysicsLiveWorldTu15.cmake",
-      "line": 1159,
+      "line": 1160,
       "target": "halo2_physics_world_runtime"
     }
   ],
@@ -13,11 +13,23 @@
     "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
   ],
   "gate_sources": {
+    "src/gameplay/objects/native_tu15_indexed_datum_gate_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_INDEXED_DATUM_GATE"
+      ],
+      "sha256": "ff56992a71e119ee312c9b5cc6508733d98474173804ec47dce1515b17f7265d"
+    },
     "src/physics/runtime/native_tu15_datum_delete_abi.hpp": {
       "gates": [
         "HALO2_REFERENCE_DATUM_DELETE"
       ],
       "sha256": "14825affcfbf0d113188d587a1d918843c30fe730534e4deca29bee39b22fcf2"
+    },
+    "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_EFFECT_REFERENCE_ELEMENT"
+      ],
+      "sha256": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa"
     }
   },
   "internal_dispatch_identity_evidence": {
@@ -38,7 +50,9 @@
   ],
   "production_scope": "static_production_candidate",
   "reference_verification_gate_names": [
-    "HALO2_REFERENCE_DATUM_DELETE"
+    "HALO2_REFERENCE_DATUM_DELETE",
+    "HALO2_REFERENCE_EFFECT_REFERENCE_ELEMENT",
+    "HALO2_REFERENCE_INDEXED_DATUM_GATE"
   ],
   "routine_count": 79,
   "routines": [
@@ -52,7 +66,7 @@
         "map-pack11": "2c3e30",
         "tu15": "2c3e30"
       },
-      "line": 412,
+      "line": 414,
       "literal_dispatch_required_targets": [
         "176a40",
         "17f790",
@@ -80,7 +94,7 @@
         "map-pack11": "230b10",
         "tu15": "230b10"
       },
-      "line": 590,
+      "line": 592,
       "literal_dispatch_required_targets": [
         "b87d0",
         "bad60",
@@ -109,7 +123,7 @@
         "map-pack11": "17e160",
         "tu15": "17e160"
       },
-      "line": 806,
+      "line": 808,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17e160",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -121,7 +135,11 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "67be61af7042e1a28ddb6e2cab91cc947073b71eeb4911ee9ac7825e2b0f5102",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
+      "body_sha256": "6614a0b4121135111cb0f65d10f45ccfca11bb891fc93de5b60641a82a0f38ea",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_22b710",
@@ -130,13 +148,89 @@
         "map-pack11": "22b710",
         "tu15": "22b710"
       },
-      "line": 888,
+      "line": 890,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
       "observed_entry": "22b710",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "22b710",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "binder_sha256": "48c97325d7c99077be2535142b878c75788771662630aaade75878341bd04afe",
+        "entry_symbol": "22b710",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact complete current/fresh bodies remain for unsupported/reference admission. Actual recursive/local dispatch and external accessor providers are preserved; exact owned required-provider policy is separately admitted. Dense TU15 source prefixes do not qualify MapPack, opaque MMX, all descendants or runtime delivery.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_effect_reference_element_kernel.hpp": "587870e94f6a4e00473a2ceba22217b7afd9551bfa15be1d364d2d2f2c71138a",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa",
+          "src/rendering/effects/native_tu15_effect_reference_element_frame.hpp": "6f7714812a815696d23eaa652688258d9381d779de8bd9c055916344a0a3fd08"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "22b710",
       "symbol_kind": "address-named"
@@ -154,7 +248,7 @@
         "map-pack11": "30bd0",
         "tu15": "30bd0"
       },
-      "line": 897,
+      "line": 900,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_tu15_normalize_vector_try"
@@ -169,7 +263,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "4d5fa54cdba4b296fbd4a5c9a5c8f214db1d3aad96b6df06f083bdf4ae2eaa8e",
+      "admission_prefix_calls": [
+        "halo2::native_indexed_datum_gate_owner_detail::bridge"
+      ],
+      "body_sha256": "e9ce2f2f18daf47f97a5bade781f53c07ec2b0293cb7cbe866373ea6a66d1acf",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_3eb10",
@@ -178,13 +275,65 @@
         "map-pack11": "3eb10",
         "tu15": "3eb10"
       },
-      "line": 942,
+      "line": 945,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_indexed_datum_gate_owner_detail::bridge"
+      ],
       "observed_entry": "3eb10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "3eb10",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_indexed_datum_gate_replacements.py",
+        "binder_sha256": "0d843de6a0362d061f46c131f151c089ab9d43ecd52b632ddbc74a77762ff680",
+        "entry_symbol": "3eb10",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_indexed_datum_gate_kernel.hpp": "26bae98fbc68d43791e3f70c3c5e62b35cc6833480d2cc2a392558eace7d81fa",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/gameplay/objects/native_tu15_indexed_datum_gate_source_frame.hpp": "529b833cb3168cd80b3789d187f4434b9c497454dfff20ded7ecadeb2e35477f",
+          "src/gameplay/objects/native_tu15_indexed_datum_gate_source_owner.hpp": "ff56992a71e119ee312c9b5cc6508733d98474173804ec47dce1515b17f7265d",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "3eb10",
       "symbol_kind": "address-named"
@@ -199,7 +348,7 @@
         "map-pack11": "3f3e0",
         "tu15": "3f3e0"
       },
-      "line": 971,
+      "line": 975,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3f3e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -220,7 +369,7 @@
         "map-pack11": "4efa0",
         "tu15": "4efa0"
       },
-      "line": 1003,
+      "line": 1007,
       "literal_dispatch_required_targets": [],
       "observed_entry": "4efa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -241,7 +390,7 @@
         "map-pack11": "11f9c0",
         "tu15": "11f9c0"
       },
-      "line": 1037,
+      "line": 1041,
       "literal_dispatch_required_targets": [],
       "observed_entry": "11f9c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -253,7 +402,11 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "688cabc723fd018d89e8238c0cbde03f3e62723863950f32c3df08ed45deedf3",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
+      "body_sha256": "3b2cbeb7a54ee09e7cb7602097bdb6859e85ede7e924c512f3ba53599ee1cea7",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_13a6b0",
@@ -262,13 +415,89 @@
         "map-pack11": "13a6b0",
         "tu15": "13a6b0"
       },
-      "line": 1085,
+      "line": 1089,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
       "observed_entry": "13a6b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "13a6b0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "binder_sha256": "48c97325d7c99077be2535142b878c75788771662630aaade75878341bd04afe",
+        "entry_symbol": "13a6b0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact complete current/fresh bodies remain for unsupported/reference admission. Actual recursive/local dispatch and external accessor providers are preserved; exact owned required-provider policy is separately admitted. Dense TU15 source prefixes do not qualify MapPack, opaque MMX, all descendants or runtime delivery.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_effect_reference_element_kernel.hpp": "587870e94f6a4e00473a2ceba22217b7afd9551bfa15be1d364d2d2f2c71138a",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa",
+          "src/rendering/effects/native_tu15_effect_reference_element_frame.hpp": "6f7714812a815696d23eaa652688258d9381d779de8bd9c055916344a0a3fd08"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "13a6b0",
       "symbol_kind": "address-named"
@@ -283,7 +512,7 @@
         "map-pack11": "145560",
         "tu15": "145560"
       },
-      "line": 1115,
+      "line": 1120,
       "literal_dispatch_required_targets": [],
       "observed_entry": "145560",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -304,7 +533,7 @@
         "map-pack11": "1458a0",
         "tu15": "1458a0"
       },
-      "line": 1188,
+      "line": 1193,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1458a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -325,7 +554,7 @@
         "map-pack11": "1459b0",
         "tu15": "1459b0"
       },
-      "line": 1258,
+      "line": 1263,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1459b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -346,7 +575,7 @@
         "map-pack11": "148de0",
         "tu15": "148de0"
       },
-      "line": 1367,
+      "line": 1372,
       "literal_dispatch_required_targets": [],
       "observed_entry": "148de0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -367,7 +596,7 @@
         "map-pack11": "166a80",
         "tu15": "166a80"
       },
-      "line": 1391,
+      "line": 1396,
       "literal_dispatch_required_targets": [
         "166ae0"
       ],
@@ -393,7 +622,7 @@
         "map-pack11": "16e8a0",
         "tu15": "16e8a0"
       },
-      "line": 1424,
+      "line": 1429,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "halo2::native_datum_delete_detail::run"
@@ -417,7 +646,7 @@
         "map-pack11": "16e940",
         "tu15": "16e940"
       },
-      "line": 1492,
+      "line": 1497,
       "literal_dispatch_required_targets": [],
       "observed_entry": "16e940",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -445,7 +674,7 @@
         "map-pack11": "16ea60",
         "tu15": "16ea60"
       },
-      "line": 1519,
+      "line": 1524,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_integer_tu15_run"
@@ -471,7 +700,7 @@
         "map-pack11": "176a40",
         "tu15": "176a40"
       },
-      "line": 1562,
+      "line": 1567,
       "literal_dispatch_required_targets": [],
       "observed_entry": "176a40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -498,7 +727,7 @@
         "map-pack11": "177020",
         "tu15": "177020"
       },
-      "line": 1598,
+      "line": 1603,
       "literal_dispatch_required_targets": [],
       "observed_entry": "177020",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -529,7 +758,7 @@
         "map-pack11": "177830",
         "tu15": "177830"
       },
-      "line": 1654,
+      "line": 1659,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_dispatch_tu15_run"
@@ -566,7 +795,7 @@
         "map-pack11": "1778d0",
         "tu15": "1778d0"
       },
-      "line": 1725,
+      "line": 1730,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1778d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -587,7 +816,7 @@
         "map-pack11": "177fa0",
         "tu15": "177fa0"
       },
-      "line": 2101,
+      "line": 2106,
       "literal_dispatch_required_targets": [],
       "observed_entry": "177fa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -599,7 +828,11 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "55bd2f3a2dac02f979f5b5ac6e1db2b32e6dfadb481a8d1690d93b9e99cd4341",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
+      "body_sha256": "dc1967e5dda3ddf4e1bb5a617ee4a89b15abf0b0e4d5b3e93926ca8581b9c055",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "13a6b0",
@@ -611,13 +844,89 @@
         "map-pack11": "178070",
         "tu15": "178070"
       },
-      "line": 2153,
+      "line": 2158,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
       "observed_entry": "178070",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "178070",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "binder_sha256": "48c97325d7c99077be2535142b878c75788771662630aaade75878341bd04afe",
+        "entry_symbol": "178070",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact complete current/fresh bodies remain for unsupported/reference admission. Actual recursive/local dispatch and external accessor providers are preserved; exact owned required-provider policy is separately admitted. Dense TU15 source prefixes do not qualify MapPack, opaque MMX, all descendants or runtime delivery.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_effect_reference_element_kernel.hpp": "587870e94f6a4e00473a2ceba22217b7afd9551bfa15be1d364d2d2f2c71138a",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa",
+          "src/rendering/effects/native_tu15_effect_reference_element_frame.hpp": "6f7714812a815696d23eaa652688258d9381d779de8bd9c055916344a0a3fd08"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "178070",
       "symbol_kind": "address-named"
@@ -634,7 +943,7 @@
         "map-pack11": "178110",
         "tu15": "178110"
       },
-      "line": 2208,
+      "line": 2214,
       "literal_dispatch_required_targets": [
         "251930",
         "251c80",
@@ -661,7 +970,7 @@
         "map-pack11": "178240",
         "tu15": "178240"
       },
-      "line": 2305,
+      "line": 2311,
       "literal_dispatch_required_targets": [],
       "observed_entry": "178240",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -684,7 +993,7 @@
         "map-pack11": "178290",
         "tu15": "178290"
       },
-      "line": 2333,
+      "line": 2339,
       "literal_dispatch_required_targets": [],
       "observed_entry": "178290",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -705,7 +1014,7 @@
         "map-pack11": "178920",
         "tu15": "178920"
       },
-      "line": 2361,
+      "line": 2367,
       "literal_dispatch_required_targets": [
         "1346c0",
         "1349e0"
@@ -737,7 +1046,7 @@
         "map-pack11": "178e30",
         "tu15": "178e30"
       },
-      "line": 2417,
+      "line": 2423,
       "literal_dispatch_required_targets": [
         "bcdf0",
         "165b00",
@@ -786,7 +1095,7 @@
         "map-pack11": "179df0",
         "tu15": "179df0"
       },
-      "line": 2643,
+      "line": 2649,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_dispatch_tu15_run"
@@ -823,7 +1132,7 @@
         "map-pack11": "179ed0",
         "tu15": "179ed0"
       },
-      "line": 2732,
+      "line": 2738,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_dispatch_tu15_run"
@@ -847,7 +1156,7 @@
         "map-pack11": "17ba10",
         "tu15": "17ba10"
       },
-      "line": 2853,
+      "line": 2859,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17ba10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -872,7 +1181,7 @@
         "map-pack11": "17ba50",
         "tu15": "17ba50"
       },
-      "line": 2874,
+      "line": 2880,
       "literal_dispatch_required_targets": [
         "3ebc0"
       ],
@@ -904,7 +1213,7 @@
         "map-pack11": "17dce0",
         "tu15": "17dce0"
       },
-      "line": 2929,
+      "line": 2935,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_iterator_tu15_run"
@@ -934,7 +1243,7 @@
         "map-pack11": "17dd50",
         "tu15": "17dd50"
       },
-      "line": 2988,
+      "line": 2994,
       "literal_dispatch_required_targets": [
         "1693ab"
       ],
@@ -968,7 +1277,7 @@
         "map-pack11": "17ddc0",
         "tu15": "17ddc0"
       },
-      "line": 3040,
+      "line": 3046,
       "literal_dispatch_required_targets": [
         "169376"
       ],
@@ -997,7 +1306,7 @@
         "map-pack11": "17de10",
         "tu15": "17de10"
       },
-      "line": 3083,
+      "line": 3089,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17de10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1018,7 +1327,7 @@
         "map-pack11": "18bbc0",
         "tu15": "18bbc0"
       },
-      "line": 3107,
+      "line": 3113,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18bbc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1039,7 +1348,7 @@
         "map-pack11": "22ac50",
         "tu15": "22ac50"
       },
-      "line": 3165,
+      "line": 3171,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ac50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1060,7 +1369,7 @@
         "map-pack11": "22ac60",
         "tu15": "22ac60"
       },
-      "line": 3172,
+      "line": 3178,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ac60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1081,7 +1390,7 @@
         "map-pack11": "22ac70",
         "tu15": "22ac70"
       },
-      "line": 3179,
+      "line": 3185,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ac70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1102,7 +1411,7 @@
         "map-pack11": "22ac80",
         "tu15": "22ac80"
       },
-      "line": 3186,
+      "line": 3192,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ac80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1114,18 +1423,98 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "fb00950ef4e4f8a834a2e0361e21bf3a217944c4671b93b2dbe3b35a25617151",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
+      "body_sha256": "2453acbacdc3c5850a98c4068c52e0df46e7cc51be9117809722e6a81b639cd7",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_22aca0",
       "instruction_callback_sites": 5,
-      "line": 3193,
+      "line": 3199,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
       "observed_entry": "22aca0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "22aca0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "binder_sha256": "48c97325d7c99077be2535142b878c75788771662630aaade75878341bd04afe",
+        "entry_symbol": "22aca0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact complete current/fresh bodies remain for unsupported/reference admission. Actual recursive/local dispatch and external accessor providers are preserved; exact owned required-provider policy is separately admitted. Dense TU15 source prefixes do not qualify MapPack, opaque MMX, all descendants or runtime delivery.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_effect_reference_element_kernel.hpp": "587870e94f6a4e00473a2ceba22217b7afd9551bfa15be1d364d2d2f2c71138a",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa",
+          "src/rendering/effects/native_tu15_effect_reference_element_frame.hpp": "6f7714812a815696d23eaa652688258d9381d779de8bd9c055916344a0a3fd08"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "22aca0",
       "symbol_kind": "address-named"
@@ -1140,7 +1529,7 @@
         "map-pack11": "22acc0",
         "tu15": "22acc0"
       },
-      "line": 3202,
+      "line": 3209,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22acc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1161,7 +1550,7 @@
         "map-pack11": "22acd0",
         "tu15": "22acd0"
       },
-      "line": 3209,
+      "line": 3216,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22acd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1178,7 +1567,7 @@
       "direct_run_symbols": [],
       "function_name": "run_22ad20",
       "instruction_callback_sites": 5,
-      "line": 3216,
+      "line": 3223,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ad20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1195,7 +1584,7 @@
       "direct_run_symbols": [],
       "function_name": "run_22ad30",
       "instruction_callback_sites": 5,
-      "line": 3225,
+      "line": 3232,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ad30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1216,7 +1605,7 @@
         "map-pack11": "22ad40",
         "tu15": "22ad40"
       },
-      "line": 3234,
+      "line": 3241,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ad40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1237,7 +1626,7 @@
         "map-pack11": "22ad50",
         "tu15": "22ad50"
       },
-      "line": 3243,
+      "line": 3250,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ad50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1258,7 +1647,7 @@
         "map-pack11": "22ad60",
         "tu15": "22ad60"
       },
-      "line": 3252,
+      "line": 3259,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ad60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1279,7 +1668,7 @@
         "map-pack11": "22b6e0",
         "tu15": "22b6e0"
       },
-      "line": 3279,
+      "line": 3286,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b6e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1300,7 +1689,7 @@
         "map-pack11": "22b6f0",
         "tu15": "22b6f0"
       },
-      "line": 3286,
+      "line": 3293,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b6f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1321,7 +1710,7 @@
         "map-pack11": "22b700",
         "tu15": "22b700"
       },
-      "line": 3293,
+      "line": 3300,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b700",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1342,7 +1731,7 @@
         "map-pack11": "22b750",
         "tu15": "22b750"
       },
-      "line": 3300,
+      "line": 3307,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b750",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1363,7 +1752,7 @@
         "map-pack11": "22b760",
         "tu15": "22b760"
       },
-      "line": 3309,
+      "line": 3316,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b760",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1384,7 +1773,7 @@
         "map-pack11": "22b780",
         "tu15": "22b780"
       },
-      "line": 3318,
+      "line": 3325,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22b780",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1396,7 +1785,11 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "f907fd7b88fa3ee8a65bdbfd7ba7f3c73671a5d0fe307510b5796630f35c2fbd",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
+      "body_sha256": "af886d60b63f91daae8b094ed0c83c93d5d7246b10836803069295f9a8a12884",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_22b790",
@@ -1405,13 +1798,89 @@
         "map-pack11": "22b790",
         "tu15": "22b790"
       },
-      "line": 3324,
+      "line": 3331,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_effect_reference_element_detail::bridge"
+      ],
       "observed_entry": "22b790",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "22b790",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "binder_sha256": "48c97325d7c99077be2535142b878c75788771662630aaade75878341bd04afe",
+        "entry_symbol": "22b790",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact complete current/fresh bodies remain for unsupported/reference admission. Actual recursive/local dispatch and external accessor providers are preserved; exact owned required-provider policy is separately admitted. Dense TU15 source prefixes do not qualify MapPack, opaque MMX, all descendants or runtime delivery.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_effect_reference_element_kernel.hpp": "587870e94f6a4e00473a2ceba22217b7afd9551bfa15be1d364d2d2f2c71138a",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/effects/native_tu15_effect_reference_element_admission.hpp": "dc7c390a9c11cc1562df0c981bd3a19b1985e8b5cd201074dc1999ae27236cfa",
+          "src/rendering/effects/native_tu15_effect_reference_element_frame.hpp": "6f7714812a815696d23eaa652688258d9381d779de8bd9c055916344a0a3fd08"
+        },
+        "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "22b790",
       "symbol_kind": "address-named"
@@ -1428,7 +1897,7 @@
         "map-pack11": "22c440",
         "tu15": "22c440"
       },
-      "line": 3336,
+      "line": 3344,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22c440",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1449,7 +1918,7 @@
         "map-pack11": "22c480",
         "tu15": "22c480"
       },
-      "line": 3358,
+      "line": 3366,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22c480",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1470,7 +1939,7 @@
         "map-pack11": "24ffe0",
         "tu15": "24ffe0"
       },
-      "line": 3375,
+      "line": 3383,
       "literal_dispatch_required_targets": [
         "13de70"
       ],
@@ -1493,7 +1962,7 @@
         "map-pack11": "2501c0",
         "tu15": "2501c0"
       },
-      "line": 3432,
+      "line": 3440,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2501c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1514,7 +1983,7 @@
         "map-pack11": "250220",
         "tu15": "250220"
       },
-      "line": 3468,
+      "line": 3476,
       "literal_dispatch_required_targets": [
         "122b60",
         "179230"
@@ -1542,7 +2011,7 @@
         "map-pack11": "2502b0",
         "tu15": "2502b0"
       },
-      "line": 3514,
+      "line": 3522,
       "literal_dispatch_required_targets": [
         "1798e0"
       ],
@@ -1568,7 +2037,7 @@
         "map-pack11": "250310",
         "tu15": "250310"
       },
-      "line": 3542,
+      "line": 3550,
       "literal_dispatch_required_targets": [
         "11e600",
         "18c3e0"
@@ -1595,7 +2064,7 @@
         "map-pack11": "250380",
         "tu15": "250380"
       },
-      "line": 3577,
+      "line": 3585,
       "literal_dispatch_required_targets": [
         "11e600",
         "18af70"
@@ -1624,7 +2093,7 @@
         "map-pack11": "250450",
         "tu15": "250450"
       },
-      "line": 3621,
+      "line": 3629,
       "literal_dispatch_required_targets": [],
       "observed_entry": "250450",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1648,7 +2117,7 @@
         "map-pack11": "250ac0",
         "tu15": "250ac0"
       },
-      "line": 3846,
+      "line": 3854,
       "literal_dispatch_required_targets": [],
       "observed_entry": "250ac0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1672,7 +2141,7 @@
         "map-pack11": "251650",
         "tu15": "251650"
       },
-      "line": 3964,
+      "line": 3972,
       "literal_dispatch_required_targets": [
         "250170"
       ],
@@ -1697,7 +2166,7 @@
         "map-pack11": "2516c0",
         "tu15": "2516c0"
       },
-      "line": 4005,
+      "line": 4013,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2516c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1721,7 +2190,7 @@
         "map-pack11": "2519f0",
         "tu15": "2519f0"
       },
-      "line": 4028,
+      "line": 4036,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2519f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1745,7 +2214,7 @@
         "map-pack11": "251a60",
         "tu15": "251a60"
       },
-      "line": 4067,
+      "line": 4075,
       "literal_dispatch_required_targets": [],
       "observed_entry": "251a60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1769,7 +2238,7 @@
         "map-pack11": "251f70",
         "tu15": "251f70"
       },
-      "line": 4226,
+      "line": 4234,
       "literal_dispatch_required_targets": [],
       "observed_entry": "251f70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1790,7 +2259,7 @@
         "map-pack11": "252060",
         "tu15": "252060"
       },
-      "line": 4265,
+      "line": 4273,
       "literal_dispatch_required_targets": [],
       "observed_entry": "252060",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1813,7 +2282,7 @@
         "map-pack11": "252100",
         "tu15": "252100"
       },
-      "line": 4287,
+      "line": 4295,
       "literal_dispatch_required_targets": [],
       "observed_entry": "252100",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1838,7 +2307,7 @@
         "map-pack11": "2c2ad0",
         "tu15": "2c2ad0"
       },
-      "line": 4474,
+      "line": 4482,
       "literal_dispatch_required_targets": [
         "2c3840",
         "2c3e30"
@@ -1871,7 +2340,7 @@
         "map-pack11": "2c2d90",
         "tu15": "2c2d90"
       },
-      "line": 4677,
+      "line": 4685,
       "literal_dispatch_required_targets": [
         "16c620"
       ],
@@ -1896,7 +2365,7 @@
         "map-pack11": "2c40d0",
         "tu15": "2c40d0"
       },
-      "line": 5082,
+      "line": 5090,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2c40d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1913,7 +2382,7 @@
       "direct_run_symbols": [],
       "function_name": "run_380e70",
       "instruction_callback_sites": 34,
-      "line": 5114,
+      "line": 5122,
       "literal_dispatch_required_targets": [],
       "observed_entry": "380e70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1934,7 +2403,7 @@
         "map-pack11": "2c4110",
         "tu15": "2c4110"
       },
-      "line": 5152,
+      "line": 5160,
       "literal_dispatch_required_targets": [
         "122b60"
       ],
@@ -1950,7 +2419,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp",
-  "source_bytes": 581874,
+  "source_bytes": 583475,
   "source_filename_scope": "generated",
-  "source_sha256": "f825a7b302191d546343978c484fa96fdd5832a072ff1a735b2a3485bd28fc52"
+  "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae"
 }

@@ -17,7 +17,8 @@ struct NativeTu15OverlapQueryHandoffActivity {
     NativeTu15ConvexSimplexBindingActivity simplex;
 };
 // Actual2F4D3C virtual+4 ->2F73C0 or2F6FAB virtual+4 ->2F9CA0,
-// thiscall4/RET16, or actual2F1806 overlap-table query ->2FAB70 cdecl4/RET0.
+// thiscall4/RET16, or actual 2F1806 and 2F7038 overlap-table queries
+// to 2FAB70 with four cdecl arguments.
 // The adapter reads ordinary
 // current inputs and updates only the void-call continuation and native FP
 // fields. Kernels own their DATA; no original executor/result is available.

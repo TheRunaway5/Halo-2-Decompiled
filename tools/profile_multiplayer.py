@@ -80,7 +80,56 @@ def summarize(values):
             'p95': values[int(.95 * (len(values) - 1))], 'max': values[-1]}
 
 
-def cpu_functions(runtime, scratch, warmup, frames):
+class CpuSubtreeProfile:
+    limits = ('One match per sample at the nearest matching executable frame. '
+              'A direct child is the nearest executable descendant in the sampled stack. '
+              'External descendants can be attributed to their first executable caller. '
+              'Inlining and unwinding can hide frames, and different focuses can overlap.')
+
+    def __init__(self, fragment):
+        self.fragment = fragment
+        self.inclusive = 0
+        self.self_samples = 0
+        self.external_below_anchor = 0
+        self.children = Counter()
+        self.leaves = Counter()
+
+    def sample(self, names, interrupted_in_executable):
+        for index, name in enumerate(names):
+            if self.fragment not in name:
+                continue
+            self.inclusive += 1
+            if index:
+                self.children[names[index - 1]] += 1
+                self.leaves[names[0]] += 1
+            elif interrupted_in_executable:
+                self.self_samples += 1
+            else:
+                self.external_below_anchor += 1
+            break
+
+    def report(self, total_samples):
+        def rows(counts):
+            return [{'function': name[:300], 'name_truncated': len(name) > 300,
+                     'samples': count, 'percent': 100 * count / total_samples}
+                    for name, count in counts.most_common(16)]
+
+        return {'function_contains': self.fragment,
+                'inclusive_samples': self.inclusive,
+                'inclusive_percent': 100 * self.inclusive / total_samples,
+                'self_samples': self.self_samples,
+                'external_below_anchor_samples': self.external_below_anchor,
+                'executable_descendant_samples': sum(self.children.values()),
+                'direct_executable_children': rows(self.children),
+                'descendant_leaf_or_external_caller': rows(self.leaves)}
+
+
+def cpu_functions(runtime, scratch, warmup, frames, *, focus_functions=()):
+    focus_functions = tuple(focus_functions)
+    if len(focus_functions) > 8 or any(not value.strip() or len(value) > 160
+                                       for value in focus_functions):
+        raise ValueError('Use at most eight nonblank CPU focus fragments of up to 160 characters')
+    subtrees = [CpuSubtreeProfile(fragment) for fragment in dict.fromkeys(focus_functions)]
     modules = (scratch / 'modules.tsv').read_text().splitlines()
     boundaries = {name: int(value) for name, value in re.findall(r'(\w+)=(\d+)', modules[-1])}
     if (boundaries.get('presented') != frames or not boundaries.get('begin_ns')
@@ -125,8 +174,11 @@ def cpu_functions(runtime, scratch, warmup, frames):
         # large renderer functions without retaining raw stack recordings.
         first_pc=next(address for address in executable
                       if bisect.bisect_right(starts,address)>0)
-        leaf_sites[(names[0],first_pc&~15,base<=addresses[0]<end)]+=1
+        interrupted_in_executable = base <= addresses[0] < end
+        leaf_sites[(names[0],first_pc&~15,interrupted_in_executable)]+=1
         inclusive.update(set(names))
+        for subtree in subtrees:
+            subtree.sample(names, interrupted_in_executable)
         skin = [i for i, name in enumerate(names) if any(token in name for token in
                 ('::skin_model(', '::finish_skin(', '::skin_model_world_nodes(',
                  '::model_skin_world_pose(', '::model_skin_vertices('))]
@@ -159,7 +211,7 @@ def cpu_functions(runtime, scratch, warmup, frames):
                                            'symbol_offset': hex(offset),
                                            'source_lookup_relative_pc': hex(address - 1)}
                                           for address, name, offset in callers[:8]]})
-    return {'samples': samples, 'sampled_frame_count': len(sampled_frames),
+    report = {'samples': samples, 'sampled_frame_count': len(sampled_frames),
             'sample_limit_reached': samples >= 100000,
             'first_sampled_frame': min(sampled_frames), 'last_sampled_frame': max(sampled_frames),
             'outside_requested_frames': outside, 'external_only_samples': external,
@@ -180,6 +232,10 @@ def cpu_functions(runtime, scratch, warmup, frames):
             'boundaries': boundaries,
             'limits': 'Statistical main-thread CPU time. Inclusive rows overlap. '
                       'An external-library sample is charged to its first executable caller.'}
+    if subtrees:
+        report['function_subtrees'] = {'limits': CpuSubtreeProfile.limits,
+                                       'focuses': [subtree.report(samples) for subtree in subtrees]}
+    return report
 
 
 def worker(args):
@@ -338,7 +394,8 @@ def worker(args):
         if args.render_size is not None and report['render_sizes'] != [tuple(args.render_size)]:
             raise RuntimeError(f'Requested internal render size {args.render_size}, '
                                f'got sampled sizes {report["render_sizes"]}')
-        report['cpu'] = cpu_functions(args.runtime, scratch, args.warmup, args.frames)
+        report['cpu'] = cpu_functions(args.runtime, scratch, args.warmup, args.frames,
+                                      focus_functions=args.focus_function)
         bounds = report['cpu']['boundaries']
         samples = [sample for sample in samples if bounds['begin_ns'] <=
                    int(sample['monotonic_seconds'] * 1000000000) < bounds['end_ns']]
@@ -381,6 +438,9 @@ def main():
     parser.add_argument('--graphics-mode',choices=('Original','pStencil','PathTracing'),
                         help='Pin the actual rendering mode; omitted retains runtime defaults')
     parser.add_argument('--sample-hz', type=int, default=250)
+    parser.add_argument('--focus-function', action='append', default=[], metavar='TEXT',
+                        help='Report self and descendant CPU samples for a function-name fragment. '
+                             'Can be repeated up to eight times.')
     parser.add_argument('--video-driver', choices=('x11', 'wayland'), default='x11')
     parser.add_argument('--timeout', type=float, default=180)
     parser.add_argument('--audio', action='store_true')
@@ -388,6 +448,9 @@ def main():
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Installed-runtime CPU sampling currently supports Linux')
+    if len(args.focus_function) > 8 or any(not value.strip() or len(value) > 160
+                                           for value in args.focus_function):
+        parser.error('Use at most eight nonblank --focus-function fragments of up to 160 characters')
     if not (0 < args.warmup < args.frames <= 100000 and 50 <= args.sample_hz <= 1000
             and 64 <= args.width <= 4096 and 64 <= args.height <= 4096
             and (args.render_size is None or all(64 <= value <= 4096 for value in args.render_size))

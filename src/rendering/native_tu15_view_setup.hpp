@@ -11,6 +11,7 @@
 // HALO2_CENSUS_NATIVE_BRIDGES=1 also admits the uncursored census callbacks
 // (135690..13586A holds no service PC).
 #include "rendering/native_tu15_view_setup_systems.hpp"
+#include "rendering/native_tu15_receiver_transfers.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "physics/runtime/native_tu15_required_owner_policy.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
@@ -256,6 +257,16 @@ public:
         const auto mul=multiply_node_stride(r(ebx),s_.flags.bits());
         r(edx)=total;r(ecx)=mul.value;s_.flags.load(mul.flags);
         const auto delta4=(s_.other_flags&0x400u)?0xfffffffcu:4u;
+        if(r(ecx) && delta4==4u && r(ebp)==native_receiver_transfers::secondary_view &&
+           native_raw_x87_detail::skip_hook<Before>()) {
+            if(const auto *scope=native_receiver_transfers::current(s_)) {
+                at(0x135768u);
+                if(scope->copy_camera(r(esp),r(esi),r(edi),r(ecx))) {
+                    const auto bytes=r(ecx)*4u;
+                    r(esi)+=bytes;r(edi)+=bytes;r(ecx)=0;
+                }
+            }
+        }
         while(r(ecx)){
             at(0x135768u);
             const auto v=word(r(esi),4);

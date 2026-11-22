@@ -13,6 +13,7 @@
 #include "halo2/native_tu15_data_array_allocate.hpp"
 #include "halo2/native_tu15_data_array_delete.hpp"
 #include "halo2/native_tu15_dirty_island_objects.hpp"
+#include "halo2/native_tu15_object_delete_protection.hpp"
 #include "halo2/native_tu15_object_detachment.hpp"
 #include "halo2/native_tu15_object_spatial_packet.hpp"
 #include "native_object_factory_tu15_internal.hpp"
@@ -507,8 +508,7 @@ void object_deactivate(M& m,std::uint32_t object,PlacementFp& fpu) {
 }
 
 bool object_delete_protected(const M& m,std::uint32_t object) {
-  if(r8(m,r32(m,game_options)+0xcu)!=4u)return false;
-  return r32(m,object_body(m,object)+0xd4u)!=none;
+  return native_tu15_object_delete_protected(m,object);
 }
 
 void object_create_physics(M& m,std::uint32_t object,PlacementFp& fpu) {

@@ -30,6 +30,23 @@ void scalar(const Json& fixture) {
  unsigned cases=0;
  for(const auto& row:fixture.at("cases")) {
   SourceRuntimeMemory memory;mount_native_tu15_ui_script_startup_data(memory);
+  const auto actor_descriptor=word(memory,0x480800u);
+  check(actor_descriptor==0x47f38cu && word(memory,actor_descriptor)==19 &&
+      word(memory,actor_descriptor+4u)==0x50ef00u,
+      "Original ai_current_actor external global descriptor differs");
+  memory.validate_mutable_view(0x480800u,4);
+  memory.validate_mutable_view(actor_descriptor,8);
+  reject([&]{(void)memory.view(0x50ef00u,4);});
+  const auto status_descriptor=word(memory,0x48082c);
+  check(status_descriptor==0x47f3e4 && word(memory,status_descriptor)==7 &&
+      word(memory,status_descriptor+4)==0x47c24c,
+      "Original combat-status external global descriptor differs");
+  const auto status_value=memory.view(0x47c24c,2);
+  check(status_value[0]==std::byte{4} && status_value[1]==std::byte{0},
+      "Original uninspected combat-status short differs");
+  memory.validate_mutable_view(0x48082c,4);
+  memory.validate_mutable_view(status_descriptor,8);
+  memory.validate_mutable_view(0x47c24c,2);
   check(std::ranges::all_of(memory.view(0x502248,0x3c10),[](auto b){return b==std::byte{};}),
       "Complete scalar-cast lookup storage must start loader-zeroed");
   const auto source_stack=fixture.at("stack").get<std::uint32_t>();

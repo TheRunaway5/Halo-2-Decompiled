@@ -226,10 +226,17 @@ template<class Owner>int run(int argc,char**argv)try{
   // Without a cursor the census route publishes no instruction position:
   // every access, store and CPU packet is compared except that position.
   const auto unpositioned=[&](J value,const char*key){if(mode==census_mode)for(auto&item:value)item.erase(key);return value;};
+  const auto defined_flags=[](J value){
+   if constexpr(requires { Owner::undefined_flags(std::uint32_t{}); })
+    for(auto& item:value)
+     item["eflags"]=item.at("eflags").template get<std::uint32_t>() &
+        ~Owner::undefined_flags(item.at("entry").template get<std::uint32_t>());
+   return value;
+  };
   if(mode==census_mode){actual.erase("entry");expected.erase("entry");}
   check(actual==expected,name+": final ABI differs actual="+actual.dump()+" expected="+expected.dump());
   // Every required callee entry sees the original's complete ABI.
-  check(entries==row.at("callee_calls"),name+": required entry differs actual="+entries.dump()+" expected="+row.at("callee_calls").dump());callees+=entries.size();
+  check(defined_flags(entries)==defined_flags(row.at("callee_calls")),name+": required entry differs actual="+entries.dump()+" expected="+row.at("callee_calls").dump());callees+=entries.size();
   check(unpositioned(memory.writes,"instruction")==unpositioned(row.at("writes"),"instruction"),name+": ordered stores differ actual="+memory.writes.dump().substr(0,4000)+" expected="+row.at("writes").dump().substr(0,4000));
   if(mode==2&&!faulting)check(observed==memory.writes.size(),name+": observed store count differs");
   for(const auto&bank:row.at("banks"))check(hex(memory.banks.at(bank.at("address")))==bank.at("after").get<std::string>(),name+": backing differs");
@@ -245,7 +252,7 @@ template<class Owner>int run(int argc,char**argv)try{
   // before their store, so only the native route is packet-for-packet
   // comparable; the retained route still matches every access, store,
   // required entry and outcome.
-  const auto packets_actual=unpositioned(memory.packets,"entry"),packets_expected=unpositioned(row.at("calls"),"entry");
+  const auto packets_actual=unpositioned(defined_flags(memory.packets),"entry"),packets_expected=unpositioned(defined_flags(row.at("calls")),"entry");
   if(!retained)for(unsigned n=0;n<memory.packets.size();++n){const auto&a=packets_actual[n];const auto&e=packets_expected[n];check(a==e,name+": I/O packet"+std::to_string(n)+" differs actual="+a.dump()+" expected="+e.dump());++full;}
   ++comparisons;packets+=memory.packets.size();census_comparisons+=mode==census_mode;
  }

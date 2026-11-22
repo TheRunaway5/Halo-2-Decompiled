@@ -357,7 +357,7 @@ def check_binding(module):
 
 
 def check_bound_binding(module, lens, light):
-    units = [(lens, ['20680']), (light, ['c35d0']), (STATE_UNIT.read_text(), ['176a40', '251a60'])] + \
+    units = [(lens, ['20680']), (light, ['c35d0']), (STATE_UNIT.read_text(), ['176a40', '251a60', '2c2ad0'])] + \
         [(path.read_text(), ['176a40']) for path in (COMBAT_UNIT, DEATH_UNIT)]
     for text, owners in units:
         output, installed = module.install(text, text)
@@ -379,28 +379,28 @@ def check_bound_binding(module, lens, light):
     state = STATE_UNIT.read_text()
     found = module.body(state, '252100')
     edited = state.replace(found[0], found[0].replace('0x46a160u', '0x46a164u', 1), 1)
-    if module.install(edited, edited)[1] != ['251a60']:
+    if module.install(edited, edited)[1] != ['251a60', '2c2ad0']:
         raise ValueError('Effect owner binding accepted a changed 252100 body')
     # A direct-route 252100 without the 4EFA0 body it calls keeps the translated route.
     unrouted = state.replace(module.body(state, '4efa0')[0], '', 1)
-    if module.install(unrouted, unrouted)[1] != ['251a60']:
+    if module.install(unrouted, unrouted)[1] != ['251a60', '2c2ad0']:
         raise ValueError('Effect owner binding accepted a missing 4EFA0 body')
     # The particle location closure: a changed body, a missing child body, a
     # missing dispatch or a non-identity operand keeps the translated route.
     for name, anchor, changed in (('251a60', '0x46a0ccu', '0x46a0c8u'), ('250450', '0x46a4b0u', '0x46a4b4u')):
         found = module.body(state, name)
         edited = state.replace(found[0], found[0].replace(anchor, changed, 1), 1)
-        if edited == state or module.install(edited, edited)[1] != ['176a40']:
+        if edited == state or module.install(edited, edited)[1] != ['176a40', '2c2ad0']:
             raise ValueError(f'Effect owner binding accepted a changed {name} body')
     for child in ('2516c0', '2c40d0'):
         missing = state.replace(module.body(state, child)[0], '', 1)
-        if module.install(missing, missing)[1] != ['176a40']:
+        if module.install(missing, missing)[1] != ['176a40', '2c2ad0']:
             raise ValueError(f'Effect owner binding accepted a missing {child.upper()} body')
     undispatched = state.replace('static void dispatch(WorldState &s,', 'static void dispatched(WorldState &s,', 1)
     if undispatched == state or module.install(undispatched, undispatched)[1] != ['176a40']:
         raise ValueError('Effect owner binding accepted a missing dispatch')
     remapped = state.replace('case 0x52d718u:return 0x52d718u;', 'case 0x52d718u:return 0x52d71cu;', 1)
-    if remapped == state or module.install(remapped, remapped)[1] != ['176a40']:
+    if remapped == state or module.install(remapped, remapped)[1] != ['176a40', '2c2ad0']:
         raise ValueError('Effect owner binding accepted a non-identity particle location operand')
     missing = light.replace(module.body(light, '16ea60')[0], '', 1)
     if module.install(missing, missing)[1]:
@@ -467,7 +467,7 @@ def main():
     lens, light = LENS_UNIT.read_text(), LIGHT_UNIT.read_text()
     state, death = STATE_UNIT.read_text(), DEATH_UNIT.read_text()
     if module.admitted(lens) != ['20680'] or module.admitted(light) != ['c35d0'] or \
-            module.admitted(state) != ['176a40', '251a60'] or module.admitted(death) != ['176a40'] or \
+            module.admitted(state) != ['176a40', '251a60', '2c2ad0'] or module.admitted(death) != ['176a40'] or \
             module.admitted(COMBAT_UNIT.read_text()) != ['176a40']:
         raise ValueError('Canonical effect owner bodies drifted from their pins')
     (scratch / 'state.inc').write_text(''.join(module.body(state, name)[0] + '\n' for name in ('252100', '176a40')))

@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_phantom_island.hpp"
 // Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_phantom_force_tu15.hpp"
 #include "halo2/physics_velocity_observation.hpp"
@@ -1473,6 +1474,7 @@ throw std::runtime_error("TU1.5 phantom force fell outside authenticated CFG");
 }
 
 void run_315c90(MathState &s) {
+    if (halo2::native_phantom_island_detail::query_body(s)) return;
 if(s.services.instruction)s.services.instruction(0x315c90u); s.set(0,r(s.memory,(0x44u+s.gp[1]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x315c93u); s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
 if(s.services.instruction)s.services.instruction(0x315c95u); if(!s.flags.zf)goto L315ca1;

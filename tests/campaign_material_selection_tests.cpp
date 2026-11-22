@@ -47,6 +47,20 @@ int main()try {
     materials[30].world_overlays_after[0]=std::make_shared<Material>(*child);expect({1});
     materials[35].planar_fog_pass=child;expect({1,35});
     materials[1].environment_pass.reset();expect({1});
+    // The runtime retains a sorted conservative closure after detachment.
+    constexpr std::uint64_t original_generation=0,replaced_generation=1;
+    materials[1].environment_pass=materials[30].world_overlays_after[0];
+    CampaignMaterialSelection retained(materials,original_generation);
+    const auto expect_retained=[&](std::uint64_t generation,std::initializer_list<unsigned> wanted) {
+        if(retained.collect(materials,consumers,generation)!=std::vector<unsigned>(wanted))
+            throw FormatError("campaign generation lost its ordered shared-pass closure");
+    };
+    expect_retained(original_generation,{1,30});
+    materials[30].world_overlays_after[0]=std::make_shared<Material>(*materials[1].environment_pass);
+    expect_retained(original_generation,{1,30});
+    // The replacement can change sharing while preserving root storage and count.
+    materials[1].environment_pass=child;
+    expect_retained(replaced_generation,{1,35});
     std::cout<<"Campaign world/UI/object/BSP/transparent/shadow/light/lens consumers and changing shared-pass closure passed\n";
     return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

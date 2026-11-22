@@ -1,6 +1,8 @@
 #include "halo2/menu_world_source_binding.hpp"
+#include "halo2/menu_world_vertex_catalog.hpp"
 #include "halo2/model.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/render_view.hpp"
 #include "halo2/source_euler.hpp"
 #include "halo2/source_model_palette.hpp"
 #include "halo2/source_model_pose.hpp"
@@ -12,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <string_view>
 
 using namespace halo2;
 namespace {
@@ -73,6 +76,90 @@ template<class Function>void rejected(Counts &counts,Function function) {
   bool caught=false;try{function();}catch(const FormatError &){caught=true;}
   require(caught,"unsupported source binding input accepted");++counts.rejections;
 }
+void compare_vertex_metadata(const MenuWorldSourceBinding &source,Counts &counts) {
+  const auto &original=menu_world_vertex_metadata_lookup(source.program_bytes(),source.declaration());
+  require(&source.vertex_metadata()==&original && &menu_world_vertex_metadata_lookup(source)==&original,
+      "raw source binding changed its authenticated vertex metadata");
+  const std::array<std::uint32_t,5> spirv_header{0x07230203u,0x00010600u,0u,1u,0u};
+  const MenuWorldVertexCatalogEntry entry{.abi=menu_world_renderer_vertex_catalog_abi,
+      .class_index=original.class_index,.program_sha256=original.program_sha256,
+      .program_bytes=original.program_bytes,.semantics=original.semantics,.spirv=spirv_header,
+      .consumed_inputs=original.consumed_inputs,.consumed_constants=original.consumed_constants};
+  const auto catalog=std::span(&entry,1);
+  require(&menu_world_vertex_catalog_lookup(catalog,source)==
+          &menu_world_vertex_catalog_lookup(catalog,source.program_bytes(),source.declaration()),
+      "bound vertex catalog identity differs from hashing the original program bytes");
+  const std::array duplicate{entry,entry};
+  rejected(counts,[&]{(void)menu_world_vertex_catalog_lookup(duplicate,source);});
+  rejected(counts,[&]{auto bad=entry;++bad.program_bytes;(void)menu_world_vertex_catalog_lookup(std::span(&bad,1),source);});
+  rejected(counts,[&]{auto bad=entry;bad.abi=0;(void)menu_world_vertex_catalog_lookup(std::span(&bad,1),source);});
+}
+void compare_index_range_binding(const Cache &cache,const MenuWorldSourceBinding &source,Counts &counts) {
+  const auto whole=source.draw().index_range();
+  const auto strip=source.draw().topology==MenuWorldSourceTopology::triangle_strip;
+  const auto first=whole.first+unsigned(strip && whole.count>3);
+  const auto count=std::min(whole.count-(first-whole.first),strip?4u:3u);
+  auto changed=source;
+  require(&changed.constants()==&source.constants() && &changed.program()==&source.program() &&
+      &changed.inputs()==&source.inputs() && changed.program_bytes().data()==source.program_bytes().data() &&
+      changed.draw().object_rows==source.draw().object_rows &&
+      (source.draw().object_rows.empty() || changed.draw().object_rows.data()!=source.draw().object_rows.data()),
+      "binding copy lost shared immutable data or independent palette ownership");
+  for(const auto range:{MenuWorldSourceIndexRange{first,count},
+                        MenuWorldSourceIndexRange{whole.first+whole.count,0}}) {
+    auto draw=source.draw();draw.range=range;
+    const auto reference=menu_world_source_binding_class(cache,source.owner(),std::move(draw),
+        source.vertex_shader(),source.declaration().class_index,source.constants());
+    changed.set_index_range(range);
+    require(source.draw().index_range()==whole,"range-only update changed another binding");
+    require(changed.draw().range==reference.draw().range &&
+        changed.draw().geometry==reference.draw().geometry && changed.draw().part==reference.draw().part &&
+        changed.draw().topology==reference.draw().topology && changed.owner()==reference.owner() &&
+        changed.vertex_shader()==reference.vertex_shader() && changed.declaration()==reference.declaration() &&
+        std::ranges::equal(changed.program_bytes(),reference.program_bytes()) &&
+        std::memcmp(changed.constants().data(),reference.constants().data(),sizeof(MenuWorldSourceConstants))==0 &&
+        std::memcmp(changed.constants().data(),source.constants().data(),sizeof(MenuWorldSourceConstants))==0,
+        "range-only binding differs from rebuilding the original prepared draw");
+    require(std::ranges::equal(changed.draw().indices(),reference.draw().indices()) &&
+        changed.draw().triangle_count()==reference.draw().triangle_count(),"range-only bound indices changed");
+    for(std::size_t n=0;n<reference.draw().triangle_count();++n)
+      require(changed.draw().triangle(n)==reference.draw().triangle(n),"range-only binding changed strip parity");
+  }
+  const auto previous=changed.draw().range;
+  rejected(counts,[&]{changed.set_index_range(MenuWorldSourceIndexRange{whole.first+whole.count,1});});
+  if(!strip && whole.count)rejected(counts,[&]{changed.set_index_range(MenuWorldSourceIndexRange{whole.first,1});});
+  require(changed.draw().range==previous,"invalid range changed the prepared binding");
+  changed.set_index_range(std::nullopt);
+  require(!changed.draw().range && changed.draw().index_range()==whole,"could not restore authored part range");
+}
+void compare_viewport_binding(const Cache &cache,const MenuWorldSourceBinding &source,Counts &counts) {
+  auto caller=source.constants();
+  const auto original=viewport_constants({32,16,640,480});
+  std::copy(original.begin(),original.end(),caller.begin()+8);
+  caller[159]={std::bit_cast<float>(0x7fa12345u),-0.f,3.f,4.f};
+  const auto base=menu_world_source_binding_class(cache,source.owner(),source.draw(),source.vertex_shader(),
+      source.declaration().class_index,caller);
+  const auto stable_bank=base.constants();
+  const auto identity=menu_world_source_resized_viewport(base,{1.f,1.f});
+  require(&identity.constants()==&base.constants(),"identity viewport scaling detached the constant bank");
+  const auto twice=menu_world_source_scaled_viewport(base,2);
+  const auto fractional=menu_world_source_resized_viewport(twice,{.5f,1.25f});
+  const auto compare=[&](const auto &current,const auto &viewport) {
+    auto expected=stable_bank;
+    const auto expected_view=viewport_constants(viewport);
+    std::copy(expected_view.begin(),expected_view.end(),expected.begin()+8);
+    require(std::memcmp(current.constants().data(),expected.data(),sizeof(expected))==0 &&
+        &current.program()==&base.program() && &current.inputs()==&base.inputs() &&
+        current.draw().index_range()==base.draw().index_range() && current.draw().object_rows==base.draw().object_rows,
+        "viewport resize changed the immutable binding or constants outside c8..11");
+  };
+  compare(twice,RenderViewport{64,32,1280,960});
+  compare(fractional,RenderViewport{32,40,640,1200});
+  require(&twice.constants()!=&base.constants() && &fractional.constants()!=&twice.constants() &&
+      std::memcmp(base.constants().data(),stable_bank.data(),sizeof(stable_bank))==0,
+      "changed viewport constants were not detached from the original binding");
+  rejected(counts,[&]{(void)menu_world_source_resized_viewport(base,{0.f,1.f});});
+}
 MenuWorldSourceBinding captured_binding(const Cache &cache,const std::filesystem::path &directory,unsigned event,
     std::uint32_t program,std::shared_ptr<const MenuWorldSourceSection> geometry,unsigned part,
     MenuWorldSourceTopology topology,const std::array<float,12> &rows,MenuWorldSourceOwner owner,Counts &counts) {
@@ -132,11 +219,54 @@ MenuWorldSourceBinding captured_binding(const Cache &cache,const std::filesystem
       "source binding retained mutable caller-owned rows/identity/constants");
   counts.program_bytes+=program_bytes.size();counts.vectors+=192;++counts.draws;return result;
 }
+void compare_resident_input_reuse(const Cache &cache,Counts &counts) {
+  constexpr auto shader=0xe1cc0057u;
+  auto geometry=std::make_shared<const MenuWorldSourceSection>(
+      load_menu_world_source_bsp_section(cache,0,MenuWorldSourceSectionKind::bsp_instance_definition,52));
+  const auto a=load_menu_world_source_bsp_owner(cache,0,58);
+  const auto b=load_menu_world_source_bsp_owner(cache,0,59);
+  require(a.section==52 && b.section==52 && a.rows!=b.rows,"source owners lost their shared section or separate transforms");
+  const auto owner=[](const auto &instance) {
+    return MenuWorldSourceOwner{MenuWorldSourceOwnerKind::bsp_instance,instance.bsp_datum,instance.instance,{}};
+  };
+  const auto draw=[&](const auto &instance) {
+    return menu_world_source_draw(geometry,2,MenuWorldSourceTopology::triangle_list,std::span(&instance.rows,1));
+  };
+  MenuWorldSourceBindingCache bindings(cache);
+  MenuWorldSourceConstants first{},second{};
+  second[159]={std::bit_cast<float>(0x7fa12345u),std::bit_cast<float>(0x80000000u),3,4};
+  const auto previous=bindings.bind(owner(a),draw(a),shader,1,first);
+  const auto current=bindings.bind(owner(b),draw(b),shader,1,second);
+  const auto ordinary_a=menu_world_source_binding(cache,owner(a),draw(a),shader,first);
+  const auto ordinary_b=menu_world_source_binding(cache,owner(b),draw(b),shader,second);
+  require(&previous.program()==&current.program() && &previous.inputs()==&current.inputs() &&
+      &previous.constants()!=&current.constants() && current.owner()==ordinary_b.owner() &&
+      previous.draw().object_rows==ordinary_a.draw().object_rows && current.draw().object_rows==ordinary_b.draw().object_rows &&
+      std::ranges::equal(previous.program_bytes(),ordinary_a.program_bytes()) &&
+      std::memcmp(previous.constants().data(),ordinary_a.constants().data(),sizeof(MenuWorldSourceConstants))==0 &&
+      std::memcmp(current.constants().data(),ordinary_b.constants().data(),sizeof(MenuWorldSourceConstants))==0,
+      "resident input layout reused a stale owner or current constant bank");
+  rejected(counts,[&]{auto invalid=owner(b);invalid.ordinal=0xffffffffu;
+    (void)bindings.bind(invalid,draw(b),shader,1,second);});
+  rejected(counts,[&]{auto invalid=draw(b);invalid.object_rows.clear();
+    (void)bindings.bind(owner(b),std::move(invalid),shader,1,second);});
+  rejected(counts,[&]{(void)bindings.bind(owner(b),draw(b),shader,0,second);});
+  rejected(counts,[&]{(void)bindings.bind(owner(b),draw(b),0xffffffffu,1,second);});
+}
 }
 int main(int argc,char **argv) {try {
-  require(argc==3,"source binding test needs mainmenu.map and original Stage3 directory");
-  if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
-  const Cache cache(argv[1]);const std::filesystem::path directory=argv[2];Counts counts;
+  require(argc==3,"source binding test needs mainmenu.map and an original Stage3 directory or --resident-inputs");
+  if(!std::filesystem::exists(argv[1]))return 77;
+  const bool resident=std::string_view(argv[2])=="--resident-inputs";
+  if(!resident && !std::filesystem::exists(argv[2]))return 77;
+  const Cache cache(argv[1]);Counts counts;
+  if(resident) {
+    compare_resident_input_reuse(cache,counts);
+    std::cout<<"Resident layout reused with separate live transforms and constants, "
+        <<counts.rejections<<" invalid draw controls\n";
+    return 0;
+  }
+  const std::filesystem::path directory=argv[2];
   const auto bsp52=std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_bsp_section(cache,0,MenuWorldSourceSectionKind::bsp_instance_definition,52));
   const auto bsp0=std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_bsp_section(cache,0,MenuWorldSourceSectionKind::bsp_instance_definition,0));
   const auto carrier=std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_model_section(cache,0xe1d70062u,2));
@@ -144,7 +274,9 @@ int main(int argc,char **argv) {try {
   const auto object=carrier_owner(cache,carrier->owner_datum());
   const auto source1335=captured_binding(cache,directory,1335,0xe1cc0057u,bsp52,2,MenuWorldSourceTopology::triangle_list,
       owner58.rows,{MenuWorldSourceOwnerKind::bsp_instance,owner58.bsp_datum,owner58.instance,std::nullopt},counts);
-  (void)captured_binding(cache,directory,1448,0xe1dd0068u,carrier,0,MenuWorldSourceTopology::triangle_strip,object.rows,object.identity,counts);
+  const auto source1448=captured_binding(cache,directory,1448,0xe1dd0068u,carrier,0,MenuWorldSourceTopology::triangle_strip,object.rows,object.identity,counts);
+  compare_vertex_metadata(source1335,counts);
+  compare_vertex_metadata(source1448,counts);
   (void)captured_binding(cache,directory,1880,0xe1ba0045u,carrier,0,MenuWorldSourceTopology::triangle_strip,object.rows,object.identity,counts);
   (void)captured_binding(cache,directory,2409,0xe1ba0045u,bsp0,0,MenuWorldSourceTopology::triangle_list,
       owner0.rows,{MenuWorldSourceOwnerKind::bsp_instance,owner0.bsp_datum,owner0.instance,std::nullopt},counts);
@@ -166,6 +298,10 @@ int main(int argc,char **argv) {try {
   require(std::memcmp(preservation.constants()[159].data(),other_context[159].data(),sizeof(ShaderVector))==0 &&
       std::memcmp(changed.constants().data(),frozen.data(),sizeof(frozen))==0,
       "source binding changed external NaN/signed-zero bits or another binding");
+  compare_index_range_binding(cache,preservation,counts);
+  compare_index_range_binding(cache,source1448,counts);
+  compare_viewport_binding(cache,preservation,counts);
+  compare_viewport_binding(cache,source1448,counts);
   auto live_owner=object.identity;live_owner.generation=0x12340007u; // Explicit controlled caller identity.
   const auto live=menu_world_source_binding(cache,live_owner,
       menu_world_source_draw(carrier,0,MenuWorldSourceTopology::triangle_strip,std::span<const std::array<float,12>>(&object.rows,1)),0xe1dd0068u,context);

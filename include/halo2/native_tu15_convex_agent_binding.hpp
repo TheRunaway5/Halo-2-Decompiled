@@ -12,7 +12,7 @@ struct NativeTu15ConvexAgentBindingActivity {
     std::uint64_t attempts{},completed{},refusals{},pool_allocations{},pool_releases{},
         class_queries{},centers{},supports{},encodings{};
 };
-// Qualified class23, class8, sphere class4 and authored polygon class24;
+// Qualified class23, class8, sphere class4, box class6 and authored polygon class24;
 // empty-live-x87 domain. Every
 // dependency is native; an unsupported allocator/shape/depth refuses explicitly.
 inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
@@ -45,7 +45,7 @@ inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
                 if(activity)++activity->class_queries;
                 return native_tu15_contact_child_class_24();
             }
-            if(owner.identity==0xad390u||owner.identity==0x2e8cf0u){
+            if(owner.identity==0xad390u || owner.identity==0x2e8cf0u || owner.identity==0x31edf0u){
                 if(const auto kind=native_tu15_activation_type(owner.identity)){
                     if(activity)++activity->class_queries;
                     return *kind;

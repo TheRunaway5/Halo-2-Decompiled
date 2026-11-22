@@ -11,12 +11,11 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
   if(input.source.draw().topology!=MenuWorldSourceTopology::triangle_list &&
      input.source.draw().topology!=MenuWorldSourceTopology::triangle_strip)
     throw FormatError("raw world packet requires an original triangle topology");
-  const auto &vertex_shader=menu_world_vertex_catalog_lookup(input.catalog,
-      input.source.program_bytes(),input.source.declaration());
+  const auto &vertex_shader=menu_world_vertex_catalog_lookup(input.catalog,input.source);
   if(!input.source.external_attribute_registers().empty()) {
     if(vertex_shader.abi!=menu_world_vertex_attribute_catalog_abi && vertex_shader.abi!=menu_world_renderer_vertex_catalog_abi)
       throw FormatError("raw world packet constant attributes require their native attribute ABI");
-    const auto& reads=menu_world_vertex_metadata_lookup(input.source.program_bytes(),input.source.declaration()).consumed_input_components;
+    const auto& reads=menu_world_vertex_metadata_lookup(input.source).consumed_input_components;
     for(const auto reg:input.source.external_attribute_registers())
       if((input.vertex_attribute_components[reg]&reads[reg])!=reads[reg])
         throw FormatError("raw world packet consumes unbound external vertex attribute components");

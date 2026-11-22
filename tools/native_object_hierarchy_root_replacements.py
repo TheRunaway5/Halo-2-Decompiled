@@ -34,3 +34,21 @@ def replace_object_hierarchy_root(source):
     if match[0]!=bound:source=source[:match.start()]+bound+source[match.end():]
     if source.count(INCLUDE)>1:raise ValueError('Duplicate object hierarchy root include')
     return source if INCLUDE in source else INCLUDE+source
+
+
+def install(canonical, output):
+    """Bind the literal live-support copy after operand specialization."""
+    if 'void source_run_physics_live_support_tu15(' not in canonical:
+        return output, []
+    raw = BODY.search(canonical)
+    if not raw or digest(raw[0]) != '12431dc93389ec265834e077e6334e892efafcec64e89d4e12abeb4d9251b3c9':
+        return output, []
+    # This complete copy has no selected operands or child calls. Its only
+    # preparation is the one-for-one instruction-cursor substitution.
+    prepared = re.sub(r'if\(s\.services\.instruction\)\{s\.services\.instruction\((0x[0-9a-f]+u)\);\}',
+                      r's.instruction_literal(\1);', raw[0])
+    found = BODY.search(output)
+    if not found or found[0] != prepared:
+        return output, []
+    opening = output.index('{', found.start()) + 1
+    return INCLUDE + output[:opening] + PREFIX + output[opening:], ['bbd10']

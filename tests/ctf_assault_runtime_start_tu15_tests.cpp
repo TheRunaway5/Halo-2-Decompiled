@@ -50,7 +50,7 @@ int main(int argc,char** argv)try {
         need(selected_variant!=content.variants.end(),"Objective runtime lost an authored preset");
         MenuState menu(content);if(rendered)need(menu.controller_slot(100,true)==0,"Objective render host controller missing");menu.accept();choose(menu,0,167);
         menu.text("Objective Run");menu.commit_text();menu.back();need(menu.frame().screen==6,"Objective runtime profile sign-in failed");
-        choose(menu,2,30);
+        choose(menu,1,218); choose(menu,0,30);
         if(rendered)for(unsigned guest=1;guest<rendered_players;++guest) {
             need(menu.controller_slot(100+guest,true)==guest && menu.frame().screen==10,"Objective render guest picker missing");
             menu.accept();menu.text("Objective View "+std::to_string(guest));menu.commit_text();menu.back();

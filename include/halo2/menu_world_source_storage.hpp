@@ -14,13 +14,9 @@ struct MenuWorldSourceBufferSlice {
   VkBuffer buffer{};
   VkDeviceSize offset{}, size{};
 };
-// The input binding and owner/constants are retained by value. Vertex binding
-// arrays use dense binding ordinals; attributes use original vertex registers
-// as their locations. All arrays describe the same unchanged resource slices.
-struct MenuWorldSourceStoredDraw {
-  explicit MenuWorldSourceStoredDraw(MenuWorldSourceBinding source)
-      : source(std::move(source)) {}
-  MenuWorldSourceBinding source;
+// Vertex bindings use dense ordinals and attributes keep their source register
+// locations. Every buffer range belongs to the immutable geometry section.
+struct MenuWorldSourceDrawGeometry {
   std::vector<MenuWorldSourceBufferSlice> resources; // Original resource ordinal.
   std::vector<VkVertexInputBindingDescription> vertex_bindings;
   std::vector<VkVertexInputAttributeDescription> vertex_attributes;
@@ -34,6 +30,12 @@ struct MenuWorldSourceStoredDraw {
   VkPrimitiveTopology topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   MenuWorldSourceBufferSlice raw_storage; // Nonempty only in storage_fetch mode.
   MenuWorldSourceIndexRange source_index_range; // Resolved original first/count.
+};
+// The supplied source binding retains this draw's owner and constants by value.
+struct MenuWorldSourceStoredDraw : MenuWorldSourceDrawGeometry {
+  explicit MenuWorldSourceStoredDraw(MenuWorldSourceBinding source,MenuWorldSourceDrawGeometry geometry={})
+      : MenuWorldSourceDrawGeometry(std::move(geometry)),source(std::move(source)) {}
+  MenuWorldSourceBinding source;
 };
 // Owns immutable host-uploaded Vulkan vertex/index buffers. Distinct owners of
 // one section share its raw buffer. Index buffers share only when the part,
@@ -55,8 +57,12 @@ public:
   MenuWorldSourceStorage(const MenuWorldSourceStorage &)=delete;
   MenuWorldSourceStorage &operator=(const MenuWorldSourceStorage &)=delete;
   std::span<const MenuWorldSourceStoredDraw> store(std::span<const MenuWorldSourceBinding>);
-  // The same store over borrowed bindings (no per-draw binding copies).
+  // The same store over a list of borrowed input bindings.
   std::span<const MenuWorldSourceStoredDraw> store_borrowed(std::span<const MenuWorldSourceBinding *const>);
+  // Reuse a part's immutable buffers and fetch layout across submissions. The
+  // reference remains valid until this storage is destroyed. Owner and frame
+  // constants remain in the caller's current binding.
+  const MenuWorldSourceDrawGeometry &retain_geometry(const MenuWorldSourceBinding &);
 private:
   struct Impl;
   std::unique_ptr<Impl> impl_;

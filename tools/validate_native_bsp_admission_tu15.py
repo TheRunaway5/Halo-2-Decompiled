@@ -7,7 +7,8 @@ from validate_native_tu15_prt_helpers import PIN
 from native_bsp_admission_original import observe as physical_original
 UNITS=('src/rendering/shadows/source_shadow_frame_tu15_generated.cpp','src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp')
 BODY_PINS=('1fc7838d8c537d77c5935a78652f6c203ade61af00585bd084425a4b786f015d','6811c5b82e28b056480e35315d05ccc20226c7b7c837e41d7bd9b725c89bf0e0')
-REGIONS=((0x46a000,4096),(0x4c6000,4096),(0x4ec000,4096),(0x4f2000,4096),(0x4f4000,4096),(0x61000000,196608),(0x62000000,16384))
+REGIONS=((0x46a000,4096),(0x4c6000,4096),(0x4ec000,4096),(0x4f2000,4096),(0x4f4000,4096),
+         (0x559000,16384),(0x61000000,196608),(0x60000000,16384),(0x62000000,16384))
 INPUTS=(*UNITS,'include/halo2/native_tu15_bsp_admission_kernel.hpp','src/rendering/native_tu15_bsp_admission.hpp','tests/native_tu15_bsp_admission_tests.cpp','tools/validate_native_bsp_admission_tu15.py','tools/native_geometry_visibility_original.py','tools/validate_native_tu15_prt_helpers.py','tools/observe_native_campaign_ai_vector_math_tu15.cpp','src/rendering/native_tu15_geometry_visibility.hpp','src/rendering/native_tu15_cluster_frustum_abi.hpp','src/rendering/native_tu15_sphere_frustum_abi.hpp','src/rendering/native_tu15_bsp_queue_find.hpp','src/rendering/native_tu15_fog_membership.hpp','src/rendering/native_tu15_visibility_association.hpp','src/physics/runtime/native_tu15_raw_x87_scope.hpp','src/physics/runtime/native_tu15_sse_mmx_scope.hpp','src/physics/runtime/physics_contact_runtime_internal.hpp','src/physics/runtime/physics_world_runtime_internal.hpp')
 INPUTS+=('tools/native_bsp_admission_replacements.py','include/halo2/native_tu15_geometry_visibility_kernel.hpp','include/halo2/native_tu15_cluster_frustum_kernel.hpp','include/halo2/native_tu15_sphere_frustum_kernel.hpp','include/halo2/native_tu15_visibility_association_kernel.hpp','include/halo2/native_tu15_fog_membership_kernel.hpp','include/halo2/native_tu15_id_search_kernel.hpp','include/halo2/native_tu15_bsp_surface_2d_kernel.hpp','src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp','src/physics/runtime/physics_step_internal.hpp')
 INPUTS+=('tools/native_bsp_admission_original.py','tests/native_tu15_bsp_admission_guards.inc','tools/native_bsp_admission_mutations.py','tools/specialize_native_operands.py')
@@ -78,6 +79,11 @@ def corpus(image,limit=None):
       for variant in range(8):
         banks=[bytearray(image.read(base,size))if base==0x46a000 else bytearray(size)for base,size in REGIONS]
         context=0x61001000+variant;descriptor=0x61005000+variant;bsp=0x61009000+variant;clusters=0x6100a000+variant;instances=0x6100c000+variant;definitions=0x6100e000+variant;queue=0x61010000+variant;instance_queue=0x61010100+variant;aux=0x61013000+variant;sp=0x62002000+variant
+        # Use the secondary-view address and caller stack on one variant of
+        # each family to exercise the native transport against the same i386 body.
+        secondary=variant==0
+        if secondary:context,sp=0x5598f8,0x60002000
+        return_pc=0x134caa if secondary else 0x63000000
         def put(at,value,width=4):
             for(base,size),bank in zip(REGIONS,banks):
                 if base<=at<=base+size-width:bank[at-base:at-base+width]=(value&((1<<(width*8))-1)).to_bytes(width,'little');return
@@ -173,9 +179,9 @@ def corpus(image,limit=None):
                 put(clusters+index*176+0x54,bits(-1.));put(clusters+index*176+0x58,bits(1.))
                 put(instances+index*88+0x3c,bits(0.));put(instances+index*88+0x48,bits(1.))
         gp=[rng.getrandbits(32)for _ in range(8)];gp[4]=sp
-        put(sp,0x63000000);put(sp+4,context);put(sp+8,rng.getrandbits(32))
+        put(sp,return_pc);put(sp+4,context);put(sp+8,rng.getrandbits(32))
         depth=variant%4;cw=(0x7f,0x27f,0x37f)[variant%3]|((variant%4)<<10);status=((variant%8)<<11)|0x4500
-        rows.append(dict(id=len(rows),name=f'family{family}-variant{variant}',entry=0x136ea0,gp=gp,eflags=0x202|(0x400 if variant%2 else 0)|(rng.getrandbits(12)&0x8d5),matrix=get(sp+4),source=get(sp+8),max_steps=100000,xmm=[[rng.getrandbits(32)for _ in range(4)]for _ in range(8)],before_fp=[cw,status,0x1f80|((family%4)<<13)],live_x87=list(live[:depth]),banks=[dict(address=base,before=bytes(bank).hex())for(base,_),bank in zip(REGIONS,banks)]))
+        rows.append(dict(id=len(rows),name=f'family{family}-variant{variant}',entry=0x136ea0,gp=gp,eflags=0x202|(0x400 if variant%2 else 0)|(rng.getrandbits(12)&0x8d5),matrix=get(sp+4),source=get(sp+8),max_steps=100000,xmm=[[rng.getrandbits(32)for _ in range(4)]for _ in range(8)],before_fp=[cw,status,0x1f80|((family%4)<<13)],live_x87=list(live[:depth]),banks=[dict(address=base,before=bytes(bank).hex())for(base,_),bank in zip(REGIONS,banks)],stop_pc=return_pc,secondary_stack=secondary))
         if limit and len(rows)>=limit:return rows
     return rows
 def main():

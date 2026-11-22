@@ -13,6 +13,9 @@ std::optional<Material> bind_light_pass(const Cache&,const Material&,unsigned,
     const EffectLightUniforms&);
 std::optional<Material> complete_light_pass(const Cache&,const Material&,unsigned,
     const EffectLightUniforms&);
+// Internal image-free projected response. Completes only the selected pass.
+std::optional<Material> complete_projected_specular_pass(const Cache&,const Material&,unsigned,
+    const EffectLightUniforms&);
 std::optional<Material> bind_texture_mapping_pass(const Cache&,const Material&);
 std::optional<Material> bind_actor_texture_mapping_pass(const Cache&,const Material&);
 bool supports_projected_light_response_2003(const EffectLightDefinition&);

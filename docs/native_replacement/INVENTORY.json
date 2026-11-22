@@ -6,9 +6,52 @@
     "runtime_execution_census_recorded": false
   },
   "build_time_native_specialization_sources": {
+    "src/gameplay/objects/native_tu15_map_world_property_owners.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_MAP_WORLD_PROPERTY_CALLER",
+        "HALO2_REFERENCE_MAP_WORLD_PROPERTY_QUERY"
+      ],
+      "sha256": "7ebdde10428bbcff8ab951ec1f57795aa58177bb5095443fff5fd5df937233e1"
+    },
+    "src/gameplay/objects/native_tu15_object_body_canonical_source_owner.hpp": {
+      "reference_verification_gate_names": [],
+      "sha256": "977e91340a339c228526c1325d31d1fbc9e2f586f5cffbacf8083edc19f63625"
+    },
+    "src/gameplay/objects/native_tu15_object_body_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_OBJECT_BODY"
+      ],
+      "sha256": "e468f6dff8d5026c10da07112927bcef9cab6a68d5db5977ca5e88707b3cf1ad"
+    },
+    "src/gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp": {
+      "reference_verification_gate_names": [],
+      "sha256": "e727fa2ffcc124e7e65bbc8fdf8fc1ba6f7ac1bbd0252d9ad4223442d524bfe1"
+    },
+    "src/gameplay/objects/native_tu15_object_material_lookup_source_owner.hpp": {
+      "reference_verification_gate_names": [],
+      "sha256": "d1764221be72baf36b7ead6fff27afdfee5d9e29454399bc9744797709398e2d"
+    },
+    "src/gameplay/objects/native_tu15_object_type_query_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_OBJECT_TYPE_QUERY"
+      ],
+      "sha256": "473a8f8212718a771e6aa1d9b6024e0168049a54b3843839ab4dd584132f9482"
+    },
+    "src/gameplay/objects/native_tu15_projectile_function_query_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_PROJECTILE_FUNCTION_QUERY"
+      ],
+      "sha256": "9777d269bce834b6875b27fb291e1eaba9f4c431236066ae45ae76d6430702ee"
+    },
     "src/physics/runtime/native_tu15_allocator_owner_dispatch.hpp": {
       "reference_verification_gate_names": [],
       "sha256": "fa88294f0bd9f14f18fdb22cd6309c1dac80841357b13e98d1e69b6ff5b7f973"
+    },
+    "src/physics/runtime/native_tu15_arena_world_initialize_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_ARENA_INITIALIZE"
+      ],
+      "sha256": "fd48287a14e5d0fe7ea53b6ae8bb41527b55e7ff97a1d203669d840684a17620"
     },
     "src/physics/runtime/native_tu15_array_abi.hpp": {
       "reference_verification_gate_names": [
@@ -22,15 +65,21 @@
       ],
       "sha256": "3ce71f663caf73aedfefc3cd5760f6c1802e299dbf53a01ff1819c219d655ece"
     },
+    "src/physics/runtime/native_tu15_box_shape_support_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_BOX_SHAPE_SUPPORT"
+      ],
+      "sha256": "892d53ad3ed7c69813436422e4eb19d66e689a0b83217230e91485cec54c700e"
+    },
     "src/physics/runtime/native_tu15_broadphase_add.hpp": {
       "reference_verification_gate_names": [
         "HALO2_REFERENCE_BROADPHASE_ADD"
       ],
-      "sha256": "27df4467182b97ba8c506fb3be5230785e6c8ab8111e067d5be625f1951cc00c"
+      "sha256": "620ff8d4c9ce58ca0cc8feb5e7000856d8ff9171afd75624ca6aa027860bb0e7"
     },
     "src/physics/runtime/native_tu15_broadphase_add_object.hpp": {
       "reference_verification_gate_names": [],
-      "sha256": "6af53ecae5545ab7927aba400d042d01fff9ecd5e3c67b08e5c714d101e8d97e"
+      "sha256": "6f3d32186038b9096531b26f690762466f26a027825a9de24c8aab49d6b79cdc"
     },
     "src/physics/runtime/native_tu15_broadphase_bounds_leaves.hpp": {
       "reference_verification_gate_names": [],
@@ -44,11 +93,54 @@
       "reference_verification_gate_names": [
         "HALO2_REFERENCE_BROADPHASE_REMOVE"
       ],
-      "sha256": "85ee27264f5151911b325947facc81b9f3b247da39b4c1573ae34baabd6ed86b"
+      "sha256": "a8c1f6c4e17e2d937ead7938848a682a308e106c8bfdc4faebb5e86ae2e7c69a"
     },
     "src/physics/runtime/native_tu15_bsp_leaves.hpp": {
       "reference_verification_gate_names": [],
       "sha256": "d83b7f743fe6986fbc71db1fc8f5666786ad7efe035a3c91421e062d1826b744"
+    },
+    "src/physics/runtime/native_tu15_closest_segments_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER",
+        "HALO2_REFERENCE_CLOSEST_SEGMENTS"
+      ],
+      "sha256": "f6d907006ff41bb9a74fc87c5c2df48b0d2c791d8900ca13fec4fc648492094e"
+    },
+    "src/physics/runtime/native_tu15_codec_copy_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_COPY_ROWS"
+      ],
+      "sha256": "da85103d0a404a90afa2f458de02e255eb9c9ecf9ae47b57436b1abc2052a3f5"
+    },
+    "src/physics/runtime/native_tu15_codec_rotation_interpolation_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_ROTATION_INTERPOLATION"
+      ],
+      "sha256": "0435ad0f934571762114762a963e2847c2b971686803a3c62d736954d4938fbe"
+    },
+    "src/physics/runtime/native_tu15_codec_scale_interpolation_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_SCALE_INTERPOLATION"
+      ],
+      "sha256": "bd115f1115664be7ca9543fae8c7ef76d4ee73772ef405a737dfd958ba4c091e"
+    },
+    "src/physics/runtime/native_tu15_codec_scale_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_SCALE"
+      ],
+      "sha256": "afc274067083fd18d5bf23b27a650400025119da3a3ffe9236b2f0f8ff5fcc0c"
+    },
+    "src/physics/runtime/native_tu15_codec_translation_interpolation_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_TRANSLATION_INTERPOLATION"
+      ],
+      "sha256": "e269ded38959966b206d0c27bf430fe71d3c50983abd794bc846e67234556b52"
+    },
+    "src/physics/runtime/native_tu15_codec_translation_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_CODEC_TRANSLATION"
+      ],
+      "sha256": "33faaa94d54e0fae950190fc067103e53a3de9abb513379f3d5b04941ecede33"
     },
     "src/physics/runtime/native_tu15_main_heap_abi.hpp": {
       "reference_verification_gate_names": [
@@ -65,13 +157,31 @@
         "HALO2_REFERENCE_MATRIX_LEAVES",
         "HALO2_VERIFY_MATRIX_LEAVES"
       ],
-      "sha256": "d37d36306486c9f4bb1f514b4a269b7cc11774eaabbf37da614b1f30fbdb9c06"
+      "sha256": "230be849a126915f156fb2004f59947131a23ee6334f07f8e80dc6b21a1de647"
+    },
+    "src/physics/runtime/native_tu15_packed_rotation_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_PACKED_ROTATION"
+      ],
+      "sha256": "52cbfeb93d9968c4f373bb02bd07d09c6b9eb026cc416c9f479a106fda0a001f"
     },
     "src/physics/runtime/native_tu15_partition_temporary_abi.hpp": {
       "reference_verification_gate_names": [
         "HALO2_REFERENCE_PARTITION_TEMPORARIES"
       ],
-      "sha256": "57e702029dbe5accfd917759f397f1f202bf1a902164a6e38db09c7b3e122dee"
+      "sha256": "e1a126059f627204aa7e69c17fe1c112793415175fc4d16f7af2aa25a5e88bfd"
+    },
+    "src/physics/runtime/native_tu15_polygon_features_abi.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_POLYGON_FEATURES"
+      ],
+      "sha256": "8cd30cce0985cf4782a27811621f65b50d87a29373b0ea89c1e6befd3a7dceb6"
+    },
+    "src/physics/runtime/native_tu15_polygon_support_frame.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_POLYGON_SUPPORT"
+      ],
+      "sha256": "fe88855c6bca944da866abf8f64d2bb4309ac91a0423e6d11040d3911f2facda"
     },
     "src/physics/runtime/native_tu15_pool_allocator_abi.hpp": {
       "reference_verification_gate_names": [
@@ -89,22 +199,118 @@
       ],
       "sha256": "f4ba0cdba438da5eefc3a58d2d5e6651c12a009a6689d0d7f421cdb380bf29eb"
     },
+    "src/physics/runtime/native_tu15_simplex_boundary_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SIMPLEX_BOUNDARY"
+      ],
+      "sha256": "94f06b11ab8a9a9139e742142595d4e2e1db6ea2c33e9d4bb5a661a6bede70d0"
+    },
+    "src/physics/runtime/native_tu15_simplex_face_refine_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SIMPLEX_FACE_REFINE"
+      ],
+      "sha256": "8d9af730c12139a6d182a70c60e7b24cb26a9dae3ff5bc73db4964700f3ce40c"
+    },
+    "src/physics/runtime/native_tu15_simplex_face_select_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SIMPLEX_FACE_SELECT"
+      ],
+      "sha256": "3c394c220292b77016111342078d134965bd356b7d5069ce35561aa927d35283"
+    },
+    "src/physics/runtime/native_tu15_simplex_paired_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SIMPLEX_PAIRED"
+      ],
+      "sha256": "ed41b9df28e0d9456307509ba1a9ed3cc59611516cbcb30bc5971dd4878d593e"
+    },
+    "src/physics/runtime/native_tu15_simplex_triangle_abi.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SIMPLEX_TRIANGLE"
+      ],
+      "sha256": "454fac319f0491f4adc1a21054f5c7719781c567efed3395dff3122f8d42544a"
+    },
+    "src/physics/runtime/native_tu15_simplex_triangle_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_NATIVE_SIMPLEX_TRIANGLE_SOURCE_OWNER"
+      ],
+      "sha256": "c06b940a1c6278f4f5cc8ea43765a0f66d53109d9c6d033ec9bbcbd29864dea1"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_append_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_APPEND"
+      ],
+      "sha256": "e5b2f2e62a1e06d21d6046a4d3fa299b8dfb27e85bcd2c38481d44f65d6e912d"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_clear_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_CLEAR"
+      ],
+      "sha256": "c86f6279027111fa6a861a6ef54e6667bbbe0f3f1b05f4549f5bfc23b1a4254e"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_clip_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_CLIP"
+      ],
+      "sha256": "2b428304254979b056979d0fa4b47049371faa2028b3c8b0835bbc575c8e2961"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_edge_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_EDGE"
+      ],
+      "sha256": "ddabc61ee0cbaa18ce04f2e6ee6d85d8dfc800f600e95421f42fe36ac0e5fdc9"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_initialize_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_INITIALIZE"
+      ],
+      "sha256": "6d34780bcbe37b0cd42b450965208dd015a9f756fd125593d94a155c06eaa042"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_line_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_LINE"
+      ],
+      "sha256": "5291dea404a4b7ad0a3bcbcedb812f94aaf01a8a1206d780457187cbf21adc09"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_minimum_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_MINIMUM"
+      ],
+      "sha256": "a7cb82b861af911e491faa523096dc7f071791d32e29654089999b0a7b6a5098"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_sample_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_SAMPLE"
+      ],
+      "sha256": "c47f483e645867c0da4c8e162d7b254bdfb4132d857e9892223da2a686a1b7f3"
+    },
+    "src/physics/runtime/native_tu15_solver_hull_support_pair_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_SOLVER_HULL_SUPPORT_PAIR"
+      ],
+      "sha256": "3222d3a6b232f851d737af9d894e9af8fc33a1005e55835f2688ec8749f8163a"
+    },
     "src/physics/runtime/native_tu15_stack_arena_abi.hpp": {
       "reference_verification_gate_names": [
         "HALO2_REFERENCE_STACK_ARENA"
       ],
       "sha256": "24b55e754dc82855cfc7805442a1614eb367dae99ae77732c4498870980ed939"
     },
+    "src/physics/runtime/native_tu15_zero_shape_support_source_owner.hpp": {
+      "reference_verification_gate_names": [
+        "HALO2_REFERENCE_ZERO_SHAPE_SUPPORT"
+      ],
+      "sha256": "0d37d63bd864b511368602a03dd7e65e1f0066c1b46808a295fe88d2a3552a8d"
+    },
     "src/physics/runtime/physics_world_runtime_internal.hpp": {
       "reference_verification_gate_names": [],
       "sha256": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
     },
     "tools/specialize_native_operands.py": {
-      "sha256": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+      "sha256": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
     }
   },
   "cmake_source_hashes": {
-    "CMakeLists.txt": "2cfc822c4c1dc1d27cabb06783c9ebc1f2b90d69886b1129c9e8e2597927a74b",
+    "CMakeLists.txt": "877db1e72f822bdebcfbe2d43b34c982a16a0f49b7b4871b75e0f459ce001fad",
     "cmake/AnimationInterpolation.cmake": "7c0467d37a0543bb26f766325033ef38de5b6ae01ae83be45d055ae6ad2f1704",
     "cmake/AuthorityCodec.cmake": "af2002fe786a9f4ebb7746b2dd0d98589985f18ac6ab6a9e3a516bfa6dc8eff9",
     "cmake/BipedFallingDamage.cmake": "ed0ba2093e860d66c498f8a7c1a66544f7249470a2b98447919b81b813c653e9",
@@ -119,9 +325,11 @@
     "cmake/CampaignAiWorkingMask.cmake": "02042c566bf8b72264ed189beced8537b86ad64e647827f7e3504ec59810f960",
     "cmake/CampaignDialogueAudio.cmake": "9fdf01da132519f71dad311f0aff543e543c6bd00dd4a343b78db05f17a24719",
     "cmake/CampaignEnvironmentTu15.cmake": "1ab6681491847b6a11441463d7a69289a3fdd21059a8a6a9bff20fc745549910",
+    "cmake/CampaignInputSchedule.cmake": "5f4a5f251a4a248f3fa8b74ce0a5e0d4d4275174a16d498cb25cf9a9476c49d2",
     "cmake/CampaignKillVolumes.cmake": "e531f687bd3fdb705e11a6f0fce63fdc3e4d62a1fea416a853db43411c219923",
     "cmake/CampaignMachineView.cmake": "e87fe4de6a921546a8284d1145f25b4722e63e105c3fc4980f6f9259958dc830",
-    "cmake/CampaignMaterialWiring.cmake": "1c54da6491ec0c64ea927c483429242ec86ec6509f922dcd37731479cee47550",
+    "cmake/CampaignMaterialWiring.cmake": "adf60e9005363bf14d15723689f6bceef795f9ff48cfb5382c6537faa87647e9",
+    "cmake/CampaignMccPauseWindow.cmake": "c81d7e30fb2757fe64af3753db37f9760fb535cc854d1dc746cc0188517bd165",
     "cmake/CampaignModelSkinHandoff.cmake": "1bd8761bb075f10089232aa97e60c74c15471ae273d78092cf5b3f60eccb1587",
     "cmake/CampaignNativeAiActionIdentity.cmake": "0157f2e08f9f2f635a21f223746987a57a811cff9fc287a1c656aa3fd01da629",
     "cmake/CampaignNativeAiAlertPermission.cmake": "238dd722c410fc2fdc8e3f2e53945249fe2b42c738588b5de7aedadb28b68e52",
@@ -129,17 +337,21 @@
     "cmake/CampaignNativeAiAreaChoice.cmake": "56e582d0632ef10cdff22fabc81a56418812570084c42ee29fdc327ebc74029c",
     "cmake/CampaignNativeAiAreaChoiceBinding.cmake": "84205cc278c94e3e811a7445ba94a76f84b123a39197f9d88d81ec81f8152040",
     "cmake/CampaignNativeAiAreaCount.cmake": "6d446957167085636e8f01108de9efb976852b04d114abbe4478145e3c2bfb8e",
+    "cmake/CampaignNativeAiAreaPerform.cmake": "1e3756e04c6828d26f5655d0be1f4526fd73db877c600e8cba0e983b21fcfa07",
     "cmake/CampaignNativeAiAwareness.cmake": "a11e2fff1b9dfde08202c6b20341f31dc551f58b9a5e8a16c56611cd6b3d5a61",
     "cmake/CampaignNativeAiAwarenessBinding.cmake": "a7c11a5d8886a905df401fcbc043e29a3a12b4678896dbfc965631c5a271df35",
+    "cmake/CampaignNativeAiBehavior129.cmake": "9e6833b03bf2e949a67b4982a7121832573209e8f17d68f59d9ef358d119f97e",
     "cmake/CampaignNativeAiBehaviorReset.cmake": "74bbd4527899b415d697b70ec00dc5eebd7a175073c499e33eeb770a854b0ce6",
     "cmake/CampaignNativeAiCancelAdmission.cmake": "4fd9de2573dfce7384b34cabdbeaad364d2eb91182c7ebfc6a55a23ce5c27659",
     "cmake/CampaignNativeAiCancelSupport.cmake": "08729e4bbce7663b318302586e5f6c1e2ab748e2af565bf6884ec80d5e4a4ae7",
     "cmake/CampaignNativeAiCancelTracks.cmake": "f5857ef54ffe8c253e953f35432c7cee1edf8ed56eba8e3749d136983715989b",
     "cmake/CampaignNativeAiCharacter.cmake": "4857adce9bfb306f414c19dda210b47bd03cf189a8b4a21ece3e3fc46d7ad024",
-    "cmake/CampaignNativeAiClumpRetirement.cmake": "2e191ee8f1842a6270069f4955ff35d0ae1df768704f330b12108dd5f11ad5c2",
+    "cmake/CampaignNativeAiClumpRetirement.cmake": "92cd6c92f9e052928ae6aaf4217eef780bf326251277b8adb7805f18b9f9efbe",
     "cmake/CampaignNativeAiCombatReset.cmake": "3986346a5fa59b4078cb24adad8f46460da8ce7add12d71e3cd4e77199674413",
+    "cmake/CampaignNativeAiCommands.cmake": "4ee87f259f8c17235ff9312c6f7e17c5da919aaf160d04107fe34d02e537556d",
     "cmake/CampaignNativeAiFractionLayout.cmake": "e120011fb22f522c80b14cc2e092cbfbc45810cc31fd2f6b455aeb99f5a5b30c",
     "cmake/CampaignNativeAiFrameGeometry.cmake": "b43c6bfb737bb43956879a6ed8bcf7c03dfe1c56ebe22dd5609a04ede2516a1d",
+    "cmake/CampaignNativeAiGoalEvaluation.cmake": "654d75ed5d6795fad23fb3383b9940b85fb1fb244f8f97ad097c01af745e2fa7",
     "cmake/CampaignNativeAiJumpArc.cmake": "44731956b3e4f4b7d39d017971c1d2d735befa66c40f8c8679b3253b914fc90f",
     "cmake/CampaignNativeAiJumpFallback.cmake": "211eadb7ac257f1f0de257ac9303eb1ace54dc4c0207763a1ea2de19c0fa7360",
     "cmake/CampaignNativeAiNavigationFilter.cmake": "0f16bc818c359510102a187ab98414ae853368d3b91233c61a42a970eded80d4",
@@ -154,6 +366,7 @@
     "cmake/CampaignNativeAiPathInfluence.cmake": "09492f0c1387464b00a7d77443a71a301609c81d7d67c473edc1a498ae98f4cd",
     "cmake/CampaignNativeAiPathQueryStart.cmake": "5cd3b6de4261b59b88b427b6dbc08623515349c0abbc261198e11d3285812fe1",
     "cmake/CampaignNativeAiPathResult.cmake": "236e6ec198da8d77c8f3ed162958bf1b50ac1d7e5419965afef916d29e17d33a",
+    "cmake/CampaignNativeAiPathSearch.cmake": "9912ed3e0abaadc66525d54de581c24d7ad7a8333d832fcced987154a6735e4e",
     "cmake/CampaignNativeAiPathWorkspace.cmake": "74c22511c893ce0fe1ec78b6291c8595d09501e50f14246ad31366c5ebdc5246",
     "cmake/CampaignNativeAiPerceptionClassify.cmake": "819ea88abee80dae8bc5bcda06e9f4755c4b81365d346012912fdb8cdcb199f5",
     "cmake/CampaignNativeAiPerceptionGroupActor.cmake": "73ccf3f54304a3a7d68ea2becbff33a8e825d1434b30d5c29aa8c0b9c605a4b1",
@@ -167,17 +380,20 @@
     "cmake/CampaignNativeAiPerceptionScore.cmake": "89fd02c6149f5db60a5cd9004a168342a8ffceb62f572d8a714aaeb6459921d5",
     "cmake/CampaignNativeAiPerceptionState.cmake": "c807933c5c00d30ed3c87fe2b6977165e72381c1612180136f86acacd939fce6",
     "cmake/CampaignNativeAiPointGeometry.cmake": "b8319ce80e172362eb3bfbc3daeb6cf7a513b8eea84cf1dc655c4cf0c43219b0",
+    "cmake/CampaignNativeAiPublication.cmake": "1040930d54b4b72c52b8b028b66bee1ec1154ec3f4a39c286837b276c39b8086",
     "cmake/CampaignNativeAiQueries.cmake": "9bf6b68b8e2e026bedbfcf485039f268c6dd934fc020542c1dd337a4ba079096",
     "cmake/CampaignNativeAiQuery.cmake": "ee7cf5110f1a46c9243cf05b7f6d180b723ffe50c445383fd1ebfa24729a4f55",
     "cmake/CampaignNativeAiQueryScheduler.cmake": "cdf593997c573a9c9c229f9bbf858b996c4a73e77426e149c995b3bcfdbbacdc",
     "cmake/CampaignNativeAiQueryStart.cmake": "ff91ead7fded24f842dff51a2bb4d00e3b34491fc50bce938346e4836e46fafe",
     "cmake/CampaignNativeAiQuerySupport.cmake": "40abdc28795b08f66378613895a880a522c2b83f90ee1614b3aa0b8b9b251c5a",
     "cmake/CampaignNativeAiResourceRetirement.cmake": "147e05f3f9dbe44af35af54dbe3f2667053766d61293a721f12e17c6deed31fc",
+    "cmake/CampaignNativeAiRoute.cmake": "54046d48b8c45244525c267235e9397021ddfa428a3c0f3e8c2fe6ae81a3f214",
     "cmake/CampaignNativeAiSpeechChoice.cmake": "1a61467a19f774eb9eda6221b6448584d9b61f44754fc23eb5e2d2cd0fe150ba",
     "cmake/CampaignNativeAiSpeechClusterMask.cmake": "b0c32be5e2c6d4c25424d77adee7ba14c10ceddeaaa699d7eb853c675babe0ad",
     "cmake/CampaignNativeAiSpeechFollowup.cmake": "e6d55c1bbc644bf0eb7603ada19e243b30b1e180c3e6a72500ff11010ad1a92e",
     "cmake/CampaignNativeAiSpeechQueue.cmake": "a37f7293843339f23cb4ced537cc3f1537b7830e16c9e818d1f167e9de82bedf",
     "cmake/CampaignNativeAiSpeechReservation.cmake": "7bee650f15dcd7fdd70856241a2fe59701a0d2e600e34b1733d43bec066e963b",
+    "cmake/CampaignNativeAiTargetMerge.cmake": "2ffc725284d36dcf241dfea16d2e7ad58ccfa6ee43f2463df2aa2e51d8d14f8d",
     "cmake/CampaignNativeAiTrackingAllocate.cmake": "cd4f051dd6732211857a09bdfe6eda3ee732ff72957b3e588973c3109ce04833",
     "cmake/CampaignNativeAiVectorMath.cmake": "8807d777997270181fc47c4adeeda20b976a1dfd2f1d51be03c85aa84c26f397",
     "cmake/CampaignNativeAiVisionRecords.cmake": "c4b528379c63cea926a5c4bef482e27fbe7d5ada2d4891fe70dfba39aeb2a981",
@@ -219,7 +435,7 @@
     "cmake/DeathScoreboardTu15.cmake": "2c9707dade9c23b1789bc9607e5da6b0b24ca81ae349840a12ce333207475068",
     "cmake/EngineWiring.cmake": "9925684814a03c1a49752fa42c766cf96a2bef03d0ea9ec365c3dcac9269be85",
     "cmake/EosSdk.cmake": "913cba1a09233fbbbe7fcfe3d636cca10d141e8d330d1acb959138a731ff0627",
-    "cmake/FirstPersonBodyTu15.cmake": "866dc1505a8619eef316729ac26a8c54928297d9c59819cefe0c075de82b0fbe",
+    "cmake/FirstPersonBodyTu15.cmake": "c58df0fac019ba783d48cc4df740c27a1db1d315bb3cad2358320a9ebcd627a3",
     "cmake/FrameModelSkinPlan.cmake": "4beb5713c7f5ca17fae97ebebf283f443a660a8b268f5cb0b05b7eb6d8eab7ed",
     "cmake/FrontendCaptureQualification.cmake": "098c2e60361671c451761baf627ffe815d358650624ef10e61ed5b12d52030be",
     "cmake/FullScoreboardKerningTu15.cmake": "b560c51d1dd1cbdbd79ad9b86727de588f8b8a1bb7771d1a468eccf9dfae6afe",
@@ -258,27 +474,39 @@
     "cmake/Movies.cmake": "2f9373c59db6b7e488a3fe5eb255b0c67e7e1de61c744a96c0ea3c1ca0f5fac9",
     "cmake/MultiplayerAudioContinuation.cmake": "b162e5c2d891b49e7b054a1060b088e7e8868d67930cbc95fa0c228656852b5f",
     "cmake/MultiplayerContinuation.cmake": "c26f80490bb3d7fcdd9e7655ffc11076d3958be50104b24f6f0d90f37becacf3",
-    "cmake/MultiplayerEnginesTu15.cmake": "88612df5f1186b1801412eb9473c1d2622d073ac12610d20376c1708c8105fcf",
+    "cmake/MultiplayerEnginesTu15.cmake": "b992eb9fbaf0a9e0cde5e8752b9f6b082e4572400684fd9cb334a0543384376d",
     "cmake/MultiplayerObjectContinuation.cmake": "54611fa4a5353e1b8e3bd2db43905d74eec15d3a84ee7ab00ec7484941f4f96c",
     "cmake/MultiplayerWireSchema.cmake": "7faf708f78e1ddb92716ca0ad3e786c6e9bb8888dd33fc2e1c2043ff0e4e5b07",
     "cmake/NativeCampaignAudio.cmake": "562d5f4c26a2a766b42a4795470012f6b2b630b1c42831827cc80547ce152398",
+    "cmake/NativeCampaignScriptBuiltinsTu15.cmake": "6c64a85f4bfd3d288843280c365c07765ecf07f1c782b8a5639444f66b7c6738",
     "cmake/NativeCampaignSpeechEnvelope.cmake": "8f33b90dfb91ea3f22134d6d14c9ba6aa25469a4089326537c17e2713a1eef25",
     "cmake/NativeCampaignSpeechSmoothing.cmake": "d8024cd05b898b41ef17645964f1d4a9875221a610beab21086a308d95db8de4",
-    "cmake/NativeExecutionAccounting.cmake": "2b28d79d5acba6e74e4e973fa28f75c9610d423185f0d9901cfb2ebe966a6dd2",
+    "cmake/NativeCohortTestFilter.cmake": "d741e280197e5c5caa5741de583b91366de32892fbf370c546036b6c7d8884c5",
+    "cmake/NativeComponentEvidenceStorage.cmake": "e775eb6f8b450dacef04829d64f8a9182cea97f98b72495d9ce583039a31bb40",
+    "cmake/NativeExecutionAccounting.cmake": "4f196ddf855b569fdb1822efbb39424213ecc343ebed76de999e227449acbef5",
     "cmake/NativeFirstPersonContextTu15.cmake": "320e50dd92827190d1785eb089098ada4ddf3d311600b1721bfc0e292267a635",
     "cmake/NativeFragmentKernels.cmake": "ce4ded2eecd144893159912e41684060ede4b765aa8453cb27208e157c71762a",
     "cmake/NativeGrenadeShadowResidency.cmake": "50d89b42c55581d91b81ffedd767b3a318c56f4898d379a40d86246e7029659e",
+    "cmake/NativeIndexedDatumGate.cmake": "400ceae946cc1faa74c54c43ec362e444ee28e4a7480d7a505f1597da9da51f7",
     "cmake/NativeLoopAudioLocations.cmake": "e11608df6dc49355dc982b0fc01abcb0c32b591936a34fb3546e149925e647ec",
-    "cmake/NativeOperandSpecialization.cmake": "b38b375d49804bf9bffb7106e3a7423dab3f0d631514d9a068631b254239713b",
+    "cmake/NativeMetadataRetention.cmake": "a065239355d389293de6a196fd8fed355a4d12d3ae7d1adbf6780f070ff96a60",
+    "cmake/NativeObjectFactoryTu15.cmake": "8fed26f4766b08eb75ecd98f073e20cd1e251d2ec631257f0d75f1b188419e2a",
+    "cmake/NativeOperandSpecialization.cmake": "f9c1edf9088bccb3a68f87435bbd9aa94edf37aa26e847b32d28290d0c234751",
+    "cmake/NativeParticleEnvelope.cmake": "d938dc98f7995844ebd5f508ab92044d7e3c8a2dec08131777994ce22b7c38bd",
+    "cmake/NativeParticleRecord.cmake": "f0ea094094f642262be5aeaf9bd8ec729712949dc23c437d05b3785bed63be18",
+    "cmake/NativeParticleTypeFilter.cmake": "a2e88314c210b26d436c55fd5aa000d9f564688671c1cc8a7765cd524537f46e",
     "cmake/NativeRendererAcceptance.cmake": "92efd97f5be86d08b9fd1ac3822cd3c85ade1f61015a05089ebf37c8158e99a6",
-    "cmake/NativeRendererProductionShaders.cmake": "0232e4f2cc226402fdfcc0ac7f0de612afddc1ad9a1da2095cd178ff8da71041",
+    "cmake/NativeRendererProductionShaders.cmake": "fbc2460c6d8258fdda39efea875562698e8438de10fbadab1f3a4804c2c28116",
     "cmake/NativeSmgWarthogAudio.cmake": "76e8f35b0cd2aae19b8fbc2a64f4e659e931ffa9fafb2109465c72d7203bacec",
     "cmake/NativeSplitScreenStartup.cmake": "9a032f8cbba035d383d9f01d660d9c5fc1700c77d4592406a27916f675f9c275",
     "cmake/NativeSuperbounceTu15.cmake": "dad389946cc9612d583d74b9e901adb223208ef49214e1f49173de16fb190e97",
     "cmake/NativeTranslationUnits.cmake": "f88ec4e1ac1d1f9751741918d50e8cb97bf8759ccde948f2a412a325c289a5ab",
+    "cmake/NativeTu15AffineInverse.cmake": "1a371d814bb5acbb1aa4c4404831f3b36db1e2644295b262ddc13b2ffa1b1d42",
     "cmake/NativeTu15AnimationCacheIo.cmake": "580b988b6790ce1406df67079e30cdbb19cfff89d04dc2fe743e87eb04737a1a",
     "cmake/NativeTu15AnimationResourceRead.cmake": "a27c20d350ea229024764f2250652edbaab35d208de85dc03118b396d37c392f",
     "cmake/NativeTu15AnimationResourceWait.cmake": "f7b27d3dde87faf4ee512938a4dd145bfb5657c1f2b860d187cc9eea89fab65b",
+    "cmake/NativeTu15ArenaInitialize.cmake": "ee0653df80b3530e24c7c9244fbad5afa3bc9de23ab75431a2d1c12b247e4d49",
+    "cmake/NativeTu15ArenaWorldInitialize.cmake": "1112220ad8b1a17b5838a6f5e61b08aead54623e7d5fdece8438e1b180c59802",
     "cmake/NativeTu15AsyncPromotion.cmake": "d99437a20f6f69dcc1c72eb6941e1bde370d6e3b19c446ed606bb4a4c4bd0632",
     "cmake/NativeTu15AsyncPromotionData.cmake": "e7e7b393888650589056cffcf3dd3421d88c017c0ee3eb04802b3102808184d8",
     "cmake/NativeTu15AsyncQueueData.cmake": "742d93ac0cce2980b7c154d1bd4c9e6973b734fe4c7c9c12accab7c824e02028",
@@ -286,28 +514,49 @@
     "cmake/NativeTu15AuxObjectState.cmake": "5b01940ed071873ea4f17726d5472c534de217208d1e25772061064796c5334f",
     "cmake/NativeTu15BaseLock.cmake": "e58463a30eb64b9ef3e8906b5c658a4e6adb900946c08a162a9f2ae895750af3",
     "cmake/NativeTu15BinkMemoryStartup.cmake": "30454e224afd59fa3df980a402f130ba4bef8e5b836595a6918749ddbc3e0f68",
+    "cmake/NativeTu15BoxShapeSupport.cmake": "8e14d1140bcb3febb62afdbe5faa7de14b1282bab9b980bf7cfcd276378ea393",
+    "cmake/NativeTu15BoxShapeSupportGeneration.cmake": "beb586dd546f46ce03454e10deedf625f4694230a3e314c0064f87dacb99c1a7",
+    "cmake/NativeTu15BoxShapeSupportRoutes.cmake": "d3766da7c7fcb0cd7497e14470baa63a07e145b3d722c5039d47db7c839882d0",
+    "cmake/NativeTu15BoxShapeSupportValue.cmake": "ffbfc86b9526d53c0ef232fdfea59192a88a234d6f73fbd2e8e15cb03d4cdb4a",
+    "cmake/NativeTu15BspAdmission.cmake": "1b739b091d7fcc329d4d96af1510a13b8a13180de14f2b572a8c48a242090708",
     "cmake/NativeTu15BspLeafSurface.cmake": "b6f635dadd1c0b2f513038175cf1288ca7ae4860ef86c6e56319e2c21ff55180",
     "cmake/NativeTu15BspObjectAssociation.cmake": "af6e1a50d06bb85ade6dcad755a811b2ce325523f1322f3b5bc487b19945b250",
+    "cmake/NativeTu15BspQueueFind.cmake": "58fdb5e247f0c367306a998cfdb1ed60a7e137e147016305b9f14d403530b037",
     "cmake/NativeTu15BspSegment.cmake": "b5de29842cd572534aaefcb7180f2e268e55dedf7b93d29b4817a8ab5ec543a4",
     "cmake/NativeTu15BspSegmentSetup.cmake": "2501e18dded48cf488068dc68ac1aa74732bb237d76ac5c6879519b21233457b",
     "cmake/NativeTu15BspSurface2D.cmake": "de5d51055440b3223b754b684ef3e5437a27f63766e77458765c3e930571bcdb",
     "cmake/NativeTu15BspSurfacePolygon.cmake": "5333414715f235fc8fef895e0b25b9bc37fd6494ac9244851536a100728a90c9",
     "cmake/NativeTu15CacheStartup.cmake": "e6cf4a121a01855ec047bc54b31b93399cd8d8ca8da815f3d8c8a8931f01b921",
     "cmake/NativeTu15CameraBspSelection.cmake": "e076e28f3ff8346f3fb5974d6a056217d8f5be7cece43f9c9bac7df1b1633ed6",
+    "cmake/NativeTu15CameraCollisionPublication.cmake": "5d40e11f7049438152906789ea15ff9ec30357979e13a6078856c9fa67ef2d99",
     "cmake/NativeTu15CameraFramePolicy.cmake": "1e6061d2861e07c74d409ce4242ac673882892223afc80b201f850a9a3e6f90c",
     "cmake/NativeTu15CameraInstanceAdmission.cmake": "4184b2c5133cc857824514f98c8ad1883a86b1ae9fd35cfa3f80920141cb492a",
     "cmake/NativeTu15CameraInstanceBitmap.cmake": "0468f68d6759749d454d67b57e7a9668abc68ff7021a010a143ed74c37fe185d",
+    "cmake/NativeTu15CameraInstanceQuery.cmake": "7b519f8c068afddaac81109017290b1967344379486d80b9df96f779f905061a",
     "cmake/NativeTu15CameraProjection.cmake": "b61ed68cc66236ae2fdae6d6abaf1479f28cd929083ad1ccb39a69421d3dae5a",
     "cmake/NativeTu15CameraViewLayout.cmake": "c679ecda30f88797ede752f6865adf7c41790b23b00eb107093e3d6aeee639f4",
     "cmake/NativeTu15ClockStartup.cmake": "3b6c4feb9a53d8c4d7ffc2e7ea965f71d2c1f4fcd5db756eae8051a63c98d613",
+    "cmake/NativeTu15ClosestSegmentsFrame.cmake": "42ee2758265ee8a4762dda6290f1544b57bd2fdf7a4a1a01a0ea9c2dfda45611",
+    "cmake/NativeTu15ClosestSegmentsGeneration.cmake": "63dca1cf48ece3662cfd5445805bada0a714684d12cf2c69f7bb6f9570ee7300",
+    "cmake/NativeTu15ClosestSegmentsRoutes.cmake": "ad6753e6987ee2c3bd5c35ef4f7fac3e3185d8ce8929a2694e2db42e0e90967e",
+    "cmake/NativeTu15ClusterContents.cmake": "b711337a81ac18d6d395f1775520b69e6e6ac745744565af5d3fbe1034d32a16",
+    "cmake/NativeTu15ClusterFrustum.cmake": "3cc1b70118dc190cbf9bc18a99ec6d4698e26dfdbd1df9b63b1c2bd31eddba24",
+    "cmake/NativeTu15CodecCopyRows.cmake": "428911df8d8018cfccb318522305fbdcc128da6ba8b73a7e7902133c516cd56d",
+    "cmake/NativeTu15CodecRotationInterpolation.cmake": "41d82e60046cea50b47f3011f3a2f5c8cf4c4e5be2c1559875e725707beb714c",
+    "cmake/NativeTu15CodecScale.cmake": "b4f8121bef41f5cf6a092484b29192408ca248e8ac137415813a4ba87663abd5",
+    "cmake/NativeTu15CodecScaleInterpolation.cmake": "e114b52c32dcc51313a3bf34dd1c513ec274ea77af849242e62ad6ac7d2c77a0",
+    "cmake/NativeTu15CodecTranslation.cmake": "623d1a3fa3fe10f4522e1f1664b015e3c413cf39970477f05abe8a4f84198431",
+    "cmake/NativeTu15CodecTranslationInterpolation.cmake": "47dc8ee23bf88efcaa0c329f8edb7b9ba05e991d389d64fcd49ef09c8d4b5d56",
     "cmake/NativeTu15ColdData.cmake": "5f1c9998feb3a6c62dbbefd72aab8e92b8c7b9038766a6630ac9ec95e7804fc9",
+    "cmake/NativeTu15CollisionRay.cmake": "078e5b3db34e6a590e1e5a9a6436d0d7f26f8ea688c8de7ef55fe35ea7818b30",
     "cmake/NativeTu15CommandEmit.cmake": "286de9641a2c228b638105dd8d5fa62d540eebe90dd09a403380e9ff504bf6e1",
     "cmake/NativeTu15CommandPartPrepare.cmake": "43ea930d6a5a2aba45d00a5cd7472e2ffc28c0b39429a7a759f3845e67c68876",
     "cmake/NativeTu15CommandWalk.cmake": "56c36f99548d7c392a55219c4fe0abf99750e0efa43231696a1a815f8cd1eff1",
+    "cmake/NativeTu15ContactPredicate.cmake": "cb335471ed1aae89c13f087c99f61e9e91b565ed5f68c8f1678f6c3fa2595f92",
     "cmake/NativeTu15ContrailDrawData.cmake": "b9dc639b52e275d599a5ed4ab389b142bd168b96fee60e82e46c6b6d6da6db46",
     "cmake/NativeTu15Crc32.cmake": "a38a1e960f92104ecf73467d0322c0fe474f7249ec03e485d5f9bf8ec7e9ff92",
     "cmake/NativeTu15CrtRandom.cmake": "8fe2b3c0c976653be4d90151fed93247de46bdf4c89924b46e65ca8139825c98",
-    "cmake/NativeTu15CullWalk.cmake": "bcadd8ab2c0bcf22308f25dccb78059bc982be4d21bd3bdc5abc39173f9dd59e",
+    "cmake/NativeTu15CullWalk.cmake": "23dc4816c1d517f3ce5979695aaa842d744e6179e3fb4a7397fa1f90665f6d8e",
     "cmake/NativeTu15DamageRegionEligibility.cmake": "9cc44cfdec45842e9a3899ee1e49ed4bd5e75348769102948be39c18a7275d02",
     "cmake/NativeTu15DataArrayAllocate.cmake": "a232c07a83f234db77d5de52cb6d4bb649931dbea16c4773750c3637a2fb9f2a",
     "cmake/NativeTu15DataArrayAllocateSpecific.cmake": "abfeb65e2f1a6afc913da480204a7864b24eb6ae4bee1045106f7ec38204fb15",
@@ -316,18 +565,29 @@
     "cmake/NativeTu15DataArrayLookup.cmake": "085127fa34b56ea0889603b27107ac3bc2c2be1ab3615f3551dbaffe4288e646",
     "cmake/NativeTu15DatumDelete.cmake": "36e50525673a3ca9221fd2b3082202d62e8e0e9b4c347c9eda3feed9f64e7e5b",
     "cmake/NativeTu15DatumSpecific.cmake": "e2b2bfd01d2754b0ca35fd6b585e6b6a4e5f1f8e2754b43c572571e721aa0847",
+    "cmake/NativeTu15DevicePropertyQuery.cmake": "f1d9d8bb309eac13e39e1941870a2e644157b7e36c0f2d8010c24bfb6bacaf92",
+    "cmake/NativeTu15DiagnosticLoggerOwner.cmake": "d7031fccd4bc2b4be2d9664debcb8aa34361ef9480bcfe0a1d449644d784854a",
+    "cmake/NativeTu15DiagnosticStream.cmake": "2a437b4c3cfdd60a0fb5994e6ef8e54589c417d6c1d54cbb1cc1ecad673b7bda",
     "cmake/NativeTu15DrawUnits.cmake": "78225e94ba0753fe3859450fddc4a9fd8354a3cad127a138edd733fd72b16ddd",
     "cmake/NativeTu15EffectDatumAllocate.cmake": "faee1ea0cd2510250ffd9cb2dec54633a1b30ab21eb0399373e00bf93094c0c3",
+    "cmake/NativeTu15EffectOwners.cmake": "8ae956c1239f7d4452b2ef26274ba9dda70779778dbe26a15c1e97d5d2481adb",
     "cmake/NativeTu15EffectPartAdmission.cmake": "6993a6431db49e448381e7f4c689a126e3dbdf95867c62e72c5ef37511478ac0",
+    "cmake/NativeTu15EffectReferenceElement.cmake": "d491870a023e7652f2aee0998a83441e25efdb80e963fdaf9c2ba5e363b655ba",
     "cmake/NativeTu15EffectSlotScan.cmake": "4d5e2075d834cd01e6e5d08d064d64b37720600b75f32007dc9fcfc784ae2b8f",
     "cmake/NativeTu15EffectTransformProduct.cmake": "2adad410216ceb8f4f610f8fef3b54f8b69537e8cfc1397ea64bc9413109f681",
     "cmake/NativeTu15FinalStartupStorage.cmake": "80175d8126830d43bd33c662fca867be577e4b723a27ff72ea559c8678ca9ed0",
-    "cmake/NativeTu15FrustumDrawCull.cmake": "27225a6e309cd072954ba0a47c18e2d69ab1559946efb796f82433afd8f39186",
+    "cmake/NativeTu15FlightPropertyQuery.cmake": "ce87c94f99d30651b08428717b6daff780f92efa796a3164500f746167e3dea4",
+    "cmake/NativeTu15FogMembership.cmake": "b19f728091327a82dd27c692e0240f525234e43f9d513be9749a43503645e694",
+    "cmake/NativeTu15FrameMisc.cmake": "0650f9288cd7e0cbf2b3ba6b83e4e3fccf74f6fafde10b8aeca4dec267c199f3",
+    "cmake/NativeTu15FrustumDrawCull.cmake": "408ed2a41aaf7b491685abd4f5c3c9edeb96687b5c19312a4254ec58c37aae3e",
     "cmake/NativeTu15GameStartup.cmake": "faaf4ff9f20fbd683e43cf29f4c8439092a11d0f249ecc7f62794143a0d262a3",
+    "cmake/NativeTu15GeometryVisibility.cmake": "019f63788bd6dbe9af06b8b577bf912a966f6e741154fe5c8514f23c33f85c06",
     "cmake/NativeTu15GraphicsDevice.cmake": "f13887c9f632c74d7e00d5a092d6d3e45dbb06f72af6fcd25d4a0082c0c9b0d0",
     "cmake/NativeTu15HalfwordBitQuery.cmake": "bd7e931078214c818c35cb70ebf4717bc274cbb3b68f241a63463064831755a3",
+    "cmake/NativeTu15HostFpIo.cmake": "68d5a462076403a42b28b36e640419d5ac2c3486bb0598cd5bca5ac829a88709",
     "cmake/NativeTu15InputStartup.cmake": "dd260753cfb85ff4fcafeb1625c1a0b61831937c7668eb88b9e319adaf8c7c59",
     "cmake/NativeTu15InstancedRayCallbackFrame.cmake": "7d567cd94d06c8a9f1800560f81fa8f8b28b4b491e45a83a931e97ac85cb27db",
+    "cmake/NativeTu15InstancedRayCallbacks.cmake": "9a2401a753b4ff5d803db3155705d19df0adf19675bfe943d3b1f4949e830846",
     "cmake/NativeTu15InstancedRayChild.cmake": "99a112896b9c7bc20b384fb7d6379be819c6415c64a6367c9aed84a4a9376f35",
     "cmake/NativeTu15InstructionCursor.cmake": "1437fb9024231b77ace702f2f463425f4741500c73e6fc1a25a3bbfaf9584c99",
     "cmake/NativeTu15KernelYield.cmake": "da914ffa5f4ca313bba4a7b3df33eda585db4d1dc64fcac63c22016c0b0de110",
@@ -337,29 +597,59 @@
     "cmake/NativeTu15LevelHandlesStartup.cmake": "1da1a4a2b1d57209995e6dd6c544a310bb08d82da5a3ca03d27e9f706ac2b077",
     "cmake/NativeTu15LightReceiverFlags.cmake": "10d27e6101ddc714048a3adcba341fec4d34e1a8e79030b9df5f38bb89da3818",
     "cmake/NativeTu15LightUpVector.cmake": "16608dd1685c3e725263170461d58d1788c11434554718cee6e1e4fcfa9d730f",
+    "cmake/NativeTu15LiveSupportLeaves.cmake": "d74b15e3f6b7f613866bbb9e859e8fa3f08e3a4cb082f4614db9a04bbb4ab7c4",
+    "cmake/NativeTu15MapWorldPropertyQueryFrame.cmake": "2b6a7ff7a999391d866305e6bcc1a2e89537e56ff57f54da00b907ba9b4e9a13",
+    "cmake/NativeTu15MarkerOwner.cmake": "734cc02c551366364d609203742a6555fec65bf16eca8ed8d53e1815dfeb9377",
     "cmake/NativeTu15MillisecondClock.cmake": "c5276dbda79aa0c0d9dcfb85d12a24f25ced817654547c7c21ebec6de50f8f82",
     "cmake/NativeTu15ModelDefaultPose.cmake": "d90a19c324416fefb2a0427d08ba5c596da723929b6239e4eb7c1cdacfaaa5f5",
+    "cmake/NativeTu15ModelMarkerLookup.cmake": "3ed3928d024f1d7e991c3882ebddc051d1dd546f495b507710bcffa009af39f1",
     "cmake/NativeTu15ModelViewSlots.cmake": "d3a8cf6324b8a8d62998d0a95222cadda851550e9bbe52c79e72d2dbed974683",
-    "cmake/NativeTu15MoppAabbAbi.cmake": "f07f6349254b051171442cbe7c290e9fbe5dddb0efa3d94c4fe6f42b32a89122",
+    "cmake/NativeTu15MoppAabbAbi.cmake": "a1a9638a2587fb9a6d5801d789a7f915ad7a94f6f424e8f7d411a835c3c38420",
+    "cmake/NativeTu15MoppDiagnosticReturn.cmake": "d79b2e646ee333f1a65f6cd86179d1d2df233655d0bb7e9fe0c396540445f6f3",
     "cmake/NativeTu15MoppRayData.cmake": "741944acc67477eb1d2cc2ce2e52fd29e6fcfac477db5d84523b8cab46b78dcd",
     "cmake/NativeTu15MoppRayIntegerFrame.cmake": "4b09348f2211a657f0ff3dc641d7e4976351db95d13f305540b8e966e9657542",
-    "cmake/NativeTu15MoppRayPlaneFrame.cmake": "d77e4d2b16c6a0157ba40bd363b353bba886fc652e0a6a44bb0f51b78a28b14d",
+    "cmake/NativeTu15MoppRayPlaneFrame.cmake": "96ed53db288b6d380df4899e70c4dd3b8ec4e50e6b278f19249a82ce26d6877b",
     "cmake/NativeTu15MoppRayPrimitiveKeyFrame.cmake": "b00c974cf619e7f4b732bf3944d1271c0f1eac444a5a840230a2c4d24c1b0d2d",
     "cmake/NativeTu15MoppRayScaleFrame.cmake": "336cdd8e26950f23449908692691d3ff570893a16adf54d397b2488e789d73a2",
+    "cmake/NativeTu15MoppRaySetupFrame.cmake": "cfd59255e37cd90f610e57d92bb06d985be259087319ab126206c65ac1802c47",
     "cmake/NativeTu15MoppRaySlabFrame.cmake": "70da64351e20aed9770d959096bdedec31d1414c1e8609ce7ababb4f11adf420",
+    "cmake/NativeTu15MoppRaySphereQuery.cmake": "23d3a3e788acf4528c33b1e718c20aef20ee45914fec339c91fe30c486cc36ba",
     "cmake/NativeTu15NetworkLink.cmake": "4d8f63d8456f2ac7aa5867a2bec1f956dd6f74b4b3008a7f5e8f3026da754c72",
     "cmake/NativeTu15NetworkSession.cmake": "6c51946cdb78e11bb7468087413f9fb467cb69fc628fb4ce9e5b071a7ca81eaf",
     "cmake/NativeTu15NetworkStorage.cmake": "af0fc4f778bfe2dde7a42caac79f3a356806b89beace517ecf76e9a4e34f35a2",
     "cmake/NativeTu15NodeDescriptorLookup.cmake": "177102523a1a7eb77620c61867e035c6c48f9b5e3c80b0ba123151dde5f0296f",
+    "cmake/NativeTu15NodeProgressQuery.cmake": "e6c755df7b484c5dc2d7b6a0e539471723e3f641e4d4489d77089192175c5777",
     "cmake/NativeTu15NodeResource.cmake": "4525a3606b1e982b1058d4c85bf04ce4d22b76311d214c6b28cb3d466398d8b3",
     "cmake/NativeTu15NodeResourceLifecycle.cmake": "b0c7336737631954f9746b1a8e0aa426d4715ba269962031547ff6cf9ce51cbd",
     "cmake/NativeTu15NormalizeVector.cmake": "342a3a26e0a2507c4bb20616489cdae12f31216eb7de31656aa22c74ac816f81",
+    "cmake/NativeTu15ObjectBodyLookupBinding.cmake": "8d9434d288959626d06a7c9d17c8ace500b57ecb413523ccd4cb31d43035e4e7",
+    "cmake/NativeTu15ObjectBodyLookupFrame.cmake": "b7412fe45c0dd636dd06d4611b5901e29435fe864b66e1cb0bb73f07cfea5aee",
+    "cmake/NativeTu15ObjectBodyLookupSourceFrame.cmake": "91f16e3f30e1c848e7fa3d1c553a4dfa5dee160bfdefdca095bec20509bb1dfe",
+    "cmake/NativeTu15ObjectBodyLookupValue.cmake": "f2e0b48ce5f082ac2cb42931ed39147f949ba60fd4d415353806f95e8f7dc371",
+    "cmake/NativeTu15ObjectDefinitionModeQuery.cmake": "62be84964234687fa55f8d16d151b0a8b887f3f3b575c2dc612a5e62c915afe1",
+    "cmake/NativeTu15ObjectFunctionQuery.cmake": "61c66a3bd1f58a73e9c7a92c581926553c8ce9270f7f9bf9ffb97cad705cdb8c",
+    "cmake/NativeTu15ObjectFunctionScalar.cmake": "e35bddd60e2dceef47fb7bc7511db998bef3bc082f36ed263b560396bbfd8a24",
+    "cmake/NativeTu15ObjectLighting.cmake": "a1370a35ec0668c26fc122399ed2a88ea322ffb3e3bd4fedf852e4e8218930fe",
+    "cmake/NativeTu15ObjectLookupCanonical.cmake": "6d8b3ad6ece6adf40fe4e820b8673aed2ac0f0023e8ad10f2bdde2d13a81bd48",
+    "cmake/NativeTu15ObjectLookupCopies.cmake": "d5ca9622258a840a6fc54cbe10fedbbd2211f1421e8274da250fbac245b5aa72",
+    "cmake/NativeTu15ObjectLookupFormat.cmake": "d5ed4df07d7e4f38f7251443163eff0a27f4db27f2afed30c921aba9167b32cc",
+    "cmake/NativeTu15ObjectMaterialLookup.cmake": "93ca320f744ac003583e497fb15aacbb9dbe7b24bae05f135c8a2c96c0101c80",
     "cmake/NativeTu15ObjectNodeHierarchy.cmake": "ba1187fff56831b3616dfd7384a02e38d0e53980c5d42a8f4686061b7f367abc",
     "cmake/NativeTu15ObjectNodeRebuild.cmake": "5e04edcbd8f29ec7030472baa367bf1fb248340615224192f23032066d499e56",
+    "cmake/NativeTu15ObjectParentMode.cmake": "24d47f4d869f87693be5d0416edf0cd408a56f2364b2ae8512df87f8d9d5ede5",
+    "cmake/NativeTu15ObjectRatioCaller.cmake": "34e14f7fa31313ee86b7a50e3ed7d2fafbf43fbbf65ec60e0822e8a53669e028",
+    "cmake/NativeTu15ObjectRecordRatio.cmake": "f39215f2ec4605616167def6d42f474513a4d62bdfc6b23f172be84534ccc33b",
     "cmake/NativeTu15ObjectScale.cmake": "02cf576ab8f2163373a352fc1fc143b45613bc1b5fa0f0b80f7aa6bac1ad751f",
     "cmake/NativeTu15ObjectScan.cmake": "1b4130c1c4696ad67ee0e415eb4ab426935c89a7409e7929c9af2a5c0af8bb27",
+    "cmake/NativeTu15ObjectSphereQuery.cmake": "1262ba500e10dd6bba44d78d2961c92d0201075ef979a08b1d671aa81526c66f",
     "cmake/NativeTu15ObjectStorage.cmake": "af0534fd2b196fe39011a6e007f7c865269d806dbe970d09e563fc9f6afa2bfc",
+    "cmake/NativeTu15ObjectTableRatio.cmake": "32ac3b8dcbc771b7b8cd7ac07173da0ae2369b4de78485c38127dade26b9fafa",
+    "cmake/NativeTu15ObjectTick.cmake": "b5c1253e47fa85abd967042aad731cb8fd3c33ac2e02868d100e6ebe3e675b92",
+    "cmake/NativeTu15ObjectTypeQueryFrame.cmake": "2ce75bb1834d10621cb9d848688d5e9cc66b416582d5ad17436efe8494570ac1",
+    "cmake/NativeTu15ObjectTypeQueryOwner.cmake": "663761b7f9c4529a9a372b31dc96822ccc20e418befcb7e8f500ebc4ae7c638f",
+    "cmake/NativeTu15ObjectTypeQuerySourceFrame.cmake": "6232bf3652dbf4b5dcdfce7cf458aafee8916daaea67700fc76e4de4fe2b2315",
     "cmake/NativeTu15ObserverData.cmake": "241c7a8934dbc601e3aa8ebf926ff8ad391cfae7f6ed777064fd7a4277243907",
+    "cmake/NativeTu15PackedRotation.cmake": "92e1ee2c696d530475e17bbb1cc39afa1ec4c0bdb758c3561e075a68580c70e9",
     "cmake/NativeTu15PageAllocateAbi.cmake": "e5dac438edffffa75f995bce2c9c1e3fb7da8baf05cf0d3090846ff61ffa6b70",
     "cmake/NativeTu15PageAllocateData.cmake": "fa84ecf964b83c835c0eee77f4d0c9dcadf5f3232fe6ae71fa83b90855832ad1",
     "cmake/NativeTu15PageAllocator.cmake": "8c5c6684becbd577d5355f951792631dc395ff924648e59333267c208d96bf1f",
@@ -370,9 +660,13 @@
     "cmake/NativeTu15PhysicalCallbacks.cmake": "7f74501b5afb4ecae8070ccb9e6474f4643fdb9373a29279f2909fde562424d3",
     "cmake/NativeTu15PhysicalEpoch.cmake": "90aed4975c0ebed08165077d59bb520c6a5874c9bcb814d76235b054c05866b2",
     "cmake/NativeTu15PlayerStartup.cmake": "21199995989f7dff84019a9141373b788588a1853f31d32bbebdc8f3135eb3fd",
+    "cmake/NativeTu15PointSegmentDistance.cmake": "442d27370ade8ed71b44ae8c425a9400384e6074e4b5a31103d815da30094719",
     "cmake/NativeTu15PolygonFeatures.cmake": "6816de328490c72cfdfe672cde3f8f9e3fd09630471ac9c1785434e887ebc984",
     "cmake/NativeTu15PolygonSupport.cmake": "3875e75c0da5c535623edd248ae1d05eaf874dc651167afa43a0f15ade658f1e",
+    "cmake/NativeTu15ProjectileFunctionQueryFrame.cmake": "ff1ddbd0d269adb8f13aa741390271838f578509bd32ba28b4c65f6d6c369c64",
+    "cmake/NativeTu15ProjectionQuery.cmake": "b98981115c1bccb0aae7849d98c3aedb34ce4b01b622fed1611b581c5442410c",
     "cmake/NativeTu15PrtSample.cmake": "40fcd1af30c4ee0eb91e28929bf8c7c598e2f47028ea37fca5ef9006741a67ba",
+    "cmake/NativeTu15PvsFlood.cmake": "68f358d9e891c594769020d3c955dcf87f1d2acfc7648175133639fab1afe0da",
     "cmake/NativeTu15RawX87Scope.cmake": "771663e265e975d0f7ef46264961c5193563322fdb174c1f16eb17de9b3dd91a",
     "cmake/NativeTu15RecordLookup.cmake": "0c908aa30be5a55f08b2eba5aed60a5c668c79cfe7b77b38c50968c50d108de3",
     "cmake/NativeTu15RecordSearch.cmake": "e3a938a9b9fe8d6aed33670d7011e8fce3ae85bdc0a91f0fccc662272f312ccb",
@@ -396,6 +690,8 @@
     "cmake/NativeTu15RendererTargetStorage.cmake": "53b7a7f7aa9e8cfea270d05b75faa6adfb40a296db67f8fdfec24a3a825acdd9",
     "cmake/NativeTu15RendererTexturePairs.cmake": "2e7e1223e525823ccc02a59ba47a3b68a1804c8850f31419a50f724e1cdc50bf",
     "cmake/NativeTu15RendererTransparentStorage.cmake": "68b28eeec4abe6a71423dd1cc81901d61a87f9b0b6ecc901969f08607bc41e6a",
+    "cmake/NativeTu15RequiredAbiFp.cmake": "2789890a7afe898cabee6221c3a8b1ddce1405a91cd3401401635c6005c229ad",
+    "cmake/NativeTu15RequiredOwnerPolicy.cmake": "2c65639a0eb3b0bc014ed5a996a5c1f4630226eeee24df88ea32d753a84ac2bb",
     "cmake/NativeTu15ResourceBusy.cmake": "9f10d507a2fa6f8ccfec8d8b99805b1fb3585802b19f0bf8f196d8372d33cfac",
     "cmake/NativeTu15ResourceComposition.cmake": "b1220e1612d321d70be995a365eaac39ea42528f048096043e428767627b7d41",
     "cmake/NativeTu15ResourceMaintenance.cmake": "93ac0db52413efbe68adcb59856dbf3e32161c64aacfd3249178f058f74178c2",
@@ -406,15 +702,74 @@
     "cmake/NativeTu15ResourceTouch.cmake": "f25c7a3827e61fdbe9729b59b17d5fb09366ca5e809e782fc87b217a382f58f9",
     "cmake/NativeTu15RetainedObserverFp.cmake": "122fabe50bcd039c6e4d74f1f3a44425a709f8bd9a48fb8f46c361f677f91fe7",
     "cmake/NativeTu15ScalarState.cmake": "ea85a206a3fc7c82ef57a8eead198d80b4b7baf7f2648620f76d3c8395cabbec",
+    "cmake/NativeTu15SegmentSphere.cmake": "8e40f63006a432b34bb6998934102c29654a00bd637508498578eac546eb4f67",
     "cmake/NativeTu15ShaderLod.cmake": "804c8fef8b2883a39730a07e3dcbca1541332d66ce23c2627684a3d9da5e1a26",
     "cmake/NativeTu15ShadowBasis.cmake": "a000242a8681a77a45e7052acbc119b669a0c7132aa0281fd6cb2ccad42cf9e0",
     "cmake/NativeTu15ShadowInverse.cmake": "b1b1f57862b15a2d4f04ee0e484848f4a90804c5bd854a90ef937a4cdd9dfb93",
     "cmake/NativeTu15ShadowView.cmake": "c967c21c546d21d261e9b4dc4b75b1c99009ac2780f2aa9f586b10eded89e704",
+    "cmake/NativeTu15SimplexBoundary.cmake": "d833cf0fb3a019940edeea5b5ee7bc0231f1e3f90a337a671a2f35fcefdb2c64",
+    "cmake/NativeTu15SimplexBoundaryGeneration.cmake": "fbbf1ca997711e99a24e501f9876cca77f153a7faf7d8c31ab4d161821d79675",
+    "cmake/NativeTu15SimplexBoundaryRoutes.cmake": "6237afb0adaabddd7c35803c8bb2a3722ea63ef01aa27b7b7e51e34459c90156",
     "cmake/NativeTu15SimplexCandidate.cmake": "f6f575ba75315d84e194bef66e3141915c2d97706b9fb4cf793c92cacd6277d4",
     "cmake/NativeTu15SimplexDirection.cmake": "e76625177dc37a4b26a42643c95b3d44f7b9f368b9dabccd600c769b9d6e12a8",
+    "cmake/NativeTu15SimplexFaceRefine.cmake": "de63a50d64dc3edf2ad2406f96fc97a99afd510adaad95b9c9763deb174eca0e",
+    "cmake/NativeTu15SimplexFaceRefineGeneration.cmake": "024c99768eb1f1f587980881534845d9bb20510d64af0bf18e788fe2eeee8ace",
+    "cmake/NativeTu15SimplexFaceRefineRoutes.cmake": "cb8dccfdcace330b73b96594ba571332ba110faeb06db7494cc1a76af5c15fd9",
+    "cmake/NativeTu15SimplexFaceRefineValue.cmake": "2ac1b7253e2414315f93aa83b81b4ee0f0f1c05c5215fb226a669cae1e2e6e16",
+    "cmake/NativeTu15SimplexFaceSelect.cmake": "a224ff0c5214a76e19d1512928ec5c4e89519eb7da760a26ebd70551ef13af52",
+    "cmake/NativeTu15SimplexFaceSelectGeneration.cmake": "ba1b508ddf6844acc377eb2cf5d1cc0e756fa5d16a6432c8b3215ba0a06e3cbc",
+    "cmake/NativeTu15SimplexFaceSelectRoutes.cmake": "45944385220a653126f011c9a63e4eeb48e2b63fc4113b14f4d167d2a4093c09",
     "cmake/NativeTu15SimplexFinalize.cmake": "46d962207bad9cf5e10416d26d420a9604ddbdf5feadaa100c737a8c6189b97a",
     "cmake/NativeTu15SimplexInitialize.cmake": "eb655d0e61c3ba35088d607eb5cd11fb924d8b697c8d72f224cae1be5d1b85c5",
+    "cmake/NativeTu15SimplexIteration.cmake": "15fc050e993db3e3ead4fdaa98f347302942eb16c613fb42c7b5f1746a3d6ca7",
+    "cmake/NativeTu15SimplexOwnerFrames.cmake": "56927a5f03f9551d5d85a2a973308a85a4f86aa2c4343ceeb9ecd22a140b4a94",
+    "cmake/NativeTu15SimplexPaired.cmake": "5f0e60f483d9963c066bf03b441d88f03fefa04cde461888313abb0eda4f188f",
+    "cmake/NativeTu15SimplexPairedGeneration.cmake": "4c02f4b01bcd0c0516779e758055ecfb550273e9e900b65f51b03821de12d436",
+    "cmake/NativeTu15SimplexPairedRoutes.cmake": "2eb8be2211e50efb135a856714694a4ff1e1b4bb4f5d66116ef649c6d7f9f83c",
     "cmake/NativeTu15SimplexProjection.cmake": "1cb3fbdc2590e239e29264041b3bcfa629af42ce1796de4dc4eddad65b198719",
+    "cmake/NativeTu15SimplexSupport.cmake": "6f85645623a921cc1e92d9b827f1c39e2743716ee65254bee9434f369359d017",
+    "cmake/NativeTu15SimplexTriangleFrame.cmake": "495efa6eb8855e0b567c99d3b9be94b5a94d7793740b60e5d6a5e5a3cbd04daf",
+    "cmake/NativeTu15SimplexTriangleGeneration.cmake": "a4f4988e3cb9b17712f279226d6bfc66acb0e0935431a2b5e6e03f6600eae29c",
+    "cmake/NativeTu15SolverHullAppendFrame.cmake": "843581c0383b4e6d2c7611bac314707a08c5a06d32f5482887cea8dad460491a",
+    "cmake/NativeTu15SolverHullAppendGeneration.cmake": "2d2cc3ad5ac2e7afa18ad0d8d1158d91be18b1470caff547e835574009ec2d67",
+    "cmake/NativeTu15SolverHullAppendRoutes.cmake": "28804bcd6acf31143e801e72ff751a915d2dcd9015edabe66338fea29aaae985",
+    "cmake/NativeTu15SolverHullAppendValue.cmake": "a25a9a7d811e6688211bf4720b655ffc1e5873d318a87cd7319ec44613129659",
+    "cmake/NativeTu15SolverHullBasisFrame.cmake": "9350b217a9c0a9691a12dc6cf07e1ad7db9c55d45d7462f3e69b390e73951284",
+    "cmake/NativeTu15SolverHullCleanupFrame.cmake": "7b67aa817aeee4170c56e9e81b1dd67e4f2c4f60e6e048e1d206201af8b7bd77",
+    "cmake/NativeTu15SolverHullCleanupSource.cmake": "f14cca2ddaf8f43d84379d851c50cd066e7f443e963db1b8b87bc19679cbec6b",
+    "cmake/NativeTu15SolverHullClearFrame.cmake": "9ab67f1bbba704a6d74e65aa53efb19c8b1d4d937510ece60cbcf8f377cf76a3",
+    "cmake/NativeTu15SolverHullClearRoutes.cmake": "e168d69f8c62a5c23e7c10b17c1fc8e9b148158332ad5539da31cd89dcdd0674",
+    "cmake/NativeTu15SolverHullClearValue.cmake": "3c193deff3b5047e6def018dc70752b5acac4ba1b52cb87bc09a6fa756390781",
+    "cmake/NativeTu15SolverHullClipFrame.cmake": "bb42d6388fbb161c46f4b411d363f89d6058827428b9d8cfb76ebc96acc89b12",
+    "cmake/NativeTu15SolverHullClipRoutes.cmake": "97c9f7198c8fc2dd28f9c66ebc529df4b99e1a4e199e94cf0cba81fa86a79aa5",
+    "cmake/NativeTu15SolverHullClipValue.cmake": "436a0a523a442aa91bfd73999c1094c4f9921caee355b4852102fd0e6d3cc59c",
+    "cmake/NativeTu15SolverHullContext.cmake": "54220101f60d11869eeebc14dbcd054a34eecf2c559ddbdbf3acc605524f27c6",
+    "cmake/NativeTu15SolverHullContextValue.cmake": "f56ec79ce0992d377c0da04de560e6a2d6799b605a4320ca931d2dbd72ff130a",
+    "cmake/NativeTu15SolverHullEdgeFrame.cmake": "b696a8a9d9a6f056be97084edf488e25323e7ce8f63b35362a150d0ef01370c2",
+    "cmake/NativeTu15SolverHullEdgeGeneration.cmake": "3370b36405d7f98f7a525f3a4fcf22b8b175cb3d3d4cc8f76bf4952732e05c8e",
+    "cmake/NativeTu15SolverHullEdgeRoutes.cmake": "1a1b7a906e6fb55d5beb39b1383cf81abb7a7f31d95cba671572e8e31d9a6120",
+    "cmake/NativeTu15SolverHullEdgeValue.cmake": "0ad1ef13c1328a849cdd7b7c528c9e08b3c82013f2fe133b4c40939568002649",
+    "cmake/NativeTu15SolverHullInitializeFrame.cmake": "f3596da67999f37ff87b38fa90378e2bbe57928f20c3e4b89f7d850bda30cd26",
+    "cmake/NativeTu15SolverHullInitializeGeneration.cmake": "f5809a4026f5cf37912f53b4d8fa7c04c6282753710d42741abb4e04617de0d7",
+    "cmake/NativeTu15SolverHullInitializeRoutes.cmake": "41ffb3c1104b104d981d51589da563a696193130c0c68091a3c9114be08810fe",
+    "cmake/NativeTu15SolverHullInitializeValue.cmake": "e47fdda78ec6a226c956a839d5437a135418c900aac044a2ace8b77ead754df0",
+    "cmake/NativeTu15SolverHullLineFrame.cmake": "43c8e46ac36c940ccd648b9669f67b5c733495c16799dbe1c158a024d1602831",
+    "cmake/NativeTu15SolverHullLineGeneration.cmake": "f589263464aa42456d369c02068f93bb9c54d0b9748a0d434381aabf7a606867",
+    "cmake/NativeTu15SolverHullLineRoutes.cmake": "f8c729cec8d7d95ef6e6fb1d3b8ca16b9f03efbd0d49d51cc25e67f8daba2df7",
+    "cmake/NativeTu15SolverHullLineValue.cmake": "5bb304eda660f90bd331925ab728c9d2694f5eefc4a1cbd120ca5b9376af0113",
+    "cmake/NativeTu15SolverHullMinimumFrame.cmake": "b28e72a598bffd5423b89e9dc331e79a6df8b0ab7f04ff7e36a3a1b54e6d7ff0",
+    "cmake/NativeTu15SolverHullMinimumGeneration.cmake": "3eebfdb3c26ee0f7a68b036afe9aaf302ff558cf0ba3e0ca313ad91209d8dc9f",
+    "cmake/NativeTu15SolverHullMinimumRoutes.cmake": "169c629f9701ffe83b31d39b00a17f95e95595114d4ed5b05b9e523382ee40e1",
+    "cmake/NativeTu15SolverHullMinimumValue.cmake": "d67b8c58238ee41c54c04f3c739a66085cbadb9d9a81cac7d6e503b0f72b6381",
+    "cmake/NativeTu15SolverHullOwnerFrame.cmake": "82fd97f2aff7a8932297367b14b158d79232871349eb8b0982cb1a5b81af9ce6",
+    "cmake/NativeTu15SolverHullSampleFrame.cmake": "2c2292a1ce7a03885b3331278a9af36f870ddfd47d682db6059890e4d60a5d21",
+    "cmake/NativeTu15SolverHullSampleGeneration.cmake": "74558a34d9e5ecddaa47eed4c13037cf9286e901487d5259413a78460772a27a",
+    "cmake/NativeTu15SolverHullSampleRoutes.cmake": "660bdc44fffd90a0f603b6585a7c947b66b375e6a61ca20768421ad02e786a8f",
+    "cmake/NativeTu15SolverHullSampleValue.cmake": "adf1025b673bd493276a7242a884792d647626a2bdc3915fdd8a82a6e1369b7c",
+    "cmake/NativeTu15SolverHullSupportPair.cmake": "56dbbe9c5a13f9d4a04d518c1df355d7fe5f11f3c43436f81c54f0a8afbca4ff",
+    "cmake/NativeTu15SolverHullSupportPairGeneration.cmake": "8f3c049cecded8ebad7daa65a099e229399b6b34bf981267900f93a274e5242c",
+    "cmake/NativeTu15SolverHullSupportPairRoutes.cmake": "dca5103f690f9bc823d696decd801c70123d4e3ffbf3438fbb882dbe859e95e4",
+    "cmake/NativeTu15SolverHullSupportPairValue.cmake": "05aa4e8e857e4f232f26515cf8f5aefb490bb0194d8d3e8462f291d0bda84b11",
     "cmake/NativeTu15SoundAc97ChannelReset.cmake": "828c3af6212c330e91b26ada1e476accbc9ae2d2d59d5533aea847734ad21a7c",
     "cmake/NativeTu15SoundAc97Output.cmake": "349856fa147bbfc0680152cbf44591669a6dd784390a011f587d5146fa43f31e",
     "cmake/NativeTu15SoundAc97PageRelease.cmake": "44abb174071063670e98cf663569cd2894eed5dec11b294978bfae496e7111a7",
@@ -454,6 +809,9 @@
     "cmake/NativeTu15SoundTimedNotifications.cmake": "d2a79a09dd56e3e17d09a261497b91021e5f82d619db1d4035bca962327fc790",
     "cmake/NativeTu15SoundTwoProductAccumulator.cmake": "06be5468116767c8788803713a0bb82f64dee04960a817ef49f09b5443d86d00",
     "cmake/NativeTu15SphereFrustum.cmake": "5c546b720a0128069961a603c1b9923c29856b708f3125857b65f5f06627cebf",
+    "cmake/NativeTu15SphereRayCast.cmake": "f0d75eda69ab2c5d06c3ff1313af3b978ea9d780a6da06935844353f8dff8c77",
+    "cmake/NativeTu15SphereRayCastGeneration.cmake": "23bb4035c8f42d0622cd6e782d8971c30b9197181d3d2131721eb02e8dc8a2bf",
+    "cmake/NativeTu15SphereRayCastRoutes.cmake": "73ae0d5e42cb31d7be1ad8ec0b286c90fcb3caf58c4d6c4296323c3acdff7334",
     "cmake/NativeTu15StackProbe.cmake": "ec79b4ee7a1a1cd135d0e4813a60c3ef47581cf84fbc09a6f849391f7a890232",
     "cmake/NativeTu15StartupPlatform.cmake": "09dcfd88fb3b73b0b85dd8c04977691c893686f71c7e2bf0deb71887c92f1ad7",
     "cmake/NativeTu15StartupTimer.cmake": "6b51ed10d7ffd69898146be226316e01c5ac1a745305c22d82a0bce2187e5fc6",
@@ -463,7 +821,15 @@
     "cmake/NativeTu15TickConversion.cmake": "d7d1b5564092a4f497608c5795be31856d2baa7cadf397005f86b6a306e4abd2",
     "cmake/NativeTu15UiScriptStartup.cmake": "571ea3ba657d5b453a1b2c28ec5938dbf71c14fdb953668bd339148e5d9e9ccb",
     "cmake/NativeTu15VehicleChoiceData.cmake": "4e0aa814dd1d77aefc3637e50549cf60fb66604c3e3ede91efcfaca0bf2c86be",
+    "cmake/NativeTu15VehicleEffectRatio.cmake": "58cc77cfc1f12f161b42e070011ee341f237531e9b6b142011fb90b30b1840d5",
+    "cmake/NativeTu15VehicleObjectLookup.cmake": "88389e9f31f86e598699092db0614c22e66c432f0e1e74a78b85baa287010309",
     "cmake/NativeTu15ViewStorage.cmake": "a6682352b7c1f37372d846b1119661f8ee78a7a04e9c570034381f3994b7451f",
+    "cmake/NativeTu15VisibilityAssociation.cmake": "11ea93de8bfdfecd39bd7f6c9f2f28b5b848767c33410d299d69e3d43087b1e9",
+    "cmake/NativeTu15WorldLeaves.cmake": "fe89bd94072c644a6670c22d84204f8fc6d8f11b1c8244ec991a43cd38613bac",
+    "cmake/NativeTu15ZeroShapeSupport.cmake": "d41f03ba5b0bb322447b0963b6ddc60ac5ef39867fc2ab2c4a73e48008851b85",
+    "cmake/NativeTu15ZeroShapeSupportGeneration.cmake": "077201de467c7cdcaf242c5b316dc9df5c0f8fce5bfab54c26cfa40700a9e737",
+    "cmake/NativeTu15ZeroShapeSupportRoutes.cmake": "509bd9e99eee580b9bd81462e79015b18aecff4682deb538d283d7fb4d5be655",
+    "cmake/NativeTu15ZeroShapeSupportValue.cmake": "586b551edd8983e62c4da5ead0d7fbad34c0db090cb3fb167db466b60aa3c367",
     "cmake/NativeWeaponEffectRoutesTu15.cmake": "c57c7c9d339020f6f7750b27333b79542b51dd51f870d3eee4d7a4263ff2d86b",
     "cmake/NativeWeaponEffectsTu15.cmake": "c9c7ac61f13c83ff1689bad97cfe2d3200fad1a6c37f61207a0e040c0eb9d52b",
     "cmake/OnlineGameplayPresentationTu15.cmake": "4cc81fdc5cdfa837a64eb602d10dba495df5302d5a41cacd4dfa6afd327a23a0",
@@ -473,15 +839,16 @@
     "cmake/OriginalLoading.cmake": "dafeb462232c8ce56c24d33174e53a8187bc68bb7bcd4afbdf4f6ba9ae7d5a94",
     "cmake/OriginalMatchmakingFonts.cmake": "650040c93a52ff4631cc1fd07cd913d8056d127ff3bfec5317fed8a151ae08c8",
     "cmake/OriginalPcrIntro.cmake": "be50c6cae6769e958ab6f70a4bc0a38fc93180e1a567f3a9b5d22959eb255430",
-    "cmake/PStencil.cmake": "d2559aab33891973460491e03d30a9a600aa0e4c76fedfc72cbe583cf7071d96",
-    "cmake/PathTracing.cmake": "59b5156b71d0a574f8633b4b93d0376394df40f3b76d036d85f64f834edb1396",
+    "cmake/PStencil.cmake": "8ad1d3d0408922b639912ed1252cad02f35b4080d779132c6be6e584f0b44da9",
+    "cmake/PStencilVolumeDepthTest.cmake": "e4cd96390c02424dfa62efa684bb0fd554e31200dacb98c8bceb489c337dad00",
+    "cmake/PathTracing.cmake": "610ee88e55e13f1fbde97a276d8d113025e229d18aa8979f871f83bdaed7c2b9",
     "cmake/PeerSnapshotCandidate.cmake": "c105b3cca00df6a014cae0ae62f134d185331a82d98f530d8156f21b4e577932",
     "cmake/PhysicsBspConstruction.cmake": "cab7334524df30bdf2ec2f6843ca55844763cf27b8545bb92d00105721ae462d",
     "cmake/PhysicsContactRuntime.cmake": "f63745d798508c4873ff4728bcaac1db9dd9887f7b708e505a39fc7b1e25be9e",
     "cmake/PhysicsEarlyInitializer.cmake": "66936689a9952692d3d0965ff422a191c51ec1847bec65e48f89defd2c17c62f",
     "cmake/PhysicsGameArena.cmake": "a1c97e948f29e3ae3431a0f4e6daa0059258ef66dd0c72380a13fb51c8419f4a",
     "cmake/PhysicsGameFrame.cmake": "f0efa69a6f23800dda277b82631f10a6451f5637b8f84e1370de14b5e64042d3",
-    "cmake/PhysicsLiveWorldTu15.cmake": "3bb8c0e87b17055670befbe77a24537a8b7502f7950761e84b9cac4233469ef0",
+    "cmake/PhysicsLiveWorldTu15.cmake": "0157b8fde58ca88305abc19bea1e9d49893abc878981d3c09ab67fd8fb0d3403",
     "cmake/PhysicsMainHeap.cmake": "902598994a5a2f11a70f6f2bd5792941ec768bca0e5eaa55bfcebc7fdd109b9e",
     "cmake/PhysicsMultiplayerAcceptance.cmake": "11ab4ab7e2e68a805a2d507c8f196f037b1e88b3a8d7ba16b2a4d650e13cb50b",
     "cmake/PhysicsNativeFrameTu15.cmake": "e9c701bed844651222dbc4041838bc974e0800cb461ce62783a27a5ef4b03e3c",
@@ -559,7 +926,7 @@
     "cmake/SourceWorldParticleDrawsTu15.cmake": "315d235f774baab9a5c935d413ff1c3952026d2fed1f2cc49564caef9756337e",
     "cmake/Tags.cmake": "059933d007cb78e09322ebc9a4a0ae8ac6a3c68e89bfca6be22cb0dd8fc15884",
     "cmake/TestStorage.cmake": "80fd05ef47398b6fcbc9ee7251fd267c8252cf2abe0a263cf6c4bfaf42ef9e5a",
-    "cmake/TextureCameraNative.cmake": "767c7e802e70c05f2ce046441e2ec68969d8c91dce3b5dc9afe5e60a6f72b65f",
+    "cmake/TextureCameraNative.cmake": "bf39a273daf32970d2e7cf923d6534551b80004bb0431b1c5fd2e6c4ab920b8e",
     "cmake/UnitSpeechChannelSymbols.cmake": "b53f6ea317b3a79afb82e2db466f244f6f5db6d26059c896275b33307c1fdf6e",
     "cmake/Upscaling.cmake": "87839d48a531cd4d086e64a7eda9b6fd8fb400bb917b02c6f299f4f64a158ead",
     "cmake/UpscalingHistoryTests.cmake": "35e0853e8c3d89b678ec99dafc7a0c409ad5670cb4d69fb47c71a5302344efaa",
@@ -607,13 +974,13 @@
     "configuration_drift": [],
     "configured_generated_units": 180,
     "configured_graph_current": true,
-    "configured_literal_instruction_source_units": 205,
+    "configured_literal_instruction_source_units": 195,
     "current_source_and_configuration": true,
     "host": {
       "machine": "x86_64",
       "system": "Linux"
     },
-    "path": "docs/native_replacement/evidence/linux-release-production-closure-20261109-accounting-r20.json",
+    "path": "docs/native_replacement/evidence/linux-release-production-closure-20261120.json",
     "root_target": "halo2_native",
     "scope": {
       "canonical_alias_bindings_complete": true,
@@ -624,10 +991,10 @@
       "other_platforms_or_configurations_qualified": false,
       "runtime_execution_proved": false
     },
-    "sha256": "65b06f9d35cd8f3d45727b232823b4bc1579926ec6f7ad536169b07a753bf4a8",
+    "sha256": "eee2d85957ecde49d0b518e6cd7afd5eda5351b48adfc8219c3a70bd0cfd5f51",
     "source_or_configuration_drift": [],
     "source_preparation_tool_drift": [],
-    "target_count": 175
+    "target_count": 174
   },
   "generator": "tools/audit_native_migration_inventory.py",
   "generator_sha256": "3b823f3c01a215921cec2c9daededd53970508900a3950ccc8914393738f6901",
@@ -793,22 +1160,30 @@
     "halo2_weather_simulation"
   ],
   "route_status_totals": {
-    "hash_authenticated_source_native_prefix_with_retained_reference": 70,
+    "hash_authenticated_source_native_prefix_with_retained_reference": 201,
     "hash_qualified_native_service_observation_boundary": 1,
     "literal_instruction_shape_candidate_requires_native_ownership_review": 348,
-    "literal_observer_boundary_requires_semantic_review": 5,
+    "literal_observer_boundary_requires_semantic_review": 6,
     "no_callback_body_requires_audit": 17,
-    "retained_translation_no_native_admission_proven": 8442,
-    "retained_translation_with_hash_bound_native_leaf": 11,
-    "retained_translation_with_native_admission_hint_requires_audit": 257
+    "retained_translation_no_native_admission_proven": 8289,
+    "retained_translation_with_hash_bound_native_leaf": 10,
+    "retained_translation_with_native_admission_hint_requires_audit": 280
   },
   "schema": "native-migration-source-inventory-v1",
   "scope": "All src/**/*_generated.cpp units plus literal-instruction owners in src C/C++ files and headers, regardless of filename; unresolved/nonproduction registrations remain visible.",
   "source_native_prefix_catalog": {
     "entry_symbols": [
+      "100e70",
+      "1046c0",
+      "107140",
+      "10be20",
+      "10de40",
+      "11e490",
+      "120fa0",
       "122020",
       "1232c0",
       "1236a0",
+      "125280",
       "126060",
       "1260c0",
       "126190",
@@ -816,18 +1191,46 @@
       "1262b0",
       "126480",
       "1264e0",
+      "134d30",
+      "135690",
+      "135970",
+      "135b60",
+      "135e00",
+      "136230",
+      "1362a0",
+      "1365c0",
+      "136a80",
+      "136d50",
+      "136e10",
+      "136ea0",
+      "1373f0",
+      "13a6b0",
       "13fe50",
       "15cb60",
       "15cc70",
       "15cd30",
       "15cdf0",
+      "165590",
+      "1655f0",
+      "166c00",
+      "167ef0",
       "16b810",
+      "16b9a0",
+      "16c000",
       "16e770",
       "16e860",
+      "171070",
+      "178070",
+      "17de60",
       "184690",
       "186e30",
       "1a5080",
+      "1cf0e0",
+      "1db800",
+      "1dc8f0",
+      "1e11b0",
       "1e3150",
+      "1e4c0",
       "1e5af0",
       "1e5c80",
       "1e68e0",
@@ -835,16 +1238,107 @@
       "1e6cb0",
       "1f1d20",
       "1f1da0",
+      "22aca0",
+      "22b710",
+      "22b790",
+      "24b430",
       "24dec0",
+      "24def0",
+      "24df20",
+      "252ec0",
+      "296180",
+      "2961f0",
+      "296220",
+      "296240",
+      "2962f0",
+      "2963d0",
+      "296410",
+      "296620",
+      "2cec60",
       "2dbf74",
+      "2e2d10",
+      "2e2e00",
+      "2e3080",
+      "2e30e0",
+      "2e8d20",
+      "2e8dd0",
+      "303800",
       "305e40",
+      "306790",
+      "309d40",
+      "30dc10",
+      "30eb30",
+      "312620",
+      "3131b0",
+      "313290",
+      "313300",
+      "313390",
+      "313470",
+      "313560",
+      "3136a0",
+      "3147d0",
+      "314870",
       "33b590",
+      "3eb10",
+      "4bae0",
       "b8780",
       "b87b0",
+      "b9b90",
+      "bacd0",
+      "bbcb0",
+      "bbd10",
+      "bbe70",
+      "bcb70",
+      "bcdf0",
       "bf0c0",
-      "bfb90"
+      "bfb90",
+      "c3ab0",
+      "c9070",
+      "d26c0",
+      "d3950",
+      "e0900",
+      "fc510",
+      "marker_lookup",
+      "marker_parent_mode",
+      "marker_parent_unit"
     ],
     "families": [
+      {
+        "binder": "tools/native_indexed_datum_gate_replacements.py",
+        "entry_symbol": "3eb10"
+      },
+      {
+        "binder": "tools/native_particle_type_filter_replacements.py",
+        "entry_symbol": "17de60"
+      },
+      {
+        "binder": "tools/native_particle_envelope_replacements.py",
+        "entry_symbol": "252ec0"
+      },
+      {
+        "binder": "tools/native_particle_record_replacements.py",
+        "entry_symbol": "1e4c0"
+      },
+      {
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "entry_symbol": "178070"
+      },
+      {
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "entry_symbol": "13a6b0"
+      },
+      {
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "entry_symbol": "22b790"
+      },
+      {
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "entry_symbol": "22aca0"
+      },
+      {
+        "binder": "tools/native_effect_reference_element_replacements.py",
+        "entry_symbol": "22b710"
+      },
       {
         "binder": "tools/native_resource_touch_replacements.py",
         "entry_symbol": "126200"
@@ -926,6 +1420,22 @@
         "entry_symbol": "1e3150"
       },
       {
+        "binder": "tools/native_node_progress_query_replacements.py",
+        "entry_symbol": "1cf0e0"
+      },
+      {
+        "binder": "tools/native_node_function_progress_replacements.py",
+        "entry_symbol": "d3950"
+      },
+      {
+        "binder": "tools/native_object_function_query_replacements.py",
+        "entry_symbol": "c9070"
+      },
+      {
+        "binder": "tools/native_object_function_scalar_replacements.py",
+        "entry_symbol": "bcb70"
+      },
+      {
         "binder": "tools/native_vehicle_choice_data_replacements.py",
         "entry_symbol": "15cb60"
       },
@@ -944,6 +1454,82 @@
       {
         "binder": "tools/native_sphere_frustum_replacements.py",
         "entry_symbol": "184690"
+      },
+      {
+        "binder": "tools/native_cluster_frustum_replacements.py",
+        "entry_symbol": "167ef0"
+      },
+      {
+        "binder": "tools/native_bsp_queue_find_replacements.py",
+        "entry_symbol": "166c00"
+      },
+      {
+        "binder": "tools/native_fog_membership_replacements.py",
+        "entry_symbol": "171070"
+      },
+      {
+        "binder": "tools/native_visibility_association_replacements.py",
+        "entry_symbol": "136e10"
+      },
+      {
+        "binder": "tools/native_geometry_visibility_replacements.py",
+        "entry_symbol": "135970"
+      },
+      {
+        "binder": "tools/native_bsp_admission_replacements.py",
+        "entry_symbol": "136ea0"
+      },
+      {
+        "binder": "tools/native_object_admission_replacements.py",
+        "entry_symbol": "135b60"
+      },
+      {
+        "binder": "tools/native_model_draw_submission_replacements.py",
+        "entry_symbol": "136a80"
+      },
+      {
+        "binder": "tools/native_cluster_contents_replacements.py",
+        "entry_symbol": "134d30"
+      },
+      {
+        "binder": "tools/native_prt_partition_replacements.py",
+        "entry_symbol": "136d50"
+      },
+      {
+        "binder": "tools/native_object_fade_replacements.py",
+        "entry_symbol": "4bae0"
+      },
+      {
+        "binder": "tools/native_object_draw_flags_replacements.py",
+        "entry_symbol": "135e00"
+      },
+      {
+        "binder": "tools/native_object_pass_replacements.py",
+        "entry_symbol": "136230"
+      },
+      {
+        "binder": "tools/native_model_hierarchy_replacements.py",
+        "entry_symbol": "1365c0"
+      },
+      {
+        "binder": "tools/native_object_submit_replacements.py",
+        "entry_symbol": "1362a0"
+      },
+      {
+        "binder": "tools/native_light_shape_replacements.py",
+        "entry_symbol": "c3ab0"
+      },
+      {
+        "binder": "tools/native_view_reset_replacements.py",
+        "entry_symbol": "1373f0"
+      },
+      {
+        "binder": "tools/native_object_hierarchy_root_replacements.py",
+        "entry_symbol": "bbd10"
+      },
+      {
+        "binder": "tools/native_view_setup_replacements.py",
+        "entry_symbol": "135690"
       },
       {
         "binder": "tools/native_object_node_rebuild_replacements.py",
@@ -982,6 +1568,10 @@
         "entry_symbol": "24dec0"
       },
       {
+        "binder": "tools/native_sphere_ray_cast_replacements.py",
+        "entry_symbol": "2e8dd0"
+      },
+      {
         "binder": "tools/native_polygon_support_replacements.py",
         "entry_symbol": "1f1d20"
       },
@@ -996,11 +1586,259 @@
       {
         "binder": "tools/native_camera_instance_bitmap_replacements.py",
         "entry_symbol": "186e30"
+      },
+      {
+        "binder": "tools/native_camera_collision_publication_replacements.py",
+        "entry_symbol": "16b9a0"
+      },
+      {
+        "binder": "tools/native_segment_sphere_replacements.py",
+        "entry_symbol": "120fa0"
+      },
+      {
+        "binder": "tools/native_camera_instance_query_replacements.py",
+        "entry_symbol": "16c000"
+      },
+      {
+        "binder": "tools/native_instanced_ray_callback_replacements.py",
+        "entry_symbol": "24def0"
+      },
+      {
+        "binder": "tools/native_instanced_ray_callback_replacements.py",
+        "entry_symbol": "24df20"
+      },
+      {
+        "binder": "tools/native_closest_segments_replacements.py",
+        "entry_symbol": "30eb30"
+      },
+      {
+        "binder": "tools/native_closest_segments_replacements.py",
+        "entry_symbol": "312620"
+      },
+      {
+        "binder": "tools/native_simplex_paired_replacements.py",
+        "entry_symbol": "309d40"
+      },
+      {
+        "binder": "tools/native_simplex_boundary_replacements.py",
+        "entry_symbol": "30dc10"
+      },
+      {
+        "binder": "tools/native_solver_hull_append_replacements.py",
+        "entry_symbol": "313290"
+      },
+      {
+        "binder": "tools/native_solver_hull_support_pair_replacements.py",
+        "entry_symbol": "313390"
+      },
+      {
+        "binder": "tools/native_solver_hull_edge_replacements.py",
+        "entry_symbol": "313470"
+      },
+      {
+        "binder": "tools/native_solver_hull_initialize_replacements.py",
+        "entry_symbol": "313560"
+      },
+      {
+        "binder": "tools/native_solver_hull_line_replacements.py",
+        "entry_symbol": "3136a0"
+      },
+      {
+        "binder": "tools/native_solver_hull_sample_replacements.py",
+        "entry_symbol": "313300"
+      },
+      {
+        "binder": "tools/native_solver_hull_minimum_replacements.py",
+        "entry_symbol": "3131b0"
+      },
+      {
+        "binder": "tools/native_solver_hull_clear_replacements.py",
+        "entry_symbol": "314870"
+      },
+      {
+        "binder": "tools/native_solver_hull_clip_replacements.py",
+        "entry_symbol": "3147d0"
+      },
+      {
+        "binder": "tools/native_zero_shape_support_replacements.py",
+        "entry_symbol": "2e8d20"
+      },
+      {
+        "binder": "tools/native_box_shape_support_replacements.py",
+        "entry_symbol": "306790"
+      },
+      {
+        "binder": "tools/native_packed_rotation_replacements.py",
+        "entry_symbol": "296180"
+      },
+      {
+        "binder": "tools/native_codec_translation_replacements.py",
+        "entry_symbol": "2961f0"
+      },
+      {
+        "binder": "tools/native_codec_scale_replacements.py",
+        "entry_symbol": "296220"
+      },
+      {
+        "binder": "tools/native_codec_rotation_interpolation_replacements.py",
+        "entry_symbol": "296240"
+      },
+      {
+        "binder": "tools/native_codec_translation_interpolation_replacements.py",
+        "entry_symbol": "2962f0"
+      },
+      {
+        "binder": "tools/native_codec_scale_interpolation_replacements.py",
+        "entry_symbol": "296620"
+      },
+      {
+        "binder": "tools/native_codec_copy_replacements.py",
+        "entry_symbol": "2963d0"
+      },
+      {
+        "binder": "tools/native_codec_copy_replacements.py",
+        "entry_symbol": "296410"
+      },
+      {
+        "binder": "tools/native_codec_copy_replacements.py",
+        "entry_symbol": "2cec60"
+      },
+      {
+        "binder": "tools/native_object_type_query_replacements.py",
+        "entry_symbol": "10de40"
+      },
+      {
+        "binder": "tools/native_flight_property_query_replacements.py",
+        "entry_symbol": "e0900"
+      },
+      {
+        "binder": "tools/native_death_cycle_flight_query_replacements.py",
+        "entry_symbol": "e0900"
+      },
+      {
+        "binder": "tools/native_projectile_function_query_replacements.py",
+        "entry_symbol": "100e70"
+      },
+      {
+        "binder": "tools/native_object_definition_mode_query_replacements.py",
+        "entry_symbol": "165590"
+      },
+      {
+        "binder": "tools/native_object_record_ratio_replacements.py",
+        "entry_symbol": "107140"
+      },
+      {
+        "binder": "tools/native_object_ratio_caller_replacements.py",
+        "entry_symbol": "1046c0"
+      },
+      {
+        "binder": "tools/native_object_table_ratio_replacements.py",
+        "entry_symbol": "1655f0"
+      },
+      {
+        "binder": "tools/native_object_table_ratio_replacements.py",
+        "entry_symbol": "24b430"
+      },
+      {
+        "binder": "tools/native_map_world_property_query_replacements.py",
+        "entry_symbol": "11e490"
+      },
+      {
+        "binder": "tools/native_map_world_property_query_replacements.py",
+        "entry_symbol": "1db800"
+      },
+      {
+        "binder": "tools/native_device_property_query_replacements.py",
+        "entry_symbol": "10be20"
+      },
+      {
+        "binder": "tools/native_vehicle_render_root_replacements.py",
+        "entry_symbol": "bbe70"
+      },
+      {
+        "binder": "tools/native_vehicle_effect_ratio_replacements.py",
+        "entry_symbol": "d26c0"
+      },
+      {
+        "binder": "tools/native_contact_predicate_replacements.py",
+        "entry_symbol": "303800"
+      },
+      {
+        "binder": "tools/native_vehicle_object_lookup_replacements.py",
+        "entry_symbol": "bcdf0"
+      },
+      {
+        "binder": "tools/native_object_body_replacements.py",
+        "entry_symbol": "bcdf0"
+      },
+      {
+        "binder": "tools/native_object_material_lookup_replacements.py",
+        "entry_symbol": "bcdf0"
+      },
+      {
+        "binder": "tools/native_object_lookup_copies_replacements.py",
+        "entry_symbol": "bcdf0"
+      },
+      {
+        "binder": "tools/native_object_lookup_canonical_replacements.py",
+        "entry_symbol": "bbcb0"
+      },
+      {
+        "binder": "tools/native_arena_world_initialize_replacements.py",
+        "entry_symbol": "125280"
+      },
+      {
+        "binder": "tools/native_model_marker_lookup_replacements.py",
+        "entry_symbol": "1e11b0"
+      },
+      {
+        "binder": "tools/native_model_marker_lookup_replacements.py",
+        "entry_symbol": "1dc8f0"
+      },
+      {
+        "binder": "tools/native_model_marker_lookup_replacements.py",
+        "entry_symbol": "marker_lookup"
+      },
+      {
+        "binder": "tools/native_object_parent_mode_replacements.py",
+        "entry_symbol": "fc510"
+      },
+      {
+        "binder": "tools/native_object_parent_mode_replacements.py",
+        "entry_symbol": "marker_parent_mode"
+      },
+      {
+        "binder": "tools/native_marker_owner_replacements.py",
+        "entry_symbol": "bacd0"
+      },
+      {
+        "binder": "tools/native_marker_owner_replacements.py",
+        "entry_symbol": "b9b90"
+      },
+      {
+        "binder": "tools/native_marker_owner_replacements.py",
+        "entry_symbol": "marker_parent_unit"
+      },
+      {
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "entry_symbol": "2e2d10"
+      },
+      {
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "entry_symbol": "2e2e00"
+      },
+      {
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "entry_symbol": "2e3080"
+      },
+      {
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "entry_symbol": "2e30e0"
       }
     ],
     "path": "tools/native_source_prefixes.py",
     "scope": "Listed exact source-level admission prefixes only; uncatalogued hooks retain audit hints. Runtime admission and dependency closure are not proved.",
-    "sha256": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9"
+    "sha256": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c"
   },
   "subsystem_totals": {
     "assets": {
@@ -1029,7 +1867,7 @@
       "production_candidate_function_bodies": 1
     },
     "gameplay": {
-      "configured_production_function_bodies": 2846,
+      "configured_production_function_bodies": 2832,
       "function_bodies": 2846,
       "generated_units": 41,
       "nongenerated_units": 14,
@@ -1056,7 +1894,7 @@
       "production_candidate_function_bodies": 2920
     },
     "platform": {
-      "configured_production_function_bodies": 119,
+      "configured_production_function_bodies": 118,
       "function_bodies": 119,
       "generated_units": 13,
       "nongenerated_units": 2,
@@ -1076,9 +1914,10 @@
     },
     "runtime": {
       "configured_production_function_bodies": 193,
-      "function_bodies": 193,
+      "function_bodies": 194,
       "generated_units": 1,
-      "production_candidate_function_bodies": 193
+      "nongenerated_units": 1,
+      "production_candidate_function_bodies": 194
     },
     "ui": {
       "configured_production_function_bodies": 67,
@@ -1089,18 +1928,18 @@
   },
   "totals": {
     "address_named_function_bodies": 9102,
-    "configured_production_function_bodies": 9103,
-    "configured_production_units": 205,
-    "descriptive_function_bodies": 49,
-    "function_bodies": 9151,
+    "configured_production_function_bodies": 9088,
+    "configured_production_units": 195,
+    "descriptive_function_bodies": 50,
+    "function_bodies": 9152,
     "generated_units": 187,
     "no_literal_cmake_registration_found_requires_audit": 3,
-    "nongenerated_units": 25,
-    "production_candidate_function_bodies": 9083,
+    "nongenerated_units": 26,
+    "production_candidate_function_bodies": 9084,
     "registered_outside_static_production_closure": 7,
-    "source_units": 212,
+    "source_units": 213,
     "static_production_candidate": 192,
-    "static_production_include_candidate": 10
+    "static_production_include_candidate": 11
   },
   "units": [
     {
@@ -1153,7 +1992,7 @@
           "bytes": 4319,
           "path": "inventory/assets__source_resource_cache_pressure_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "1a69115c78f2459048baed59033ed18a9ea4c42d2d214103e5674abd8d8cb478"
+          "sha256": "89472cec01e3a70458af3ac2c14cd425492e6d8cfe351b1b7b84e5ec207b8e21"
         }
       ]
     },
@@ -1180,7 +2019,7 @@
           "bytes": 19022,
           "path": "inventory/audio__dsp__source_sound_dsp_image_tu15_generated.00.json",
           "routines": 19,
-          "sha256": "7a722d585e51a03f23d3ebb5f10dbc21b0d32ab78e08d94aa0cd72f172ad927f"
+          "sha256": "3f6dd14ff94bc914abcfa38b74c85effa09508b15aabe256133d4d18b30ed896"
         }
       ]
     },
@@ -1288,7 +2127,7 @@
           "bytes": 21132,
           "path": "inventory/audio__source_object_loop_audio_tu15_generated.00.json",
           "routines": 24,
-          "sha256": "79a7a8bc8fe43f6c37a6d85f6411efec5f98d2baa711facc795f7562c185273e"
+          "sha256": "fd9c94f3ee6d93aef6bb5c51e700ce4ef681d2822b23166ddc2fc928313e4d90"
         }
       ]
     },
@@ -1423,7 +2262,7 @@
           "bytes": 2510,
           "path": "inventory/audio__source_sound_cache_query_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "c7360056ef2c65f8146f783059175c0e813252366b4187f5b951e87f7566db78"
+          "sha256": "13fb246f0d4fada0c08773ce6fab02349a2ac58d7242468eb5790ebc13c78eab"
         }
       ]
     },
@@ -1579,7 +2418,7 @@
           "bytes": 1770,
           "path": "inventory/audio__source_sound_duration_tu15.00.json",
           "routines": 1,
-          "sha256": "9e40d2db6e3c46cf30c97f78c8038e3ec741b5071480c2a6bf8bf6ccd3a2814c"
+          "sha256": "1d54dea2b358395b6064daf23698ca01b19e7346dcbc80150537264f8ffa414f"
         }
       ]
     },
@@ -1980,7 +2819,7 @@
           "bytes": 33870,
           "path": "inventory/audio__source_sound_sdk_tu15_generated.00.json",
           "routines": 35,
-          "sha256": "fa97dff4c9a1ede603826e14eedff5b6f29da67bf562d50b7150cffbde50b38a"
+          "sha256": "82c492476cdfc1a5e7b2362a34758a2c8801f75b926429a6d29759aaeebfbbef"
         }
       ]
     },
@@ -2007,7 +2846,7 @@
           "bytes": 8691,
           "path": "inventory/audio__source_sound_startup_tu15_generated.00.json",
           "routines": 7,
-          "sha256": "99a283e7d4e7d2c141203ce9e063d2c63326c97438bd77531a853f73b53e3d05"
+          "sha256": "c23fd24dbf698a33437b1a634bfd92308861549c3d6e55e9744f0a627459b34d"
         }
       ]
     },
@@ -2088,7 +2927,7 @@
           "bytes": 2600,
           "path": "inventory/campaign__ai__source_ai_actor_contact_selector_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "c953f4a191a062a1b92b73ee3e022708a8682fc82a17c4b51a05daa6e83735c0"
+          "sha256": "f275df9ceda6b5404cde77ca37a79a9ff26c6277489e61cb21560fa1ac2ac1b7"
         }
       ]
     },
@@ -2114,10 +2953,10 @@
       "source_sha256": "867dfc42597a61fda50d2cceb3f680d3588435078b1612d0c50df9e17d3ddd4f",
       "tables": [
         {
-          "bytes": 158273,
+          "bytes": 159083,
           "path": "inventory/campaign__ai__source_ai_actor_tu15_generated.00.json",
           "routines": 157,
-          "sha256": "d701d63ef5bc6b20e981b8a867b2d24baf9db01fc5a2fbcf995cbaa1195404b1"
+          "sha256": "395d0bf2ac6d28b2923f738bf6403d45f98e04638bdc2011649593838b8b27d8"
         }
       ]
     },
@@ -2132,22 +2971,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 16,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 27,
         "no_callback_body_requires_audit": 1,
-        "retained_translation_no_native_admission_proven": 650,
-        "retained_translation_with_native_admission_hint_requires_audit": 24
+        "retained_translation_no_native_admission_proven": 622,
+        "retained_translation_with_native_admission_hint_requires_audit": 41
       },
       "routine_count": 691,
       "source": "src/campaign/ai/source_ai_frame_tu15_generated.cpp",
-      "source_bytes": 8635204,
+      "source_bytes": 8640855,
       "source_filename_scope": "generated",
-      "source_sha256": "3a957757a583a8ff5ff1bce4e23750cc597f9e8ebcf242ac6cad74bd9a388b6b",
+      "source_sha256": "97f4f7c1602833706090182dcf75420fe418ef90f51867ec39afd04301c64ab1",
       "tables": [
         {
-          "bytes": 715299,
+          "bytes": 802593,
           "path": "inventory/campaign__ai__source_ai_frame_tu15_generated.00.json",
           "routines": 691,
-          "sha256": "5d0c961a51b77d5efa1ee1190a9a1a907f26d4629238989ddbd1f18f8a881e34"
+          "sha256": "97b7134d8b72776fe26f51012e81e09ff805cc0c848390c84ea8675d53404cdd"
         }
       ]
     },
@@ -2309,7 +3148,7 @@
           "bytes": 3430,
           "path": "inventory/campaign__ai__source_dialogue_admission_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "b0355de05eed5864b59732b158a23e1509da24f5a3ce9d33caa45b04b101bfb5"
+          "sha256": "1698c5cc70459102beee30fae613470d770a028bf94ba8ce106db7bb42f62c72"
         }
       ]
     },
@@ -2336,7 +3175,7 @@
           "bytes": 9440,
           "path": "inventory/campaign__ai__source_unit_speech_tu15_generated.00.json",
           "routines": 9,
-          "sha256": "c5a9636539c54786dcdc00ea8518922d791f340b93f132ac987d549b0e903a83"
+          "sha256": "1210e9b8537500302d903a5f47398d47250b91456046e8680e1638e9cfe29c1d"
         }
       ]
     },
@@ -2363,7 +3202,7 @@
           "bytes": 11208,
           "path": "inventory/campaign__scripting__source_recorded_animation_tu15_generated.00.json",
           "routines": 11,
-          "sha256": "43b48482c3f20565026bcca524385511a19ea112796be4e09d368a2a2928d628"
+          "sha256": "02d7256f839684f8588262d0de113d1f414fd9adeb7e6960aadf6ba6d1df9aa1"
         }
       ]
     },
@@ -2391,7 +3230,7 @@
           "bytes": 4579,
           "path": "inventory/campaign__scripting__source_script_effect_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "63b662916e6a8b77c2484b3e936e1c9af9cff1d9bcf4a7e5e19a1a6f7d2c093e"
+          "sha256": "12cca9ca007edcdebcb6b58d5468e7e8648b9f3f8f846ee5f21327a7738c48df"
         }
       ]
     },
@@ -2441,7 +3280,7 @@
           "bytes": 18043,
           "path": "inventory/campaign__scripting__source_workshop_script_builtins_tu15_generated.00.json",
           "routines": 18,
-          "sha256": "117d49fbababd406a162dd7824e344c2c987c2896eee14d54fc0bbf1cee9aa71"
+          "sha256": "b90ee47339ea314110563672b554b937c8897acdb4b76c369eeba72fd9531985"
         }
       ]
     },
@@ -2491,7 +3330,7 @@
           "bytes": 47794,
           "path": "inventory/campaign__source_campaign_activation_tu15_generated.00.json",
           "routines": 51,
-          "sha256": "d52fd645b1cdb35c23d730663cdd70acfb2813a7f441e809f3758a56f462ad65"
+          "sha256": "e5898d4401d0b84c80a41242597992871815f4109f50f8370d128159bb87f4df"
         }
       ]
     },
@@ -2518,7 +3357,7 @@
           "bytes": 38915,
           "path": "inventory/campaign__source_campaign_audio_tu15_generated.00.json",
           "routines": 40,
-          "sha256": "b50908513d3fcbb2783d632403f70afeb91b7992cf8dfcbdb0e3d6c5bb156d35"
+          "sha256": "a34d78142b9a47fd73557c2f64e7b69feb1df1de74f5bff0fca16bd8011feab4"
         }
       ]
     },
@@ -2572,7 +3411,7 @@
           "bytes": 28990,
           "path": "inventory/campaign__source_campaign_camera_tu15_generated.00.json",
           "routines": 30,
-          "sha256": "58709c77a25f4527d5b5d24a6634d9ecf570c5bc372fce63073cc4f0d292d535"
+          "sha256": "0ebb8dadadfa9ac14828c4f5c5d2f4c6c1159713aeae34484a1e7c35d4119652"
         }
       ]
     },
@@ -2599,7 +3438,7 @@
           "bytes": 11200,
           "path": "inventory/campaign__source_campaign_cinematic_tu15_generated.00.json",
           "routines": 11,
-          "sha256": "bd55cb72595de8ff2f0871f9419045817b1e4d133822674da217466aab0bb217"
+          "sha256": "8c6756b5a833199b0f8c9842b3c1f0b840792393f94424a8741ef1ed3674714d"
         }
       ]
     },
@@ -2626,7 +3465,7 @@
           "bytes": 13382,
           "path": "inventory/campaign__source_campaign_completion_tu15_generated.00.json",
           "routines": 13,
-          "sha256": "89c17132f13babeb2697372553d8994b9a44aaf96c7ea0eb7b6a5d26bd3c75c6"
+          "sha256": "a52028f24c2a89e2b471a5473638914398c0d760f5d0835412c84710f1b9063f"
         }
       ]
     },
@@ -2653,7 +3492,7 @@
           "bytes": 12263,
           "path": "inventory/campaign__source_campaign_dof_recipe_tu15_generated.00.json",
           "routines": 12,
-          "sha256": "c5096ad7652230c6a9b2577135fea68dc9ca4835b9d203ab01ba49477bf7df12"
+          "sha256": "987512408725384a1e12c9d02e0da76d9249c7164ebc837278f45bf11c601753"
         }
       ]
     },
@@ -2708,7 +3547,7 @@
           "bytes": 55494,
           "path": "inventory/campaign__source_campaign_runtime_tu15_generated.00.json",
           "routines": 59,
-          "sha256": "0c633cf30d8cc79a80e941441a98b3b31decc1e9d11ce77650a3f3fb33748c07"
+          "sha256": "3bd361967c18ec6cd55683611b54182369f44f35e4bd0059384ee1460231cdd1"
         }
       ]
     },
@@ -2758,7 +3597,7 @@
           "bytes": 2510,
           "path": "inventory/campaign__source_cinematic_shadow_control_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "1f6c5e55c9f137fc51981d61b59dc458e0696eb70039a1236e89faba7b676259"
+          "sha256": "831bf4d79be9cab09ba805f81035e9fd0dd46d2ac0dcd968ebf036aa7d74a00a"
         }
       ]
     },
@@ -2786,7 +3625,7 @@
           "bytes": 11564,
           "path": "inventory/campaign__source_level_handles_new_map_tu15_generated.00.json",
           "routines": 11,
-          "sha256": "3d8cb571ab868a185dd6d226c30d6228cf083c592876250992a84c85fbcdc944"
+          "sha256": "d87bf307a18f73d6e337a5593cd3e6467554ec99637b32ec51b5c907ded0c73f"
         }
       ]
     },
@@ -2840,7 +3679,7 @@
           "bytes": 6081,
           "path": "inventory/campaign__source_unit_cinematic_tu15_generated.00.json",
           "routines": 5,
-          "sha256": "6a1919ebbc365cf5870ce35d8e0a4633ebe5770e6fee18033c1fcf46233cfbf0"
+          "sha256": "291f446e0212c476a20f03baec65e7ac0de4ebcf683b32f71943bf3746dec6f7"
         }
       ]
     },
@@ -2917,7 +3756,7 @@
           "bytes": 24956,
           "path": "inventory/gameplay__animation__source_animation_composition_tu15_generated.00.json",
           "routines": 27,
-          "sha256": "4fc5cd13c1d1e28e2f81b7dc72ea6ff44c02a6c11b39688df0a57876260950d3"
+          "sha256": "fc4533c6953e3a8a769ea9b6a71ec3a6e6eb14c309badb7de82332ce31102ff9"
         }
       ]
     },
@@ -2937,15 +3776,15 @@
       },
       "routine_count": 219,
       "source": "src/gameplay/animation/unit_animation_selection_runtime.cpp",
-      "source_bytes": 3760826,
+      "source_bytes": 3761006,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "be5083b6cb2b5a7df763cfa97a683dbcb28bfaacc132f08911a4cdff81e3e33e",
+      "source_sha256": "c86a13ad17ebae3d5ae37329d3f1aee3a328f2f3231924ec66467420356f33d8",
       "tables": [
         {
-          "bytes": 222036,
+          "bytes": 222489,
           "path": "inventory/gameplay__animation__unit_animation_selection_runtime.00.json",
           "routines": 219,
-          "sha256": "146c3824abadd443f14b8923c8d0256a98c45771df4341374924ca1784e8caab"
+          "sha256": "0079d63dfb277146f75bd09d41a8149773782332c98382094b3150e7e7ed78b8"
         }
       ]
     },
@@ -2972,7 +3811,7 @@
           "bytes": 4332,
           "path": "inventory/gameplay__multiplayer__source_ctf_activation_spawn_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "f6b3de114d006dfdc377f5959ee5537c00ed2a7ad16880dc480d0ffa384194d4"
+          "sha256": "b8797e78f370b953a6c36c5652ef593b630872042d692b83e31211d869fdcdb5"
         }
       ]
     },
@@ -3000,7 +3839,7 @@
           "bytes": 44431,
           "path": "inventory/gameplay__multiplayer__source_ctf_activation_tu15_generated.00.json",
           "routines": 41,
-          "sha256": "bc05e5a55eb54702392251976c1da36d6ed13892f0fbd768b604cc6154923987"
+          "sha256": "1ddd6c52fef5612df2f38d907b580079b27f647f52c1e125a96646983fac9b5e"
         }
       ]
     },
@@ -3027,7 +3866,7 @@
           "bytes": 5482,
           "path": "inventory/gameplay__multiplayer__source_ctf_configuration_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "2c5151f4ce01747621465525c4ed252ab1b87e5fe9c4458154eecf5b89cc84a3"
+          "sha256": "03e909d0ff9887ff95c03ad6d8ac6d05c3689f5382026ccd2390ae8b98762707"
         }
       ]
     },
@@ -3054,7 +3893,7 @@
           "bytes": 2431,
           "path": "inventory/gameplay__multiplayer__source_ctf_flag_position_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "6955ae2b53158a78dab9d414716e24a36d4ae1b104aee497bc9da335f280f793"
+          "sha256": "33f7291f928abec213ab6c3d1879f3523f49d167d32c89be872ffddc4a4f1a03"
         }
       ]
     },
@@ -3081,7 +3920,7 @@
           "bytes": 2591,
           "path": "inventory/gameplay__multiplayer__source_ctf_player_iterator_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "e39cf63ee2c23c60cb97cc1fc9735c7e49667cca0e81fe8d35371461ca72f72d"
+          "sha256": "f79c314f17877f72ff9878361ee8b370cf8093c87ae740bc65044c327bc18505"
         }
       ]
     },
@@ -3136,7 +3975,7 @@
           "bytes": 387873,
           "path": "inventory/gameplay__multiplayer__source_multiplayer_engines_tu15_generated.00.json",
           "routines": 423,
-          "sha256": "991ddb652a022ac390e6bfb64370fc5c76220525e81264105da9f27be5f41beb"
+          "sha256": "abfaa468f50150bba7198a673a21e69c01eb1d70dd19d369ccf39e814e08a42a"
         }
       ]
     },
@@ -3218,7 +4057,7 @@
           "bytes": 4426,
           "path": "inventory/gameplay__objects__source_damage_receiver_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "de7645b4251adde0ff820551529bc5442c9ac6c316176964855d8d374c139d45"
+          "sha256": "e15fbcdaf1063f3c286b7bcee36be446980ae5555bc56505d7caaf79aaf73532"
         }
       ]
     },
@@ -3245,7 +4084,7 @@
           "bytes": 10327,
           "path": "inventory/gameplay__objects__source_object_functions_tu15_generated.00.json",
           "routines": 10,
-          "sha256": "193a3a974fd0215fafd0937608cb0e4b5223be4fb5e317c99655e9546fbfaafc"
+          "sha256": "50f3405540dac4f4aee1fa64785b1b0af909edf1e2770c93ab68a81329110bae"
         }
       ]
     },
@@ -3260,19 +4099,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 2
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 1
       },
       "routine_count": 2,
       "source": "src/gameplay/objects/source_object_material_tu15_generated.cpp",
-      "source_bytes": 28631,
+      "source_bytes": 29672,
       "source_filename_scope": "generated",
-      "source_sha256": "8c9d95b994154930b4ee859ad4b2422350fa46c630f91d5df4205f6c69aecdbc",
+      "source_sha256": "ae5b38f202e7e7ba79e55cb2deccd8229d6569d45ade5ea983802105f85d0702",
       "tables": [
         {
-          "bytes": 3384,
+          "bytes": 11766,
           "path": "inventory/gameplay__objects__source_object_material_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "63d60949ee7b7ffd04579be46fdaba496f99c9b028087f0b0866a4066feb48de"
+          "sha256": "37118c911a54c1eafaac97514bf911be1585e69e581b17e022896abc01d91f35"
         }
       ]
     },
@@ -3299,7 +4139,7 @@
           "bytes": 2388,
           "path": "inventory/gameplay__objects__source_object_name_lookup_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "2dfdeda14b55c5fb7fc388aca11a0559517dcecd0371e78aabf326cfd635b74b"
+          "sha256": "5fe77f43eb81c365f4e40d781dee5fb484b93aa7d7b3ce7a1a1ed6e077ee2b38"
         }
       ]
     },
@@ -3326,7 +4166,7 @@
           "bytes": 6941,
           "path": "inventory/gameplay__objects__source_object_sound_tu15_generated.00.json",
           "routines": 6,
-          "sha256": "dca09d1acd7efafe14e22c70b149bc3a5f2d0d441e27c48a787285245ecc49d6"
+          "sha256": "30ec297dbad7d3acc1747d0d469225a83037ceb35793fcfb5b9286d8af8142ae"
         }
       ]
     },
@@ -3341,21 +4181,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
+        "hash_authenticated_source_native_prefix_with_retained_reference": 3,
         "no_callback_body_requires_audit": 1,
-        "retained_translation_no_native_admission_proven": 127,
-        "retained_translation_with_native_admission_hint_requires_audit": 5
+        "retained_translation_no_native_admission_proven": 125,
+        "retained_translation_with_native_admission_hint_requires_audit": 4
       },
       "routine_count": 133,
       "source": "src/gameplay/objects/source_sandbox_special_tu15_generated.cpp",
-      "source_bytes": 1635709,
+      "source_bytes": 1637903,
       "source_filename_scope": "generated",
-      "source_sha256": "cb53e57eee661939bd46c51bdc00ef08f5b626737e891de093a64b8704f643c1",
+      "source_sha256": "371ca2b82b0d79ae8aaaa98cd503bc9b5e484e25c8e6f28341cc4f889cd1d9d0",
       "tables": [
         {
-          "bytes": 108074,
+          "bytes": 132990,
           "path": "inventory/gameplay__objects__source_sandbox_special_tu15_generated.00.json",
           "routines": 133,
-          "sha256": "306f4af5dc189d551f78a404287f882dd301a16e986d0d6909c9969776a5951c"
+          "sha256": "45d560399f389ed5f11e87dffb36ef61b966287e4734e0a503ea19d261c120cc"
         }
       ]
     },
@@ -3410,7 +4251,7 @@
           "bytes": 16522,
           "path": "inventory/gameplay__units__biped_postphysics_phase_generated.00.json",
           "routines": 20,
-          "sha256": "ea4cfe02c6a46cd9c5ad4cd78f68ba0a05b1edc8c0b21a76c3f956dc6bd03054"
+          "sha256": "73420cbb7894b809b16055bd25974ae47245c6fdad26a8a6b55a23d09a592eaf"
         }
       ]
     },
@@ -3437,7 +4278,7 @@
           "bytes": 5660,
           "path": "inventory/gameplay__units__biped_postphysics_runtime_generated.00.json",
           "routines": 6,
-          "sha256": "aca1660654ef73b6fb376dedd041e19d38b00b0777ead88d79f43fefae6d44c1"
+          "sha256": "aa1ab9e1f39f892bd64e2ca31699d2201a1d11cf7568e059ab4ae1311d95cdde"
         }
       ]
     },
@@ -3452,21 +4293,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 4,
-        "retained_translation_no_native_admission_proven": 288,
-        "retained_translation_with_native_admission_hint_requires_audit": 19
+        "hash_authenticated_source_native_prefix_with_retained_reference": 8,
+        "retained_translation_no_native_admission_proven": 283,
+        "retained_translation_with_native_admission_hint_requires_audit": 20
       },
       "routine_count": 311,
       "source": "src/gameplay/units/death_cycle_runtime_tu15_generated.cpp",
-      "source_bytes": 3320150,
+      "source_bytes": 3321451,
       "source_filename_scope": "generated",
-      "source_sha256": "f7cb08b1e67f642925c0d5482a799c08985038ada2bbf99941c125bec4e8c1dd",
+      "source_sha256": "56efb0d31df7c6f4be3c056a9ea81109ff91826304f410bc899d07861629419f",
       "tables": [
         {
-          "bytes": 306017,
+          "bytes": 339763,
           "path": "inventory/gameplay__units__death_cycle_runtime_tu15_generated.00.json",
           "routines": 311,
-          "sha256": "5c1adedbfe0c48da48ed6c9c58e5e5ffdd039b1985fc76b6e5e441b582349c66"
+          "sha256": "51b25bb41599ca61b287b2cac502da4d51fd07ceccd8f97745c86b93e2a4ccfc"
         }
       ]
     },
@@ -3493,7 +4334,7 @@
           "bytes": 204479,
           "path": "inventory/gameplay__units__death_object_phases_generated.00.json",
           "routines": 261,
-          "sha256": "fe7bf48cf2320650d1ddc1284d3978e26f195a069f6a4d0dc4c542b512a4bfb9"
+          "sha256": "467e0620165ece8b32c6fda2dba0cd57c135855beb4ef0293597c7462c636ae0"
         }
       ]
     },
@@ -3508,19 +4349,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 418
+        "hash_authenticated_source_native_prefix_with_retained_reference": 2,
+        "retained_translation_no_native_admission_proven": 416
       },
       "routine_count": 418,
       "source": "src/gameplay/units/death_startup_runtime_generated.cpp",
-      "source_bytes": 3262483,
+      "source_bytes": 3262881,
       "source_filename_scope": "generated",
-      "source_sha256": "74473b6b1e026d3d92512a633fcdd6fda6be2ac701b4799aec5261f739ffbf40",
+      "source_sha256": "af01521b6ac9e8075ca28f96f060fe18e41ac902a6f58d551e9e1933d798653e",
       "tables": [
         {
-          "bytes": 319443,
+          "bytes": 332593,
           "path": "inventory/gameplay__units__death_startup_runtime_generated.00.json",
           "routines": 418,
-          "sha256": "346c8d5f46831fecce78799e473a637af13d66710ab8aa186a57b327df3f964e"
+          "sha256": "d0b95ea4495d29a565a1bffdf3c459c975dbce2c7d6216460e8a219fc27477d8"
         }
       ]
     },
@@ -3547,7 +4389,7 @@
           "bytes": 46383,
           "path": "inventory/gameplay__units__death_world_physics_runtime_generated.00.json",
           "routines": 61,
-          "sha256": "cc761f2bff787e8edf9dc31de322169c4263bd73a6f285be96768ae9adadbe44"
+          "sha256": "7ad291da5b705881a54464613285a3f8ea86a3e6299c6a56aec0afddf6e78c49"
         }
       ]
     },
@@ -3574,7 +4416,7 @@
           "bytes": 18414,
           "path": "inventory/gameplay__units__death_world_scheduler_generated.00.json",
           "routines": 22,
-          "sha256": "c15033470ff203deefd50946e337f4ed77a0a8b8842dd9f4b42ef9cef1e648af"
+          "sha256": "9c3de1c2afe64a78055b3c8f5e5ed564c80bd33a45a87396e87fa2718ca33d4b"
         }
       ]
     },
@@ -3589,22 +4431,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 7,
         "no_callback_body_requires_audit": 1,
-        "retained_translation_no_native_admission_proven": 439,
+        "retained_translation_no_native_admission_proven": 433,
         "retained_translation_with_native_admission_hint_requires_audit": 12
       },
       "routine_count": 453,
       "source": "src/gameplay/units/source_combat_action_tu15_generated.cpp",
-      "source_bytes": 5449497,
+      "source_bytes": 5450789,
       "source_filename_scope": "generated",
-      "source_sha256": "233749a8de9ca99aea1606661ba7649605ff7e2ba5b814031954abd3afb06944",
+      "source_sha256": "980ce3a373bfa35a05fbb75d9dcdaae189f264c1e93aee09cdbaa9f50863e995",
       "tables": [
         {
-          "bytes": 414777,
+          "bytes": 455745,
           "path": "inventory/gameplay__units__source_combat_action_tu15_generated.00.json",
           "routines": 453,
-          "sha256": "ce10ac4050a7345808770dcb424e9d577da3a7f2cefcc641b753f89c503febf9"
+          "sha256": "7560201638e21e4db95f2c3c0ccad3400fbc37dfabfc122d309c945a33c915af"
         }
       ]
     },
@@ -3659,7 +4501,7 @@
           "bytes": 3559,
           "path": "inventory/gameplay__units__source_damage_feedback_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "ff42f03d8ea0761e98f340ef4f4d96c173bed4586a6e4b53d3cd71a5ecf53b7c"
+          "sha256": "684334d018dd25501bc6d3ee7d41b3d448f043efa02e4601a2c82b0d7245af9c"
         }
       ]
     },
@@ -3674,20 +4516,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 12,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 11,
         "retained_translation_with_native_admission_hint_requires_audit": 3
       },
       "routine_count": 15,
       "source": "src/gameplay/units/source_direct_damage_runtime_generated.cpp",
-      "source_bytes": 122709,
+      "source_bytes": 123837,
       "source_filename_scope": "generated",
-      "source_sha256": "3afb4dba1303d6f50755ae4db9b6d8d0f54795775c75044db95fd578edc002c6",
+      "source_sha256": "db3a62eb6abdb89390d391f869550984f2babb0037b63ac36c470944488ea22b",
       "tables": [
         {
-          "bytes": 15514,
+          "bytes": 24185,
           "path": "inventory/gameplay__units__source_direct_damage_runtime_generated.00.json",
           "routines": 15,
-          "sha256": "6993063a7ae4b86b1a4797819c6303f421decc623e25fd2b7a28d1af0c8668e8"
+          "sha256": "2fc6181f348231775e70ecff18a9e409b11f3612889519fd62c940ed24e03870"
         }
       ]
     },
@@ -3715,7 +4558,7 @@
           "bytes": 13422,
           "path": "inventory/gameplay__units__source_player_departure_tu15_generated.00.json",
           "routines": 13,
-          "sha256": "7b1f8faa778d9a206abfc1771b4cdff5486899357da58f96e3386e8d190266f6"
+          "sha256": "03f39d1b19979d32667ebe0ce522aca0f052d9371174825a73ba1e5609e40616"
         }
       ]
     },
@@ -3742,7 +4585,7 @@
           "bytes": 4121,
           "path": "inventory/gameplay__units__source_receiver_request_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "8ec298851e4cbb0504a35c55cb96c26c6be9d8fb93d5bdee928d2590b6ac8db2"
+          "sha256": "08371b34dec8d66dea5c9b1a21da4531505f97a4271b67d915f3b14733ce60be"
         }
       ]
     },
@@ -3769,7 +4612,7 @@
           "bytes": 3488,
           "path": "inventory/gameplay__units__source_targeting_input_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "6a8d5d27d805b0b0e6a94557607a727c05a0c3eeb4f1ef4040a7449718484bb3"
+          "sha256": "f507ef399f625ef77c982e562ab2e55bddfb593908fccfba97a0b1ca804ef60e"
         }
       ]
     },
@@ -3796,7 +4639,7 @@
           "bytes": 3330,
           "path": "inventory/gameplay__units__source_unit_animation_cancel_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "7faddfa1f6b41f7a03ef13e5ff318de9cdab28bbaa6c646d878e420a4309dc82"
+          "sha256": "84467328e4db4149918405fb777e7e351eb0a2f8bd715f5d9ddf1ff65690cc65"
         }
       ]
     },
@@ -3811,19 +4654,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 6
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 5
       },
       "routine_count": 6,
       "source": "src/gameplay/units/source_unit_view_reset_tu15_generated.cpp",
-      "source_bytes": 62114,
+      "source_bytes": 63140,
       "source_filename_scope": "generated",
-      "source_sha256": "984ecbf183d86f447d19984ea25820d00a6353e32ace71e6aa5fe78b8f7d0650",
+      "source_sha256": "080d5652808bbaa8b6b2b23f13a1404860d00a969dbfc046cb382d5496f29788",
       "tables": [
         {
-          "bytes": 6830,
+          "bytes": 15225,
           "path": "inventory/gameplay__units__source_unit_view_reset_tu15_generated.00.json",
           "routines": 6,
-          "sha256": "006ea966d2582f0244995fc6590548edb9a461543f855eaf2ea6ac48d53ddde6"
+          "sha256": "fda9e6628923ee4c864e78ce5e07c87c5c51d348291fc8e8ab7a98102606d474"
         }
       ]
     },
@@ -3838,20 +4682,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 11,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 10,
         "retained_translation_with_native_admission_hint_requires_audit": 3
       },
       "routine_count": 14,
       "source": "src/gameplay/units/source_vitality_runtime_generated.cpp",
-      "source_bytes": 117295,
+      "source_bytes": 118423,
       "source_filename_scope": "generated",
-      "source_sha256": "7baf81f75db8dd80cc18b7ce4ee0963d61ca4e821c2da4a13ac3977ef1e2fbfb",
+      "source_sha256": "0b0e94ed4d3fe023f3e8c22091da9fd0797647501cef32eaf6e8af516d941e05",
       "tables": [
         {
-          "bytes": 14429,
+          "bytes": 23101,
           "path": "inventory/gameplay__units__source_vitality_runtime_generated.00.json",
           "routines": 14,
-          "sha256": "e9fb2971126d5a9c45cd548e54fcfa9b36ffc639e98cbc8a219651f0a03fe3a3"
+          "sha256": "8337febad9b61b5a5165834649775d3ecb6e847686feee420df367db50960001"
         }
       ]
     },
@@ -3878,7 +4723,7 @@
           "bytes": 69429,
           "path": "inventory/gameplay__units__unit_object_runtime_generated.00.json",
           "routines": 90,
-          "sha256": "123c8518f299d607c1b2bfc4825424c73b195d34e589f1695eb32b314e61c76b"
+          "sha256": "cf4ed11394b58befb5a33f46cd644a8880b648681c3ef20fcca78d89b6a73da8"
         }
       ]
     },
@@ -3905,7 +4750,7 @@
           "bytes": 7856,
           "path": "inventory/gameplay__vehicles__source_vehicle_auxiliary_tu15_generated.00.json",
           "routines": 7,
-          "sha256": "9812d8abfd313ac9da953bc9297934f8cdbad274beb02922a938e8472386dfab"
+          "sha256": "7bfd7ff198a63dc5bacb852c78e5a14f435f653c52ad9a599452b7a25e7b2d01"
         }
       ]
     },
@@ -3934,7 +4779,7 @@
           "bytes": 20836,
           "path": "inventory/gameplay__vehicles__source_vehicle_director_tu15_generated.00.json",
           "routines": 21,
-          "sha256": "e332da2f5a72cc7c052137068d1d5a082b5c5df21cbb8892cb0a97f225aaaa38"
+          "sha256": "0e8eec3d2738208917750e116cc602e48cbc798194568168bdb208305482d030"
         }
       ]
     },
@@ -3961,7 +4806,7 @@
           "bytes": 2442,
           "path": "inventory/gameplay__vehicles__source_vehicle_evasion_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "bd7d915178d568bdd1f6817e91cec6e16cb8b11fa0fa55580d3eb90b75b58795"
+          "sha256": "7c1fb8317f252697807dda8a7baf357e1bcdd71d6b1359aa4b2086cb928e6567"
         }
       ]
     },
@@ -3988,7 +4833,7 @@
           "bytes": 4307,
           "path": "inventory/gameplay__vehicles__source_vehicle_look_tu15_generated.00.json",
           "routines": 3,
-          "sha256": "4c4d3753e6d5a1cd4bfb6483af6ddf71e6a14e83bd1bf1189f87deb12e8f265e"
+          "sha256": "ef18a480c19459c21c905765098f89254f8f0e8ed041c614cfbd7ac528b8e307"
         }
       ]
     },
@@ -4015,16 +4860,14 @@
           "bytes": 7808,
           "path": "inventory/gameplay__vehicles__source_vehicle_occupancy_tu15_generated.00.json",
           "routines": 7,
-          "sha256": "def645e6bb0a10d889ea53ac5e7668c836bcc9450932d1bfef9f2021d0062f3f"
+          "sha256": "610e1a7f58bc674e11c2ba100b007f5d4425b50ff549157d608fe897e3da049f"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4039,10 +4882,10 @@
       "source_sha256": "986f2ca618e7734bcfa5e934dd107ed9c4a72b2f22daec64be78471f02dff0e0",
       "tables": [
         {
-          "bytes": 2702,
+          "bytes": 2688,
           "path": "inventory/gameplay__weapons__native_weapon_effect_advance_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "1a0eed530aa20329741ac52d9f6d9a97a7c22f415abc9d7487b78b1acf3190cf"
+          "sha256": "5149448429c3ea156a67e188293f1bda349b07a3dfdb97c75fa068045822d434"
         }
       ]
     },
@@ -4062,24 +4905,22 @@
       },
       "routine_count": 22,
       "source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
-      "source_bytes": 98099,
+      "source_bytes": 98373,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "5395464ef2b95c78e1a164b9970b85067d184d692da05804b440c2cf69089e4e",
+      "source_sha256": "74c50ecc332dfd6b895314c9712ffb7555ec2ddedc749c375467f916ff3f65c3",
       "tables": [
         {
-          "bytes": 26463,
+          "bytes": 27553,
           "path": "inventory/gameplay__weapons__native_weapon_effect_dispatch_tu15.00.json",
           "routines": 22,
-          "sha256": "a2a0a1448ab26d7b9121e9a9012369fd5e7ae22a4b19f4412b176fb6a7f1c49a"
+          "sha256": "22dcd186b5c253a407dabec5e6d4feb52d71ed531aba08cef9667b75ce9aa8b3"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4094,19 +4935,17 @@
       "source_sha256": "8e0ed3176dcd6927ccbc16c53391e75eb0f786d5eb76ace0955448a04ae22a6e",
       "tables": [
         {
-          "bytes": 5214,
+          "bytes": 5200,
           "path": "inventory/gameplay__weapons__native_weapon_effect_frame_tu15_internal.hpp.00.json",
           "routines": 3,
-          "sha256": "ed26b1f8f4bdfb337b18f98bd1df5e688c0bc66fdf2fd31dfc09b98d51deb713"
+          "sha256": "927d78fd7f2ef1d242ae5f1ea0c44d51aba53abe9a939b8cdfc3dd485e5a4de5"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4121,19 +4960,17 @@
       "source_sha256": "f79b933a81831f94ce24f84726c74490bad6299b4c9ef15acc3ba0fc4a022604",
       "tables": [
         {
-          "bytes": 2529,
+          "bytes": 2515,
           "path": "inventory/gameplay__weapons__native_weapon_effect_next_event_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "2e120cf917564e3fb0eec70f2742435b98f5a1101c62795aedc740234e883fcd"
+          "sha256": "ac320b5a12dc94fa7332daaec7f166a694c858565858bf07eb2b1c54094d3b1a"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4148,19 +4985,17 @@
       "source_sha256": "b970b0ce7d5b2667b9a05b7ef6eb640cf76590a9098ceca1300f1b22f03ae9b3",
       "tables": [
         {
-          "bytes": 2320,
+          "bytes": 2306,
           "path": "inventory/gameplay__weapons__native_weapon_effect_random_range_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "4f63b339c9677810ca6e6bd6befca584ed0ee33cca9774b3e8c3d76ffb39a0a3"
+          "sha256": "f4d1f353dcb65e3e3c20c349466437e535e5e9b3c47267b61b50400b50396638"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4175,19 +5010,17 @@
       "source_sha256": "202cce6d465a246ecdd5a5edd5d1171a7d1d6dcc7c4a066434108de7ec326d0e",
       "tables": [
         {
-          "bytes": 2401,
+          "bytes": 2387,
           "path": "inventory/gameplay__weapons__native_weapon_effect_systems_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "cc957d8a16dd40214e57fd8644dea9b8f39aed92b328fc135feb0fd16a4c0b8f"
+          "sha256": "1f18fb6f585a0b62a1b390cae30b1a1ac8267de35a9d7f13668d65970eb15017"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4197,24 +5030,22 @@
       },
       "routine_count": 1,
       "source": "src/gameplay/weapons/native_weapon_marker_emission_tu15_internal.hpp",
-      "source_bytes": 7814,
+      "source_bytes": 7863,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "eb665ff50f9998110c2607ac68fa4f0b4618550f2530b7f71d7f5a05b5481194",
+      "source_sha256": "0b3e7b27cbf9a45fbcd3d7791bc91af20aff3e7a11d52afff2bc2e2f2f40ce57",
       "tables": [
         {
-          "bytes": 2641,
+          "bytes": 2773,
           "path": "inventory/gameplay__weapons__native_weapon_marker_emission_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "bf5b44d68126e92e8d73a74cc1febd14e20e14a0bab8135bd285e22e71b778b7"
+          "sha256": "082375ebf8dbd1693e699cf890a09ed7267ea305ef83f27a76bcb0fb6bf10972"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4224,24 +5055,22 @@
       },
       "routine_count": 1,
       "source": "src/gameplay/weapons/native_weapon_marker_lookup_tu15_internal.hpp",
-      "source_bytes": 2310,
+      "source_bytes": 2432,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "15ec84680a87b0be1b70f0a65463bda0c467dcd0dfc0b07694b9ba57dfc6678b",
+      "source_sha256": "79d8b01e8855faef71dc67a10cb8278c8bbfee9847f29939d65cea3970f42d59",
       "tables": [
         {
-          "bytes": 2258,
+          "bytes": 9903,
           "path": "inventory/gameplay__weapons__native_weapon_marker_lookup_tu15_internal.hpp.00.json",
           "routines": 1,
-          "sha256": "375f5d1595d20448c37bfa42d813c92a9970ca0da865b6a741bae46e3e108719"
+          "sha256": "7d0d4724aa37f53427c2a27f15d2b603bacd670cd4f2603265006feaa22d07ab"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4251,24 +5080,22 @@
       },
       "routine_count": 2,
       "source": "src/gameplay/weapons/native_weapon_marker_math_tu15_internal.hpp",
-      "source_bytes": 12627,
+      "source_bytes": 12725,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "53842cb92a1bb507da6504170599ea8381e25bd30d987fa5b39213b98fc5927b",
+      "source_sha256": "a13caabbac590273d21a83cee39886716267bf90e53e58ea8af7614daad5c067",
       "tables": [
         {
-          "bytes": 4111,
+          "bytes": 4347,
           "path": "inventory/gameplay__weapons__native_weapon_marker_math_tu15_internal.hpp.00.json",
           "routines": 2,
-          "sha256": "20d0828fa66b2da5cfc088cd4102decb361d0c677a997df1e1f93cad973c183a"
+          "sha256": "f12a2349242267a0283f6e86b592a6c7902697cc967af599dc82d07d81d127de"
         }
       ]
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
       ],
@@ -4278,15 +5105,15 @@
       },
       "routine_count": 3,
       "source": "src/gameplay/weapons/native_weapon_marker_matrix_tu15_internal.hpp",
-      "source_bytes": 12116,
+      "source_bytes": 12399,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "379b355c62b4078004c73e229ba72c51a2c26318576c159144d63398204fcd05",
+      "source_sha256": "eb0e13a714a3a79e0901f8a419927bffd035cdcf43e35db6d5b7d5dc433b2db1",
       "tables": [
         {
-          "bytes": 4571,
+          "bytes": 21951,
           "path": "inventory/gameplay__weapons__native_weapon_marker_matrix_tu15_internal.hpp.00.json",
           "routines": 3,
-          "sha256": "5c8f4e720f5b77b61ac97ea009c7f20014d7ec532887f58c267b0bc12ef5987f"
+          "sha256": "b10ff65d365b71cc447bf32f924709fbcc56529d502c03b184ca6a142fbf5e90"
         }
       ]
     },
@@ -4313,7 +5140,7 @@
           "bytes": 6101,
           "path": "inventory/gameplay__weapons__source_weapon_hud_tu15_generated.00.json",
           "routines": 5,
-          "sha256": "cb86a19c4a6e831f8104e15b0ab6e93b1235b1babfa8cd80e885092e01df97a8"
+          "sha256": "785daacb26eb7d6bc70e2dac10a206ec67b6bfed1026bf89312699f7cd11246d"
         }
       ]
     },
@@ -4340,7 +5167,7 @@
           "bytes": 27731,
           "path": "inventory/gameplay__weapons__unit_pickup_runtime.00.json",
           "routines": 26,
-          "sha256": "31277acae90973f21f15c2f769bb380074bd6f31869d1abf744eb70893498d71"
+          "sha256": "5b25a280423a27228644489df455b8378be4a36a20978eb28feb782ce4da54a8"
         }
       ]
     },
@@ -4367,7 +5194,7 @@
           "bytes": 60951,
           "path": "inventory/gameplay__weapons__unit_weapon_routing.00.json",
           "routines": 57,
-          "sha256": "9c1c6dd1f65630087c7f7b52c2a7fc63b935a91d95dcb76a507750e781d63969"
+          "sha256": "9c32d4db9765846531460699bd579a7975e495c3642508278172c602b3a0da41"
         }
       ]
     },
@@ -4421,7 +5248,7 @@
           "bytes": 12339,
           "path": "inventory/input__source_input_collection_tu15_generated.00.json",
           "routines": 12,
-          "sha256": "25ef1a4e6ae2107faffa4ce1b93983122b489150bfbb7e12444190a67a905474"
+          "sha256": "b73a85aa9aa217d43f0cf2b8d58d3583297b507709d60d4531eb551f45ae5ac9"
         }
       ]
     },
@@ -4449,7 +5276,7 @@
           "bytes": 14847,
           "path": "inventory/input__source_input_startup_tu15_generated.00.json",
           "routines": 10,
-          "sha256": "c2c9ef3200a03d2d710343e102edf296ed14411117bec0ddfde4619490c4f4fb"
+          "sha256": "7b56d206c1097a8b3db3477a020ab8b64f8ed135fbca4529d9f08b860637aaba"
         }
       ]
     },
@@ -4476,7 +5303,7 @@
           "bytes": 17242,
           "path": "inventory/input__source_profile_binding_tu15_generated.00.json",
           "routines": 18,
-          "sha256": "5471170151b6ce5c0be9de26fe9c75e250058449956a38c73e10cae1593a2dcd"
+          "sha256": "00d92f8e68b9de13a5b7ed80efe53779256c43acb3cf7fa7fe5af305d793f6a7"
         }
       ]
     },
@@ -4639,7 +5466,7 @@
           "bytes": 2551,
           "path": "inventory/physics__collision__source_collision_instance_storage_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "4f04b1d40c55130650357284edffb7b7ca72c0419923aa0c4ef979411291335e"
+          "sha256": "190fdbae6bc162df3de8b0b1480ac92ac56b1a0c44bfb68764b0a54e1eda5898"
         }
       ]
     },
@@ -4667,7 +5494,7 @@
           "bytes": 27749,
           "path": "inventory/physics__collision__source_collision_query_tu15_generated.00.json",
           "routines": 34,
-          "sha256": "68e25f2204fc8c9936c1d3f248637eb427253edecc2857c03f94ab5a767a0b60"
+          "sha256": "50e063a47bde7316664db2e782ad64d8bf57882406b43001892c1550da192c24"
         }
       ]
     },
@@ -4694,7 +5521,7 @@
           "bytes": 30783,
           "path": "inventory/physics__collision__source_segment_collision_generated.00.json",
           "routines": 40,
-          "sha256": "6b6f8f2da6b0d0de30b01018506186398e8d4d45f06e7e70cec15354f7829e77"
+          "sha256": "c2e8536315c639a8552fb45f96fe068876e0f1a2e71147d0555cd563915c97f2"
         }
       ]
     },
@@ -4763,20 +5590,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 2,
-        "retained_translation_no_native_admission_proven": 15
+        "hash_authenticated_source_native_prefix_with_retained_reference": 3,
+        "retained_translation_no_native_admission_proven": 14
       },
       "routine_count": 17,
       "source": "src/physics/physics_game_arena_runtime_generated.cpp",
-      "source_bytes": 94799,
+      "source_bytes": 97871,
       "source_filename_scope": "generated",
-      "source_sha256": "cc3c66de58b417da176cd655f9bb94cf87103961df001cf1004068d9adf4180f",
+      "source_sha256": "a86a9e9ba2e3309bc6d4f6fae69e1ca5bb8a1491395c2492ed796bcb09e562b3",
       "tables": [
         {
-          "bytes": 22556,
+          "bytes": 35535,
           "path": "inventory/physics__physics_game_arena_runtime_generated.00.json",
           "routines": 17,
-          "sha256": "616301d295f44a68d2b575d0916bbc4693a3c97fcc5fc5499c4a2e6ec7849892"
+          "sha256": "a8916ea5de21881a46c47994bd96f601839f31cf6d50963c1a4b379288481bc6"
         }
       ]
     },
@@ -4791,35 +5618,35 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 30,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 66,
         "no_callback_body_requires_audit": 3,
-        "retained_translation_no_native_admission_proven": 1944,
-        "retained_translation_with_hash_bound_native_leaf": 8,
-        "retained_translation_with_native_admission_hint_requires_audit": 41
+        "retained_translation_no_native_admission_proven": 1912,
+        "retained_translation_with_hash_bound_native_leaf": 6,
+        "retained_translation_with_native_admission_hint_requires_audit": 39
       },
       "routine_count": 2026,
       "source": "src/physics/physics_live_support_tu15_generated.cpp",
-      "source_bytes": 19717454,
+      "source_bytes": 19762434,
       "source_filename_scope": "generated",
-      "source_sha256": "89d1212a2366e2684372af8aeee6d6a18cabde472443ce453487c338e2e996f2",
+      "source_sha256": "657666817c10e21fc9938c0e90e524a4baf833ff40ffe549e26722c58edbb871",
       "tables": [
         {
-          "bytes": 899637,
+          "bytes": 890125,
           "path": "inventory/physics__physics_live_support_tu15_generated.00.json",
-          "routines": 906,
-          "sha256": "7ac9c666fc79d533eebdfde7bc28a1aa5208f0c104379fc7d0a4d35dd72dfdd8"
+          "routines": 812,
+          "sha256": "df118c41eefc001634103651d5aa98c535957c74ceb6a8767bdee341131cb259"
         },
         {
-          "bytes": 899181,
+          "bytes": 899983,
           "path": "inventory/physics__physics_live_support_tu15_generated.01.json",
-          "routines": 905,
-          "sha256": "445896fd5f7e57b7a6315fa1937b53f53dbcf405f06d72661330f046a924a29f"
+          "routines": 845,
+          "sha256": "9f17a66a9cd29c204ac41d53216cce6458628f9d608bd59bd457353f2cb7370b"
         },
         {
-          "bytes": 203986,
+          "bytes": 500330,
           "path": "inventory/physics__physics_live_support_tu15_generated.02.json",
-          "routines": 215,
-          "sha256": "a97a7a719e7ce4f20a9eaa8424b57c872733ea440f41e3615fda05b8dab5b78d"
+          "routines": 369,
+          "sha256": "32c0df9f49349ef0008c8f4bc0df827b2abefa12b2941573004c14003e54fc76"
         }
       ]
     },
@@ -4838,15 +5665,15 @@
       },
       "routine_count": 1,
       "source": "src/physics/physics_live_world_tu15.cpp",
-      "source_bytes": 532538,
+      "source_bytes": 607153,
       "source_filename_scope": "nongenerated",
-      "source_sha256": "2c26e1c5108bc979c2150932614bd1049582e4a25199cdb7cd2734c4317f1bb8",
+      "source_sha256": "ce4c01549c499193a5fe8baf21f6831ccdf2ad41f14481f54c84714439835c4e",
       "tables": [
         {
-          "bytes": 26283,
+          "bytes": 30470,
           "path": "inventory/physics__physics_live_world_tu15.00.json",
           "routines": 1,
-          "sha256": "31fd3eaa24973bb6b964c8d9240f2d83eaebe9bfd1a341ebdcd7882fb22ac2d6"
+          "sha256": "ede289dac59c458d005536947179a77e55ce154436e183ca06c21aca355fe0a5"
         }
       ]
     },
@@ -5024,20 +5851,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 3,
-        "retained_translation_no_native_admission_proven": 79
+        "hash_authenticated_source_native_prefix_with_retained_reference": 5,
+        "retained_translation_no_native_admission_proven": 75,
+        "retained_translation_with_native_admission_hint_requires_audit": 2
       },
       "routine_count": 82,
       "source": "src/physics/runtime/physics_contact_runtime_generated.cpp",
-      "source_bytes": 1002818,
+      "source_bytes": 1003554,
       "source_filename_scope": "generated",
-      "source_sha256": "1e099a33e5b78ac3eb6281adc1eef15a65590211598c3d452d3c16a82c670daf",
+      "source_sha256": "3dd0dfd99cba88b98e56a6daae8bec453eb8a3e3f0b6a6c798484e9d081c046b",
       "tables": [
         {
-          "bytes": 88101,
+          "bytes": 105888,
           "path": "inventory/physics__runtime__physics_contact_runtime_generated.00.json",
           "routines": 82,
-          "sha256": "b5fb08c81489b0c51602aaf5228ad52d64103fdb91967ba2235c4b4cc3265c0f"
+          "sha256": "c89104f9e043bf01f94379662b1bc1cc27c7e212529ec53661b56b03ab837746"
         }
       ]
     },
@@ -5079,22 +5907,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 3,
-        "retained_translation_no_native_admission_proven": 470,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 5,
+        "retained_translation_no_native_admission_proven": 465,
         "retained_translation_with_hash_bound_native_leaf": 1,
-        "retained_translation_with_native_admission_hint_requires_audit": 3
+        "retained_translation_with_native_admission_hint_requires_audit": 6
       },
       "routine_count": 477,
       "source": "src/physics/runtime/physics_world_runtime_generated.cpp",
-      "source_bytes": 5692112,
+      "source_bytes": 5693024,
       "source_filename_scope": "generated",
-      "source_sha256": "127d9b0f1a002dc702d408430c040089ef820f5c79f7bd7830bc6b248bb71821",
+      "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
       "tables": [
         {
-          "bytes": 442393,
+          "bytes": 460945,
           "path": "inventory/physics__runtime__physics_world_runtime_generated.00.json",
           "routines": 477,
-          "sha256": "867f020ee9c7900a401091a9ae98059fe818f22a23db651e43f1d73bfc962f78"
+          "sha256": "bc3880536233225005b6d3fe874e88b373b2bff7b07c2ea38a66c97b2d17e135"
         }
       ]
     },
@@ -5121,7 +5949,7 @@
           "bytes": 3231,
           "path": "inventory/physics__source_body_impulse_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "44314c8d5429bae3c20accb7ecc9e26362976a44f5710263671f44997230f43d"
+          "sha256": "c6a9fa20df024958c5eea0170406f558420f4aed27936c22b21b212e1a5778ef"
         }
       ]
     },
@@ -5148,7 +5976,7 @@
           "bytes": 8529,
           "path": "inventory/physics__source_cloth_tu15_generated.00.json",
           "routines": 8,
-          "sha256": "e27ccd8cabde18265565d83b6df1194db1bc3028396a7777e5efb4cf72760b55"
+          "sha256": "69aa831e9517d83275b352ecd845f06f8d71ff73ccb568b57b13afca18b5c199"
         }
       ]
     },
@@ -5175,7 +6003,7 @@
           "bytes": 9492,
           "path": "inventory/physics__source_constraint_instance_tu15_generated.00.json",
           "routines": 9,
-          "sha256": "60f8ce8a3744421aa84d9d4258cc4f63990369f2f8601ea131bd2030520dc1e8"
+          "sha256": "080c5c1dcd4dcaa26569613ab1e0904c26e5aacd428a12d31bc5720b440b9313"
         }
       ]
     },
@@ -5202,7 +6030,7 @@
           "bytes": 8681,
           "path": "inventory/physics__source_havok_static_lifetime_tu15_generated.00.json",
           "routines": 8,
-          "sha256": "4a4541affcb559fa951c53809f8882961a5f56a20aeee1c090d939cefe252abe"
+          "sha256": "4672703742693b5b62cd32eb56e1086da522bae5cd3aef0b922c233a9a8c5cf7"
         }
       ]
     },
@@ -5229,7 +6057,7 @@
           "bytes": 6012,
           "path": "inventory/physics__source_physics_deactivation_tu15_generated.00.json",
           "routines": 5,
-          "sha256": "7b9b87208a389cf98f107d7146b953e2972fd8eab50440060b0dad68ade4b999"
+          "sha256": "be50e5f79191daf89d11f437874ee2bbd39087ccc897c867c5ab473c3ee20209"
         }
       ]
     },
@@ -5298,19 +6126,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 26
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 25
       },
       "routine_count": 26,
       "source": "src/physics/vehicles/physics_vehicle_environment_state_tu15_generated.cpp",
-      "source_bytes": 164001,
+      "source_bytes": 164145,
       "source_filename_scope": "generated",
-      "source_sha256": "d68c9ad2f8e26a2e6ef70c3b40c19ae80b970ccacdb23f4199f75b852b276eae",
+      "source_sha256": "eeaeee04b93285df0f7eda7bb1598f965ff23cd7ea659ec6510de07d07ab9604",
       "tables": [
         {
-          "bytes": 20266,
+          "bytes": 26131,
           "path": "inventory/physics__vehicles__physics_vehicle_environment_state_tu15_generated.00.json",
           "routines": 26,
-          "sha256": "c7c99dfa052d07624326798f519b00506d3a5be77f36d8aec7f31597ba05d19f"
+          "sha256": "01b300714293f6765fe0943547bfd9636fe494dc4ef003ad8946194207ecc129"
         }
       ]
     },
@@ -5325,20 +6154,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 43,
-        "retained_translation_with_native_admission_hint_requires_audit": 5
+        "hash_authenticated_source_native_prefix_with_retained_reference": 2,
+        "retained_translation_no_native_admission_proven": 42,
+        "retained_translation_with_native_admission_hint_requires_audit": 4
       },
       "routine_count": 48,
       "source": "src/physics/vehicles/physics_vehicle_motion_generated.cpp",
-      "source_bytes": 942830,
+      "source_bytes": 944010,
       "source_filename_scope": "generated",
-      "source_sha256": "bde8a4ba2378d750fe899a29bab977dc1fdd7dd3416cdc4e6ed155e9c93cd36f",
+      "source_sha256": "2aedab2ca8c33ffc6b63e8d2ac11eb2f163f5f36a3b3b2b7d12bc296da0fde8a",
       "tables": [
         {
-          "bytes": 45564,
+          "bytes": 62750,
           "path": "inventory/physics__vehicles__physics_vehicle_motion_generated.00.json",
           "routines": 48,
-          "sha256": "8ee030d9bb122844658594826e35a3aa050b0f7da1f578fc06b3ef9ac0dd3ff2"
+          "sha256": "e394f4915c5db909d391d6095868c0f8498d90d3db448225c4f4791a57a72528"
         }
       ]
     },
@@ -5408,20 +6238,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 21,
-        "retained_translation_with_native_admission_hint_requires_audit": 1
+        "hash_authenticated_source_native_prefix_with_retained_reference": 2,
+        "retained_translation_no_native_admission_proven": 20
       },
       "routine_count": 22,
       "source": "src/physics/vehicles/physics_vehicle_update_generated.cpp",
-      "source_bytes": 132187,
+      "source_bytes": 132404,
       "source_filename_scope": "generated",
-      "source_sha256": "9cc849e731ef1366fc2d4afffa816410505a93523017fd592f181aa7d92647c7",
+      "source_sha256": "6dc694cb32081cfb086b05759661e9dc7da9dd2198e5936ecda502f44494d269",
       "tables": [
         {
-          "bytes": 21245,
+          "bytes": 30972,
           "path": "inventory/physics__vehicles__physics_vehicle_update_generated.00.json",
           "routines": 22,
-          "sha256": "8b9601476bf4c8305ab1f68404718f1974ce3614be6fb740d5939791567836dd"
+          "sha256": "4f452682df0790b068b62dd325edd17e83770c0dcb281dd3441324929618c4c4"
         }
       ]
     },
@@ -5454,11 +6284,8 @@
     },
     {
       "callback_image_scope": "image-selected-or-unresolved",
-      "configured_production_scope": "included",
-      "configured_production_target_ids": [
-        "halo2_input_startup_tu15::@6890427a1f51a3e7e1df",
-        "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
-      ],
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
       "production_candidate_targets": [
         "halo2_input_startup_tu15",
         "halo2_physics_world_runtime"
@@ -5474,10 +6301,10 @@
       "source_sha256": "b2f42e0586cfb5aef4eba5a822a6a43c0b39bc33c0872f0d84ffc9f1d29a637a",
       "tables": [
         {
-          "bytes": 2943,
+          "bytes": 2887,
           "path": "inventory/platform__native_tu15_millisecond_clock.hpp.00.json",
           "routines": 1,
-          "sha256": "c346a117824c54db44eee173658d327b135d1e65064050160d63a7ca08cbd336"
+          "sha256": "7855de8def2ee670e0369320b8cb7f1c9e349e778fec166cd4f7130eaba5e562"
         }
       ]
     },
@@ -5531,7 +6358,7 @@
           "bytes": 32560,
           "path": "inventory/platform__source_crt_float_tu15_generated.00.json",
           "routines": 35,
-          "sha256": "efa39e897d1337a3fec4c06d0355e36279179e921b2d31676192d9d7d4929dd6"
+          "sha256": "b8a252daa90b50da706da9e454e7565ed3ea2ac12e89d7b07478160bb50a52fd"
         }
       ]
     },
@@ -5897,19 +6724,20 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 4
+        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
+        "retained_translation_no_native_admission_proven": 3
       },
       "routine_count": 4,
       "source": "src/pstencil/native_light_shape_tu15_generated.cpp",
-      "source_bytes": 58315,
+      "source_bytes": 58423,
       "source_filename_scope": "generated",
-      "source_sha256": "8ad5a4514765766619afa78f67ab5d52c82725a10564299ed97c0f75f860a2e6",
+      "source_sha256": "fbbba338108859020c55c357961c3eb93b5029c683aedd1dda3fc0ba7483c266",
       "tables": [
         {
-          "bytes": 5020,
+          "bytes": 10862,
           "path": "inventory/pstencil__native_light_shape_tu15_generated.00.json",
           "routines": 4,
-          "sha256": "847085ed956b7746a7107295c9373e99a4a331c88d5ff102d98d287f039d623a"
+          "sha256": "b3dc8bebf8f7dcae1898b346fa1ff2f3ca51f5a87a6b3918ec7d86f5edde18b2"
         }
       ]
     },
@@ -5990,7 +6818,7 @@
           "bytes": 11494,
           "path": "inventory/rendering__effects__source_contrail_geometry_tu15_generated.00.json",
           "routines": 11,
-          "sha256": "6d1a3d986757520d2cab4262eaebc22147176e4eac53c681c0d91797fac46db9"
+          "sha256": "14723aa90b6d62b674b7b510499de4636d64706b6c6a5c8171eebd29c244766f"
         }
       ]
     },
@@ -6018,7 +6846,7 @@
           "bytes": 5385,
           "path": "inventory/rendering__effects__source_effect_light_view_tu15_generated.00.json",
           "routines": 4,
-          "sha256": "af68c38209e4925c27b92ce521692143e2b70074e2f16042f9e05c49ff909e6e"
+          "sha256": "61c8d0b5428d62bae4d71216fcf67625aba04ce47a473cf69dd7757df5a073af"
         }
       ]
     },
@@ -6033,21 +6861,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 1,
-        "retained_translation_no_native_admission_proven": 71,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 10,
+        "retained_translation_no_native_admission_proven": 62,
         "retained_translation_with_native_admission_hint_requires_audit": 1
       },
       "routine_count": 73,
       "source": "src/rendering/effects/source_effect_particle_draw_tu15_generated.cpp",
-      "source_bytes": 796271,
+      "source_bytes": 800260,
       "source_filename_scope": "generated",
-      "source_sha256": "732620e567b9806f575eb09a07a0c12f7034fe07b0824d99deee60c8eaec588a",
+      "source_sha256": "402575167ad0f73d36676adb7b1dd9c5d6cc4100516025d323b466b5ab78fdde",
       "tables": [
         {
-          "bytes": 72718,
+          "bytes": 130571,
           "path": "inventory/rendering__effects__source_effect_particle_draw_tu15_generated.00.json",
           "routines": 73,
-          "sha256": "8d8b40b9a1f90cf7afce36760657e0d19f4f06d241586f467990b1e344803d4c"
+          "sha256": "1543f54f7264d01d3a0f91188fa2efbf7afcd1940137d22647124f43ad7c9805"
         }
       ]
     },
@@ -6062,20 +6890,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 69,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 6,
+        "retained_translation_no_native_admission_proven": 63,
         "retained_translation_with_native_admission_hint_requires_audit": 10
       },
       "routine_count": 79,
       "source": "src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp",
-      "source_bytes": 581874,
+      "source_bytes": 583475,
       "source_filename_scope": "generated",
-      "source_sha256": "f825a7b302191d546343978c484fa96fdd5832a072ff1a735b2a3485bd28fc52",
+      "source_sha256": "e00ad4d9bace419d712d7536c98796612a709e9758308126e1f4f57ba7b398ae",
       "tables": [
         {
-          "bytes": 73808,
+          "bytes": 121435,
           "path": "inventory/rendering__effects__source_effect_particle_frame_tu15_generated.00.json",
           "routines": 79,
-          "sha256": "2d0e62e4d14fae735e45b0f600905386a66e0e94186ef6d9d439caa312b0bad7"
+          "sha256": "ab623ee41c4918aabef74a5cddec39be6b001fb1d5f3b5df74e00dd9c8e42bdb"
         }
       ]
     },
@@ -6102,7 +6931,7 @@
           "bytes": 3305,
           "path": "inventory/rendering__effects__source_first_person_light_pose_tu15_generated.00.json",
           "routines": 2,
-          "sha256": "5b67bb66c6baaecfb3238aed4809a5507cdf9db774f3e884a066845c1192d596"
+          "sha256": "6513b68bab1e08fb92eb940e59a44b6b26ca0db0900d7944e32477bfa844cedd"
         }
       ]
     },
@@ -6157,7 +6986,7 @@
           "bytes": 14815,
           "path": "inventory/rendering__effects__source_lens_flare_tu15_generated.00.json",
           "routines": 14,
-          "sha256": "4affa0733e93ff95f54eed42afec9d71999b3892465bdbf027484f5ae2517871"
+          "sha256": "f0111cc5cf12423c865f29f6a925d069532b527c05ebf7806ff3fbccac895769"
         }
       ]
     },
@@ -6277,21 +7106,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
+        "hash_authenticated_source_native_prefix_with_retained_reference": 9,
         "no_callback_body_requires_audit": 1,
-        "retained_translation_no_native_admission_proven": 103,
+        "retained_translation_no_native_admission_proven": 94,
         "retained_translation_with_native_admission_hint_requires_audit": 25
       },
       "routine_count": 129,
       "source": "src/rendering/models/source_model_render_tu15_generated.cpp",
-      "source_bytes": 1929147,
+      "source_bytes": 1943901,
       "source_filename_scope": "generated",
-      "source_sha256": "f5b0d44d0d73af99ec3a0ac2e006231703fd04a7a9cd7a3c01b5c7fd0ec7b348",
+      "source_sha256": "02e9f3dc4cb6cbfc8f168bd18ae508b376ed9ba8a46839589944b5e1f820a113",
       "tables": [
         {
-          "bytes": 122697,
+          "bytes": 204350,
           "path": "inventory/rendering__models__source_model_render_tu15_generated.00.json",
           "routines": 129,
-          "sha256": "ecc4e32e313aa17d101eb85f537495c17a8c18fc3339eed8d949183288043eef"
+          "sha256": "9982120d3a900295d7076a6fa9f03a86557849d39e5dbd2e78b54f19c588f0c0"
         }
       ]
     },
@@ -6535,7 +7365,7 @@
           "bytes": 7483,
           "path": "inventory/rendering__renderer__source_renderer_transparent_storage_tu15_generated.00.json",
           "routines": 6,
-          "sha256": "d6e8705af5f86022b7a73c2b44813ce9434b48adadc63298a4af5f7f543830b4"
+          "sha256": "197c2ef37e0c9be08d9e2f3dad28f4c5ac32fbd9893586599c49e21a61097fbd"
         }
       ]
     },
@@ -6550,21 +7380,23 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
+        "hash_authenticated_source_native_prefix_with_retained_reference": 4,
         "no_callback_body_requires_audit": 2,
-        "retained_translation_no_native_admission_proven": 446,
-        "retained_translation_with_native_admission_hint_requires_audit": 9
+        "retained_translation_no_native_admission_proven": 440,
+        "retained_translation_with_hash_bound_native_leaf": 1,
+        "retained_translation_with_native_admission_hint_requires_audit": 10
       },
       "routine_count": 457,
       "source": "src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp",
-      "source_bytes": 4884349,
+      "source_bytes": 4886369,
       "source_filename_scope": "generated",
-      "source_sha256": "603a88ea92349dfab2ed85e1b51dc1e1a7620531030779467a471c91f8275af3",
+      "source_sha256": "7a5fa672417579cfad397d21ac9441783adb714b97bd8bb02ca79f774bb040d2",
       "tables": [
         {
-          "bytes": 411806,
+          "bytes": 454882,
           "path": "inventory/rendering__renderer__source_scene_device_constructor_tu15_generated.00.json",
           "routines": 457,
-          "sha256": "d81b6600aef3fcb06e613e00f253f0d6e4d07c1dd6bd8f8e5152b84c902598c3"
+          "sha256": "316360309b15eb7f3f0720149b70fc75b7cf967604115d00a55128840fd2488a"
         }
       ]
     },
@@ -6606,22 +7438,22 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "hash_authenticated_source_native_prefix_with_retained_reference": 4,
+        "hash_authenticated_source_native_prefix_with_retained_reference": 22,
         "no_callback_body_requires_audit": 2,
-        "retained_translation_no_native_admission_proven": 134,
-        "retained_translation_with_native_admission_hint_requires_audit": 7
+        "retained_translation_no_native_admission_proven": 113,
+        "retained_translation_with_native_admission_hint_requires_audit": 10
       },
       "routine_count": 147,
       "source": "src/rendering/shadows/source_shadow_frame_tu15_generated.cpp",
-      "source_bytes": 2336870,
+      "source_bytes": 2342347,
       "source_filename_scope": "generated",
-      "source_sha256": "67c6221fb85899bb2878236d8d072d1055786210d5eff1bc48e75a81c016c55a",
+      "source_sha256": "6a7407fc9bd2f5863000912cc70ed6ce3d5434b321cf422513d8b0f6c5b48f43",
       "tables": [
         {
-          "bytes": 153771,
+          "bytes": 267220,
           "path": "inventory/rendering__shadows__source_shadow_frame_tu15_generated.00.json",
           "routines": 147,
-          "sha256": "d332f2a5749159df31d520c72627fb3c2a0ce97473e31efb1068d3165854094d"
+          "sha256": "67e2ad176024d013eea895345ec21ada7a3321a4268df0ca0e9486bef51618f4"
         }
       ]
     },
@@ -6648,7 +7480,7 @@
           "bytes": 13121,
           "path": "inventory/rendering__source_geometry_cache_frame_tu15_generated.00.json",
           "routines": 13,
-          "sha256": "108d1300b1fcdfca3146ca97952cc9ebb30d31ddc19134e2881f87f027d970e8"
+          "sha256": "f6cba9ade21addda0c741e25ec66bd6bc151f1ab9173146f332d522306d82225"
         }
       ]
     },
@@ -6675,7 +7507,7 @@
           "bytes": 5564,
           "path": "inventory/rendering__source_point_collision_runtime_generated.00.json",
           "routines": 6,
-          "sha256": "6b605e0a1bc180bd710acb801cfd16da2129066b6c057b3ff3dd84bb2a62cd3e"
+          "sha256": "ef1587c8ea5d6db75fe5805e0f6a9187a9b10e3ad1f859ff2096e6d6c20a426e"
         }
       ]
     },
@@ -6702,7 +7534,7 @@
           "bytes": 2426,
           "path": "inventory/rendering__source_transparent_collection_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "eac3a91f6b2907760ec72ee293c0fee2f11234375402ac6a7516d3bcc4cb1bc8"
+          "sha256": "24f2992dbf96ff16ee9f4904cca8f31be601aac70cb8489123e3b3b52e7733f1"
         }
       ]
     },
@@ -6729,7 +7561,7 @@
           "bytes": 2712,
           "path": "inventory/rendering__source_transparent_group_tu15_generated.00.json",
           "routines": 1,
-          "sha256": "38190ccd79063bfe5716e0df3fb4ee146991146353def70482d7f71c4ad9ce86"
+          "sha256": "2c9871e528dfe7f4d6a99ab86df08796a97953bfa3005260ce4395553654953f"
         }
       ]
     },
@@ -6756,7 +7588,7 @@
           "bytes": 14840,
           "path": "inventory/rendering__world__source_conveyor_tu15_generated.00.json",
           "routines": 15,
-          "sha256": "545b7aa25914637059bf4b1a8f290b0e256c6e55824310c43ca2b54cc23fa684"
+          "sha256": "34ccb7458ac3b50a138cfdb9b158eec30820da3135f24ec4ec816b133642cbfa"
         }
       ]
     },
@@ -6806,7 +7638,32 @@
           "bytes": 17100,
           "path": "inventory/rendering__world__source_texture_camera_producer_tu15_generated.00.json",
           "routines": 17,
-          "sha256": "5a4ea8197d921f58d5c98b4a5d86bd4c899606233728d942fbce4f139d4a6332"
+          "sha256": "a52a8f5b4848df61e15fa93fcfb4a7a35cf12a0eaaafb8eb290cef87a79150ac"
+        }
+      ]
+    },
+    {
+      "callback_image_scope": "tu15",
+      "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+      "configured_production_target_ids": [],
+      "production_candidate_targets": [
+        "halo2_systems"
+      ],
+      "production_scope": "static_production_include_candidate",
+      "route_counts": {
+        "literal_observer_boundary_requires_semantic_review": 1
+      },
+      "routine_count": 1,
+      "source": "src/runtime/native_tu15_diagnostic_logger_owner.hpp",
+      "source_bytes": 3559,
+      "source_filename_scope": "nongenerated",
+      "source_sha256": "e4d54a16bde360b713a35eaf43bb3f7b96bf56cb73cce226484483de00429971",
+      "tables": [
+        {
+          "bytes": 2273,
+          "path": "inventory/runtime__native_tu15_diagnostic_logger_owner.hpp.00.json",
+          "routines": 1,
+          "sha256": "dc52a8a01b249f974f720ba752f7db42756e676fd52e3dfa8a179138137e9a6e"
         }
       ]
     },
@@ -6821,20 +7678,21 @@
       ],
       "production_scope": "static_production_candidate",
       "route_counts": {
-        "retained_translation_no_native_admission_proven": 187,
-        "retained_translation_with_native_admission_hint_requires_audit": 6
+        "hash_authenticated_source_native_prefix_with_retained_reference": 8,
+        "retained_translation_no_native_admission_proven": 178,
+        "retained_translation_with_native_admission_hint_requires_audit": 7
       },
       "routine_count": 193,
       "source": "src/runtime/source_map_world_support_tu15_generated.cpp",
-      "source_bytes": 1916006,
+      "source_bytes": 1917586,
       "source_filename_scope": "generated",
-      "source_sha256": "e6bbe3dc51c81ea9231cc1eaa866c3019c76425103a755ba611b4d8e264ca4fd",
+      "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
       "tables": [
         {
-          "bytes": 173506,
+          "bytes": 222450,
           "path": "inventory/runtime__source_map_world_support_tu15_generated.00.json",
           "routines": 193,
-          "sha256": "8c38902cdf2219b9221f4239759b62a84da5d7048a2280f6d813f6aebd4a1252"
+          "sha256": "110c17f4a9997f79b68822d80c5455ece784bd7e8aae047d41f2685aa706c7b9"
         }
       ]
     },
@@ -6862,7 +7720,7 @@
           "bytes": 63887,
           "path": "inventory/ui__source_ui_script_startup_tu15_generated.00.json",
           "routines": 67,
-          "sha256": "ff3aa839bde53eed3d5efd8c236ce3b96f2a9d3a3fc05c8e04b69cdcbeae971b"
+          "sha256": "02684a7145d8a089a25665ea698fd35772b3a78978c0d90f6bc9529a9354734d"
         }
       ]
     }

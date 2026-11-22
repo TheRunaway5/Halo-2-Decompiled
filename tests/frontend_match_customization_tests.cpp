@@ -33,7 +33,7 @@ MenuState selected(const FrontendContent& content,unsigned variant,bool lan,
   MenuState menu(content,preferences);menu.accept();choose(menu,0,167);
   menu.text("Customize One");menu.commit_text();menu.back();
   need(menu.frame().screen==6,"Match customization profile did not reach the main menu");
-  choose(menu,lan?3:2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,lan?2:0,30);choose(menu,0,14);
   need(menu.controller_slot(101,true)==0,"Local host input lost its slot");
   need(menu.controller_slot(102,true)==1 && menu.frame().screen==10,
        "Second local player could not enter the profile picker");
@@ -49,7 +49,7 @@ MenuState selected(const FrontendContent& content,unsigned variant,bool lan,
 MenuState resumed(const FrontendContent& content,const std::filesystem::path& preferences) {
   MenuState menu(content,preferences);menu.accept();
   choose(menu,row_destination(menu,-3),6);
-  choose(menu,3,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,2,30);choose(menu,0,14);
   need(menu.controller_slot(101,true)==0 && menu.controller_slot(102,true)==1,
        "Reloaded LAN match lost local controller join");
   choose(menu,row_value(menu,1),14);

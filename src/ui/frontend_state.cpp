@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
 #include "ui/frontend_multiplayer_rules.hpp"
 #include "ui/frontend_custom_variant_settings.hpp"
 #include "halo2/frontend_online.hpp"
@@ -74,11 +75,6 @@ constexpr std::array<const char *, 15> campaign_files{
     "04b_floodlab",      "05a_deltaapproach",  "05b_deltatowers",
     "06a_sentinelwalls", "06b_floodzone",      "07a_highcharity",
     "08a_deltacliffs",   "07b_forerunnership", "08b_deltacontrol"};
-constexpr std::array<unsigned, 7> engine_order{0, 3, 1, 2, 4, 5, 6};
-constexpr std::array<unsigned, 7> match_category{
-    1, 2, 6, 3, 0, 8, 7}; // Indexed by actual engine type.
-constexpr std::array<unsigned, 7> game_category{14, 15, 19, 16, 13, 21, 20};
-constexpr std::array<unsigned, 7> team_category{32, 33, 37, 34, 31, 39, 38};
 std::string by_index(const FrontendContent &content, const UiScreen &screen, unsigned low) {
   if (detail::mcc_frontend_content(content)) {
     const auto id = detail::frontend_compiled_string_id(content, low);
@@ -94,6 +90,14 @@ std::string by_index(const FrontendContent &content, const UiScreen &screen, uns
 }
 bool appearance_window(unsigned screen) {
   return screen == 49 || screen == 50 || screen == 52 || screen == 233;
+}
+void add_localized_row(const FrontendContent &content, const UiScreen &screen, MenuFrame &frame,
+                       unsigned label_id, int destination, int value) {
+  auto label = by_index(content, screen, label_id);
+  if (label.empty())
+    throw FormatError("retail menu label missing on screen " + std::to_string(frame.screen) +
+                      ": " + std::to_string(label_id));
+  frame.entries.push_back({std::move(label), destination, value});
 }
 unsigned appearance_window_size(const FrontendContent &content,
                                 const MenuFrame &frame) {
@@ -310,6 +314,11 @@ std::string MenuState::profile_service_tag() const {
 FrontendAppearance MenuState::appearance() const {
   return appearance_edit_.value_or(profile_appearance());
 }
+unsigned MenuState::appearance_value_id(const MenuEntry &row) const {
+  const auto profile = appearance();
+  return online_protocol_bridge::frontend_appearance_readout(row.destination, row.value,
+      {profile.colors.data(), profile.colors.size()}, profile.species, profile.foreground, profile.background);
+}
 void MenuState::begin_appearance_edit() {
   if (appearance_edit_ && appearance_profile_ == profile_name())
     return;
@@ -384,6 +393,99 @@ std::optional<int> MenuState::focused_profile_species(const MenuFrame &frame) co
   const auto value = focused_profile_appearance(frame);
   return value ? std::optional<int>{value->species} : std::optional<int>{};
 }
+bool MenuState::build_shell_settings(MenuFrame &frame) const {
+  namespace bridge = online_protocol_bridge;
+  using Part = bridge::ShellSettingsPart;
+  const auto layout = bridge::frontend_shell_settings_layout(frame.screen, frame.context, engine_,
+      detail::frontend_custom_variant_category);
+  if (layout.empty()) return false;
+  const auto &screen = content_.screens.at(frame.screen);
+  for (const auto &element : layout) {
+    const auto destination = element.destination;
+    switch (element.part) {
+    case Part::LocalizedRow:
+      add_localized_row(content_, screen, frame, element.key, destination, element.value);
+      break;
+    case Part::PcSettingsLink:
+      if (content_.vista) {
+        const auto &pc_screen = content_.vista->screen(frame.screen);
+        const auto label = detail::frontend_pc_compiled_localized(*content_.vista, pc_screen, element.key);
+        frame.entries.push_back({label, int(vista_menu(unsigned(destination))), element.value});
+      }
+      break;
+    case Part::GuestProfile:
+      if (party_flow_.couch_guest_entry(frame.screen))
+        frame.entries.push_back({"Guest", destination, element.value});
+      break;
+    case Part::Profiles:
+      for (unsigned i = 0; i < profiles_.size(); ++i)
+        if (couch_profile_entry(frame.screen, profiles_[i]))
+          frame.entries.push_back({profiles_[i], destination, int(i)});
+      break;
+    case Part::BuiltinVariants:
+      for (unsigned i = 0; i < content_.variants.size() + content_.bundled_variants.size(); ++i) {
+        const auto &variant = builtin_variant(content_, i);
+        if (variant.engine == browsed_engine_)
+          frame.entries.push_back({variant.name, destination, int(i)});
+      }
+      break;
+    case Part::SavedVariants:
+      for (unsigned i = 0; i < saved_variants_.size(); ++i)
+        if (saved_variants_[i].engine == browsed_engine_)
+          frame.entries.push_back({saved_variants_[i].name, destination, int(i)});
+      break;
+    case Part::VariantCategory: {
+      if (detail::frontend_custom_variant(current_variant())) {
+        const auto found = content_.categories.find(unsigned(element.value));
+        if (found == content_.categories.end() || std::ranges::none_of(found->second,
+                [&](unsigned datum) { return variant_parameter(datum).has_value(); }))
+          break;
+      }
+      add_localized_row(content_, screen, frame, element.key, destination, element.value);
+      break;
+    }
+    case Part::CustomVariantCategory:
+      if (!detail::frontend_custom_variant_parameters(current_variant()).empty())
+        frame.entries.push_back({"Mode Settings", destination, element.value});
+      break;
+    case Part::VariantDescription: {
+      const auto variant = current_variant();
+      if (detail::frontend_custom_variant(variant))
+        frame.description = detail::frontend_custom_variant_description(variant);
+      break;
+    }
+    case Part::CategoryTitle:
+      frame.title = by_index(content_, screen, element.key);
+      break;
+    case Part::Parameters:
+    case Part::CustomParameters: {
+      const auto append = [&](const auto &datums) {
+        for (const auto datum : datums)
+          if (const auto parameter = variant_parameter(datum))
+            frame.entries.push_back({parameter->title, destination, int(datum)});
+      };
+      if (element.part == Part::CustomParameters) {
+        frame.title = "MODE SETTINGS";
+        const auto variant = current_variant();
+        frame.description = detail::frontend_custom_variant_description(variant);
+        append(detail::frontend_custom_variant_parameters(variant));
+      } else if (const auto found = content_.categories.find(element.key); found != content_.categories.end())
+        append(found->second);
+      break;
+    }
+    case Part::ParameterChoices:
+      if (const auto parameter = variant_parameter(element.key)) {
+        frame.parameter = element.key;
+        frame.title = parameter->header;
+        frame.description = parameter->description;
+        for (const auto &choice : parameter->choices)
+          frame.entries.push_back({choice.label, destination, choice.value});
+      }
+      break;
+    }
+  }
+  return true;
+}
 MenuFrame MenuState::build(unsigned id, unsigned context) const {
   if(id==13 || id==vista_menu(13))
     throw FormatError("Retired screen13 is unavailable in native navigation");
@@ -402,11 +504,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   f.screen = id;
   f.context = context;
   auto add = [&](unsigned low, int destination = -1, int value = 0) {
-    auto label = by_index(content_, s, low);
-    if (label.empty())
-      throw FormatError("retail menu label missing on screen " +
-                        std::to_string(id) + ": " + std::to_string(low));
-    f.entries.push_back({label, destination, value});
+    add_localized_row(content_, s, f, low, destination, value);
   };
   auto range = [&](unsigned first, unsigned last) {
     for (auto i = first; i <= last; ++i)
@@ -415,123 +513,19 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   switch (id) {
   case 6:
     add(0x10b, 218);
-    add(0x283, 20);
-    f.entries.back().label = "ONLINE";
-    add(0x284, 30, 0);
-    add(0x285, 30, 1);
+    f.entries.push_back({"MULTIPLAYER", 218, multiplayer_options_context});
     add(0x286, 19);
     f.entries.push_back({"MODS", -120, 0});
     f.entries.push_back({"EXIT GAME", -19, 0});
     break;
-  case 19:
-    add(0x196, 193);
-    add(0x197, 60, 1);
-    if (content_.vista) f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, content_.vista->screen(19), 0x0e000820), int(vista_menu(256)), 0});
-    break;
-  case 10:
-  case 193:
-    if(party_flow_.couch_guest_entry(id))f.entries.push_back({"Guest",-80,0});
-    add(0x195, 167, -1);
-    for (unsigned i = 0; i < profiles_.size(); ++i) {
-      if(!couch_profile_entry(id,profiles_[i]))continue;
-      f.entries.push_back({profiles_[i], -3, int(i)});
-    }
-    break;
-  case 38:
-    add(0x2ef, 39);
-    add(0x2f0, 47);
-    add(0x302, 55);
-    add(0x301, 54);
-    add(0x2f2, 58);
-    add(0x2f1, 242);
-    if (content_.vista) f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, content_.vista->screen(38), 0x16000853), int(vista_menu(258)), 0});
-    break;
-  case 39: {
-    const std::array<unsigned, 6> ids{0x3dd, 0x3de, 0x3df, 0x3e0, 0x3e1, 0x3e2};
-    const std::array<int, 6> targets{41, 40, 42, 43, 44, 183};
-    for (unsigned i = 0; i < ids.size(); ++i)
-      add(ids[i], targets[i]);
-    break;
-  }
-  case 41:
-    add(1, -2, 0);
-    add(0x2f5, -2, 1);
-    add(0x2f6, -2, 2);
-    add(0x2f7, -2, 3);
-    break;
-  case 40:
-    // Original2C647D admits four records;2C6512/2C6567 map0..3
-    // directly to Default/Southpaw/Boxer/GreenThumb and the saved enum.
-    add(1, -2, 0);
-    add(0x3e4, -2, 1);
-    add(0x3e5, -2, 2);
-    add(0x3e6, -2, 3);
-    break;
-  case 42:
-    range(0x3cf, 0x3d8);
-    break;
-  case 43:
-  case 44:
-    add(0x308, -2, 1);
-    add(0x309, -2, 0);
-    break;
-  case 183:
-    add(0x181, -2, 1);
-    add(0x182, -2, 0);
-    break;
-  case 45:
-    range(0x3d9, 0x3dc);
-    break;
-  case 47:
-    add(0x2f8, 52);
-    add(0x2f9, 50, 0);
-    add(0x2fa, 50, 1);
-    add(0x2fb, 50, 2);
-    add(0x2fc, 50, 3);
-    add(0x2fd, 49);
-    add(0x2fe, 233);
-    break;
-  case 50:
-    range(0x30a, 0x31b);
-    break;
-  case 49:
-    range(0x30a, 0x349);
-    break;
-  case 233:
-    range(0x30a, 0x329);
-    break;
-  case 52:
-    add(0x2ff, -2, 0);
-    add(0x300, -2, 1);
-    break;
-  case 53:
-    add(0x301, 54);
-    add(0x302, 55);
-    break;
-  case 54:
-    add(0x21c, -2, 0);
-    add(0x303, -2, 1);
-    break;
-  case 55:
-    add(0x304, -2, 0);
-    add(0x306, -2, 1);
-    add(0x305, -2, 2);
-    add(0x307, -2, 3);
-    break;
-  case 58:
-    add(0x183, -2, 1);
-    add(0x184, -2, 0);
-    break;
-  case 242:
-    add(1, -2, 0);
-    add(0x181, -2, 1);
-    add(0x182, -2, 2);
-    break;
-  case 48:
-    add(0x146, -5);
-    add(0x147, -6);
-    break;
   case 218:
+    if (f.multiplayer_options()) {
+      f.title = "MULTIPLAYER";
+      add_localized_row(content_, content_.screen(6), f, 0x284, 30, 0);
+      f.entries.push_back({"ONLINE", 20, 0});
+      f.entries.push_back({"LAN", 30, 1});
+      break;
+    }
     add(0x424, 12);
     add(0x425, -4);
     add(0x426, 11);
@@ -565,111 +559,37 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     }
     break;
   }
-  case 60:
-  case 207: {
-    if (id == 60 && context == workshop_mission_context && workshop_mission_) {
+  case 60: {
+    if (context < workshop_menu_context) {
+      build_shell_settings(f);
+      break;
+    }
+    if (context == workshop_mission_context && workshop_mission_) {
       f.title = workshop_mission_->title;
       f.description = "Choose how to launch this mission.";
       f.entries.push_back({workshop_mission_->campaign ? "Play Campaign" : "Play Local Multiplayer", -123, 0});
       f.entries.push_back({"Explore Map", -124, 0});
       break;
     }
-    if (id == 60 && context >= workshop_menu_context) {
-      if (context == workshop_menu_context) {
-        f.title = "MODS";
-        f.description = workshop_catalog_.mods.empty()
-            ? "No Halo 2 Workshop missions found. Subscribe and download in Steam, then refresh."
-            : "Choose a downloaded Halo 2 mod.";
-        for (unsigned i = 0; i < workshop_catalog_.mods.size(); ++i)
-          f.entries.push_back({workshop_catalog_.mods[i].title, -121, int(i)});
-        if (!workshop_catalog_.errors.empty())
-          f.description = workshop_catalog_.errors.front();
-        f.entries.push_back({"Refresh", -120, 0});
-      } else {
-        const auto &mod = workshop_catalog_.mods.at(context - workshop_menu_context - 1);
-        f.title = mod.title;
-        f.description = mod.error.empty() ? "Choose a mission." : mod.error;
-        for (unsigned i = 0; i < mod.missions.size(); ++i)
-          f.entries.push_back({mod.missions[i].title, -122, int(i)});
-      }
-      break;
-    }
-    const std::array<unsigned, 7> ids{0x10f, 0x237, 0x110, 0x113,
-                                      0x439, 0x10e, 0x115};
-    for (unsigned i = 0; i < ids.size(); ++i)
-      add(ids[i], id == 60 ? 15 : 208, int(engine_order[i]));
-    break;
-  }
-  case 15:
-  case 208:
-    for (unsigned i = 0; i < content_.variants.size(); ++i)
-      if (content_.variants[i].engine == browsed_engine_)
-        f.entries.push_back({content_.variants[i].name, -7, int(i)});
-    for (unsigned i=0;i<content_.bundled_variants.size();++i)
-      if(content_.bundled_variants[i].engine==browsed_engine_)
-        f.entries.push_back({content_.bundled_variants[i].name,-7,int(content_.variants.size()+i)});
-    for (unsigned i = 0; i < saved_variants_.size(); ++i)
-      if (saved_variants_[i].engine == browsed_engine_)
-        f.entries.push_back({saved_variants_[i].name, -9, int(i)});
-    break;
-  case 178: {
-    const std::array<unsigned, 6> ids{0x434, 0x430, 0x435, 0x42e, 0x433, 0x436};
-    const std::array<unsigned, 6> categories{
-        match_category.at(engine_), 9,  team_category.at(engine_),
-        game_category.at(engine_),  11, 12};
-    const auto variant=current_variant();
-    const bool custom=detail::frontend_custom_variant(variant);
-    for (unsigned i = 0; i < ids.size(); ++i) {
-      if(custom) {
-        const auto category=content_.categories.find(categories[i]);
-        if(category==content_.categories.end() ||
-            std::ranges::none_of(category->second,[&](auto datum){return variant_parameter(datum).has_value();}))continue;
-      }
-      add(ids[i], 221, int(categories[i]));
-    }
-    if(custom) {
-      f.description=detail::frontend_custom_variant_description(variant);
-      if(!detail::frontend_custom_variant_parameters(variant).empty())
-        f.entries.push_back({"Mode Settings",221,int(detail::frontend_custom_variant_category)});
+    if (context == workshop_menu_context) {
+      f.title = "MODS";
+      f.description = workshop_catalog_.mods.empty()
+          ? "No Halo 2 Workshop missions found. Subscribe and download in Steam, then refresh."
+          : "Choose a downloaded Halo 2 mod.";
+      for (unsigned i = 0; i < workshop_catalog_.mods.size(); ++i)
+        f.entries.push_back({workshop_catalog_.mods[i].title, -121, int(i)});
+      if (!workshop_catalog_.errors.empty())
+        f.description = workshop_catalog_.errors.front();
+      f.entries.push_back({"Refresh", -120, 0});
+    } else {
+      const auto &mod = workshop_catalog_.mods.at(context - workshop_menu_context - 1);
+      f.title = mod.title;
+      f.description = mod.error.empty() ? "Choose a mission." : mod.error;
+      for (unsigned i = 0; i < mod.missions.size(); ++i)
+        f.entries.push_back({mod.missions[i].title, -122, int(i)});
     }
     break;
   }
-  case 221:
-  case 222: {
-    const auto category = id == 222 ? 22 + match_category.at(engine_) : context;
-    if(category==detail::frontend_custom_variant_category) {
-      f.title="MODE SETTINGS";
-      f.description=detail::frontend_custom_variant_description(current_variant());
-      for(auto datum:detail::frontend_custom_variant_parameters(current_variant()))
-        if(const auto parameter=variant_parameter(datum))
-          f.entries.push_back({parameter->title,223,int(datum)});
-    } else if (const auto it = content_.categories.find(category);
-        it != content_.categories.end())
-      for (auto datum : it->second)
-        if(const auto parameter=variant_parameter(datum))
-          f.entries.push_back({parameter->title,223,int(datum)});
-    if (id == 221 && category!=detail::frontend_custom_variant_category) {
-      const auto group = category == 9    ? 1
-                         : category == 11 ? 4
-                         : category == 12 ? 5
-                         : category >= 31 ? 2
-                         : category >= 13 ? 3
-                                          : 0;
-      f.title = by_index(content_, s, 0x189e + group);
-    }
-    if(detail::frontend_custom_variant(current_variant()))
-      f.description=detail::frontend_custom_variant_description(current_variant());
-    break;
-  }
-  case 223:
-    if (const auto parameter=variant_parameter(context)) {
-      f.parameter = context;
-      f.title = parameter->header;
-      f.description = parameter->description;
-      for (const auto &v : parameter->choices)
-        f.entries.push_back({v.label, -2, v.value});
-    }
-    break;
   case 14:
     if(mode_==3){populate_online_party(f);break;}
     // The native lobby policy owns Start and Setup. MCC's PC host pane also
@@ -796,11 +716,6 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 184:
     f.entries = {{profile_name(), -4, 0}};
     break;
-  case 194:
-    add(0x19e, context ? 178 : 38);
-    add(0x19f, 167, context ? 6 : 5);
-    add(0x1a0, -12, context);
-    break;
   case 210:
     populate_online_matchmaking(f);
     break;
@@ -808,13 +723,6 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 237:
     if (context == online_server_browser_context) populate_online_directory(f);
     else populate_online_matchmaking(f);
-    break;
-  case 239:
-    range(0x6f6, 0x704);
-    break;
-  case 241:
-    add(0x181, -2, 1);
-    add(0x182, -2, 0);
     break;
   case 7:
   case 8:
@@ -842,6 +750,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     f.selected = 40;
     break;
   default:
+    if (build_shell_settings(f)) break;
     if (!s.panes.empty()) {
       for (const auto &list : s.panes.front().lists)
         for (auto label : list.labels)
@@ -906,6 +815,15 @@ void MenuState::open(unsigned screen, unsigned context) {
   const auto route=signin_flow_drive(3,screen,context);screen=route.screen;context=route.context;
   if (stack_.size() >= 64)
     throw FormatError("menu navigation stack limit");
+  // Returning from an online match builds a fresh main menu before it
+  // reopens Online. Reconstruct the same Back path as entering from Play.
+  if (mode_ == 3 && stack_.size() == 1 && frame().screen == 6 &&
+      (screen == 20 || screen == 186)) {
+    stack_.back().selected = 1;
+    auto multiplayer = build(218, multiplayer_options_context);
+    multiplayer.selected = 1;
+    stack_.push_back(std::move(multiplayer));
+  }
   const bool appearance_child = screen == 50 || screen == 52 || screen == 49 || screen == 233;
   if (screen == 38 || screen == 47 || appearance_child)
     begin_appearance_edit();
@@ -1053,7 +971,12 @@ void MenuState::leave_system_link_lobby() {
   system_link_host_.reset();system_link_players_.clear();system_link_machines_=0;system_link_leave_={};
   system_link_local_slots_.fill(-1);lobby_team_change_={};
   lobby_session_action_={};session_countdown_.reset();stack_.clear();launch.reset();mode_=2;
-  open(13);
+  // A disconnected LAN session has released its lobby. The mode picker is
+  // reachable even when the previous match already disposed its menu stack.
+  open(6);
+  select(1);
+  open(218, multiplayer_options_context);
+  select(2);
 }
 void MenuState::adopt_system_link_configuration(std::string_view map,const UiVariant& variant) {
   if(mode_!=2 || (system_link_host_ && *system_link_host_))throw FormatError("Only a pending or retained System Link client adopts host configuration");
@@ -1505,16 +1428,13 @@ void MenuState::accept() {
       ++revision;
       return;
     }
-    if (f.selected == 0) {
+    if (entry.destination == 218 && entry.value == 0) {
       mode_ = 0;
       level_ = 0;
     }
-    if (f.selected == 1)
-      mode_ = 3;
-    if (f.selected == 2)
-      mode_ = 1;
-    if (f.selected == 3)
-      mode_ = 2;
+  }
+  if (f.multiplayer_options()) {
+    mode_ = entry.destination == 20 ? 3 : (entry.value == 1 ? 2 : 1);
   }
   if (f.screen == 30 && f.context == 2)
     { mode_ = 4; lobby_protocol_ = 0; }
@@ -1632,7 +1552,7 @@ void MenuState::accept() {
     if (!postgame_flow_drive(7)) return;
   } else if (entry.destination == -11) {
     if(online_lobby_input(3))return;
-    while (stack_.size() > 1 && frame().screen != 6)
+    while (stack_.size() > 1 && frame().screen != 6 && !frame().multiplayer_options())
       stack_.pop_back();
     ++revision;
   } else if (entry.destination == -12) {

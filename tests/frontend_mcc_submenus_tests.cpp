@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <tuple>
 
 using namespace halo2;
 namespace {
@@ -40,6 +41,75 @@ void local_profile(MenuState &state) {
   state.back();
   require(state.frame().screen == 6 && state.signed_in_profile() == "MCC Submenu Test",
           "MCC profile could not reach the main menu");
+}
+void appearance_prompt_layout(const FrontendContent &content, FrontendPainter &painter, const Mesh &mesh) {
+  using Action = FrontendPointerAction;
+  MenuState menu(content);
+  local_profile(menu);
+  menu.open(38);
+  choose(menu, 1, 47);
+  const std::array<unsigned, 2> widescreen{1920, 1080};
+  for (const auto device : {PromptDevice::KeyboardMouse, PromptDevice::Xbox, PromptDevice::PlayStation}) {
+    painter.prompt_device(device);
+    const bool keyboard = device == PromptDevice::KeyboardMouse;
+    const auto family = device == PromptDevice::PlayStation ? "controller-prompts/playstation/" : "controller-prompts/xbox/";
+    for (const auto [row, screen] : std::array<std::pair<unsigned,unsigned>,4>{{
+             {0,52},{1,50},{5,49},{6,233}}}) {
+      menu.select(row);
+      // Capture the active footer, then require identical glyphs beneath
+      // the picker with no remaining parent mouse targets.
+      auto footer = [&](const UiDraw &draw, bool active) {
+        std::vector<std::tuple<unsigned,float,float,float,float>> glyphs;
+        unsigned icons{};
+        for (std::size_t i = 0; i < draw.vertices.size(); i += 6) {
+          const auto &v = draw.vertices[i], &end = draw.vertices[i+4];
+          const auto &m = mesh.materials.at(v.material);
+          const bool icon = m.name.starts_with("controller-prompts/");
+          if (v.position.y < 420 || (!icon && !m.name.starts_with("font/")) ||
+              !(v.color.x || v.color.y || v.color.z) || end.position.x-v.position.x <= 1) continue;
+          require(!m.ui_full_surface, "Appearance icon and caption use different viewports");
+          if (icon) require(m.name.starts_with(family), "Appearance footer changed controller family");
+          const auto hit = painter.pointer_hit((v.position.x+end.position.x)*.5f, (v.position.y+end.position.y)*.5f);
+          require(active ? hit && (hit->action==Action::Accept || hit->action==Action::Back) : !hit,
+                  "Appearance footer hit ownership disagrees with the active screen");
+          glyphs.emplace_back(v.material,v.position.x,v.position.y,v.uv.x,v.uv.y);
+          icons += icon;
+        }
+        require(icons == (keyboard ? 0u : 2u) && glyphs.size() >= 12, "Incomplete Appearance footer");
+        return glyphs;
+      };
+      const auto parent = footer(painter.draw(menu,5,-1,20000,widescreen), true);
+      choose(menu,row,screen);
+      const auto popup = painter.draw(menu,5,-1,20000,widescreen);
+      require(footer(popup,false)==parent, "Retained Appearance footer changed device or placement");
+
+      // Source PC picker caption at y=-360..-400, projected at 480/1200.
+      // Count the actual non-space glyph quads under each actionable label.
+      std::map<Action,unsigned> counts;
+      unsigned icons{};
+      for (std::size_t i = 0; i < popup.vertices.size(); i += 6) {
+        const auto &v=popup.vertices[i], &end=popup.vertices[i+4];
+        const auto &m=mesh.materials.at(v.material);
+        const bool icon=m.name.starts_with("controller-prompts/");
+        if (v.position.y < 384 || v.position.y >= 400 || v.position.x < 108 || end.position.x > 353 ||
+            (!icon && !m.name.starts_with("font/")) || !(v.color.x || v.color.y || v.color.z) ||
+            end.position.x-v.position.x <= .5f) continue;
+        const auto hit=painter.pointer_hit((v.position.x+end.position.x)*.5f,(v.position.y+end.position.y)*.5f);
+        if (!hit || hit->action==Action::Entry) continue;
+        require(!m.ui_full_surface, "Picker prompt uses HUD projection");
+        if (icon) require(m.name.starts_with(family), "Picker changed controller family");
+        ++counts[hit->action];icons+=icon;
+      }
+      require(counts[Action::Accept]==(keyboard?13u:7u) && counts[Action::Back]==(keyboard?11u:7u) &&
+              counts[Action::Auxiliary]==(screen==49 ? (keyboard?13u:11u) : 0u) &&
+              icons==(keyboard?0u:(screen==49?3u:2u)), "Incomplete picker prompts on screen "+std::to_string(screen)+
+                  ", device "+std::to_string(unsigned(device))+", select/back/toggle/icons "+
+                  std::to_string(counts[Action::Accept])+"/"+std::to_string(counts[Action::Back])+"/"+
+                  std::to_string(counts[Action::Auxiliary])+"/"+std::to_string(icons));
+      menu.back();
+    }
+  }
+  painter.prompt_device(PromptDevice::Xbox);
 }
 std::filesystem::path selected_cache(const std::filesystem::path &root) {
   std::ifstream input(root / "assets/mcc-source.tsv");
@@ -101,6 +171,7 @@ int main(int argc, char **argv) try {
   }
   Mesh mesh;
   FrontendPainter painter(content, fonts, mesh);
+  appearance_prompt_layout(content,painter,mesh);
   if(argc==5 && std::string_view(argv[4])=="--selection-stability") {
     nlohmann::json cases=nlohmann::json::array();
     for(const auto id:{1u,6u,10u,12u,19u,38u,60u,178u,207u,
@@ -249,6 +320,74 @@ int main(int argc, char **argv) try {
         {"projected_extent", {expected_width, expected_height}}, {"matched_quads", matched}});
   }
   require(!projection_checks.empty(), "No authored PC Settings bitmap qualified for canvas regression");
+  nlohmann::json option_boxes = nlohmann::json::array();
+  for (const auto screen : {19u, 253u, 256u, 257u, 258u, 296u}) {
+    for (const auto viewport : {std::array<unsigned,2>{640,480}, {1280,720}, {2560,1080}}) {
+      MenuState mouse(content);
+      mouse.open(vista_menu(screen));
+      const auto &list = content.vista->screens.at(screen).panes.front().lists.front();
+      for (const bool scrolled : {false,true}) {
+        if (scrolled && mouse.frame().entries.size() <= list.visible) continue;
+        if (scrolled) mouse.select(unsigned(mouse.frame().entries.size() - 1));
+        const auto first = mouse.frame().first_visible;
+        const auto output = painter.draw(mouse, 5.f, -1, 20000, viewport);
+        std::vector<std::array<float,4>> bodies, caps;
+        std::optional<std::array<float,4>> down_arrow;
+        for (std::size_t i = 0; i + 5 < output.vertices.size(); i += 6) {
+          const auto &a = output.vertices[i], &b = output.vertices[i + 4];
+          const auto &material = mesh.materials.at(a.material).name;
+          const auto bounds = std::array{a.position.x, a.position.y, b.position.x, b.position.y};
+          if (material == "ui\\list_skins\\setting_lists\\settings_list_bkd" ||
+              material == "ui\\list_skins\\default\\item_background") bodies.push_back(bounds);
+          if (material == "ui\\list_skins\\setting_lists\\hilite" ||
+              material == "ui\\list_skins\\setting_lists\\advanced_hilite" ||
+              material == "ui\\list_skins\\default\\end_cap") caps.push_back(bounds);
+          if (screen == 256 && !scrolled && material == "ui\\list_skins\\setting_lists\\arrows")
+            down_arrow = bounds;
+        }
+        const auto visible = std::min(list.visible, unsigned(mouse.frame().entries.size()) - first);
+        require(bodies.size() == visible && caps.size() == visible && visible > 0,
+                "Missing painted Settings row body or cap on " + std::to_string(screen));
+        if (screen == 256) {
+          require(visible == 12 && first == (scrolled ? mouse.frame().entries.size() - 12 : 0),
+                  "Video Options did not use its twelve-row frame before or after scrolling");
+          // The lower right corner's visible edge is y=364.8 on the 480-high canvas.
+          if (!scrolled)
+            require(down_arrow && (*down_arrow)[1] >= bodies.back()[3] &&
+                    std::abs((*down_arrow)[3] - 364.8f) < .01f,
+                    "Video Options down arrow did not fill the space below the last row");
+        }
+        for (unsigned i = 0; i < visible; ++i) {
+          const auto index = first + i;
+          const bool header = screen == 253 && mouse.frame().entries[index].value == -2;
+          const auto &body = bodies[i], &cap = caps[i];
+          const float left = std::min(body[0],cap[0]), right = std::max(body[2],cap[2]);
+          const float center_y = (body[1] + body[3]) * .5f;
+          for (const float x : {left+.1f, (left+right)*.5f, (left+3*right)*.25f, right-.1f})
+            for (const float y : {body[1]+.1f, center_y, body[3]-.1f}) {
+              const auto hit = painter.pointer_hit(x,y);
+              require(header ? !hit : hit && hit->action == FrontendPointerAction::Entry && hit->index == index,
+                      "Painted Settings option point selected the wrong row on " + std::to_string(screen) +
+                      " row " + std::to_string(index) + " at " + std::to_string(x) + "," + std::to_string(y));
+            }
+          for (const float x : {left-.1f,right+.1f})
+            require(!painter.pointer_hit(x,center_y), "Outside edge activated a Settings row");
+        }
+        option_boxes.push_back({{"screen",screen},{"viewport",viewport},{"first",first},{"visible",visible}});
+      }
+    }
+  }
+  MenuState video_defaults(content);
+  video_defaults.set_pc_display_adapter([](const DisplaySettings &) { return std::string{}; });
+  video_defaults.open(vista_menu(256));
+  choose(video_defaults, 0, vista_menu(271));
+  choose(video_defaults, 2, vista_menu(256));
+  const auto path_quality = unsigned(video_defaults.frame().entries.size() - 1);
+  video_defaults.select(path_quality);
+  choose(video_defaults, path_quality - 1, vista_menu(276));
+  choose(video_defaults, 0, vista_menu(256));
+  require(video_defaults.frame().first_visible + 12 == video_defaults.frame().entries.size(),
+          "Restoring video defaults left a blank row in the Video Options frame");
   // The category list is a persistent screen child. Other panes replace
   // artwork/help only; their omitted/empty list coordinates must not move it.
   nlohmann::json selector_checks = nlohmann::json::array();
@@ -392,7 +531,10 @@ int main(int argc, char **argv) try {
     visual.accept();
     choose(visual, 1, 6);
     for (unsigned screen : {6u, 30u}) {
-      if (screen == 30) choose(visual, 2, 30);
+      if (screen == 30) {
+        choose(visual, 1, 218);
+        choose(visual, 0, 30);
+      }
       for (const auto viewport : {std::array<unsigned, 2>{640, 480}, {1280, 720}, {2553, 1380}}) {
         const auto output = painter.draw(visual, 5.f, -1, 20000, viewport);
         if (screen == 6) {
@@ -401,14 +543,14 @@ int main(int argc, char **argv) try {
             return mesh.materials.at(v.material).name.ends_with("/original-role/10");
           }), "Main-menu text lost original logical font role");
           branding(visual, output, viewport);
-          require(visual.frame().entries.size() == 7 &&
+          require(visual.frame().entries.size() == 5 &&
                   visual.frame().entries.front().destination == 218 &&
                   visual.frame().entries.back().label == "EXIT GAME",
                   "Main menu lost Campaign or its final Exit Game option");
           visual.select(unsigned(visual.frame().entries.size() - 1));
           const auto selected_exit = painter.draw(visual, 5.f, -1, 20000, viewport);
           branding(visual, selected_exit, viewport);
-          std::array<bool, 7> visible_entries{};
+          std::array<bool, 5> visible_entries{};
           for (int y = 0; y < 480; ++y)
             for (int x = 0; x < 640; x += 2)
               if (const auto hit = painter.pointer_hit(float(x), float(y));
@@ -454,10 +596,32 @@ int main(int argc, char **argv) try {
         logical_checks.push_back({{"screen", screen}, {"species", species}, {"viewport", viewport}});
       }
     }
+    visual.open(47);
+    for (const auto viewport : {std::array<unsigned,2>{640,480}, {1280,720}, {2560,1080}}) {
+      const auto parent = painter.draw(visual, 5.f, -1, 20000, viewport);
+      require(parent.scenes.size() == 1, "Appearance must submit one preview model");
+      const auto &scene = parent.scenes.front();
+      const auto &definition = *scene.definition;
+      const auto &rect = definition.viewport;
+      require(!scene.vista_viewport && rect.top == 240 && rect.left == -320 &&
+              rect.bottom == -240 && rect.right == 320 &&
+              definition.objects.front() == (species ? "ui_player1d" : "ui_player1c") &&
+              definition.field_of_view == (species ? 70.f : 72.f),
+              "Appearance preview must pair the Original widget viewport with its species-specific lens");
+      choose(visual, 1, 50);
+      const auto picker = painter.draw(visual, 5.f, -1, 20000, viewport);
+      require(picker.scenes.size() == 1 && picker.scenes.front().definition == scene.definition &&
+              picker.scenes.front().vista_viewport == scene.vista_viewport &&
+              length(picker.scenes.front().animation_offset - scene.animation_offset) == 0,
+              "Opening Choose Color changed the retained Appearance framing");
+      visual.back();
+      logical_checks.push_back({{"screen", 47}, {"picker", 50}, {"species", species},
+                                {"viewport", viewport}, {"fov", definition.field_of_view}});
+    }
   }
   MenuState settings(content, preferences);
   local_profile(settings);
-  choose(settings, 4, vista_menu(19));
+  choose(settings, 2, vista_menu(19));
   require(settings.frame().entries.size() == 6, "PC settings hub lost existing six categories");
   draw(settings, true);
   settings.select(2);
@@ -662,7 +826,52 @@ int main(int argc, char **argv) try {
   require(categories.frame().screen == vista_menu(19), "Network adapter Back lost Settings hub");
   MenuState split(content);
   local_profile(split);
+  choose(split, 1, 218);
+  const auto &modes = split.frame().entries;
+  require(split.frame().multiplayer_options() && split.frame().title == "MULTIPLAYER" &&
+          modes.size() == 3 && modes[0].destination == 30 && modes[0].value == 0 &&
+          modes[1].label == "ONLINE" && modes[1].destination == 20 &&
+          modes[2].label == "LAN" && modes[2].destination == 30 && modes[2].value == 1,
+          "Multiplayer must offer Split Screen, Online and LAN in order");
+  const std::array<std::pair<std::string_view, unsigned>, 3> mode_images{{
+      {R"(ui\screens\game_shell\xbox_live\matchmaking_progress_dialog\matchmaking)", 1},
+      {R"(ui\screens\game_shell\settings_screen\settings)", 4},
+      {R"(ui\screens\game_shell\xbox_live\xbox_live_main_menu\xbox_live_menu)", 0}}};
+  for (unsigned row : {0u, 2u, 1u}) {
+    split.select(row);
+    const auto &[bank, page] = mode_images[row];
+    const auto source = std::ranges::find_if(content.images,
+        [&](const auto &item) { return item.second.name == bank; });
+    require(source != content.images.end(), "Missing multiplayer illustration bank");
+    const auto &pixels = source->second.images.at(page).pixels;
+    const auto painted = painter.draw(split, 5, -1, 20000, {1280,720});
+    require(std::ranges::any_of(painted.vertices, [&](const auto &v) {
+      const auto &material = mesh.materials.at(v.material);
+      return material.name == bank && material.diffuse.pixels == pixels;
+    }), "Multiplayer row did not draw its chosen illustration");
+    const auto hit = draw(split, true, FrontendPointerAction::Entry);
+    require(hit && split.activate_pointer(*hit) && split.frame().screen == (row == 1 ? 20u : 30u),
+            "Multiplayer choice did not open its sign-in screen");
+    require(!split.activate_pointer(*hit), "Stale multiplayer pointer target remained active");
+    split.back();
+    if (row != 1) {
+      require(split.frame().screen == content.dialogs.at(0x37).screen,
+              "Local multiplayer Back lost its confirmation");
+      choose(split, 0, 218);
+    }
+    require(split.frame().multiplayer_options() && split.frame().selected == row,
+            "Leaving a mode did not restore its selected Multiplayer row");
+  }
   choose(split, 2, 30);
+  choose(split, 0, 14);
+  split.leave_system_link_lobby();
+  require(split.frame().multiplayer_options() && split.frame().selected == 2,
+          "Leaving a LAN session must restore the LAN row");
+  split.back();
+  require(split.frame().screen == 6 && split.frame().selected == 1,
+          "Leaving a LAN session did not preserve a way back to the main menu");
+  choose(split, 1, 218);
+  choose(split, 0, 30);
   require(!split.online_identity(), "Split-screen sign-in unexpectedly requires Online identity");
   const auto continue_hit = draw(split, true, FrontendPointerAction::Accept);
   require(continue_hit && split.activate_pointer(*continue_hit) && split.frame().screen == 14,
@@ -713,12 +922,25 @@ int main(int argc, char **argv) try {
   draw(split, true);
   MenuState online(content);
   local_profile(online);
+  choose(online, 1, 218);
   choose(online, 1, 20);
   require(!online.online_identity() && online.frame().entries.size() == 1,
           "Offline Online sign-in presentation lost its identity gate");
   draw(online, true);
   online.back();
-  require(online.frame().screen == 6, "Online sign-in Back did not restore main menu");
+  require(online.frame().multiplayer_options() && online.frame().selected == 1,
+          "Online sign-in Back did not restore the focused Online row");
+  online.back();
+  require(online.frame().screen == 6 && online.frame().selected == 1,
+          "Multiplayer Back did not restore the focused main-menu row");
+  online.return_online();
+  require(online.frame().screen == 20, "Offline match return skipped Online sign-in");
+  online.back();
+  require(online.frame().multiplayer_options() && online.frame().selected == 1,
+          "Fresh Online return lost the Multiplayer parent");
+  online.back();
+  require(online.frame().screen == 6 && online.frame().selected == 1,
+          "Fresh Online return lost Multiplayer focus on the main menu");
   for (const auto id : {186u, 219u, 237u, 210u}) {
     online.open(id, online_server_browser_context);
     require(online.frame().screen == 20 && !online.online_identity(),
@@ -730,6 +952,7 @@ int main(int argc, char **argv) try {
       {"drawn_screens", drawn}, {"vertices", vertices}, {"viewports", {{640, 480}, {1280, 720}}},
       {"observations", observations},
       {"pc_bitmap_projection", projection_checks},
+      {"settings_option_boxes", option_boxes},
       {"stationary_category_selectors", selector_checks},
       {"title_branding", branding_checks},
       {"original_logical_layout", logical_checks},

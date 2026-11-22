@@ -49,6 +49,7 @@ struct PackedVertexProgramBank {
   bool operator==(const PackedVertexProgramBank &) const = default;
 };
 static_assert(sizeof(PackedVertexProgramBank)==2544);
+std::array<std::uint32_t,4> vertex_program_bank_range(const VertexProgramBank &);
 PackedVertexProgramBank pack_vertex_program_bank(const VertexProgramBank &);
 // The 60 retail D3DPIXELSHADERDEF words, in original order. No host GPU
 // handles.

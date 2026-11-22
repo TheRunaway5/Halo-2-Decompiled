@@ -1604,10 +1604,9 @@ def cache_pages_fixture(v, world, rng, shift):
 
 
 OVERLAY_ROWS, OVERLAY_EVENTS = FACTORY_BASE + 0x3700, FACTORY_BASE + 0x3800
-# BFB90's boundaries: channel 2 post-processing, the node-mask
-# intersection, the resource admission, the type orientation hooks, the
-# first overlay entry of BF9A0 (whose loop callees are cut) and the codec's
-# remaining refusals.
+# BFB90's boundaries cover resource admission, the CRT error path, and
+# the codec's remaining refusals. Channel 2 post-processing completes
+# through its genuine animation descriptor lookup.
 # The CRT floor/ceil (32B199/32B0C6, from 283B50) of a NaN pitch row run
 # their error reporters after changing the x87 control word, where no
 # boundary can stop: the fixtures keep pitch rows numeric (283B50 refuses a
@@ -1615,7 +1614,7 @@ OVERLAY_ROWS, OVERLAY_EVENTS = FACTORY_BASE + 0x3700, FACTORY_BASE + 0x3800
 # BF9A0's overlays are native: BCB70 runs only its literal-name answers
 # (its 10FB70/10DE40/BC8F0 subtrees are cut), 37DC0A its FPREM/FLDZ
 # methods (the CRT error methods stop at 3334F0).
-SAMPLE_STOPS = {0x1d63c0, 0x126200, 0x3334f0} | CODEC_STOPS
+SAMPLE_STOPS = {0x126200, 0x3334f0} | CODEC_STOPS
 SAMPLE_CUT = {0x10fb70, 0x10de40, 0xbc8f0, 0x32ebc3, 0x32ea95, 0x32eae8} | CODEC_CUT
 BOUNDARY_OWNERS[0x3334f0] = '3334F0'
 # 1DBBD0's non-root record child shape transform (shape vtable +34) is refused.
@@ -2794,7 +2793,7 @@ def fp_manager(v, world, rng, manager, graph):
     """The slot's animation manager (0x84 bytes) on `graph`."""
     for c in range(3):
         fp_channel(v, world, rng, manager + 0x20 * c, .7 if c == 0 else .2)
-    if rng.random() < .85:  # channel 2 mostly unset (1D5840 refuses its 1D63C0 post-process)
+    if rng.random() < .85:  # channel 2 remains uncommon in this first-person cohort
         fp_put(v, world, manager + 0x40, NONE)
     if rng.random() < .8:  # B87B0: a graph, channel 0's graph tag and animation
         fp_put(v, world, manager, graph)

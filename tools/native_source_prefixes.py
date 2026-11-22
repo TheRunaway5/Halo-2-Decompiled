@@ -59,6 +59,9 @@ FAMILIES=(
     ('136ea0','native_bsp_admission_replacements','replace_bsp_admission'),
     ('135b60','native_object_admission_replacements','replace_object_admission'),
     ('136a80','native_model_draw_submission_replacements','replace_model_draw_submission'),
+    ('31570','native_light_admission_replacements','replace_light_admission'),
+    ('134c00','native_light_view_replacements','replace_light_view'),
+    ('1454d0','native_light_point_transform_replacements','replace_light_point_transform'),
     ('134d30','native_cluster_contents_replacements','replace_cluster_contents'),
     ('136d50','native_prt_partition_replacements','replace_prt_partition'),
     ('4bae0','native_object_fade_replacements','replace_object_fade'),
@@ -69,6 +72,10 @@ FAMILIES=(
     ('c3ab0','native_light_shape_replacements','replace_light_shape'),
     ('1373f0','native_view_reset_replacements','replace_view_reset'),
     ('bbd10','native_object_hierarchy_root_replacements','replace_object_hierarchy_root'),
+    ('1d0670','native_campaign_ai_tick_replacements','replace_campaign_ai_tick'),
+    ('1b0020','native_campaign_ai_tick_replacements','replace_campaign_ai_tick'),
+    ('1b01e0','native_campaign_ai_tick_replacements','replace_campaign_ai_tick'),
+    ('1b08b0','native_campaign_ai_tick_replacements','replace_campaign_ai_tick'),
     ('135690','native_view_setup_replacements','replace_view_setup'),
     ('bf0c0','native_object_node_rebuild_replacements','install_native_object_nodes'),
     ('bfb90','native_object_node_rebuild_replacements','install_native_object_nodes'),
@@ -114,6 +121,7 @@ FAMILIES=(
     ('296410','native_codec_copy_replacements','replace_codec_copy'),
     ('2cec60','native_codec_copy_replacements','replace_codec_copy'),
     ('10de40','native_object_type_query_replacements','replace_object_type_query'),
+    ('1d6fb0','native_object_component_tick_replacements','replace_object_component_tick'),
     ('e0900','native_flight_property_query_replacements','replace_flight_property_query'),
     ('e0900','native_death_cycle_flight_query_replacements','replace_death_cycle_flight_query'),
     ('100e70','native_projectile_function_query_replacements','replace_projectile_function_query'),
@@ -191,7 +199,7 @@ def authenticated_prefixes(root,path,text):
         parent_effect=parent_mode and entry=='marker_parent_mode'
         inherited=name=='native_marker_owner_replacements'
         inherited_effect=inherited and entry=='marker_parent_unit'
-        entry_specific=name in('native_async_insert_replacements','native_instanced_ray_callback_replacements','native_diagnostic_stream_replacements','native_effect_reference_element_replacements','native_object_table_ratio_replacements')
+        entry_specific=name in('native_async_insert_replacements','native_instanced_ray_callback_replacements','native_diagnostic_stream_replacements','native_effect_reference_element_replacements','native_object_table_ratio_replacements','native_campaign_ai_tick_replacements')
         if marker_effect or parent_effect or inherited_effect:
             helper='native_weapon_marker_lookup_tu15_internal.hpp'if marker_effect else'native_weapon_marker_matrix_tu15_internal.hpp'
             if Path(path).resolve()!=(Path(root)/'src/gameplay/weapons'/helper).resolve():continue

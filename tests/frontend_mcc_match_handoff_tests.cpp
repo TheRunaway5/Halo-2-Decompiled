@@ -35,7 +35,7 @@ int main(int argc,char** argv)try {
   auto& state=frontend.create_state(std::filesystem::path(scratch)/"handoff.cfg");
   state.accept();state.accept();state.text("MCC Match Test");state.commit_text();state.back();
   check(state.frame().screen==6,"Profile route did not reach main menu");
-  state.select(2);state.accept();check(state.frame().screen==30,"Split screen route failed");
+  state.select(1); state.accept(); state.select(0);state.accept();check(state.frame().screen==30,"Split screen route failed");
   state.accept();check(state.frame().screen==14,"Native lobby route failed");
   state.select(0);state.accept();
   check(state.launch && NativeVistaOfflineFlow::supports(*state.launch),"Start lacks supported native request");

@@ -5,7 +5,8 @@ import re
 PIN='e305c6cd745e83016af45747938f2b2101cbcc768920a429fed51857ea2112cb'
 SPECIALIZED_BODY_PIN='c1937c5b0ea7934242365a63ad4604f1550a9fe7b450f2d6c6c276872a032654'
 SPECIALIZED_DISPATCH_PIN='9035cefe73aef945554d109aa7a2256ee0a3f52c1fc0499a416d8c4b9c52ab00'
-PREFIX='\n    if(halo2::native_mopp_aabb_abi_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){dispatch(v,target,site,tail);}))return;'
+PREVIOUS_PREFIX='\n    if(halo2::native_mopp_aabb_abi_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){dispatch(v,target,site,tail);}))return;'
+PREFIX='\n    if(halo2::native_mopp_aabb_abi_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){if(halo2::native_mopp_aabb_abi_detail::retained_world_self_call(v,target,site,tail))run_305e40(v);else dispatch(v,target,site,tail);}))return;'
 INCLUDE='#include "physics/runtime/native_tu15_mopp_aabb_traversal.hpp"\n'
 BODY=re.compile(r'static void run_305e40\(ObservedWorldState &s\) \{.*?\n\}',re.S)
 OWNER_PINS={
@@ -25,7 +26,10 @@ for reg in range(8):
 
 def canonical_body(body):
     start=body.index('{')+1
-    if body[start:].startswith(PREFIX):body=body[:start]+body[start+len(PREFIX):]
+    for prefix in (PREFIX,PREVIOUS_PREFIX):
+        if body[start:].startswith(prefix):
+            body=body[:start]+body[start+len(prefix):]
+            break
     for original,ordered in SHIFT_PAIRS:body=body.replace(ordered,original)
     return body
 

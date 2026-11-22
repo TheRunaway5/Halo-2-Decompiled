@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace halo2 {
 // Numeric preparation observations from the caller of this draw, on its host
@@ -22,6 +23,11 @@ struct RendererHostPreparationTiming {
     ReturnedCall match_step,state_projection,post_step;
     std::uint64_t shared_pre_view_ns{};
     std::array<NativeView,4> native_view;
+    // Campaign target preparation includes any wait on the preceding draw.
+    // This interval is included in campaign pre_render_ms.
+    double texture_camera_prepare_ms{};
+    // CPU time on the caller thread over the same interval as common_ms.
+    std::optional<double> common_thread_cpu_ms;
 };
 // Host elapsed times around the existing submission path. These are not GPU
 // timestamps: fence, acquire, submit and present may include driver waits.

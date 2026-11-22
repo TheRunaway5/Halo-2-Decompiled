@@ -3,8 +3,9 @@
 namespace halo2 {
 //1CA900 selects the nearest eligible perception and a planar probe direction;
 // stack actor, request, RET8/AL.1CAA20 builds eight directions from the actor
-// facing; EDI actor, EBX request, RET0/AL. Both stop honestly at their actual
-//1CA560 call while that owner is unavailable. No post-child loop is admitted.
+// facing; EDI actor, EBX request, RET0/AL. 1CA560 runs its ordered direction
+// queries through the World geometry owners. A provider-free caller stops at
+// its genuine 1CA560 boundary.
 // Saved GP/AL, retained DATA, FP, actual refusal GP/arguments/directions are
 // defined; other volatile results and dead private frames are scratch.
 void native_campaign_ai_behavior_129_probe_call_tu15(SourcePhysicsContactMemory &,

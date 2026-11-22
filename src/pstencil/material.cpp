@@ -244,9 +244,18 @@ std::shared_ptr<const std::vector<EffectLightDraw>> MaterialBank::complete(
     auto context=found->second;
     context.enabled=context.enabled && bank.has_texture_mask(shader,lod);
     const auto at=bank.passes.find({shader,lod,context});if(at==bank.passes.end() || at->second.empty())return {};
+    static const bool reference_projected_specular=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_SPECULAR_MATERIALS");
+        return value && *value;
+    }();
+    const bool slim_projected=context.geometry==2 && !reference_projected_specular;
+    const auto complete_pass=[&](const Impl::Pass& pass,const EffectLightUniforms& values) {
+        if(slim_projected)return complete_projected_specular_pass(bank.cache,*pass.authored,pass.index,values);
+        return prepare(bank.cache,*pass.authored,pass.index,values,false);
+    };
     auto out=std::make_shared<std::vector<EffectLightDraw>>();
     for(const auto& pass:at->second) {
-        auto material=prepare(bank.cache,*pass.authored,pass.index,uniforms,false);
+        auto material=complete_pass(pass,uniforms);
         if(!material || !material->vertex_bank)throw FormatError("pStencil specular bank failed to complete");
         const auto append=[&](unsigned slot,PixelProgram program,const Material& completed) {
             out->push_back({slot,{},std::move(program),completed.program_constants,
@@ -267,7 +276,7 @@ std::shared_ptr<const std::vector<EffectLightDraw>> MaterialBank::complete(
         if(arbiter_metal(pass.authored->name)) {
             auto polish=uniforms;
             for(unsigned c=0;c<3;++c)polish.constants[7][c]*=arbiter_specular_companion;
-            auto extra=prepare(bank.cache,*pass.authored,pass.index,polish,false);
+            auto extra=complete_pass(pass,polish);
             if(!extra || !extra->vertex_bank)throw FormatError("Arbiter armor polish has unresolved source bindings");
             if(pass.response)if(const auto* reference=reference_light_material(pass.authored->name)) {
                 extra->program_constants[0][10]=reference->v10;extra->program_constants[0][11]=reference->v11;

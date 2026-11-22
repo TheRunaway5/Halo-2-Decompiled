@@ -1,5 +1,7 @@
 #include "halo2/menu_world_vertex_catalog.hpp"
+#include "halo2/menu_world_source_binding.hpp"
 #include <algorithm>
+#include <cstdlib>
 #include <openssl/evp.h>
 
 namespace halo2 {
@@ -28,23 +30,20 @@ void declaration(const SourceVertexDeclaration &value) {
 bool equal(std::span<const std::uint16_t> a,std::span<const std::uint16_t> b) {
   return a.size()==b.size() && std::equal(a.begin(),a.end(),b.begin());
 }
+bool reference_metadata() {
+  static const bool enabled=[] {
+    const auto *value=std::getenv("HALO2_REFERENCE_RAW_VERTEX_METADATA");
+    return value && *value;
+  }();
+  return enabled;
 }
-const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
-    std::span<const MenuWorldVertexCatalogEntry> catalog,std::span<const std::byte> program,
+const MenuWorldVertexCatalogEntry &find_catalog_entry(
+    std::span<const MenuWorldVertexCatalogEntry> catalog,std::size_t program_size,std::string_view identity,
     const SourceVertexDeclaration &inputs) {
-  // Full module validation belongs to the generated-catalog build. This
-  // trusted immutable storage needs only identity and compatibility admission.
-  declaration(inputs);
-  std::array<unsigned char,32> digest{};unsigned digest_bytes{};
-  if(EVP_Digest(program.data(),program.size(),digest.data(),&digest_bytes,EVP_sha256(),nullptr)!=1 || digest_bytes!=digest.size())
-    throw FormatError("menu vertex program SHA-256 failed");
-  std::array<char,64> identity{};
-  constexpr char hex[]="0123456789abcdef";
-  for(std::size_t i=0;i<digest.size();++i){identity[2*i]=hex[digest[i]>>4];identity[2*i+1]=hex[digest[i]&15];}
   const MenuWorldVertexCatalogEntry *match{};
   for(const auto &entry:catalog) {
-    if(entry.class_index!=inputs.class_index || entry.program_bytes!=program.size() ||
-       entry.program_sha256!=std::string_view(identity.data(),identity.size()) ||
+    if(entry.class_index!=inputs.class_index || entry.program_bytes!=program_size ||
+       entry.program_sha256!=identity ||
        !equal(entry.semantics,inputs.semantics))continue;
     if((entry.abi!=menu_world_vertex_catalog_abi && entry.abi!=menu_world_vertex_attribute_catalog_abi &&
         entry.abi!=menu_world_renderer_vertex_catalog_abi) || entry.spirv.size()<5 ||
@@ -59,5 +58,30 @@ const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
   }
   if(!match)throw UnsupportedVertexProgram("menu raw vertex program/declaration is absent from the build catalog");
   return *match;
+}
+}
+const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
+    std::span<const MenuWorldVertexCatalogEntry> catalog,std::span<const std::byte> program,
+    const SourceVertexDeclaration &inputs) {
+  // Full module validation belongs to the generated-catalog build. This
+  // trusted immutable storage needs only identity and compatibility admission.
+  declaration(inputs);
+  std::array<unsigned char,32> digest{};unsigned digest_bytes{};
+  if(EVP_Digest(program.data(),program.size(),digest.data(),&digest_bytes,EVP_sha256(),nullptr)!=1 || digest_bytes!=digest.size())
+    throw FormatError("menu vertex program SHA-256 failed");
+  std::array<char,64> identity{};
+  constexpr char hex[]="0123456789abcdef";
+  for(std::size_t i=0;i<digest.size();++i){identity[2*i]=hex[digest[i]>>4];identity[2*i+1]=hex[digest[i]&15];}
+  return find_catalog_entry(catalog,program.size(),std::string_view(identity.data(),identity.size()),inputs);
+}
+const MenuWorldVertexMetadataEntry &menu_world_vertex_metadata_lookup(const MenuWorldSourceBinding &source) {
+  if(reference_metadata())return menu_world_vertex_metadata_lookup(source.program_bytes(),source.declaration());
+  return source.vertex_metadata();
+}
+const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
+    std::span<const MenuWorldVertexCatalogEntry> catalog,const MenuWorldSourceBinding &source) {
+  if(reference_metadata())return menu_world_vertex_catalog_lookup(catalog,source.program_bytes(),source.declaration());
+  declaration(source.declaration());
+  return find_catalog_entry(catalog,source.program_bytes().size(),source.vertex_metadata().program_sha256,source.declaration());
 }
 } // namespace halo2

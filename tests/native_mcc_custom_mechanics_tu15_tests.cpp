@@ -35,7 +35,7 @@ void choose(MenuState &menu,unsigned selected,unsigned screen) {
 FrontendLaunch start(const FrontendContent &content,unsigned preset,unsigned players,bool lan) {
   MenuState menu(content);menu.accept();choose(menu,0,167);
   menu.text("Mechanics 1");menu.commit_text();menu.back();
-  choose(menu,lan?3:2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,lan?2:0,30);choose(menu,0,14);
   need(menu.controller_slot(100,true)==0,"Custom host controller lost its owner");
   for(unsigned i=1;i<players;++i) {
     need(menu.controller_slot(100+i,true)==i,"Custom local controller failed to join");

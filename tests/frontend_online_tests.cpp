@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
     MenuState menu(content, preferences.path);
     menu.accept(); menu.select(0); menu.accept(); menu.text("Pilot"); menu.commit_text(); menu.back();
     check(menu.frame().screen == 6 && menu.signed_in_profile() == "Pilot", "Local screen name fixture did not sign in");
-    check(menu.frame().entries[1].label == "ONLINE", "Main menu does not use uppercase ONLINE");
+    check(menu.frame().entries[1].label == "MULTIPLAYER", "Main menu lost Multiplayer");
     Mesh mesh;
     FrontendPainter painter(content, cache.is_mcc()?maps.parent_path()/"h2_fonts":maps/"fonts", mesh, maps / "ui/frame_edges", ui_assets,
                             selected.empty() ? std::filesystem::path{} : selected / "fonts");
@@ -721,6 +721,9 @@ int main(int argc, char **argv) {
       });
     };
     check(has_logo(menu), "Main menu lost its original title logo");
+    menu.select(1); menu.accept();
+    check(menu.frame().multiplayer_options() && menu.frame().entries[1].label == "ONLINE",
+          "Multiplayer lost the Online option");
     menu.select(1); menu.accept();
     check(menu.frame().screen == 20 && menu.frame().entries.size() == 1 && menu.frame().entries[0].label == "Sign in with Discord", "Online bypasses the Discord gate");
     check(!has_logo(menu), "Main-menu logo overlaps Discord sign-in");
@@ -2286,7 +2289,7 @@ int main(int argc, char **argv) {
     check(menu.frame().screen == 20, "Sign-out bypassed matchmaking gate");
     check(frontend_online_text("Xbox Live / XBOX LIVE / Xbox LIVE / xbox live") == "ONLINE / ONLINE / ONLINE / ONLINE", "Brand replacement missed uppercase ONLINE");
     // Offline modes remain reachable without Discord.
-    MenuState offline(content); offline.open(6); offline.select(2); offline.accept();
+    MenuState offline(content); offline.open(6); offline.select(1); offline.accept(); offline.select(0); offline.accept();
     check(offline.frame().screen == 30 && !offline.online_identity(), "Split Screen requires Discord");
     for (const auto id : {212u, 238u, 239u, 240u, 241u}) {
       MenuState preview(content); preview.open(id);

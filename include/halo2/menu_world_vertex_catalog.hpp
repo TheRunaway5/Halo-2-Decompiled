@@ -5,6 +5,7 @@
 #include <string_view>
 
 namespace halo2 {
+class MenuWorldSourceBinding;
 // Version the complete fetch/output/UBO/epilogue contract, not a source datum.
 // Changing that contract requires a new version and original-input GPU proof.
 inline constexpr std::uint32_t menu_world_vertex_catalog_abi = 2;
@@ -88,6 +89,7 @@ struct MenuWorldVertexMetadataEntry {
 };
 const MenuWorldVertexMetadataEntry &menu_world_vertex_metadata_lookup(
     std::span<const std::byte>,const SourceVertexDeclaration &);
+const MenuWorldVertexMetadataEntry &menu_world_vertex_metadata_lookup(const MenuWorldSourceBinding &);
 // Requires trusted generated catalog storage, fully checked by the build-time
 // SPIR-V validator. Runtime admission checks program identity, ambiguity and
 // ABI/SPIR-V header compatibility; it is not a validator for arbitrary modules.
@@ -95,4 +97,8 @@ const MenuWorldVertexMetadataEntry &menu_world_vertex_metadata_lookup(
 const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
     std::span<const MenuWorldVertexCatalogEntry>,std::span<const std::byte>,
     const SourceVertexDeclaration &);
+// A source binding already authenticated the complete immutable program bytes.
+// Catalog ambiguity and ABI/declaration admission still apply to each lookup.
+const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
+    std::span<const MenuWorldVertexCatalogEntry>,const MenuWorldSourceBinding &);
 } // namespace halo2

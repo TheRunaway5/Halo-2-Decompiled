@@ -4,7 +4,7 @@
     {
       "command": "target_sources",
       "file": "CMakeLists.txt",
-      "line": 11416,
+      "line": 11626,
       "target": "halo2_physics_world_runtime"
     }
   ],
@@ -13,11 +13,42 @@
     "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
   ],
   "gate_sources": {
+    "src/gameplay/objects/native_tu15_device_property_query_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_DEVICE_PROPERTY_QUERY"
+      ],
+      "sha256": "eba292d8867a8cefa62647b885e499bbdcbe2f5888304a7f2d2cadb5580539c5"
+    },
+    "src/gameplay/objects/native_tu15_map_world_property_owners.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_MAP_WORLD_PROPERTY_CALLER",
+        "HALO2_REFERENCE_MAP_WORLD_PROPERTY_QUERY"
+      ],
+      "sha256": "7ebdde10428bbcff8ab951ec1f57795aa58177bb5095443fff5fd5df937233e1"
+    },
+    "src/physics/runtime/native_tu15_affine_inverse.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_AFFINE_INVERSE"
+      ],
+      "sha256": "25f983f8c78d21a5617d4bbb96b5ddb479ebcd58e5d00e7469d52901fdccafec"
+    },
     "src/physics/runtime/native_tu15_bsp_surface_polygon.hpp": {
       "gates": [
         "HALO2_REFERENCE_BSP_SURFACE_POLYGON"
       ],
-      "sha256": "ca703effbf6e273b9d3dca77b795c52eac90a9ab3437eea5052a5e9f2d34d541"
+      "sha256": "24fa38410c0e60bd936276ad849d594011b0504a052532539bf9058f53bbdfc4"
+    },
+    "src/rendering/native_tu15_visibility_association.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_VISIBILITY_ASSOCIATION"
+      ],
+      "sha256": "db3c714d85de6fbe408e4cc951282b17862d26ecc88e22c8216df0f8b28cdd83"
+    },
+    "src/runtime/native_tu15_diagnostic_stream_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_DIAGNOSTIC_STREAM"
+      ],
+      "sha256": "ce88896541b33e5e70b725978b72ed1fb29fedaf3a2966dc7cfeb6f21832680f"
     }
   },
   "internal_dispatch_identity_evidence": {
@@ -38,7 +69,13 @@
   ],
   "production_scope": "static_production_candidate",
   "reference_verification_gate_names": [
-    "HALO2_REFERENCE_BSP_SURFACE_POLYGON"
+    "HALO2_REFERENCE_AFFINE_INVERSE",
+    "HALO2_REFERENCE_BSP_SURFACE_POLYGON",
+    "HALO2_REFERENCE_DEVICE_PROPERTY_QUERY",
+    "HALO2_REFERENCE_DIAGNOSTIC_STREAM",
+    "HALO2_REFERENCE_MAP_WORLD_PROPERTY_CALLER",
+    "HALO2_REFERENCE_MAP_WORLD_PROPERTY_QUERY",
+    "HALO2_REFERENCE_VISIBILITY_ASSOCIATION"
   ],
   "routine_count": 193,
   "routines": [
@@ -52,7 +89,7 @@
         "map-pack11": "12360",
         "tu15": "12360"
       },
-      "line": 514,
+      "line": 519,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -76,7 +113,7 @@
         "map-pack11": "15cb0",
         "tu15": "15cb0"
       },
-      "line": 545,
+      "line": 550,
       "literal_dispatch_required_targets": [],
       "observed_entry": "15cb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -97,7 +134,7 @@
         "map-pack11": "16780",
         "tu15": "16780"
       },
-      "line": 561,
+      "line": 566,
       "literal_dispatch_required_targets": [],
       "observed_entry": "16780",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -118,7 +155,7 @@
         "map-pack11": "1cf90",
         "tu15": "1cf90"
       },
-      "line": 708,
+      "line": 713,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -145,7 +182,7 @@
         "map-pack11": "1d2d0",
         "tu15": "1d2d0"
       },
-      "line": 740,
+      "line": 745,
       "literal_dispatch_required_targets": [
         "407c00",
         "407ca0"
@@ -169,7 +206,7 @@
         "map-pack11": "1d490",
         "tu15": "1d490"
       },
-      "line": 825,
+      "line": 830,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d490",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -195,7 +232,7 @@
         "map-pack11": "2b480",
         "tu15": "2b480"
       },
-      "line": 870,
+      "line": 875,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2b480",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -216,7 +253,7 @@
         "map-pack11": "2b520",
         "tu15": "2b520"
       },
-      "line": 911,
+      "line": 916,
       "literal_dispatch_required_targets": [
         "16e600"
       ],
@@ -243,7 +280,7 @@
         "map-pack11": "2c390",
         "tu15": "2c390"
       },
-      "line": 935,
+      "line": 940,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "model_lighting_leaves_detail::bridge",
@@ -268,7 +305,7 @@
         "map-pack11": "358c0",
         "tu15": "358c0"
       },
-      "line": 998,
+      "line": 1003,
       "literal_dispatch_required_targets": [],
       "observed_entry": "358c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -289,7 +326,7 @@
         "map-pack11": "3b890",
         "tu15": "3b890"
       },
-      "line": 1103,
+      "line": 1108,
       "literal_dispatch_required_targets": [
         "2dbc2e",
         "33b3ac"
@@ -313,7 +350,7 @@
         "map-pack11": "3d260",
         "tu15": "3d260"
       },
-      "line": 1146,
+      "line": 1151,
       "literal_dispatch_required_targets": [
         "16e450"
       ],
@@ -340,7 +377,7 @@
         "map-pack11": "3dd00",
         "tu15": "3dd00"
       },
-      "line": 1175,
+      "line": 1180,
       "literal_dispatch_required_targets": [
         "bcd80",
         "1349e0"
@@ -378,7 +415,7 @@
         "map-pack11": "3ddc0",
         "tu15": "3ddc0"
       },
-      "line": 1239,
+      "line": 1244,
       "literal_dispatch_required_targets": [
         "16e6a0",
         "16ea60"
@@ -408,7 +445,7 @@
         "map-pack11": "43810",
         "tu15": "43810"
       },
-      "line": 1406,
+      "line": 1411,
       "literal_dispatch_required_targets": [],
       "observed_entry": "43810",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -429,7 +466,7 @@
         "map-pack11": "43840",
         "tu15": "43840"
       },
-      "line": 1421,
+      "line": 1426,
       "literal_dispatch_required_targets": [],
       "observed_entry": "43840",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -452,7 +489,7 @@
         "map-pack11": "43880",
         "tu15": "43880"
       },
-      "line": 1439,
+      "line": 1444,
       "literal_dispatch_required_targets": [
         "13fc50",
         "2dbc2e",
@@ -477,7 +514,7 @@
         "map-pack11": "439c0",
         "tu15": "439c0"
       },
-      "line": 1503,
+      "line": 1508,
       "literal_dispatch_required_targets": [
         "404bc0"
       ],
@@ -500,7 +537,7 @@
         "map-pack11": "50680",
         "tu15": "50680"
       },
-      "line": 1542,
+      "line": 1547,
       "literal_dispatch_required_targets": [],
       "observed_entry": "50680",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -524,7 +561,7 @@
         "map-pack11": "c3820",
         "tu15": "c3820"
       },
-      "line": 1634,
+      "line": 1639,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c3820",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -545,7 +582,7 @@
         "map-pack11": "c3960",
         "tu15": "c3960"
       },
-      "line": 1715,
+      "line": 1720,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c3960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -566,7 +603,7 @@
         "map-pack11": "c39b0",
         "tu15": "c39b0"
       },
-      "line": 1752,
+      "line": 1757,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c39b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -590,7 +627,7 @@
         "map-pack11": "c3a20",
         "tu15": "c3a20"
       },
-      "line": 1790,
+      "line": 1795,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c3a20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -611,7 +648,7 @@
         "map-pack11": "c3ab0",
         "tu15": "c3ab0"
       },
-      "line": 1836,
+      "line": 1841,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c3ab0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -634,7 +671,7 @@
         "map-pack11": "c55d0",
         "tu15": "c55d0"
       },
-      "line": 2034,
+      "line": 2039,
       "literal_dispatch_required_targets": [
         "30bd0"
       ],
@@ -659,7 +696,7 @@
         "map-pack11": "c5b00",
         "tu15": "c5b00"
       },
-      "line": 2203,
+      "line": 2208,
       "literal_dispatch_required_targets": [
         "bbe00",
         "bcdf0",
@@ -688,7 +725,7 @@
         "map-pack11": "d3b20",
         "tu15": "d3b20"
       },
-      "line": 2357,
+      "line": 2362,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -712,7 +749,7 @@
         "map-pack11": "d3b70",
         "tu15": "d3b70"
       },
-      "line": 2388,
+      "line": 2393,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -736,7 +773,7 @@
         "map-pack11": "d3bc0",
         "tu15": "d3bc0"
       },
-      "line": 2420,
+      "line": 2425,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -764,7 +801,7 @@
         "map-pack11": "d3c10",
         "tu15": "d3c10"
       },
-      "line": 2452,
+      "line": 2457,
       "literal_dispatch_required_targets": [],
       "observed_entry": "d3c10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -787,7 +824,7 @@
         "map-pack11": "d42b0",
         "tu15": "d42b0"
       },
-      "line": 2570,
+      "line": 2575,
       "literal_dispatch_required_targets": [
         "130980"
       ],
@@ -810,7 +847,7 @@
         "map-pack11": "d5130",
         "tu15": "d5130"
       },
-      "line": 2630,
+      "line": 2635,
       "literal_dispatch_required_targets": [],
       "observed_entry": "d5130",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -840,7 +877,7 @@
         "map-pack11": "d54d0",
         "tu15": "d54d0"
       },
-      "line": 2761,
+      "line": 2766,
       "literal_dispatch_required_targets": [
         "1346c0",
         "13a030"
@@ -867,7 +904,7 @@
         "map-pack11": "d6d10",
         "tu15": "d6d10"
       },
-      "line": 2857,
+      "line": 2862,
       "literal_dispatch_required_targets": [],
       "observed_entry": "d6d10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -888,7 +925,7 @@
         "map-pack11": "10b5c0",
         "tu15": "10b5c0"
       },
-      "line": 2892,
+      "line": 2897,
       "literal_dispatch_required_targets": [],
       "observed_entry": "10b5c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -909,7 +946,7 @@
         "map-pack11": "10b730",
         "tu15": "10b730"
       },
-      "line": 2952,
+      "line": 2957,
       "literal_dispatch_required_targets": [
         "16e8a0"
       ],
@@ -923,7 +960,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "3b6fca521e2de89dc0dc754a9246f070b191acb27d956504ed1ed7bb1122106f",
+      "admission_prefix_calls": [
+        "halo2::native_device_property_query_owner_detail::bridge"
+      ],
+      "body_sha256": "fed9de74c88ba1a964a2b01b218606d4f47b2d7795d85b602e9f2b1cf1495dd5",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_10be20",
@@ -932,13 +972,73 @@
         "map-pack11": "10be20",
         "tu15": "10be20"
       },
-      "line": 3005,
+      "line": 3010,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_device_property_query_owner_detail::bridge"
+      ],
       "observed_entry": "10be20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "10be20",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_device_property_query_replacements.py",
+        "binder_sha256": "7e50259800bcb6ac13de0c77359395e0fd2dbf3417aaee4710d73c71e95d59a2",
+        "entry_symbol": "10be20",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact TU15 MapWorld 10BE20 preserves all 171 callbacks, five named symbol joins, distinct current/fresh C1 and spill policies, and the paired MapWorld sibling entries. Other images, linked dispatch and whole-runtime admission are separate.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_device_property_query_kernel.hpp": "8dd1213f9a49cee058c465c1bc14c00c2b4d5af9ab5cd4465e7eaff5655c100e",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/source_effect_compiled_symbols_tu15.hpp": "ddb543c457606b609b5752bc76bf7b259ad36109fa31d2829d00474a71ff055b",
+          "src/gameplay/objects/native_tu15_device_property_query_source_frame.hpp": "7a0dc3dfaa37d061eb83ede59f251fcd47f25f41ef0c3a95eb753013860cbb34",
+          "src/gameplay/objects/native_tu15_device_property_query_source_owner.hpp": "eba292d8867a8cefa62647b885e499bbdcbe2f5888304a7f2d2cadb5580539c5",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_map_world_property_query_replacements.py": "5239fc56d5b8beb382e0c9bacd7b74c51ecfd75f2c719054a8caf697a0a38e38",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        },
+        "validation_source_sha256": {
+          "src/rendering/effects/source_effect_compiled_symbols_tu15.cpp": "094d230d94e9b419b6d6d2161a560db338ddd39dc94cfc03ad66fea91bcc4b5d",
+          "src/rendering/effects/source_object_function_symbols_tu15.inc": "bff95f65c580fc6fd5d38cd95c3f6b2e8d2f292817b2935cad6e48bb507765ce"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "10be20",
       "symbol_kind": "address-named"
@@ -953,7 +1053,7 @@
         "map-pack11": "10c0b0",
         "tu15": "10c0b0"
       },
-      "line": 3180,
+      "line": 3186,
       "literal_dispatch_required_targets": [
         "1cf210"
       ],
@@ -976,7 +1076,7 @@
         "map-pack11": "117870",
         "tu15": "117870"
       },
-      "line": 3247,
+      "line": 3253,
       "literal_dispatch_required_targets": [],
       "observed_entry": "117870",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -988,7 +1088,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "a95fc0a2a7f7fd9573754b371206b514e586fbc03156465fe93111f67991d65b",
+      "admission_prefix_calls": [
+        "halo2::native_map_world_property_owner_detail::bridge_caller"
+      ],
+      "body_sha256": "c9a2000a805ef38901790ba3be03a6f3030986e7aacae15dda9fa127a8b9a618",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "1db800"
@@ -999,13 +1102,73 @@
         "map-pack11": "11e490",
         "tu15": "11e490"
       },
-      "line": 3285,
+      "line": 3291,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_map_world_property_owner_detail::bridge_caller"
+      ],
       "observed_entry": "11e490",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "11e490",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_map_world_property_query_replacements.py",
+        "binder_sha256": "5239fc56d5b8beb382e0c9bacd7b74c51ecfd75f2c719054a8caf697a0a38e38",
+        "entry_symbol": "11e490",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact paired TU15 MapWorld owners preserve all64 raw/prepared callbacks, the genuine 11E4DA to 1DB800 child edge and actual bank symbol resolution. Both retained scalar multiply sites use original destination-first SSE order. Same-address MapPack11 bodies are different and remain outside this binding.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_map_world_property_caller_kernel.hpp": "4acb9f72b0ca2fd7cc33fd5de0f8012e3a855b4366a5efd8bdf94ffbd7709bef",
+          "include/halo2/native_tu15_map_world_property_query_kernel.hpp": "fc833b99c60b4abf68f32758f518ab64eb5ef650189fc3b8516a7344e3ca0eb6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/source_effect_compiled_symbols_tu15.hpp": "ddb543c457606b609b5752bc76bf7b259ad36109fa31d2829d00474a71ff055b",
+          "src/gameplay/objects/native_tu15_map_world_property_caller_source_frame.hpp": "f2e228011f6d84619da46fe9f4876b62aa13f655cccd0d4477c01cec9ca982f0",
+          "src/gameplay/objects/native_tu15_map_world_property_owners.hpp": "7ebdde10428bbcff8ab951ec1f57795aa58177bb5095443fff5fd5df937233e1",
+          "src/gameplay/objects/native_tu15_map_world_property_query_source_frame.hpp": "bd8d55ffd98ec0b302985f5e4286e4add18f4a2ee27def62a27532918a90de79",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        },
+        "validation_source_sha256": {
+          "src/rendering/effects/source_effect_compiled_symbols_tu15.cpp": "094d230d94e9b419b6d6d2161a560db338ddd39dc94cfc03ad66fea91bcc4b5d",
+          "src/rendering/effects/source_object_function_symbols_tu15.inc": "bff95f65c580fc6fd5d38cd95c3f6b2e8d2f292817b2935cad6e48bb507765ce"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "11e490",
       "symbol_kind": "address-named"
@@ -1020,7 +1183,7 @@
         "map-pack11": "11f440",
         "tu15": "11f440"
       },
-      "line": 3319,
+      "line": 3326,
       "literal_dispatch_required_targets": [],
       "observed_entry": "11f440",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1041,7 +1204,7 @@
         "map-pack11": "11f910",
         "tu15": "11f910"
       },
-      "line": 3343,
+      "line": 3350,
       "literal_dispatch_required_targets": [
         "32ccd8"
       ],
@@ -1064,7 +1227,7 @@
         "map-pack11": "1211c0",
         "tu15": "1211c0"
       },
-      "line": 3397,
+      "line": 3404,
       "literal_dispatch_required_targets": [
         "123210"
       ],
@@ -1087,7 +1250,7 @@
         "map-pack11": "123150",
         "tu15": "123150"
       },
-      "line": 3530,
+      "line": 3537,
       "literal_dispatch_required_targets": [],
       "observed_entry": "123150",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1110,7 +1273,7 @@
         "map-pack11": "130d20",
         "tu15": "130d20"
       },
-      "line": 3570,
+      "line": 3577,
       "literal_dispatch_required_targets": [],
       "observed_entry": "130d20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1131,7 +1294,7 @@
         "map-pack11": "134960",
         "tu15": "134960"
       },
-      "line": 3623,
+      "line": 3630,
       "literal_dispatch_required_targets": [],
       "observed_entry": "134960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1143,18 +1306,76 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "dca96b0bb38177d553c8e2fa9e4810925db950704beed846367adc81207d623a",
+      "admission_prefix_calls": [
+        "halo2::native_visibility_association_detail::bridge"
+      ],
+      "body_sha256": "614dfa8d3eb9c4e99d3c3db1eabaeb5b9074975b45da1f718eb0c0e2a9a8b478",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_136e10",
       "instruction_callback_sites": 40,
-      "line": 3661,
+      "line": 3668,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_visibility_association_detail::bridge"
+      ],
       "observed_entry": "136e10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "136e10",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_visibility_association_replacements.py",
+        "binder_sha256": "45b22c68342c6541e5c5653079e5c241408aef25e12ffe8ce1ded6dc52231d38",
+        "entry_symbol": "136e10",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_visibility_association_kernel.hpp": "a78a007732b5cd77cb5166fbda39d6ac34e266cfb3f7dce9e9eeb6f623ebe9df",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/rendering/native_tu15_visibility_association.hpp": "db3c714d85de6fbe408e4cc951282b17862d26ecc88e22c8216df0f8b28cdd83"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "136e10",
       "symbol_kind": "address-named"
@@ -1169,7 +1390,7 @@
         "map-pack11": "138360",
         "tu15": "138360"
       },
-      "line": 3704,
+      "line": 3712,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138360",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1190,7 +1411,7 @@
         "map-pack11": "138510",
         "tu15": "138510"
       },
-      "line": 3726,
+      "line": 3734,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138510",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1211,7 +1432,7 @@
         "map-pack11": "1385d0",
         "tu15": "1385d0"
       },
-      "line": 3798,
+      "line": 3806,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1385d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1232,7 +1453,7 @@
         "map-pack11": "1386e0",
         "tu15": "1386e0"
       },
-      "line": 3889,
+      "line": 3897,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1386e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1256,7 +1477,7 @@
         "map-pack11": "138780",
         "tu15": "138780"
       },
-      "line": 3950,
+      "line": 3958,
       "literal_dispatch_required_targets": [
         "1349e0"
       ],
@@ -1285,7 +1506,7 @@
         "map-pack11": "138c20",
         "tu15": "138c20"
       },
-      "line": 4276,
+      "line": 4284,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138c20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1311,7 +1532,7 @@
         "map-pack11": "138d90",
         "tu15": "138d90"
       },
-      "line": 4423,
+      "line": 4431,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138d90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1334,7 +1555,7 @@
         "map-pack11": "138f70",
         "tu15": "138f70"
       },
-      "line": 4589,
+      "line": 4597,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138f70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1355,7 +1576,7 @@
         "map-pack11": "138fc0",
         "tu15": "138fc0"
       },
-      "line": 4626,
+      "line": 4634,
       "literal_dispatch_required_targets": [],
       "observed_entry": "138fc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1376,7 +1597,7 @@
         "map-pack11": "142f40",
         "tu15": "142f40"
       },
-      "line": 4695,
+      "line": 4703,
       "literal_dispatch_required_targets": [],
       "observed_entry": "142f40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1388,7 +1609,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "69a1ac07734132b1faa22fc1905209d8dafd12de15e2258f02bae67f38e0ee64",
+      "admission_prefix_calls": [
+        "halo2::native_affine_inverse_detail::bridge"
+      ],
+      "body_sha256": "59f5316df2aa466d787747d39fa7290c7ffde262473ed8f71b3e2f044e677c7f",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_144090",
@@ -1397,13 +1621,16 @@
         "map-pack11": "144090",
         "tu15": "144090"
       },
-      "line": 4805,
+      "line": 4813,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_affine_inverse_detail::bridge"
+      ],
       "observed_entry": "144090",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "144090",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
       "state_type": "WorldState",
       "symbol": "144090",
       "symbol_kind": "address-named"
@@ -1418,7 +1645,7 @@
         "map-pack11": "144e90",
         "tu15": "144e90"
       },
-      "line": 4891,
+      "line": 4900,
       "literal_dispatch_required_targets": [
         "11f9c0"
       ],
@@ -1441,7 +1668,7 @@
         "map-pack11": "148de0",
         "tu15": "148de0"
       },
-      "line": 4983,
+      "line": 4992,
       "literal_dispatch_required_targets": [],
       "observed_entry": "148de0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1465,7 +1692,7 @@
         "map-pack11": "14d790",
         "tu15": "14d790"
       },
-      "line": 5007,
+      "line": 5016,
       "literal_dispatch_required_targets": [
         "130980",
         "145200"
@@ -1489,7 +1716,7 @@
         "map-pack11": "158340",
         "tu15": "158340"
       },
-      "line": 5238,
+      "line": 5247,
       "literal_dispatch_required_targets": [
         "bcdf0",
         "c9550",
@@ -1516,7 +1743,7 @@
         "map-pack11": "166a80",
         "tu15": "166a80"
       },
-      "line": 5326,
+      "line": 5335,
       "literal_dispatch_required_targets": [],
       "observed_entry": "166a80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1537,7 +1764,7 @@
         "map-pack11": "166ae0",
         "tu15": "166ae0"
       },
-      "line": 5359,
+      "line": 5368,
       "literal_dispatch_required_targets": [],
       "observed_entry": "166ae0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1558,7 +1785,7 @@
         "map-pack11": "171010",
         "tu15": "171010"
       },
-      "line": 5386,
+      "line": 5395,
       "literal_dispatch_required_targets": [],
       "observed_entry": "171010",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1579,7 +1806,7 @@
         "map-pack11": "1710f0",
         "tu15": "1710f0"
       },
-      "line": 5427,
+      "line": 5436,
       "literal_dispatch_required_targets": [
         "130980"
       ],
@@ -1602,7 +1829,7 @@
         "map-pack11": "17f990",
         "tu15": "17f990"
       },
-      "line": 5447,
+      "line": 5456,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17f990",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1623,7 +1850,7 @@
         "map-pack11": "17fc90",
         "tu15": "17fc90"
       },
-      "line": 5544,
+      "line": 5553,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17fc90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1644,7 +1871,7 @@
         "map-pack11": "17fcf0",
         "tu15": "17fcf0"
       },
-      "line": 5577,
+      "line": 5586,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17fcf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1668,7 +1895,7 @@
         "map-pack11": "17fe30",
         "tu15": "17fe30"
       },
-      "line": 5684,
+      "line": 5693,
       "literal_dispatch_required_targets": [
         "16e6a0",
         "16e8a0"
@@ -1694,7 +1921,7 @@
         "map-pack11": "17ff90",
         "tu15": "17ff90"
       },
-      "line": 5797,
+      "line": 5806,
       "literal_dispatch_required_targets": [
         "16e6a0"
       ],
@@ -1720,7 +1947,7 @@
         "map-pack11": "1800b0",
         "tu15": "1800b0"
       },
-      "line": 5844,
+      "line": 5853,
       "literal_dispatch_required_targets": [
         "16e450"
       ],
@@ -1743,7 +1970,7 @@
         "map-pack11": "180170",
         "tu15": "180170"
       },
-      "line": 5886,
+      "line": 5895,
       "literal_dispatch_required_targets": [
         "16e600"
       ],
@@ -1768,7 +1995,7 @@
         "map-pack11": "1806a0",
         "tu15": "1806a0"
       },
-      "line": 5911,
+      "line": 5920,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1806a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1789,7 +2016,7 @@
         "map-pack11": "1806f0",
         "tu15": "1806f0"
       },
-      "line": 5937,
+      "line": 5946,
       "literal_dispatch_required_targets": [
         "16e8a0"
       ],
@@ -1812,7 +2039,7 @@
         "map-pack11": "180790",
         "tu15": "180790"
       },
-      "line": 5988,
+      "line": 5997,
       "literal_dispatch_required_targets": [],
       "observed_entry": "180790",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1833,7 +2060,7 @@
         "map-pack11": "180830",
         "tu15": "180830"
       },
-      "line": 6043,
+      "line": 6052,
       "literal_dispatch_required_targets": [
         "123210"
       ],
@@ -1861,7 +2088,7 @@
         "map-pack11": "180c10",
         "tu15": "180c10"
       },
-      "line": 6277,
+      "line": 6286,
       "literal_dispatch_required_targets": [
         "120fa0",
         "14ce30"
@@ -1889,7 +2116,7 @@
         "map-pack11": "181cb0",
         "tu15": "181cb0"
       },
-      "line": 6712,
+      "line": 6721,
       "literal_dispatch_required_targets": [
         "32a660"
       ],
@@ -1916,7 +2143,7 @@
         "map-pack11": "181da0",
         "tu15": "181da0"
       },
-      "line": 6796,
+      "line": 6805,
       "literal_dispatch_required_targets": [
         "12f800",
         "12f910"
@@ -1944,7 +2171,7 @@
         "map-pack11": "182bb0",
         "tu15": "182bb0"
       },
-      "line": 7665,
+      "line": 7674,
       "literal_dispatch_required_targets": [
         "32a660",
         "32ccd8"
@@ -1970,7 +2197,7 @@
         "map-pack11": "1839f0",
         "tu15": "1839f0"
       },
-      "line": 8451,
+      "line": 8460,
       "literal_dispatch_required_targets": [
         "14d0e0"
       ],
@@ -1993,7 +2220,7 @@
         "map-pack11": "183af0",
         "tu15": "183af0"
       },
-      "line": 8526,
+      "line": 8535,
       "literal_dispatch_required_targets": [],
       "observed_entry": "183af0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2019,7 +2246,7 @@
         "map-pack11": "183c10",
         "tu15": "183c10"
       },
-      "line": 8603,
+      "line": 8612,
       "literal_dispatch_required_targets": [
         "30bd0",
         "439c0",
@@ -2048,7 +2275,7 @@
         "map-pack11": "186c00",
         "tu15": "186c00"
       },
-      "line": 9242,
+      "line": 9251,
       "literal_dispatch_required_targets": [],
       "observed_entry": "186c00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2069,7 +2296,7 @@
         "map-pack11": "186c90",
         "tu15": "186c90"
       },
-      "line": 9248,
+      "line": 9257,
       "literal_dispatch_required_targets": [],
       "observed_entry": "186c90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2090,7 +2317,7 @@
         "map-pack11": "186ca0",
         "tu15": "186ca0"
       },
-      "line": 9257,
+      "line": 9266,
       "literal_dispatch_required_targets": [],
       "observed_entry": "186ca0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2113,7 +2340,7 @@
         "map-pack11": "1888a0",
         "tu15": "1888a0"
       },
-      "line": 9265,
+      "line": 9274,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1888a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2141,7 +2368,7 @@
         "map-pack11": "18be00",
         "tu15": "18be00"
       },
-      "line": 9288,
+      "line": 9297,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_integer_tu15_run"
@@ -2167,7 +2394,7 @@
         "map-pack11": "18c090",
         "tu15": "18c090"
       },
-      "line": 9326,
+      "line": 9335,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18c090",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2191,7 +2418,7 @@
         "map-pack11": "18c130",
         "tu15": "18c130"
       },
-      "line": 9382,
+      "line": 9391,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18c130",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2217,7 +2444,7 @@
         "map-pack11": "18c1f0",
         "tu15": "18c1f0"
       },
-      "line": 9443,
+      "line": 9452,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18c1f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2240,7 +2467,7 @@
         "map-pack11": "18c3e0",
         "tu15": "18c3e0"
       },
-      "line": 9586,
+      "line": 9595,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18c3e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2265,7 +2492,7 @@
       ],
       "function_name": "run_18c4b0",
       "instruction_callback_sites": 19,
-      "line": 9617,
+      "line": 9626,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_dispatch_tu15_run"
@@ -2291,7 +2518,7 @@
         "map-pack11": "18cdd0",
         "tu15": "18cdd0"
       },
-      "line": 9647,
+      "line": 9656,
       "literal_dispatch_required_targets": [
         "223b20"
       ],
@@ -2314,7 +2541,7 @@
         "map-pack11": "1902e0",
         "tu15": "1902e0"
       },
-      "line": 9788,
+      "line": 9797,
       "literal_dispatch_required_targets": [
         "bcfe0",
         "158290"
@@ -2342,7 +2569,7 @@
         "map-pack11": "1a7c10",
         "tu15": "1a7c10"
       },
-      "line": 9860,
+      "line": 9869,
       "literal_dispatch_required_targets": [
         "1a7ce0"
       ],
@@ -2368,7 +2595,7 @@
         "map-pack11": "1a8290",
         "tu15": "1a8290"
       },
-      "line": 9941,
+      "line": 9950,
       "literal_dispatch_required_targets": [
         "33a4a6"
       ],
@@ -2394,7 +2621,7 @@
         "map-pack11": "1a9d90",
         "tu15": "1a9d90"
       },
-      "line": 10029,
+      "line": 10038,
       "literal_dispatch_required_targets": [
         "33a4a6"
       ],
@@ -2417,7 +2644,7 @@
         "map-pack11": "1a9ee0",
         "tu15": "1a9ee0"
       },
-      "line": 10058,
+      "line": 10067,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1a9ee0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2442,7 +2669,7 @@
         "map-pack11": "1a9f60",
         "tu15": "1a9f60"
       },
-      "line": 10091,
+      "line": 10100,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1a9f60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2454,7 +2681,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "9aec69524b78ece77f6b8f3252b282cb4b9c3e42e2125f4fb41623b55c2ee819",
+      "admission_prefix_calls": [
+        "halo2::native_map_world_property_owner_detail::bridge_query"
+      ],
+      "body_sha256": "fe7da5715a0cb8b6a0873fc42146ff7469359914233e6cec172a3412c94e2b08",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_1db800",
@@ -2463,13 +2693,73 @@
         "map-pack11": "1db800",
         "tu15": "1db800"
       },
-      "line": 10115,
+      "line": 10124,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_map_world_property_owner_detail::bridge_query"
+      ],
       "observed_entry": "1db800",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "1db800",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_map_world_property_query_replacements.py",
+        "binder_sha256": "5239fc56d5b8beb382e0c9bacd7b74c51ecfd75f2c719054a8caf697a0a38e38",
+        "entry_symbol": "1db800",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact paired TU15 MapWorld owners preserve all64 raw/prepared callbacks, the genuine 11E4DA to 1DB800 child edge and actual bank symbol resolution. Both retained scalar multiply sites use original destination-first SSE order. Same-address MapPack11 bodies are different and remain outside this binding.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_map_world_property_caller_kernel.hpp": "4acb9f72b0ca2fd7cc33fd5de0f8012e3a855b4366a5efd8bdf94ffbd7709bef",
+          "include/halo2/native_tu15_map_world_property_query_kernel.hpp": "fc833b99c60b4abf68f32758f518ab64eb5ef650189fc3b8516a7344e3ca0eb6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/source_effect_compiled_symbols_tu15.hpp": "ddb543c457606b609b5752bc76bf7b259ad36109fa31d2829d00474a71ff055b",
+          "src/gameplay/objects/native_tu15_map_world_property_caller_source_frame.hpp": "f2e228011f6d84619da46fe9f4876b62aa13f655cccd0d4477c01cec9ca982f0",
+          "src/gameplay/objects/native_tu15_map_world_property_owners.hpp": "7ebdde10428bbcff8ab951ec1f57795aa58177bb5095443fff5fd5df937233e1",
+          "src/gameplay/objects/native_tu15_map_world_property_query_source_frame.hpp": "bd8d55ffd98ec0b302985f5e4286e4add18f4a2ee27def62a27532918a90de79",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        },
+        "validation_source_sha256": {
+          "src/rendering/effects/source_effect_compiled_symbols_tu15.cpp": "094d230d94e9b419b6d6d2161a560db338ddd39dc94cfc03ad66fea91bcc4b5d",
+          "src/rendering/effects/source_object_function_symbols_tu15.inc": "bff95f65c580fc6fd5d38cd95c3f6b2e8d2f292817b2935cad6e48bb507765ce"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "1db800",
       "symbol_kind": "address-named"
@@ -2488,7 +2778,7 @@
         "map-pack11": "1e0690",
         "tu15": "1e0690"
       },
-      "line": 10153,
+      "line": 10163,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e0690",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2509,7 +2799,7 @@
         "map-pack11": "1e1010",
         "tu15": "1e1010"
       },
-      "line": 10364,
+      "line": 10374,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e1010",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2533,7 +2823,7 @@
         "map-pack11": "1e6e80",
         "tu15": "1e6e80"
       },
-      "line": 10399,
+      "line": 10409,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "halo2::native_bsp_surface_polygon_detail::bridge"
@@ -2557,7 +2847,7 @@
         "map-pack11": "1e7330",
         "tu15": "1e7330"
       },
-      "line": 10501,
+      "line": 10511,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e7330",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2581,7 +2871,7 @@
         "map-pack11": "1f7330",
         "tu15": "1f7330"
       },
-      "line": 10758,
+      "line": 10768,
       "literal_dispatch_required_targets": [
         "283450"
       ],
@@ -2604,7 +2894,7 @@
         "map-pack11": "212c70",
         "tu15": "212c70"
       },
-      "line": 10986,
+      "line": 10996,
       "literal_dispatch_required_targets": [
         "bc190"
       ],
@@ -2629,7 +2919,7 @@
         "map-pack11": "219080",
         "tu15": "219080"
       },
-      "line": 11057,
+      "line": 11067,
       "literal_dispatch_required_targets": [],
       "observed_entry": "219080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2653,7 +2943,7 @@
         "map-pack11": "2190c0",
         "tu15": "2190c0"
       },
-      "line": 11079,
+      "line": 11089,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2190c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2674,7 +2964,7 @@
         "map-pack11": "2190f0",
         "tu15": "2190f0"
       },
-      "line": 11091,
+      "line": 11101,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2190f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2695,7 +2985,7 @@
         "map-pack11": "219150",
         "tu15": "219150"
       },
-      "line": 11131,
+      "line": 11141,
       "literal_dispatch_required_targets": [
         "bcee0"
       ],
@@ -2720,7 +3010,7 @@
         "map-pack11": "2191d0",
         "tu15": "2191d0"
       },
-      "line": 11168,
+      "line": 11178,
       "literal_dispatch_required_targets": [
         "bcee0"
       ],
@@ -2743,7 +3033,7 @@
         "map-pack11": "223b20",
         "tu15": "223b20"
       },
-      "line": 11259,
+      "line": 11269,
       "literal_dispatch_required_targets": [
         "128b10",
         "129740",
@@ -2774,7 +3064,7 @@
         "map-pack11": "228220",
         "tu15": "228220"
       },
-      "line": 11425,
+      "line": 11435,
       "literal_dispatch_required_targets": [],
       "observed_entry": "228220",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2795,7 +3085,7 @@
         "map-pack11": "22a790",
         "tu15": "22a790"
       },
-      "line": 11446,
+      "line": 11456,
       "literal_dispatch_required_targets": [
         "4057f0"
       ],
@@ -2818,7 +3108,7 @@
         "map-pack11": "22a880",
         "tu15": "22a880"
       },
-      "line": 11503,
+      "line": 11513,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22a880",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2841,7 +3131,7 @@
         "map-pack11": "22a8e0",
         "tu15": "22a8e0"
       },
-      "line": 11538,
+      "line": 11548,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22a8e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2864,7 +3154,7 @@
         "map-pack11": "22aa50",
         "tu15": "22aa50"
       },
-      "line": 11659,
+      "line": 11669,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22aa50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2887,7 +3177,7 @@
         "map-pack11": "22aa90",
         "tu15": "22aa90"
       },
-      "line": 11684,
+      "line": 11694,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22aa90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2908,7 +3198,7 @@
         "map-pack11": "2439e0",
         "tu15": "2439e0"
       },
-      "line": 11833,
+      "line": 11843,
       "literal_dispatch_required_targets": [
         "32a660"
       ],
@@ -2935,7 +3225,7 @@
         "map-pack11": "248270",
         "tu15": "248270"
       },
-      "line": 12123,
+      "line": 12133,
       "literal_dispatch_required_targets": [],
       "observed_entry": "248270",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2956,7 +3246,7 @@
         "map-pack11": "248430",
         "tu15": "248430"
       },
-      "line": 12176,
+      "line": 12186,
       "literal_dispatch_required_targets": [],
       "observed_entry": "248430",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2977,7 +3267,7 @@
         "map-pack11": "248470",
         "tu15": "248470"
       },
-      "line": 12191,
+      "line": 12201,
       "literal_dispatch_required_targets": [],
       "observed_entry": "248470",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2998,7 +3288,7 @@
         "map-pack11": "25aaf1",
         "tu15": "25aaf1"
       },
-      "line": 12267,
+      "line": 12277,
       "literal_dispatch_required_targets": [
         "1425a0",
         "25abde"
@@ -3022,7 +3312,7 @@
         "map-pack11": "2e1110",
         "tu15": "2e1110"
       },
-      "line": 12316,
+      "line": 12326,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1110",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3034,7 +3324,11 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "b81eaa8d96080aacdf3285415568ebd7047d086683dc50adbc08d3dbddf1165a",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
+      "body_sha256": "6bb9a7955d36e030e7bcdf47a772b358222e6fdeb75636f826ae8a6e042d5733",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_2e2d10",
@@ -3043,21 +3337,81 @@
         "map-pack11": "2e2d10",
         "tu15": "2e2d10"
       },
-      "line": 12346,
+      "line": 12356,
       "literal_dispatch_required_targets": [
         "32ba80"
+      ],
+      "native_admission_hints": [
+        "halo2::native_diagnostic_stream_detail::bridge"
       ],
       "observed_entry": "2e2d10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "2e2d10",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "binder_sha256": "3d28e7351d4482113677e00d9d9414b8969ba16bfe097570de7bce1da140bb5a",
+        "entry_symbol": "2e2d10",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact controller continuations remain for unsupported/reference admission. Formatter, buffered writer/copy and platform output dependencies remain retained or unqualified; this prefix does not establish all-native diagnostics.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_diagnostic_stream_kernel.hpp": "67541c23428cd52d3028c86135f77b4ab6dd28ff559e66db4f698184d5d4c95e",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/runtime/native_tu15_diagnostic_stream.hpp": "4730dab5bf09aa05a8b24307fa746790446f8c865238826756ea6ca09fae330c",
+          "src/runtime/native_tu15_diagnostic_stream_admission.hpp": "ce88896541b33e5e70b725978b72ed1fb29fedaf3a2966dc7cfeb6f21832680f"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "2e2d10",
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "940b04ef2aa47780402eca42f7ca5ef9f8bf52a1e84f28029c265db3192e069e",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
+      "body_sha256": "1c4b1d63572c24be93cb536a70828ed858b8790f7874978893547cb46ebe1484",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_2e2e00",
@@ -3066,19 +3420,79 @@
         "map-pack11": "2e2e00",
         "tu15": "2e2e00"
       },
-      "line": 12351,
+      "line": 12362,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
       "observed_entry": "2e2e00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "2e2e00",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "binder_sha256": "3d28e7351d4482113677e00d9d9414b8969ba16bfe097570de7bce1da140bb5a",
+        "entry_symbol": "2e2e00",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact controller continuations remain for unsupported/reference admission. Formatter, buffered writer/copy and platform output dependencies remain retained or unqualified; this prefix does not establish all-native diagnostics.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_diagnostic_stream_kernel.hpp": "67541c23428cd52d3028c86135f77b4ab6dd28ff559e66db4f698184d5d4c95e",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/runtime/native_tu15_diagnostic_stream.hpp": "4730dab5bf09aa05a8b24307fa746790446f8c865238826756ea6ca09fae330c",
+          "src/runtime/native_tu15_diagnostic_stream_admission.hpp": "ce88896541b33e5e70b725978b72ed1fb29fedaf3a2966dc7cfeb6f21832680f"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "2e2e00",
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "975800ab9fb6efbb2bcff97291f9e92cc5d6cc2f43cb8f5c012525628273766e",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
+      "body_sha256": "00e8cc4d128cf35a89d3155ef5df5a221982b868080fa155a47df55d5ab4e0a0",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "2e2d10",
@@ -3090,19 +3504,79 @@
         "map-pack11": "2e3080",
         "tu15": "2e3080"
       },
-      "line": 12363,
+      "line": 12375,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
       "observed_entry": "2e3080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "2e3080",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "binder_sha256": "3d28e7351d4482113677e00d9d9414b8969ba16bfe097570de7bce1da140bb5a",
+        "entry_symbol": "2e3080",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact controller continuations remain for unsupported/reference admission. Formatter, buffered writer/copy and platform output dependencies remain retained or unqualified; this prefix does not establish all-native diagnostics.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_diagnostic_stream_kernel.hpp": "67541c23428cd52d3028c86135f77b4ab6dd28ff559e66db4f698184d5d4c95e",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/runtime/native_tu15_diagnostic_stream.hpp": "4730dab5bf09aa05a8b24307fa746790446f8c865238826756ea6ca09fae330c",
+          "src/runtime/native_tu15_diagnostic_stream_admission.hpp": "ce88896541b33e5e70b725978b72ed1fb29fedaf3a2966dc7cfeb6f21832680f"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "2e3080",
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "24d568b6f0a27888e991faf976885b1ef816d52b48ad077631a2d7f053a9e267",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
+      "body_sha256": "bcfa1848dae5f30ccaba5644b9c66fb47047ec3804fbedafcedf2d388547923f",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_2e30e0",
@@ -3111,13 +3585,69 @@
         "map-pack11": "2e30e0",
         "tu15": "2e30e0"
       },
-      "line": 12394,
+      "line": 12407,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_diagnostic_stream_detail::bridge"
+      ],
       "observed_entry": "2e30e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "2e30e0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_diagnostic_stream_replacements.py",
+        "binder_sha256": "3d28e7351d4482113677e00d9d9414b8969ba16bfe097570de7bce1da140bb5a",
+        "entry_symbol": "2e30e0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact controller continuations remain for unsupported/reference admission. Formatter, buffered writer/copy and platform output dependencies remain retained or unqualified; this prefix does not establish all-native diagnostics.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_diagnostic_stream_kernel.hpp": "67541c23428cd52d3028c86135f77b4ab6dd28ff559e66db4f698184d5d4c95e",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569",
+          "src/runtime/native_tu15_diagnostic_stream.hpp": "4730dab5bf09aa05a8b24307fa746790446f8c865238826756ea6ca09fae330c",
+          "src/runtime/native_tu15_diagnostic_stream_admission.hpp": "ce88896541b33e5e70b725978b72ed1fb29fedaf3a2966dc7cfeb6f21832680f"
+        },
+        "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "2e30e0",
       "symbol_kind": "address-named"
@@ -3134,7 +3664,7 @@
         "map-pack11": "2e4470",
         "tu15": "2e4470"
       },
-      "line": 12401,
+      "line": 12415,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4470",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3155,7 +3685,7 @@
         "map-pack11": "2e44d0",
         "tu15": "2e44d0"
       },
-      "line": 12438,
+      "line": 12452,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e44d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3176,7 +3706,7 @@
         "map-pack11": "2e4820",
         "tu15": "2e4820"
       },
-      "line": 12482,
+      "line": 12496,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4820",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3197,7 +3727,7 @@
         "map-pack11": "2e5810",
         "tu15": "2e5810"
       },
-      "line": 12510,
+      "line": 12524,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e5810",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3218,7 +3748,7 @@
         "map-pack11": "2e88b0",
         "tu15": "2e88b0"
       },
-      "line": 12576,
+      "line": 12590,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e88b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3241,7 +3771,7 @@
         "map-pack11": "2e9610",
         "tu15": "2e9610"
       },
-      "line": 12603,
+      "line": 12617,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9610",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3262,7 +3792,7 @@
         "map-pack11": "2f16f0",
         "tu15": "2f16f0"
       },
-      "line": 12622,
+      "line": 12636,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f16f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3285,7 +3815,7 @@
         "map-pack11": "2f1990",
         "tu15": "2f1990"
       },
-      "line": 12672,
+      "line": 12686,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f1990",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3306,7 +3836,7 @@
         "map-pack11": "2f1cc0",
         "tu15": "2f1cc0"
       },
-      "line": 12701,
+      "line": 12715,
       "literal_dispatch_required_targets": [
         "2f0df0"
       ],
@@ -3329,7 +3859,7 @@
         "map-pack11": "2f20f0",
         "tu15": "2f20f0"
       },
-      "line": 12738,
+      "line": 12752,
       "literal_dispatch_required_targets": [
         "2e12a0",
         "2e8cf0",
@@ -3356,7 +3886,7 @@
         "map-pack11": "2f2930",
         "tu15": "2f2930"
       },
-      "line": 12853,
+      "line": 12867,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f2930",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3377,7 +3907,7 @@
         "map-pack11": "2f3580",
         "tu15": "2f3580"
       },
-      "line": 12881,
+      "line": 12895,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3580",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3400,7 +3930,7 @@
         "map-pack11": "2f35f0",
         "tu15": "2f35f0"
       },
-      "line": 12915,
+      "line": 12929,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f35f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3421,7 +3951,7 @@
         "map-pack11": "2f3670",
         "tu15": "2f3670"
       },
-      "line": 12934,
+      "line": 12948,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3670",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3442,7 +3972,7 @@
         "map-pack11": "2f36f0",
         "tu15": "2f36f0"
       },
-      "line": 12963,
+      "line": 12977,
       "literal_dispatch_required_targets": [
         "2e31e0",
         "2e4550",
@@ -3472,7 +4002,7 @@
         "map-pack11": "2f4460",
         "tu15": "2f4460"
       },
-      "line": 13542,
+      "line": 13556,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f4460",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3498,7 +4028,7 @@
         "map-pack11": "2f4bc0",
         "tu15": "2f4bc0"
       },
-      "line": 13640,
+      "line": 13654,
       "literal_dispatch_required_targets": [
         "1d6590"
       ],
@@ -3521,7 +4051,7 @@
         "map-pack11": "2f5530",
         "tu15": "2f5530"
       },
-      "line": 13807,
+      "line": 13821,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f5530",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3544,7 +4074,7 @@
         "map-pack11": "2f59e0",
         "tu15": "2f59e0"
       },
-      "line": 13836,
+      "line": 13850,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f59e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3565,7 +4095,7 @@
         "map-pack11": "2f5e60",
         "tu15": "2f5e60"
       },
-      "line": 13879,
+      "line": 13893,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f5e60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3588,7 +4118,7 @@
         "map-pack11": "2f6390",
         "tu15": "2f6390"
       },
-      "line": 13978,
+      "line": 13992,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f6390",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3611,7 +4141,7 @@
         "map-pack11": "2f6ca0",
         "tu15": "2f6ca0"
       },
-      "line": 14006,
+      "line": 14020,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f6ca0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3634,7 +4164,7 @@
         "map-pack11": "2f6f40",
         "tu15": "2f6f40"
       },
-      "line": 14056,
+      "line": 14070,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f6f40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3657,7 +4187,7 @@
         "map-pack11": "2f7480",
         "tu15": "2f7480"
       },
-      "line": 14106,
+      "line": 14120,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f7480",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3680,7 +4210,7 @@
         "map-pack11": "2f75f0",
         "tu15": "2f75f0"
       },
-      "line": 14149,
+      "line": 14163,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f75f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3701,7 +4231,7 @@
         "map-pack11": "2f8300",
         "tu15": "2f8300"
       },
-      "line": 14241,
+      "line": 14255,
       "literal_dispatch_required_targets": [
         "2e4550",
         "309060",
@@ -3728,7 +4258,7 @@
         "map-pack11": "2f83b0",
         "tu15": "2f83b0"
       },
-      "line": 14304,
+      "line": 14318,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f83b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3749,7 +4279,7 @@
         "map-pack11": "2f9b30",
         "tu15": "2f9b30"
       },
-      "line": 14334,
+      "line": 14348,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f9b30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3770,7 +4300,7 @@
         "map-pack11": "2fa6f0",
         "tu15": "2fa6f0"
       },
-      "line": 14445,
+      "line": 14459,
       "literal_dispatch_required_targets": [
         "3128c0"
       ],
@@ -3795,7 +4325,7 @@
         "map-pack11": "304b90",
         "tu15": "304b90"
       },
-      "line": 14649,
+      "line": 14663,
       "literal_dispatch_required_targets": [],
       "observed_entry": "304b90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3820,7 +4350,7 @@
         "map-pack11": "30a320",
         "tu15": "30a320"
       },
-      "line": 14674,
+      "line": 14688,
       "literal_dispatch_required_targets": [
         "2e3250"
       ],
@@ -3845,7 +4375,7 @@
         "map-pack11": "30a960",
         "tu15": "30a960"
       },
-      "line": 15108,
+      "line": 15122,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30a960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3866,7 +4396,7 @@
         "map-pack11": "315d10",
         "tu15": "315d10"
       },
-      "line": 15178,
+      "line": 15192,
       "literal_dispatch_required_targets": [
         "316dc0"
       ],
@@ -3889,7 +4419,7 @@
         "map-pack11": "315e10",
         "tu15": "315e10"
       },
-      "line": 15208,
+      "line": 15222,
       "literal_dispatch_required_targets": [
         "2e3250"
       ],
@@ -3914,7 +4444,7 @@
         "map-pack11": "31e1f0",
         "tu15": "31e1f0"
       },
-      "line": 15230,
+      "line": 15244,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31e1f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3935,7 +4465,7 @@
         "map-pack11": "31e330",
         "tu15": "31e330"
       },
-      "line": 15243,
+      "line": 15257,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31e330",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3958,7 +4488,7 @@
         "map-pack11": "31e3b0",
         "tu15": "31e3b0"
       },
-      "line": 15253,
+      "line": 15267,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31e3b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3979,7 +4509,7 @@
         "map-pack11": "3233a0",
         "tu15": "3233a0"
       },
-      "line": 15283,
+      "line": 15297,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3233a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4000,7 +4530,7 @@
         "map-pack11": "323430",
         "tu15": "323430"
       },
-      "line": 15293,
+      "line": 15307,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323430",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4021,7 +4551,7 @@
         "map-pack11": "323560",
         "tu15": "323560"
       },
-      "line": 15355,
+      "line": 15369,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323560",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4047,7 +4577,7 @@
         "map-pack11": "3235f0",
         "tu15": "3235f0"
       },
-      "line": 15384,
+      "line": 15398,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3235f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4073,7 +4603,7 @@
         "map-pack11": "323730",
         "tu15": "323730"
       },
-      "line": 15476,
+      "line": 15490,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323730",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4094,7 +4624,7 @@
         "map-pack11": "323860",
         "tu15": "323860"
       },
-      "line": 15566,
+      "line": 15580,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323860",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4115,7 +4645,7 @@
         "map-pack11": "3238a0",
         "tu15": "3238a0"
       },
-      "line": 15585,
+      "line": 15599,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3238a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4136,7 +4666,7 @@
         "map-pack11": "323bb0",
         "tu15": "323bb0"
       },
-      "line": 15592,
+      "line": 15606,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323bb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4162,7 +4692,7 @@
         "map-pack11": "324410",
         "tu15": "324410"
       },
-      "line": 15626,
+      "line": 15640,
       "literal_dispatch_required_targets": [],
       "observed_entry": "324410",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4185,7 +4715,7 @@
         "map-pack11": "325a60",
         "tu15": "325a60"
       },
-      "line": 15790,
+      "line": 15804,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325a60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4209,7 +4739,7 @@
         "map-pack11": "325bd0",
         "tu15": "325bd0"
       },
-      "line": 15800,
+      "line": 15814,
       "literal_dispatch_required_targets": [
         "283450"
       ],
@@ -4235,7 +4765,7 @@
         "map-pack11": "325c40",
         "tu15": "325c40"
       },
-      "line": 15844,
+      "line": 15858,
       "literal_dispatch_required_targets": [
         "283450"
       ],
@@ -4261,7 +4791,7 @@
         "map-pack11": "325ce0",
         "tu15": "325ce0"
       },
-      "line": 15888,
+      "line": 15902,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325ce0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4282,7 +4812,7 @@
         "map-pack11": "32a8ed",
         "tu15": "32a8ed"
       },
-      "line": 15931,
+      "line": 15945,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32a8ed",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4303,7 +4833,7 @@
         "map-pack11": "32a970",
         "tu15": "32a970"
       },
-      "line": 15966,
+      "line": 15980,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32a970",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4324,7 +4854,7 @@
         "map-pack11": "32bdc2",
         "tu15": "32bdc2"
       },
-      "line": 15980,
+      "line": 15994,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32bdc2",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4345,7 +4875,7 @@
         "map-pack11": "37c5d0",
         "tu15": "37c5d0"
       },
-      "line": 16011,
+      "line": 16025,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c5d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4366,7 +4896,7 @@
         "map-pack11": "381710",
         "tu15": "381710"
       },
-      "line": 16084,
+      "line": 16098,
       "literal_dispatch_required_targets": [],
       "observed_entry": "381710",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4387,7 +4917,7 @@
         "map-pack11": "381730",
         "tu15": "381730"
       },
-      "line": 16091,
+      "line": 16105,
       "literal_dispatch_required_targets": [],
       "observed_entry": "381730",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4408,7 +4938,7 @@
         "map-pack11": "381750",
         "tu15": "381750"
       },
-      "line": 16098,
+      "line": 16112,
       "literal_dispatch_required_targets": [],
       "observed_entry": "381750",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4429,7 +4959,7 @@
         "map-pack11": "381770",
         "tu15": "381770"
       },
-      "line": 16105,
+      "line": 16119,
       "literal_dispatch_required_targets": [],
       "observed_entry": "381770",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4450,7 +4980,7 @@
         "map-pack11": "382230",
         "tu15": "382230"
       },
-      "line": 16111,
+      "line": 16125,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382230",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4471,7 +5001,7 @@
         "map-pack11": "3817f0",
         "tu15": "3817f0"
       },
-      "line": 16118,
+      "line": 16132,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3817f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4492,7 +5022,7 @@
         "map-pack11": "c11f0",
         "tu15": "c11f0"
       },
-      "line": 16124,
+      "line": 16138,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c11f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4515,7 +5045,7 @@
         "map-pack11": "c1390",
         "tu15": "c1390"
       },
-      "line": 16175,
+      "line": 16189,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c1390",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4536,7 +5066,7 @@
         "map-pack11": "191260",
         "tu15": "191260"
       },
-      "line": 16184,
+      "line": 16198,
       "literal_dispatch_required_targets": [
         "32a990"
       ],
@@ -4552,7 +5082,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/runtime/source_map_world_support_tu15_generated.cpp",
-  "source_bytes": 1916006,
+  "source_bytes": 1917586,
   "source_filename_scope": "generated",
-  "source_sha256": "e6bbe3dc51c81ea9231cc1eaa866c3019c76425103a755ba611b4d8e264ca4fd"
+  "source_sha256": "c58972060af9e3dff6d32c3bb35314494e6e55e6d761d8536fefcf475915d1ec"
 }

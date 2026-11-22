@@ -84,6 +84,7 @@ public:
       std::uint64_t limit, std::size_t bytes, std::uint32_t alignment) const;
   void read(std::uint32_t, std::span<std::byte>) const override;
   void write(std::uint32_t, std::span<const std::byte>) override;
+  bool try_callback_free_write(std::uint32_t, std::span<const std::byte>) noexcept override;
   NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t, unsigned, std::uint32_t) override;
   void read_vector(std::uint32_t,std::span<std::byte,16>) const override;
   std::optional<std::span<const std::byte>> try_read_view(
@@ -192,10 +193,20 @@ private:
   std::unique_ptr<SourcePageIndex> source_pages_;
   // Regions covering a page only partly (the image's many small owner
   // allocations, region edges) cannot be named by the page table. This index
-  // lists them per page, sorted by base, holding the same map iterators, so
-  // locate() resolves them without the region map; the map stays the fallback.
-  struct SourceSmallEntry {std::uint32_t base{};Position found{};};
-  using SourceSmallBlock = std::array<std::vector<SourceSmallEntry>,1024>;
+  // lists them per page, sorted by base. Cache the inclusive last address
+  // with the iterator so partial-page lookup stays within the index entries.
+  struct SourceSmallEntry {std::uint32_t base{},last{};Position found{};};
+  struct SourceSmallPage {
+    static constexpr unsigned tile_shift=6;
+    static constexpr unsigned tile_count=4096u>>tile_shift;
+    static constexpr unsigned minimum_entries=8;
+    using TileBounds=std::array<std::uint8_t,tile_count+1>;
+    std::vector<SourceSmallEntry> entries;
+    std::unique_ptr<TileBounds> bounds;
+    bool indexed() const noexcept;
+    void update_bounds(std::uint64_t page_base) noexcept;
+  };
+  using SourceSmallBlock = std::array<SourceSmallPage,1024>;
   using SourceSmallIndex = std::array<std::unique_ptr<SourceSmallBlock>,1024>;
   std::unique_ptr<SourceSmallIndex> small_pages_;
   Position small_lookup(std::uint32_t) const noexcept;

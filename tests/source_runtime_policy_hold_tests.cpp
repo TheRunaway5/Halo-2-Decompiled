@@ -1,6 +1,8 @@
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
 #include "halo2/source_execution_inputs.hpp"
+#include <array>
+#include <bit>
 #include <future>
 #include <iostream>
 #include <stdexcept>
@@ -199,12 +201,119 @@ void native_write_lease(){
     {SourceRuntimeNativeWriteLease lease(bank,{});need(!lease&&lease.refusal()==Reason::Range,"Empty native write block admitted");}
     {SourceRuntimeNativeWriteLease lease(bank,ranges);need(bool(lease),"Native policy refusal leaked its admission");}
 }
+
+void native_word_block(){
+    using Visibility=SourceRuntimeWriteSerial::Visibility;
+    constexpr std::uint32_t base=0x10000u,first=base+0xff8u;
+    constexpr std::array<std::uint32_t,5> words{0x01234567u,0x89abcdefu,0u,0xff00aa55u,0x80000001u};
+    constexpr std::byte poison{0xd7};
+    SourceRuntimeMemory bank;
+    bank.mount(base,std::vector<std::byte>(8192,poison),SourceRuntimeMemory::Access::ReadWrite,"native word block");
+    SourceRuntimeWriteSerial serial(bank,Visibility::CallBoundary);
+    if constexpr(std::endian::native!=std::endian::little) {
+        need(!source_runtime_try_write_words(bank,first,words,serial) && serial.load()==0,"Native word block admitted host-endian bytes");
+        return;
+    }
+    const auto initial=bank.checkpoint();
+    const auto scalar=[&](std::uint32_t at,std::uint32_t value) {
+        std::array<std::byte,4> bytes{};
+        for(unsigned i=0;i<bytes.size();++i)bytes[i]=std::byte(value>>(i*8u));
+        bank.write(at,bytes);
+    };
+    for(unsigned i=0;i<words.size();++i)scalar(first+4u*i,words[i]);
+    const auto expected=bank.checkpoint();
+    bank.restore(initial);
+    const auto before=serial.load();
+    unsigned guard_calls{},observer_calls{};
+    source_runtime_register_write_guard(bank,&guard_calls,[&](auto,auto){++guard_calls;},first+sizeof(words));
+    source_runtime_register_write_observer(bank,&observer_calls,[&](auto,auto){++observer_calls;});
+    need(!source_runtime_try_write_words(bank,first,words,serial) && bank.checkpoint()==initial &&
+         serial.load()==before && !observer_calls && !guard_calls,"Unknown observer saw or admitted a bulk write");
+    source_runtime_unregister_write_observer(bank,&observer_calls);
+    source_runtime_register_write_observer(bank,&observer_calls,[&](auto address,auto) {
+        if(address<first || address>=first+sizeof(words))++observer_calls;
+    });
+    const std::array<const void*,1> inert{{&observer_calls}};
+    SourceRuntimeWriteSerial peer(bank,Visibility::CallBoundary);
+    {
+        SourceRuntimeWriteSerial extra(bank);
+        need(!source_runtime_try_write_words(bank,first,words,serial,inert) && bank.checkpoint()==initial &&
+             serial.load()==before && peer.load()==0 && extra.load()==0,
+             "Native word block admitted an every-store subscriber");
+    }
+    SourceRuntimeMemory other;
+    SourceRuntimeWriteSerial wrong(other,Visibility::CallBoundary);
+    need(!source_runtime_try_write_words(bank,first,words,wrong,inert) && serial.load()==before,
+         "Native word block admitted a serial from another bank");
+    {
+        SourceRuntimeMemory observed_bank;
+        observed_bank.mount(first,std::vector<std::byte>(sizeof(words),poison),
+            SourceRuntimeMemory::Access::ReadWrite,"every-store serial");
+        SourceRuntimeWriteSerial ordinary(observed_bank);
+        need(!source_runtime_try_write_words(observed_bank,first,words,ordinary) &&
+             ordinary.load()==0 && observed_bank.view(first,1)[0]==poison,
+             "A sole every-store subscriber admitted grouped writes");
+    }
+    {
+        SourceExecutionInputs inputs;
+        {SourceExecutionInputBinding binding(bank,inputs);
+         need(!source_runtime_try_write_words(bank,first,words,serial,inert) && serial.load()==before,
+              "Native word block admitted a bound execution tape");}
+        inputs.finish();
+    }
+    need(source_runtime_try_write_words(bank,first,words,serial,inert) && bank.checkpoint()==expected &&
+         serial.load()-before==words.size() && peer.load()==words.size() && !observer_calls && !guard_calls,
+         "Native word block changed adjacent bytes, final word order or logical store count");
+    source_runtime_unregister_write_observer(bank,&observer_calls);
+    source_runtime_unregister_write_guard(bank,&guard_calls);
+
+    bank.restore(initial);
+    const auto before_fault=serial.load();
+    const auto before_peer_fault=peer.load();
+    constexpr auto stop=first+8u;
+    source_runtime_register_write_guard(bank,&guard_calls,[&](auto address,auto) {
+        ++guard_calls;
+        if(address==stop)throw std::runtime_error("middle word guard");
+    });
+    need(!source_runtime_try_write_words(bank,first,words,serial) && bank.checkpoint()==initial &&
+         serial.load()==before_fault && !guard_calls,"Bulk refusal lost the original guarded prefix");
+    std::vector<std::uint32_t> observed;
+    source_runtime_register_write_observer(bank,&observed,[&](auto address,auto width) {
+        need(width==4,"Scalar continuation changed store width");observed.push_back(address);
+    });
+    bool rejected{};
+    try{for(unsigned i=0;i<words.size();++i)scalar(first+4u*i,words[i]);}
+    catch(const std::runtime_error& e){rejected=std::string_view(e.what())=="middle word guard";}
+    need(rejected && guard_calls==3 && observed==std::vector<std::uint32_t>{first,first+4u} &&
+         serial.load()-before_fault==2 && peer.load()-before_peer_fault==2 && bank.view(stop,1)[0]==poison,
+         "Literal fallback changed the guarded prefix, observations or serial");
+    source_runtime_unregister_write_observer(bank,&observed);
+    source_runtime_unregister_write_guard(bank,&guard_calls);
+
+    constexpr auto shared=0x20000u,split=0x30000u,reserved=0x40000u;
+    auto backing=std::make_shared<std::array<std::uint32_t,8>>();
+    bank.mount(shared,std::make_shared<SourceRuntimeMemoryBacking>(
+        backing,std::as_writable_bytes(std::span(*backing))),SourceRuntimeMemory::Access::ReadWrite,"alias owner");
+    bank.mount(split,std::vector<std::byte>(8),SourceRuntimeMemory::Access::ReadWrite,"first split owner");
+    bank.mount(split+8u,std::vector<std::byte>(16),SourceRuntimeMemory::Access::ReadWrite,"second split owner");
+    bank.reserve(reserved,8192,4096,"partly committed owner");
+    bank.commit(reserved,std::vector<std::byte>(4096));
+    const auto rejected_bytes=bank.checkpoint();
+    const auto rejected_serial=serial.load();
+    need(!source_runtime_try_write_words(bank,shared+4u,std::span(*backing).first(4),serial) &&
+         !source_runtime_try_write_words(bank,split,words,serial) &&
+         !source_runtime_try_write_words(bank,reserved+0xff8u,words,serial) &&
+         !source_runtime_try_write_words(bank,0xfffffffcu,words,serial) &&
+         !source_runtime_try_write_words(bank,first,{},serial) &&
+         bank.checkpoint()==rejected_bytes && serial.load()==rejected_serial,
+         "Alias, split owner, uncommitted extent, wrapping or empty input had a bulk write effect");
+}
 }
 int main(){
     unsigned failed{};
     for(const auto &[name,run]:std::initializer_list<std::pair<const char *,void(*)()>>{
         {"input_binding",input_binding},{"backing_policy",backing_policy},{"registry",registry},{"active_admission",active_admission},
-        {"native_write_lease",native_write_lease}}){
+        {"native_write_lease",native_write_lease},{"native_word_block",native_word_block}}){
         try{run();std::cout<<"PASS "<<name<<'\n';}
         catch(const std::exception &e){++failed;std::cerr<<"FAIL "<<name<<": "<<e.what()<<'\n';}
     }

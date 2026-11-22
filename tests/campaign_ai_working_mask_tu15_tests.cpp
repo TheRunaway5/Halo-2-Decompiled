@@ -124,7 +124,12 @@ void run_children_case(const nlohmann::json &fixture,const nlohmann::json &input
   }
   for(const auto &parent:fixture.at("parents"))for(const auto &child:parent.at("children")) {
     const unsigned row=child.at("address");
-    for(const unsigned offset:{6u,7u,12u,13u,14u,15u,16u,17u,18u,19u}) {
+    // The original 1AFDE0 link builder owns a separate writable DWORD
+    // immediately after the immutable timer at row + 8.
+    check(memory.is_read_only(row+11u,1) && !memory.is_read_only(row+12u,4) &&
+        hex(memory.view(row+12u,4))=="00000000",
+        "Child command link head lost its separate writable loader-zero DWORD");
+    for(const unsigned offset:{6u,7u,16u,17u,18u,19u}) {
       bool hole=false;try{(void)memory.view(row+offset,1);}catch(const std::out_of_range&){hole=true;}
       check(hole,"Child selection input borrowed unread row padding or tail");
     }

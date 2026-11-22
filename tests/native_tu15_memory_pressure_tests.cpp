@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_memory_pressure.hpp"
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -13,18 +14,95 @@ void check(bool b,const std::string&s){if(!b)throw std::runtime_error(s);}
 std::vector<std::byte>bytes(const std::string&s){check(s.size()%2==0,"Invalid solver fixture bytes");std::vector<std::byte>b;for(std::size_t n=0;n<s.size();n+=2)b.push_back(std::byte(std::stoul(s.substr(n,2),nullptr,16)));return b;}
 std::string hex(std::span<const std::byte>b){const char*d="0123456789abcdef";std::string s;for(auto v:b){auto n=std::to_integer<unsigned>(v);s+=d[n>>4];s+=d[n&15];}return s;}
 struct Fault{};struct ObserverFault{};
-struct Memory:SourcePhysicsContactMemory{
+struct Memory:SourcePhysicsContactMemory,NativeTu15RetainedCounterStorage{
     std::map<std::uint32_t,std::vector<std::byte>>banks;bool log_reads{},log_writes{};mutable J reads=J::array();J fault,write_fault;mutable unsigned fault_count{};unsigned write_fault_count{};std::vector<SourcePhysicsContactRecordStore>raw_stores;
     auto at(std::uint32_t p,std::size_t n)const{auto i=banks.upper_bound(p);check(i!=banks.begin(),"Missing solver bank");--i;check(std::uint64_t(p-i->first)+n<=i->second.size(),"Missing solver extent");return i;}
     void read(std::uint32_t p,std::span<std::byte>b)const override{if(!fault.is_null()&&p==fault.at("address")&&b.size()==fault.at("bytes")&&++fault_count==fault.at("occurrence"))throw Fault{};if(log_reads)reads.push_back(J::array({p,b.size()}));auto i=at(p,b.size());std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
     void read_vector(std::uint32_t p,std::span<std::byte,16>b)const override{read(p,b);}
     void write(std::uint32_t p,std::span<const std::byte>b)override{if(!write_fault.is_null()&&p==write_fault.at("address")&&b.size()==write_fault.at("bytes")&&++write_fault_count==write_fault.at("occurrence"))throw Fault{};auto i=at(p,b.size());if(log_writes)raw_stores.push_back({0,p,std::vector<std::byte>(i->second.begin()+p-i->first,i->second.begin()+p-i->first+b.size()),std::vector<std::byte>(b.begin(),b.end())});std::copy(b.begin(),b.end(),banks.at(i->first).begin()+p-i->first);}
+    NativeTu15RetainedCounterUpdate adjust_counter(std::uint32_t address,unsigned width,
+        std::uint32_t adjustment) override {
+        std::array<std::byte,4> before{};
+        read(address,std::span(before).first(width));
+        const auto update=native_tu15_adjust_counter_value(before,width,adjustment);
+        write(address,std::span(update.written).first(width));
+        return update;
+    }
 };
 std::uint16_t control(){std::uint16_t value;asm volatile("fnstcw %0":"=m"(value));return value;}
 std::uint16_t status(){std::uint16_t value;asm volatile("fnstsw %0":"=a"(value));return value;}
+
+struct StatisticsCandidateBoundary {};
+void compare_statistics(const J& fixture) {
+    std::size_t compared_stores{};
+    for(const auto& c:fixture.at("cases")) {
+        const auto name=c.at("name").get<std::string>();
+        Memory memory;
+        for(const auto& bank:c.at("banks"))
+            memory.banks.emplace(bank.at("address"),bytes(bank.at("before")));
+        const auto& initial=c.at("before_fp");
+        NativeTu15PhysicsFrameFp fp{initial[0],initial[1],initial[2]};
+        J stores=J::array();
+        const SourcePhysicsContactRecordObserver observe=[&](const auto& store) {
+            stores.push_back({{"instruction",store.instruction},{"address",store.address},
+                              {"before",hex(store.before)},{"written",hex(store.written)}});
+        };
+        const auto cw=control(),sw=status();
+        const auto mxcsr=_mm_getcsr();
+        if(c.at("entry")==0x1cd130u) {
+            native_tu15_record_havok_memory_statistics(memory,fp,observe);
+        } else {
+            NativeTu15MemoryPressureServices services;
+            services.trim_objects=[&](bool flag,auto& state) {
+                check(flag,name+" pressure report argument differs");
+                native_tu15_record_havok_memory_statistics(memory,state,observe);
+            };
+            services.remove_candidate=[&](auto request,auto&) -> bool {
+                const J actual{{"mode",request.mode},{"excluded",request.excluded},
+                    {"final_pass",request.final_pass},{"aggressive",request.aggressive},
+                    {"recent_cleanup",request.recent_cleanup}};
+                check(actual==c.at("candidate"),name+" next native candidate disagrees with original");
+                throw StatisticsCandidateBoundary{};
+            };
+            bool reached_candidate=false;
+            try { native_tu15_collect_memory_pressure(memory,fp,services,observe); }
+            catch(const StatisticsCandidateBoundary&) { reached_candidate=true; }
+            check(reached_candidate,name+" did not reach original 1CCBE0 boundary");
+        }
+        const auto actual_fp=J::array({fp.control_word,fp.status,fp.mxcsr});
+        check(actual_fp==c.at("after_fp"),
+              name+" statistics FP differs "+actual_fp.dump()+"/"+c.at("after_fp").dump());
+        check(control()==cw&&status()==sw&&_mm_getcsr()==mxcsr,name+" statistics leaked host FP");
+        check(stores==c.at("writes"),name+" statistics retained store order differs");
+        for(const auto& bank:c.at("banks"))
+            check(hex(memory.banks.at(bank.at("address")))==bank.at("after").get_ref<const std::string&>(),
+                  name+" statistics bank differs");
+        compared_stores+=stores.size();
+    }
+
+    const auto& row=fixture.at("cases").front();
+    for(const std::uint32_t address:{0x46ec80u,0x46e8e8u,0x45f4e8u}) {
+        Memory memory;
+        for(const auto& bank:row.at("banks"))
+            memory.banks.emplace(bank.at("address"),bytes(bank.at("before")));
+        const std::array<std::byte,4> unsupported{};
+        memory.write(address,unsupported);
+        memory.log_writes=true;
+        NativeTu15PhysicsFrameFp fp{0x027f,0,0x1f80};
+        bool refused=false;
+        try { native_tu15_record_havok_memory_statistics(memory,fp); }
+        catch(const std::runtime_error&) { refused=true; }
+        check(refused&&memory.raw_stores.empty()&&fp.control_word==0x027f&&fp.status==0&&fp.mxcsr==0x1f80,
+              "Unsupported statistics provider did not refuse before mutation");
+    }
+    std::cout<<fixture.at("cases").size()<<" original statistics cases and "<<compared_stores
+             <<" ordered retained stores matched the native candidate\n";
+}
 }
 int main(int argc,char**argv){try{
- check(argc==2&&std::filesystem::exists(argv[1]),"Required physical memory-pressure phase input absent");std::ifstream file(argv[1]);const auto fixture=J::parse(file);check(fixture.at("image_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"&&fixture.at("required_backend")=="unchanged-tu15-native-memory-pressure-v1","Required original memory-pressure authority missing");check(fixture.at("body_sites")==J::array({123,60,32,16,16}),"Original memory-pressure closure changed");std::size_t count{},writes{},reads{};
+ check(argc==2&&std::filesystem::exists(argv[1]),"Required physical memory-pressure phase input absent");std::ifstream file(argv[1]);const auto fixture=J::parse(file);check(fixture.at("image_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Required original memory-pressure authority missing");
+ if(fixture.at("required_backend")=="unchanged-tu15-havok-statistics-v1"){compare_statistics(fixture);return 0;}
+ check(fixture.at("required_backend")=="unchanged-tu15-native-memory-pressure-v1","Required original memory-pressure backend missing");check(fixture.at("body_sites")==J::array({123,60,32,16,16}),"Original memory-pressure closure changed");std::size_t count{},writes{},reads{};
  for(const auto&c:fixture.at("cases")){
   const auto name=c.at("name").get<std::string>();Memory before;for(const auto&b:c.at("banks"))before.banks.emplace(b.at("address"),bytes(b.at("before")));const auto fault=c.value("fault",J{});if(!fault.is_null()){if(fault.value("access",std::string{})=="write")before.write_fault=fault;else before.fault=fault;}
   for(bool read_pass:{false,true}){

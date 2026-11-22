@@ -3,7 +3,7 @@
 // source (native_object_factory_*_tu15.cpp) uses these helpers so loads and
 // stores keep the original widths; stores go through memory.write() in the
 // order the caller issues them (production passes a journaled world memory).
-#include "halo2/physics_contact_record.hpp"
+#include "halo2/detail/physics_scalar_memory.hpp"
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -11,19 +11,19 @@
 #include <stdexcept>
 #include <string>
 
+namespace halo2::native_object_factory_tu15 { struct AnimationResourceTouch; }
 namespace halo2::native_object_factory_tu15::detail {
 using M=SourcePhysicsContactMemory;
+void request_animation_resource(const M&,AnimationResourceTouch);
 inline constexpr std::uint32_t none=0xffffffffu;
 inline constexpr std::uint32_t object_pool=0x4ecbd0u;     // object data array
 inline constexpr std::uint32_t object_memory=0x4eabbcu;   // object memory pool
 inline constexpr std::uint32_t tag_instances=0x4f0414u;   // 16-byte tag rows, data at +8
 inline constexpr std::uint32_t one=0x3f800000u;           // [0x46A0D0] = 1.0f
 
-inline std::uint32_t r32(const M& m,std::uint32_t a){std::array<std::byte,4> b{};m.read(a,b);
-  return std::uint32_t(b[0])|std::uint32_t(b[1])<<8|std::uint32_t(b[2])<<16|std::uint32_t(b[3])<<24;}
-inline std::uint16_t r16(const M& m,std::uint32_t a){std::array<std::byte,2> b{};m.read(a,b);
-  return std::uint16_t(std::uint32_t(b[0])|std::uint32_t(b[1])<<8);}
-inline std::uint8_t r8(const M& m,std::uint32_t a){std::array<std::byte,1> b{};m.read(a,b);return std::uint8_t(b[0]);}
+inline std::uint32_t r32(const M& m,std::uint32_t a){return physics_step_detail::r(m,a);}
+inline std::uint16_t r16(const M& m,std::uint32_t a){return std::uint16_t(physics_step_detail::r(m,a,2));}
+inline std::uint8_t r8(const M& m,std::uint32_t a){return std::uint8_t(physics_step_detail::r(m,a,1));}
 inline void w32(M& m,std::uint32_t a,std::uint32_t v){const std::array b{std::byte(v),std::byte(v>>8),std::byte(v>>16),std::byte(v>>24)};m.write(a,b);}
 inline void w16(M& m,std::uint32_t a,std::uint16_t v){const std::array b{std::byte(v),std::byte(v>>8)};m.write(a,b);}
 inline void w8(M& m,std::uint32_t a,std::uint8_t v){const std::array b{std::byte(v)};m.write(a,b);}

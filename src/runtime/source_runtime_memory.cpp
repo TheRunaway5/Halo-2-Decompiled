@@ -50,6 +50,12 @@ const bool reference_small_transfers=[] {
 const bool reference_scalar_vector_reads=[] {
   const auto *p=std::getenv("HALO2_REFERENCE_SCALAR_VECTOR_READS");return p && *p;
 }();
+const bool reference_mutable_view_preflight=[] {
+  const auto *p=std::getenv("HALO2_REFERENCE_MUTABLE_VIEW_PREFLIGHT");return p && *p;
+}();
+const bool reference_small_region_lookup=[] {
+  const auto *p=std::getenv("HALO2_REFERENCE_SMALL_REGION_LOOKUP");return p && *p;
+}();
 // Reference transfer modes keep every access on the original checked route.
 const bool direct_pages_enabled=!reference_small_transfers && !reference_scalar_vector_reads;
 inline void transfer(void *destination,const void *source,std::size_t bytes) {
@@ -372,10 +378,14 @@ void SourceRuntimeMemory::index_source_region(Position found) {
     if(!small_pages_)small_pages_=std::make_unique<SourceSmallIndex>();
     auto &block=(*small_pages_)[page>>10];
     if(!block)block=std::make_unique<SourceSmallBlock>();
-    auto &entries=(*block)[page&1023];
+    auto &partial=(*block)[page&1023];
+    auto &entries=partial.entries;
     const auto at=std::upper_bound(entries.begin(),entries.end(),found->first,
         [](std::uint32_t b,const SourceSmallEntry &e){return b<e.base;});
-    entries.insert(at,SourceSmallEntry{found->first,found});
+    entries.insert(at,SourceSmallEntry{found->first,std::uint32_t(base+size-1),found});
+    if(!reference_small_region_lookup && !partial.bounds && partial.indexed())
+      partial.bounds=std::make_unique<SourceSmallPage::TileBounds>();
+    partial.update_bounds(page<<12);
   }
   if(first<limit)refresh_direct_region(found);
 }
@@ -383,8 +393,11 @@ void SourceRuntimeMemory::unindex_source_region(Position found) noexcept {
   const auto base=std::uint64_t(found->first),size=found->second.storage().size();
   if(small_pages_)
     for(auto page=base>>12;page<=(base+size-1)>>12;++page)
-      if(auto &block=(*small_pages_)[page>>10])
-        std::erase_if((*block)[page&1023],[&](const SourceSmallEntry &e){return e.found==found;});
+      if(auto &block=(*small_pages_)[page>>10]) {
+        auto &partial=(*block)[page&1023];
+        std::erase_if(partial.entries,[&](const SourceSmallEntry &e){return e.found==found;});
+        partial.update_bounds(page<<12);
+      }
   if(!source_pages_)return;
   const auto first=(base+4095)&~std::uint64_t{4095};
   const auto limit=(base+size)&~std::uint64_t{4095};
@@ -415,18 +428,45 @@ std::uint64_t SourceRuntimeMemory::restore_storage_overhead(const Checkpoint &sa
   // Two red-black maps, shared snapshot/backing objects/control nodes, and
   // one page of alignment slack for mapped snapshot storage.
   bytes+=saved.regions.size()*(sizeof(Region)+sizeof(SourceRuntimeSnapshotBytes)+sizeof(SourceRuntimeMemoryBacking)+512+4096);
-  bytes+=2*edges*sizeof(SourceSmallEntry);return bytes;
+  bytes+=2*edges*sizeof(SourceSmallEntry);
+  // A restored tile table covers at least this many partial entries.
+  bytes+=edges/SourceSmallPage::minimum_entries*(sizeof(SourceSmallPage::TileBounds)+32u);
+  return bytes;
+}
+bool SourceRuntimeMemory::SourceSmallPage::indexed() const noexcept {
+  return entries.size()>=minimum_entries && entries.size()<=std::numeric_limits<std::uint8_t>::max();
+}
+void SourceRuntimeMemory::SourceSmallPage::update_bounds(std::uint64_t page_base) noexcept {
+  if(!bounds)return;
+  if(!indexed()){bounds->back()=0;return;}
+  std::size_t next{};
+  for(unsigned tile=0;tile<bounds->size();++tile) {
+    const auto start=page_base+(tile<<tile_shift);
+    while(next<entries.size() && entries[next].base<start)++next;
+    (*bounds)[tile]=static_cast<std::uint8_t>(next);
+  }
 }
 SourceRuntimeMemory::Position SourceRuntimeMemory::small_lookup(std::uint32_t p) const noexcept {
   if(!small_pages_)return {};
   const auto &block=(*small_pages_)[p>>22];
   if(!block)return {};
-  const auto &entries=(*block)[(p>>12)&1023];
-  auto at=std::upper_bound(entries.begin(),entries.end(),p,
+  const auto &partial=(*block)[(p>>12)&1023];
+  const auto &entries=partial.entries;
+  if(entries.empty())return {};
+  auto first=entries.begin(),limit=entries.end();
+  if(const auto* bounds=partial.bounds.get();bounds && bounds->back()) {
+    const auto tile=(p&4095u)>>SourceSmallPage::tile_shift;
+    const auto lower=(*bounds)[tile];
+    // A region beginning before this tile can still contain the address.
+    first+=lower-(lower!=0);
+    limit=entries.begin()+(*bounds)[tile+1];
+    if(limit-first==1)return p>=first->base && p<=first->last?first->found:Position{};
+  }
+  auto at=std::upper_bound(first,limit,p,
       [](std::uint32_t a,const SourceSmallEntry &e){return a<e.base;});
-  if(at==entries.begin())return {};
+  if(at==first)return {};
   --at;
-  if(std::uint64_t(p)-at->base>=at->found->second.storage().size())return {};
+  if(p>at->last)return {};
   return at->found;
 }
 void SourceRuntimeMemory::publish_direct_index() noexcept {
@@ -472,6 +512,11 @@ struct LocateCensus {
       std::fprintf(stderr,"  region %08x: table=%llu map=%llu\n",top[i].first<<20,(unsigned long long)top[i].second.first,(unsigned long long)top[i].second.second);
   }
 } locate_census;
+const bool direct_partial_scalar_reads=[] {
+  const auto *reference=std::getenv("HALO2_REFERENCE_PARTIAL_SCALAR_READS");
+  return !(reference && *reference) && direct_pages_enabled &&
+      !reference_small_region_lookup && !locate_census.enabled;
+}();
 }
 SourceRuntimeMemory::Position
 SourceRuntimeMemory::locate(std::uint32_t p) const {
@@ -560,6 +605,18 @@ void SourceRuntimeMemory::read(std::uint32_t p,
   if(const auto *page=direct_page(p,output.size())) {
     transfer(output.data(),page->bytes+(p&4095u),output.size());return;
   }
+  // The partial index identifies the current owner of a complete scalar.
+  if(direct_partial_scalar_reads && output.size()==4u) {
+    const auto found=small_lookup(p);
+    if(found!=Position{} && !found->second.page_bytes) {
+      const auto bytes=found->second.storage();
+      const auto offset=std::size_t(p-found->first);
+      if(4u<=bytes.size()-offset) {
+        std::memmove(output.data(),bytes.data()+offset,4u);
+        return;
+      }
+    }
+  }
   const auto limit=end(p,output.size());
   if (output.empty()) return;
   const auto first = locate(p);
@@ -630,43 +687,6 @@ std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_ordinary_view
       if(!region.committed[page])return std::nullopt;
   }
   return bytes.subspan(std::size_t(offset),n);
-}
-void SourceRuntimeMemory::write(std::uint32_t p,
-                                std::span<const std::byte> input) {
-  // A writable direct page already proves the extent, region, ReadWrite
-  // access, commitment and absent backing guard that validate() checks.
-  // Registry guards and observers still run before the store, in order.
-  if(const auto *page=direct_page(p,input.size()); page && page->writable) {
-    source_runtime_validate_write(*this,p,input.size(),true);
-    // Policies may change topology; then store exactly as the checked route.
-    if(const auto *after=direct_page(p,input.size()); after && after->writable) {
-      transfer(after->bytes+(p&4095u),input.data(),input.size());return;
-    }
-  } else {
-    validate(p, input.size(), true);
-    if (input.empty()) return;
-  }
-  const auto found = locate(p);
-  // locate already established this stable map node after every write guard.
-  // This method owns mutable memory; its const lookup iterator does not make
-  // the underlying region const. Do not search the same map again per store.
-  auto &region = const_cast<Region&>(found->second);
-  const auto offset = std::size_t(p - found->first);
-  if (input.size() <= region.storage().size() - offset) {
-    transfer(region.storage().data() + offset, input.data(), input.size());
-    return;
-  }
-  const std::vector<std::byte> staged(input.begin(), input.end());
-  std::size_t done = 0;
-  while (done < staged.size()) {
-    const auto found = locate(p + std::uint32_t(done));
-    auto &region = const_cast<Region&>(found->second);
-    const auto offset = std::size_t(std::uint64_t(p) + done - found->first);
-    const auto count =
-        std::min(staged.size() - done, region.storage().size() - offset);
-    std::memcpy(region.storage().data() + offset, staged.data() + done, count);
-    done += count;
-  }
 }
 NativeTu15RetainedCounterUpdate SourceRuntimeMemory::adjust_counter(
     std::uint32_t p, unsigned width, std::uint32_t adjustment) {
@@ -741,6 +761,14 @@ std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,
       .subspan(p - found->first, bytes.size());
 }
 void SourceRuntimeMemory::validate_mutable_view(std::uint32_t p,std::size_t n) const {
+  // A complete writable direct page already proves one committed owner
+  // and the absence of a backing guard. Validation still runs registry
+  // guards without exposing a mutable borrow or observing a write.
+  if(!reference_mutable_view_preflight)
+    if(const auto *page=direct_page(p,n);page && page->writable) {
+      source_runtime_validate_write(*this,p,n,false);
+      return;
+    }
   (void)view(p,n);validate(p,n,true,false);
 }
 void SourceRuntimeMemory::index_native_region(std::uint32_t source) {
@@ -800,3 +828,48 @@ void SourceRuntimeMemory::write(NativeRuntimeAddress address,std::span<const std
 }
 } // namespace halo2
 #include "runtime/source_runtime_write_protection.inc"
+
+namespace halo2 {
+void SourceRuntimeMemory::write(std::uint32_t p,
+                                std::span<const std::byte> input) {
+  // A writable direct page already proves the extent, region, ReadWrite
+  // access, commitment and absent backing guard that validate() checks.
+  // Registry guards and observers still run before the store, in order.
+  if(const auto *page=direct_page(p,input.size()); page && page->writable) {
+    auto *const destination=page->bytes+(p&4095u);
+    if(fuse_direct_stores && !reference_warm_scalar_store &&
+       try_warm_scalar_store(*this,p,input,destination))
+      return;
+    if (validate_or_store<true>(*this,p,input.size(),true,destination,input.data()))
+      return;
+    // Policies may change topology; then store exactly as the checked route.
+    if(const auto *after=direct_page(p,input.size()); after && after->writable) {
+      transfer(after->bytes+(p&4095u),input.data(),input.size());return;
+    }
+  } else {
+    validate(p, input.size(), true);
+    if (input.empty()) return;
+  }
+  const auto found = locate(p);
+  // locate already established this stable map node after every write guard.
+  // This method owns mutable memory; its const lookup iterator does not make
+  // the underlying region const. Do not search the same map again per store.
+  auto &region = const_cast<Region&>(found->second);
+  const auto offset = std::size_t(p - found->first);
+  if (input.size() <= region.storage().size() - offset) {
+    transfer(region.storage().data() + offset, input.data(), input.size());
+    return;
+  }
+  const std::vector<std::byte> staged(input.begin(), input.end());
+  std::size_t done = 0;
+  while (done < staged.size()) {
+    const auto found = locate(p + std::uint32_t(done));
+    auto &region = const_cast<Region&>(found->second);
+    const auto offset = std::size_t(std::uint64_t(p) + done - found->first);
+    const auto count =
+        std::min(staged.size() - done, region.storage().size() - offset);
+    std::memcpy(region.storage().data() + offset, staged.data() + done, count);
+    done += count;
+  }
+}
+} // namespace halo2

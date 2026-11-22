@@ -177,7 +177,8 @@ def exercise(args, scratch, report):
                 key(letter)
             key("Return"); wait_for(r"Menu screen 38\b")
             key("Escape"); wait_for(r"Menu screen 6\b")
-            key("Down"); key("Down"); key("Return"); wait_for(r"Menu screen 30\b")
+            key("Down"); key("Return"); wait_for(r"Menu screen 218\b")
+            key("Return"); wait_for(r"Menu screen 30\b")
             key("Return"); wait_for(r"Menu screen 14\b")
             key("Return"); wait_for(r"actual offline lobby countdown started")
             for _ in range(10):
@@ -215,7 +216,7 @@ def exercise(args, scratch, report):
         report.update(frames=int(frames[1]) if frames else 0, ticks=int(frames[2]) if frames else 0,
                       players=int(frames[3]) if frames else 0)
         report["checks"] = {
-            "fresh_profile_path": report["screens"][:7] == [9, 10, 167, 38, 6, 30, 14],
+            "fresh_profile_path": report["screens"][:8] == [9, 10, 167, 38, 6, 218, 30, 14],
             "actual_offline_countdown": "actual offline lobby countdown started" in data,
             "actual_native_handoff": "actual native world running" in data,
             "multiplayer_renderer_ready": "Multiplayer GPU:" in data,

@@ -3,6 +3,7 @@
 #include "halo2/native_tu15_agent_cleanup_children.hpp"
 #include "halo2/native_tu15_gameplay_phantom_membership.hpp"
 #include "halo2/native_tu15_array_allocator.hpp"
+#include "halo2/native_tu15_object_contact_cleanup.hpp"
 #include <string>
 
 // Declared pair/allocator DATA, not a recorded collision or an original-XBE
@@ -17,10 +18,14 @@ static inline void native_world_pair_deletion_cleanup_model() {
     constexpr auto manager_table=data+0x7c0u,allocator=data+0x900u,allocator_table=data+0x940u;
     constexpr auto pool_table=data+0x980u,shape=data+0xa00u,shape_table=data+0xa40u;
     constexpr auto self_root=data+0xb00u,other_root=data+0xb40u;
+    constexpr std::uint32_t cleanup_data=0x2900000u;
     for(const auto owner:{0x2f0da0u,0x2f9960u,0x2fbb10u,0x2f7790u,0x2f3100u})
+    for(bool object_factory:{false,true})
     for(unsigned failure=0;failure<4;++failure) {
+        if(object_factory&&owner!=0x2f3100u)continue;
         Memory m;m.banks[data].resize(0x10000u);m.banks[pool].resize(0x100000u);
         m.banks[0x400000u].resize(0x160000u);m.banks[formal].assign(64u,std::byte{0xa5});
+        if(object_factory)m.banks[cleanup_data].resize(0x1a0u);
         m.put(pool,pool_table);m.put(pool_table+20u,0x233420u);
         m.put(pool+0x68u,64u);m.put(pool+0x18u,pool+0x4340u);
         m.put(pool+0x1cu,pool+0x6300u);m.put(pool+0x20u,pool+0x4340u);
@@ -109,9 +114,17 @@ static inline void native_world_pair_deletion_cleanup_model() {
             else unknown(target.identity);
         };
         const NativeTu15PairDeletionBindingServices services{
-            children.agents.cleanup_child,[&](auto selected,auto target,auto&fp) {
+            [&](auto selected,auto target,auto&fp) {
+                if(object_factory)native_tu15_cleanup_object_factory_contact(m,selected.identity,target.identity,
+                    cleanup_data+0x1a0u,fp,children.allocation,observe);
+                else children.agents.cleanup_child(selected,target,fp);
+            },[&](auto selected,auto target,auto&fp) {
                 if(target.identity!=0x323220u)unknown(target.identity);
-                native_tu15_dispose_contact_reference(m,selected.identity,fp,children.agents);
+                if(object_factory) {
+                    native_tu15_cleanup_object_factory_contact(m,selected.identity,target.identity,
+                        cleanup_data+0x1a0u,fp,children.allocation,observe);
+                    ++manager_disposals;
+                } else native_tu15_dispose_contact_reference(m,selected.identity,fp,children.agents);
             }};
         NativeTu15PhysicsFrameFp fp{0x27fu,0u,0x1f80u};NativeTu15PairDeletionBindingActivity activity;
         std::string refusal;
@@ -131,8 +144,10 @@ static inline void native_world_pair_deletion_cleanup_model() {
             check(!refusal.empty()&&activity.completed==0u&&activity.refusals==1u&&
                 m.get(handler+0x80u)==records&&manager_disposals==0u&&
                 activity.unqualified_owners==unsigned(failure!=2u)&&
-                scope_activity.refused==unsigned(failure==2u),
+                scope_activity.refused==unsigned(failure==2u&&!object_factory),
                 "Pair deletion did not refuse the current unknown owner before transport");
+            if(object_factory&&failure==2u)check(refusal.find("unconverted child owner=")!=std::string::npos,
+                "Object factory pair deletion reached a different nested refusal");
         }
         if(expected_releases) {
             check(released.back()==agent&&m.get(pool+0x24u)==agent,

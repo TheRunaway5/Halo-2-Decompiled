@@ -24,6 +24,7 @@ ENTRIES += (0x1e2b0,0x40e00,0x41630,0x42090,0x42750,0xc0700,0x179a40,0x17cd10)
 # them. Do not reintroduce their former register-machine bodies by regeneration.
 RETIRED_NATIVE_CAMERA_ENTRIES = frozenset((0x2c470, 0x144090))
 NATIVE_CAMERA_CALLS = ((0xc4879, 0x144090, 0xc487e, 'e812f80700'),)
+RECEIVER_CAMERA_CLEAR_SITES = (0xc3e51, 0xc45d4)
 NATIVE_MODEL_DRAW_CALL=(0x136ce0,0x2cbd0,0x136ce5,'e8eb5eefff')
 # 1362A0/1365C0 light-geometry model builds keep the native 4B5C0 owner
 # (source_model_build) as their required child boundary.
@@ -144,6 +145,26 @@ def native_prefix_guard(instruction):
     return ''
 
 
+def install_receiver_camera_clears(source, image):
+    owner = 'static void run_c3dc0(WorldState &s) {'
+    if owner not in source:
+        return source
+    start = source.index(owner)
+    end = source.index('\n}', start)
+    body = source[start:end]
+    for site in RECEIVER_CAMERA_CLEAR_SITES:
+        assert image.read(site, 2) == b'\xf3\xab'  # REP STOSD
+        publish = f'if(s.services.instruction){{s.services.instruction(0x{site:x}u);}} '
+        literal = publish + 'while(s.gp[1]){w(s.memory,s.observe,' + f'0x{site:x}u,'
+        assert body.count(literal) == 1
+        admit = f'if(!native_receiver_transfers::clear_camera(s,0x{site:x}u))'
+        body = body.replace(literal, publish + admit + literal[len(publish):], 1)
+    source = source[:start] + body + source[end:]
+    anchor = '#include "rendering/shadows/source_shadow_native_prefix_tu15_internal.hpp"\n'
+    assert source.count(anchor) == 1
+    return source.replace(anchor, anchor + '#include "rendering/native_tu15_receiver_transfers.hpp"\n', 1)
+
+
 def native_required_calls(*,get,keep_translated_model_call=False,**unused):
     def emit(instruction):
         calls=NATIVE_CAMERA_CALLS+(()if keep_translated_model_call else(NATIVE_MODEL_DRAW_CALL,*NATIVE_MODEL_BUILD_CALLS))
@@ -157,6 +178,39 @@ def native_required_calls(*,get,keep_translated_model_call=False,**unused):
             return f's.push(0x{site:x}u,{result});s.required(0x{site:x}u,0x{target:x}u,false);'
         return None
     return emit
+
+
+def install_shadow_render_owners(source):
+    from native_cluster_contents_replacements import replace_cluster_contents
+    from native_light_point_transform_replacements import replace_light_point_transform
+    from native_light_shape_replacements import replace_light_shape
+    from native_light_view_replacements import replace_light_view
+    from native_model_draw_submission_replacements import replace_model_draw_submission
+    from native_model_hierarchy_replacements import replace_model_hierarchy
+    from native_object_admission_replacements import INCLUDE as object_admission_include
+    from native_object_admission_replacements import replace_object_admission
+    from native_object_draw_flags_replacements import replace_object_draw_flags
+    from native_object_fade_replacements import replace_object_fade
+    from native_object_hierarchy_root_replacements import replace_object_hierarchy_root
+    from native_object_pass_replacements import replace_object_pass
+    from native_object_submit_replacements import replace_object_submit
+    from native_prt_partition_replacements import replace_prt_partition
+    from native_view_reset_replacements import replace_view_reset
+    from native_view_setup_replacements import replace_view_setup
+
+    # The shared generator already binds object admission. Reinsert its
+    # include at the start of the Shadow-specific owner sequence.
+    if source.count(object_admission_include) != 1:
+        raise ValueError("Shadow generation lost its object admission include")
+    source = source.replace(object_admission_include, "", 1)
+    for install in (replace_object_admission, replace_model_draw_submission,
+                    replace_cluster_contents, replace_prt_partition,
+                    replace_object_fade, replace_object_draw_flags, replace_object_pass,
+                    replace_model_hierarchy, replace_object_submit, replace_light_shape,
+                    replace_view_reset, replace_object_hierarchy_root, replace_view_setup,
+                    replace_light_view, replace_light_point_transform):
+        source = install(source)
+    return source
 
 
 
@@ -278,7 +332,8 @@ def main():
         '    source_shadow_native_prefix_tu15_detail::stats={};\n}\n'
         '} // namespace halo2')
     from native_normalize_vector_bridge_tu15 import install_native_normalizer
-    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
+    source = install_receiver_camera_clears(install_native_normalizer(source, 'Tu15Literal'), image)
+    args.output.write_text(install_shadow_render_owners(source))
     report = json.loads((args.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(args.output), module_generator_sha256=sha(Path(__file__)))
     if args.additional_trace:report['original_callee_trace_sha256']={str(p):sha(p)for p in args.additional_trace}

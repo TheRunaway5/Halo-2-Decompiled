@@ -17,6 +17,7 @@ using namespace halo2;
 class LineMemory final : public SourcePhysicsContactMemory {
 public:
     std::unordered_map<std::uint32_t,std::array<std::byte,64>> lines;
+    bool borrow_lines{};
     std::byte *at(std::uint32_t a)const {
         const auto found=lines.find(a&~63u);
         if(found==lines.end())throw std::runtime_error("Native query touched an undeclared line "+std::to_string(a&~63u));
@@ -24,6 +25,13 @@ public:
     }
     void read(std::uint32_t a,std::span<std::byte> out)const override{for(std::size_t n=0;n<out.size();++n)out[n]=*at(a+std::uint32_t(n));}
     void write(std::uint32_t a,std::span<const std::byte> in)override{for(std::size_t n=0;n<in.size();++n)*at(a+std::uint32_t(n))=in[n];}
+    std::optional<std::span<const std::byte>> try_read_view(std::uint32_t a,std::size_t n)const noexcept override {
+        const auto offset=a&63u;
+        if(!borrow_lines||!n||n>64u-offset)return std::nullopt;
+        const auto found=lines.find(a-offset);
+        if(found==lines.end())return std::nullopt;
+        return std::span<const std::byte>(found->second).subspan(offset,n);
+    }
 };
 std::array<std::byte,64> decode(const std::string &s) {
     if(s.size()!=128)throw std::runtime_error("Declared line is not 64 bytes");
@@ -50,15 +58,30 @@ int self_test() {
     std::vector<std::byte> host(native_collision_ray_detail::scratch_bytes);
     const std::uint32_t window=0x61000000u;
     QueryMemory memory(bank,window,host.data());
+    NativeTu15MoppPrivateRayActivity activity;
+    NativeTu15MoppPrivateRayMemory guarded(memory,window+0x100u,0x1000u,activity);
+    require(!guarded.try_read_view(0x1008u,16u),"foreign provider refuses a retained read view");
+    bank.borrow_lines=true;
+    {
+        const auto ordinary=guarded.try_read_view(0x1008u,16u);
+        require(ordinary && ordinary->front()==std::byte{0x11},"ordinary retained read view");
+    }
+    require(!guarded.try_read_view(0x103eu,4u) && !activity.unprovided_reads,"filter-info read view is refused without effects");
+    std::array<std::byte,4> raw{};
+    bool filter_fault=false;
+    try{guarded.read(0x103eu,raw);}catch(const std::runtime_error&){filter_fault=true;}
+    require(filter_fault && activity.unprovided_reads==1,"filter-info read retains its ordered fault");
     const std::array<std::byte,4> a{std::byte{1},std::byte{2},std::byte{3},std::byte{4}};
     const std::array<std::byte,2> b{std::byte{9},std::byte{8}};
     memory.write(0x103eu,a);memory.write(0x1040u,b);
+    require(!guarded.try_read_view(0x1044u,4u) && guarded.try_read_view(0x1050u,4u),"journal lines retain their read owners");
     std::array<std::byte,8> seen{};memory.read(0x103cu,seen);
     require(seen[0]==std::byte{0x11}&&seen[2]==std::byte{1}&&seen[3]==std::byte{2}&&seen[4]==std::byte{9}&&seen[5]==std::byte{8}&&seen[6]==std::byte{0x11},"journal read-back");
-    std::array<std::byte,4> raw{};bank.read(0x103eu,raw);require(raw[0]==std::byte{0x11},"journal escaped before commit");
+    bank.read(0x103eu,raw);require(raw[0]==std::byte{0x11},"journal escaped before commit");
     std::array<std::byte,16> vector{};memory.read_vector(0x1038u,vector);require(vector[6]==std::byte{1}&&vector[8]==std::byte{9},"journal vector read-back");
     memory.write(window+0x20u,a);std::array<std::byte,4> back{};memory.read(window+0x20u,back);
     require(back==a&&host[0x20]==std::byte{1},"private window");
+    require(!guarded.try_read_view(window+0x20u,4u) && !guarded.try_read_view(window-2u,4u),"private DATA never borrows a retained read view");
     require(!memory.observes_retained_store(0,window+0x20u,4)&&memory.observes_retained_store(0,0x1040u,2),"private window observation");
     bool overlapped=false;try{memory.read(window-2u,back);}catch(const std::runtime_error&){overlapped=true;}
     require(overlapped,"window overlap");

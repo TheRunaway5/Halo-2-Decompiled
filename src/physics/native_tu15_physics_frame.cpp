@@ -1,6 +1,10 @@
 #include "halo2/native_tu15_physics_frame.hpp"
+#include "halo2/native_tu15_dirty_island_objects_binding.hpp"
+#include "halo2/native_tu15_object_scan_kernel.hpp"
+#include "halo2/native_tu15_retained_counter_update.hpp"
 #include <array>
 #include <bit>
+#include <cstdio>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -182,6 +186,87 @@ void NativeTu15PhysicsFrameMemory::write(std::uint32_t site,std::uint32_t p,unsi
   SourcePhysicsContactRecordStore store{site,p,{},{}};
   if(observer_){store.before.resize(n);memory_.read(p,store.before);store.written.assign(b.begin(),b.begin()+n);}
   memory_.write(p,std::span<const std::byte>(b).first(n));if(observer_)observer_(store);
+}
+[[noreturn]] void NativeTu15PhysicsFrameMemory::begin_memory_pressure_cleanup(
+    std::uint32_t iterator,NativeTu15PhysicsFrameFp&fp,unsigned x87_depth) {
+  constexpr std::uint32_t busy=0x48b873u,object_pool_global=0x4ecbd0u,
+      active_count_global=0x52be44u,component_pool_global=0x52be5cu,none=0xffffffffu;
+  if(!read(busy,1))write(0x1cb341u,busy,1,1);
+  NativeTu15PhysicsFrameServices services;
+  services.destroy_body=[&](NativeTu15PhysicsBody body,bool,NativeTu15PhysicsFrameFp&){
+    const auto entry=read(read(body.identity));
+    char message[128];
+    std::snprintf(message,sizeof(message),
+        "Native memory pressure requires actual%06X deferred body destructor for body %08X",entry,body.identity);
+    throw std::runtime_error(message);
+  };
+  native_tu15_retire_physics_references(*this,manager(),fp,services);
+  const auto guarded_pressure=[&]{
+    if(!read(busy,1))throw std::runtime_error("Native memory pressure requires actual1496F0 nested cleanup owner");
+  };
+  guarded_pressure();
+  const auto gate=world().identity+0x24u;
+  if(signed_word(read(gate))>0)write(0x1cb6d5u,gate,4,0);
+  auto object_pool=read(object_pool_global),active_count=read(active_count_global);
+  const auto refresh_after_pressure=[&]{
+    guarded_pressure();
+    object_pool=read(object_pool_global);
+    active_count=read(active_count_global);
+  };
+  const auto scan=[&]{
+    const auto pool=read(object_pool_global);
+    const auto rows=read(pool+0x44u),cursor=read(iterator+6u,2),limit=read(pool+0x38u);
+    return native_tu15_scan_objects(memory_,{{iterator},rows,cursor,limit});
+  };
+  // Initialize only source iterator fields so the padding byte is preserved.
+  const auto initialize=[&](std::uint32_t at,unsigned width,std::uint32_t value){
+    std::array<std::byte,4> bytes{};
+    for(unsigned i=0;i<width;++i)bytes[i]=std::byte(value>>(8u*i));
+    memory_.write(at,std::span(bytes).first(width));
+  };
+  for(unsigned pass=0;pass<3;++pass) {
+    initialize(iterator,4,none);
+    initialize(iterator+8u,4,none);
+    initialize(iterator+0xcu,4,0x86868686u);
+    initialize(iterator+4u,1,0u);
+    initialize(iterator+6u,2,0u);
+    while(scan().object) {
+      const auto datum=read(iterator+8u),offset=std::uint16_t(datum)*12u;
+      const auto object_at_row=[&]{return read(read(object_pool+0x44u)+offset+8u);};
+      const bool dirty=(read(object_at_row()+0xc0u,1)&0x40u)!=0;
+      if(dirty)refresh_after_pressure();
+      const auto component_datum=read(object_at_row()+0xb4u);
+      if(component_datum!=none) {
+        const auto record=component(std::uint16_t(component_datum));
+        const auto associated_object=component_object(record).datum;
+        char message[160];
+        std::snprintf(message,sizeof(message),
+            "Native memory pressure requires actual1D7CA0 cleanup component destruction for object %08X, component %08X at %08X",
+            associated_object,component_datum,record.identity);
+        throw std::runtime_error(message);
+      }
+      const auto flags_at=object_at_row()+0xc0u;
+      if(read(flags_at,1)&1u) {
+        write(0x1cb7ffu,flags_at,1,read(flags_at,1)&~1u);
+        native_tu15_adjust_retained_counter(memory_,0x1cb806u,active_count,4,none,observer_);
+      }
+      if(dirty) {
+        native_tu15_process_bound_dirty_island_objects(memory_,fp,x87_depth,observer_);
+        refresh_after_pressure();
+      }
+    }
+    const auto pool=read(component_pool_global);
+    if(!pool||!read(pool+0x3cu))break;
+  }
+  set_control(fp,0x9001fu,0x8001fu);
+  fp.mxcsr|=0x1f80u;
+  const NativeTu15PhysicsStep step{read(0x46a18cu),read(0x4500b8u)};
+  const auto cleanup_world=world();
+  char message[160];
+  std::snprintf(message,sizeof(message),
+      "Native memory pressure requires actual31B1A0 cleanup world step for world %08X and step %08X %08X",
+      cleanup_world.identity,step.seconds_bits,step.inverse_seconds_bits);
+  throw std::runtime_error(message);
 }
 NativeTu15PhysicsWorld NativeTu15PhysicsFrameMemory::world()const{return{read(0x52be48u)};}
 NativeTu15PhysicsManager NativeTu15PhysicsFrameMemory::manager()const{return{read(0x52d880u)};}

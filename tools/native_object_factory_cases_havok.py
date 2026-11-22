@@ -37,10 +37,24 @@ REGISTER_JUMPS = {0x2e327b: [0x149da0], 0x2e32b0: [0x149e00],
                   0x149dbc: [0x233250], 0x149dcd: [0x233250], 0x149def: [0x233250], 0x149ddf: [],
                   0x149e32: [0x233420], 0x149e7a: [], 0x23347d: [],
                   0x32267f: [0x2e4d60], 0x3226f2: [0x2e4d60],
-                  # 1D8470: body destructor slots (default 2E4D60) and the
+                  # 1D8470: body destructor slots and the
                   # record release through [0x48C938] +14.
-                  0x1d84bf: [0x2e4d60], 0x1d85d1: [0x2e4d60], 0x1d8655: [0x2e4d60], 0x1d8692: [0x2e4d60],
+                  0x1d84bf: [0x2e4d60], 0x1d85d1: [0x2e4d60, 0x31b610], 0x1d8655: [0x2e4d60], 0x1d8692: [0x2e4d60],
                   0x1d85f5: [0x149e00]}
+# Deleting a rigid body owns its motion, entity listeners and arrays, body
+# policy, shape, and the allocator's real sized releases. Keep the flagged
+# reference-lock path out of this cohort, along with unknown virtuals.
+RIGID_BODY_DESTRUCTION_JUMPS = {
+    0x31b4e3: [0x2e8cf0, 0x31dd70, 0x31edf0, 0x31ede0],
+    0x31b503: [0x2e8cf0, 0x31dd70, 0x31edf0, 0x31ede0],
+    0x31b4fc: [0x3235c0, 0x324870], 0x31b51c: [0x3235c0, 0x324870], 0x31b528: [0x3235c0, 0x324870],
+    0x31fd6d: [0x2e4d60], 0x31fd94: [0x2e4d60], 0x31fdc4: [0x2e4d60],
+    0x316002: [0x1d9c80, 0x31e7f0], 0x315459: [0x24dc20, 0x1cb060, 0x2e6000],
+    0x2e880d: [0x24dc20], 0x2e5d05: [0x24dc20],
+    **dict.fromkeys((0x31b62f, 0x3235df, 0x32488f, 0x31602d, 0x316059,
+                     0x316082, 0x3160a8, 0x3160ce, 0x31547e, 0x24dc60,
+                     0x1cb07c, 0x2e601f, 0x1d9cc0, 0x31e80f), [0x149e00]),
+}
 # 1CD6A0 and 1D8EB0: concrete motion-kind getters, then the already native
 # 1D9080/1D9100 motion setters. Declared owners execute unchanged in the oracle.
 MOTION_KINDS = [0x31d520, 0x31e2f0, 0x2e8cf0, 0x31dd70, 0x31edf0, 0x31ede0]
@@ -172,9 +186,10 @@ def register(v):
     # popped again. FREE holds data the cases release.
     CHAINS = {'primary': (T + 0xa000, 2), 'secondary': (T + 0xc000, 4)}
     v.REGISTER_JUMPS.update(REGISTER_JUMPS)
-    for site, targets in list(PHANTOM_JUMPS.items()) + list(VELOCITY_JUMPS.items()) + list(ENTITY_JUMPS.items()):
-        v.REGISTER_JUMPS[site] = sorted(set(v.REGISTER_JUMPS.get(site, [])) | set(targets))
-    v.CLOSURE_STOPS.add(0x149930)
+    for jumps in (PHANTOM_JUMPS, VELOCITY_JUMPS, ENTITY_JUMPS, RIGID_BODY_DESTRUCTION_JUMPS):
+        for site, targets in jumps.items():
+            v.REGISTER_JUMPS[site] = sorted(set(v.REGISTER_JUMPS.get(site, [])) | set(targets))
+    v.CLOSURE_STOPS.update((0x149930, 0x2e12a0))
     install_fs_tib(v)
     image = v.Xbe(v.NEW_DEFAULT)
 
@@ -419,10 +434,11 @@ def register(v):
         force = rng.choice([0, 0, 1, 2, 0x80, 0x100, 0xffffff00, NONE])
         return [(rng.getrandbits(16) << 16) | n, linear, angular, force]
 
-    # ---- 31C3B0 phantom info (ECX) and 3154E0 phantom constructor (ECX, info) ----
+    # 31C3B0 phantom info and 31B3E0 rigid-body info both use an aligned ECX.
     kernel('havok_aabb_phantom_info', 'long', 0x31c3b0, regs={'ecx': 0})
+    kernel('havok_rigid_body_info', 'long', 0x31b3e0, regs={'ecx': 0})
 
-    def phantom_info_case(name, world, rng):
+    def aligned_descriptor_case(name, world, rng):
         world.track = bytearray(rng.getrandbits(8) for _ in range(v.TRACK_SIZE))
         return [T + 0x100 + 0x10 * rng.randrange(64)]
 
@@ -468,6 +484,67 @@ def register(v):
         put(COMPONENT + 0x98, rng.choice([0, 0] + bodies))
         put(COMPONENT + 0x9c, rng.choice([0, 0] + bodies))
         return [COMPONENT]
+
+    kernel('havok_component_reset_rigid_body', 'void', 0x1d8470, stack=[0])
+    kernel('havok_component_reset_body_policy', 'void', 0x1d8470, stack=[0])
+
+    def reset_rigid_body_case(name, world, rng):
+        fixture(world, rng)
+        put = world.put
+        body, motion, saved, policy, shape, child = (BODIES + 0x100 * i for i in range(6))
+        motion_table = rng.choice((0x41f360, 0x41f2e0, 0x41f1e0, 0x41f260))
+        shape_table = rng.choice((0x461420, 0x461488, 0x41c3d0))
+        tables = ((0x41e3c0, 4), (motion_table, 0x1c), (0x41f260, 0x1c),
+                  (0x461970, 4), (shape_table, 4), (0x461420, 4))
+        for table, extent in tables:
+            world.extra[table] = bytearray(image.read(table, extent))
+        for object, table, size, references in (
+            (body, 0x41e3c0, 0xa0, 1), (motion, motion_table, 0xd0, 1),
+            (saved, 0x41f260, 0xd0, 1), (policy, 0x461970, 0x70, rng.choice((1, 2))),
+            (shape, shape_table, 0x50, rng.choice((1, 1, 2))), (child, 0x461420, 0x40, rng.choice((1, 2))),
+        ):
+            put(object, table)
+            put(object + 4, size | (references << 16))
+        put(motion + 0xc0, rng.choice((0, saved)))
+        put(body + 0x3c, motion)
+        put(body + 0x54, rng.choice((0, policy, policy)))
+        put(body + 0xc, rng.choice((0, shape, shape, shape)))
+        put(shape + 0xc, child)
+        put(shape + 0x30, child)
+        put(body + 0x30, PROPERTIES)
+        put(body + 0x34, 4)
+        put(body + 0x38, rng.choice((4, 0x80000004)))
+        for index, key in enumerate((0x2001, 1, 0x2002, 3)):
+            put(PROPERTIES + index * 8, key)
+        # Retain actual default listener identity and null holes in each
+        # deletion cohort, including the secondary interfaces at +8.
+        listener = BODY_LISTENERS
+        put(listener, LVT)
+        put(listener + 8, LVT)
+        for index, offset in enumerate((0x60, 0x70, 0x7c, 0x88, 0x94)):
+            array = FREE + 0x100 * index
+            put(body + offset, array)
+            put(body + offset + 4, rng.randrange(4))
+            put(body + offset + 8, rng.choice((3, 0x80000003)))
+            for entry in range(3):
+                put(array + entry * 4, rng.choice((0, listener)))
+        put(COMPONENT + 0x80, 0)
+        put(COMPONENT + 0x70, ROWS70)
+        put(COMPONENT + 0x74, 1)
+        put(ROWS70 + 0x40, body)
+        put(ROWS70 + 0x50, 0x80000000)
+        put(COMPONENT + 0x98, 0)
+        put(COMPONENT + 0x9c, 0)
+        return [COMPONENT]
+
+    def reset_body_policy_case(name, world, rng):
+        arguments = reset_rigid_body_case(name, world, rng)
+        body, policy = BODIES, BODIES + 0x300
+        world.extra[0x41eb6c] = bytearray(image.read(0x41eb6c, 4))
+        world.put(body + 0x54, policy)
+        world.put(policy, 0x41eb6c)
+        world.put(policy + 4, 0x60 | (rng.choice((1, 1, 2)) << 16))
+        return arguments
 
     # ---- 1CC310 (component state flags): the no-component path ----
     # A global 0x1CC310 closure stop (any track) would empty this routine.
@@ -810,16 +887,20 @@ def register(v):
                              havok_component_activate=component_case,
                              havok_object_component_velocities=component_velocities_case,
                              havok_reserved_body=reserved_case,
-                             havok_aabb_phantom_info=phantom_info_case,
+                             havok_aabb_phantom_info=aligned_descriptor_case, havok_rigid_body_info=aligned_descriptor_case,
                              havok_aabb_phantom_construct=phantom_construct_case,
-                             havok_component_reset=reset_case, havok_broadphase_add=broadphase_add_case,
+                             havok_component_reset=reset_case, havok_component_reset_rigid_body=reset_rigid_body_case,
+                             havok_component_reset_body_policy=reset_body_policy_case,
+                             havok_broadphase_add=broadphase_add_case,
                              havok_broadphase_remove=broadphase_remove_case, havok_add_phantom=add_phantom_case,
                              havok_remove_phantom=remove_phantom_case, havok_phantom_wake=phantom_wake_case)
     v.TRACK_COUNTS.update(havok_array_allocate=500, havok_array_release=400, havok_grow_array=400,
                           havok_activate_body=600, havok_component_activate=500,
                           havok_object_component_velocities=1600,
                           havok_reserved_body=300, havok_aabb_phantom_info=100, havok_aabb_phantom_construct=200,
-                          havok_component_reset=600, havok_broadphase_add=600, havok_broadphase_remove=600,
+                          havok_rigid_body_info=64,
+                          havok_component_reset=600, havok_component_reset_rigid_body=96, havok_component_reset_body_policy=96,
+                          havok_broadphase_add=600, havok_broadphase_remove=600,
                           havok_add_phantom=500, havok_remove_phantom=500, havok_phantom_wake=500)
 
     # ---- hkWorld entities (3198A0/319370) and component membership
@@ -1201,8 +1282,34 @@ def register(v):
     REFRESH_STOPS = sorted(set(ENTITY_STOPS + SHAPE_BUILDERS) - {0x1d73d0})
     v.JUMP_TABLES[0x1d74a4] = 5
     kernel('havok_component_refresh', 'void', 0x1d73d0, regs={'eax': 0}, closure_stops=REFRESH_STOPS)
-    # 1CC310 stops at 1D9510 (active rows) or 1D73D0 (see the track doc).
+    BIPED_REFRESH_STOPS = sorted((set(REFRESH_STOPS) - {0x1dee30}) | {0x1defb0})
+    kernel('havok_component_refresh_biped', 'void', 0x1d73d0, regs={'eax': 0}, closure_stops=BIPED_REFRESH_STOPS)
+    CONTROLLER_STOPS = sorted((set(BIPED_REFRESH_STOPS) - {0x1defb0}) | {0x1df380, 0x1df5b0, 0x1d8330})
+    kernel('havok_component_refresh_biped_controller', 'void', 0x1d73d0, regs={'eax': 0}, closure_stops=CONTROLLER_STOPS)
+    shape_types = [0x2e8cf0, 0x31ede0, 0xad390, 0xae690, 0xa9520]
+    for site in (0x1df202, 0x1df28b, 0x1df4b4, 0x1df4d4):
+        v.REGISTER_JUMPS[site] = shape_types
+    v.REGISTER_JUMPS[0x1df33c] = []
+    v.REGISTER_JUMPS[0x1df562] = [0x149da0]
+    v.REGISTER_JUMPS[0x1df599] = [0x149e00]
+    v.REGISTER_JUMPS[0x31bc98] = [0x149da0]
+    v.REGISTER_JUMPS[0x31bd18] = []
+    v.REGISTER_JUMPS[0x31bd43] = []
+    v.REGISTER_JUMPS[0x1df5c3] = [0x31ede0]
+    v.REGISTER_JUMPS[0x1df5d0] = [0x31ede0]
+    v.REGISTER_JUMPS[0x1df625] = []
+    v.REGISTER_JUMPS[0x1d83cf] = [0x31ede0]
+    v.REGISTER_JUMPS[0x1d83dc] = []
+    # The unbound 1CC310 case ends at removal or refresh. The live cases
+    # continue to the builder selected by the actual stored object type.
     kernel('havok_component_state_flags', 'void', 0x1cc310, stack=[0, 1], closure_stops=ENTITY_STOPS)
+    kernel('havok_component_state_flags_remove', 'void', 0x1cc310, stack=[0, 1], closure_stops=REFRESH_STOPS)
+    kernel('havok_component_state_flags_biped', 'void', 0x1cc310, stack=[0, 1], closure_stops=CONTROLLER_STOPS)
+    fixed_body_stops = sorted((set(CONTROLLER_STOPS) - {0x1df380, 0x1df5b0, 0x1d8330}) |
+                              {0x31b9e0, 0x31b730, 0x31b850, 0x1df6b0})
+    kernel('havok_component_state_flags_fixed_biped', 'void', 0x1cc310, stack=[0, 1], closure_stops=fixed_body_stops)
+    kernel('havok_component_state_flags_fixed_biped_active', 'void', 0x1cc310,
+           stack=[0, 1], closure_stops=fixed_body_stops)
     E_POOL = F + 0x2a00
 
     def component_datum(world, rng, n):
@@ -1222,13 +1329,80 @@ def register(v):
         n = component(world, rng, [], False)
         return [component_datum(world, rng, n)]
 
+    def biped_refresh_case(name, world, rng):
+        entity_world(world, rng)
+        n = component(world, rng, [], False)
+        datum = component_datum(world, rng, n)
+        body = world.body(n)
+        tag = n % 4
+        definition, model = v.OBJECT_TAGS + 0x200 * tag, v.MODEL_TAGS + 0x80 * tag
+        world.data[body + 0xaa - v.DATA] = 0
+        world.put(body + 0x134, rng.getrandbits(32))
+        world.data[body + 0x3dc - v.DATA] = rng.choice([0, 3, 3, 3, 4, 5, 6])
+        world.data[body + 0x34b - v.DATA] = rng.choice([0, 1, 2])
+        world.data[body + 0x3f8 - v.DATA] = rng.choice([0, 1, 2])
+        world.put(body + 0x348, rng.getrandbits(32))
+        world.put(definition + 0x1f0, rng.getrandbits(32))
+        world.put(model + 0x24, rng.choice([NONE, 16, 17]))
+        return [datum]
+
+    def biped_controller_case(name, world, rng):
+        entity_world(world, rng, adding=name == 'havok_component_state_flags_fixed_biped_active', admit=False)
+        n = component(world, rng, [], False)
+        datum = component_datum(world, rng, n)
+        body, header = world.body(n), v.RECORDS + 12 * n
+        tag = n % 4
+        definition = F + 0x2b00
+        physics = definition + 0x264
+        put = world.put
+        put(v.TAG_TABLE + tag * 16 + 8, definition)
+        put(definition + 0x38, ((0x5000 + 4 + tag) << 16) | (4 + tag))
+        put(v.MODEL_TAGS + 0x80 * tag + 0x24, NONE)
+        world.data[body + 0xaa - v.DATA] = 0
+        world.data[body + 0x3dc - v.DATA] = rng.choice((0, 3, 4, 5, 6))
+        world.data[body + 0x3ff - v.DATA] = rng.randrange(2)
+        world.data[body + 0x34b - v.DATA] = rng.choice((0, 1, 2))
+        world.data[body + 0x3aa - v.DATA] = rng.choice((0, 0, 1, 11, 0xff, 0x80))
+        world.data[header + 3 - v.DATA] = rng.choice((0, 0, 0x20, 1))
+        put(body + 0x134, rng.getrandbits(32))
+        put(physics, rng.choice((0, 0, 0, 0x20, 0x40, 0x60)) | (rng.getrandbits(32) & ~0x60))
+        put(physics + 0x10, rng.getrandbits(32))
+        put(physics + 0x24, F + 0x3100)
+        put(physics + 0x28, rng.choice((0, 1)))
+        put(physics + 0x2c, F + 0x3300)
+        put(physics + 0x34, F + 0x3500)
+        tables = (0x4613a0, 0x461420, 0x461fe0, 0x461488, 0x41c3d0)
+        for table in tables:
+            world.extra[table] = bytearray(image.read(table, 0x18))
+        for shape in (F + 0x3130, F + 0x31b0, F + 0x3320, F + 0x3370, F + 0x3530, F + 0x35b0):
+            put(shape, rng.choice(tables))
+            for offset in (0x10, 0x20, 0x40):
+                for lane in range(4):
+                    put(shape + offset + lane * 4, struct.unpack('<I', struct.pack('<f', rng.uniform(-7, 7)))[0])
+        for address in (body + 0x64, body + 0x3ec):
+            for axis in range(3):
+                put(address + axis * 4, struct.unpack('<I', struct.pack('<f', rng.uniform(-20, 20)))[0])
+        put(body + 0x14, NONE)
+        if rng.random() < .3:
+            parent_index = (n + 1) % (v.ROWS - 1)
+            parent_body = world.body(parent_index)
+            put(body + 0x14, world.handles[parent_index])
+            world.data[body + 0x18 - v.DATA] = 0
+            struct.pack_into('<H', world.data, parent_body + 0x116 - v.DATA, 0x180)
+            matrix = [rng.choice((1.0, 1.0, 0.8)), 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, -2.0, 4.0, 1.5]
+            struct.pack_into('<13f', world.data, parent_body + 0x180 - v.DATA, *matrix)
+        for address, extent in ((0x474d30, 4), (0x44ac24, 52), (0x474ce8, 4),
+                                (0x44abec, 12), (0x46a0cc, 8), (0x44a8a0, 4)):
+            world.extra[address] = bytearray(image.read(address, extent))
+        return [datum]
+
     def state_flags_case(name, world, rng):
         if rng.random() < .3:
             for n in range(v.ROWS - 1):
                 world.put(world.body(n) + 0xb4, NONE)
             return [rng.choice(world.handles[:v.ROWS - 1] + [world.handles[0] | 0xffff0000]), rng.getrandbits(32), v.SP]
         entities, free, phantoms, nodes, islands, fixed_island = entity_world(world, rng)
-        active = rng.random() < .6
+        active = rng.random() < .6 or name == 'havok_component_state_flags_remove'
         rows = rng.sample(entities if active else entities + free, rng.randrange(1, min(3, len(entities)) + 1))
         for body in rows:
             entity_listener_member(world, rng, body)
@@ -1240,7 +1414,62 @@ def register(v):
             world.put(E_ROWS + 0x60 * k + 0x48, T + 0x7b00 + 0x40 * k)
             world.put(E_ROWS + 0x60 * k + 0x50, rng.choice([0x80000000, 0x80000000, 0x40]))
         component_datum(world, rng, n)
+        if name == 'havok_component_state_flags_remove':
+            # This cohort owns entity removal; the biped cohort below owns
+            # the longer native refresh path and its additional tag data.
+            world.data[world.body(n) + 0xaa - v.DATA] = rng.choice((1, 7, 11, 12))
         return [world.handles[n], rng.getrandbits(32), v.SP]
+
+    def state_flags_biped_case(name, world, rng):
+        biped_controller_case(name, world, rng)
+        owner = struct.unpack_from('<I', world.factory, E_COMPONENT + 8 - F)[0]
+        index = owner & 0xffff
+        flags = struct.unpack_from('<I', world.factory, E_COMPONENT + 4 - F)[0]
+        world.put(E_COMPONENT + 4, flags & ~0x20)
+        world.data[v.RECORDS + 12 * index + 2 - v.DATA] |= 1  # Controller motion 5.
+        if rng.randrange(4) == 0:
+            # Select the actual positive ragdoll call using the retained
+            # authored gates. The observer stops before consuming its model.
+            body = world.body(index)
+            world.data[body + 0x3dc - v.DATA] = 3
+            world.data[body + 0x34b - v.DATA] = 1
+            world.put(v.MODEL_TAGS + 0x80 * (index % 4) + 0x24, 16)
+        return [owner, rng.getrandbits(32), v.SP]
+
+    def state_flags_fixed_biped_case(name, world, rng):
+        biped_controller_case(name, world, rng)
+        owner = struct.unpack_from('<I', world.factory, E_COMPONENT + 8 - F)[0]
+        index = owner & 0xffff
+        body = world.body(index)
+        flags = struct.unpack_from('<I', world.factory, E_COMPONENT + 4 - F)[0]
+        active = name == 'havok_component_state_flags_fixed_biped_active'
+        world.put(E_COMPONENT + 4, flags | 0x20 if active else flags & ~0x20)
+        world.data[v.RECORDS + 12 * index + 2 - v.DATA] &= ~1  # Controller motion 7.
+        world.data[body + 0x3dc - v.DATA] = rng.choice((0, 4, 5, 6))
+        world.put(F + 0x2b00 + 0x264, rng.getrandbits(32) & ~0x60)  # Live class 9, body present.
+        world.put(E_COMPONENT + 0x78, (0x80000000, 0x80000001, 3)[index % 3])
+        # 1D7260 also handles input bit 6. Give its physical 1D8B90 branch
+        # a valid authored affine frame while preserving unrelated padding.
+        struct.pack_into('<16f', world.factory, E_COMPONENT + 0x30 - F,
+                         0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 1.0, 0.0, 2.0, -4.0, 3.5, 0.0)
+        world.extra[0x46a0e0] = bytearray(image.read(0x46a0e0, 0xc))
+        world.extra[0x474d04] = bytearray(image.read(0x474d04, 4))
+        world.extra[0x41f260] = bytearray(image.read(0x41f260, 0x1c))
+        world.extra[0x48b887] = bytearray([rng.choice((0, 1))])
+        incoming = rng.getrandbits(32)
+        if active:
+            # Register the manufactured fixed body using the original
+            # sphere/capsule bounds owners in the actual broadphase.
+            table = (0x4613a0, 0x461420)[index & 1]
+            world.extra[table] = bytearray(image.read(table, 0x1c))
+            for shape in (F + 0x3320, F + 0x3370, F + 0x3530, F + 0x35b0):
+                world.put(shape, table)
+                struct.pack_into('<f', world.factory, shape + 0x0c - F, 0.25)
+            # The live placement requests flags zero, before the controller
+            # updates its own flags. An existing component can have no bodies.
+            return [owner, 0, v.SP]
+        return [owner, incoming, v.SP]
 
     original_cases = v.cases
 
@@ -1248,15 +1477,30 @@ def register(v):
         rows = original_cases(seed, evaluators, tails)
         for row in rows:
             stops = {'havok_component_refresh': SHAPE_BUILDERS,
-                     'havok_component_state_flags': [0x1d9510, 0x1d73d0]}.get(row['kernel'])
+                     'havok_component_refresh_biped': [0x1ddbf0, 0x1defb0],
+                     'havok_component_refresh_biped_controller': [0x1df380],
+                     'havok_component_state_flags': [0x1d9510, 0x1d73d0],
+                     'havok_component_state_flags_remove': SHAPE_BUILDERS[1:],
+                     'havok_component_state_flags_biped': [0x1ddbf0, 0x1df380]}.get(row['kernel'])
             if stops:
                 row['stop_before_entries'] = sorted(set(stops) | {v.STOP})
                 row['observe_stop_entry'] = True
         return rows
 
     v.cases = stopped_cases
-    v.TRACK_ARGUMENTS.update(havok_component_refresh=refresh_case, havok_component_state_flags=state_flags_case)
-    v.TRACK_COUNTS.update(havok_component_refresh=200, havok_component_state_flags=400)
+    v.TRACK_ARGUMENTS.update(havok_component_refresh=refresh_case,
+                             havok_component_refresh_biped=biped_refresh_case,
+                             havok_component_refresh_biped_controller=biped_controller_case,
+                             havok_component_state_flags=state_flags_case,
+                             havok_component_state_flags_remove=state_flags_case,
+                             havok_component_state_flags_biped=state_flags_biped_case,
+                             havok_component_state_flags_fixed_biped=state_flags_fixed_biped_case,
+                             havok_component_state_flags_fixed_biped_active=state_flags_fixed_biped_case)
+    v.TRACK_COUNTS.update(havok_component_refresh=200, havok_component_refresh_biped=96, havok_component_state_flags=400,
+                          havok_component_refresh_biped_controller=120,
+                          havok_component_state_flags_remove=64, havok_component_state_flags_biped=64,
+                          havok_component_state_flags_fixed_biped=48,
+                          havok_component_state_flags_fixed_biped_active=16)
 
     v.TRACK_ARGUMENTS.update(havok_remove_entity=remove_entity_case, havok_add_entity=add_entity_case,
                              havok_component_remove=component_remove_case, havok_component_add=component_add_case)

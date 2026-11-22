@@ -1,6 +1,7 @@
 #include "halo2/native_tu15_command_walk.hpp"
 #include "halo2/native_tu15_command_emit.hpp"
 #include "halo2/native_tu15_command_part_prepare.hpp"
+#include "native_tu15_command_arithmetic.hpp"
 #include "halo2/native_tu15_material_selection.hpp"
 #include "halo2/native_tu15_render_prepare.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
@@ -8,6 +9,7 @@
 #include "halo2/source_native_store_oracle_tu15.hpp"
 #include "halo2/source_opaque_sort.hpp"
 #include "halo2/source_runtime_undo_journal.hpp"
+#include "halo2/source_execution_inputs.hpp"
 #include <algorithm>
 #include <atomic>
 #include <bit>
@@ -337,14 +339,21 @@ void queue_sections(PhysicsLiveWorldTu15& world,QueueProducer producer,std::uint
 #endif
 }
 using LeafFrame=std::function<SourcePhysicsContactRuntimeAbi(std::uint32_t,std::span<const std::uint32_t>)>;
+void publish_part_store(PhysicsLiveWorldTu15& world,SourceRuntimeMemory* admitted_light_store_memory,
+    std::uint32_t address,std::uint32_t value,unsigned width) {
+    std::array<std::byte,4> bytes{};
+    for(unsigned i=0;i<width;++i)bytes[i]=std::byte(value>>(8*i));
+    const auto input=std::span(bytes).first(width);
+    if(admitted_light_store_memory)admitted_light_store_memory->write(address,input);
+    else world.write_source_call_input(address,input);
+}
 NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uint32_t packet,
-    const LeafFrame& frame,bool group) {
+    const LeafFrame& frame,bool group,SourceRuntimeMemory* admitted_light_store_memory=nullptr) {
     NativeTu15CommandPartServices s;s.packet=packet;
     // The bank reference is stable for the world's lifetime; the public
     // accessor only re-checks publication/staging state, which cannot change
     // while this frame's source call runs. Taking it once avoids two
-    // call-gate mutex operations per access per part. Journaled source-call
-    // input writes below are unchanged. HALO2_REFERENCE_WORLD_MEMORY_CALLS=1
+    // call-gate mutex operations per access per part. HALO2_REFERENCE_WORLD_MEMORY_CALLS=1
     // keeps one accessor call per use.
     static const bool reference_memory_calls=[]{const auto* p=std::getenv("HALO2_REFERENCE_WORLD_MEMORY_CALLS");return p&&*p;}();
     SourceRuntimeMemory *const cached_memory=reference_memory_calls?nullptr:&world.memory();
@@ -352,7 +361,15 @@ NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uin
     static const bool reference_part=[]{const auto* p=std::getenv("HALO2_REFERENCE_PART_PREPARE");return p&&*p;}();
     static const bool oracle_part=[]{const auto* p=std::getenv("HALO2_PART_PREPARE_ORACLE");return p&&*p;}();
     static const bool reference_emit=[]{const auto* p=std::getenv("HALO2_REFERENCE_COMMAND_EMIT");return p&&*p&&*p!='0';}();
-    s.prepare_45cd0=[&world,bank,packet,frame,group,planes=std::optional<SourceLiveShadowStorageTu15>{}]
+    // 40E80's pure staging helpers read this exact retained bank. Packet
+    // overlays only access staged bytes or this same provider. Every store,
+    // callback and residual child remains outside the shorter FP scopes.
+    using Arithmetic=detail::CommandArithmeticPolicy;
+    const auto arithmetic_policy=!group && cached_memory && !oracle_part &&
+        !detail::reference_command_x87_scope() && !source_execution_inputs(*cached_memory)?
+        Arithmetic::RetainedSse:Arithmetic::Full;
+    s.prepare_45cd0=[&world,bank,packet,frame,group,admitted_light_store_memory,arithmetic_policy,
+        planes=std::optional<SourceLiveShadowStorageTu15>{}]
         (auto unit,auto part,auto matrix,auto& arithmetic) mutable {
         ++stats().parts;
         if(group)++stats().group_parts;
@@ -376,7 +393,7 @@ NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uin
                 else source_live_shadow_storage_validate_tu15(world,*planes);
             }
             const SeparatedPacketMemory memory(bank(),packet);
-            result=native_tu15_command_part_prepare_45cd0(memory,unit,part,matrix,initial,arithmetic);
+            result=detail::command_part_prepare(memory,unit,part,matrix,initial,arithmetic,arithmetic_policy);
         }catch(const std::invalid_argument&) {arithmetic=before_fp;return residual();}
          catch(const std::out_of_range&) {arithmetic=before_fp;return residual();}
         ++stats().native_parts;if(group)++stats().group_native_parts;
@@ -391,14 +408,13 @@ NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uin
             }
             return accepted;
         }
-        for(const auto& store:result->stores) {
-            std::array<std::byte,4> bytes{};for(unsigned i=0;i<store.bytes;++i)bytes[i]=std::byte(store.value>>(8*i));
-            world.write_source_call_input(packet+store.offset,std::span(bytes).first(store.bytes));
-        }
+        for(const auto& store:result->stores())
+            publish_part_store(world,admitted_light_store_memory,packet+store.offset,store.value,store.bytes);
         return result->accepted;
 #endif
     };
-    s.emit_41030=[&world,bank,frame,group](const NativeTu15CommandEmitArgs& args,NativeTu15PhysicsFrameFp& arithmetic) {
+    s.emit_41030=[&world,bank,frame,group,admitted_light_store_memory,arithmetic_policy]
+        (const NativeTu15CommandEmitArgs& args,NativeTu15PhysicsFrameFp& arithmetic) {
         ++stats().emits;
         if(group)++stats().group_emits;
         const auto actual=[&] {
@@ -411,16 +427,14 @@ NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uin
         auto pending_fp=arithmetic;
         std::optional<NativeTu15CommandEmitStores> pending;
         try {
-            pending=native_tu15_command_emit_41030(bank(),args,pending_fp);
+            pending=detail::command_emit(bank(),args,pending_fp,arithmetic_policy);
         } catch(const std::invalid_argument&) {residual();return;}
           catch(const std::out_of_range&) {residual();return;}
         // Check access for the complete append before any of it is visible.
-        // Do not bypass the World write hooks or replace the retained banks.
+        // Each store still checks the retained bank's policies and runs its observers.
         for(const auto& store:pending->rows())bank().validate_mutable_view(store.address,store.width);
         for(const auto& store:pending->rows()) {
-            std::array<std::byte,4> bytes{};
-            for(unsigned i=0;i<store.width;++i)bytes[i]=std::byte(store.value>>(8*i));
-            world.write_source_call_input(store.address,std::span(bytes).first(store.width));
+            publish_part_store(world,admitted_light_store_memory,store.address,store.value,store.width);
             if(store.instruction==0x3ba38u) {++stats().bank_appends;if(group)++stats().group_appends;}
             if(store.instruction==0x1e2d0u)++stats().transparent_appends;
         }
@@ -429,7 +443,8 @@ NativeTu15CommandPartServices part_services(PhysicsLiveWorldTu15& world,std::uin
     return s;
 }
 }
-NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15& world,std::uint32_t selector) {
+NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15& world,std::uint32_t selector,
+    SourceRuntimeMemory* admitted_light_store_memory) {
     const auto initial=world.prepare_source_call();const auto controls=initial.floating_point.value();
     NativeTu15PhysicsFrameFp fp{controls.x87_control_word,initial.x87_status,controls.mxcsr};
     // Keep the packet above the scratch arguments of this frame's children.
@@ -440,7 +455,7 @@ NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15& 
     NativeTu15CommandFrameServices s;
     s.parts=part_services(world,packet,[&world](auto,std::span<const std::uint32_t> args) {
         return world.prepare_source_call(args);
-    },false);
+    },false,admitted_light_store_memory);
     static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_RENDER_PREPARE");return p&&*p;}();
     s.parts.geometry_449d0=[&](auto unit,auto owner,auto& arithmetic) {
         ++stats().geometry;
@@ -467,21 +482,23 @@ void source_command_frame_site_tu15(PhysicsLiveWorldTu15& world,SourcePhysicsCon
     const auto enabled=[](const char* flag){const auto* p=std::getenv(flag);return p&&*p&&*p!='0';};
     static const bool light_reference=enabled("HALO2_REFERENCE_LIGHT_COMMANDS");
     static const bool shadow_reference=enabled("HALO2_REFERENCE_SHADOW_COMMANDS");
+    static const bool reference_light_writes=enabled("HALO2_REFERENCE_PROJECTED_LIGHT_COMMAND_WRITES");
     static const bool oracle=enabled("HALO2_SECONDARY_COMMANDS_ORACLE");
     const bool light=site==SourceCommandFrameSiteTu15::light;
+    const bool projected_light_stores=light&&!reference_light_writes;
     auto& counters=light?stats().light_site:stats().shadow_site;
     const auto selector=call.gp[0];
     if(light?light_reference:shadow_reference) {++counters.reference;world.run_actual(0x40e80u,call);return;}
     const auto publish=[&](const NativeTu15PhysicsFrameFp& fp) {
         call.x87_status=fp.status;call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
     };
-    if(!oracle) {++counters.native;publish(world.run_native_command_frame_tu15(selector));return;}
+    if(!oracle) {++counters.native;publish(world.run_native_command_frame_tu15(selector,projected_light_stores));return;}
     // Both runs start from the same fresh caller arithmetic state so their
     // completed FP words are comparable; the original's result persists.
     NativeTu15PhysicsFrameFp native_fp{};
     auto original=world.prepare_source_call();original.gp[0]=selector;
     SourceNativeStoreOracleTu15 compare;
-    compare.run(world.memory(),[&]{native_fp=world.run_native_command_frame_tu15(selector);},
+    compare.run(world.memory(),[&]{native_fp=world.run_native_command_frame_tu15(selector,projected_light_stores);},
         [&]{world.run_actual(0x40e80u,original);});
     ++counters.comparisons;counters.native_bytes+=compare.native_bytes;counters.original_bytes+=compare.original_bytes;
     const auto& controls=original.floating_point.value();

@@ -187,6 +187,9 @@ void source_run_physics_phantom_force_tu15_runtime(M &m,std::uint32_t entry,
  text=text.replace(target,replacement).replace('#include "halo2/physics_phantom_force_tu15.hpp"',
   '#include "halo2/physics_phantom_force_tu15.hpp"\n#include "halo2/physics_velocity_observation.hpp"')
  text=apply_native_lift_handoffs(text)
+ from native_phantom_island_replacements import install
+ text,native_islands=install(text,text)
+ if native_islands!=['315c90']:raise ValueError('Unpinned TU1.5 phantom island byte query')
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(text)
  manifest=dict(schema=1,parity_target='English TU1.5 only',generator_sha256=sha(__file__),research_sha256=sha(a.research),
   original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),native_entries={f'{p:08x}':q for p,q in entries.items()},

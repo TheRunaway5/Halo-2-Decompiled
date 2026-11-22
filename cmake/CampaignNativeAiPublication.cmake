@@ -6,6 +6,11 @@ include_guard(GLOBAL)
 target_sources(halo2_physics_world_runtime PRIVATE
     src/campaign/ai/native_campaign_ai_publication_tu15.cpp
     src/campaign/ai/native_campaign_ai_movement_resume_tu15.cpp
+    src/campaign/ai/native_campaign_ai_vehicle_movement_candidates_tu15.cpp
+    src/campaign/ai/native_campaign_ai_vehicle_movement_score_tu15.cpp
+    src/campaign/ai/native_campaign_ai_vehicle_steering_tu15.cpp
+    src/campaign/ai/native_campaign_ai_vehicle_movement_scale_tu15.cpp
+    src/campaign/ai/native_campaign_ai_vehicle_movement_driver_tu15.cpp
     src/campaign/ai/native_campaign_ai_route_tu15.cpp
     src/campaign/ai/native_campaign_ai_route_special_link_tu15.cpp
     src/campaign/ai/native_campaign_ai_route_segments_tu15.cpp
@@ -15,6 +20,26 @@ target_sources(halo2_physics_world_runtime PRIVATE
     src/campaign/ai/native_campaign_ai_route_obstacles_tu15.cpp
     src/campaign/ai/native_campaign_ai_route_obstacle_geometry_tu15.cpp)
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
+    add_executable(native_campaign_ai_vehicle_movement_scale_tu15_tests
+        tests/native_campaign_ai_vehicle_movement_scale_tu15_tests.cpp
+        src/campaign/ai/native_campaign_ai_vehicle_movement_scale_tu15.cpp
+        src/campaign/ai/native_campaign_ai_character_property_tu15.cpp
+        src/runtime/source_runtime_memory.cpp)
+    target_include_directories(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE include src)
+    target_compile_features(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE cxx_std_20)
+    target_link_libraries(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE
+        halo2_snapshot_storage Threads::Threads)
+    target_compile_options(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE
+        -fno-fast-math -ffp-contract=off -frounding-math)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(native_campaign_ai_vehicle_movement_scale_tu15_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME native_campaign_ai_vehicle_movement_scale_tu15
+        COMMAND native_campaign_ai_vehicle_movement_scale_tu15_tests)
+    set_tests_properties(native_campaign_ai_vehicle_movement_scale_tu15 PROPERTIES TIMEOUT 60)
+
     # Sources the publication closure adds to any 1BBEE0 test target.
     set(HALO2_CAMPAIGN_AI_PUBLICATION_SOURCES
         src/campaign/ai/native_campaign_ai_publication_tu15.cpp

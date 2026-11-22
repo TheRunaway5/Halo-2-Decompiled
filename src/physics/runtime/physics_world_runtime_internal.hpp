@@ -12,8 +12,8 @@ struct WorldState : physics_contact_runtime_detail::State {
     void load(const SourcePhysicsContactRuntimeAbi &a) {
         if(a.active_mmx&&(a.x87_depth||(a.x87_status&0x3800u)))
             throw std::runtime_error("Invalid original active MMX register-file state");
-        auto scalar=a;scalar.active_mmx.reset();
-        physics_contact_runtime_detail::State::load(scalar);active_mmx=a.active_mmx;
+        load_scalar_state(a);
+        active_mmx=a.active_mmx;
     }
     SourcePhysicsContactRuntimeAbi save()const {
         auto a=physics_contact_runtime_detail::State::save();a.active_mmx=active_mmx;return a;

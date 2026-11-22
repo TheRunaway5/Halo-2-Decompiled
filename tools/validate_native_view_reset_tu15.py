@@ -50,7 +50,7 @@ LOGIC='src/rendering/native_tu15_view_reset_systems.hpp';ADAPTER='src/rendering/
 SPEC=Spec(name='view_reset',label='1373F0 view reset',entry=0x1373f0,binding='native_view_reset_replacements',replace='replace_view_reset',
     body_pin='3ecb0a9ac67f906dc05f359a40d7ef55f9c3f8e88f398a7b159089556fc86e4c',owned={0x1373f0:0x13745d},entries=(0x1373f0,),
     callees={},regions=REGIONS,
-    inputs=(LOGIC,ADAPTER,'tests/native_tu15_view_reset_tests.cpp','tools/validate_native_view_reset_tu15.py','tools/native_view_reset_replacements.py'),
+    inputs=(LOGIC,ADAPTER,'src/rendering/native_tu15_receiver_transfers.hpp','tests/native_tu15_view_reset_tests.cpp','tools/validate_native_view_reset_tu15.py','tools/native_view_reset_replacements.py'),
     reference_variable='HALO2_REFERENCE_VIEW_RESET',reference_test_variable='HALO2_VIEW_RESET_REFERENCE_TEST',census_test_variable='HALO2_VIEW_RESET_CENSUS_TEST',
     census_range=(0x1373f0,0x13745c),
     helpers='static void dispatch(WorldState&s,std::uint32_t target,std::uint32_t site,bool tail){s.required(site,target,tail);}\n',

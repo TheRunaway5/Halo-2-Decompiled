@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_object_component_tick.hpp"
 #include "gameplay/objects/native_tu15_object_type_query_source_owner.hpp"
 #include "physics/runtime/native_tu15_solver_hull_edge_source_owner.hpp"
 #include "physics/runtime/native_tu15_solver_hull_support_pair_source_owner.hpp"
@@ -121406,6 +121407,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_1d6fb0(WorldState &s) {
+    if (native_object_component_tick::bridge(s, dispatch, run_fa430)) return;
 if(s.services.instruction){s.services.instruction(0x1d6fb0u);} s.set(0,r(s.memory,(0x4u+s.gp[7]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d6fb3u);} s.set(0,s.flags.right(s.reg(0,4,0),0x5u,4,false),4,0);
 if(s.services.instruction){s.services.instruction(0x1d6fb6u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x30u,4),4,0);

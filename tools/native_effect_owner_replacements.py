@@ -18,6 +18,7 @@ import hashlib
 import re
 
 PINS = {
+    '2c2ad0': 'bf13f47d01d5305b6ffc9faed17c952d4037965a1fb266a30e1eb9879cec3a02',
     '20680': 'd4f4712b719d603130dc0ea388c41eef772a4928af380f575e5f9088ee6de746',
     'c35d0': '69d9d3c4640a5d09d414b33d438f069a765afd9ab8d50768af25323b5e1708c5',
     'c3300': '2176815d63ceaea1f00951317b502ad1db5b614f67484ce96bfb4b10465c9977',
@@ -37,6 +38,7 @@ OWNERS = {
     # 'dispatch': the closure's computed calls (interface methods), through the
     # unit's dispatch at their own sites.
     '251a60': (('251a60', '250450'), ('13a6b0', '251650', '16e8a0', '2c40d0', '2516c0', 'dispatch')),
+    '2c2ad0': (('2c2ad0',), ('2c2d90', '176a40', '24ffe0', 'dispatch')),
 }
 # Children that may be entered through the unit's dispatch instead of a direct
 # body; their bridge lambda also receives the call site.
@@ -45,6 +47,7 @@ INCLUDE = '#include "rendering/effects/native_tu15_effect_owners.hpp"\n'
 DETAIL = 'halo2::native_effect_owner_detail'
 # Owners whose adapter lives in another header: (include, detail namespace).
 ADAPTERS = {
+    '2c2ad0': ('#include "rendering/effects/native_tu15_particle_motion.hpp"\n', 'halo2::native_particle_motion_detail'),
     '251a60': ('#include "rendering/effects/native_tu15_particle_update.hpp"\n', 'halo2::native_particle_update_detail'),
 }
 REPLAY = 'halo2::native_object_tick_detail'
@@ -81,6 +84,8 @@ def child_lambda(canonical, child):
 def prefix(owner, canonical):
     lambdas = [f'[](auto &v){{{reference_name(owner)}(v);}}']
     lambdas += [child_lambda(canonical, child) for child in OWNERS[owner][1]]
+    if owner == '2c2ad0':
+        lambdas.append('[](auto value,auto image){return canonical_branch(value,image);}')
     detail = ADAPTERS.get(owner, (INCLUDE, DETAIL))[1]
     return (f'\n    // BEGIN native effect owner {owner}\n'
             f'    if({detail}::bridge_{owner}(s,' + ',\n        '.join(lambdas) + '))return;\n'
@@ -148,7 +153,7 @@ def admitted(canonical):
 # the restored MCC cache (2026-11-16 evening): Armory parity in every role, and
 # the MP and campaign verify sweep with 0 differences; see
 # docs/native_replacement/EFFECT_OWNERS_20680_C35D0_176A40.md.
-BOUND = ('20680', 'c35d0', '176a40', '251a60')
+BOUND = ('20680', 'c35d0', '176a40', '251a60', '2c2ad0')
 
 
 def install(canonical, output):

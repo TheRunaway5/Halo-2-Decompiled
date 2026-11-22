@@ -341,7 +341,21 @@ void prepared_assets(const std::filesystem::path &path) {
                 }
                 if(accepted)expected_indices.push_back(ordinals[i]);
             }
-            need(indices==expected_indices,"Indexed selection lost expanded source ordinals through repeated sections");++indexed_cases;
+            need(indices==expected_indices,"Indexed selection lost expanded source ordinals through repeated sections");
+            constexpr unsigned material_base=31;
+            std::vector<Vertex> retained{expanded.front()};
+            std::vector<std::uint32_t> retained_indices{ordinals.front()};
+            shaders.append_selected(retained,expanded,collector,view,material_base,
+                SourceDynamicModelShaders::SelectedOrdinals{ordinals,retained_indices});
+            std::vector<Vertex> expected_retained{expanded.front()};
+            for(auto vertex:expected) {
+                vertex.material+=material_base;
+                expected_retained.push_back(vertex);
+            }
+            expected_indices.insert(expected_indices.begin(),ordinals.front());
+            same_vertices(expected_retained,retained,"Retained indexed append changed complete vertex bytes, order or material");
+            need(retained_indices==expected_indices,"Retained indexed append lost the expanded source ordinals");
+            ++indexed_cases;
         }
         std::array<RenderModel,6> lods;lods[5]=model;
         constexpr std::uint32_t owner=0x10001,definition=0x20002;

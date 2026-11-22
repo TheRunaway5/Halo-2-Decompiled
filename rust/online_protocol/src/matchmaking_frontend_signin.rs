@@ -252,10 +252,10 @@ pub fn prepare_open(
     }
     Ok((screen, context))
 }
-fn pop_to_main(io: &impl Io) -> Result<()> {
+fn pop_to_mode_selection(io: &impl Io) -> Result<()> {
     loop {
         let f = io.facts()?;
-        if f.frames.len() <= 1 || f.top()?.screen == 6 {
+        if f.frames.len() <= 1 || matches!((f.top()?.screen, f.top()?.context), (6, _) | (218, 1)) {
             return Ok(());
         }
         io.effect(Effect::Pop)?;
@@ -293,7 +293,7 @@ pub fn update(c: &Controller, io: &impl Io) -> Result<()> {
             io.effect(Effect::SignOutQueue)?;
         }
         io.effect(Effect::StopSearch)?;
-        pop_to_main(io)?;
+        pop_to_mode_selection(io)?;
         io.effect(Effect::Open(20, 0))?;
     }
     let count = io.facts()?.frames.len();
@@ -382,7 +382,7 @@ pub fn accept(c: &Controller, io: &impl Io) -> Result<bool> {
                     io.effect(Effect::CancelDirectory)?;
                 }
                 io.effect(Effect::ClearDirectory)?;
-                pop_to_main(io)?;
+                pop_to_mode_selection(io)?;
                 io.effect(Effect::Open(20, 0))?;
             }
         }

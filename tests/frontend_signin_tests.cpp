@@ -64,8 +64,9 @@ void painter(const std::filesystem::path &maps) {
   state.commit_text(); //167->38
   state.back(); //38->6, signs in created profile.
   check(state.frame().screen == 6, "fourway fixture missed real profile sign-in");
-  state.select(2);
-  state.accept(); //6->30 Split Screen.
+  state.select(1);
+  state.accept(); // Multiplayer options.
+  state.accept(); // Split Screen.
   check(state.frame().screen == 30, "fourway fixture missed Split Screen");
   Mesh mesh;
   FrontendPainter painter(content, maps / "fonts", mesh);

@@ -133,7 +133,7 @@ LOGIC='src/rendering/native_tu15_view_setup_systems.hpp';ADAPTER='src/rendering/
 SPEC=Spec(name='view_setup',label='135690 view setup',entry=0x135690,binding='native_view_setup_replacements',replace='replace_view_setup',
     body_pin='237100b008c386cdf99cf2eb224a3751d56076cfbf8f85b076df31a7cae479c1',owned={0x135690:0x13586d},entries=(0x135690,),
     callees={0x11e600:Callee(sites=(0x135784,),argument_bytes=0,effect=init_handle_stub)},regions=REGIONS,
-    inputs=(LOGIC,ADAPTER,'tests/native_tu15_view_setup_tests.cpp','tools/validate_native_view_setup_tu15.py','tools/native_view_setup_replacements.py'),
+    inputs=(LOGIC,ADAPTER,'src/rendering/native_tu15_receiver_transfers.hpp','tests/native_tu15_view_setup_tests.cpp','tools/validate_native_view_setup_tu15.py','tools/native_view_setup_replacements.py'),
     reference_variable='HALO2_REFERENCE_VIEW_SETUP',reference_test_variable='HALO2_VIEW_SETUP_REFERENCE_TEST',census_test_variable='HALO2_VIEW_SETUP_CENSUS_TEST',
     census_range=(0x135690,0x13586a),
     helpers='static void dispatch(WorldState&s,std::uint32_t target,std::uint32_t site,bool tail){s.required(site,target,tail);}\n',

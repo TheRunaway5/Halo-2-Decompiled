@@ -238,6 +238,7 @@ struct RendererObservedGeometryDraw {
     std::span<const std::byte> camera_push,material_uniform,vertex_bank_uniform;
     std::array<float,6> viewport{};
     std::array<std::int64_t,4> scissor{};
+    std::optional<unsigned> source_layer,source_implementation,source_template_pass;
 };
 // A clipped model viewport, ordered amongst the UI's textured triangles.
 struct ModelView {
@@ -352,6 +353,8 @@ struct ModelView {
     std::function<void(const RendererObservedBspDraw&)> completed_bsp_draw_observer;
     std::function<void(const RendererObservedObjectDraw&)> completed_object_draw_observer;
     // Opt-in actual command/upload facts, including unowned dynamic geometry.
+    // An optional selection limits which draws require those capture facts.
+    std::function<bool(std::size_t, std::optional<unsigned>)> completed_geometry_draw_filter;
     std::function<void(const RendererObservedGeometryDraw&)> completed_geometry_draw_observer;
     std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
     std::span<const pstencil::PointCaster> pstencil_point_casters;
@@ -422,7 +425,8 @@ public:
     bool draw_texture_camera(const Camera &,const RendererTextureCameraSubmissionTu15 &,
         std::span<const ModelView> ordinary_views,const std::filesystem::path &screenshot = {},
         bool reticle=false,ScreenEffects effects={},std::span<const Vertex> ui={},
-        std::span<const UiBackdrop> backdrops={},const std::function<void()> *overlap=nullptr);
+        std::span<const UiBackdrop> backdrops={},const std::function<void()> *overlap=nullptr,
+        const RendererHostPreparationTiming *host_preparation=nullptr);
     bool draw(const Camera& camera, const std::filesystem::path& screenshot = {},
               std::span<const Vertex> debug = {}, bool reticle = false,
               std::span<const Vertex> first_person = {}, ScreenEffects effects = {},

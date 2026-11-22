@@ -31,7 +31,7 @@ void lobby(MenuState &menu) {
   check(profile!=entries.end(),"saved active profile absent from profile picker");
   choose(menu,unsigned(profile-entries.begin()),6);
   check(menu.signed_in_profile()==menu.profile_name(),"saved profile did not sign in");
-  choose(menu,2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,0,30);choose(menu,0,14);
 }
 }
 int main(int argc,char **argv) try {

@@ -1,4 +1,5 @@
 #include "halo2/pstencil/native_light_receiver_tu15.hpp"
+#include "campaign_lighting_timing.hpp"
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/native_tu15_command_walk.hpp"
@@ -28,7 +29,7 @@ bool native_light_render_admission_tu15(PhysicsLiveWorldTu15& world,std::uint32_
     return (call.gp[0]&255u)!=0;
 }
 NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
-    std::uint32_t light) {
+    std::uint32_t light,bool snapshot_host_view,CampaignLightingPassTimings* timings) {
     const auto& memory=world.memory();
     const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
     const auto half=[&](std::uint32_t at){return Bytes(memory.view(at,2)).u16(0);};
@@ -58,13 +59,18 @@ NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
         word(record+0x24u),auxiliary,0u,std::uint32_t(cluster)};
     put(call.gp[4],arguments);call.gp[0]=1;call.gp[1]=std::uint32_t(cameras.size());
     call.gp[2]&=0xffffff00u; // Actual31E93 DL0, not a supplied query mode.
-    world.run_actual(0x134c00u,call);
+    if(timings) {
+        const CampaignLightPhaseTimer timer(timings,CampaignLightPhase::projected_visibility_query);
+        const ProjectedVisibilityTimingBinding binding(timings);
+        world.run_actual(0x134c00u,call);
+    } else world.run_actual(0x134c00u,call);
     NativeLightReceiver out;out.context=call.gp[0];
     if(out.context!=0x5598f8u || word(0x4cd3a0u)!=out.context)
         throw FormatError("Original light query did not retain its secondary context");
     // Complete31650 classifies source receiver/caster flags after134C00.
     // Its exact31E9F..31EBD ABI keeps the light identity in EAX, the query
     // context in ESI, and the definition datum in ECX.
+    CampaignLightPhaseTimer classify(timings,CampaignLightPhase::projected_receiver_classify);
     const auto shape=native_light_shape_tu15(world,light);
     auto shadow=std::uint8_t(!(flags&8u) && memory.view(0x4c6840u,1)[0]!=std::byte{} &&
         std::bit_cast<float>(word(record+0xf8u))>std::bit_cast<float>(word(0x46a0e8u)) && shape.type()!=0);
@@ -79,7 +85,10 @@ NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
     world.run_actual(0x31650u,call);
     world.append_light_parent_biped_tu15(definition_data,shadow_input,owner,out.context);
     out.shadow_enabled=memory.view(shadow_input,1)[0]!=std::byte{};
-    auto& view=out.view;out.visibility_bank=word(out.context);
+    out.visibility_bank=word(out.context);
+    classify.finish();
+    if(!snapshot_host_view)return out;
+    auto& view=out.view;
     view.flags=word(out.context+0x2a60u);view.pass_mode=word(out.context+0x2a78u);
     view.query_mode=word(out.context+0x2a7cu);
     std::memcpy(&view.location,memory.view(out.context+4u,sizeof(view.location)).data(),sizeof(view.location));
@@ -113,26 +122,38 @@ NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
     return out;
 }
 NativeLightGeometry native_light_geometry_tu15(PhysicsLiveWorldTu15& world,
-    const NativeLightReceiver& receiver) {
+    const NativeLightReceiver& receiver,CampaignLightingPassTimings* timings) {
     const auto word=[&](std::uint32_t at){return Bytes(world.memory().view(at,4)).u32(0);};
     if(receiver.context!=0x5598f8u || word(0x4cd3a0u)!=receiver.context ||
        word(receiver.context)!=receiver.visibility_bank)
         throw FormatError("Native light geometry lost its completed receiver query");
     auto call=world.prepare_source_call();
     NativeTu15PhysicsFrameFp fp{call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
-    if(world.collect_render_bsp_units_tu15(fp)!=receiver.context)
+    const auto bsp_context=time_campaign_light_phase(timings,CampaignLightPhase::projected_bsp_units,[&] {
+        return world.collect_render_bsp_units_tu15(fp);
+    });
+    if(bsp_context!=receiver.context)
         throw FormatError("Native light BSP append lost31EDA's pinned context");
     call=world.prepare_source_call(std::array{1u});call.gp[0]=receiver.context;
     call.x87_status=fp.status;call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
-    world.run_actual(0x136230u,call);
+    time_campaign_light_phase(timings,CampaignLightPhase::projected_model_units,[&] {
+        world.run_actual(0x136230u,call);
+    });
     fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
     call=world.prepare_source_call();call.x87_status=fp.status;
-    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};source_cull_walk_site_tu15(world,call);
+    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
+    time_campaign_light_phase(timings,CampaignLightPhase::projected_cull,[&] {
+        source_cull_walk_site_tu15(world,call);
+    });
     fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
     call=world.prepare_source_call();call.gp[0]=0;call.x87_status=fp.status;
     call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
-    source_command_frame_site_tu15(world,call,SourceCommandFrameSiteTu15::light);
-    return {source_live_effect_light_state_tu15(world.memory()),
-        source_live_effect_light_private_commands_tu15(world.memory()).legacy};
+    time_campaign_light_phase(timings,CampaignLightPhase::projected_commands,[&] {
+        source_command_frame_site_tu15(world,call,SourceCommandFrameSiteTu15::light);
+    });
+    return time_campaign_light_phase(timings,CampaignLightPhase::projected_snapshot,[&] {
+        return NativeLightGeometry{source_live_effect_light_state_tu15(world.memory()),
+            source_live_effect_light_private_commands_tu15(world.memory()).legacy};
+    });
 }
 }

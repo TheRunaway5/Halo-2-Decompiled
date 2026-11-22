@@ -183,6 +183,48 @@ void residuals(){
   check(failed&&fp.mxcsr==0x1fa0&&fp.status==0x2801&&m.get(manager+0x18,1)==1,"Residual failure lost real prefix/FP");
   std::cout<<"native frame residual ABI/lifetime/FP model regressions passed; adapters still depend on residual modules\n";
 }
+void pressure_cleanup_residuals() {
+  auto m=model();
+  constexpr std::uint32_t stack=0x60000000,top=stack+0x4000,continuation=0x60300000;
+  constexpr std::uint32_t primary_heap=0x1200000,cleanup_flag=0x48b872,pressure_guard=0x48b873;
+  m.banks[stack].resize(0x5000);
+  m.banks[primary_heap].resize(0x100);
+  m.banks[primary_heap+0xf0340].resize(0x100);
+  m.put(top,continuation);
+  m.put(0x48606c,primary_heap);
+  m.put(0x456910,std::bit_cast<std::uint32_t>(1.0f));
+  m.put(0x46a140,std::bit_cast<std::uint32_t>(1.0f));
+  m.put(0x486058,0xffffffffu);
+  m.put(0x4ecbd0,world+0x2000);
+  m.put(world+0x2c,island);
+  m.put(clock+8,17);
+
+  SourcePhysicsContactRuntimeAbi state{};
+  state.gp[4]=top;
+  NativeTu15PhysicsFrameFp fp{0x027f,0,0x1f80};
+  std::vector<std::uint32_t> calls;
+  try {
+    native_tu15_step_physics_frame_with_residuals(m,fp,state,{stack,0x4000},
+      [&](auto entry,auto& actual,const auto&) {
+        check(m.get(actual.gp[4])==continuation,"Cleanup residual lost the frame's continuation");
+        calls.push_back(entry);
+        if(entry==0x1cb330u) {
+          check(m.get(pressure_guard,1)==1&&m.get(cleanup_flag,1)==0,"Cleanup teardown flags");
+        } else if(entry==0x1cb220u) {
+          check(m.get(pressure_guard,1)==1&&m.get(cleanup_flag,1)==1,"Cleanup recreation flags");
+          m.put(0x48606c,0);
+        } else {
+          check(entry==0x31b1a0u&&actual.gp[1]==world,"Frame did not resume at the world step");
+          check(m.get(pressure_guard,1)==0&&m.get(cleanup_flag,1)==0&&m.get(0x486058)==17,
+                "Memory pressure did not finish before the world step");
+          throw Stop{"world",world,{}};
+        }
+        actual.gp[4]+=4;
+      });
+  } catch(const Stop&) {}
+  check(calls==std::vector<std::uint32_t>{0x1cb330u,0x1cb220u,0x31b1a0u},
+        "Memory pressure must tear down and recreate the world before stepping");
+}
 void oracle(const std::filesystem::path&path){
   check(std::filesystem::exists(path),"Required original fixture missing");std::ifstream input(path);const auto fixture=J::parse(input);
   check(fixture.at("image")=="English TU1.5"&&fixture.at("image_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Original fixture authority mismatch");
@@ -233,4 +275,4 @@ void oracle(const std::filesystem::path&path){
   check(cases>0,"Empty original fixture");std::cout<<cases<<" independent TU1.5 declared prefix/tail cases, "<<total_stores<<" ordered persistent stores passed; full residual closure remains unqualified\n";
 }
 }
-int main(int argc,char**argv){try{if(argc==3&&std::string(argv[1])=="--oracle-only")oracle(argv[2]);else{models();residuals();if(argc==3&&std::string(argv[1])=="--oracle-fixture")oracle(argv[2]);else check(argc==1,"Expected optional --oracle-fixture PATH");}return 0;}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(int argc,char**argv){try{if(argc==3&&std::string(argv[1])=="--oracle-only")oracle(argv[2]);else{models();residuals();pressure_cleanup_residuals();if(argc==3&&std::string(argv[1])=="--oracle-fixture")oracle(argv[2]);else check(argc==1,"Expected optional --oracle-fixture PATH");}return 0;}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

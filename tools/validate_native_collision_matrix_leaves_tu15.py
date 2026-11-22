@@ -118,7 +118,8 @@ def main():
     bodies = {'legacy': [], 'reference': [], 'production': []}
     for name in names:
         original = leaf_body(canonical, name)
-        assert digest(original[0].replace(original[1] + ' &s', 'STATE &s')) == LEAVES[name][0]
+        pins = LEAVES[name][0]
+        assert digest(original[0].replace(original[1] + ' &s', 'STATE &s')) in (pins if isinstance(pins, tuple) else (pins,))
         assert name in receipt['native_leaves']
         bodies['legacy'].append(original[0])
         # Pin the recovered instruction's destination operand: the compiler

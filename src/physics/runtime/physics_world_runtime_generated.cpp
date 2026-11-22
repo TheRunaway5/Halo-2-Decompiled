@@ -19544,7 +19544,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_305e40(ObservedWorldState &s) {
-    if(halo2::native_mopp_aabb_abi_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){dispatch(v,target,site,tail);}))return;
+    if(halo2::native_mopp_aabb_abi_detail::bridge(s,[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){if(halo2::native_mopp_aabb_abi_detail::retained_world_self_call(v,target,site,tail))run_305e40(v);else dispatch(v,target,site,tail);}))return;
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x305e40u,0x309940u,s));} s.set(4,s.flags.minus(s.reg(4,4,0),0x38u,4),4,0);
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x305e43u,0x309943u,s));} s.push(world_observation_pc(0x305e43u,0x309943u,s),s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(world_observation_pc(0x305e44u,0x309944u,s));} s.set(3,r(s.memory,(0x44u+s.gp[4]),4),4,0);

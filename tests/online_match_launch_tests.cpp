@@ -1246,7 +1246,7 @@ int main(int argc,char **argv)try {
         else if(phase==10 && all("kept-membership") && !s.busy){if(!leader)key(SDLK_ESCAPE);phase=11;}
         else if(phase==11 && !s.busy && (leader?f.screen==14:asked(0x8b))){show("second-question");phase=12;}
         else if(phase==12 && all("second-question") && !s.busy){if(!leader){if(f.selected)key(SDLK_UP);key(SDLK_RETURN);}phase=13;}
-        else if(phase==13 && !s.busy && (leader?(s.party && s.party->members.size()==1 && asked(0xae)):(!s.party && f.screen==6))){show("left");phase=14;}
+        else if(phase==13 && !s.busy && (leader?(s.party && s.party->members.size()==1 && asked(0xae)):(!s.party && f.multiplayer_options() && f.selected==1))){show("left");phase=14;}
         else if(phase==14 && all("left") && !s.busy){if(leader)key(SDLK_RETURN);phase=15;}
         else if(phase==15 && !s.busy && (!leader || (f.screen==14 && left<0))) {
           if(leader){check(account->party_command({"invite",owners[party_begin+1]}),"Rendered B flow fresh native invitation was refused");
@@ -1297,7 +1297,7 @@ int main(int argc,char **argv)try {
       state.back();check(asked(0x8b),"Member second B lost original Leave confirmation");
       wait([&]{pump();return !account->snapshot().busy;});state.select(0);state.accept();
       wait_stage="B confirmed authoritative party departure";
-      wait([&]{pump();return !account->snapshot().party && !account->snapshot().busy && state.frame().screen==6;});
+      wait([&]{pump();return !account->snapshot().party && !account->snapshot().busy && state.frame().multiplayer_options() && state.frame().selected==1;});
       check(!state.launch,"Confirmed B departure queued the counted-down hopper");
     } else {
       wait_stage="B peer departure original notice";

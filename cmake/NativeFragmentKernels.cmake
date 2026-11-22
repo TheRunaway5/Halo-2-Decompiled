@@ -7,9 +7,40 @@ set(native_fragment_registry_args)
 foreach(registry IN LISTS NATIVE_FRAGMENT_REGISTRIES)
     list(APPEND native_fragment_registry_args --registry ${registry})
 endforeach()
+set(native_fragment_options)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(CheckCXXSourceCompiles)
+    function(halo2_check_projected_depth_quad_headers)
+        set(CMAKE_REQUIRED_INCLUDES ${Vulkan_INCLUDE_DIRS})
+        check_cxx_source_compiles([=[
+            #include <vulkan/vulkan.h>
+            int main() {
+                VkPhysicalDeviceShaderQuadControlFeaturesKHR quad{};
+                VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR reconvergence{};
+                return quad.shaderQuadControl || reconvergence.shaderMaximalReconvergence;
+            }
+        ]=] HALO2_PROJECTED_DEPTH_QUAD_HEADERS)
+    endfunction()
+    halo2_check_projected_depth_quad_headers()
+    if(HALO2_PROJECTED_DEPTH_QUAD_HEADERS)
+        # Older GLSL and SPIR-V tools can build the ordinary menu families.
+        execute_process(COMMAND ${Python3_EXECUTABLE} -B
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_native_fragment_kernels.py
+            ${native_fragment_registry_args} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+            --shader-output-dir ${CMAKE_CURRENT_BINARY_DIR}/shaders
+            --compiler ${GLSLANG_VALIDATOR} --optimizer ${SPIRV_OPTIMIZER} --validator ${SPIRV_VALIDATOR}
+            --probe-projected-depth-quad ${CMAKE_CURRENT_BINARY_DIR}
+            RESULT_VARIABLE native_fragment_quad_status OUTPUT_QUIET ERROR_QUIET)
+        if(native_fragment_quad_status EQUAL 0)
+            list(APPEND native_fragment_options --projected-depth-quad)
+            set_property(SOURCE src/rendering/renderer/renderer.cpp APPEND PROPERTY
+                COMPILE_DEFINITIONS HALO2_NATIVE_PROJECTED_DEPTH_QUAD=1)
+        endif()
+    endif()
+endif()
 execute_process(COMMAND ${Python3_EXECUTABLE} -B
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_native_fragment_kernels.py
-    ${native_fragment_registry_args} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    ${native_fragment_registry_args} ${native_fragment_options} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
     --shader-output-dir ${CMAKE_CURRENT_BINARY_DIR}/shaders --list-outputs
     RESULT_VARIABLE native_fragment_status OUTPUT_VARIABLE NATIVE_FRAGMENT_SPIRV
     ERROR_VARIABLE native_fragment_error OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -18,7 +49,7 @@ if(NOT native_fragment_status EQUAL 0)
 endif()
 add_custom_command(OUTPUT ${NATIVE_FRAGMENT_HEADER}
     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_native_fragment_kernels.py
-        ${native_fragment_registry_args} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${native_fragment_registry_args} ${native_fragment_options} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
         --shader-output-dir ${CMAKE_CURRENT_BINARY_DIR}/shaders
         --header ${NATIVE_FRAGMENT_HEADER} --header-only
     DEPENDS ${NATIVE_FRAGMENT_REGISTRIES} tools/compile_native_fragment_kernels.py
@@ -31,7 +62,7 @@ list(FILTER native_fragment_sources EXCLUDE REGEX "/shaders/path_tracing/")
 add_custom_command(OUTPUT ${NATIVE_FRAGMENT_CATALOG_DIR}/compiled.json ${NATIVE_FRAGMENT_SPIRV}
     COMMENT "Compiling native fragment kernels"
     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_native_fragment_kernels.py
-        ${native_fragment_registry_args} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${native_fragment_registry_args} ${native_fragment_options} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
         --shader-output-dir ${CMAKE_CURRENT_BINARY_DIR}/shaders
         --header ${NATIVE_FRAGMENT_HEADER} --manifest ${NATIVE_FRAGMENT_CATALOG_DIR}/compiled.json
         --compiler ${GLSLANG_VALIDATOR} --optimizer ${SPIRV_OPTIMIZER} --validator ${SPIRV_VALIDATOR}

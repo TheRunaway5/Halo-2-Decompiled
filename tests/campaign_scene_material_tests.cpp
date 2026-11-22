@@ -76,7 +76,7 @@ int main(int argc,char **argv)try {
     auto preview=cache.load_model(placement->definition,true,placement->variant);
     unsigned placements=0;
     for(const auto &object:content.objects)if(object.type==6 && object.definition==placement->definition) {
-        if(!source_campaign_lit_scenery(preview,object))
+        if(!source_campaign_lit_object(preview,object))
             throw FormatError("Council props did not reach their source dynamic-lighting owner");
         ++placements;
     }

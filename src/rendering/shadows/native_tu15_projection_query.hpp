@@ -29,6 +29,7 @@
 // same live input and compares callee-saved ABI, FP state and the caller
 // frame/array memory; =strict throws on the first difference.
 // HALO2_NATIVE_PROJECTION_QUERY_STATS=1 prints admission counters at exit.
+#include "halo2/detail/native_tu15_cull_query_rows.hpp"
 #include "halo2/physics_contact_record.hpp"
 #include "halo2/native_tu15_sphere_cull_45550.hpp"
 #include <xmmintrin.h>
@@ -1030,7 +1031,9 @@ bool bridge_44e80(State &s, Dispatch dispatch, Translated translated) {
                     std::vector<std::uint32_t> out;
                     if (std::bit_cast<std::int32_t>(count) > 0) {
                         out.resize(count + (pairs && (count & 1u)));
-                        for (std::uint32_t n = 0; n < out.size(); ++n) out[n] = word(s, data + 4u * n);
+                        if (!try_copy_native_cull_query_rows(s.memory, data, out)) {
+                            for (std::uint32_t n = 0; n < out.size(); ++n) out[n] = word(s, data + 4u * n);
+                        }
                     }
                     return out;
                 };

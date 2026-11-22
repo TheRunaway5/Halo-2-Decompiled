@@ -71,7 +71,7 @@ int main(int argc,char **argv)try {
   MenuState menu(frontend,preferences.path);menu.accept();menu.accept();
   const auto choose=[&](unsigned entry,unsigned screen){menu.select(entry);menu.accept();
     check(menu.frame().screen==screen,"Saved Elite profile menu route changed");};
-  choose(2,30);choose(0,14);menu.select(0);menu.accept();
+  choose(1,218); choose(0,30);choose(0,14);menu.select(0);menu.accept();
   check(menu.launch && menu.launch->selected_profiles.size()==1 &&
       menu.launch->selected_profiles[0][0x44]==1,"Normal Start lost the saved Elite selection");
   MultiplayerOptions options;

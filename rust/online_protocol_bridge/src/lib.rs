@@ -56,6 +56,8 @@ mod matchmaking_account_client;
 use matchmaking_account_client::*;
 mod matchmaking_native_results;
 use matchmaking_native_results::*;
+mod frontend_shell_settings;
+use frontend_shell_settings::{frontend_appearance_readout, frontend_shell_settings_layout};
 mod matchmaking_frontend_lobby;
 use matchmaking_frontend_lobby::*;
 mod matchmaking_frontend_search;
@@ -64,8 +66,10 @@ mod matchmaking_frontend_progress;
 use matchmaking_frontend_progress::*;
 mod matchmaking_frontend_presentation;
 use matchmaking_frontend_presentation::*;
-mod frontend_upscaling;
-use frontend_upscaling::frontend_upscaling_panel;
+mod frontend_settings;
+use frontend_settings::{frontend_pc_settings_panel, frontend_pc_settings_value};
+mod frontend_video;
+use frontend_video::{frontend_video_panel, frontend_video_value};
 mod matchmaking_frontend_party;
 use matchmaking_frontend_party::*;
 mod matchmaking_frontend_party_flow;
@@ -151,29 +155,141 @@ pub fn eos_sdk_worker_main() -> i32 {
 #[allow(unsafe_code)]
 #[cxx::bridge(namespace = "halo2::online_protocol_bridge")]
 mod ffi {
-    struct UpscalingPanelFacts {
-        method_enabled: bool,
-        selected: u32,
-        method_name: String,
-        quality_name: String,
-        choices: Vec<String>,
+    struct VideoModeSize {
+        width: u32,
+        height: u32,
     }
 
-    struct UpscalingPanelRow {
-        label: String,
-        opens_page: bool,
+    struct VideoPanelFacts {
+        window: VideoModeSize,
+        internal: VideoModeSize,
+        graphics_mode: u32,
+        path_tracing: bool,
+        fullscreen: u32,
+        upscaler: u32,
+        upscaling_quality: u32,
+        upscaling_enabled: bool,
+        brightness: u32,
+        gamma: u32,
+        detail: u32,
+        safe_area: bool,
+        field_of_view: u32,
+        vehicle_field_of_view: u32,
+        crt_filter: bool,
+        vertical_split: bool,
+        ray_samples: u32,
+        bounce_depth: u32,
+    }
+
+    #[derive(Default)]
+    struct PcSettingsFacts {
+        gameplay_overlay: bool,
+        volume: u32,
+        speakers: u32,
+        subtitles: u32,
+        sticks: u32,
+        buttons: u32,
+        controller_sensitivity: u32,
+        controller_invert: bool,
+        controller_auto_center: bool,
+        vibration: bool,
+        keyboard_sensitivity: u32,
+        keyboard_invert: bool,
+        keyboard_auto_center: bool,
+        dual_wield_invert: bool,
+        default_bindings: bool,
+        keyboard_preset: i32,
+        primary_binding: u32,
+        secondary_binding: u32,
+    }
+
+    enum SettingsTextSource {
+        Literal,
+        LocalizedLowId,
+        LocalizedId,
+        GraphicsMode,
+        FullscreenMode,
+        Upscaler,
+        UpscalingQuality,
+        PcBinding,
+    }
+
+    struct SettingsText {
+        source: SettingsTextSource,
+        key: u32,
+        screen: u32,
+        text: String,
+        suffix: String,
+    }
+
+    struct SettingsPanelRow {
+        label: SettingsText,
+        vista_route: bool,
+        destination: i32,
         value: i32,
     }
 
-    struct UpscalingPanel {
+    struct SettingsPanel {
         title: String,
-        description: String,
-        rows: Vec<UpscalingPanelRow>,
+        description: SettingsText,
+        rows: Vec<SettingsPanelRow>,
         selected: u32,
     }
 
     extern "Rust" {
-        fn frontend_upscaling_panel(context: u32, facts: UpscalingPanelFacts) -> UpscalingPanel;
+        fn frontend_pc_settings_panel(
+            screen: u32,
+            context: u32,
+            facts: &PcSettingsFacts,
+            action_labels: &[u32],
+        ) -> SettingsPanel;
+        fn frontend_pc_settings_value(
+            screen: u32,
+            index: u32,
+            column: u32,
+            action: i32,
+            capturing_slot: i32,
+            facts: &PcSettingsFacts,
+        ) -> SettingsText;
+        fn frontend_video_panel(
+            screen: u32,
+            context: u32,
+            facts: &VideoPanelFacts,
+            modes: &[VideoModeSize],
+            fov_min: u32,
+            fov_max: u32,
+        ) -> SettingsPanel;
+        fn frontend_video_value(screen: u32, context: u32, index: u32, facts: &VideoPanelFacts) -> SettingsText;
+    }
+
+    enum ShellSettingsPart {
+        LocalizedRow,
+        PcSettingsLink,
+        GuestProfile,
+        Profiles,
+        BuiltinVariants,
+        SavedVariants,
+        VariantCategory,
+        CustomVariantCategory,
+        VariantDescription,
+        CategoryTitle,
+        Parameters,
+        CustomParameters,
+        ParameterChoices,
+    }
+    struct ShellSettingsElement {
+        part: ShellSettingsPart,
+        key: u32,
+        destination: i32,
+        value: i32,
+    }
+    extern "Rust" {
+        fn frontend_shell_settings_layout(
+            screen: u32, context: u32, engine: u32, custom_category: u32,
+        ) -> Result<Vec<ShellSettingsElement>>;
+        fn frontend_appearance_readout(
+            destination: i32, slot: i32, colors: &[i8], species: i8, foreground: u8, background: u8,
+        ) -> u32;
     }
 
     struct NativeSessionConfig {

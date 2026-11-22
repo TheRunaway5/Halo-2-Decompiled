@@ -1,3 +1,4 @@
+#include "halo2/detail/native_tu15_cull_query_rows.hpp"
 #include "halo2/native_tu15_cull_walk_44710.hpp"
 #include "halo2/native_tu15_array_allocator.hpp"
 #include "halo2/native_tu15_sphere_cull_45550.hpp"
@@ -90,7 +91,9 @@ void native_sphere(PhysicsLiveWorldTu15& world,std::uint32_t unit,const std::arr
             const auto data=word(header),count=word(header+4u);
             const auto rows_read=std::bit_cast<std::int32_t>(count)>0?count+(pairs&&(count&1u)):0u;
             out.resize(rows_read);
-            for(std::uint32_t n=0;n<rows_read;++n)out[n]=word(data+4u*n);
+            if (!try_copy_native_cull_query_rows(memory,data,out)) {
+                for(std::uint32_t n=0;n<rows_read;++n)out[n]=word(data+4u*n);
+            }
             return std::bit_cast<std::int32_t>(count)>0?count:0u;
         };
         rows.range_count=read_rows(args[3],rows.ranges,true);

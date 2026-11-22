@@ -6,6 +6,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <optional>
 namespace halo2 {
 struct PcmSound {
   std::string name;
@@ -46,6 +47,7 @@ public:
   void fade_out(VoiceId, float seconds, std::uint16_t source_curve);
   void parameters(VoiceId, float gain, float pan);
   void next_loop(VoiceId, std::shared_ptr<const PcmSound>);
+  std::optional<std::size_t> playback_position(VoiceId) const;
   std::size_t active_voices() const;
   void stop();
   void master_volume(float);

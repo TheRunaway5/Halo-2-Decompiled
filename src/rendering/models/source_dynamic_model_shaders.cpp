@@ -112,8 +112,20 @@ void SourceDynamicModelShaders::select(std::vector<Vertex> &vertices,
     }),vertices.end());
 }
 void SourceDynamicModelShaders::append_selected(std::vector<Vertex> &output,std::span<const Vertex> source,
-    const SourceModelShaderCollector &collector,const SourceModelShaderView &view,unsigned material_base)const {
+    const SourceModelShaderCollector &collector,const SourceModelShaderView &view,unsigned material_base,
+    std::optional<SelectedOrdinals> ordinals)const {
+    if(ordinals && (ordinals->source.size()!=source.size() || ordinals->output.size()!=output.size()))
+        throw FormatError("dynamic model source ordinals differ from vertex extent");
     const auto selected=select_parts(collector,view);
+    if(ordinals) {
+        // Allocate both banks before appending any run so a failed allocation
+        // cannot publish vertices without their corresponding ordinals.
+        if(source.size()>output.max_size()-output.size())
+            throw std::length_error("dynamic model selected vertex extent is too large");
+        const auto capacity=output.size()+source.size();
+        output.reserve(capacity);
+        ordinals->output.reserve(capacity);
+    }
     PartLookup lookup{selected};
     for(std::size_t first=0;first<source.size();) {
         const auto identity=std::pair{source[first].source_section,source[first].source_part};
@@ -124,6 +136,10 @@ void SourceDynamicModelShaders::append_selected(std::vector<Vertex> &output,std:
             const auto offset=output.size();const auto run=source.subspan(first,end-first);
             output.insert(output.end(),run.begin(),run.end());
             for(std::size_t i=offset;i<output.size();++i)output[i].material=slot+material_base;
+            if(ordinals) {
+                const auto selected_ordinals=ordinals->source.subspan(first,end-first);
+                ordinals->output.insert(ordinals->output.end(),selected_ordinals.begin(),selected_ordinals.end());
+            }
         }
         first=end;
     }

@@ -59,6 +59,11 @@ int main(int argc,char **argv)try {
             check(!refusal,name+": unexpected native refusal "+std::to_string(refusal));const auto &gp=row.at("boundary_gp");const bool lifecycle=fixture.at("fixture_kind")=="native-hs-command-lifecycle-parents-v1";const u32 mask=lifecycle && entry!=0x211840u?0xffffu:0xffffffffu;
             check((abi.gp[0]&mask)==(gp[0].get<u32>()&mask),name+": result differs native="+std::to_string(abi.gp[0])+" original="+gp[0].dump());
             for(unsigned i:{1u,2u,3u,4u,5u,6u,7u})if(!lifecycle || i>=3u)check(abi.gp[i]==gp[i].get<u32>(),name+": GP differs index="+std::to_string(i)+" native="+std::to_string(abi.gp[i])+" original="+gp[i].dump());checks+=8;
+            if(row.value("owned_entry",0u)==0x2b2340u) {
+                constexpr u32 arithmetic_flags=0x8d5u;
+                check((abi.eflags&arithmetic_flags)==(row.at("boundary_eflags").get<u32>()&arithmetic_flags),name+": arithmetic flags differ");
+                ++checks;
+            }
         }
         for(unsigned i=0;i<8;++i)for(unsigned k=0;k<4;++k)check(abi.xmm[i][k]==row.at("boundary_xmm")[i][k],name+": XMM differs");
         check(abi.floating_point->x87_control_word==row.at("after_fp")[0] && abi.x87_status==row.at("after_fp")[1] && abi.floating_point->mxcsr==row.at("after_fp")[2],name+": FP differs");++checks;

@@ -26,11 +26,16 @@ public:
     // expanded source ordinal in parallel. Neither bank may alias the other.
     void select_indexed(std::vector<Vertex>&,std::vector<std::uint32_t>&,
                 const SourceModelShaderCollector&,const SourceModelShaderView&)const;
+    struct SelectedOrdinals {
+        std::span<const std::uint32_t> source;
+        std::vector<std::uint32_t> &output;
+    };
     // Append selected parts from a retained pose without copying that pose
-    // into an intermediate mutable vector. Source must not alias output.
+    // into an intermediate mutable vector. If supplied, the ordinals stay
+    // parallel to the vertices. Source spans must not alias output.
     void append_selected(std::vector<Vertex> &output,std::span<const Vertex> source,
                 const SourceModelShaderCollector &,const SourceModelShaderView &,
-                unsigned material_base = 0)const;
+                unsigned material_base = 0,std::optional<SelectedOrdinals> ordinals = {})const;
 private:
     // (section, part) → selected slot or NONE, in identity order.
     using PartSlots=std::vector<std::pair<std::pair<unsigned,unsigned>,unsigned>>;

@@ -4,31 +4,31 @@
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 7767,
+      "line": 7801,
       "target": "campaign_cleanup_tu15_tests"
     },
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 7776,
+      "line": 7810,
       "target": "campaign_resource_stage_tu15_tests"
     },
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 7785,
+      "line": 7819,
       "target": "campaign_resource_row5_tu15_tests"
     },
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 7794,
+      "line": 7828,
       "target": "campaign_scenario_scan_tu15_tests"
     },
     {
       "command": "target_sources",
       "file": "cmake/PhysicsLiveWorldTu15.cmake",
-      "line": 1208,
+      "line": 1209,
       "target": "halo2_physics_world_runtime"
     }
   ],

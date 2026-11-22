@@ -4,6 +4,7 @@
 // tests/native_object_factory_weapon_kernels.cpp. Floating-point steps run
 // the original SSE/x87 instruction under the live control words.
 #include "halo2/native_object_factory_weapon_tu15.hpp"
+#include "halo2/native_object_factory_nodebuild_tu15.hpp"
 #include "campaign/scripting/native_campaign_script_fp_tu15.hpp"
 #include "native_object_factory_tu15_internal.hpp"
 #include <bit>
@@ -21,7 +22,6 @@ constexpr std::uint32_t blend_scale=0x3f80068eu;   // [0x46A184] 1.0002
 constexpr std::uint32_t blend_select=0x3f0ccccdu;  // [0x46A234] 0.55
 constexpr std::uint32_t ticks_per_second=0x41f00000u;  // [0x46A20C] 30.0
 constexpr std::uint32_t random_unit=0x37800080u;   // [0x46A160] 1/65535
-constexpr std::uint32_t streaming=0x51df20u;       // two enable bytes
 constexpr std::uint32_t query_policy=0x47c1b4u;    // +0 selector, +1 blend query
 constexpr std::uint32_t query_selectors=0x47c1b8u; // four {key, chained key}
 constexpr std::uint32_t game_time=0x51df54u;
@@ -62,19 +62,19 @@ std::uint32_t animation_row(const M& m,std::uint32_t graph,std::uint32_t index) 
 std::uint32_t handle_graph(const M& m,std::uint32_t graph,std::uint32_t handle) {
   return std::uint16_t(handle)==0xffffu?graph:graph_child(m,graph,sx16(std::uint16_t(handle)));
 }
-// 1E5AF0 (and its inlined copies): an animation flagged +16 bit 4 whose
-// resource row (+24 into the graph's +B0 rows) is marked needs 126200.
-void require_animation_resource(const M& m,std::uint32_t graph,std::uint32_t animation) {
-  if(!(r8(m,animation+0x16u)&0x10u))return;
-  if(r8(m,r32(m,graph+0xb0u)+r32(m,animation+0x24u)*20u+0x10u))
-    refuse("126200","animation resource request");
-}
-// The +24/+28 (load) or +2C/+30 (unload) resource lists of a mode row.
-void require_mode_resources(const M& m,std::uint32_t graph,std::uint32_t row,std::uint32_t list) {
-  const auto count=s32(r32(m,row+list));
-  for(std::int32_t n=0;n<count;++n)
-    if(r8(m,r32(m,graph+0xb0u)+r32(m,r32(m,row+list+4u)+std::uint32_t(n)*4u)*20u+0x10u))
-      refuse("126200","animation resource request");
+// 1E5ECB/1E5F0B: walk each mode list in order, reloading its bounds and
+// backing after the controller returns (it may run cache maintenance).
+void touch_mode_resources(const M& m,std::uint32_t graph,std::uint32_t row,bool load,bool load_requested) {
+  const auto list=row+(load?0x24u:0x2cu);
+  const auto return_address=load?AnimationResourceTouch::mode_load_return:AnimationResourceTouch::mode_unload_return;
+  for(std::uint32_t index=0;s32(index)<s32(r32(m,list));++index) {
+    const auto entries=r32(m,list+4u);
+    const auto resource=r32(m,entries+index*4u);
+    const auto table=r32(m,graph+0xb0u);
+    request_animation_resource(m,{.row=table+resource*20u,.table=table,.graph=graph,.enabled=0,
+      .return_address=return_address,.mode_row=row,.mode_entries=entries,.mode_index=index,
+      .mode_load_requested=load_requested});
+  }
 }
 }
 
@@ -126,20 +126,6 @@ std::uint32_t graph_child(const M& m,std::uint32_t graph,std::uint32_t index) {
   if(s32(index)>=s32(r32(m,graph+0x4cu)))return 0;
   const auto tag=r32(m,(index<<5)+r32(m,graph+0x50u)+4u);
   return tag==none?0u:tag_data(m,tag);
-}
-
-void graph_require_resident(const M& m,std::uint32_t graph,std::uint32_t handle) {
-  if(!r8(m,streaming) || !r8(m,streaming+1u) || missing(handle))return;
-  const auto owner=handle_graph(m,graph,handle);
-  const auto index=sx16(std::uint16_t(handle>>16));
-  auto row=animation_row(m,owner,index);
-  if(const auto alias=r16(m,row+0x30u);alias!=0xffffu)row=animation_row(m,owner,sx16(alias));
-  require_animation_resource(m,owner,animation_row(m,owner,index));
-  while(r16(m,row+0x32u)!=0xffffu) {
-    const auto variant=animation_row(m,owner,sx16(r16(m,row+0x32u)));
-    require_animation_resource(m,owner,variant);
-    row=variant;
-  }
 }
 
 std::uint32_t graph_animation(const M& m,std::uint32_t graph,std::uint32_t handle) {
@@ -222,8 +208,8 @@ void mode_prefetch(const M& m,std::uint32_t graph,std::uint32_t k0,std::uint32_t
   if(!load && !unload)return;
   const auto row=mode_entry(m,graph,k0,k1,k2);
   if(!row)return;
-  if(load)require_mode_resources(m,graph,row,0x24u);
-  if(unload)require_mode_resources(m,graph,row,0x2cu);
+  if(load)touch_mode_resources(m,graph,row,true,true);
+  if(unload)touch_mode_resources(m,graph,row,false,load);
 }
 
 void mode_prefetch_fallbacks(const M& m,std::uint32_t graph,std::uint32_t k0,std::uint32_t k1,std::uint32_t k2,bool load,bool unload) {

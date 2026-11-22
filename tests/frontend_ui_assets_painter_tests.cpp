@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
       menu.select(row); compare(menu, 5);
     }
     menu.back();
-    menu.select(2); menu.accept(); menu.accept();
+    menu.select(1); menu.accept(); menu.select(0); menu.accept(); menu.accept();
     require(menu.frame().screen == 14 && content.screens.at(14).name.find("pregame_lobby") != std::string::npos,
             "ordinary Split Screen route missed original pregame lobby14");
     compare(menu, 5);

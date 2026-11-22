@@ -342,7 +342,8 @@ public:
       float control=1,MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu,unsigned view=0,
       std::optional<Vec3> position={},
-      std::optional<std::uint64_t> presentation_frame={},Completion={});
+      std::optional<std::uint64_t> presentation_frame={},Completion={},
+      std::optional<MultiplayerAudioEffect> effect={});
   void cancel_prepared_script_impulse(MultiplayerPreparedScriptImpulseTu15&);
   // Genuine128E70 playback-state request on this published script voice.
   // Uses the existing native Audio millisecond clock and300ms fade. Retired
@@ -410,7 +411,7 @@ private:
   std::optional<Voice> play_prepared_script_impulse_impl(
       MultiplayerPreparedScriptImpulseTu15&,const MccScriptSoundWorldAccess*,
       float,MultiplayerAudioKind,std::uint32_t,unsigned,std::optional<Vec3>,
-      std::optional<std::uint64_t>,Completion);
+      std::optional<std::uint64_t>,Completion,std::optional<MultiplayerAudioEffect>);
   struct State;
   std::unique_ptr<State> state_;
 };

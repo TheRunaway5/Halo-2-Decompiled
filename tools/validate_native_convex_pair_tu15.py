@@ -224,8 +224,10 @@ def main():
     # Production binding: installs, idempotent, refuses a changed body, a
     # changed operand mapping or a changed dispatch site.
     output, installed = module.install(text, text)
-    if installed != [module.OWNERS[name][0] for name in names]:
+    if installed != [module.OWNERS[name][0] for name in names] + [module.SIMPLEX_ENTRY, module.HULL_ENTRY]:
         raise ValueError(f'Convex pair binding installed {installed}')
+    if not all(token in output for token in (module.SIMPLEX_PREFIX, module.HULL_PREFIX, module.SIMPLEX_INCLUDE)):
+        raise ValueError('Simplex controller binding did not install')
     for name in names:
         if module.prefix(name) not in output or module.reference_name(name) not in output:
             raise ValueError(f'{name} binding did not install')
@@ -252,6 +254,14 @@ def main():
     drifted = text.replace(forward[0], forward[0].replace('0xfffffff0u', '0xfffffff8u', 1), 1)
     if drifted == text or '2f8630' in module.install(drifted, drifted)[1]:
         raise ValueError('2F8630 binding accepted a changed inline 2E4760')
+    simplex = module.body(text, module.SIMPLEX)[0]
+    drifted = text.replace(simplex, simplex.replace('run_30a370(s);', 'run_309ae0(s);', 1), 1)
+    if drifted == text or module.SIMPLEX_ENTRY in module.install(drifted, drifted)[1]:
+        raise ValueError('Simplex controller binding accepted a changed child route')
+    hull = module.body(text, module.HULL)[0]
+    drifted = text.replace(hull, hull.replace('run_30eb30(s);', 'run_309ae0(s);', 1), 1)
+    if drifted == text or module.HULL_ENTRY in module.install(drifted, drifted)[1]:
+        raise ValueError('Simplex hull binding accepted a changed child route')
     report = dict(passed=False, unit=str(UNIT.relative_to(ROOT)), pins={name: module.OWNERS[name][1] for name in names},
                   forward_pin=module.FORWARD[1])
     release = compile_harness(scratch, 'pair-release', [])

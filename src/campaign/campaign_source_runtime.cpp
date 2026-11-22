@@ -312,8 +312,9 @@ void CampaignSourceRuntime::adopt(Simulation &simulation) {
     }
     simulation.player_.vitality.dead=true;
   }
+  const auto live_objects=objects_->live_objects();
   std::set<std::uint32_t> live;
-  for(const auto &object:objects_->live_objects())if(object.type==0 && object.object!=simulation.player_.source_datum) {
+  for(const auto &object:live_objects)if(object.type==0 && object.object!=simulation.player_.source_datum) {
     // Unit+12C is the actor binding; +13C is its independent player binding.
     if(read<std::uint32_t>(objects_->memory(),objects_->object_body(object.object),0x12c)==null_datum)continue;
     const auto character=std::ranges::find_if(simulation.content_.characters,[&](const auto &c){return c.second.biped.datum==object.definition;});
@@ -328,7 +329,7 @@ void CampaignSourceRuntime::adopt(Simulation &simulation) {
   }
   for(auto &actor:simulation.actors_)if(!live.contains(actor.source_datum))actor.exists=false;
   simulation.campaign_weapon_pickups_.clear();
-  for(const auto &object:objects_->live_objects())if(object.type==2) {
+  for(const auto &object:live_objects)if(object.type==2) {
     const auto definition=simulation.content_.weapons.find(object.definition);
     if(definition==simulation.content_.weapons.end() || definition->second.first_person_model==null_datum)continue;
     const auto placed=std::ranges::find_if(simulation.scene_.objects(),[&](const auto &o){return o.handle==object.object;});

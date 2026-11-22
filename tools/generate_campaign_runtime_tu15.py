@@ -32,6 +32,29 @@ ENTRIES = (
     0x1d5db0, 0x2b4a40,
 )
 SHARED_FRAME_HELPERS = (0x20b620, 0x20a160, 0x272550)
+COMBAT_RESET_CALL = ('if(s.services.instruction){s.services.instruction(0x1ec890u);} '
+                     's.push(0x1ec890u,selected(0x1ec895u,s.image));')
+COMBAT_RESET_ROUTE = '''
+// The published World owns this void call. 1EC895 consumes no volatile return state.
+if(const auto* cursor=s.immutable_cursor.cursor;
+    cursor && s.image==SourcePhysicsContactImage::TitleUpdate15 &&
+    !s.active_mmx && !s.observe && !(s.other_flags&0x400u) && s.services.required_owner &&
+    !(cursor->first_trace && *cursor->first_trace) && !(cursor->second_trace && *cursor->second_trace) &&
+    native_required_owner_policy_detail::preserves_instruction_policy(s.services))
+    s.required(0x1ec890u,selected(0x1ec7b0u,s.image),false);
+else run_1ec7b0(s);'''
+
+
+def bind_combat_reset(source, image):
+    if image.read(0x1ec890, 5) != bytes.fromhex('e81bffffff'):
+        raise ValueError('Original 1EC890 combat-reset call changed')
+    call = COMBAT_RESET_CALL + 'run_1ec7b0(s);'
+    header = '#include "physics/runtime/physics_world_runtime_internal.hpp"\n'
+    if source.count(call) != 1 or source.count(header) != 1:
+        raise ValueError('Generated 1EC890 combat-reset owner changed')
+    return source.replace(header, header +
+        '#include "physics/runtime/native_tu15_required_owner_policy.hpp"\n', 1).replace(
+        call, COMBAT_RESET_CALL + COMBAT_RESET_ROUTE, 1)
 
 
 def admit_canonical_owners():
@@ -212,7 +235,7 @@ def main():
     }
     for before, after in replacements.items():
         text = text.replace(before, after)
-    args.output.write_text(add_hooks(text))
+    args.output.write_text(bind_combat_reset(add_hooks(text), image))
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(args.output), module_generator_sha256=sha(Path(__file__)),
         scope=__doc__, reused_existing_frame_helpers=list(SHARED_FRAME_HELPERS),

@@ -146,8 +146,8 @@ std::uint32_t tag_block_search(const M&,std::uint32_t block,std::uint32_t key,st
 // 1E3270: child graph `index` (signed) or 0.
 std::uint32_t graph_child(const M&,std::uint32_t graph,std::uint32_t index);
 // 1E5C80: with animation streaming enabled ([0x51DF20] and [0x51DF21]),
-// requests the animation's (and its variants') resources; any request is
-// the 126200 refusal. No stores.
+// requests the animation's and variants' resources through the node
+// builder's shared resource controller and its bound World requester.
 void graph_require_resident(const M&,std::uint32_t graph,std::uint32_t handle);
 // 1E3150: the handle's animation row (0x6C bytes) or 0, after 1E5C80.
 std::uint32_t graph_animation(const M&,std::uint32_t graph,std::uint32_t handle);
@@ -168,8 +168,8 @@ std::uint32_t mode_iterate(const M&,ModeIterator&,FrameWord& out0,FrameWord& out
 // 1E33D0: the mode row for three keys or 0.
 std::uint32_t mode_entry(const M&,std::uint32_t graph,std::uint32_t k0,std::uint32_t k1,std::uint32_t k2);
 // 1E5E40 / 1E5F20 / 1E5FB0: resource prefetch of a mode row, of its five
-// fallback rows, and of those rows in the graph and its children. A
-// resident-flagged resource is the 126200 refusal. No stores.
+// fallback rows, and of those rows in the graph and its children. Enabled
+// resource rows use the bound 126200 controller in load/unload order.
 void mode_prefetch(const M&,std::uint32_t graph,std::uint32_t k0,std::uint32_t k1,std::uint32_t k2,bool load,bool unload);
 void mode_prefetch_fallbacks(const M&,std::uint32_t graph,std::uint32_t k0,std::uint32_t k1,std::uint32_t k2,bool load,bool unload);
 void graph_prefetch(const M&,std::uint32_t graph,std::uint32_t k0,std::uint32_t k1,std::uint32_t k2,bool load,bool unload);

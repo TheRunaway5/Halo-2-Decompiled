@@ -9,7 +9,8 @@ namespace halo2::pstencil {
 ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu15& world,
     std::uint32_t light,const NativeLightReceiver& receiver,std::uint32_t layer,bool shadow,
     std::uint32_t extra_features) {
-    if(layer<10 || layer>12)throw FormatError("Projected selection admits source layers 10, 11 and 12");
+    if((layer<10 || layer>12) && layer!=14)
+        throw FormatError("Projected selection admits source layers 10, 11, 12 and 14");
     const auto& memory=world.memory();
     const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
     const auto real=[&](std::uint32_t at){return std::bit_cast<float>(word(at));};
@@ -32,7 +33,7 @@ ProjectedLightSelection native_projected_light_selection_tu15(PhysicsLiveWorldTu
     ProjectedLightSelection out;
     out.features=projected_light_feature_mask(specular,real(0x46a18cu),
         shadow && receiver.shadow_enabled && (word(0x4ce2a0u)&0x400u),real(record+0x108u),metadata.u16(0x14))|extra_features;
-    // 449AF8: layer 10 owns bank 2, layers 11 and 12 bank 1.
+    // 449AF8: layer 10 owns bank 2. 31150 draws layers 11, 14 and 12 from bank 1.
     const std::uint32_t bank_index=layer==10?2u:1u,bank=0x4ce268u+bank_index*0x18u;
     constexpr std::uint32_t capacity=2560u;
     std::array<std::uint32_t,6> header;

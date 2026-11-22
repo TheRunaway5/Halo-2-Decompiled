@@ -23,7 +23,7 @@ MenuState selected(const FrontendContent& content,unsigned index,bool system_lin
   MenuState menu(content);menu.accept();choose(menu,0,167);
   menu.text("Objective Start");menu.commit_text();menu.back();
   need(menu.frame().screen==6 && !menu.signed_in_profile().empty(),"Objective Start has no signed-in profile");
-  choose(menu,system_link?3:2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,system_link?2:0,30);choose(menu,0,14);
   choose(menu,1,23);choose(menu,1,207);choose(menu,entry(menu,content.variants.at(index).engine),208);
   choose(menu,entry(menu,index),14);return menu;
 }

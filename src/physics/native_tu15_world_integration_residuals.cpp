@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_world_integration_residuals.hpp"
+#include "halo2/native_tu15_object_contact_cleanup.hpp"
 #include "halo2/native_tu15_world_factory_scratch.hpp"
 #include "halo2/native_tu15_pair_pool_release_input_observer.hpp"
 #include "halo2/native_tu15_motion_pose.hpp"
@@ -69,6 +70,271 @@ std::uint64_t timestamp(){
   throw std::runtime_error("Native TU1.5 world platform timestamp owner unavailable");
 #endif
 }
+// Holds the native contact cleanup graph for one operation. The services
+// refer to this instance, whose scratch and memory outlive every callback.
+class WorldContactCleanup final {
+  using ChildCall=std::function<void(std::uint32_t,std::span<const std::uint32_t>,
+    std::optional<std::uint32_t>,unsigned)>;
+  SourcePhysicsContactMemory& m;
+  const unsigned& x87_depth;
+  const std::uint32_t end;
+  const NativeTu15ArrayGrowthServices& arena_storage;
+  const NativeTu15ArrayGrowthServices& pair_storage;
+  NativeTu15PairDeletionNativeScope& pair_deletion_scope;
+  const SourcePhysicsContactRecordObserver& observe;
+  NativeTu15WorldIntegrationStats* const stats;
+  const ChildCall call;
+  NativeTu15AgentCleanupServices agent_cleanup;
+  NativeTu15AgentCleanupChildrenServices agent_children;
+  NativeTu15ContactManagerCleanupServices manager_cleanup;
+  NativeTu15PhantomCallbackCleanupServices phantom_cleanup;
+
+  [[noreturn]] void unqualified_pair_service(const std::string& why) const {
+    if(stats)++stats->native_pair_consumer_unqualified_services;
+    throw std::runtime_error(why);
+  }
+
+public:
+  WorldContactCleanup(SourcePhysicsContactMemory& memory,const unsigned& depth,std::uint32_t scratch_end,
+    const NativeTu15ArrayGrowthServices& arena,const NativeTu15ArrayGrowthServices& pair,
+    NativeTu15PairDeletionNativeScope& scope,const SourcePhysicsContactRecordObserver& observer,
+    NativeTu15WorldIntegrationStats* activity,ChildCall invoke)
+    :m(memory),x87_depth(depth),end(scratch_end),arena_storage(arena),pair_storage(pair),
+     pair_deletion_scope(scope),observe(observer),stats(activity),call(std::move(invoke)) {
+    agent_children.allocation=arena_storage;
+    manager_cleanup.collector.allocation=arena_storage;
+    manager_cleanup.collector.destroy_body=[this](auto body,auto owner,auto disposing,auto&){
+      if(stats)++stats->native_contact_manager_service_residuals;
+      const std::array args{disposing};call(owner.identity,args,body.identity,4);
+    };
+    manager_cleanup.collector.release_base_lock=[this](auto object,auto flags,auto&){
+      if(flags)throw std::runtime_error("Native TU1.5 contact cleanup requires the original base-lock release flag");
+      native_tu15_release_unregistered_base_lock(m,object,observe);
+      if(stats)++stats->native_contact_manager_base_lock_releases;
+    };
+    manager_cleanup.update_world=[this](auto current_world,auto result,auto collector,auto&){
+      if(stats)++stats->native_contact_manager_service_residuals;
+      const std::array args{result,collector};call(0x316aa0u,args,current_world,8);
+    };
+    agent_children.remove_point=[this](auto manager,auto owner,auto point,auto&context){
+      if(owner.identity==0x2e4d60u)return; // Authentic RET4, used by declared models.
+      if(owner.identity==0x322f70u){
+        native_tu15_observe_contact_point_removal_input(m,{manager,owner.identity,point,context,x87_depth});
+        NativeTu15ContactPointBindingActivity activity;
+        const auto collect_point=[&]{if(stats){
+            stats->native_contact_point_attempts+=activity.attempts;
+            stats->native_contact_point_calls+=activity.completed;
+            stats->native_contact_point_refusals+=activity.refusals;
+            stats->native_contact_point_profile_refusals+=activity.unsupported_profiles;
+            stats->native_contact_point_unqualified_services+=activity.unqualified_services;
+            stats->native_contact_point_noop_listeners+=activity.noop_listeners;
+            stats->native_contact_point_gameplay_listeners+=activity.gameplay_listeners;
+            stats->native_contact_point_gameplay_rows+=activity.gameplay.rows;
+            stats->native_contact_point_metadata_calls+=activity.collector_updates+activity.detach.native_metadata_removals;
+            stats->native_contact_point_world_updates+=activity.world.completed;
+            stats->native_contact_point_world_queued_updates+=activity.world.queued;
+            stats->native_contact_point_island_detaches+=activity.detach.calls;
+            stats->native_contact_point_info_queries+=activity.detach.native_info_queries;
+            stats->native_contact_point_reference_releases+=activity.detach.reference_releases;
+            stats->native_contact_point_effect_requests+=activity.gameplay.constraint_releases;
+            stats->native_contact_point_constraint_reference_calls+=activity.reference.calls;
+            stats->native_contact_point_constraint_reference_decrements+=activity.reference.decrements;
+            stats->native_contact_point_constraint_reference_runtime_removals+=activity.reference.runtime_removals;
+            stats->native_contact_point_constraint_reference_runtime_refusals+=activity.reference.unbound_runtime_removals;
+            stats->native_contact_point_part_requests+=activity.gameplay.part_releases;
+            stats->native_contact_point_part_calls+=activity.part.attempts;
+            stats->native_contact_point_part_completions+=activity.part.completed;
+            stats->native_contact_point_part_refusals+=activity.part.refusals;
+            stats->native_contact_point_part_inactive+=activity.part.response.inactive;
+            stats->native_contact_point_part_material_queries+=activity.part.response.conveyor.material_queries;
+            stats->native_contact_point_part_response_vectors+=activity.part.response.response_vectors;
+            stats->native_contact_point_part_zero_properties+=activity.part.response.zero_properties;
+            stats->native_contact_point_part_vector_properties+=activity.part.response.vector_properties;
+            stats->native_contact_point_part_conveyor_bindings+=activity.part.response.conveyor.bindings;
+            stats->native_contact_point_part_function_calls+=activity.part.function.calls;
+            stats->native_contact_point_part_function_refusals+=activity.part.function.unsupported_kinds+activity.part.function.unsupported_power_profiles+activity.part.function.curves.unsupported_types+activity.part.function.curves.unsupported_inputs;
+            stats->native_contact_point_part_function_fp_refusals+=activity.part.function.unsupported_fp_profiles+activity.part.function.curves.unsupported_fp_profiles;
+        }};
+        try{
+          // Event20B and info16B occupy the free gap after pair header[-60,-4C)
+          // and before out[-20,-10). All are above the genuine call_stack.
+          // Point info is dead before detach325E90 completely rewrites it.
+          const NativeTu15ContactPointBindingScratch point_data{
+            std::uint32_t(end)-0x4cu,std::uint32_t(end)-0x38u,
+            std::uint32_t(end)-0x24u,std::uint32_t(end)-0x38u};
+          native_tu15_remove_bound_contact_point(m,manager,std::uint32_t(point),point_data,
+            context,x87_depth,arena_storage,observe,&activity);
+          collect_point();
+        }catch(...){collect_point();throw;}
+        return;
+      }
+      if(stats)++stats->native_contact_agent_point_residuals;
+      const std::array args{std::uint32_t(point)};call(owner.identity,args,manager,4);
+    };
+    agent_cleanup.cleanup_child=[this](auto agent,auto owner,auto&context){
+      invalidate_agent(agent.identity,owner.identity,context);
+    };
+    agent_cleanup.dispose=[this](auto object,auto owner,auto disposing,auto&context){
+      if(owner.identity==0x2e4d60u)return; // Authentic RET4, no supplied result.
+      if(owner.identity==0x3232b0u){
+        native_tu15_observe_contact_manager_cleanup_input(m,{object,disposing,context,x87_depth});
+        const auto collector=object+0x10u;
+        // Admission is limited to source-qualified borrowed/native-pool owned array profiles.
+        // Unsupported branches remain visible refusals before native stores.
+        const auto native_owned_header=[&](std::uint32_t offset,std::uint32_t stride){
+          const auto capacity=word(m,collector+offset);
+          return (capacity&0x80000000u)!=0||
+            std::uint64_t(capacity&0x7fffffffu)*stride<=0x2000u;
+        };
+        // The current strict149E00 router verifies each actual release owner at
+        // its source phase. No pointer, capacity or allocator outcome is cached.
+        const auto supported=word(m,object+0xa4u)==0&&
+          native_owned_header(0x98u,28u)&&native_owned_header(0x3cu,32u)&&
+          native_owned_header(0x28u,1u)&&
+          (!(word(m,collector+4u,2)&0x8000u)||!native_tu15_base_lock_registered(m,collector));
+        if(!supported){if(stats)++stats->native_contact_manager_cleanup_refusals;
+          throw std::runtime_error("Native TU1.5 contact manager cleanup requires a qualified storage/current-world profile");}
+        const std::array bodies{word(m,collector+0xcu),word(m,collector+0x10u)};
+        std::array<std::uint32_t,2> worlds{};
+        for(unsigned index=0;index<bodies.size();++index){
+          const auto body=bodies[index];
+          const auto refs=body?word(m,body+6u,2):0u;
+          if(body)worlds[index]=word(m,body+8u);
+          bool member=false;
+          if(body&&worlds[index]&&refs>0&&refs<0xffffu){
+            const auto count=word(m,body+0x8cu),entries=word(m,body+0x88u);
+            std::uint32_t matches{};
+            for(std::uint32_t n=0;std::int32_t(n)<std::int32_t(count);++n)
+              if(word(m,entries+n*4u)==collector)++matches;
+            member=matches>=(bodies[0]==bodies[1]?2u:1u);
+          }
+          if(!member){if(stats)++stats->native_contact_manager_cleanup_refusals;
+            throw std::runtime_error("Native TU1.5 contact manager cleanup requires qualified retained bodies/listener membership");}
+        }
+        for(const auto current_world:worlds){
+          auto count=word(m,current_world+0x118u),capacity=word(m,current_world+0x11cu)&0x7fffffffu;
+          const auto needed=worlds[0]==worlds[1]?2u:1u;
+          // Original316DC0 grows a full deferred-reference array through
+          // 2E3270 before appending. The native collector already owns that
+          // growth and its real allocator. Qualify its bounded pool requests,
+          // rather than rejecting every initially full (including empty) list.
+          bool qualified=count<=capacity;
+          for(unsigned n=0;qualified&&n<needed;++n) {
+            if(count==capacity) {
+              const auto next=count?std::uint64_t(count)*2u:1u;
+              qualified=next*4u<=0x2000u;
+              if(qualified)capacity=std::uint32_t(next);
+            }
+            ++count;
+          }
+          if(!qualified){if(stats)++stats->native_contact_manager_cleanup_refusals;
+            throw std::runtime_error("Native TU1.5 contact manager cleanup requires qualified deferred-list growth");}
+        }
+        NativeTu15ActivationContactManagerStats activity;
+        try{(void)native_tu15_delete_contact_manager(m,object,disposing,
+          {std::uint32_t(end)-0x1a0u},context,manager_cleanup,observe,&activity);}
+        catch(...){if(stats){++stats->native_contact_manager_cleanup_refusals;stats->native_contact_manager_deferred_growths+=activity.array_growths;}throw;}
+        if(stats){++stats->native_contact_manager_cleanups;
+          stats->native_contact_manager_deferred_growths+=activity.array_growths;
+          stats->native_contact_collector_cleanups+=activity.collector_destructions;
+          stats->native_contact_listener_unregistrations+=activity.unregistrations;
+          stats->native_contact_listener_deferred_references+=activity.deferred_references;}
+        return;
+      }
+      if(owner.identity==0x2f81b0u){
+        // The same native-only guard applies even outside pair deletion. Any
+        // deeper unconverted allocator owner refuses before legacy transport.
+        (void)native_tu15_delete_bound_reversed_list_contact_agent(m,{object},disposing,
+          context,agent_children,pair_deletion_scope,observe,
+          stats?&stats->reversed_list_agent_destructor:nullptr);
+        if(stats)++stats->native_contact_agent_native_destructors;return;
+      }
+      if(owner.identity==0x2f8090u||owner.identity==0x3051a0u||owner.identity==0x2fc540u||owner.identity==0x2f35f0u){
+        const auto kind=owner.identity==0x2f8090u?NativeTu15AgentDestructor::owner_2f8090:
+          owner.identity==0x3051a0u?NativeTu15AgentDestructor::owner_3051a0:
+          owner.identity==0x2f35f0u?NativeTu15AgentDestructor::owner_2f35f0:NativeTu15AgentDestructor::owner_2fc540;
+        (void)native_tu15_destroy_contact_agent(m,kind,{object},disposing,context,agent_children,observe);
+        if(stats)++stats->native_contact_agent_native_destructors;return;
+      }
+      if(stats)++stats->native_contact_agent_destructor_residuals;
+      const std::array args{disposing};call(owner.identity,args,object,4);
+    };
+    agent_children.agents=agent_cleanup;
+    phantom_cleanup.agents=agent_cleanup;
+    phantom_cleanup.leave=[this](auto shape,auto owner,auto self,auto other,auto&context){
+      if(owner.identity!=0x1f3550u)
+        unqualified_pair_service("Native phantom cleanup requires qualified shape leave owner="+
+          std::to_string(owner.identity));
+      native_tu15_leave_gameplay_phantom(m,shape.identity,self.identity,other.identity,
+        context,pair_storage,observe);
+    };
+  }
+  WorldContactCleanup(const WorldContactCleanup&)=delete;
+  WorldContactCleanup& operator=(const WorldContactCleanup&)=delete;
+
+  void dispose_reference(std::uint32_t receiver,NativeTu15PhysicsFrameFp& context) {
+    native_tu15_dispose_contact_reference(m,receiver,context,agent_cleanup);
+  }
+  void invalidate_agent(std::uint32_t receiver,std::uint32_t owner,NativeTu15PhysicsFrameFp& context) {
+    if(owner==0x31d400u)return; // Authentic RET0; no result/postimage.
+    if(owner==0x2f0da0u||owner==0x2fbb10u||owner==0x2f9960u||owner==0x2f7790u){
+      NativeTu15PairDeletionNativeScopeGuard guard(pair_deletion_scope,
+        stats?&stats->pair_deletion_scope:nullptr);
+      try{
+        if(owner==0x2f0da0u){
+          native_tu15_cleanup_bv_contact_agent(m,{receiver},context,agent_children,observe);
+          if(stats)++stats->native_contact_agent_wrapped_cleanups;
+        }else if(owner==0x2f9960u){
+          native_tu15_cleanup_sphere_contact_agent(m,{receiver},context,agent_children,observe);
+          if(stats)++stats->native_contact_agent_cached_cleanups;
+        }else if(owner==0x2fbb10u){
+          native_tu15_cleanup_single_point_contact_agent(m,{receiver},context,agent_children);
+          if(stats)++stats->native_contact_agent_cached_cleanups;
+        }else{
+          native_tu15_cleanup_phantom_callback_agent(m,{receiver},context,phantom_cleanup);
+        }
+      }catch(...){if(stats)++stats->native_contact_agent_cleanup_refusals;throw;}
+      return;
+    }
+    if(owner==0x2f3100u||owner==0x2f7a20u||owner==0x323220u||owner==0x2f82d0u||owner==0x2f6c80u){
+      try{
+        if(owner==0x323220u){
+          native_tu15_dispose_contact_reference(m,receiver,context,agent_cleanup);
+          if(stats)++stats->native_contact_reference_disposals;
+        }else if(owner==0x2f82d0u){
+          native_tu15_cleanup_cached_contact_agent(m,{receiver},context,agent_children,observe);
+          if(stats)++stats->native_contact_agent_cached_cleanups;
+        }else if(owner==0x2f6c80u){
+          native_tu15_cleanup_wrapped_contact_agent(m,{receiver},context,agent_children);
+          if(stats)++stats->native_contact_agent_wrapped_cleanups;
+        }else{
+          const auto kind=owner==0x2f3100u?NativeTu15AgentCleanupKind::records_2f3100:
+            NativeTu15AgentCleanupKind::pointers_2f7a20;
+          native_tu15_cleanup_contact_agent(m,kind,{receiver},context,agent_cleanup);
+          if(stats){++stats->native_contact_agent_cleanup_calls;
+            if(owner==0x2f3100u)++stats->native_contact_agent_record_cleanups;
+            else ++stats->native_contact_agent_pointer_cleanups;}
+        }
+      }catch(...){if(stats)++stats->native_contact_agent_cleanup_refusals;throw;}
+      return;
+    }
+    if(stats)++stats->native_contact_agent_child_residuals;
+    call(owner,{},receiver,0);
+  }
+};
+
+}
+void native_tu15_cleanup_object_factory_contact(SourcePhysicsContactMemory& memory,
+  std::uint32_t receiver,std::uint32_t owner,std::uint32_t scratch_end,NativeTu15PhysicsFrameFp& fp,
+  const NativeTu15ArrayGrowthServices& allocation,const SourcePhysicsContactRecordObserver& observe) {
+  if(owner!=0x2f3100u && owner!=0x323220u)
+    throw std::runtime_error("Native object factory requires a qualified pair cleanup owner");
+  constexpr unsigned x87_depth=0;
+  NativeTu15PairDeletionNativeScope scope;
+  NativeTu15PairDeletionNativeScopeGuard strict(scope);
+  WorldContactCleanup cleanup(memory,x87_depth,scratch_end,allocation,allocation,scope,observe,nullptr,
+    [&](auto target,auto,auto,auto){scope.reject_unconverted(target);});
+  cleanup.invalidate_agent(receiver,owner,fp);
 }
 void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
   NativeTu15PhysicsWorld world,const NativeTu15PhysicsStep&step,NativeTu15PhysicsFrameFp&fp,
@@ -335,224 +601,8 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
     native_tu15_release_stack_arena(m,allocator.identity,data,bytes,context,arena_storage,observe);
     if(stats)++stats->native_stack_arena_releases;
   };
-  NativeTu15AgentCleanupServices agent_cleanup;
-  NativeTu15AgentCleanupChildrenServices agent_children;
-  agent_children.allocation=arena_storage;
-  NativeTu15ContactManagerCleanupServices manager_cleanup;
-  manager_cleanup.collector.allocation=arena_storage;
-  manager_cleanup.collector.destroy_body=[&](auto body,auto owner,auto disposing,auto&){
-    if(stats)++stats->native_contact_manager_service_residuals;
-    const std::array args{disposing};call(owner.identity,args,body.identity,4);
-  };
-  manager_cleanup.collector.release_base_lock=[&](auto object,auto flags,auto&){
-    if(flags)throw std::runtime_error("Native TU1.5 contact cleanup requires the original base-lock release flag");
-    native_tu15_release_unregistered_base_lock(m,object,observe);
-    if(stats)++stats->native_contact_manager_base_lock_releases;
-  };
-  manager_cleanup.update_world=[&](auto current_world,auto result,auto collector,auto&){
-    if(stats)++stats->native_contact_manager_service_residuals;
-    const std::array args{result,collector};call(0x316aa0u,args,current_world,8);
-  };
-  agent_children.remove_point=[&](auto manager,auto owner,auto point,auto&context){
-    if(owner.identity==0x2e4d60u)return; // Authentic RET4, used by declared models.
-    if(owner.identity==0x322f70u){
-      native_tu15_observe_contact_point_removal_input(m,{manager,owner.identity,point,context,state.x87_depth});
-      NativeTu15ContactPointBindingActivity activity;
-      const auto collect_point=[&]{if(stats){
-          stats->native_contact_point_attempts+=activity.attempts;
-          stats->native_contact_point_calls+=activity.completed;
-          stats->native_contact_point_refusals+=activity.refusals;
-          stats->native_contact_point_profile_refusals+=activity.unsupported_profiles;
-          stats->native_contact_point_unqualified_services+=activity.unqualified_services;
-          stats->native_contact_point_noop_listeners+=activity.noop_listeners;
-          stats->native_contact_point_gameplay_listeners+=activity.gameplay_listeners;
-          stats->native_contact_point_gameplay_rows+=activity.gameplay.rows;
-          stats->native_contact_point_metadata_calls+=activity.collector_updates+activity.detach.native_metadata_removals;
-          stats->native_contact_point_world_updates+=activity.world.completed;
-          stats->native_contact_point_world_queued_updates+=activity.world.queued;
-          stats->native_contact_point_island_detaches+=activity.detach.calls;
-          stats->native_contact_point_info_queries+=activity.detach.native_info_queries;
-          stats->native_contact_point_reference_releases+=activity.detach.reference_releases;
-          stats->native_contact_point_effect_requests+=activity.gameplay.constraint_releases;
-          stats->native_contact_point_constraint_reference_calls+=activity.reference.calls;
-          stats->native_contact_point_constraint_reference_decrements+=activity.reference.decrements;
-          stats->native_contact_point_constraint_reference_runtime_removals+=activity.reference.runtime_removals;
-          stats->native_contact_point_constraint_reference_runtime_refusals+=activity.reference.unbound_runtime_removals;
-          stats->native_contact_point_part_requests+=activity.gameplay.part_releases;
-          stats->native_contact_point_part_calls+=activity.part.attempts;
-          stats->native_contact_point_part_completions+=activity.part.completed;
-          stats->native_contact_point_part_refusals+=activity.part.refusals;
-          stats->native_contact_point_part_inactive+=activity.part.response.inactive;
-          stats->native_contact_point_part_material_queries+=activity.part.response.conveyor.material_queries;
-          stats->native_contact_point_part_response_vectors+=activity.part.response.response_vectors;
-          stats->native_contact_point_part_zero_properties+=activity.part.response.zero_properties;
-          stats->native_contact_point_part_vector_properties+=activity.part.response.vector_properties;
-          stats->native_contact_point_part_conveyor_bindings+=activity.part.response.conveyor.bindings;
-          stats->native_contact_point_part_function_calls+=activity.part.function.calls;
-          stats->native_contact_point_part_function_refusals+=activity.part.function.unsupported_kinds+activity.part.function.unsupported_power_profiles+activity.part.function.curves.unsupported_types+activity.part.function.curves.unsupported_inputs;
-          stats->native_contact_point_part_function_fp_refusals+=activity.part.function.unsupported_fp_profiles+activity.part.function.curves.unsupported_fp_profiles;
-      }};
-      try{
-        // Event20B and info16B occupy the free gap after pair header[-60,-4C)
-        // and before out[-20,-10). All are above the genuine call_stack.
-        // Point info is dead before detach325E90 completely rewrites it.
-        const NativeTu15ContactPointBindingScratch point_data{
-          std::uint32_t(end)-0x4cu,std::uint32_t(end)-0x38u,
-          std::uint32_t(end)-0x24u,std::uint32_t(end)-0x38u};
-        native_tu15_remove_bound_contact_point(m,manager,std::uint32_t(point),point_data,
-          context,state.x87_depth,arena_storage,observe,&activity);
-        collect_point();
-      }catch(...){collect_point();throw;}
-      return;
-    }
-    if(stats)++stats->native_contact_agent_point_residuals;
-    const std::array args{std::uint32_t(point)};call(owner.identity,args,manager,4);
-  };
-  std::function<void(std::uint32_t,std::uint32_t,NativeTu15PhysicsFrameFp&)>invalidate_agent;
-  agent_cleanup.cleanup_child=[&](auto agent,auto owner,auto&context){
-    invalidate_agent(agent.identity,owner.identity,context);
-  };
-  agent_cleanup.dispose=[&](auto object,auto owner,auto disposing,auto&context){
-    if(owner.identity==0x2e4d60u)return; // Authentic RET4, no supplied result.
-    if(owner.identity==0x3232b0u){
-      native_tu15_observe_contact_manager_cleanup_input(m,{object,disposing,context,state.x87_depth});
-      const auto collector=object+0x10u;
-      // Admission is limited to source-qualified borrowed/native-pool owned array profiles.
-      // Unsupported branches remain visible refusals before native stores.
-      const auto native_owned_header=[&](std::uint32_t offset,std::uint32_t stride){
-        const auto capacity=word(m,collector+offset);
-        return (capacity&0x80000000u)!=0||
-          std::uint64_t(capacity&0x7fffffffu)*stride<=0x2000u;
-      };
-      // The current strict149E00 router verifies each actual release owner at
-      // its source phase. No pointer, capacity or allocator outcome is cached.
-      const auto supported=word(m,object+0xa4u)==0&&
-        native_owned_header(0x98u,28u)&&native_owned_header(0x3cu,32u)&&
-        native_owned_header(0x28u,1u)&&
-        (!(word(m,collector+4u,2)&0x8000u)||!native_tu15_base_lock_registered(m,collector));
-      if(!supported){if(stats)++stats->native_contact_manager_cleanup_refusals;
-        throw std::runtime_error("Native TU1.5 contact manager cleanup requires a qualified storage/current-world profile");}
-      const std::array bodies{word(m,collector+0xcu),word(m,collector+0x10u)};
-      std::array<std::uint32_t,2> worlds{};
-      for(unsigned index=0;index<bodies.size();++index){
-        const auto body=bodies[index];
-        const auto refs=body?word(m,body+6u,2):0u;
-        if(body)worlds[index]=word(m,body+8u);
-        bool member=false;
-        if(body&&worlds[index]&&refs>0&&refs<0xffffu){
-          const auto count=word(m,body+0x8cu),entries=word(m,body+0x88u);
-          std::uint32_t matches{};
-          for(std::uint32_t n=0;std::int32_t(n)<std::int32_t(count);++n)
-            if(word(m,entries+n*4u)==collector)++matches;
-          member=matches>=(bodies[0]==bodies[1]?2u:1u);
-        }
-        if(!member){if(stats)++stats->native_contact_manager_cleanup_refusals;
-          throw std::runtime_error("Native TU1.5 contact manager cleanup requires qualified retained bodies/listener membership");}
-      }
-      for(const auto current_world:worlds){
-        auto count=word(m,current_world+0x118u),capacity=word(m,current_world+0x11cu)&0x7fffffffu;
-        const auto needed=worlds[0]==worlds[1]?2u:1u;
-        // Original316DC0 grows a full deferred-reference array through
-        // 2E3270 before appending. The native collector already owns that
-        // growth and its real allocator. Qualify its bounded pool requests,
-        // rather than rejecting every initially full (including empty) list.
-        bool qualified=count<=capacity;
-        for(unsigned n=0;qualified&&n<needed;++n) {
-          if(count==capacity) {
-            const auto next=count?std::uint64_t(count)*2u:1u;
-            qualified=next*4u<=0x2000u;
-            if(qualified)capacity=std::uint32_t(next);
-          }
-          ++count;
-        }
-        if(!qualified){if(stats)++stats->native_contact_manager_cleanup_refusals;
-          throw std::runtime_error("Native TU1.5 contact manager cleanup requires qualified deferred-list growth");}
-      }
-      NativeTu15ActivationContactManagerStats activity;
-      try{(void)native_tu15_delete_contact_manager(m,object,disposing,
-        {std::uint32_t(end)-0x1a0u},context,manager_cleanup,observe,&activity);}
-      catch(...){if(stats){++stats->native_contact_manager_cleanup_refusals;stats->native_contact_manager_deferred_growths+=activity.array_growths;}throw;}
-      if(stats){++stats->native_contact_manager_cleanups;
-        stats->native_contact_manager_deferred_growths+=activity.array_growths;
-        stats->native_contact_collector_cleanups+=activity.collector_destructions;
-        stats->native_contact_listener_unregistrations+=activity.unregistrations;
-        stats->native_contact_listener_deferred_references+=activity.deferred_references;}
-      return;
-    }
-    if(owner.identity==0x2f81b0u){
-      // The same native-only guard applies even outside pair deletion. Any
-      // deeper unconverted allocator owner refuses before legacy transport.
-      (void)native_tu15_delete_bound_reversed_list_contact_agent(m,{object},disposing,
-        context,agent_children,pair_deletion_scope,observe,
-        stats?&stats->reversed_list_agent_destructor:nullptr);
-      if(stats)++stats->native_contact_agent_native_destructors;return;
-    }
-    if(owner.identity==0x2f8090u||owner.identity==0x3051a0u||owner.identity==0x2fc540u||owner.identity==0x2f35f0u){
-      const auto kind=owner.identity==0x2f8090u?NativeTu15AgentDestructor::owner_2f8090:
-        owner.identity==0x3051a0u?NativeTu15AgentDestructor::owner_3051a0:
-        owner.identity==0x2f35f0u?NativeTu15AgentDestructor::owner_2f35f0:NativeTu15AgentDestructor::owner_2fc540;
-      (void)native_tu15_destroy_contact_agent(m,kind,{object},disposing,context,agent_children,observe);
-      if(stats)++stats->native_contact_agent_native_destructors;return;
-    }
-    if(stats)++stats->native_contact_agent_destructor_residuals;
-    const std::array args{disposing};call(owner.identity,args,object,4);
-  };
-  agent_children.agents=agent_cleanup;
-  NativeTu15PhantomCallbackCleanupServices phantom_cleanup;
-  phantom_cleanup.agents=agent_cleanup;
-  phantom_cleanup.leave=[&](auto shape,auto owner,auto self,auto other,auto&context){
-    if(owner.identity!=0x1f3550u)
-      unqualified_pair_service("Native phantom cleanup requires qualified shape leave owner="+
-        std::to_string(owner.identity));
-    native_tu15_leave_gameplay_phantom(m,shape.identity,self.identity,other.identity,
-      context,pair_storage,observe);
-  };
-  invalidate_agent=[&](auto receiver,auto owner,auto&context){
-    if(owner==0x31d400u)return; // Authentic RET0; no result/postimage.
-    if(owner==0x2f0da0u||owner==0x2fbb10u||owner==0x2f9960u||owner==0x2f7790u){
-      NativeTu15PairDeletionNativeScopeGuard guard(pair_deletion_scope,
-        stats?&stats->pair_deletion_scope:nullptr);
-      try{
-        if(owner==0x2f0da0u){
-          native_tu15_cleanup_bv_contact_agent(m,{receiver},context,agent_children,observe);
-          if(stats)++stats->native_contact_agent_wrapped_cleanups;
-        }else if(owner==0x2f9960u){
-          native_tu15_cleanup_sphere_contact_agent(m,{receiver},context,agent_children,observe);
-          if(stats)++stats->native_contact_agent_cached_cleanups;
-        }else if(owner==0x2fbb10u){
-          native_tu15_cleanup_single_point_contact_agent(m,{receiver},context,agent_children);
-          if(stats)++stats->native_contact_agent_cached_cleanups;
-        }else{
-          native_tu15_cleanup_phantom_callback_agent(m,{receiver},context,phantom_cleanup);
-        }
-      }catch(...){if(stats)++stats->native_contact_agent_cleanup_refusals;throw;}
-      return;
-    }
-    if(owner==0x2f3100u||owner==0x2f7a20u||owner==0x323220u||owner==0x2f82d0u||owner==0x2f6c80u){
-      try{
-        if(owner==0x323220u){
-          native_tu15_dispose_contact_reference(m,receiver,context,agent_cleanup);
-          if(stats)++stats->native_contact_reference_disposals;
-        }else if(owner==0x2f82d0u){
-          native_tu15_cleanup_cached_contact_agent(m,{receiver},context,agent_children,observe);
-          if(stats)++stats->native_contact_agent_cached_cleanups;
-        }else if(owner==0x2f6c80u){
-          native_tu15_cleanup_wrapped_contact_agent(m,{receiver},context,agent_children);
-          if(stats)++stats->native_contact_agent_wrapped_cleanups;
-        }else{
-          const auto kind=owner==0x2f3100u?NativeTu15AgentCleanupKind::records_2f3100:
-            NativeTu15AgentCleanupKind::pointers_2f7a20;
-          native_tu15_cleanup_contact_agent(m,kind,{receiver},context,agent_cleanup);
-          if(stats){++stats->native_contact_agent_cleanup_calls;
-            if(owner==0x2f3100u)++stats->native_contact_agent_record_cleanups;
-            else ++stats->native_contact_agent_pointer_cleanups;}
-        }
-      }catch(...){if(stats)++stats->native_contact_agent_cleanup_refusals;throw;}
-      return;
-    }
-    if(stats)++stats->native_contact_agent_child_residuals;
-    call(owner,{},receiver,0);
-  };
+  WorldContactCleanup contact_cleanup(m,state.x87_depth,std::uint32_t(end),arena_storage,pair_storage,
+    pair_deletion_scope,observe,stats,call);
   NativeTu15IslandLifetimeServices merge_lifetime;
   merge_lifetime.allocation=arena_storage;
   const auto unqualified_merge=[&](const char*why){
@@ -583,7 +633,7 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
     if(target!=0x31d400u&&target!=0x2f3100u&&target!=0x2f7a20u&&target!=0x323220u&&
        target!=0x2f82d0u&&target!=0x2f6c80u&&target!=0x2f0da0u&&target!=0x2fbb10u&&target!=0x2f9960u&&target!=0x2f7790u)
       unqualified_merge("Native TU1.5 island merge requires a qualified duplicate cleanup owner");
-    invalidate_agent(object,target,context);
+    contact_cleanup.invalidate_agent(object,target,context);
   };
   merge_contacts.cleanup_duplicate_agent=cleanup_merge_duplicate;
   merge_contacts.release_duplicate_manager=cleanup_merge_duplicate;
@@ -974,7 +1024,7 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
     };
     create.agents.release_manager=[&](auto manager,auto target,auto&current){
       if(target.identity!=0x323220u)unqualified_pair_service("Native TU1.5 pair create requires qualified manager release");
-      native_tu15_dispose_contact_reference(m,manager.identity,current,agent_cleanup);
+      contact_cleanup.dispose_reference(manager.identity,current);
       if(stats)++stats->native_contact_reference_disposals;
     };
     const auto formal=std::uint32_t(end)-0x1b0u; // Four source-owned DATA bytes.
@@ -1028,8 +1078,8 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
     // Four bytes of ordinary formal DATA, outside all live pair/point packets.
     const auto formal=std::uint32_t(end)-0xa4u;put(m,formal,pair);
     NativeTu15PairDeletionBindingServices deletion;
-    deletion.cleanup_agent=[&](auto agent,auto target,auto&current){invalidate_agent(agent.identity,target.identity,current);};
-    deletion.release_manager=[&](auto manager,auto target,auto&current){invalidate_agent(manager.identity,target.identity,current);};
+    deletion.cleanup_agent=[&](auto agent,auto target,auto&current){contact_cleanup.invalidate_agent(agent.identity,target.identity,current);};
+    deletion.release_manager=[&](auto manager,auto target,auto&current){contact_cleanup.invalidate_agent(manager.identity,target.identity,current);};
     native_tu15_delete_bound_pair_in_native_scope(m,handler,pair,{formal},context,deletion,
       pair_deletion_scope,observe,stats?&stats->pair_deletion:nullptr,stats?&stats->pair_deletion_scope:nullptr);
   };
@@ -1231,7 +1281,7 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
   };
   NativeTu15InactiveIslandCleanupServices inactive_cleanup;
   const auto invalidate_inactive=[&](auto receiver,auto owner,auto&context){
-    invalidate_agent(receiver,owner.identity,context);
+    contact_cleanup.invalidate_agent(receiver,owner.identity,context);
   };
   inactive_cleanup.invalidate_agent=invalidate_inactive;
   inactive_cleanup.invalidate_manager=invalidate_inactive;

@@ -123,7 +123,7 @@ int main(int argc,char** argv)try {
                 frontend->retain_content(std::move(content));auto& menu=frontend->create_state();
                 need(menu.controller_slot(100,true)==0,"Objective lifecycle host controller missing");
                 menu.accept();choose(menu,0,167);menu.text("Objective Host");menu.commit_text();menu.back();
-                need(menu.frame().screen==6,"Objective lifecycle host profile failed");choose(menu,2,30);
+                need(menu.frame().screen==6,"Objective lifecycle host profile failed");choose(menu,1,218); choose(menu,0,30);
                 need(menu.controller_slot(101,true)==1 && menu.frame().screen==10,"Objective lifecycle guest picker missing");
                 menu.accept();menu.text("Objective Guest");menu.commit_text();menu.back();need(menu.frame().screen==30,"Objective guest profile failed");
                 choose(menu,0,14);choose(menu,1,23);choose(menu,0,206);choose(menu,entry(menu,map_index),14);

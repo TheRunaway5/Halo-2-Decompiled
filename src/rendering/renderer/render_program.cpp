@@ -25,15 +25,18 @@ std::size_t permutation_index(const ShaderFragment &fragment,
   return fragment.permutations.first() + selected;
 }
 } // namespace
-PackedVertexProgramBank pack_vertex_program_bank(const VertexProgramBank &bank) {
+std::array<std::uint32_t,4> vertex_program_bank_range(const VertexProgramBank &bank) {
   if(bank.first_constant>192 || bank.constants.size()>192-bank.first_constant ||
      bank.constants.size()>158 ||
      (bank.camera_inputs ? bank.first_constant!=0 || bank.constants.size()<12 :
                            bank.first_constant<34))
     throw FormatError("draw vertex globals outside source register bank");
+  return {bank.first_constant,unsigned(bank.constants.size()),
+          bank.prt_inputs?1u:0u,bank.camera_inputs?1u:0u};
+}
+PackedVertexProgramBank pack_vertex_program_bank(const VertexProgramBank &bank) {
   PackedVertexProgramBank result;
-  result.range={bank.first_constant,unsigned(bank.constants.size()),
-                bank.prt_inputs?1u:0u,bank.camera_inputs?1u:0u};
+  result.range=vertex_program_bank_range(bank);
   std::copy(bank.constants.begin(),bank.constants.end(),result.constants.begin());
   return result;
 }

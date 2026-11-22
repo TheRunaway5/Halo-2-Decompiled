@@ -6,6 +6,7 @@
 #include "halo2/effect_light_view.hpp"
 
 namespace halo2::pstencil {
+struct CampaignLightingPassTimings;
 struct ProjectedLightFrame {
     std::uint32_t features{};
     unsigned selected_commands{},color_shift{};
@@ -34,7 +35,10 @@ public:
         unsigned* shadow_targets=nullptr,
         // Preserve native constants/selections while omitting host raster
         // packets and stencil casters for another lighting backend.
-        bool materialize_draws=true);
+        bool materialize_draws=true,
+        // Only pStencil needs the host-side volume caster output.
+        bool materialize_point_casters=true,
+        CampaignLightingPassTimings* timing=nullptr);
     static constexpr unsigned shadow_target_limit=8;
 private:
     struct Impl;std::unique_ptr<Impl> impl_;

@@ -22,6 +22,10 @@ public:
     NativeTu15MoppPrivateRayMemory(SourcePhysicsContactMemory&memory,std::uint32_t input,
         std::uint32_t cache,NativeTu15MoppPrivateRayActivity&activity):memory_(memory),
         input_word_(input+0x20u),cache_word_(cache+0x40u),activity_(activity){}
+    std::optional<std::span<const std::byte>> try_read_view(std::uint32_t p,std::size_t n)const noexcept override{
+        if(!n||touches(p,n))return std::nullopt;
+        return memory_.try_read_view(p,n);
+    }
     void read(std::uint32_t p,std::span<std::byte>bytes)const override{
         if(!bytes.empty()&&touches(p,bytes.size())){++activity_.unprovided_reads;throw std::runtime_error("Native MOPP ray requires a defined filter-info DATA owner");}
         memory_.read(p,bytes);

@@ -16,7 +16,8 @@ bool native_tu15_handoff_overlap_query(SourcePhysicsContactMemory&memory,
             std::uint32_t n{};for(unsigned k=0;k<4;++k)n|=std::to_integer<unsigned>(b[k])<<(k*8u);return n;};
         const auto sp=abi.gp[4];
         const bool cdecl=call.target==0x2fab70u;
-        const auto site=cdecl?0x2f1806u:call.target==0x2f9ca0u?0x2f6fabu:0x2f4d3cu;
+        const bool inverted_pair=cdecl&&call.instruction==0x2f7038u;
+        const auto site=inverted_pair?0x2f7038u:cdecl?0x2f1806u:call.target==0x2f9ca0u?0x2f6fabu:0x2f4d3cu;
         const auto continuation=site+(cdecl?7u:3u);
         if(call.instruction!=site||call.tail||sp<policy.stack_first||
             std::uint64_t(sp)+20u>policy.stack_end||word(sp)!=continuation)
@@ -56,8 +57,8 @@ bool native_tu15_handoff_overlap_query(SourcePhysicsContactMemory&memory,
             if(policy.instruction)policy.instruction(call.target);
             query.query({abi.gp[1]},{call.target},{first},{second},{configuration},{collector},fp);
         }catch(...){publish_fp();throw;}
-        // Actual2FAB70 RET removes only its return address; the real2F1790
-        // caller owns the four argument words and removes them at2F1818.
+        // Actual 2FAB70 RET removes only its return address. The callers
+        // remove the four argument words at 2F1818 and 2F703F respectively.
         publish_fp();abi.gp[4]=sp+(cdecl?4u:20u);++stats.completed;return true;
     }catch(...){++stats.refusals;throw;}
 }

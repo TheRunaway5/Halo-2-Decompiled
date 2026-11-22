@@ -195,6 +195,7 @@ struct SoundEvent {
   // row its name resolved to (TU1.5 1903A0); NONE plays without an effect.
   std::uint32_t effect_collection = null_datum;
   std::uint32_t effect_row = null_datum;
+  bool authored_impulse{};
 };
 class Simulation {
 public:

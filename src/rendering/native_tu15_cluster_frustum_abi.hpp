@@ -33,6 +33,14 @@ template<class State>bool admitted(const State&s){
 #endif
 }
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+inline bool try_secondary_stack_write(SourcePhysicsContactMemory& memory,
+    std::uint32_t address, std::span<const std::byte> bytes) noexcept {
+    // Borrow only the selected World's ordinary one MiB stack. The provider
+    // still checks commitment, serials, guards and the policy epoch.
+    return address>=0x60000000u && std::uint64_t(address)+bytes.size()<=0x60100000u &&
+        memory.try_callback_free_write(address,bytes);
+}
+
 // IMUL's escaped undefined flags are obtained from the actual operand form,
 // seeded from source flags in the same assembly block as the multiply.
 template<unsigned Factor,class State>std::uint32_t multiply(State&s,std::uint32_t value){
@@ -43,16 +51,28 @@ template<unsigned Factor,class State>std::uint32_t multiply(State&s,std::uint32_
 }
 template<class State,class Call,class Before>class View {
     State&s_;Call&call_;Before&before_;native_raw_x87_detail::Scope<State>&scope_;
+    bool borrow_sphere_{}, callback_free_stack_{};
     void at(std::uint32_t pc){if(s_.instruction_cursor&&s_.instruction_cursor->position)*s_.instruction_cursor->position=pc;if(!native_raw_x87_detail::skip_hook<Before>())scope_.io([&]{before_(s_,pc);});}
     std::uint32_t word(std::uint32_t pc,std::uint32_t address,unsigned width=4){
         at(pc);std::array<std::byte,4>bytes{};if(!native_raw_x87_detail::direct_read(s_.memory,address,std::span(bytes).first(width)))scope_.io([&]{s_.memory.read(address,std::span(bytes).first(width));});
         std::uint32_t value{};for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(8u*n);return value;
     }
     template<class Commit>void write(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width,Commit commit){
-        at(pc);SourcePhysicsContactRecordStore event{pc,address,{},std::vector<std::byte>(width)};
-        if(s_.observe){event.before.resize(width);scope_.io([&]{s_.memory.read(address,event.before);});}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(8u*n));
-        scope_.io([&]{s_.memory.write(address,event.written);});commit();
+        at(pc);
+        std::array<std::byte,4> bytes{};
+        for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(8u*n));
+        const auto written=std::span(bytes).first(width);
+        if(callback_free_stack_ && !s_.observe && try_secondary_stack_write(s_.memory,address,written)) {
+            commit();
+            return;
+        }
+        SourcePhysicsContactRecordStore event{pc,address,{},{}};
+        if(s_.observe){
+            event.written.assign(written.begin(),written.end());
+            event.before.resize(width);
+            scope_.io([&]{s_.memory.read(address,event.before);});
+        }
+        scope_.io([&]{s_.memory.write(address,written);});commit();
         if(s_.observe)scope_.io([&]{s_.observe(event);});
     }
     void store(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width=4){write(pc,address,value,width,[]{});}
@@ -60,7 +80,9 @@ template<class State,class Call,class Before>class View {
     std::uint32_t pop(std::uint32_t pc){const auto result=word(pc,s_.gp[4]);s_.gp[4]+=4u;return result;}
     static std::int32_t signed_half(std::uint32_t value){return std::int16_t(value);}
 public:
-    View(State&s,Call&call,Before&before,native_raw_x87_detail::Scope<State>&scope):s_(s),call_(call),before_(before),scope_(scope){}
+    View(State&s,Call&call,Before&before,native_raw_x87_detail::Scope<State>&scope,
+        bool borrow_sphere=false,bool callback_free_stack=false):s_(s),call_(call),before_(before),scope_(scope),
+        borrow_sphere_(borrow_sphere),callback_free_stack_(callback_free_stack){}
     std::int32_t begin(){
         auto&g=s_.gp;g[0]=multiply<26>(s_,g[0]);push(0x167ef3u,g[3]);push(0x167ef4u,g[5]);
         g[5]=word(0x167ef5u,g[4]+0x10u);s_.set(3,s_.flags.logic(0,1),1,0);store(0x167efbu,g[5],0,1);
@@ -75,7 +97,10 @@ public:
     unsigned classify(const native_cluster_frustum_detail::Range&){
         auto&g=s_.gp;g[0]=std::uint32_t(signed_half(word(0x167f26u,g[2]+12u,2)));g[1]=word(0x167f2au,g[4]+0x10u);
         g[0]=s_.flags.plus(g[0],g[6],4);g[0]=multiply<264>(s_,g[0]);g[0]+=g[7]+0x1974u;s_.xmm[1]=s_.xmm[7];
-        push(0x167f40u,0x167f45u);scope_.child([&]{call_(s_,before_);});s_.flags.logic(g[0],4);return g[0];
+        push(0x167f40u,0x167f45u);
+        if(!borrow_sphere_ || !native_sphere_frustum_abi_detail::bridge_borrowed(s_,scope_,before_))
+            scope_.child([&]{call_(s_,before_);});
+        s_.flags.logic(g[0],4);return g[0];
     }
     void accept(bool contained){
         auto&g=s_.gp;s_.flags.minus(g[0],2,4);s_.set(1,contained,1,0);s_.set(3,1,1,0);store(0x167f51u,g[5],g[1]&255u,1);
@@ -92,6 +117,18 @@ public:
     void close_groups(){s_.gp[6]=pop(0x167f6fu);}
     unsigned finish(){s_.gp[5]=pop(0x167f70u);s_.set(0,s_.gp[3]&255u,1,0);s_.gp[3]=pop(0x167f73u);pop(0x167f74u);s_.gp[4]+=8u;return s_.gp[0];}
 };
+// 167EF0 uses integer arithmetic. The 184690 leaf also preserves the
+// caller's empty x87 stack, so both can share the active source scope.
+template<class State,class Before=Noop>bool bridge_borrowed(State&s,
+    native_raw_x87_detail::Scope<State>& scope,Before before={},bool callback_free_stack=false) {
+    if(!scope.admits_empty_frustum_child(s) || !admitted(s) ||
+       !native_sphere_frustum_abi_detail::policy_admitted(s))return false;
+    auto call=[](auto& child,auto& observe){
+        if(!native_sphere_frustum_abi_detail::bridge(child,observe))
+            throw std::runtime_error("Qualified sphere child refused after cluster admission");
+    };
+    View view{s,call,before,scope,true,callback_free_stack};native_cluster_frustum_detail::aggregate(view);return true;
+}
 template<class State,class Call,class Before=Noop>bool bridge_with(State&s,Call call,Before before={}){
     if(!admitted(s))return false;native_raw_x87_detail::Scope scope{s};View view{s,call,before,scope};native_cluster_frustum_detail::aggregate(view);return true;
 }

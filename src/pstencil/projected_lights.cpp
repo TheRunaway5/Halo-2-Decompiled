@@ -1,4 +1,6 @@
 #include "halo2/pstencil/projected_lights.hpp"
+#include "campaign_lighting_timing.hpp"
+#include "halo2/appearance.hpp"
 #include "halo2/pstencil/projected_light_material.hpp"
 #include "halo2/pstencil/native_light_constants_tu15.hpp"
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
@@ -7,6 +9,7 @@
 #include "halo2/pstencil/caster.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_live_projected_model_palette_tu15.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
 #include "halo2/source_shadow_raw_draw.hpp"
 #include "halo2/source_tag_metadata.hpp"
@@ -162,6 +165,7 @@ struct ProjectedLights::Impl {
     SourceBspAdmissionBsp geometry;
     std::shared_ptr<SharedLightMaterials> shared;
     PointCasterBank casters;
+    MenuWorldSourceBindingCache bindings;
     std::map<std::uint32_t,EffectLightDefinition> lights;
     const Tag* cairo_master_guns_light{};
     const Tag* cairo_master_guns_face{};
@@ -179,6 +183,9 @@ struct ProjectedLights::Impl {
     // Source layer 10 casters into a light's shadow buffer (implementations
     // 1 and 2), keyed by shader, level and implementation only.
     std::map<Key,std::vector<Entry>> caster_materials;
+    // Layer 14 rebuilds the texture target before the native light response.
+    // Its authored texture mapping is independent of the particular light.
+    std::map<Key,std::vector<Entry>> texture_materials;
     struct Section {
         std::shared_ptr<const MenuWorldSourceSection> raw;
         SourceBspRangeGeometry ranges;
@@ -189,7 +196,7 @@ struct ProjectedLights::Impl {
     std::optional<std::array<ShaderVector,9>> previous;
     Impl(const Cache& c,Mesh& mesh,unsigned index,std::shared_ptr<SharedLightMaterials> bank)
       :cache(c),bsp(index),geometry(c.load_source_bsp_admission(index)),
-       shared(bank?std::move(bank):std::make_shared<SharedLightMaterials>(c,mesh)),casters(c,index) {
+       shared(bank?std::move(bank):std::make_shared<SharedLightMaterials>(c,mesh)),casters(c,index),bindings(c) {
         if(cache.scenario()=="scenarios\\solo\\00a_introduction\\00a_introduction") {
             cairo_master_guns_light=cache.query_tag({.group=TagGroup::from_string("ligh"),
                 .name="scenarios\\objects\\lights\\cinematics\\x01_light_master_guns",.require_address=true});
@@ -215,6 +222,22 @@ struct ProjectedLights::Impl {
                 const auto count=shared->authored(shader).lods.size();
                 for(unsigned lod=0;lod<count;++lod) {
                     const auto authored=shared->selected(shader,lod);
+                    if(!lights.empty())try {
+                        auto prepared=prepare_projected_light_texture_material(cache,*authored,residency,true);
+                        std::vector<Entry> entries;
+                        for(unsigned pass=0;pass<prepared.size();++pass) {
+                            auto selected=load_menu_world_source_pass(cache,shader,{lod,14,pass,0});
+                            const unsigned slot=unsigned(mesh.materials.size())+pass;
+                            (void)source_effect_light_draw(slot,prepared[pass],{});
+                            entries.push_back({slot,std::move(selected)});
+                        }
+                        if(!entries.empty()) {
+                            for(auto& material:prepared)mesh.materials.push_back(std::move(material));
+                            texture_materials.emplace(Key{shader,lod,0u,0u},std::move(entries));
+                        }
+                    }catch(const FormatError& e) {
+                        gaps.push_back(authored->name+"/"+std::to_string(lod)+"/layer 14: "+e.what());
+                    }
                     for(const auto& [identity,definition]:lights) {
                     if(supports_projected_light_response_2003(definition))try {
                         shared->preload_specular(shader,lod,identity,definition);
@@ -331,7 +354,10 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
     const SourceViewProjectionBank& camera,Vec3 eye,std::array<std::int16_t,4> viewport,
     std::array<std::uint32_t,2> surface,std::vector<PointCaster>& point_casters,std::uint32_t domain,
     const std::array<ShaderVector,12>* submitting_constants,const PresentedModelPalette& presented_palette,
-    bool original_alpha_layer,unsigned* shadow_targets,bool materialize_draws) {
+    bool original_alpha_layer,unsigned* shadow_targets,bool materialize_draws,bool materialize_point_casters,
+    CampaignLightingPassTimings* timing) {
+    using Phase=CampaignLightPhase;
+    CampaignLightPhaseTimer setup_time(timing,Phase::projected_setup);
     auto& i=*impl_;const auto found=i.lights.find(light.definition_identity);
     const auto& definition=found->second;
     if(!i.previous) {
@@ -344,7 +370,17 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
     i.previous=uniforms.constants;
     const auto shape=native_light_shape_tu15(world,light.runtime.identity);
     std::optional<EffectLightUniforms> response;
-    if(supports_projected_light_response_2003(definition)) {
+    static const bool reference_companions=[] {
+        for(const auto* name:{"HALO2_REFERENCE_ORIGINAL_PROJECTED_SPECULAR",
+            "HALO2_REFERENCE_PROJECTED_LIGHT_PREPARATION",
+            "HALO2_REFERENCE_PROJECTED_SPECULAR_MATERIALS",
+            "HALO2_PSTENCIL_CAMPAIGN_MATERIAL_TRACE"})
+            if(const auto* value=std::getenv(name); value && *value)return true;
+        return false;
+    }();
+    // These companion passes are consumed only by the pStencil renderer.
+    // The ordinary path still builds its complete native light layers below.
+    if((!original_alpha_layer || reference_companions) && supports_projected_light_response_2003(definition)) {
         const auto word=[&](unsigned p){return Bytes(world.memory().view(p,4)).u32(0);};
         const auto pool=word(0x4ecbdcu),records=word(pool+0x44u);
         const auto record=records+(light.runtime.identity&65535u)*272u;
@@ -364,9 +400,12 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
     const auto bank=submitting_constants?*submitting_constants:source_view_shader_bank(camera,1024.f,eye,
         {float(viewport[1]),float(viewport[0]),float(viewport[3]-viewport[1]),float(viewport[2]-viewport[0])},false);
     std::copy(bank.begin(),bank.end(),constants.begin());
-    auto stencil_light=light.runtime;stencil_light.position=origin;
-    if(materialize_draws)
+    setup_time.finish();
+    if(materialize_draws && materialize_point_casters) {
+        const CampaignLightPhaseTimer casters_time(timing,Phase::projected_casters);
+        auto stencil_light=light.runtime;stencil_light.position=origin;
         i.casters.collect(geometry.retained.state,&world,stencil_light,constants,domain,{},point_casters,presented_palette);
+    }
     // 31150: a light whose 31650 caller byte survives and whose caster bank
     // submitted layer 10 owns a shadow buffer (feature bit 2). The ordinary
     // renderer draws that buffer when the caller supplies target slots;
@@ -375,36 +414,88 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
     static const bool light_shadows=[]{const auto* value=std::getenv("HALO2_REFERENCE_NO_LIGHT_SHADOWS");return !(value && *value);}();
     const bool shadowed=original_alpha_layer && light_shadows && shadow_targets && *shadow_targets<shadow_target_limit &&
         receiver.shadow_enabled && (Bytes(world.memory().view(0x4ce2a0u,4)).u32(0)&0x400u);
-    const auto selected=native_projected_light_selection_tu15(world,light.runtime.identity,receiver,12,!original_alpha_layer || shadowed);
+    const auto select_layer=[&](unsigned layer,bool shadow,std::uint32_t extra_features=0) {
+        return time_campaign_light_phase(timing,Phase::projected_layer_selection,[&] {
+            return native_projected_light_selection_tu15(world,light.runtime.identity,receiver,layer,shadow,extra_features);
+        });
+    };
+    const auto selected=select_layer(12,!original_alpha_layer || shadowed);
     ProjectedLightFrame out;out.features=selected.features;out.selected_commands=selected.records.size();out.color_shift=uniforms.color_shift;
     const auto& state=geometry.retained.state;
     const bool cairo_master_guns=i.cairo_master_guns_light &&
         i.cairo_master_guns_light->datum==light.definition_identity;
-    // layer 12 is the response, 11 the alpha pass and 10 the casters. block
-    // carries c40..48 for a shadowed light; target is its depth target slot;
-    // only restricts a cinematic re-application to that object's commands.
+    static const bool reference_preparation=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_LIGHT_PREPARATION");
+        return value && *value;
+    }();
+    static const bool reference_model_palettes=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_MODEL_PALETTES");
+        return value && *value;
+    }();
+    static const bool reference_binding_inputs=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_BINDING_INPUTS");
+        return value && *value;
+    }();
+    // Layer 12 is the response, 14 the texture write, 11 the alpha pass and
+    // 10 the casters. block carries c40..48 for a shadowed light; target is its
+    // depth target slot; only restricts cinematic re-application to one object.
     const auto emit=[&](const ProjectedLightSelection& selected,const unsigned layer,
         const LightShadowBlock* block=nullptr,const std::uint16_t target=0,const std::optional<std::uint32_t> only={}) {
     if(!materialize_draws)return;
-    const bool alpha=layer==11,generate=layer==10;
+    const CampaignLightPhaseTimer packet_time(timing,Phase::projected_packets);
+    const bool alpha=layer==11,generate=layer==10,texture=layer==14;
     const auto& commands=geometry.commands.banks[generate?2:1];
     std::map<unsigned,EffectLightRawDraw> bindings;
+    // This drain only reads the completed World. Reuse its pass and geometry
+    // inputs here, before the next native selection can change current state.
+    struct PreparedPass {
+        SourceShadowRawPassOwnerTu15 owner;
+        std::optional<MenuWorldSourceConstants> constants;
+    };
+    struct PreparedUnit {
+        const Impl::Section* section{};
+        std::optional<SourceModelCommandGeometry> live_model;
+        std::optional<std::array<float,12>> instance_rows;
+        // All parts of this completed unit use its own current c50 range.
+        // Its palette and owner stay fixed during this read-only drain.
+        std::optional<SourceLiveProjectedModelPaletteTu15> palette;
+        std::optional<ObjectColors> colors;
+    };
+    std::map<const Impl::Entry*,PreparedPass> prepared_passes;
+    std::map<unsigned,PreparedUnit> prepared_units;
+    std::map<std::pair<std::uint32_t,unsigned>,std::shared_ptr<const std::vector<EffectLightDraw>>> specular_passes;
+    std::shared_ptr<const std::vector<EffectLightDraw>> covered_response;
+    std::vector<const SourceOpaqueSortRecord*> first_records;
+    if(!reference_preparation) {
+        first_records.resize(commands.storage.size());
+        for(const auto& record:selected.records) {
+            const auto command=std::uint16_t(record.words[0]);
+            if(command<first_records.size() && !first_records[command])first_records[command]=&record;
+        }
+    }
     // Commands for different parts can share the same shader/LOD/pass. Keep
     // one completed metadata bank per light, with image residency independent.
     std::map<Impl::Key,std::vector<Material>> completed_materials;
     const auto ranges=source_effect_light_ordered_ranges(commands,state.units,selected.records,state.arena,0x559b54u,
         [&](unsigned command,unsigned unit_index,unsigned vertex_class) {
             const auto& c=commands.storage.at(command).words;const auto& unit=state.units.at(unit_index);
-            const auto& section=i.section(unit);const auto part=c[3]&255u;
-            const auto descriptor=std::find_if(selected.records.begin(),selected.records.end(),
-                [&](const auto& r){return std::uint16_t(r.words[0])==command;});
-            if(descriptor==selected.records.end())throw FormatError("Projected range lost its native selected command");
+            PreparedUnit fresh_unit;
+            auto& prepared_unit=reference_preparation?fresh_unit:prepared_units[unit_index];
+            if(!prepared_unit.section)prepared_unit.section=&i.section(unit);
+            const auto& section=*prepared_unit.section;const auto part=c[3]&255u;
+            const auto* descriptor=[&]()->const SourceOpaqueSortRecord* {
+                if(!reference_preparation)return first_records.at(command);
+                const auto found=std::find_if(selected.records.begin(),selected.records.end(),
+                    [&](const auto& r){return std::uint16_t(r.words[0])==command;});
+                return found==selected.records.end()?nullptr:&*found;
+            }();
+            if(!descriptor)throw FormatError("Projected range lost its native selected command");
             const auto implementation=descriptor->words[1]&255u;
             const auto lod=c[5]>>8&255u,pass_index=c[5]&255u;
             if(only && (unit.words[1]==0xffffffffu || Bytes(world.memory().view(unit.words[4],4)).u32(0)!=*only))
                 return SourceOpaqueRangeGeometry{&section.ranges,false};
-            const auto& bank=generate?i.caster_materials:alpha?i.alpha_materials:i.materials;
-            const auto material=bank.find(generate?Impl::Key{c[2],lod,implementation,0u}:
+            const auto& bank=texture?i.texture_materials:generate?i.caster_materials:alpha?i.alpha_materials:i.materials;
+            const auto material=bank.find((generate || texture)?Impl::Key{c[2],lod,implementation,0u}:
                 alpha?Impl::Key{c[2],lod,implementation,Bytes(definition.bytes).u32(0x7c)}:
                 Impl::key(c[2],lod,implementation,definition));
             // An alpha implementation outside the admitted gel branch stays
@@ -417,8 +508,16 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
             // The Cache owns logical tag addresses; the completed native
             // descriptor owns this World's resident mapping. Authenticate the
             // complete current implementation and pass lineage at consumption.
-            const auto current_pass=source_shadow_raw_pass_owner_tu15(world,i.cache,slot.pass);
-            if(!current_pass.matches(slot.pass,descriptor->words[4])) {
+            std::optional<PreparedPass> fresh_pass;
+            auto& prepared_pass=[&]()->PreparedPass& {
+                if(reference_preparation)return fresh_pass.emplace(PreparedPass{
+                    source_shadow_raw_pass_owner_tu15(world,i.cache,slot.pass),{}});
+                auto found=prepared_passes.find(&slot);
+                if(found==prepared_passes.end())found=prepared_passes.emplace(&slot,PreparedPass{
+                    source_shadow_raw_pass_owner_tu15(world,i.cache,slot.pass),{}}).first;
+                return found->second;
+            }();
+            if(!prepared_pass.owner.matches(slot.pass,descriptor->words[4])) {
                 std::ostringstream detail;
                 detail<<"Native projected descriptor differs from its actual compiled implementation pointer"
                     <<" wanted={cache_mcc:"<<i.cache.is_mcc()<<",light:"<<light.runtime.identity
@@ -450,41 +549,68 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
                 detail<<"}";
                 throw FormatError(detail.str());
             }
-            std::vector<std::array<float,12>> palette;
+            std::optional<SourceLiveProjectedModelPaletteTu15> fresh_palette;
+            std::span<const std::array<float,12>> palette_rows;
             MenuWorldSourceOwner owner;
             if(unit.words[1]!=0xffffffffu) {
-                const auto live=source_live_model_command_geometry_tu15(world,unit);
-                if(!live.geometry.resident)return SourceOpaqueRangeGeometry{&section.ranges,false};
-                const auto object=Bytes(world.memory().view(unit.words[4],4)).u32(0);(void)world.source_object_body(object);
-                palette=source_live_model_palette_rows_tu15(world,unit,live,
-                    presented_palette?presented_palette(object,unit.words[1]):std::span<const std::array<float,12>>{});
-                owner={MenuWorldSourceOwnerKind::dynamic_object,section.raw->owner_datum(),object&65535u,object};
+                auto& palette=reference_model_palettes?fresh_palette:prepared_unit.palette;
+                if(reference_model_palettes) {
+                    if(!prepared_unit.live_model)
+                        prepared_unit.live_model=source_live_model_command_geometry_tu15(world,unit);
+                    const auto& live=*prepared_unit.live_model;
+                    if(!live.geometry.resident)return SourceOpaqueRangeGeometry{&section.ranges,false};
+                    const auto object=Bytes(world.memory().view(unit.words[4],4)).u32(0);
+                    (void)world.source_object_body(object);
+                    auto rows=source_live_model_palette_rows_tu15(world,unit,live,
+                        presented_palette?presented_palette(object,unit.words[1]):std::span<const std::array<float,12>>{});
+                    palette.emplace(SourceLiveProjectedModelPaletteTu15{true,object,std::move(rows)});
+                } else if(!palette) {
+                    palette=source_live_projected_model_palette_tu15(world.memory(),unit,
+                        [&](std::uint32_t object,std::uint32_t model) {
+                            (void)world.source_object_body(object);
+                            return presented_palette?presented_palette(object,model):std::span<const std::array<float,12>>{};
+                        });
+                }
+                if(!palette->resident)return SourceOpaqueRangeGeometry{&section.ranges,false};
+                palette_rows=palette->rows;
+                owner={MenuWorldSourceOwnerKind::dynamic_object,section.raw->owner_datum(),
+                    palette->object&65535u,palette->object};
             }else {
                 const bool instance=unit.words[0]&0x1000u;const auto ordinal=instance?(unit.words[3]>>18&2047u):section.raw->section();
                 owner={instance?MenuWorldSourceOwnerKind::bsp_instance:MenuWorldSourceOwnerKind::bsp_cluster,section.raw->owner_datum(),ordinal,{}};
-                if(instance)palette.push_back(load_menu_world_source_bsp_owner(i.cache,i.bsp,ordinal).rows);
+                if(instance) {
+                    if(!prepared_unit.instance_rows)
+                        prepared_unit.instance_rows=load_menu_world_source_bsp_owner(i.cache,i.bsp,ordinal).rows;
+                    palette_rows=std::span(&*prepared_unit.instance_rows,1);
+                }
             }
             auto completed_at=completed_materials.find(material->first);
             if(completed_at==completed_materials.end()) {
+                const CampaignLightPhaseTimer material_time(timing,Phase::projected_material);
                 const auto authored=i.shared->selected(c[2],lod);
-                completed_at=completed_materials.emplace(material->first,generate || (alpha && implementation!=2)?
-                    complete_projected_light_shadow_constants(i.cache,*authored,definition,uniforms,layer,implementation):alpha?
-                    complete_projected_light_alpha_constants(i.cache,*authored,definition,uniforms,implementation):
-                    complete_projected_light_constants(
-                    i.cache,*authored,definition,uniforms,implementation,selected.features)).first;
+                completed_at=completed_materials.emplace(material->first,complete_projected_light_packet_materials(
+                    i.cache,*authored,definition,uniforms,layer,implementation,selected.features)).first;
             }
             const auto& completed=completed_at->second;
             if(pass_index>=completed.size())throw FormatError("Native projected material lost its selected pass");
-            auto source_constants=source_effect_light_raw_constants(constants,completed[pass_index]);
-            if(block)std::copy(block->constants.begin(),block->constants.end(),source_constants.begin()+40);
-            const auto topology=source_effect_light_part_ranges(unit,section.ranges,part,state.arena,0x559b54u).topology;
+            if(!prepared_pass.constants) {
+                prepared_pass.constants=source_effect_light_raw_constants(constants,completed[pass_index]);
+                if(block)std::copy(block->constants.begin(),block->constants.end(),prepared_pass.constants->begin()+40);
+            }
+            const auto topology=reference_preparation?
+                source_effect_light_part_ranges(unit,section.ranges,part,state.arena,0x559b54u).topology:
+                source_effect_light_part_topology(unit,section.ranges,part);
             auto draw=section.raw->kind()==MenuWorldSourceSectionKind::bsp_cluster?
-                menu_world_source_cluster_draw(section.raw,part,topology):menu_world_source_draw(section.raw,part,topology,palette);
-            auto source=menu_world_source_binding_class(i.cache,owner,std::move(draw),slot.pass.vertex_shader(),vertex_class,source_constants);
+                menu_world_source_cluster_draw(section.raw,part,topology):menu_world_source_draw(section.raw,part,topology,palette_rows);
+            auto source=reference_binding_inputs?
+                menu_world_source_binding_class(i.cache,owner,std::move(draw),slot.pass.vertex_shader(),
+                    vertex_class,*prepared_pass.constants):
+                i.bindings.bind(owner,std::move(draw),slot.pass.vertex_shader(),vertex_class,*prepared_pass.constants);
             MenuWorldRasterContext raster;
             raster.viewport_reset(generate?std::array<std::uint32_t,2>{512u,512u}:surface);raster.game_initialize_offset();
             if(generate)raster.shadow_begin(); // 44360 case 10 -> 495D0.
-            raster.layer_begin(generate?MenuWorldRasterLayer::shadow_10:alpha?MenuWorldRasterLayer::shadow_apply_11:MenuWorldRasterLayer::sphere_diffuse_12);
+            raster.layer_begin(texture?MenuWorldRasterLayer::light_texture_14:generate?MenuWorldRasterLayer::shadow_10:
+                alpha?MenuWorldRasterLayer::shadow_apply_11:MenuWorldRasterLayer::sphere_diffuse_12);
             raster.entry_begin(menu_world_raster_entry_from_source_flags(unit.words[0],false,false));
             auto packet=raster.snapshot({MenuWorldRasterPrimitive::ordinary_triangles,MenuWorldRasterPolygon::fill,std::array<std::int32_t,2>{1,1},true});raster.entry_end();
             packet.window_exclusive=false;for(auto& rect:packet.regions)rect={0,0,0,0};
@@ -493,6 +619,24 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
             const auto depth=menu_world_depth_clip_planes({.015625f,1024.f,MenuWorldDepthBoundary::none,0,false});
             auto bound=source_effect_light_raw_draw(slot.slot,completed[pass_index],slot.pass,std::move(source),packet,
                 {0,16777215.f,depth.minimum_w,depth.maximum_w},{1,1});
+            if(texture && owner.kind==MenuWorldSourceOwnerKind::dynamic_object) {
+                if(!prepared_unit.colors) {
+                    // 33980 gets the current owner's packed colors from the
+                    // completed collector context. Unwritten externs use 468710.
+                    const auto context=world.memory().view(unit.words[4],0x75u);
+                    SourceLiveModelBaseDrawTu15 color_bank;
+                    color_bank.color_count=std::to_integer<std::uint8_t>(context[0x74u]);
+                    if(color_bank.color_count>color_bank.packed_colors.size())
+                        throw FormatError("Projected texture colors exceed the original four-channel bank");
+                    for(unsigned n=0;n<color_bank.color_count;++n)
+                        color_bank.packed_colors[n]=Bytes(context).u32(0x64u+n*4u);
+                    constexpr Vec3 white{1,1,1};
+                    prepared_unit.colors=source_live_model_base_colors_tu15(color_bank,{white,white,white,white});
+                }
+                const auto& authored=completed[pass_index];
+                apply_object_render_color_bindings(bound.program,bound.constants,
+                    authored.passes.at(authored.forward_pass_index),*prepared_unit.colors,authored.shader_switches);
+            }
             bound.light_identity=light.runtime.identity;bound.light_definition=light.definition_identity;
             bound.point_light_position=origin;bound.pstencil_light_domain=domain;
             bound.pstencil_casts_shadow=shadow_casting_part(section.raw->parts().at(part).type);
@@ -504,53 +648,94 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
             const bool authored_response=cairo_master_guns &&
                 ((i.cairo_master_guns_face && c[2]==i.cairo_master_guns_face->datum) ||
                  (i.cairo_helmet_prop && unit.words[1]==i.cairo_helmet_prop->datum));
-            if(!alpha && response && !authored_response)if(auto response_passes=i.shared->specular(c[2],lod,light.definition_identity,*response)) {
+            if(layer==12 && response && !authored_response) {
+                const auto complete_response=[&]{
+                    const CampaignLightPhaseTimer material_time(timing,Phase::projected_material);
+                    return i.shared->specular(c[2],lod,light.definition_identity,*response);
+                };
+                std::shared_ptr<const std::vector<EffectLightDraw>> response_passes;
+                if(reference_preparation)response_passes=complete_response();
+                else {
+                    const auto key=std::pair{c[2],lod};
+                    auto found=specular_passes.find(key);
+                    if(found==specular_passes.end())found=specular_passes.emplace(key,complete_response()).first;
+                    response_passes=found->second;
+                }
                 // A native combined implementation has a separate gel pass.
                 // The recovered dependent7 already includes that gel, so
                 // replace the entire native sequence exactly once.
-                bound.pstencil_specular=pass_index==0?std::move(response_passes):
-                    std::make_shared<const std::vector<EffectLightDraw>>();
+                if(response_passes) {
+                    if(!pass_index)bound.pstencil_specular=std::move(response_passes);
+                    else if(reference_preparation)bound.pstencil_specular=std::make_shared<const std::vector<EffectLightDraw>>();
+                    else {
+                        if(!covered_response)covered_response=std::make_shared<const std::vector<EffectLightDraw>>();
+                        bound.pstencil_specular=covered_response;
+                    }
+                }
             }
             bindings.emplace(command,std::move(bound));return SourceOpaqueRangeGeometry{&section.ranges,true};
         });
+    static const bool reference_binding=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_LIGHT_RANGE_BINDING");
+        return value && *value;
+    }();
+    // Retain the exact D24 depth candidates, including the base draw last.
+    static const int original_depth_steps=[]{const auto* value=std::getenv("HALO2_REFERENCE_LIGHT_DEPTH_STEPS");
+        return value && *value?std::clamp(std::atoi(value),0,8):2;}();
+    const int depth_steps=original_alpha_layer && !generate && !texture?original_depth_steps:0;
+    static const bool expand_depth_neighbours=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_DEPTH_NEIGHBOURS");return value && *value;
+    }();
+    if(!reference_preparation) {
+        std::size_t packet_count=0;
+        for(const auto& range:ranges)
+            packet_count+=range.selected.ranges.size()*std::size_t(expand_depth_neighbours?1+2*depth_steps:1);
+        const auto required=out.draws.size()+packet_count;
+        if(required>out.draws.capacity())out.draws.reserve(std::max(required,out.draws.capacity()*2));
+    }
     for(const auto& range:ranges) {
         const auto& original=bindings.at(range.command);
         for(const auto& indices:range.selected.ranges) {
-            auto packet=original;auto draw=packet.source.draw();draw.range=indices;
-            packet.source=menu_world_source_binding_class(i.cache,packet.source.owner(),std::move(draw),
-                packet.source.vertex_shader(),range.vertex_class,packet.source.constants());
-            if(original_alpha_layer && !generate) {
-                // These passes test depth EQUAL against a base surface the
-                // ordinary renderer rasterized separately; the two integer
-                // D24 results can differ by a step or two, which leaves unlit
-                // dots. Submit the neighbouring steps as well: the stored
-                // depth is one value, so at most one submission passes. Two
-                // steps recover all but a few dozen pixels of a 640x480 frame.
-                static const int steps=[]{const auto* value=std::getenv("HALO2_REFERENCE_LIGHT_DEPTH_STEPS");
-                    return value && *value?std::clamp(std::atoi(value),0,8):2;}();
-                for(int step=-steps;step<=steps;++step)if(step) {
-                    auto neighbour=packet;neighbour.raster.depth_factor_offset[1]+=float(step);
-                    out.draws.push_back(std::move(neighbour));
-                }
+            auto packet=original;
+            if(reference_binding || packet.source.declaration().class_index!=range.vertex_class) {
+                auto draw=packet.source.draw();draw.range=indices;
+                auto bind=reference_binding_inputs?
+                    menu_world_source_binding_class(i.cache,packet.source.owner(),std::move(draw),
+                        packet.source.vertex_shader(),range.vertex_class,packet.source.constants()):
+                    i.bindings.bind(packet.source.owner(),std::move(draw),packet.source.vertex_shader(),
+                        range.vertex_class,packet.source.constants());
+                packet.source=std::move(bind);
+            } else packet.source.set_index_range(indices);
+            // The raw pass tests EQUAL against separately rasterized base
+            // depth. Neighbouring D24 steps recover its rounding differences.
+            if(expand_depth_neighbours)for(int step=-depth_steps;step<=depth_steps;++step)if(step) {
+                auto neighbour=packet;neighbour.raster.depth_factor_offset[1]+=float(step);
+                out.draws.push_back(std::move(neighbour));
             }
+            if(!expand_depth_neighbours)packet.depth_neighbour_steps=unsigned(depth_steps);
             out.draws.push_back(std::move(packet));
         }
     }
     };
-    // 31150: the light's layer 11 precedes its layer 12 on the same commands.
+    // 31150: the light's alpha and texture writes precede its response.
     if(shadowed) {
+        CampaignLightPhaseTimer shadow_time(timing,Phase::projected_shadow_setup);
         const auto word=[&](unsigned p){return Bytes(world.memory().view(p,4)).u32(0);};
         const auto record=word(word(0x4ecbdcu)+0x44u)+(light.runtime.identity&65535u)*272u;
         const auto definition_tag=word(0x4f0414u)+(word(record+4u)&65535u)*16u;
         auto block=light_shadow_block(world.memory(),record,word(definition_tag+8u),shape,uniforms);
+        shadow_time.finish();
         // Casters into this light's buffer, then its comparison into alpha.
         const auto target=std::uint16_t(++*shadow_targets);
-        emit(native_projected_light_selection_tu15(world,light.runtime.identity,receiver,10,true),10,&block,target);
-        emit(native_projected_light_selection_tu15(world,light.runtime.identity,receiver,11,true),11,&block,target);
+        emit(select_layer(10,true),10,&block,target);
+        emit(select_layer(11,true),11,&block,target);
         // 30EB0: a cinematic object's own buffer and three-tap comparison
         // replace the alpha just written on that object's commands.
         std::vector<CinematicLightShadow> cinematic;
-        try{cinematic=cinematic_light_shadows(world,receiver);}
+        try {
+            const CampaignLightPhaseTimer cinematic_time(timing,Phase::projected_shadow_setup);
+            cinematic=cinematic_light_shadows(world,receiver);
+        }
         catch(const FormatError& error) {
             if(i.gaps.empty() || i.gaps.back().find("cinematic shadow")==std::string::npos)
                 i.gaps.push_back(std::string("cinematic shadow: ")+error.what());
@@ -560,11 +745,13 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
             auto zoomed=block;zoomed.constants[2]={512.f,512.f,16777215.f,1.f};zoomed.constants[8]=object.projection;
             zoomed.extent={512,512};
             const auto object_target=std::uint16_t(++*shadow_targets);
-            emit(native_projected_light_selection_tu15(world,light.runtime.identity,receiver,10,true),10,&zoomed,object_target);
-            emit(native_projected_light_selection_tu15(world,light.runtime.identity,receiver,11,true,0x48u),11,&zoomed,object_target,object.object);
+            emit(select_layer(10,true),10,&zoomed,object_target);
+            emit(select_layer(11,true,0x48u),11,&zoomed,object_target,object.object);
         }
     } else if(original_alpha_layer && ((selected.features&6u) || (definition.flags&0x20u)))
-        emit(native_projected_light_selection_tu15(world,light.runtime.identity,receiver,11,false),11);
+        emit(select_layer(11,false),11);
+    if(original_alpha_layer && materialize_draws && (geometry.commands.banks[1].header[2]&(1u<<14)))
+        emit(select_layer(14,shadowed),14);
     emit(selected,12);
     return out;
 }

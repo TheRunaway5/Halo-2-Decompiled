@@ -33,7 +33,7 @@ def main():
     elite = create + ["select:1", "accept", "select:0", "accept", "select:1", "accept", "back", "back"]
     # The native biped admission gate can grow independently of UI layout.
     # King remains an unavailable launch and reaches the same error dialog.
-    error = elite + ["select:2", "accept", "accept", "select:1", "accept",
+    error = elite + ["select:1", "accept", "select:0", "accept", "accept", "select:1", "accept",
                      "select:1", "accept", "select:1", "accept", "select:0",
                      "accept", "select:0", "accept"]
     cases = [(f"error-{name}", 9, error, 8, w, h) for name, w, h in (

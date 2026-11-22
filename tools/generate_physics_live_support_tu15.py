@@ -26,7 +26,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
              extra_preamble='',instruction_guard=None,extra_instruction_factory=None,
              code_override=None,preserve_selected_addresses=False,retained_selected_addresses=(),
              install_flight_property_query=False,install_codec_copy_rows=False,install_contact_predicate=False,
-             install_object_record_ratio=False,install_node_function_progress=False,install_object_function_query=False,install_object_ratio_caller=False,install_object_function_scalar=False,install_indexed_datum_gate=False):
+             install_object_record_ratio=False,install_node_function_progress=False,install_object_function_query=False,install_object_ratio_caller=False,install_object_function_scalar=False,install_indexed_datum_gate=False,
+             install_object_component_tick=False):
     assert paired['image']=='English TU1.5' and paired['original_sha256']==NEW_PIN
     assert sha(NEW_DEFAULT)==NEW_PIN
     complete_listings=True
@@ -1492,6 +1493,9 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
             raise ValueError('Primary contact predicate is absent from the authenticated entry list')
         from native_contact_predicate_replacements import install as install_contact_predicate_owner
         generated=install_contact_predicate_owner(generated)
+    if install_object_component_tick:
+        from native_object_component_tick_replacements import replace_object_component_tick
+        generated=replace_object_component_tick(generated)
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(generated)
@@ -1722,5 +1726,6 @@ def main():
     a.correspondence.parent.mkdir(parents=True,exist_ok=True)
     a.correspondence.write_text(json.dumps(paired,sort_keys=True,indent=2)+'\n')
     generate(a,paired,complete_listings=True,install_flight_property_query=True,install_codec_copy_rows=True,
-             install_contact_predicate=True,install_object_record_ratio=True,install_node_function_progress=True,install_object_function_query=True,install_object_ratio_caller=True,install_object_function_scalar=True,install_indexed_datum_gate=True)
+             install_contact_predicate=True,install_object_record_ratio=True,install_node_function_progress=True,install_object_function_query=True,install_object_ratio_caller=True,install_object_function_scalar=True,install_indexed_datum_gate=True,
+             install_object_component_tick=True)
 if __name__=='__main__':main()

@@ -19,14 +19,16 @@ EffectLightDraw source_effect_light_draw(unsigned slot,const Material &,
     std::span<const Vertex>);
 void validate_effect_light_draw(const EffectLightDraw &,const Material &resident);
 // Raw source geometry/palette variant. The caller supplies the actual selected
-// layer12 implementation and ordered range; no CPU vertex conversion occurs.
+// layer implementation and ordered range; no CPU vertex conversion occurs.
 // Raster/clip/fog are actual per-view caller state, retained through draw().
 struct EffectLightRawDraw {
     unsigned material_slot{};
     MenuWorldSourceBinding source;
     PixelProgram program;
     ShaderConstants constants{};
-    PackedVertexProgramBank vertex_bank;
+    // The authored effect pass supplies only c34..39. The descriptor's
+    // remaining lanes are zero padding, added once at upload.
+    std::array<ShaderVector,6> vertex_globals;
     MenuWorldRasterPacket raster;
     std::array<float,4> clip_range;
     std::array<float,2> fog_parameters;
@@ -52,6 +54,12 @@ struct EffectLightRawDraw {
     // original target viewport inside the 512x512 surface.
     std::uint16_t shadow_generate{},shadow_sample{};
     std::array<std::uint16_t,2> shadow_extent{};
+    // Original projected response: submit the D24 offsets in order, with
+    // the unmodified draw last. All other draw inputs are shared.
+    unsigned depth_neighbour_steps{};
+    // Layer 14 writes to the retained texture target before the light response.
+    bool texture_accumulation_write{};
+    unsigned draw_count() const {return 1+2*depth_neighbour_steps;}
 };
 // The original material upload covers c18..33 and3A550 covers c31..39.
 // Other owner/view constants survive, including compression/palette inputs

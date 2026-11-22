@@ -16,6 +16,7 @@ struct NativeCampaignAiBipedRefreshScratchBindingTu15::State {
     SourcePhysicsContactMemory *memory;
     std::uint32_t identity;
     std::vector<NativeTu15ContactPrivateRange> retained;
+    GapCheck check_gap;
     State *previous;
     bool active{};
     static thread_local State *current;
@@ -24,14 +25,20 @@ thread_local NativeCampaignAiBipedRefreshScratchBindingTu15::State *
     NativeCampaignAiBipedRefreshScratchBindingTu15::State::current{};
 NativeCampaignAiBipedRefreshScratchBindingTu15::NativeCampaignAiBipedRefreshScratchBindingTu15(
     SourcePhysicsContactMemory &memory,std::uint32_t identity,std::span<const NativeTu15ContactPrivateRange> retained)
-    :state_(new State{&memory,identity,{retained.begin(),retained.end()},State::current}) {
-    if((identity&15u)||identity>0xffff0000u){delete state_;throw std::invalid_argument("Native biped refresh requires aligned bounded query DATA");}
+    :NativeCampaignAiBipedRefreshScratchBindingTu15(memory,identity,retained,nullptr) {}
+NativeCampaignAiBipedRefreshScratchBindingTu15::NativeCampaignAiBipedRefreshScratchBindingTu15(
+    SourcePhysicsContactMemory &memory,std::uint32_t identity,std::span<const NativeTu15ContactPrivateRange> retained,
+    GapCheck check_gap) {
+    if((identity&15u)||identity>0x100000000ull-bytes)
+        throw std::invalid_argument("Native biped refresh requires aligned bounded query DATA");
     for(auto *prior=State::current;prior;prior=prior->previous) {
-        const auto end=std::uint64_t(identity)+0x10000u;
-        if(std::uint64_t(prior->identity)<end && std::uint64_t(identity)<std::uint64_t(prior->identity)+0x10000u) {
-            delete state_;throw std::invalid_argument("Native biped refresh DATA overlaps an active binding");
-        }
+        const auto end=std::uint64_t(identity)+bytes;
+        if(std::uint64_t(prior->identity)<end && std::uint64_t(identity)<std::uint64_t(prior->identity)+bytes)
+            throw std::invalid_argument("Native biped refresh DATA overlaps an active binding");
     }
+    if(check_gap && !check_gap(memory,identity))
+        throw std::runtime_error("Native private DATA aliases retained input/output");
+    state_=new State{&memory,identity,{retained.begin(),retained.end()},check_gap,State::current};
     State::current=state_;
 }
 NativeCampaignAiBipedRefreshScratchBindingTu15::~NativeCampaignAiBipedRefreshScratchBindingTu15() {
@@ -255,8 +262,10 @@ void native_campaign_ai_biped_refresh_call_tu15(SourcePhysicsContactMemory &memo
     while(binding&&binding->memory!=&memory)binding=binding->previous;
     if(!binding)throw std::runtime_error("Native biped refresh requires owned collision DATA binding");
     if(binding->active)throw std::runtime_error("Native biped refresh cannot reenter active collision DATA");
+    if(binding->check_gap && !binding->check_gap(memory,binding->identity))
+        throw std::runtime_error("Native private DATA aliases retained input/output");
     struct Active {bool &active;explicit Active(bool &value):active(value){active=true;}~Active(){active=false;}}active(binding->active);
-    const std::array owned{NativeTu15ContactPrivateRange{binding->identity,0x10000u}};
+    const std::array owned{NativeTu15ContactPrivateRange{binding->identity,NativeCampaignAiBipedRefreshScratchBindingTu15::bytes}};
     NativeTu15ContactCandidatePrivateData guarded(memory,owned,binding->retained);
     Queries queries{guarded,binding->identity,fp,observe};
     if(entry==0xe20f0u)refresh(p,abi,fp,queries);

@@ -1,5 +1,6 @@
 #include "halo2/model_section_index.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_live_projected_model_palette_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_prt.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
@@ -266,8 +267,7 @@ std::vector<SourceLiveModelBaseDrawTu15> SourceLiveModelBaseSelectionTu15::copy(
             out.shader_override=state.overrides[out.override_slot];
         }
         const auto context=unit.words[4];out.object=r.word(context);
-        (void)world.object_body(out.object); // Validate the complete source generation.
-        const auto body=r.word(r.word(r.word(0x4ecbd0u)+0x44u)+(out.object&65535u)*12u+8u);
+        const auto body=world.source_object_body(out.object);
         out.definition=r.word(body);
         out.object_flags=r.word(body+4u);
         out.sphere=r.get<ShadowCasterSphere>(body+0x30u);
@@ -297,38 +297,78 @@ std::uint32_t source_live_model_section_header_tu15(PhysicsLiveWorldTu15& world,
     const Reader r{world.memory()};
     return r.section(r.model(unit),unit)+0x38u;
 }
-SourceModelCommandGeometry source_live_model_command_geometry_tu15(
-    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {
-    const Reader r{world.memory()};SourceModelCommandGeometry out;
+namespace {
+struct CommandPaletteView {
+    bool resident{};
+    std::uint16_t base_count{},region_count{};
+    std::int16_t rigid_node{};
+    std::array<SourceModelPaletteRange,16> regions;
+    std::span<const std::byte> matrices;
+};
+
+CommandPaletteView read_model_command_banks(const Reader& r,const SourceCullDrawUnit& unit,
+    SourceModelCommandGeometry* owned) {
+    CommandPaletteView palette;
     const auto model=r.model(unit),section=r.section(model,unit),resident=r.word(section+0x34u);
-    out.geometry.resident=resident!=0;
-    if(!resident)return out; // Original449D0's unresident branch consumes no palette.
+    palette.resident=resident!=0;
+    if(owned)owned->geometry.resident=palette.resident;
+    if(!resident)return palette; // Original449D0's unresident branch consumes no palette.
     const auto parts=r.word(resident);
     if(parts>256u)throw FormatError("live model part bank exceeds source capacity");
-    out.geometry.parts.resize(parts);
-    if(parts)std::memcpy(out.geometry.parts.data(),r.memory.view(r.word(resident+4u),parts*72u).data(),parts*72u);
+    if(owned)owned->geometry.parts.resize(parts);
+    if(parts) {
+        const auto bytes=r.memory.view(r.word(resident+4u),parts*72u);
+        if(owned)std::memcpy(owned->geometry.parts.data(),bytes.data(),bytes.size());
+    }
     const auto count=r.word(model+0x60u),materials=r.word(model+0x64u);
     if(count>65535u)throw FormatError("live model material bank exceeds source capacity");
-    for(unsigned n=0;n<count;++n)out.materials.push_back({r.word(materials+n*32u+12u),255});
-    out.model_flags=r.get<std::uint16_t>(model+4u);out.rigid_node=r.get<std::int16_t>(section+0x2cu);
+    if(count) {
+        const auto extent=(count-1u)*32u+4u;
+        // Material shader words are unused by this consumer. A complete
+        // ordinary view proves every requested word. If the intervening
+        // bytes cross an owner or hole, preserve the original scalar reads.
+        if(owned || std::uint64_t(materials)+12u+extent>(std::uint64_t{1}<<32) ||
+           !r.memory.try_read_view(materials+12u,extent)) {
+            for(unsigned n=0;n<count;++n) {
+                const auto shader=r.word(materials+n*32u+12u);
+                if(owned)owned->materials.push_back({shader,255});
+            }
+        }
+    }
+    const auto model_flags=r.get<std::uint16_t>(model+4u);
+    palette.rigid_node=r.get<std::int16_t>(section+0x2cu);
+    if(owned) {owned->model_flags=model_flags;owned->rigid_node=palette.rigid_node;}
     // Whole1D690 resolves only a nonnegative token into the current49433C arena.
     const auto token=unit.words[2];
     if(std::bit_cast<std::int32_t>(token)<0)throw FormatError("live model current palette is absent");
     const auto offset=token&0x0fffffffu,cursor=r.word(0x494338u);
     if(offset>cursor || cursor-offset<0x44u)throw FormatError("live model palette is outside the current geometry arena");
-    const auto palette=0x49433cu+offset;
-    out.palette.base_count=r.get<std::uint16_t>(palette);
-    const auto regions=r.get<std::uint16_t>(palette+2u);
-    if(regions>16u)throw FormatError("live model palette region bank exceeds source capacity");
-    unsigned matrices=out.palette.base_count;
-    for(unsigned n=0;n<regions;++n) {
-        const auto range=r.get<SourceModelPaletteRange>(palette+4u+n*4u);
-        out.palette.regions.push_back(range);matrices=std::max(matrices,unsigned(range.first)+range.count);
+    const auto at=0x49433cu+offset;
+    palette.base_count=r.get<std::uint16_t>(at);
+    if(owned)owned->palette.base_count=palette.base_count;
+    palette.region_count=r.get<std::uint16_t>(at+2u);
+    if(palette.region_count>palette.regions.size())throw FormatError("live model palette region bank exceeds source capacity");
+    unsigned matrices=palette.base_count;
+    for(unsigned n=0;n<palette.region_count;++n) {
+        const auto range=r.get<SourceModelPaletteRange>(at+4u+n*4u);
+        palette.regions[n]=range;
+        if(owned)owned->palette.regions.push_back(range);
+        matrices=std::max(matrices,unsigned(range.first)+range.count);
     }
     if(matrices>256u || matrices*48u>cursor-offset-0x44u)
         throw FormatError("live model palette matrices escape the current arena");
-    out.palette.matrices.resize(matrices);
-    if(matrices)std::memcpy(out.palette.matrices.data(),r.memory.view(palette+0x44u,matrices*48u).data(),matrices*48u);
+    if(owned)owned->palette.matrices.resize(matrices);
+    if(matrices) {
+        palette.matrices=r.memory.view(at+0x44u,matrices*48u);
+        if(owned)std::memcpy(owned->palette.matrices.data(),palette.matrices.data(),palette.matrices.size());
+    }
+    return palette;
+}
+}
+SourceModelCommandGeometry source_live_model_command_geometry_tu15(
+    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {
+    SourceModelCommandGeometry out;
+    read_model_command_banks(Reader{world.memory()},unit,&out);
     return out;
 }
 std::shared_ptr<const VertexProgramBank> source_live_model_prt_bank_tu15(
@@ -408,53 +448,124 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     };
     return out;
 }
-std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
-    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceModelCommandGeometry& geometry,
-    std::span<const std::array<float,12>> presented_palette) {
-    if(unit.words[7]) {
-        const Reader r{world.memory()};const auto t=r.get<Transform>(unit.words[7]);
-        return {{{t.basis[0].x,t.basis[1].x,t.basis[2].x,t.position.x,
-                  t.basis[0].y,t.basis[1].y,t.basis[2].y,t.position.y,
-                  t.basis[0].z,t.basis[1].z,t.basis[2].z,t.position.z}}};
-    }
-    if(unit.words[2]==0xffffffffu)throw FormatError("live model c50 upload has no actual palette");
+namespace {
+using PaletteMatrix=std::array<float,12>;
+static_assert(sizeof(PaletteMatrix)==48u);
+
+std::vector<PaletteMatrix> rigid_palette_rows(const Reader& r,std::uint32_t transform) {
+    const auto t=r.get<Transform>(transform);
+    return {{{t.basis[0].x,t.basis[1].x,t.basis[2].x,t.position.x,
+              t.basis[0].y,t.basis[1].y,t.basis[2].y,t.position.y,
+              t.basis[0].z,t.basis[1].z,t.basis[2].z,t.position.z}}};
+}
+
+struct SelectedPalette {
+    unsigned first{},count{},declared_count{};
+    bool needs_node_map{};
+    const char* fault{};
+};
+
+SelectedPalette select_palette(const SourceCullDrawUnit& unit,std::int16_t rigid_node,
+    unsigned base_count,std::span<const SourceModelPaletteRange> regions,std::size_t matrices) {
+    if(unit.words[2]==0xffffffffu)return {.fault="live model c50 upload has no actual palette"};
     const auto region=unit.words[3]&15u;
-    if(region>=geometry.palette.regions.size())throw FormatError("live model c50 region is absent");
-    const auto selected=geometry.palette.regions[region];
+    if(region>=regions.size())return {.fault="live model c50 region is absent"};
+    const auto selected=regions[region];
     auto first=std::int32_t(std::bit_cast<std::int16_t>(selected.first));
     unsigned count=selected.count;
     bool rigid_ordinal=false;
-    if((unit.words[3]&0xe0000000u)==0x20000000u && geometry.rigid_node!=-1) {
+    if((unit.words[3]&0xe0000000u)==0x20000000u && rigid_node!=-1) {
         if(count!=1u) {
-            first=geometry.rigid_node;
+            first=rigid_node;
             rigid_ordinal=true;
         }
         count=1;
     }
-    if(first<0 || !count || count>40u || std::size_t(first)+count>geometry.palette.matrices.size())
-        throw FormatError("live model c50 upload escapes its produced palette");
-    if(!presented_palette.empty()) {
-        // The source unit still owns c50 range selection. Translate its compact
-        // resident rows back to logical node indices before using the render pose.
-        std::span<const std::byte> node_map;
-        if(!rigid_ordinal && first>=geometry.palette.base_count) {
-            const Reader r{world.memory()};
-            const auto resident=r.word(r.section(r.model(unit),unit)+0x34u);
-            const auto nodes=r.word(resident+0x64u),map=r.word(resident+0x68u);
-            if(!map || nodes!=selected.count)
-                throw FormatError("presented model c50 range lost its resident node map");
-            node_map=r.memory.view(map,nodes);
-        }
-        std::vector<std::array<float,12>> rows;
-        rows.reserve(count);
-        for(unsigned n=0;n<count;++n) {
-            const auto node=node_map.empty()?unsigned(first)+n:std::to_integer<unsigned>(node_map[n]);
-            if(node>=presented_palette.size())
-                throw FormatError("presented model c50 node escapes the completed render pose");
-            rows.push_back(presented_palette[node]);
-        }
+    if(first<0 || !count || count>40u || std::size_t(first)+count>matrices)
+        return {.fault="live model c50 upload escapes its produced palette"};
+    return {unsigned(first),count,selected.count,!rigid_ordinal && unsigned(first)>=base_count};
+}
+
+void assign_presented_palette_rows(const Reader& r,const SourceCullDrawUnit& unit,
+    const SelectedPalette& selected,std::span<const PaletteMatrix> presented,std::vector<PaletteMatrix>& rows) {
+    // Translate compact c50 rows back to logical node indices before using
+    // the render pose. The current resident node map belongs to this call.
+    std::span<const std::byte> node_map;
+    if(selected.needs_node_map) {
+        const auto resident=r.word(r.section(r.model(unit),unit)+0x34u);
+        const auto nodes=r.word(resident+0x64u),map=r.word(resident+0x68u);
+        if(!map || nodes!=selected.declared_count)
+            throw FormatError("presented model c50 range lost its resident node map");
+        node_map=r.memory.view(map,nodes);
+    }
+    rows.clear();
+    rows.reserve(selected.count);
+    for(unsigned n=0;n<selected.count;++n) {
+        const auto node=node_map.empty()?selected.first+n:std::to_integer<unsigned>(node_map[n]);
+        if(node>=presented.size())
+            throw FormatError("presented model c50 node escapes the completed render pose");
+        rows.push_back(presented[node]);
+    }
+}
+
+std::vector<PaletteMatrix> owned_palette_rows(const Reader& r,const SourceCullDrawUnit& unit,
+    const SourceModelCommandGeometry& geometry,std::span<const PaletteMatrix> presented) {
+    if(unit.words[7])return rigid_palette_rows(r,unit.words[7]);
+    const auto& palette=geometry.palette;
+    const auto selected=select_palette(unit,geometry.rigid_node,palette.base_count,
+        palette.regions,palette.matrices.size());
+    if(selected.fault)throw FormatError(selected.fault);
+    if(!presented.empty()) {
+        std::vector<PaletteMatrix> rows;
+        assign_presented_palette_rows(r,unit,selected,presented,rows);
         return rows;
     }
-    return {geometry.palette.matrices.begin()+first,geometry.palette.matrices.begin()+first+count};
+    return {palette.matrices.begin()+selected.first,palette.matrices.begin()+selected.first+selected.count};
+}
+}
+
+std::vector<PaletteMatrix> source_live_model_palette_rows_tu15(
+    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceModelCommandGeometry& geometry,
+    std::span<const PaletteMatrix> presented) {
+    return owned_palette_rows(Reader{world.memory()},unit,geometry,presented);
+}
+
+SourceLiveProjectedModelPaletteTu15 source_live_projected_model_palette_tu15(
+    SourceRuntimeMemory& memory,const SourceCullDrawUnit& unit,
+    const std::function<std::span<const PaletteMatrix>(std::uint32_t,std::uint32_t)>& prepare) {
+    static const bool reference=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_PROJECTED_MODEL_GEOMETRY");
+        return value && *value;
+    }();
+    const Reader r{memory};
+    SourceLiveProjectedModelPaletteTu15 result;
+    SourceModelCommandGeometry owned;
+    SelectedPalette selected;
+    {
+        const auto palette=read_model_command_banks(r,unit,reference?&owned:nullptr);
+        result.resident=palette.resident;
+        if(!result.resident)return result;
+        if(!reference && !unit.words[7]) {
+            selected=select_palette(unit,palette.rigid_node,palette.base_count,
+                std::span(palette.regions).first(palette.region_count),palette.matrices.size()/sizeof(PaletteMatrix));
+            if(!selected.fault) {
+                result.rows.resize(selected.count);
+                std::memcpy(result.rows.data(),palette.matrices.data()+selected.first*sizeof(PaletteMatrix),
+                    selected.count*sizeof(PaletteMatrix));
+            }
+        }
+    }
+    // The original path validated the full resource before resolving the
+    // object, then selected c50 after the presentation callback. The saved
+    // matrix slice stays independent of any World mutation by that callback.
+    result.object=r.word(unit.words[4]);
+    const auto presented=prepare(result.object,unit.words[1]);
+    if(reference)result.rows=owned_palette_rows(r,unit,owned,presented);
+    else if(unit.words[7])result.rows=rigid_palette_rows(r,unit.words[7]);
+    else {
+        if(selected.fault)throw FormatError(selected.fault);
+        if(!presented.empty())assign_presented_palette_rows(r,unit,selected,presented,result.rows);
+    }
+    return result;
 }
 }

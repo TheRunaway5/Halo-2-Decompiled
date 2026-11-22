@@ -79,11 +79,19 @@ struct IndexBuffer {
   std::unique_ptr<Buffer> storage;
   std::uint32_t count{};
 };
+using IndexKey=std::tuple<unsigned,MenuWorldSourceTopology,unsigned,unsigned>;
+struct DrawGeometryKey {
+  IndexKey indices;
+  std::size_t input_count{};
+  std::array<std::array<unsigned,5>,16> inputs{};
+  auto operator<=>(const DrawGeometryKey &) const=default;
+};
 struct SectionBuffers {
   std::shared_ptr<const MenuWorldSourceSection> source;
   std::unique_ptr<Buffer> storage;
   std::vector<MenuWorldSourceBufferSlice> resources;
-  std::map<std::tuple<unsigned,MenuWorldSourceTopology,unsigned,unsigned>,IndexBuffer> indices;
+  std::map<IndexKey,IndexBuffer> indices;
+  std::map<DrawGeometryKey,MenuWorldSourceDrawGeometry> draw_geometry;
 };
 }
 
@@ -149,15 +157,21 @@ struct MenuWorldSourceStorage::Impl {
     if(!found->second)
       throw FormatError("source world geometry fetch format unsupported by device: "+std::to_string(format));
   }
-  SectionBuffers &section(const MenuWorldSourceDraw &draw) {
+  SectionBuffers *find_section(const MenuWorldSourceDraw &draw) {
     if(!draw.geometry)throw FormatError("source world storage draw lacks immutable geometry");
     const auto &source=*draw.geometry;
     const SectionKey key{source.kind(),source.owner_datum(),source.section()};
     if(const auto found=sections.find(key);found!=sections.end()) {
       if(found->second->source!=draw.geometry && !same_section(*found->second->source,source))
         throw FormatError("source world storage section identity has different immutable content");
-      return *found->second;
+      return found->second.get();
     }
+    return nullptr;
+  }
+  SectionBuffers &section(const MenuWorldSourceDraw &draw) {
+    if(auto *found=find_section(draw))return *found;
+    const auto &source=*draw.geometry;
+    const SectionKey key{source.kind(),source.owner_datum(),source.section()};
     auto result=std::make_unique<SectionBuffers>();result->source=draw.geometry;
     VkDeviceSize total{};
     for(const auto &resource:source.resources()) {
@@ -203,7 +217,7 @@ struct MenuWorldSourceStorage::Impl {
     }
     return section.indices.emplace(key,std::move(result)).first->second;
   }
-  MenuWorldSourceStoredDraw stored(const MenuWorldSourceBinding &binding) {
+  MenuWorldSourceDrawGeometry build_geometry(const MenuWorldSourceBinding &binding,SectionBuffers *retained=nullptr) {
     if(!binding.draw().geometry)
       throw FormatError("source world storage binding lacks immutable geometry");
     const auto &limits=properties.limits;
@@ -211,7 +225,7 @@ struct MenuWorldSourceStorage::Impl {
       throw FormatError("source world attributes exceed device input limit");
     // Validate the complete fetch layout before allocating any new resources.
     std::map<unsigned,unsigned> resource_bindings;
-    MenuWorldSourceStoredDraw result(binding);
+    MenuWorldSourceDrawGeometry result;
     result.source_index_range=binding.draw().index_range();
     for(const auto &input:binding.inputs()) {
       const auto &stream=input.stream;
@@ -231,7 +245,7 @@ struct MenuWorldSourceStorage::Impl {
         throw FormatError("source world shared resource has inconsistent vertex strides");
       result.vertex_attributes.push_back({input.vertex_register,found->second,format,stream.byte_offset});
     }
-    auto &buffers=section(binding.draw());result.resources=buffers.resources;
+    auto &buffers=retained?*retained:section(binding.draw());result.resources=buffers.resources;
     if(context.storage_fetch) {
       if(buffers.storage->size>limits.maxStorageBufferRange||buffers.storage->size>std::numeric_limits<std::uint32_t>::max())
         throw FormatError("source world raw storage exceeds shader/device address range");
@@ -246,14 +260,32 @@ struct MenuWorldSourceStorage::Impl {
     if(ordered.storage)result.indices={ordered.storage->buffer,0,ordered.storage->size};
     return result;
   }
+  const MenuWorldSourceDrawGeometry &retain_geometry(const MenuWorldSourceBinding &binding) {
+    const auto &draw=binding.draw();
+    const auto range=draw.index_range();
+    DrawGeometryKey key{{draw.part,draw.topology,range.first,range.count},binding.inputs().size()};
+    if(key.input_count>key.inputs.size())throw FormatError("source raw draw exceeds its original register declaration");
+    for(std::size_t i=0;i<key.input_count;++i) {
+      const auto &input=binding.inputs()[i];const auto &stream=input.stream;
+      key.inputs[i]={input.vertex_register,unsigned(stream.format),stream.resource,stream.byte_offset,stream.byte_stride};
+    }
+    auto *section=find_section(draw);
+    if(section) {
+      const auto found=section->draw_geometry.find(key);
+      if(found!=section->draw_geometry.end())return found->second;
+    }
+    auto geometry=build_geometry(binding,section);
+    if(!section)section=find_section(draw);
+    return section->draw_geometry.emplace(std::move(key),std::move(geometry)).first->second;
+  }
   std::span<const MenuWorldSourceStoredDraw> store(std::span<const MenuWorldSourceBinding> bindings) {
     std::vector<MenuWorldSourceStoredDraw> next;next.reserve(bindings.size());
-    for(const auto &binding:bindings)next.push_back(stored(binding));
+    for(const auto &binding:bindings)next.emplace_back(binding,build_geometry(binding));
     draws=std::move(next);return draws;
   }
   std::span<const MenuWorldSourceStoredDraw> store_borrowed(std::span<const MenuWorldSourceBinding *const> bindings) {
     std::vector<MenuWorldSourceStoredDraw> next;next.reserve(bindings.size());
-    for(const auto *binding:bindings)next.push_back(stored(*binding));
+    for(const auto *binding:bindings)next.emplace_back(*binding,build_geometry(*binding));
     draws=std::move(next);return draws;
   }
 };
@@ -265,4 +297,7 @@ std::span<const MenuWorldSourceStoredDraw> MenuWorldSourceStorage::store(
     std::span<const MenuWorldSourceBinding> bindings){return impl_->store(bindings);}
 std::span<const MenuWorldSourceStoredDraw> MenuWorldSourceStorage::store_borrowed(
     std::span<const MenuWorldSourceBinding *const> bindings){return impl_->store_borrowed(bindings);}
+const MenuWorldSourceDrawGeometry &MenuWorldSourceStorage::retain_geometry(const MenuWorldSourceBinding &binding) {
+  return impl_->retain_geometry(binding);
+}
 } // namespace halo2

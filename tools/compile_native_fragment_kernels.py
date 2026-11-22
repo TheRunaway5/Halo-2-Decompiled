@@ -14,6 +14,7 @@ import re
 import struct
 import subprocess
 import sys
+import tempfile
 import time
 
 from native_world_fragment_kernel import (lower_combiner_program,
@@ -24,9 +25,10 @@ from audit_native_renderer_kernels import audit_spirv
 COLORS=frozenset((*range(10,26),43,44))
 # Retail layer-14 texture_mapping/one_change_color controls.
 PSTENCIL_ONE_CHANGE_COLOR='7e4472e34b45cf0dcb6b77d4a5363c3388486bbafb40d430ecfaed0fb5a23bab'
+PROJECTED_DEPTH_QUAD='menu-projected-depth-quad'
 FAMILIES={
     'world':'world.frag','world-fixed':'world.frag','world-emblem':'world.frag','world-source-depth':'world.frag',
-    'hud':'hud.frag','menu':'menu_world.frag','menu-temporal':'menu_world.frag',
+    'hud':'hud.frag','menu':'menu_world.frag','menu-temporal':'menu_world.frag',PROJECTED_DEPTH_QUAD:'menu_world.frag',
     'particle':'particle.frag','scene-copy':'scene_copy.frag',
     'scope-copy':'scope_copy.frag','lens':'source_lens_draw.frag',
     'contrail':'source_contrail.frag','decal':'source_decal.frag',
@@ -52,7 +54,7 @@ def controls(value):
 def key(words):
     return hashlib.sha256(struct.pack('<60I',*words)).hexdigest()
 
-def entries(paths):
+def entries(paths,projected_depth_quad=False):
     result={}
     for path in paths:
         raw=json.loads(path.read_bytes())
@@ -60,7 +62,8 @@ def entries(paths):
             raise ValueError('Unknown native fragment registry schema: '+str(path))
         for entry in raw['entries']:
             family=entry['family']
-            if family not in FAMILIES:raise ValueError('Unknown native fragment family: '+family)
+            if family not in FAMILIES or family==PROJECTED_DEPTH_QUAD:
+                raise ValueError('Unknown native fragment registry family: '+family)
             words=controls(entry['controls']);identity=(family,key(words))
             if not entry.get('provenance'):raise ValueError('Native fragment lacks source provenance')
             row={'family':family,'controls':words,'key':identity[1],
@@ -80,6 +83,9 @@ def entries(paths):
                 temporal={**row,'family':'menu-temporal',
                     'path':f'native-fragments/menu-temporal/{identity[1]}.frag.spv'}
                 result[('menu-temporal',identity[1])]=temporal
+                if projected_depth_quad:
+                    result[(PROJECTED_DEPTH_QUAD,identity[1])]={**row,'family':PROJECTED_DEPTH_QUAD,
+                        'path':f'native-fragments/{PROJECTED_DEPTH_QUAD}/{identity[1]}.frag.spv'}
     if not result:raise ValueError('Native fragment registry has no source-owned programs')
     return [result[k] for k in sorted(result)]
 
@@ -161,9 +167,11 @@ def source_for(shader_root,row):
         source=source.replace('#version 450','#version 450\n#define H2_SOURCE_WORLD_DEPTH 1',1)
     if family.startswith('pstencil-'):
         source=re.sub(r'\bmaterial\.flags\.w\s*!=\s*0u','true',source)
-    if family in ('menu','menu-temporal'):
+    if family in ('menu','menu-temporal',PROJECTED_DEPTH_QUAD):
         if family=='menu-temporal':
             source=source.replace('#version 450','#version 450\n#define H2_NATIVE_RASTER_OFFSET 1',1)
+        if family==PROJECTED_DEPTH_QUAD:
+            source=source.replace('#version 450','#version 450\n#define H2_PROJECTED_DEPTH_QUAD 1',1)
         source=re.sub(r'struct MenuWorldPixelProgramView\s*\{[^}]+\};\s*MenuWorldPixelProgramView menuWorldPixelProgram;','',source)
         source=source.replace('#define material menuWorldPixelProgram','').replace('#undef material','')
         source=re.sub(r'H2_FIXED_STAGE_UNROLL\s+for\(uint i=0u;i<15u;\+\+i\)\s*menuWorldPixelProgram\.program\[i\]=uvec4\([^;]+;', '',source)
@@ -185,6 +193,15 @@ def source_for(shader_root,row):
 def run(argv):
     result=subprocess.run([str(x) for x in argv],capture_output=True,text=True)
     if result.returncode:raise RuntimeError('Native fragment build failed: '+(result.stdout+result.stderr)[-6000:])
+
+def compile_module(args,row,source,temporary,output):
+    atomic(source,source_for(args.shader_root,row).encode())
+    run([args.compiler,'-V','--target-env','vulkan1.3','-I'+str(args.shader_root),source,'-o',temporary])
+    run([args.optimizer,'--preserve-interface','-O',temporary,'-o',output])
+    run([args.validator,'--target-env','vulkan1.3',output])
+    contract=audit_spirv(output.read_bytes())
+    if not contract['passed']:raise ValueError('Compiled fragment retains instruction reads: '+str(contract))
+    return contract
 
 def write_header(path,rows):
     header=['#pragma once','#include <array>','#include <cstdint>','#include <string_view>',
@@ -208,7 +225,17 @@ def main():
     p.add_argument('--validator',type=Path)
     p.add_argument('--list-outputs',action='store_true')
     p.add_argument('--header-only',action='store_true')
-    args=p.parse_args();rows=entries(args.registry)
+    p.add_argument('--projected-depth-quad',action='store_true')
+    p.add_argument('--probe-projected-depth-quad',type=Path,metavar='TEMP_PARENT')
+    args=p.parse_args();rows=entries(args.registry,args.projected_depth_quad or bool(args.probe_projected_depth_quad))
+    if args.probe_projected_depth_quad:
+        if not all((args.compiler,args.optimizer,args.validator)):
+            p.error('Projected depth quad probe requires the complete compiler toolchain')
+        row=next(row for row in rows if row['family']==PROJECTED_DEPTH_QUAD)
+        with tempfile.TemporaryDirectory(dir=args.probe_projected_depth_quad) as directory:
+            output=Path(directory)
+            compile_module(args,row,output/'probe.frag',output/'input.spv',output/'optimized.spv')
+        return
     if args.list_outputs:
         print(';'.join(str(args.shader_output_dir/r['path']) for r in rows));return
     if args.header_only:
@@ -226,12 +253,7 @@ def main():
         name=row['family']+'-'+row['key']
         source=generated/(name+'.frag');temporary=generated/(name+'.spv')
         output=args.shader_output_dir/row['path'];output.parent.mkdir(parents=True,exist_ok=True)
-        atomic(source,source_for(args.shader_root,row).encode())
-        run([args.compiler,'-V','--target-env','vulkan1.3','-I'+str(args.shader_root),source,'-o',temporary])
-        run([args.optimizer,'--preserve-interface','-O',temporary,'-o',output])
-        run([args.validator,'--target-env','vulkan1.3',output])
-        contract=audit_spirv(output.read_bytes())
-        if not contract['passed']:raise ValueError('Compiled fragment retains instruction reads: '+str(contract))
+        contract=compile_module(args,row,source,temporary,output)
         manifest.append({**row,'sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'bytes':output.stat().st_size,'native_contract':contract})
     write_header(args.header,rows)
     atomic(args.manifest,(json.dumps({'schema':'HALO2_COMPILED_NATIVE_FRAGMENT_KERNELS_V1','passed':True,'modules':manifest},indent=2)+'\n').encode())

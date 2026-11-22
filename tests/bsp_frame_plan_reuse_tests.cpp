@@ -1,5 +1,6 @@
 #include "halo2/source_bsp_resident_plan.hpp"
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -63,10 +64,41 @@ void compare(const SourceBspResidentPlan &resident,SourceBspMergedDrawPlan &reta
         }
     }
 }
+void compare_unchanged_submission() {
+    std::array<Vertex,9> bsp{};
+    for(std::size_t i=0;i<bsp.size();++i) {
+        auto &vertex=bsp[i];
+        vertex.position.x=float(i);
+        vertex.material=i/3==1?0:1;
+        vertex.lightmap=vertex.material;
+        vertex.bsp_cluster=vertex.material?7:-2;
+        vertex.source_section=4;
+        vertex.source_part=6;
+        vertex.source_stipple_level=16-unsigned(i);
+    }
+    const SourceBspResidentPlan resident(bsp);
+    const auto bindings=resident.unchanged_bindings();
+    const auto expanded=resident.expand(bindings);
+    require(expanded.size()==bsp.size() && std::memcmp(expanded.data(),bsp.data(),sizeof(bsp))==0,
+        "BSP residency changed the authored submission before merging the dynamic tail");
+    std::array<Vertex,6> tail{};
+    for(std::size_t i=0;i<3;++i) {
+        tail[i]=bsp[3+i];
+        tail[i].position.y=2;
+        tail[3+i].position.y=3;
+    }
+    SourceBspMergedDrawPlan retained;
+    for(bool borrow:{false,true})compare(resident,retained,bindings,tail,2,2,15,51,borrow);
+    require(retained.draws.size()==3 && retained.draws[0].storage==SourceBspVertexStorage::dynamic &&
+        retained.draws[1].storage==SourceBspVertexStorage::objects &&
+        retained.draws[2].storage==SourceBspVertexStorage::resident,
+        "BSP residency failed to preserve shared keys and isolate the dynamic tail");
+}
 }
 int main(int argc,char **argv) {
     try {
         if(argc!=3)throw FormatError("Supply MAP SHARED");
+        compare_unchanged_submission();
         if(!std::filesystem::exists(argv[1]))return 77;
         const Cache cache(argv[1],argv[2]);auto mesh=cache.load_bsp(0);
         const SourceBspResidentPlan resident(cache,mesh,0);
@@ -104,6 +136,6 @@ int main(int argc,char **argv) {
         require(rejected,"retained BSP plan accepted invalid current material");
         for(unsigned p=0;p<bindings.size();++p)bindings[p]={resident.parts()[p].original.material,{}};
         compare(resident,retained,bindings,{},materials,lightmaps,91,117,true);
-        std::cout<<"PASS 129 retained/borrowed BSP frames against original scatter oracle, including empty/repopulated outputs, changed bindings/stipple, object collisions and invalid input recovery\n";
+        std::cout<<"PASS unchanged authored submission and 129 retained/borrowed BSP frames against original scatter oracle, including empty/repopulated outputs, changed bindings/stipple, object collisions and invalid input recovery\n";
     }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}
 }

@@ -35,6 +35,51 @@
 #include <sstream>
 namespace halo2 {
 namespace {
+struct MultiplayerIllustration {
+  std::string_view bank;
+  unsigned page;
+  std::string_view alternate_bank;
+  unsigned alternate_page;
+  const char *description;
+};
+// The couch, globe, and linked players occupy different bitmap banks. Disc
+// layouts have a smaller selection of pages.
+constexpr MultiplayerIllustration multiplayer_illustrations[]{
+    {R"(ui\screens\game_shell\xbox_live\matchmaking_progress_dialog\matchmaking)", 1,
+     R"(ui\screens\game_shell\4way_multiplayer_signin\controller_signin)", 1,
+     "Play together on this screen."},
+    {R"(ui\screens\game_shell\settings_screen\settings)", 4,
+     R"(ui\screens\game_shell\xbox_live\xbox_live_main_menu\xbox_live_menu)", 1,
+     "Play with friends over the internet."},
+    {R"(ui\screens\game_shell\xbox_live\xbox_live_main_menu\xbox_live_menu)", 0,
+     R"(ui\screens\game_shell\xbox_live\xbox_live_main_menu\xbox_live)", 1,
+     "Play with other computers on your local network."},
+};
+
+struct ModePicture {
+  unsigned material;
+  unsigned left, top, right, bottom;
+};
+std::optional<ModePicture> mode_picture(const Texture &texture, unsigned material) {
+  if (!texture.width || !texture.height || texture.layers != 1 || texture.depth || texture.pixels.empty()) return {};
+  const bool bc = texture.format >= 14 && texture.format <= 16;
+  if ((!bc && texture.format != 11) || (bc && texture.mips.empty()))
+    return ModePicture{material, 0, 0, texture.width, texture.height};
+  const auto rgba = bc ? prepare_xemu_bc_texture(texture) : texture;
+  const auto start = rgba.mips.empty() ? 0 : rgba.mips.front().offset;
+  const auto extent = std::size_t(rgba.width) * rgba.height * 4;
+  if (start > rgba.pixels.size() || extent > rgba.pixels.size() - start) return {};
+  ModePicture bounds{material, rgba.width, rgba.height, 0, 0};
+  for (unsigned y = 0; y < rgba.height; ++y)
+    for (unsigned x = 0; x < rgba.width; ++x) {
+      if (rgba.pixels[start + (std::size_t(y) * rgba.width + x) * 4 + 3] == std::byte{}) continue;
+      bounds.left = std::min(bounds.left, x);
+      bounds.top = std::min(bounds.top, y);
+      bounds.right = std::max(bounds.right, x + 1);
+      bounds.bottom = std::max(bounds.bottom, y + 1);
+    }
+  return bounds.right ? std::optional(bounds) : std::nullopt;
+}
 bool persistent_screen_list(const UiScreen &screen,const MenuFrame &frame) {
   // Focus-driven artwork/help panes share the primary list. Session and
   // context-driven pages retain their own pane-specific list definitions.
@@ -158,6 +203,7 @@ struct FrontendPainter::Impl {
   std::shared_ptr<ControllerPromptArtwork> prompt_artwork;
   PromptDevice prompt_device=PromptDevice::Xbox;
   std::map<std::uint32_t, std::vector<unsigned>> images;
+  std::array<std::optional<ModePicture>, std::size(multiplayer_illustrations)> mode_art{};
   std::map<unsigned, std::array<unsigned, 2>> frame_extensions;
   std::set<unsigned> original_mcc_frames;
   unsigned white{}, background_dim{}, pcr_black{}, map_intro_black{}, forever{};
@@ -272,7 +318,8 @@ struct FrontendPainter::Impl {
        const std::filesystem::path &sampled_fonts, bool separate_online = true,
        bool original_layout = false,std::shared_ptr<ControllerPromptArtwork> artwork = {})
       : content(c), mesh(mesh), original_logical_layout(original_layout) {
-    prompt_artwork=artwork?std::move(artwork):std::make_shared<ControllerPromptArtwork>(mesh,directory);
+    prompt_artwork=artwork?std::move(artwork):std::make_shared<ControllerPromptArtwork>(
+        mesh,directory,ControllerPromptCanvas::Frontend);
     white = unsigned(mesh.materials.size());
     mesh.materials.push_back({});
     forever = unsigned(mesh.materials.size());
@@ -300,6 +347,14 @@ struct FrontendPainter::Impl {
         images[id].push_back(unsigned(mesh.materials.size()));
         mesh.materials.push_back({image.name, replacement == ui_assets.end()
             ? texture : replacement->second[page]});
+        for (unsigned i = 0; i < mode_art.size(); ++i) {
+          const auto &art = multiplayer_illustrations[i];
+          if ((image.name == art.bank && page == art.page) ||
+              (!mode_art[i] && image.name == art.alternate_bank && page == art.alternate_page)) {
+            if (auto picture = mode_picture(mesh.materials.back().diffuse, images[id].back()))
+              mode_art[i] = picture;
+          }
+        }
         if (page == 0 && image.name == "ui\\screens\\game_shell\\online_y_menu\\y_menu_bkd") {
           const auto &sample = mesh.materials.back().diffuse;
           const auto decoded = sample.format == 11 ? sample : prepare_xemu_bc_texture(sample);
@@ -511,6 +566,9 @@ struct FrontendPainter::Impl {
         logical = std::make_unique<Impl>(logical_view->content, directory, mesh,
             edge_directory, logical_view->rasters, std::filesystem::path{}, false, true,prompt_artwork);
       if (logical) {
+        // The projected layout shares the mesh and can sample these full
+        // MCC pages without loading a second copy of the Settings atlas.
+        logical->mode_art = mode_art;
         logical->navigation_content=&c;
         logical->original_goal_background=&*logical_view->original_goal_background;
         logical->original_friends_footer=&*logical_view->original_friends_footer;
@@ -533,8 +591,8 @@ struct FrontendPainter::Impl {
     const auto count=mesh.materials.size();
     for(unsigned i=0;i<count;++i) {
       const auto &name=mesh.materials[i].name;
-      if(name.starts_with("controller-prompts/") && name.find("/atlases/0.dds/")!=std::string::npos &&
-          name.find("/party-notice/")==std::string::npos && name.find("/friends-footer/")==std::string::npos)
+      if(name.starts_with("controller-prompts/") && !mesh.materials[i].ui_full_surface &&
+          name.find("/atlases/0.dds/")!=std::string::npos)
         notice_sources.push_back(i);
     }
     for(const auto id:notice_sources) {
@@ -556,8 +614,7 @@ struct FrontendPainter::Impl {
       const auto count=mesh.materials.size();
       for(unsigned i=0;i<count;++i) {
         const auto &name=mesh.materials[i].name;
-        if(name.starts_with("controller-prompts/") && name.find("/party-notice/")==std::string::npos &&
-            name.find("/friends-footer/")==std::string::npos)sources.insert(i);
+        if(name.starts_with("controller-prompts/") && !mesh.materials[i].ui_full_surface)sources.insert(i);
       }
       for(const auto id:sources) {
         const auto name=mesh.materials.at(id).name+"/friends-footer/"+std::to_string(id);
@@ -798,6 +855,26 @@ struct FrontendPainter::Impl {
       }
     }
   }
+  void draw_mode_picture(const UiBitmap &widget, Vec2 parent, unsigned selection) {
+    const auto &pages = content.images.at(widget.datum).images;
+    const auto &art = mode_art.at(selection);
+    if (!art || pages.empty()) return;
+    // The stock gametype widget is a landscape rectangle. Its replacement
+    // drawings have different transparent margins, even between game caches.
+    // Fit their visible pixels in that rectangle with the original animation.
+    const float w = pages.front().width * (widget.scale.x ? widget.scale.x : 1.f);
+    const float h = pages.front().height * (widget.scale.y ? widget.scale.y : 1.f);
+    if (w <= 0 || h <= 0) return;
+    const float art_w = float(art->right - art->left), art_h = float(art->bottom - art->top);
+    const float fit = std::min(w / art_w, h / art_h);
+    const auto key = animation(widget.animation, widget.delay);
+    const float x = 320 + parent.x + widget.position.x + key.position.x + (w - art_w * fit) * .5f;
+    const float y = 240 - parent.y - widget.position.y - key.position.y + (h - art_h * fit) * .5f;
+    const auto &raster = mesh.materials.at(art->material).diffuse;
+    quad(x, y, art_w * fit, art_h * fit, art->material, {key.alpha, 1, 1, 1},
+         float(art->left) / raster.width, float(art->top) / raster.height,
+         float(art->right) / raster.width, float(art->bottom) / raster.height);
+  }
   void emblem(const UiEmblem &e, Vec2 parent,
                const FrontendAppearance &appearance, bool group = false,
                std::optional<unsigned> instance_material = {}) {
@@ -849,10 +926,14 @@ struct FrontendPainter::Impl {
     }
     return width;
   }
+  enum class PromptText { None, Retained, Interactive };
+  static PromptText screen_prompts(bool interactive) {
+    return interactive ? PromptText::Interactive : PromptText::Retained;
+  }
   void text(UiText t, const std::string &value, Vec2 parent = {},
             float alpha = 1, bool button = false, bool uppercase = false,
             const MenuFrame *owner = nullptr, const UiText *definition = nullptr,
-            bool prompts = false, const Impl *font_owner = nullptr) {
+            PromptText prompts = PromptText::None, const Impl *font_owner = nullptr) {
     auto chars = codepoints(value);
     std::map<std::size_t,unsigned> keyboard_prompt_sources;
     if (!button && (t.flags & 8) && owner &&
@@ -878,7 +959,7 @@ struct FrontendPainter::Impl {
       chars.assign(displayed.begin(), displayed.end());
       std::erase(chars, unsigned('\r'));
     }
-    if(prompts && prompt_device==PromptDevice::KeyboardMouse) {
+    if(prompts != PromptText::None && prompt_device==PromptDevice::KeyboardMouse) {
       std::vector<unsigned> keys;
       for(auto c:chars) {
         std::string_view name;
@@ -935,7 +1016,7 @@ struct FrontendPainter::Impl {
     std::optional<FrontendPointerAction> prompt_action;
     // The title's authored Press Start caption is plain text (0E001811),
     // rather than a controller glyph. Keep its native target on that caption.
-    if (prompts && owner && owner->screen == 9 && original_string_matches(t.string,0x0e001811))
+    if (prompts == PromptText::Interactive && owner && owner->screen == 9 && original_string_matches(t.string,0x0e001811))
       prompt_action = FrontendPointerAction::Accept;
     auto action_for = [&](unsigned c) -> std::optional<FrontendPointerAction> {
       using Action = FrontendPointerAction;
@@ -1013,7 +1094,7 @@ struct FrontendPainter::Impl {
       };
       for (std::size_t i = start; i < end; ++i) {
         const auto c = chars[i];
-        if (prompts)
+        if (prompts == PromptText::Interactive)
           if (auto action = action_at(i)) {
             submit_prompt();
             prompt_action = action;
@@ -1068,7 +1149,7 @@ struct FrontendPainter::Impl {
           const auto foreground = frontend_text_pixel_color(
               frontend_text_texture_color(c) ? pixel | 0xffffffu : pixel);
           quad(gx, gy, width, height, glyph_material, foreground, u0, v0, u1, v1);
-          if (prompts && prompt_action && foreground.alpha > 0 &&
+          if (prompt_action && foreground.alpha > 0 &&
               c != ' ' && width > 0 && height > 0) {
             if (!prompt) prompt = Hit{gx, gy, gx + width, gy + height, 0, *prompt_action};
             else {
@@ -1094,7 +1175,7 @@ struct FrontendPainter::Impl {
     }
   }
   void shell_text(UiText t, const std::string &value, bool uppercase,
-                  const MenuFrame *frame, bool prompts, const Impl *owner) {
+                  const MenuFrame *frame, PromptText prompts, const Impl *owner) {
     const auto first_vertex = output.vertices.size(), first_hit = hits.size();
     text(t, value, {}, 1, false, uppercase, frame, nullptr, prompts, owner);
     if (!owner || !imported_mcc_canvas) return;
@@ -1478,6 +1559,11 @@ struct FrontendPainter::Impl {
       if (roster && index >= 21 && index <= 36 &&
           !(*roster)[index-21].speaker_visible) continue;
       auto image = *b;
+      if (frame.multiplayer_options() && content.images.contains(b->datum) &&
+          content.images.at(b->datum).name == R"(ui\screens\game_shell\mp_game_select\mp_games)") {
+        draw_mode_picture(*b, parent, frame.selected);
+        continue;
+      }
       if (wide_social_page(frame) && index == 3)
         image.position.x += social_width_extra();
       //6192B3 uses page10 when there is no source game-type icon owner.
@@ -1619,9 +1705,12 @@ struct FrontendPainter::Impl {
           continue;
       }
       const UiScene *definition = &scene;
-      if (const auto viewport = detail::frontend_mcc_model_viewport(content, screen, scene)) {
+      if (const auto framing = detail::frontend_mcc_model_framing(content, screen, scene)) {
         auto [entry, inserted] = model_viewports.try_emplace(&scene, scene);
-        if (inserted) entry->second.viewport = *viewport;
+        if (inserted) {
+          entry->second.viewport = framing->viewport;
+          entry->second.field_of_view = framing->field_of_view;
+        }
         definition = &entry->second;
       }
       output.scenes.push_back({definition, output.vertices.size(),
@@ -1681,6 +1770,9 @@ struct FrontendPainter::Impl {
       if (lobby_policy && i == 0)
         t.flags = lobby_policy->status_warning ? t.flags | 4u : t.flags & ~4u;
       auto value = content.localized(screen, t.string);
+      if (frame.multiplayer_options())
+        value = i == 0 ? multiplayer_illustrations[frame.selected].description
+                       : frame.entries.at(frame.selected).label;
       if(frame.screen==vista_menu(18)) {
         if(i==0)value=state.game_pause_objectives();
         if(frame.context!=campaign_game_pause_context)value.clear();
@@ -1782,8 +1874,12 @@ struct FrontendPainter::Impl {
       // player-supplied text remain inert even if they contain prompt glyphs.
       const bool pane_prompts = frame.screen == 210 ? content.source_fonts.empty() && i == 1
           : frame.screen != 219 && frame.screen != 237;
+      // Long key names and the emblem's extra Toggle Icon command both
+      // need the full panel interior. Keep the authored right alignment.
+      if (appearance_popup && i == 1)
+        t.bounds.left = std::min(t.bounds.left, pane.texts.front().bounds.left);
       text(t, (state.online_couch_screen(frame) || state.online_clan_screen(frame) || state.online_party_screen(frame) || state.online_friends_screen(frame) || frame.screen == 20 || frame.screen == 186 || frame.screen == 167 || frame.screen == 210 || frame.screen == 219 || frame.screen == 237) ? value : state.expand(value), parent, 1, false, false, &frame, &pane.texts[i],
-           interactive && !(frame.screen == 167 && i == 0) && pane_prompts);
+           pane_prompts && !(frame.screen == 167 && i == 0) ? screen_prompts(interactive) : PromptText::None);
       if (frame.screen == 167)
         keyboard_widget(first, t.layer, 6,
                         animation(t.animation, t.delay).position.z);
@@ -1994,6 +2090,12 @@ struct FrontendPainter::Impl {
       const auto &skin = content.skins.at(list.skin);
       const bool profile_skin = is_profile_skin(skin);
       const auto profile_bounds = profile_skin ? skin_bounds(skin) : UiRect{};
+      const bool settings_boxes = interactive && !profile_skin &&
+          (frame.multiplayer_options() || screen.name.find("\\settings_screen\\") != std::string::npos ||
+           skin.name.starts_with("ui\\list_skins\\setting_lists\\") ||
+           std::ranges::any_of(state.stack(), [](const MenuFrame &f) {
+             return f.screen == 19 || is_vista_settings(f.screen, 19) || is_vista_settings(f.screen, 259);
+           }));
       float row = 0;
       for (const auto &t : skin.texts)
         row = std::max(row, t.bounds.top - t.bounds.bottom);
@@ -2058,6 +2160,8 @@ struct FrontendPainter::Impl {
         unsigned social_bitmap_index=0;
         const auto matchmaking_speaker=frame.screen==210 && content.original_matchmaking_layout
             ? state.online_matchmaking_speaker(index) : std::optional<unsigned>{};
+        std::optional<Hit> option_box;
+        const auto first_row_vertex = output.vertices.size();
         for (auto b : skin.bitmaps) {
           const auto social_bitmap=social_bitmap_index++;
           // The directory owns no source host/custom-map status icons.
@@ -2082,6 +2186,21 @@ struct FrontendPainter::Impl {
               content.images.contains(b.datum) &&
               content.images.at(b.datum).images.front().width > 200)
             extend_bitmap(first_bitmap, {social_width_extra(), 0});
+          if (settings_boxes && output.vertices.size() == first_bitmap + 6) {
+            const auto &a = output.vertices[first_bitmap].position;
+            const auto &b_corner = output.vertices[first_bitmap + 4].position;
+            if (!option_box && !(b.flags & 1)) {
+              // The skin's layout bitmap supplies the row body, including its
+              // sprite registration and scale (e.g. the wider binding editor).
+              option_box = Hit{a.x, a.y, b_corner.x, b_corner.y, index};
+            } else if (option_box && a.x <= option_box->right && b_corner.x >= option_box->left &&
+                       a.y < option_box->bottom && b_corner.y > option_box->top) {
+              // Include attached end caps. Their vertical glow can overlap the
+              // next option, and some skins park unused brackets offscreen.
+              option_box->left = std::min(option_box->left, a.x);
+              option_box->right = std::max(option_box->right, b_corner.x);
+            }
+          }
         }
         if (profile_skin && !(wide_social_page(frame))) {
           const auto appearance = state.profile_entry_appearance(frame, index);
@@ -2091,6 +2210,18 @@ struct FrontendPainter::Impl {
                 profile_group(content.skin_groups.at(grid.skin), origin,
                               opacity, frame.entries[index], appearance);
               });
+          if (interactive && frame.screen == 193) {
+            // Settings' profile picker draws its end cap and nested name bar
+            // outside the source layout union. Keep the union's row pitch.
+            const float top = 240 - p.y - profile_bounds.top;
+            option_box = Hit{320 + p.x + profile_bounds.left, top,
+                             320 + p.x + profile_bounds.right, top + row, index};
+            for (std::size_t v = first_row_vertex; v < output.vertices.size(); ++v) {
+              const auto x = output.vertices[v].position.x;
+              option_box->left = std::min(option_box->left, x);
+              option_box->right = std::max(option_box->right, x);
+            }
+          }
         }
         if(frame.screen==210) {
           const auto kind=frame.entries[index].value;
@@ -2180,23 +2311,8 @@ struct FrontendPainter::Impl {
           if (is_vista_menu(frame.screen) && frame.screen!=vista_menu(6) && j > 0 && j != 3)
             value = state.pc_value_label(frame, index, j);
           if (is_vista_settings(frame.screen, 253) && j == 3) value = frame.entries[index].label;
-          if (frame.screen == 47 && j == 1) {
-            // Original 2C8BF5 binds the second child to the edited settings.
-            // These source strings contain the original colored glyphs.
-            const auto appearance = state.appearance();
-            unsigned low = 0;
-            if (index == 0 && appearance.species >= 0 && appearance.species < 2)
-              low = 0x2ff + unsigned(appearance.species);
-            else if (index >= 1 && index <= 4 &&
-                     appearance.colors[index - 1] >= 0 &&
-                     appearance.colors[index - 1] < 18)
-              low = 0x30a + unsigned(appearance.colors[index - 1]);
-            else if (index == 5 && appearance.foreground < 64)
-              low = 0x36f + appearance.foreground;
-            else if (index == 6 && appearance.background < 32)
-              low = 0x3af + appearance.background;
-            value=original_low_localized(screen,low);
-          }
+          if (frame.screen == 47 && j == 1)
+            value = original_low_localized(screen, state.appearance_value_id(frame.entries[index]));
           // Vista6468BF supplies a zero list descriptor, so the original
           // 210 loader skips this authored roster. Its20-unit box cannot fit
           // the PC font's29-unit ascent. The native admitted-player roster
@@ -2209,10 +2325,21 @@ struct FrontendPainter::Impl {
           }
           text(t,
                (state.online_clan_screen(frame) || state.online_party_screen(frame) || state.online_friends_screen(frame) || frame.screen == 20 || frame.screen == 186 || frame.screen == 167 || frame.screen == 210 || frame.screen == 219 || frame.screen == 237) ? value : state.expand(value),
-               p, opacity, false, false, nullptr, nullptr, false, roster_fonts);
+               p, opacity, false, false, nullptr, nullptr, PromptText::None, roster_fonts);
         }
         if (interactive && opacity > 0 &&
             !(is_vista_settings(frame.screen, 253) && frame.entries[index].value == -2)) {
+          if (option_box) {
+            if (selected) {
+              // Retail slides the focused option horizontally. A stationary
+              // pointer on its resting edge must still activate it after hover.
+              const float resting_dx = row_focus(false).position.x - focus.position.x;
+              option_box->left += std::min(0.f, resting_dx);
+              option_box->right += std::max(0.f, resting_dx);
+            }
+            hits.push_back(*option_box);
+            continue;
+          }
           float l = -10, r = 240, top = row;
           if (!skin.texts.empty()) {
             const auto& bounds=skin.texts.at(network_browser ? 6 : 0).bounds;
@@ -2456,7 +2583,7 @@ struct FrontendPainter::Impl {
       const auto first = output.vertices.size();
       shell_text(header,
            (state.online_clan_screen(frame) || state.online_party_screen(frame) || state.online_friends_screen(frame) || frame.screen == 20 || frame.screen == 186 || frame.screen == 167 || frame.screen == 210 || frame.screen == 219 || frame.screen == 237) ? frame.title : state.expand(frame.title.empty() ? content.localized(s, s.header)
-                                            : frame.title), true, nullptr, false, shell_owner);
+                                            : frame.title), true, nullptr, PromptText::None, shell_owner);
       if (frame.screen == 167)
         keyboard_widget(first, 32767, 6, 0);
     }
@@ -2505,7 +2632,7 @@ struct FrontendPainter::Impl {
               ? "\xee\x84\x80 REFRESH  \xee\x84\x81 BACK  \xee\x84\x82 REFRESH"
               : "\xee\x84\x80 DETAILS  \xee\x84\x81 BACK  \xee\x84\x82 REFRESH")
           : frame.screen == 237 ? "\xee\x84\x81 BACK"
-          : button_key(s.button_key)), false, &frame, interactive, shell_owner);
+          : button_key(s.button_key)), false, &frame, screen_prompts(interactive), shell_owner);
       if (frame.screen == 167)
         keyboard_widget(first, 32767, 6, 0);
     }
@@ -2515,7 +2642,7 @@ struct FrontendPainter::Impl {
       t.font = 1;
       t.color = content.color;
       t.bounds = content.header_bounds[1];
-      text(t, detail::frontend_compiled_localized(content, s, 0x08001682), {}, 1, false, false, &frame, nullptr, interactive);
+      text(t, detail::frontend_compiled_localized(content, s, 0x08001682), {}, 1, false, false, &frame, nullptr, screen_prompts(interactive));
     }
     if (frame.screen == 167 && !s.panes.empty()) {
       const auto first = output.vertices.size();
@@ -2774,7 +2901,7 @@ struct FrontendPainter::Impl {
           state.stack().end(), [](const auto &f) { return f.screen == 10; });
       // Disc screens9/6 share the start_screen logo bitmap. The native
       // ONLINE panel replaces that lower title/main-menu UI for readability.
-      const bool hide_title = online_panel && (it->screen == 9 || it->screen == 6);
+      const bool hide_title = online_panel && (it->screen == 9 || it->screen == 6 || it->multiplayer_options());
       // The native directory details page keeps browser history for Back,
       // while replacing its visible content and footer.
       const bool hide_lower = hide_title || (social_backdrop && frame.screen != 26) ||
@@ -2944,7 +3071,7 @@ struct FrontendNetworkTransitionPainter::State {
     for(const auto *b:ordered)p.bitmap(*b);
     for(unsigned i=0;i<pane.texts.size();++i)
       p.text(pane.texts[i],i==0?status.at(unsigned(value)):content.localized(screen,pane.texts[i].string),
-          {},1,false,false,nullptr,&pane.texts[i],false);
+          {},1,false,false,nullptr,&pane.texts[i]);
     if(p.imported_mcc_canvas) {
       constexpr float scale=480.f/1200.f;
       for(auto &vertex:p.output.vertices) {

@@ -3,11 +3,17 @@
 #include <stdexcept>
 namespace halo2 {
 void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
+    // Authored TU1.5 .text data: F3618 reads one of seven byte selectors
+    // after the unsigned range check. F361F then reads one of two targets.
+    constexpr std::uint32_t vehicle_point_dispatch_address=0xf3824u;
+    constexpr std::array<std::uint8_t,15> vehicle_point_dispatch{
+        0x26,0x36,0x0f,0x00, 0xc9,0x37,0x0f,0x00, 0,0,1,1,0,1,0};
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,128>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,129>{{
                 {0x4117e0u,8u},
+                {vehicle_point_dispatch_address,vehicle_point_dispatch.size()},
                 {0x49219cu,144u},{0x49222cu,16u},{0x49223cu,16u},{0x49224cu,4u},
                 {0x4c6894u,192u},{0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
@@ -436,6 +442,9 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
         action_dispatch[16+i]=std::byte(action_selectors[i]);
     m.mount(0xf0d28,action_dispatch,SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored F0BE0 four-target fifteen-selector dispatch data");
+    m.mount(vehicle_point_dispatch_address,std::as_bytes(std::span(vehicle_point_dispatch)),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored F35D0 two-target seven-selector dispatch data");
 
     // Whole Original169493 sign-extends CX and bounds the unsigned result
     // to0..40 before reading this exact unaligned inline DWORD table.

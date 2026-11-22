@@ -116,7 +116,7 @@ MenuState selected(const FrontendContent &content, unsigned variant, bool system
   MenuState menu(content);
   menu.accept(); choose(menu, 0, 167); menu.text("Team Picker"); menu.commit_text(); menu.back();
   check(menu.frame().screen == 6 && !menu.signed_in_profile().empty(), "team picker profile not signed in");
-  choose(menu, system_link ? 3 : 2, 30); choose(menu, 0, 14);
+  choose(menu, 1, 218); choose(menu, system_link ? 2 : 0, 30); choose(menu, 0, 14);
   choose(menu, 1, 23); choose(menu, 1, 207);
   choose(menu, entry(menu, content.variants.at(variant).engine), 208);
   choose(menu, entry(menu, variant), 14);

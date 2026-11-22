@@ -11,7 +11,7 @@ namespace mcc_model_viewport_profile {
 // Numeric/name metadata only. MCC source56a52889598d49c2...; original source
 // 1b5de78212ee7439... and original2B0BAA/2C560 matching scene cases.
 // Reproduction: .local/mcc-model-view-diagnosis-20261019/viewport-profile-v1.
-// These are viewport-only projections: camera/FOV/animation/pose stay authored.
+// Appearance pairs its full Original viewport with the lens authored for it.
 struct Profile {
   unsigned screen;
   std::string_view screen_name, object;
@@ -20,14 +20,15 @@ struct Profile {
   unsigned flags, animation, delay;
   std::array<std::uint32_t,11> source_words; // scale3,camera3,FOV,viewport4.
   std::array<std::int16_t,4> canonical; // Original(top,left,bottom,right).
+  std::optional<float> original_fov{};
 };
 inline constexpr Profile profiles[]{
   {47u, "ui\\screens\\game_shell\\settings_screen\\player_profile\\multiplayer_appearance_settings", "ui_player1c", 1u, {"ui_basic9", "", ""}, 0u, 11u, 250u,
     {0x3ac49ba6u, 0x3ac49ba6u, 0x3ac49ba6u, 0x41accccdu, 0x4261999au, 0xc247851fu, 0x425c0000u, 0x43eb0000u, 0xc41b0000u, 0xc3e10000u, 0x43ff0000u},
-    {240, -320, -240, 320}},
+    {240, -320, -240, 320}, 72.f},
   {47u, "ui\\screens\\game_shell\\settings_screen\\player_profile\\multiplayer_appearance_settings", "ui_player1d", 1u, {"ui_basic10", "", ""}, 0u, 11u, 250u,
     {0x3ac49ba6u, 0x3ac49ba6u, 0x3ac49ba6u, 0x41fbd70au, 0x4260cccdu, 0xc247999au, 0x425c0000u, 0x43eb0000u, 0xc42f0000u, 0xc3e10000u, 0x44160000u},
-    {240, -320, -240, 320}},
+    {240, -320, -240, 320}, 70.f},
   {30u, "ui\\screens\\game_shell\\4way_multiplayer_signin\\4way_signin_main", "ui_player1", 1u, {"ui_basic1", "", ""}, 0u, 11u, 100u,
     {0x3ba3d70au, 0x3ba3d70au, 0x3ba3d70au, 0xc263f5c3u, 0x4260cccdu, 0xc246cccdu, 0x428c0000u, 0x43d20000u, 0xc3fa0000u, 0x41a00000u, 0x44098000u},
     {240, -320, 0, 320}},
@@ -64,13 +65,18 @@ inline constexpr Profile profiles[]{
 };
 } // namespace mcc_model_viewport_profile
 
-// Call on the original immutable content scene. A returned rectangle belongs
-// in a private UiScene copy with the existing Xbox viewport route(false).
+struct FrontendModelFraming {
+  UiRect viewport;
+  float field_of_view;
+};
+
+// Call on the original immutable content scene. Apply the matched framing
+// to a private UiScene copy with the existing Xbox viewport route(false).
 // Every exposed scene field is qualified; unknown/custom tuples are untouched.
 // This does not import an original asset, mutate a cache or choose a shader.
 // Matchmaking210 retains its complete PC layout, including the ring viewport.
 // Projecting that ring alone into original units separates it from its stages.
-inline std::optional<UiRect> frontend_mcc_model_viewport(
+inline std::optional<FrontendModelFraming> frontend_mcc_model_framing(
     const FrontendContent& content,const UiScreen& screen,const UiScene& scene) {
   if(content.source_fonts.filename()!="h2_fonts" || scene.objects.size()!=1 || scene.lights.empty() || scene.lights.size()>3)
     return {};
@@ -85,8 +91,8 @@ inline std::optional<UiRect> frontend_mcc_model_viewport(
         !std::equal(scene.lights.begin(),scene.lights.end(),row.lights.begin()) ||
         scene.flags!=row.flags || scene.animation!=row.animation || scene.delay!=row.delay ||
         words!=row.source_words)continue;
-    return UiRect{float(row.canonical[0]),float(row.canonical[1]),
-        float(row.canonical[2]),float(row.canonical[3])};
+    return FrontendModelFraming{{float(row.canonical[0]),float(row.canonical[1]),
+        float(row.canonical[2]),float(row.canonical[3])},row.original_fov.value_or(scene.field_of_view)};
   }
   return {};
 }

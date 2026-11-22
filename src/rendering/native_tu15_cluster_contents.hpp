@@ -41,6 +41,7 @@
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "physics/runtime/native_tu15_required_owner_policy.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
+#include "pstencil/campaign_lighting_timing.hpp"
 #include <cstdlib>
 #include <optional>
 #include <thread>
@@ -567,6 +568,31 @@ public:
 };
 template<class State,class Call,class Before=Noop>bool bridge(State&s,Call call,Before before={}){
     if(!admitted(s))return false;
+    if(auto* timing=pstencil::projected_cluster_timing){
+        using Phase=pstencil::CampaignLightPhase;
+        const pstencil::ProjectedVisibilityTimingBinding nested(nullptr,pstencil::projected_cluster_timing);
+        std::uint64_t child_ns{};
+        auto measured=[&](State& child,std::uint32_t target,std::uint32_t site,auto& progress){
+            const auto phase=target==object_admission_entry?Phase::projected_visibility_object_admission:
+                target==fog_membership_entry?Phase::projected_visibility_cluster_fog:Phase::projected_visibility_cluster_other_children;
+            const auto prior=timing->phases[std::size_t(phase)].ns;
+            pstencil::CampaignLightPhaseTimer timer(timing,phase);
+            if(target==object_admission_entry){
+                const pstencil::ProjectedVisibilityTimingBinding object(timing,pstencil::projected_object_timing);
+                call(child,target,site,progress);
+            }else call(child,target,site,progress);
+            timer.finish();
+            child_ns+=timing->phases[std::size_t(phase)].ns-prior;
+        };
+        const auto begin=pstencil::campaign_lighting_now();
+        Adapter adapter{s,measured,before};logic::cluster_contents::collect(adapter,adapter);
+        const auto elapsed=pstencil::campaign_lighting_elapsed(begin);
+        // Includes the parent frame, list walking and inline queue stores.
+        auto& traversal=timing->phases[std::size_t(Phase::projected_visibility_cluster_traversal)];
+        traversal.ns+=elapsed-child_ns;
+        ++traversal.calls;
+        return true;
+    }
     Adapter adapter{s,call,before};logic::cluster_contents::collect(adapter,adapter);return true;
 }
 #else

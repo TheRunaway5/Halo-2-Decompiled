@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 from source_layout import source_file
+from specialize_native_operands import group_literal_stack_pops
 
 SOURCE = r'''
 #include "physics/runtime/physics_contact_runtime_internal.hpp"
@@ -150,6 +151,26 @@ int main(int argc,char **argv)try {
 
 
 class NativeInstructionCursor(unittest.TestCase):
+    def test_grouping_keeps_pop_entries_and_service_sites(self):
+        def pop(pc, register):
+            return f's.instruction_literal({pc:#x}u); s.set({register},s.pop(),4,0);'
+
+        # The first sequence is safe, including a repeated destination. The
+        # remaining blocks each contain a boundary the binder must preserve.
+        ordered = '\n'.join((pop(0x32b0e1, 1), pop(0x32b0e2, 1)))
+        separate = '\n'.join((
+            pop(0x106e71, 7), 'L106e72: ' + pop(0x106e72, 6),
+            pop(0x20000, 3), pop(0x20002, 3),
+            pop(0x40000, 3), pop(0x40001, 4), pop(0x40002, 5),
+            pop(0x21f58f, 7), pop(0x21f590, 6), pop(0x21f591, 5),
+            '/*', pop(0x42000, 7), pop(0x42001, 6), '*/',
+        ))
+        output, groups = group_literal_stack_pops(ordered + '\n' + separate)
+        self.assertEqual(groups, 1)
+        fallback = '\n'.join('    ' + line for line in ordered.splitlines())
+        self.assertEqual(output, f'if(!s.try_pop_registers<1,1>(0x32b0e2u)){{\n{fallback}\n}}\n{separate}')
+        self.assertEqual(group_literal_stack_pops(output), (output, 0))
+
     def test_exact_callback_contract(self):
         with tempfile.TemporaryDirectory(dir=os.environ.get('HALO2_TEST_SCRATCH')) as folder:
             directory = Path(folder)

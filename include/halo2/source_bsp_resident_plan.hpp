@@ -70,11 +70,12 @@ struct SourceBspMergedDrawPlan {
     std::vector<SourceBspObjectRun> borrowed_runs;
     std::uint32_t logical_vertices{},borrowed_object_vertices{};
 };
-// Isolated ordinary BSP resident-bank/selection consumer. Constructor matches
-// SourceBspShaderScene's material import and retains immutable raw geometry.
-// It does not create a GPU buffer, descriptor, device or render success.
+// Immutable BSP geometry and draw planning. The Cache constructors also
+// import the authored shader LOD bindings used by select().
 class SourceBspResidentPlan {
 public:
+    // Store an existing BSP submission without importing or selecting shader LODs.
+    explicit SourceBspResidentPlan(std::span<const Vertex> vertices);
     SourceBspResidentPlan(const Cache &,Mesh &,std::size_t bsp,
         SourceBspResidentLighting=SourceBspResidentLighting::static_lightmap);
     SourceBspResidentPlan(const Cache &,Mesh &,std::size_t bsp,SourceBspResidentLighting,
@@ -82,6 +83,7 @@ public:
     SourceBspResidentViewPlan select(const SourceBspShaderView &) const;
     SourceBspResidentViewPlan select(const SourceBspShaderView &,
         SourceBspShaderLodAuxiliary) const;
+    std::vector<SourceBspPartBinding> unchanged_bindings() const;
     const std::vector<SourceBspResidentPart> &parts() const {return resident_parts_;}
     // Packed exactly as the existing Renderer constructor's encounter-order
     // catalogue, with stable raw input order within each complete key.
@@ -100,6 +102,7 @@ public:
         std::span<const Vertex> dynamic_objects,unsigned material_count,unsigned lightmap_count,
         std::uint32_t dynamic_first=0,std::uint32_t logical_first=0,bool borrow_objects=false) const;
 private:
+    void build_resident_geometry();
     std::size_t bsp_index_{};
     SourceBspAdmissionBsp geometry_;
     SourceTransparentBspParts parts_;

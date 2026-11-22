@@ -74,7 +74,7 @@ void rename_edited_profile(const FrontendContent &content,const std::filesystem:
  MenuState menu(content,preferences);
  menu.accept();menu.select(0);menu.accept();menu.commit_text();
  menu.back();check(menu.frame().screen==6,"rename regression did not finish profile creation");
- menu.select(4);menu.accept();menu.select(0);menu.accept();
+ menu.select(2);menu.accept();menu.select(0);menu.accept();
  check(menu.frame().screen==193,"rename regression did not enter the retained profile picker");
  menu.select(1);menu.accept();check(menu.frame().screen==194,"rename regression did not choose the saved profile");
  menu.select(0);menu.accept();check(menu.frame().screen==38,"rename regression did not enter saved profile settings");

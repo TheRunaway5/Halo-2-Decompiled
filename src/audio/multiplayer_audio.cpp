@@ -1317,19 +1317,21 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_im
     MultiplayerPreparedScriptImpulseTu15&input,float control,MultiplayerAudioKind kind,
     std::uint32_t owner,unsigned view,std::optional<Vec3>position,
     std::optional<std::uint64_t>frame,Completion completion){
-  return play_prepared_script_impulse_impl(input,nullptr,control,kind,owner,view,position,frame,std::move(completion));
+  return play_prepared_script_impulse_impl(input,nullptr,control,kind,owner,view,position,frame,std::move(completion),{});
 }
 std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_impulse(
     MultiplayerPreparedScriptImpulseTu15&input,const MccScriptSoundWorldAccess&access,
     float control,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view,
-    std::optional<Vec3>position,std::optional<std::uint64_t>frame,Completion completion){
+    std::optional<Vec3>position,std::optional<std::uint64_t>frame,Completion completion,
+    std::optional<MultiplayerAudioEffect> effect){
   const auto retained=access;
-  return play_prepared_script_impulse_impl(input,&retained,control,kind,owner,view,position,frame,std::move(completion));
+  return play_prepared_script_impulse_impl(input,&retained,control,kind,owner,view,position,frame,std::move(completion),effect);
 }
 std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_impulse_impl(
     MultiplayerPreparedScriptImpulseTu15&input,const MccScriptSoundWorldAccess*first_selection,
     float control,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view,
-    std::optional<Vec3>position,std::optional<std::uint64_t>frame,Completion completion){
+    std::optional<Vec3>position,std::optional<std::uint64_t>frame,Completion completion,
+    std::optional<MultiplayerAudioEffect> effect){
   auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();state->script_thread();const auto preparation=input.impl_;
   using Status=MultiplayerPreparedScriptImpulseTu15::Impl::Status;
   if(!preparation || preparation->audio_epoch!=state->script_epoch || !preparation->admission)
@@ -1353,6 +1355,11 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_im
        (position && (!std::isfinite(position->x)||!std::isfinite(position->y)||!std::isfinite(position->z))))
       throw FormatError("Invalid prepared native script sound input");
     auto record=std::make_shared<State::Core::ScriptVoiceRecord>();
+    struct PendingEffect {
+      std::optional<tu15_sound_mono_distortion::Parameters>& slot;
+      ~PendingEffect(){slot.reset();}
+    } pending{state->pending_effect};
+    if(effect)state->pending_effect=state->effect_parameters(*effect);
     const auto voice=state->play(preparation->sound,0,kind,owner,view,false,none,0,1,
         std::move(completion),control,position,frame,preparation->selection,record,first_selection);
     if(!voice){(void)preparation->clock->finish_failure(*preparation->admission);return {};}

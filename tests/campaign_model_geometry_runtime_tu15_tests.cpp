@@ -187,7 +187,7 @@ int cairo_scenery_lighting(const Cache &cache,const std::filesystem::path &xbe) 
         const auto &placement=content.objects.at(object.placement);
         if(placement.type!=6)continue;
         const auto model=cache.load_model(placement.definition,true,placement.variant);
-        if(!source_campaign_lit_scenery(model,placement))continue;
+        if(!source_campaign_lit_object(model,placement))continue;
         const auto key=(std::uint64_t(placement.variant)<<32)|placement.definition;
         auto &bank=banks[key];
         if(!bank) {

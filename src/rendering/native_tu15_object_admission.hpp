@@ -2,8 +2,10 @@
 #include "halo2/native_tu15_object_admission_kernel.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
+#include "pstencil/campaign_lighting_timing.hpp"
 #include <cstdlib>
 #include <thread>
+#include <type_traits>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 #include "halo2/native_tu15_bsp_surface_2d_kernel.hpp"
 #include "physics/runtime/native_tu15_mopp_ray_caller_frame.hpp"
@@ -18,6 +20,40 @@ namespace halo2::native_object_admission_detail {
 enum class Child {geometry,association,geometry_frustum,geometry_auxiliary};
 struct Noop {static constexpr bool silent_hook=true;template<class State>void operator()(State&,std::uint32_t)const{}};
 inline bool reference(){static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_OBJECT_ADMISSION");return p&&*p;}();return value;}
+inline bool reference_queue_scan(){
+    static const bool value=[]{const auto*p=std::getenv("HALO2_REFERENCE_OBJECT_QUEUE_SCAN");return p&&*p;}();
+    return value;
+}
+inline bool reference_geometry_scope(){
+    static const bool value=[] {
+        const auto* reference=std::getenv("HALO2_REFERENCE_OBJECT_GEOMETRY_SCOPE");
+        const auto* literal=std::getenv("HALO2_REFERENCE_LITERAL_INSTRUCTIONS");
+        return (reference && *reference) || (literal && *literal);
+    }();
+    return value;
+}
+inline bool reference_push_io(){
+    static const bool value=[] {
+        const auto* reference=std::getenv("HALO2_REFERENCE_OBJECT_ADMISSION_PUSH_IO");
+        const auto* literal=std::getenv("HALO2_REFERENCE_LITERAL_INSTRUCTIONS");
+        return (reference && *reference) || (literal && *literal);
+    }();
+    return value;
+}
+inline bool reference_stack_io(){
+    static const bool value=[]{
+        const auto* reference=std::getenv("HALO2_REFERENCE_PROJECTED_STACK_IO");
+        return reference && *reference;
+    }();
+    return value;
+}
+inline bool reference_queue_store_io(){
+    static const bool value=[] {
+        const auto* reference=std::getenv("HALO2_REFERENCE_PROJECTED_QUEUE_STORE_IO");
+        return reference && *reference;
+    }();
+    return value;
+}
 template<class State>bool policy_admitted(const State&s){
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     // The parent needs two x87 slots (135AE0); the genuine geometry child
@@ -49,24 +85,47 @@ template<class Scope>struct Io {Scope*scope;template<class Callback>void operato
 template<class State,class Call,class Before>class View:public native_mopp_ray_caller_detail::Frame<State,Before,Io<native_raw_x87_detail::Scope<State>>> {
     using Scope=native_raw_x87_detail::Scope<State>;
     using Base=native_mopp_ray_caller_detail::Frame<State,Before,Io<Scope>>;
-    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::push;using Base::pop;
-    Scope&scope_;Call&call_;
+    using Base::s_;using Base::before_;using Base::at;using Base::word;using Base::io;using Base::pop;
+    Scope&scope_;Call&call_;bool borrow_geometry_,callback_free_pushes_,callback_free_stack_,callback_free_outputs_;
+    void push(std::uint32_t pc,std::uint32_t value){
+        if(!callback_free_pushes_){Base::push(pc,value);return;}
+        at(pc);
+        const auto address=s_.gp[4]-4u;
+        const auto bytes=std::bit_cast<std::array<std::byte,4>>(value);
+        if(address>=0x60000000u && address<=0x600ffffcu &&
+           s_.memory.try_callback_free_write(address,bytes)) {
+            s_.gp[4]=address;
+            return;
+        }
+        Base::store(pc,address,value,[&]{s_.gp[4]=address;},true);
+    }
     std::uint32_t read(std::uint32_t pc,std::uint32_t address,unsigned width=4){at(pc);return word(address,width);}
     void write(std::uint32_t pc,std::uint32_t address,std::uint32_t value,unsigned width=4){
-        at(pc);SourcePhysicsContactRecordStore event{pc,address,{},{}};
-        if(s_.observe){event.before.resize(width);io([&]{s_.memory.read(address,event.before);});}
+        at(pc);
         std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
-        io([&]{s_.memory.write(address,std::span(bytes).first(width));});
-        if(s_.observe){event.written.assign(bytes.begin(),bytes.begin()+width);io([&]{s_.observe(event);});}
+        const auto written=std::span(bytes).first(width);
+        if(callback_free_stack_ && !s_.observe &&
+           (callback_free_outputs_ || (address>=0x60000000u &&
+              std::uint64_t(address)+width<=0x60100000u)) &&
+           s_.memory.try_callback_free_write(address,written))return;
+        SourcePhysicsContactRecordStore event{pc,address,{},{}};
+        if(s_.observe){event.before.resize(width);io([&]{s_.memory.read(address,event.before);});}
+        io([&]{s_.memory.write(address,written);});
+        if(s_.observe){event.written.assign(written.begin(),written.end());io([&]{s_.observe(event);});}
     }
     // RMW flags commit only after the provider accepted the store.
     template<class Operation>void modify(std::uint32_t pc,std::uint32_t address,unsigned width,Operation operation){
         at(pc);const auto prior=word(address,width);auto flags=s_.flags;const auto value=operation(flags,prior);
+        std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
+        const auto written=std::span(bytes).first(width);
+        if(callback_free_outputs_ && !s_.observe && s_.memory.try_callback_free_write(address,written)) {
+            s_.flags=flags;
+            return;
+        }
         SourcePhysicsContactRecordStore event{pc,address,{},{}};
         if(s_.observe){event.before.resize(width);io([&]{s_.memory.read(address,event.before);});}
-        std::array<std::byte,4>bytes{};for(unsigned n=0;n<width;++n)bytes[n]=std::byte(value>>(n*8u));
-        io([&]{s_.memory.write(address,std::span(bytes).first(width));});s_.flags=flags;
-        if(s_.observe){event.written.assign(bytes.begin(),bytes.begin()+width);io([&]{s_.observe(event);});}
+        io([&]{s_.memory.write(address,written);});s_.flags=flags;
+        if(s_.observe){event.written.assign(written.begin(),written.end());io([&]{s_.observe(event);});}
     }
     void byte(unsigned reg,std::uint32_t value){s_.set(reg,value,1,0);}
     static std::uint32_t signed_half(std::uint32_t value){return std::uint32_t(std::int32_t(std::int16_t(value)));}
@@ -78,9 +137,60 @@ template<class State,class Call,class Before>class View:public native_mopp_ray_c
     template<unsigned Index>bool probe(std::uint32_t pc,std::uint32_t base){
         auto&g=s_.gp;g[Index]=signed_half(g[0]);s_.flags.minus(read(pc,base+g[Index]*4u),g[5],4);return s_.flags.zf;
     }
+    bool admitted_queue_scan(std::uint32_t count)const{
+        return !reference_queue_scan() && s_.gp[0]==0 &&
+            native_bsp_admission_detail::admits_ordinary_queue_scan<Before>(s_,count);
+    }
+    static void record_scan(std::uint32_t probes,bool bulk) noexcept {
+        if(auto* timing=pstencil::projected_object_timing) {
+            auto& work=timing->work;
+            ++work.stamped_scans;
+            if(bulk) {
+                ++work.stamped_bulk_scans;
+                work.stamped_bulk_probes+=probes;
+            } else work.stamped_scalar_probes+=probes;
+        }
+    }
+    bool try_find_stamped_row(){
+        auto&g=s_.gp;const auto count=g[6];
+        if(!admitted_queue_scan(count))return false;
+        // In this first loop the original reloads the handle pointer before
+        // every probe. Borrow it only if the pointer read is ordinary too.
+        std::uint32_t handles;
+        if(!native_raw_x87_detail::direct_read(s_.memory,g[1]+12u,std::as_writable_bytes(std::span(&handles,1))))
+            return false;
+        const auto index=native_bsp_admission_detail::scan_ordinary_queue(s_.memory,handles,count,g[5]);
+        if(!index)return false;
+        const bool found=*index<count;
+        at(0x135ceau);
+        g[3]=found?*index:count-1u;
+        g[2]=g[3];byte(2,found);
+        g[0]=g[3]+1u;s_.flags.minus(g[0],count,4);
+        if(found&&g[0]<count)s_.flags.logic(1u,1);
+        record_scan(g[0],true);
+        return true;
+    }
+    template<unsigned Index>std::optional<bool> try_find_flag_row(std::uint32_t pc,
+        std::uint32_t handles,std::uint32_t count){
+        if(!admitted_queue_scan(count))return std::nullopt;
+        auto&g=s_.gp;
+        const auto index=native_bsp_admission_detail::scan_ordinary_queue(s_.memory,handles,count,g[5]);
+        if(!index)return std::nullopt;
+        // These two searches return directly from the matching comparison.
+        // A miss advances EAX to the count but keeps the last probed index.
+        at(pc);const bool found=*index<count;
+        g[0]=*index;g[Index]=found?*index:count-1u;
+        if(found)s_.flags.minus(g[5],g[5],4);
+        else s_.flags.minus(g[0],count,4);
+        record_scan(g[0]+std::uint32_t(found),true);
+        return found;
+    }
 public:
     static constexpr std::uint32_t common_epilogue=0x135daau,unmatched_epilogue=0x135d92u,stamped_epilogue=0x135cc0u;
-    View(State&s,Call&call,Before&before,Scope&scope):Base{s,before,Io<Scope>{&scope}},scope_(scope),call_(call){}
+    View(State&s,Call&call,Before&before,Scope&scope,bool borrow_geometry,bool callback_free_pushes):
+        Base{s,before,Io<Scope>{&scope}},scope_(scope),call_(call),borrow_geometry_(borrow_geometry),
+        callback_free_pushes_(callback_free_pushes),callback_free_stack_(callback_free_pushes && !reference_stack_io()),
+        callback_free_outputs_(callback_free_stack_ && !reference_queue_store_io()){}
     bool stamped(){
         auto&g=s_.gp;g[2]=read(0x135b60u,0x4eabccu);g[4]=s_.flags.minus(g[4],0x14u,4);
         push(0x135b69u,g[3]);push(0x135b6au,g[5]);g[5]=read(0x135b6bu,g[4]+0x20u);
@@ -92,11 +202,13 @@ public:
         auto&g=s_.gp;g[1]=read(0x135ccau,g[7]+0x14u);g[6]=signed_half(read(0x135ccdu,g[1]+4u,2));
         g[3]=s_.flags.logic(0xffffffffu,4);byte(2,s_.flags.logic(0u,1));g[0]=s_.flags.logic(0u,4);s_.flags.logic(g[6],4);
         if(less_equal())return;
+        if(try_find_stamped_row())return;
         do{
-            s_.flags.logic(g[2]&255u,1);if(g[2]&255u)return;
+            s_.flags.logic(g[2]&255u,1);if(g[2]&255u)break;
             g[3]=read(0x135ce4u,g[1]+12u);const bool found=probe<2>(0x135ceau,g[3]);g[3]=g[0];byte(2,found);
             g[0]=s_.flags.increment(g[0],4,false);s_.flags.minus(g[0],g[6],4);
         }while(less());
+        record_scan(g[0],false);
     }
     bool row_merged(){
         auto&g=s_.gp;g[2]=read(0x135cf7u,g[1]+8u);
@@ -118,10 +230,12 @@ public:
         auto&g=s_.gp;g[1]=read(0x135d3eu,g[7]+0x14u);g[2]=signed_half(read(0x135d41u,g[1]+4u,2));
         g[0]=s_.flags.logic(0u,4);s_.flags.logic(g[2],4);if(less_equal())return false;
         g[6]=read(0x135d4bu,g[1]+12u);
+        if(const auto found=try_find_flag_row<3>(0x135d53u,g[6],g[2]);found)return *found;
         do{
-            if(probe<3>(0x135d53u,g[6]))return true;
+            if(probe<3>(0x135d53u,g[6])){record_scan(g[0]+1u,false);return true;}
             g[0]=s_.flags.increment(g[0],4,false);s_.flags.minus(g[0],g[2],4);
         }while(less());
+        record_scan(g[0],false);
         return false;
     }
     void mark_primary(){
@@ -135,10 +249,12 @@ public:
     }
     bool find_secondary(){
         auto&g=s_.gp;g[2]=read(0x135d82u,g[7]+12u);
+        if(const auto found=try_find_flag_row<6>(0x135d88u,g[2],g[1]);found)return *found;
         do{
-            if(probe<6>(0x135d88u,g[2]))return true;
+            if(probe<6>(0x135d88u,g[2])){record_scan(g[0]+1u,false);return true;}
             g[0]=s_.flags.increment(g[0],4,false);s_.flags.minus(g[0],g[1],4);
         }while(less());
+        record_scan(g[0],false);
         return false;
     }
     void mark_secondary(){
@@ -163,7 +279,19 @@ public:
         g[1]=read(0x135be2u,g[4]+0x34u);g[2]=g[4]+0x1au;push(0x135beau,g[2]);g[2]=read(0x135bebu,g[4]+0x34u);
         push(0x135befu,g[5]);push(0x135bf0u,g[1]);push(0x135bf1u,g[2]);write(0x135bf2u,g[4]+0x30u,bits(s_.xmm[0]));
         g[6]=read(0x135bf8u,g[4]+0x30u);push(0x135bfcu,g[0]);push(0x135bfdu,g[6]);g[1]=g[3];g[0]=g[7];
-        push(0x135c02u,0x135c07u);scope_.child([&]{call_(s_,Child::geometry,before_);});
+        push(0x135c02u,0x135c07u);
+        const auto descendants=[&](auto& child,auto which,auto& before){
+            if(which==native_geometry_visibility_detail::Child::frustum){
+                if(native_cluster_frustum_abi_detail::bridge(child,before))return;
+                call_(child,Child::geometry_frustum,before);
+            }else{
+                if(native_bsp_queue_find_detail::bridge(child,before))return;
+                call_(child,Child::geometry_auxiliary,before);
+            }
+        };
+        if(!borrow_geometry_ || !native_geometry_visibility_detail::borrow_object_child(
+            s_,scope_,descendants,before_,callback_free_stack_))
+            scope_.child([&]{call_(s_,Child::geometry,before_);});
         s_.flags.logic(g[0]&255u,1);return (g[0]&255u)!=0;
     }
     bool forced(){
@@ -259,17 +387,44 @@ public:
         g[4]=s_.flags.plus(g[4],0x14u,4);pop(epilogue+7u);g[4]+=16u;
     }
 };
-template<class State,class Call,class Before=Noop>bool run_with(State&s,Call call,Before before={}){
+template<class State,class Before>bool secondary_push_io(State&s){
+    if constexpr(!std::is_same_v<Before,Noop>)return false;
+    if(reference_push_io() || native_raw_x87_detail::scoped_access_reference() ||
+       s.observe || s.fp.count || s.fp.top || !s.live_instruction_cursor() || s.gp[0]!=0x5598f8u)
+        return false;
+    const auto sp=s.gp[4];
+    if(sp<0x60000080u || sp>0x600ffffcu || (sp&3u))return false;
+    std::uint32_t caller{};
+    return native_raw_x87_detail::direct_read(s.memory,sp,std::as_writable_bytes(std::span(&caller,1))) &&
+           (caller==0x134e2fu || caller==0x134ee5u);
+}
+
+template<class State,class Call,class Before=Noop>bool run_with(State&s,Call call,Before before={},
+    bool borrow_geometry=false,bool try_push_io=false){
     if(!admitted(s))return false;
-    native_raw_x87_detail::Scope scope{s};View view{s,call,before,scope};native_object_admission_detail::admit_object(view);return true;
+    if(auto* timing=pstencil::projected_object_timing)++timing->work.native_object_admissions;
+    native_raw_x87_detail::Scope scope{s};const bool eligible=borrow_geometry && !reference_geometry_scope() && !pstencil::projected_object_timing;
+    const bool callback_free_pushes=try_push_io && secondary_push_io<State,Before>(s);
+    View view{s,call,before,scope,eligible,callback_free_pushes};
+    native_object_admission_detail::admit_object(view);return true;
 }
 template<class State,class Call,class Before=Noop>bool bridge(State&s,Call fallback,Before before={}){
     return native_object_admission_detail::run_with(s,[&](auto&child,Child which,auto&observe){
         if(which==Child::geometry){
-            if(native_geometry_visibility_detail::bridge(child,[&](auto&state,auto kind,auto&progress){fallback(state,kind==native_geometry_visibility_detail::Child::frustum?Child::geometry_frustum:Child::geometry_auxiliary,progress);},observe))return;
-        }else if(native_visibility_association_detail::bridge(child,observe))return;
+            const auto geometry=[&] {
+                if(native_geometry_visibility_detail::bridge(child,[&](auto&state,auto kind,auto&progress){fallback(state,kind==native_geometry_visibility_detail::Child::frustum?Child::geometry_frustum:Child::geometry_auxiliary,progress);},observe))return;
+                fallback(child,which,observe);
+            };
+            if(auto* timing=pstencil::projected_object_timing) {
+                const pstencil::ProjectedVisibilityTimingBinding nested(nullptr,pstencil::projected_object_timing);
+                const pstencil::CampaignLightPhaseTimer timer(timing,pstencil::CampaignLightPhase::projected_visibility_object_geometry);
+                geometry();
+            } else geometry();
+            return;
+        }
+        if(which==Child::association && native_visibility_association_detail::bridge(child,observe))return;
         fallback(child,which,observe);
-    },std::move(before));
+    },std::move(before),true,true);
 }
 // Exact generated owners install this bridge with their pinned canonical
 // fallback and real child-dispatch boundaries.

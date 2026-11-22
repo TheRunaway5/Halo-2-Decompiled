@@ -128,7 +128,10 @@ def main():
     from native_particle_type_filter_replacements import replace_particle_type_filter
     from native_particle_envelope_replacements import replace_particle_envelope
     from native_particle_record_replacements import replace_particle_record
-    a.output.write_text(replace_particle_record(replace_particle_envelope(
-        replace_particle_type_filter(replace_object_lookup_copies(source)))))
+    from native_view_reset_replacements import replace_view_reset
+    for install in (replace_object_lookup_copies, replace_particle_type_filter,
+                    replace_particle_envelope, replace_particle_record, replace_view_reset):
+        source = install(source)
+    a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),original_call_sites={f'{p:08x}':f'{q:08x}'for p,q in calls.items()},authenticated_view_caller_chain=[dict(owner=p,site=q,target=v)for p,q,v in caller_chain],rejected_interior_entries=[0x12d50,0x156f0,0x40770],layout_data_regions=[dict(address=p,size=n,sha256=__import__('hashlib').sha256(image.read(p,n)).hexdigest())for p,n in data_regions]);report.update(declaration_data_regions=[dict(address=p,size=n,sha256=__import__('hashlib').sha256(image.read(p,n)).hexdigest())for p,n in declaration_regions],packed_particle_declaration_call_site=0x247f7f,packed_particle_declaration_address=0x44983a);(a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print('Complete particle draw owners',len(ENTRIES),'instructions',len(instructions))
 if __name__=='__main__':main()

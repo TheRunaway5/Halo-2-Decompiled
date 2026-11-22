@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_motion_pose.hpp"
+#include "halo2/detail/native_tu15_quaternion_matrix.hpp"
 #include <bit>
 #include <cstring>
 #include <stdexcept>
@@ -62,32 +63,6 @@ void normalize(Storage&s,const NativeTu15PoseRsqrtObservation&observe){
   auto scale=mul_ss(broadcast(s.normalization_half()),estimate);scale=mul_ss(scale,correction);
   s.quaternion(words(mul_ps(_mm_shuffle_ps(scale,scale,0),q)),true);
 }
-// Named native x87 expressions retain the two doubled components and their W
-// products as real host extended intermediates, including the original binary32
-// Z spill. No virtual x87 register array or guest instruction execution exists.
-void doubled_component(std::uint32_t n){asm volatile("flds %0\n\tfadd %%st(0),%%st"::"m"(n):"memory","st");}
-std::uint32_t doubled_z(std::uint32_t n){std::uint32_t out;asm volatile("flds %1\n\tfadd %%st(0),%%st\n\tfstps %0":"=m"(out):"m"(n):"memory","st");return out;}
-std::uint32_t x_product(Storage&s,unsigned lane){asm volatile("fld %%st(1)":::"memory","st");multiply(s.quaternion_component(lane));return spill();}
-std::uint32_t y_product(Storage&s,unsigned lane){asm volatile("fld %%st(0)":::"memory","st");multiply(s.quaternion_component(lane));return spill();}
-std::uint32_t z_product(Storage&s,std::uint32_t z2,unsigned lane){push(z2);multiply(s.quaternion_component(lane));return spill();}
-std::uint32_t x_w(Storage&s){asm volatile("fxch %%st(1)":::"memory","st");multiply(s.quaternion_component(3));return spill();}
-std::uint32_t diagonal(Storage&s,std::uint32_t a,std::uint32_t b){asm volatile("flds %0\n\tfadds %1"::"m"(a),"m"(b):"memory","st");const auto one=s.one();std::uint32_t out;asm volatile("fsubrs %1\n\tfstps %0":"=m"(out):"m"(one):"memory","st");return out;}
-std::uint32_t xy_plus_zw(std::uint32_t xy){std::uint32_t out;asm volatile("flds %1\n\tfadd %%st(1),%%st\n\tfstps %0":"=m"(out):"m"(xy):"memory","st");return out;}
-std::uint32_t xz_minus_yw(std::uint32_t xz){std::uint32_t out;asm volatile("flds %1\n\tfsub %%st(2),%%st\n\tfstps %0":"=m"(out):"m"(xz):"memory","st");return out;}
-std::uint32_t xy_minus_zw(std::uint32_t xy){std::uint32_t out;asm volatile("flds %1\n\tfsub %%st(1),%%st\n\tfstps %0":"=m"(out):"m"(xy):"memory","st");return out;}
-void discard_zw(){asm volatile("fstp %%st(0)":::"memory","st");}
-std::uint32_t scalar_sum(std::uint32_t a,std::uint32_t b){std::uint32_t out;asm volatile("flds %1\n\tfadds %2\n\tfstps %0":"=m"(out):"m"(a),"m"(b):"memory","st");return out;}
-std::uint32_t yw_plus_xz(std::uint32_t xz){std::uint32_t out;asm volatile("fadds %1\n\tfstps %0":"=m"(out):"m"(xz):"memory","st");return out;}
-std::uint32_t scalar_difference(std::uint32_t a,std::uint32_t b){std::uint32_t out;asm volatile("flds %1\n\tfsubs %2\n\tfstps %0":"=m"(out):"m"(a),"m"(b):"memory","st");return out;}
-void quaternion_matrix(Storage&s){
-  doubled_component(s.quaternion_component(0));doubled_component(s.quaternion_component(1));const auto z2=doubled_z(s.quaternion_component(2));
-  const auto xx=x_product(s,0);const auto xy=y_product(s,0);const auto xz=z_product(s,z2,0);
-  const auto yy=y_product(s,1);const auto yz=z_product(s,z2,1);const auto zz=z_product(s,z2,2);
-  const auto xw=x_w(s);multiply(s.quaternion_component(3));push(z2);multiply(s.quaternion_component(3));
-  s.rotation_component(0,diagonal(s,zz,yy));s.rotation_component(1,xy_plus_zw(xy));s.rotation_component(2,xz_minus_yw(xz));s.rotation_component(3,0);
-  s.rotation_component(4,xy_minus_zw(xy));discard_zw();s.rotation_component(5,diagonal(s,zz,xx));s.rotation_component(6,scalar_sum(xw,yz));s.rotation_component(7,0);
-  s.rotation_component(8,yw_plus_xz(xz));s.rotation_component(9,scalar_difference(yz,xw));s.rotation_component(10,diagonal(s,yy,xx));s.rotation_component(11,0);
-}
 #endif
 }
 void native_tu15_integrate_motion_pose(Storage&s,NativeTu15PhysicsFrameFp&fp,unsigned depth,const NativeTu15PoseRsqrtObservation&observe){
@@ -100,7 +75,7 @@ void native_tu15_integrate_motion_pose(Storage&s,NativeTu15PhysicsFrameFp&fp,uns
   const auto xy=add_ss(_mm_shuffle_ps(square,square,0x55),square);const auto length=_mm_sqrt_ss(add_ss(_mm_shuffle_ps(square,square,0xaa),xy));multiply(words(length)[0]);s.angular_travel(spill());
   const auto omega=simd(s.angular_velocity()),mask=simd(s.xyz_mask());const auto half=words(_mm_and_ps(mul_ps(broadcast(0x3f000000u),omega),mask));
   const auto product=simd(quaternion_product(s,half));const auto qdt=s.seconds();const auto current=simd(s.quaternion());
-  s.quaternion(words(add_ps(current,mul_ps(broadcast(qdt),product))),false);normalize(s,observe);quaternion_matrix(s);
+  s.quaternion(words(add_ps(current,mul_ps(broadcast(qdt),product))),false);normalize(s,observe);detail::native_tu15_quaternion_matrix(s);
   const auto center=simd(s.local_center()),matrix_z=simd(s.rotation(2)),matrix_y=simd(s.rotation(1));
   const auto z=mul_ps(matrix_z,_mm_shuffle_ps(center,center,0xaa));const auto y=mul_ps(matrix_y,_mm_shuffle_ps(center,center,0x55));const auto x=mul_ps(simd(s.rotation(0)),_mm_shuffle_ps(center,center,0));
   const auto position=simd(s.position());s.world_origin(words(sub_ps(position,add_ps(add_ps(x,y),z))));s.position_w_one();

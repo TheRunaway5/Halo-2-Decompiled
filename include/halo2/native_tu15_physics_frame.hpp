@@ -101,6 +101,10 @@ class NativeTu15PhysicsFrameMemory final:public NativeTu15PhysicsFrameStorage {
   std::uint32_t island(const NativeTu15PhysicsBodyIterator&)const;
 public:
   explicit NativeTu15PhysicsFrameMemory(SourcePhysicsContactMemory&,SourcePhysicsContactRecordObserver={});
+  // Actual 1CB330 enters 1CB6B0 during memory-pressure cleanup. The caller
+  // lends 16 private bytes for the object iterator. Stop at the first owner
+  // outside this cleanup prefix, leaving completed retained stores intact.
+  [[noreturn]] void begin_memory_pressure_cleanup(std::uint32_t iterator,NativeTu15PhysicsFrameFp&,unsigned x87_depth);
   NativeTu15PhysicsWorld world()const override;
   NativeTu15PhysicsManager manager()const override;
   std::uint32_t seconds_bits()const override;

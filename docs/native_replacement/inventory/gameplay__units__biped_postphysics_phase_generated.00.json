@@ -4,7 +4,7 @@
     {
       "command": "target_sources",
       "file": "CMakeLists.txt",
-      "line": 2060,
+      "line": 2068,
       "target": "halo2_systems"
     }
   ],

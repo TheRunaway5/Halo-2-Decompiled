@@ -308,6 +308,8 @@ int main(int argc,char **argv) {try {
     require(argc==2,"literal dynamic model shader fixture required");
     const auto assets=load_assets(argv[1]);
     const auto root=std::filesystem::path(HALO2_SOURCE_DIR);
+    const auto retail_maps=std::filesystem::canonical(root/"assets/disc/maps");
+    const auto map_pack=std::filesystem::canonical(root/"assets/map-pack/maps");
     const auto reference=load_reference_player_state(root/"tests/fixtures/retail_zanzibar_player.reference");
     const auto ivory=load_reference_player_state(root/"tests/fixtures/retail_ivory_player.reference");
     const std::array lights{reference.root_lighting,ivory.root_lighting};
@@ -315,8 +317,12 @@ int main(int argc,char **argv) {try {
     for(const auto &asset:assets.models)maps.insert(asset.map);
     require(maps.size()==21,"dynamic model fixture lost multiplayer maps");
     for(const auto &map:maps) {
-        auto path=root/"assets/disc/maps"/(map+".map");if(!std::filesystem::exists(path))path=root/"assets/map-pack/maps"/(map+".map");
-        Cache cache(path);unsigned cases=0;
+        auto path=retail_maps/(map+".map");
+        if(!std::filesystem::exists(path))path=map_pack/(map+".map");
+        // The map pack shares the retail resource files. A frozen source
+        // checkout or a DLC fixture can refer to either through a link.
+        Cache cache(std::filesystem::canonical(path),retail_maps);
+        unsigned cases=0;
         for(const auto &asset:assets.models)if(asset.map==map) {
             try{verify_model(cache,assets,asset,reference.colors,lights,total);}
             catch(const std::exception&e){throw FormatError(map+" "+asset.role+": "+e.what());}

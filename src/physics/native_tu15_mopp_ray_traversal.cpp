@@ -1,6 +1,7 @@
 #include "halo2/native_tu15_mopp_ray_traversal.hpp"
 #include "halo2/native_tu15_mopp_ray_traversal_kernel.hpp"
 #include "halo2/native_tu15_retained_store_observation.hpp"
+#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 #include <type_traits>
@@ -54,10 +55,33 @@ public:
 
 class Memory {
     Environment&environment_;SourcePhysicsContactMemory&memory_;const SourcePhysicsContactRecordObserver&observe_;
+    const bool read_views_;
+
+    static bool reference_read_scope(){
+        static const bool reference=[] {
+            const auto *value=std::getenv("HALO2_REFERENCE_MOPP_RAY_READ_SCOPE");
+            return value&&*value&&*value!='0';
+        }();
+        return reference;
+    }
+    bool copy_retained(std::uint32_t address,std::span<std::byte> out)const{
+        if(!read_views_)return false;
+        // This borrow copies integer bits without delegating any work under
+        // the ray's FP environment. Admit each operand against the current
+        // provider so journal entries and private DATA retain their owners.
+        const auto view=memory_.try_read_view(address,out.size());
+        if(!view)return false;
+        std::memcpy(out.data(),view->data(),out.size());
+        return true;
+    }
 public:
-    Memory(Environment&e,SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):environment_(e),memory_(m),observe_(o){}
+    Memory(Environment&e,SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o,std::uint32_t code)
+        :environment_(e),memory_(m),observe_(o),
+         read_views_(!reference_read_scope()&&m.try_read_view(code,1u).has_value()){}
     std::uint32_t word(std::uint32_t p,unsigned width=4)const{
-        std::array<std::byte,4>b{};environment_.io([&]{memory_.read(p,std::span(b).first(width));});std::uint32_t n{};
+        std::array<std::byte,4>b{};
+        if(!copy_retained(p,std::span(b).first(width)))environment_.io([&]{memory_.read(p,std::span(b).first(width));});
+        std::uint32_t n{};
         for(unsigned k=0;k<width;++k)n|=std::to_integer<unsigned>(b[k])<<(k*8u);return n;
     }
     void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned width=4){
@@ -68,7 +92,9 @@ public:
         environment_.io([&]{memory_.write(p,std::span(b).first(width));});if(observed)environment_.io([&]{observe_(event);});
     }
     std::array<std::uint32_t,4> vector(std::uint32_t p)const{
-        std::array<std::byte,16>b{};environment_.io([&]{memory_.read_vector(p,b);});std::array<std::uint32_t,4>v{};std::memcpy(v.data(),b.data(),16);return v;
+        std::array<std::byte,16>b{};
+        if(!copy_retained(p,b))environment_.io([&]{memory_.read_vector(p,b);});
+        std::array<std::uint32_t,4>v{};std::memcpy(v.data(),b.data(),16);return v;
     }
 };
 // The public value contract keeps all authored property writes locally. Only
@@ -92,7 +118,7 @@ void native_tu15_traverse_mopp_ray(SourcePhysicsContactMemory&memory,
     NativeTu15MoppRayTraversalStats*stats){
     if(stats)++stats->calls;try{
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    Environment environment(fp,depth);Memory m(environment,memory,observe);native_mopp_ray_detail::Traversal walk(m,environment,fp,cache,services,stats);walk.run(code,Variables(variables),bounds);if(stats)++stats->completed;
+    Environment environment(fp,depth);Memory m(environment,memory,observe,code);native_mopp_ray_detail::Traversal walk(m,environment,fp,cache,services,stats);walk.run(code,Variables(variables),bounds);if(stats)++stats->completed;
 #else
     (void)memory;(void)cache;(void)code;(void)variables;(void)bounds;(void)fp;(void)depth;(void)services;(void)observe;
     throw std::runtime_error("Native MOPP ray FP backend is unavailable");

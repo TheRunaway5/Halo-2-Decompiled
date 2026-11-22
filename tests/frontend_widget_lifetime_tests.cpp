@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
     //Setup allocation as a transient channel, with its original clocks.
     MenuState lobby(content);
     lobby.accept(); lobby.accept(); lobby.text("Widget Lifetime"); lobby.commit_text(); lobby.back();
-    lobby.select(2); lobby.accept(); lobby.accept();
+    lobby.select(1); lobby.accept(); lobby.select(0); lobby.accept(); lobby.accept();
     require(lobby.frame().screen == 14, "ordinary Split Screen route missed lobby");
     lobby.ui_clock(600);
     lobby.select(1); lobby.accept();

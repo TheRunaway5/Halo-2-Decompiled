@@ -45,7 +45,7 @@ def main():
 
     # The same ordinary creation and Split Screen route used by the source test.
     lobby = ["accept", "accept", "text:Capture Test", "commit", "back",
-             "select:2", "accept", "accept"]
+             "select:1", "accept", "select:0", "accept", "accept"]
     transition = lobby + ["select:1", "accept", "accept"]
     cases = [("title-4x3", 9, 960, 720, [], None),
              ("appearance-32x9", 47, 2560, 720, [], None),

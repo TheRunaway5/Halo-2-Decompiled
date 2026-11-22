@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/physics_body_factory.hpp"
+#include "halo2/detail/physics_scalar_memory.hpp"
 #include <bit>
 #include <cfenv>
 #include <cstring>
@@ -7,42 +8,10 @@
 #include <xmmintrin.h>
 
 namespace halo2::physics_step_detail {
-using M = SourcePhysicsContactMemory;
-using O = SourcePhysicsContactRecordObserver;
 using FP = SourcePhysicsFactoryFloatingPoint;
-inline std::uint32_t r(const M &m, std::uint32_t a, unsigned n = 4) {
-    if (n == 0 || n > 4)
-        throw std::runtime_error("Invalid original physics scalar read width");
-    std::array<std::byte, 4> b{};
-    // Complete committed ordinary pages have no read side effects. Device
-    // adapters and page-crossing operands keep their ordered virtual access.
-    if (const auto *page = m.direct_page(a, n)) std::memcpy(b.data(), page->bytes + (a & 4095u), n);
-    else m.read(a, std::span(b).first(n));
-    std::uint32_t x = 0;
-    for (unsigned i = 0; i < n; ++i) x |= std::to_integer<std::uint32_t>(b[i]) << (8 * i);
-    return x;
-}
 inline std::int32_t si(std::uint32_t x) { return std::bit_cast<std::int32_t>(x); }
 inline float f(std::uint32_t x) { return std::bit_cast<float>(x); }
 inline std::uint32_t u(float x) { return std::bit_cast<std::uint32_t>(x); }
-inline void w(M &m, const O &o, std::uint32_t site, std::uint32_t a,
-              unsigned n, std::uint64_t x) {
-    // The original store writes its destination; only the optional trace
-    // needs its preimage. Keep real write validation in the memory owner.
-    // A synthetic read here doubles translated-memory traffic and can also
-    // consume a device read that the original instruction never performed.
-    if (!o && n <= 8u) {
-        std::array<std::byte, 8> written{};
-        for (unsigned i = 0; i < n; ++i)
-            written[i] = std::byte((x >> (i * 8)) & 255);
-        m.write(a, std::span<const std::byte>(written).first(n));
-        return;
-    }
-    SourcePhysicsContactRecordStore s{site, a, {}, {}};
-    s.before.resize(n); s.written.resize(n); m.read(a, s.before);
-    for (unsigned i = 0; i < n; ++i) s.written[i] = std::byte((x >> (i * 8)) & 255);
-    m.write(a, s.written); if (o) o(s);
-}
 inline __m128 v(const M &m, std::uint32_t a) {
     if (const auto *page = m.direct_page(a, 16))
         return _mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(page->bytes + (a & 4095u))));

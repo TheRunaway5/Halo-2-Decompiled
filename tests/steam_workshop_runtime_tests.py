@@ -136,7 +136,7 @@ def main():
         if args.render:
             commands.append(('mods_menu', [str(runtime), '--menu-maps',
                 str(args.base_cache.resolve() / 'halo2/h2_maps_win64_dx11'), '--menu-screen', '6',
-                '--menu-action', 'select:5', '--menu-action', 'accept', '--menu-ui-ms', '20000',
+                '--menu-action', 'select:3', '--menu-action', 'accept', '--menu-ui-ms', '20000',
                 '--skip-intro', '--menu-wait-intro-clear', '--frames', '4', '--hidden', '--viewport', '960', '720', '--mute',
                 '--screenshot', str(scratch / 'mods-menu.ppm')]))
             commands.append(('map_preview', [str(runtime), *common, '--mcc-preview',

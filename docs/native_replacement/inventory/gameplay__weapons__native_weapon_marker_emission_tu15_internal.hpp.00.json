@@ -1,10 +1,8 @@
 {
   "callback_image_scope": "image-selected-or-unresolved",
   "cmake_registration_sites": [],
-  "configured_production_scope": "included",
-  "configured_production_target_ids": [
-    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-  ],
+  "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+  "configured_production_target_ids": [],
   "gate_sources": {},
   "internal_dispatch_identity_evidence": {},
   "part": 0,
@@ -24,6 +22,7 @@
         "bool",
         "call",
         "emplace",
+        "halo2::native_census_detail::skip_report",
         "increment",
         "instruction",
         "iterator_flags",
@@ -44,13 +43,16 @@
         "store",
         "vector"
       ],
-      "body_sha256": "cf8a0abe230a64058110ae7f0adc6965af9687592b154a7f4b4842d7bf06232a",
+      "body_sha256": "f070f7dd5d287a3fe78f1bdf358e17d69a15a7d1ce9e6e370df3b3a4c489de9f",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "marker_emission",
       "instruction_callback_sites": 104,
       "line": 3,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_census_detail::skip_report"
+      ],
       "observed_entry": "1e1200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
@@ -63,12 +65,12 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/gameplay/weapons/native_weapon_marker_emission_tu15_internal.hpp",
-  "source_bytes": 7814,
+  "source_bytes": 7863,
   "source_filename_scope": "nongenerated",
   "source_inclusion_candidates": [
     {
       "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
-      "line": 1631,
+      "line": 1635,
       "preprocessor_admission_qualified": false,
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"
@@ -76,5 +78,5 @@
       "registered_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp"
     }
   ],
-  "source_sha256": "eb665ff50f9998110c2607ac68fa4f0b4618550f2530b7f71d7f5a05b5481194"
+  "source_sha256": "0b3e7b27cbf9a45fbcd3d7791bc91af20aff3e7a11d52afff2bc2e2f2f40ce57"
 }

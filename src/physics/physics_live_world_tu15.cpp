@@ -2,12 +2,17 @@
 #include "runtime/native_tu15_diagnostic_logger_owner.hpp"
 #include "halo2/native_weapon_effect_birth_color_observer.hpp"
 #include "halo2/native_object_factory_core_tu15.hpp"
+#include "halo2/native_object_factory_havok_tu15.hpp"
 #include "halo2/native_object_factory_nodebuild_tu15.hpp"
 #include "halo2/native_object_factory_attachments_tu15.hpp"
 #include "halo2/native_object_factory_lights_tu15.hpp"
 #include "halo2/native_object_factory_placement_tu15.hpp"
 #include "halo2/native_object_factory_weapon_tu15.hpp"
 #include "halo2/mcc_sound_duration_tu15.hpp"
+#include "audio/native_tu15_attached_speech_callback.hpp"
+#include "audio/native_tu15_utterance.hpp"
+#include "audio/native_tu15_object_utterance.hpp"
+#include "campaign/ai/native_tu15_authored_utterance.hpp"
 #include "halo2/mcc_sound_dat_resources_tu15.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
 #include "halo2/source_sound_timing_input_observation_tu15.hpp"
@@ -20,6 +25,7 @@
 #include "halo2/native_tu15_light_parent_biped.hpp"
 #include "halo2/native_tu15_light_receiver_flags.hpp"
 #include "halo2/effect_light_receiver.hpp"
+#include "rendering/native_tu15_receiver_transfers.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include "halo2/native_campaign_ai_queries_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_behavior_reset_tu15_binding.hpp"
@@ -56,6 +62,13 @@
 #include "halo2/native_campaign_level_transition_tu15.hpp"
 #include "halo2/native_campaign_session_timers_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_area_count_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_score_21_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_score_43_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_score_80_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_score_17_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_start_42_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_score_50_tu15.hpp"
+#include "halo2/native_campaign_animation_distance_tu15.hpp"
 #include "halo2/native_campaign_ai_area_choice_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_area_perform_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_biped_refresh_tu15.hpp"
@@ -67,9 +80,18 @@
 #include "halo2/native_campaign_ai_command_facing_tu15.hpp"
 #include "halo2/native_campaign_ai_route_special_link_tu15.hpp"
 #include "halo2/native_campaign_ai_movement_link_transition_tu15.hpp"
+#include "halo2/native_campaign_ai_vehicle_movement_tu15.hpp"
+#include "halo2/native_campaign_ai_vehicle_movement_scale_tu15.hpp"
+#include "halo2/native_campaign_ai_actor_path_query_tu15.hpp"
+#include "campaign/ai/native_campaign_ai_vehicle_final_waypoint_tu15.hpp"
 #include "halo2/native_campaign_ai_target_merge_tu15.hpp"
 #include "halo2/native_campaign_ai_behavior_129_tu15.hpp"
 #include "halo2/native_campaign_ai_behavior_129_perform_tu15.hpp"
+#include "campaign/ai/native_campaign_ai_behavior_129_active_direction.hpp"
+#include "physics/runtime/physics_contact_runtime_internal.hpp"
+#include "campaign/ai/native_campaign_ai_workspace_clear.hpp"
+#include "campaign/ai/native_campaign_ai_path_edge_ring.hpp"
+#include "halo2/native_campaign_ai_goal_scoring_tu15.hpp"
 #include "halo2/native_campaign_ai_character_property_tu15.hpp"
 #include "halo2/native_campaign_ai_path_distance_tu15_binding.hpp"
 #include "halo2/native_campaign_scenario_lookup_tu15.hpp"
@@ -221,6 +243,7 @@
 #include "halo2/native_vehicle_rate_consumer_tu15.hpp"
 #include "halo2/native_constraint_schema_emitter_consumer_tu15.hpp"
 #include "halo2/native_tu15_world_integration_residuals.hpp"
+#include "halo2/native_tu15_object_contact_cleanup.hpp"
 #include "halo2/native_tu15_small_contact_factory_handoff.hpp"
 #include "halo2/native_tu15_sphere_cleanup_handoff.hpp"
 #include "halo2/native_tu15_pool_array_services.hpp"
@@ -370,7 +393,8 @@ public:
 struct WorldMutationObserver {
     // Counts every observed source write, as its per-store observer did.
     SourceRuntimeWriteSerial serial;
-    explicit WorldMutationObserver(SourceRuntimeMemory &bank):serial(bank) {}
+    explicit WorldMutationObserver(SourceRuntimeMemory &bank):
+        serial(bank,SourceRuntimeWriteSerial::Visibility::CallBoundary) {}
 };
 std::uint32_t word(const SourcePhysicsContactMemory&m,std::uint32_t p,unsigned bytes=4) {
     if(!bytes || bytes>4)throw FormatError("Invalid native source scalar read size");
@@ -381,6 +405,63 @@ std::uint32_t word(const SourcePhysicsContactMemory&m,std::uint32_t p,unsigned b
 void put(SourcePhysicsContactMemory&m,std::uint32_t p,std::uint32_t v) {
     std::array<std::byte,4>b;
     for(unsigned i=0;i<4;++i)b[i]=std::byte(v>>(8*i));m.write(p,b);
+}
+void intersect_campaign_ai_working_mask(SourcePhysicsContactMemory &memory,
+    SourcePhysicsWorldRuntimeAbi &abi, const SourcePhysicsContactRecordObserver &observe,
+    const std::function<void(std::uint32_t)> &instruction) {
+    auto &eax=abi.gp[0], &ecx=abi.gp[1], &edx=abi.gp[2], &esp=abi.gp[4];
+    auto &esi=abi.gp[6], &edi=abi.gp[7];
+    using physics_step_detail::r;
+    using physics_step_detail::w;
+    physics_contact_runtime_detail::Flags flags;
+    flags.load(abi.eflags);
+    const auto at=[&](std::uint32_t pc) {
+        abi.eflags=(abi.eflags&~0x8d5u)|flags.bits();
+        if(instruction)instruction(pc);
+    };
+    const auto push=[&](std::uint32_t pc,std::uint32_t value) {
+        at(pc);
+        const auto address=esp-4u;
+        if(!observe) {
+            w(memory,{},pc,address,4,value);
+        } else {
+            w(memory,[&](const auto &store) {
+                esp=address;
+                observe(store);
+            },pc,address,4,value);
+        }
+        esp=address;
+    };
+    const auto pop=[&](std::uint32_t pc,std::uint32_t &value) {
+        at(pc);
+        value=r(memory,esp);
+        esp+=4u;
+    };
+
+    at(0x1caee0u);ecx=flags.plus(ecx,31u,4);
+    at(0x1caee3u);ecx=flags.right(ecx,5u,4,true);
+    at(0x1caee6u);flags.logic(ecx,4);
+    at(0x1caee8u);
+    if(!flags.zf && flags.sf==flags.of) {
+        push(0x1caeeau,esi);
+        at(0x1caeebu);esi=r(memory,esp+8u);
+        at(0x1caeefu);edx=flags.minus(edx,eax,4);
+        push(0x1caef1u,edi);
+        at(0x1caef2u);esi=flags.minus(esi,eax,4);
+        do {
+            at(0x1caef4u);edi=r(memory,edx+eax);
+            at(0x1caef7u);edi=flags.logic(edi&r(memory,eax),4);
+            at(0x1caef9u);w(memory,observe,0x1caef9u,esi+eax,4,edi);
+            at(0x1caefcu);eax=flags.plus(eax,4u,4);
+            at(0x1caeffu);ecx=flags.increment(ecx,4,true);
+            at(0x1caf00u);
+        } while(!flags.zf);
+        pop(0x1caf02u,edi);
+        pop(0x1caf03u,esi);
+    }
+    at(0x1caf04u);
+    (void)r(memory,esp);
+    esp+=8u;
 }
 }
 namespace detail {
@@ -409,12 +490,29 @@ struct MainReceiptAuthority {
     std::shared_ptr<MainWorldLife> life=std::make_shared<MainWorldLife>();
     std::shared_ptr<MainReceiptFrame> frame;
     const void*owner{};
+    bool watching{};
     MainReceiptAuthority(SourceRuntimeMemory& memory,const void*owner):bank(memory),owner(owner) {
+        static const bool eager_watch=[] {
+            const auto *p=std::getenv("HALO2_REFERENCE_EAGER_MAIN_RECEIPT_WATCH");return p && *p;
+        }();
+        if(eager_watch)watch();
+    }
+    void watch() {
+        // Only actual receipt observers can issue a frame. The ordinary
+        // campaign has no receipt anchors to test on its simulation stores.
+        if(watching)return;
         source_runtime_register_write_observer(bank,this,[this](auto p,auto n){if(anchors(p,n))retire();});
         try{source_runtime_register_topology_observer(bank,this,[this](auto p,auto n) noexcept {if((!p&&!n) || anchors(p,n))retire();});}
         catch(...){source_runtime_unregister_write_observer(bank,this);throw;}
+        watching=true;
     }
-    ~MainReceiptAuthority(){close();source_runtime_unregister_topology_observer(bank,this);source_runtime_unregister_write_observer(bank,this);}
+    ~MainReceiptAuthority(){
+        close();
+        if(watching) {
+            source_runtime_unregister_topology_observer(bank,this);
+            source_runtime_unregister_write_observer(bank,this);
+        }
+    }
     bool anchors(std::uint32_t p,std::size_t n)const noexcept {
         if(!frame)return false;
         const auto overlaps=[&](std::uint32_t q){return std::uint64_t(p)<std::uint64_t(q)+4 && std::uint64_t(q)<std::uint64_t(p)+n;};
@@ -426,6 +524,7 @@ struct MainReceiptAuthority {
         retire();const auto clock=word(bank,0x51df54u),bsp=word(bank,0x4ecc18u);
         if(!clock || !bsp)throw FormatError("Actual render frame lacks source clock/BSP ownership");
         (void)bank.native_address(clock,12);(void)bank.native_address(bsp,4);
+        watch();
         frame=std::make_shared<MainReceiptFrame>(life,owner,word(bank,0x4c6854u),word(bank,clock+8u),bsp,clock);
     }
 };
@@ -587,9 +686,17 @@ struct PhysicsLiveWorldTu15::Impl {
     // except the main-thread identity, so one built instance is reused and
     // rebuilt only when that identity differs. Readers take the published
     // pointer without locking; retired instances stay alive for them.
-    struct BuiltServices{std::thread::id main_thread;SourcePhysicsWorldRuntimeServices services;};
+    struct BuiltServices {
+        const std::thread::id main_thread;
+        const SourcePhysicsWorldRuntimeServices services;
+        BuiltServices(std::thread::id thread,SourcePhysicsWorldRuntimeServices draft,bool seal_cursor)
+            :main_thread(thread),services(std::move(draft)) {
+            if(seal_cursor && services.instruction_cursor.position && services.instruction_cursor.literal_service_sites)
+                services.immutable_instruction_cursor.services_=&services;
+        }
+    };
     std::atomic<const BuiltServices*> built_services{nullptr};
-    std::mutex built_services_mutex;std::vector<std::unique_ptr<BuiltServices>> built_services_retained;
+    std::mutex built_services_mutex;std::vector<std::unique_ptr<const BuiltServices>> built_services_retained;
     // The lock services capture only this owner, so one instance serves every
     // call (consumers take const&). Declared here so it outlives the owners
     // whose translated teardown may still ask for it.
@@ -600,7 +707,10 @@ struct PhysicsLiveWorldTu15::Impl {
         std::lock_guard guard(built_services_mutex);
         if(const auto *built=built_services.load(std::memory_order_acquire);built && built->main_thread==main_thread)
             return built->services;
-        auto fresh=std::make_unique<BuiltServices>(BuiltServices{main_thread,build_services()});
+        static const bool reference_cursor=[] {
+            const auto *p=std::getenv("HALO2_REFERENCE_WORLD_INSTRUCTION_CURSOR");return p && *p;
+        }();
+        auto fresh=std::make_unique<const BuiltServices>(main_thread,build_services(),!reference_cursor);
         const auto *published=fresh.get();built_services_retained.push_back(std::move(fresh));
         built_services.store(published,std::memory_order_release);
         return published->services;
@@ -848,6 +958,11 @@ struct PhysicsLiveWorldTu15::Impl {
     std::vector<MeleeImpact> melee_impacts;
     std::optional<MccSoundRuntimePlan> sound_runtime_plan;
     std::optional<MccSoundTimingPlan> sound_timing_plan;
+    struct ObjectUtteranceCall {
+        std::uint32_t object,line;
+        native_tu15_utterance::ClockAdmission clock;
+    };
+    const ObjectUtteranceCall* object_utterance_call{};
     std::shared_ptr<MccSoundTimingMemoryOwner> sound_timing_memory;
     std::optional<MccSoundTimingBoundPlan> sound_timing_bound;
     std::optional<MccSoundTimingResourceProof> sound_timing_resource;
@@ -885,6 +1000,140 @@ struct PhysicsLiveWorldTu15::Impl {
         source_runtime_register_topology_observer(bank,&sound_timing_lifetime,[this](auto at,auto bytes) {
             if(sound_timing_protected(at,bytes))retire_sound_timing();
         });sound_timing_observer_registered=true;
+    }
+    std::optional<native_tu15_utterance::ClockAdmission> admit_actor_utterance(
+        const SourcePhysicsWorldRuntimeAbi &a) const {
+        using native_tu15_utterance::ClockAdmission;
+        constexpr auto none=0xffffffffu;
+        if(!canonical_cache || !sound_timing_plan || !sound_timing_memory ||
+           sound_timing_active || a.gp[0]!=none || a.gp[1]!=0 ||
+           !a.floating_point || a.active_mmx || a.x87_depth)
+            return std::nullopt;
+        try {
+            const auto argument=Bytes(bank.view(a.gp[4],16));
+            const TagHandle sound{argument.u32(4)};
+            if(argument.u32(0)!=0x29bd63u || sound.is_null())return std::nullopt;
+            const auto actor=a.gp[2];
+            const auto actors=word(bank,0x5020c8u);
+            if(actor==none || word(bank,actors+0x24u)!=0x888u ||
+               (actor&0xffffu)>=word(bank,actors+0x38u))return std::nullopt;
+            const auto row=word(bank,actors+0x44u)+(actor&0xffffu)*0x888u;
+            if(Bytes(bank.view(row,2)).u16(0)!=(actor>>16u) ||
+               word(bank,row+0x18u)==none)return std::nullopt;
+
+            const auto directory=word(bank,0x4f0414u);
+            const Bytes tag(bank.view(directory+std::uint32_t(sound.index())*16u,16));
+            if(tag.u32(0)!=TagGroup{"snd!"}.value || tag.u32(4)!=sound.value || tag.u32(12)<20u)
+                return std::nullopt;
+            const auto root=tag.u32(8);
+            const auto header=bank.view(root,20);
+            if(header[0xau]!=std::byte{1} || header[0xdu]!=std::byte{0xff})return std::nullopt;
+            const auto gestalt=word(bank,0x52d664u);
+            const auto pitch_index=Bytes(header).u16(8);
+            const auto range=word(bank,gestalt+0x24u)+std::uint32_t(pitch_index)*12u;
+            if(pitch_index>=0x8000u || Bytes(bank.view(range,12)).u16(10)!=1u)return std::nullopt;
+            const auto binding=std::ranges::find_if(sound_timing_plan->bindings(),[&](const auto &entry) {
+                return entry.sound==sound && entry.native_root==root && entry.native_range==range &&
+                    entry.relative_pitch==0u && entry.relative_permutation==0u;
+            });
+            if(binding==sound_timing_plan->bindings().end())return std::nullopt;
+            const auto clock=word(bank,0x4f9b58u);
+            const Bytes rows(bank.view(clock+0x128u,0x100u));
+            if(rows.u32(0)!=none)return admit_utterance_clock(sound,rows);
+            for(unsigned n=16;n<0x100u;n+=16u)if(rows.u32(n)!=none)return std::nullopt;
+            return ClockAdmission::empty;
+        } catch(const std::out_of_range &) {
+            return std::nullopt;
+        } catch(const FormatError &) {
+            return std::nullopt;
+        }
+    }
+    std::uint32_t object_utterance_tag(TagHandle tag,TagGroup group,std::size_t bytes) const {
+        const auto index=word(bank,0x556d90u);
+        if(tag.is_null() || std::uint32_t(tag.index())>=word(bank,index+24u))
+            throw FormatError("TU1.5 object utterance tag escapes its live directory");
+        const auto directory=word(bank,0x4f0414u);
+        const Bytes row(bank.view(directory+std::uint32_t(tag.index())*16u,16));
+        if(row.u32(0)!=group.value || row.u32(4)!=tag.value || row.u32(12)<bytes)
+            throw FormatError("TU1.5 object utterance tag lacks its full retained identity");
+        return row.u32(8);
+    }
+    void admit_utterance_duration(TagHandle sound,std::uint16_t selector) const {
+        const auto root=object_utterance_tag(sound,TagGroup{"snd!"},20);
+        const auto header=bank.view(root,20);
+        if((selector&0xffu)==0xffu || (selector>>8u)==0xffu) {
+            const auto stored=sound_timing_plan->stored_references();
+            if(!std::ranges::any_of(stored,[&](const auto& row){
+                return row.sound==sound && row.native_root==root &&
+                    std::ranges::equal(row.expected_native_header,header);
+            }))throw FormatError("TU1.5 object utterance lacks its original stored duration");
+            return;
+        }
+        // The attached route selects the sole authored pitch and permutation.
+        const auto pitch=std::uint32_t(Bytes(header).u16(8));
+        const auto gestalt=word(bank,0x52d664u);
+        if(selector || header[0xau]!=std::byte{1} || header[0xdu]!=std::byte{0xff} ||
+           pitch>=0x8000u || pitch>=word(bank,gestalt+0x20u))
+            throw FormatError("TU1.5 object utterance requires a qualified single sound variation");
+        const auto range=word(bank,gestalt+0x24u)+pitch*12u;
+        const auto permutation=word(bank,range+8u,2);
+        if(word(bank,range+0xau,2)!=1u || permutation>=0x8000u || permutation>=word(bank,gestalt+0x28u))
+            throw FormatError("TU1.5 object utterance permutation escapes its retained range");
+        const auto row=word(bank,gestalt+0x2cu)+permutation*16u;
+        const auto bindings=sound_timing_plan->bindings();
+        if(std::ranges::count_if(bindings,[&](const auto& entry){
+            return entry.sound==sound && entry.native_root==root && entry.native_range==range &&
+                entry.native_permutation==row && !entry.relative_pitch && !entry.relative_permutation;
+        })!=1)throw FormatError("TU1.5 object utterance lacks its original duration projection");
+    }
+    native_tu15_utterance::ClockAdmission admit_utterance_clock(TagHandle sound,Bytes slots) const {
+        using native_tu15_utterance::ClockAdmission;
+        constexpr auto none=0xffffffffu;
+        const TagHandle previous{slots.u32(0)};
+        if(previous==sound)throw FormatError("TU1.5 utterance requires its matching voice retirement owner");
+        for(unsigned offset=0;offset<0x100u;offset+=16u)
+            if(slots.u32(offset+8u)!=none || (offset && slots.u32(offset)!=none))
+                throw FormatError("TU1.5 utterance requires its other occupied clock owners");
+        if(previous.is_null())return ClockAdmission::empty;
+        admit_utterance_duration(previous,slots.u16(0xcu));
+        return ClockAdmission::first_row_may_expire;
+    }
+    native_tu15_utterance::ClockAdmission admit_object_utterance(std::uint32_t object,std::uint32_t line) const {
+        using native_tu15_utterance::ClockAdmission;
+        constexpr auto none=0xffffffffu;
+        if(line==none)return ClockAdmission::empty;
+        const auto scenario=word(bank,0x4ecc20u);
+        if(std::bit_cast<std::int32_t>(word(bank,scenario+0x3b0u))<=0)return ClockAdmission::empty;
+        const TagHandle dialogue{word(bank,word(bank,scenario+0x3b4u)+4u)};
+        if(dialogue.is_null())return ClockAdmission::empty;
+        const auto dialogue_tag=object_utterance_tag(dialogue,TagGroup{"mdlg"},8);
+        const auto count=std::bit_cast<std::int32_t>(word(bank,dialogue_tag));
+        if(count<=0)return ClockAdmission::empty;
+        if(count>0x7fff)throw FormatError("TU1.5 object utterance exceeds its signed dialogue index");
+        const auto rows=word(bank,dialogue_tag+4u);
+        for(std::int32_t n=0;n<count;++n) {
+            const auto row=rows+std::uint32_t(n)*16u;
+            if(word(bank,row)!=line)continue;
+            if(std::bit_cast<std::int32_t>(word(bank,row+4u))<=0)return ClockAdmission::empty;
+            const auto first=word(bank,row+8u),variant_marker=word(bank,first+0xcu);
+            const auto marker=variant_marker && variant_marker!=none?variant_marker:word(bank,row+0xcu);
+            const TagHandle sound{word(bank,first+8u)};
+            if(sound.is_null())return ClockAdmission::empty;
+            if(object==none || word(bank,object_body(object)+0xaau,1)!=0u || marker ||
+               word(bank,0x44ebd8u)!=0 || !canonical_cache || !sound_runtime_plan ||
+               !sound_timing_plan || !sound_timing_memory || sound_timing_active)
+                throw FormatError("TU1.5 object utterance requires its qualified attached biped and timing owner");
+            const auto system=word(bank,0x4f2c50u);
+            if(!system || word(bank,system+0x78u,1) || word(bank,0x52d674u))
+                throw FormatError("TU1.5 object utterance requires its enabled streaming and object voice owners");
+            const auto options=word(bank,0x4f3218u);
+            if(!options || word(bank,options+8u)!=1u || word(bank,options+0x134u,1))
+                throw FormatError("TU1.5 object utterance requires its original campaign duration mode");
+            admit_utterance_duration(sound,0);
+            const auto clock=word(bank,0x4f9b58u);
+            return admit_utterance_clock(sound,Bytes(bank.view(clock+0x128u,0x100u)));
+        }
+        return ClockAdmission::empty;
     }
     void run_sound_duration(const SourcePhysicsContactRuntimeCall &call,
         SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &observe) {
@@ -1447,6 +1696,10 @@ struct PhysicsLiveWorldTu15::Impl {
                 !body->world->first_person_phase_active&&!body->world->weapon_effect_phase_active;
         }
     };
+    static const char *instruction_census_path() {
+        static const char *path=[]{const auto *e=std::getenv("HALO2_INSTRUCTION_CENSUS");return e && *e?e:nullptr;}();
+        return path;
+    }
     SourcePhysicsWorldRuntimeServices build_services() {
         SourcePhysicsWorldRuntimeServices s;
         static constexpr std::array<std::uint32_t,3> instruction_service_sites{
@@ -1457,12 +1710,11 @@ struct PhysicsLiveWorldTu15::Impl {
             // Diagnostic only; complete delivery needs
             // HALO2_REFERENCE_INSTRUCTION_CALLBACKS=1 (the literal cursor
             // otherwise stores the PC without calling this callback).
-            static const char *census_path=[]{const auto *e=std::getenv("HALO2_INSTRUCTION_CENSUS");return e && *e?e:nullptr;}();
-            if(census_path && std::this_thread::get_id()==main_thread) {
+            if(instruction_census_path() && std::this_thread::get_id()==main_thread) {
                 struct Census {
                     std::vector<std::uint32_t> counts=std::vector<std::uint32_t>(0x400000u);
                     ~Census() {
-                        if(auto *out=std::fopen(census_path,"w")) {
+                        if(auto *out=std::fopen(instruction_census_path(),"w")) {
                             for(std::size_t pc=0;pc<counts.size();++pc)if(counts[pc])std::fprintf(out,"%zx %u\n",pc,counts[pc]);
                             std::fclose(out);
                         }
@@ -1497,6 +1749,59 @@ struct PhysicsLiveWorldTu15::Impl {
             s.instruction_cursor={&last_instruction,&first_person_phase_active,
                 &weapon_effect_phase_active,instruction_service_sites,main_thread,&s.instruction.target_type()};
         s.instruction_cursor.literal_service_sites=!generic_instruction_search;
+        static const bool reference_ai_workspace_clear=[] {
+            const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_AI_WORKSPACE_CLEAR");return p && *p;
+        }();
+        static const bool reference_ai_path_hash_clear=[] {
+            const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_AI_PATH_HASH_CLEAR");return p && *p;
+        }();
+        if((!reference_ai_workspace_clear || !reference_ai_path_hash_clear) &&
+           !full_instruction_callbacks && !generic_instruction_search)
+            s.clear_ai_search_workspace=[this](const auto &active,auto &memory,std::uint32_t pc,std::uint32_t workspace) {
+                using namespace native_campaign_ai_workspace_clear;
+                if(&memory!=&bank || std::this_thread::get_id()!=main_thread || &active!=&services() ||
+                   last_instruction!=pc || first_person_phase_active || weapon_effect_phase_active ||
+                   execution_inputs || instruction_census_path())
+                    return false;
+                auto address=workspace;
+                std::span<const std::uint32_t> words;
+                if(pc==site) {
+                    if(reference_ai_workspace_clear || (address&7u) ||
+                       address<0x60000000u || std::uint64_t(address)+bytes>stack)
+                        return false;
+                    words=zero_words;
+                } else if(pc==hash_site) {
+                    if(reference_ai_path_hash_clear || !owns_path_hash_workspace(bank,workspace))
+                        return false;
+                    address+=hash_offset;
+                    words=empty_hash;
+                } else return false;
+                if(main_receipts.anchors(address,words.size_bytes()))return false;
+                // Other observers or guards retain the literal write sequence.
+                const std::array<const void *,1> inert{{&main_receipts}};
+                return source_runtime_try_write_words(bank,address,words,mutations.serial,inert);
+            };
+        static const bool reference_ai_path_edge_ring=[] {
+            const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_AI_PATH_EDGE_RING");return p && *p;
+        }();
+        if(!reference_ai_path_edge_ring && !full_instruction_callbacks && !generic_instruction_search)
+            s.run_ai_path_edge_ring=[this](const auto &active,auto &memory,std::uint32_t sp,
+                    void *context,SourcePhysicsContactRuntimeServices::AiPathEdgeRingCallback run) {
+                using namespace native_campaign_ai_path_edge_ring;
+                if(&memory!=&bank || std::this_thread::get_id()!=main_thread || &active!=&services() ||
+                   !active.immutable_instruction_cursor.identifies(active) ||
+                   active.instruction_cursor.position!=&last_instruction ||
+                   first_person_phase_active || weapon_effect_phase_active ||
+                   execution_inputs || instruction_census_path() || !owns_frame(bank,sp,stack))
+                    return false;
+                const SourceRuntimeNativeWriteRange stores{sp+local_store_begin,workspace_bytes-local_store_begin};
+                if(main_receipts.anchors(stores.address,stores.bytes))return false;
+                const std::array<const void *,1> inert{{&main_receipts}};
+                SourceRuntimeNativeWriteLease lease(bank,std::span(&stores,1),inert);
+                if(!lease)return false;
+                run(context,last_instruction);
+                return true;
+            };
 #if defined(__i386__) || defined(__x86_64__)
         s.timestamp_counter=[this] {
             if(execution_inputs)execution_inputs->require_executor();
@@ -2160,6 +2465,53 @@ struct PhysicsLiveWorldTu15::Impl {
             return job;
         };
     }
+    native_object_factory_tu15::AnimationResourceRequester node_resource_requester(
+        const SourcePhysicsWorldRuntimeAbi& parent,NativeTu15PhysicsFrameFp& arithmetic,
+        SourcePhysicsContactRecordObserver observer={}) {
+        return [this,&parent,&arithmetic,observer=std::move(observer)](const SourcePhysicsContactMemory& memory,
+            const native_object_factory_tu15::AnimationResourceTouch& touch) {
+            if(&memory!=&bank)throw FormatError("TU1.5 native animation resource request requires the live bank");
+            using Touch=native_object_factory_tu15::AnimationResourceTouch;
+            const bool mode_load=touch.return_address==Touch::mode_load_return;
+            const bool mode_unload=touch.return_address==Touch::mode_unload_return;
+            if(!mode_load && !mode_unload && touch.return_address!=0x1e5cfeu && touch.return_address!=0x1e5d3du)
+                throw FormatError("TU1.5 native animation resource request lost its caller site");
+            // The original requests select CL=1 after TEST CL,CL. The
+            // mode-unload site instead executes XOR CL,CL. Run the resource
+            // controller below the still-active source caller.
+            CallerFrame nested(*this,parent.gp[4]);
+            auto abi=parent;
+            const auto sp=caller_abi().gp[4];
+            abi.gp[0]=touch.row;abi.gp[1]=(touch.table&0xffffff00u)|(mode_unload?0u:1u);
+            abi.gp[2]=touch.graph;abi.gp[4]=sp;
+            if(mode_load || mode_unload) {
+                abi.gp[2]=touch.mode_entries;
+                abi.gp[3]=(abi.gp[3]&0xffffff00u)|(touch.mode_load_requested?1u:0u);
+                abi.gp[5]=touch.graph;abi.gp[6]=touch.mode_row;abi.gp[7]=touch.mode_index;
+            }
+            const auto arithmetic_flags=mode_unload?0x44u:
+                (touch.enabled&0x80u)|(std::popcount(touch.enabled)%2==0?4u:0u);
+            abi.eflags=(abi.eflags&~0x8d5u)|arithmetic_flags;
+            abi.x87_status=arithmetic.status;
+            abi.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
+            put(bank,sp,touch.return_address);
+            source_run_physics_live_support_tu15(bank,0x126200u,abi,fp,services(),observer);
+            if(abi.gp[4]!=sp+4u || abi.x87_depth || abi.active_mmx || !abi.floating_point)
+                throw FormatError("TU1.5 native animation resource controller returned an unbalanced call");
+            arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+        };
+    }
+    // Differential and body-only publication discard temporary animation
+    // jobs along with their bank writes. The real next job retains its ID.
+    struct TemporaryAnimationReads {
+        Impl& owner;const std::uint64_t first;
+        explicit TemporaryAnimationReads(Impl& owner):owner(owner),first(owner.next_resource_read){}
+        ~TemporaryAnimationReads() {
+            if(first<=UINT32_MAX)owner.resource_reads.erase(
+                owner.resource_reads.lower_bound(std::uint32_t(first)),owner.resource_reads.end());
+            owner.next_resource_read=first;
+        }
+    };
     // Every byte write to the bank in order (with its previous value), for
     // the differentials' rollback and comparison.
     struct NodeWriteJournal {
@@ -2191,6 +2543,9 @@ struct PhysicsLiveWorldTu15::Impl {
             const auto reader=node_resource_reader();
             const native_object_factory_tu15::AnimationResourceReaderScope reading(reader);
             NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+            const auto parent=caller_abi();
+            const auto requester=node_resource_requester(parent,arithmetic);
+            const native_object_factory_tu15::AnimationResourceRequesterScope requesting(bank,requester,false);
             Execution execution(*this);
             return native_object_factory_tu15::object_deferred_node_matrices(bank,object,selected,nodes,arithmetic);
         };
@@ -2201,6 +2556,7 @@ struct PhysicsLiveWorldTu15::Impl {
         std::optional<std::string> refusal;
         std::uint32_t native_result=0;
         {
+            TemporaryAnimationReads reads(*this);
             NodeWriteJournal journal(bank);
             try{native_result=native();}
             catch(const std::exception& e){refusal=e.what();}
@@ -2498,8 +2854,16 @@ struct PhysicsLiveWorldTu15::Impl {
         NativeTu15PhysicsFrameFp arithmetic{control.x87_control_word,a.x87_status,control.mxcsr};
         const auto reader=node_resource_reader();
         const native_object_factory_tu15::AnimationResourceReaderScope reading(reader);
+        const auto requester=node_resource_requester(a,arithmetic,o);
+        const native_object_factory_tu15::AnimationResourceRequesterScope requesting(m,requester,(a.eflags&0x400u)!=0);
         if(c.target==0xbf0c0u)native_object_factory_tu15::object_update_node_matrices(m,object,arithmetic);
         else if(c.target==0xbff20u) {
+            const native_object_factory_tu15::HavokPairContactCleanup cleanup=[&o](auto& memory,
+                auto receiver,auto owner,auto scratch_end,auto& state) {
+                native_tu15_cleanup_object_factory_contact(memory,receiver,owner,scratch_end,state,
+                    native_object_factory_tu15::havok_allocator(memory),o);
+            };
+            const native_object_factory_tu15::HavokComponentRemovalScope live_havok(&cleanup);
             const bool changed=native_object_factory_tu15::object_update_bounds(m,object,arithmetic);
             a.gp[0]=(a.gp[0]&0xffffff00u)|(changed?1u:0u);
         } else if(c.target==0xbf050u)native_object_factory_tu15::object_rebuild_nodes(m,object,arithmetic);
@@ -2674,6 +3038,7 @@ struct PhysicsLiveWorldTu15::Impl {
         auto& debug_log=native_object_factory_tu15::node_rebuild_debug_log();
         debug_log.enabled=trace;debug_log.text.clear();
         {
+            TemporaryAnimationReads reads(*this);
             Journal journal(bank);
             try{node_rebuild_native(m,c,native_abi,o);}
             catch(const std::exception& e){refusal=e.what();}
@@ -2748,6 +3113,23 @@ struct PhysicsLiveWorldTu15::Impl {
         } else ++node_rebuild_stats.matched;
         if(!(node_rebuild_stats.compared%8192u))node_rebuild_stats.report("progress");
     }
+    NativeCampaignAiBipedRefreshScratchBindingTu15 bind_ai_query_scratch(
+        const char *gap_error,const char *extent_error) {
+        const auto query_data=bank.find_unowned_range(0x60100000u,0x61000000u,
+            NativeCampaignAiBipedRefreshScratchBindingTu15::bytes,16u);
+        if(!query_data)throw FormatError(gap_error);
+        static const bool reference=[] {
+            const auto* value=std::getenv("HALO2_REFERENCE_AI_SCRATCH_REGION_SCAN");
+            return value && *value && *value!='0';
+        }();
+        if(!reference)return {bank,*query_data};
+        std::vector<NativeTu15ContactPrivateRange> retained;
+        bank.visit_region_metadata([&](const auto &region) {
+            if(region.bytes>0xffffffffull)throw FormatError(extent_error);
+            retained.push_back({region.address,std::uint32_t(region.bytes)});
+        });
+        return {bank,*query_data,retained};
+    }
     void required_entry_original(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
@@ -2757,9 +3139,157 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail && light_caller_site(c) && light_caller(m,c,a,o))return;
         if(image==SourcePhysicsContactImage::TitleUpdate15) {
+            if(c.target==0x2a2aa0u && vehicle_candidates_tu15::admits(m,c,a)) {
+                const SourcePhysicsWorldRuntimeServices::RequiredOwner angle =
+                    [this](auto &memory,const auto &call,auto &state,const auto &observe) {
+                        const auto frame=memory.try_read_view(state.gp[4],4u);
+                        if(&memory!=&bank || call.tail || call.target!=0x32ccd8u ||
+                           (call.instruction!=0x2a2dc4u && call.instruction!=0x2a2eabu) ||
+                           !frame || Bytes(*frame).u32(0)!=call.instruction+5u ||
+                           state.x87_depth!=1 || !state.floating_point)
+                            throw std::runtime_error("TU1.5 vehicle candidates lost the retained angle call");
+                        source_run_ai_frame_tu15(memory,call.target,state,*state.floating_point,services(),observe);
+                    };
+                last_instruction=c.target;
+                const auto resumed=vehicle_candidates_tu15::native_campaign_ai_vehicle_movement_candidates_tu15(m,a,angle,o);
+                if(resumed!=0x2a432cu)
+                    throw std::runtime_error("TU1.5 vehicle candidates lost the retained 2A432C continuation");
+                return;
+            }
+            if(c.target==0x2a3170u && vehicle_steering_tu15::admits(m,c,a)) {
+                const SourcePhysicsWorldRuntimeServices::RequiredOwner steering_child =
+                    [this](auto &memory,const auto &call,auto &state,const auto &observe) {
+                        const auto frame=memory.try_read_view(state.gp[4],4u);
+                        if(&memory!=&bank || call.tail || !frame ||
+                           Bytes(*frame).u32(0)!=call.instruction+5u || !state.floating_point)
+                            throw std::runtime_error("TU1.5 vehicle steering lost the retained child frame");
+                        const auto site=call.instruction;
+                        const bool transform=call.target==0x218a40u && (site==0x2a324cu || site==0x2a325eu);
+                        const bool sweep=call.target==0x2762a0u &&
+                            (site==0x2a3372u || site==0x2a33abu || site==0x2a3870u ||
+                             site==0x2a38d0u || site==0x2a3969u);
+                        if((transform || sweep) && state.x87_depth==0u) {
+                            source_run_ai_frame_tu15(memory,call.target,state,*state.floating_point,services(),observe);
+                            return;
+                        }
+                        if((site==0x2a3575u && call.target==0x32b0c6u && state.x87_depth==0u) ||
+                           (site==0x2a357du && call.target==0x32cc0cu && state.x87_depth==1u)) {
+                            source_run_physics_live_support_tu15(memory,call.target,state,*state.floating_point,services(),observe);
+                            return;
+                        }
+                        throw std::runtime_error("TU1.5 vehicle steering requires its authentic child owner");
+                    };
+                last_instruction=c.target;
+                if(vehicle_steering_tu15::run(m,a,steering_child,o)!=0x2a4410u)
+                    throw std::runtime_error("TU1.5 vehicle steering lost the retained 2A4410 continuation");
+                return;
+            }
+            if(c.target==0x2a3ea0u && !o && !first_person_phase_active && !weapon_effect_phase_active &&
+               !execution_inputs && !instruction_census_path() &&
+               services().instruction_cursor.position==&last_instruction &&
+               std::this_thread::get_id()==main_thread && vehicle_movement_tu15::admits(m,c,a)) {
+                const SourcePhysicsWorldRuntimeServices::RequiredOwner movement_child =
+                    [this](auto &memory,const auto &call,auto &state,const auto &observe) {
+                        const auto frame=memory.try_read_view(state.gp[4],4u);
+                        if(&memory!=&bank || call.tail || !frame ||
+                           Bytes(*frame).u32(0)!=call.instruction+5u || !state.floating_point)
+                            throw std::runtime_error("TU1.5 vehicle motion lost its retained child frame");
+                        const auto site=call.instruction;
+                        const auto target=call.target;
+                        if(site==0x2a3ee6u && target==0x1ed700u) {
+                            native_campaign_ai_character_property_call_tu15(memory,target,state);
+                            return;
+                        }
+                        if((site==0x2a4002u && target==0x32ccd8u) ||
+                           (site==0x2a4074u && target==0xbbe00u) ||
+                           (site==0x2a4634u && target==0x30bd0u) ||
+                           (site==0x2a4686u && target==0x2b3e0u)) {
+                            source_run_ai_frame_tu15(memory,target,state,*state.floating_point,services(),observe);
+                            return;
+                        }
+                        if(site==0x2a40b5u && target==0x275e90u) {
+                            native_campaign_ai_actor_path_query_call_tu15(memory,target,state,observe,
+                                [this,&memory,&observe](auto point_site,auto point_target,auto &point_state) {
+                                    if(point_site!=0x275d8bu || point_target!=0xf35d0u ||
+                                       word(memory,point_state.gp[4])!=0x275d90u)
+                                        throw NativeCampaignAiPerformRequiredOwnerTu15(point_site,point_target);
+                                    source_run_scene_device_constructor_tu15(memory,point_target,point_state,
+                                        point_state.floating_point.value_or(fp),services(),observe);
+                                });
+                            return;
+                        }
+                        if(site==0x2a40d5u && target==0x201a20u) {
+                            physics_step_detail::FpScope scope(*state.floating_point);
+                            physics_world_runtime_detail::WorldState waypoint(memory,observe,services(),image);
+                            waypoint.load(state);
+                            const auto radius=[this,&memory,&observe](auto &radius_state) {
+                                auto packet=radius_state.save();
+                                auto radius_services=services();
+                                radius_services.required_owner=[this](auto &child_memory,const auto &child,
+                                                                     auto &child_state,const auto &child_observe) {
+                                    if(&child_memory==&bank && !child.tail && child.instruction==0x1ebc35u &&
+                                       child.target==0x1ed700u && word(child_memory,child_state.gp[4])==0x1ebc3au) {
+                                        native_campaign_ai_character_property_call_tu15(child_memory,child.target,child_state);
+                                        return;
+                                    }
+                                    required_entry_original(child_memory,child,child_state,child_observe);
+                                };
+                                source_run_ai_frame_tu15(memory,0x1ebbd0u,packet,*packet.floating_point,
+                                    radius_services,observe);
+                                radius_state.load(packet);
+                            };
+                            if(!vehicle_movement_tu15::final_waypoint(waypoint,radius))
+                                throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                            state=waypoint.save();
+                            return;
+                        }
+                        if((site==0x2a4327u && target==0x2a2aa0u) ||
+                           (site==0x2a440bu && target==0x2a3170u)) {
+                            required_entry_original(memory,call,state,observe);
+                            return;
+                        }
+                        if(site==0x2a46bau && target==0x202130u &&
+                           native_campaign_ai_vehicle_movement_scale_tu15_try(bank,call,state,observe))
+                            return;
+                        throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                    };
+                last_instruction=c.target;
+                if(vehicle_movement_tu15::run(m,a,movement_child,o)!=0x1fbd08u)
+                    throw std::runtime_error("TU1.5 vehicle motion lost the retained 1FBD08 continuation");
+                return;
+            }
+            // 1B0720 intersects the current behavior mask with this retained tag mask.
+            constexpr std::uint32_t working_mask=0x56ae84u;
+            if(!c.tail && c.instruction==0x1b0842u && c.target==0x1caee0u &&
+               a.gp[0]==working_mask && a.gp[1]==0x83u && a.gp[7]==working_mask) {
+                const auto sp=a.gp[4];
+                // Keep the frame and saved registers in the separate main call stack.
+                if(sp>=0x60000008u && sp<=0x600ffff8u) {
+                    const auto frame=m.try_read_view(sp,8u);
+                    if(frame && Bytes(*frame).u32(0)==0x1b0847u && Bytes(*frame).u32(4)==working_mask) {
+                        intersect_campaign_ai_working_mask(m,a,o,services().instruction);
+                        return;
+                    }
+                }
+            }
             if(c.target==0x1cacb0u || c.target==0x1cacd0u || c.target==0x1cae70u) {
                 last_instruction=c.target;
                 native_campaign_ai_behavior_129_call_tu15(m,c.target,a,o);return;
+            }
+            // 269D70 dispatches the type-4 scoring tables by their actual
+            // callback slots. The caller resumes by reloading EAX and flags.
+            if(!c.tail && c.instruction==0x269d9du && a.gp[0]==0x10u &&
+               ((c.target==0x267a60u && a.gp[6]==0x45681cu) ||
+                (c.target==0x2689a0u && a.gp[6]==0x45683cu))) {
+                last_instruction=c.target;
+                native_campaign_ai_goal_scoring_call_tu15(m,c.target,a,o);return;
+            }
+            // 269DB0 threads AL from the type-4 candidate evaluator in the
+            // last callback slot of the retained 45687C table.
+            if(!c.tail && c.instruction==0x269ddeu && c.target==0x269870u &&
+               a.gp[2]==c.target && a.gp[5]==0x10u && a.gp[6]==0x4568a4u) {
+                last_instruction=c.target;
+                native_campaign_ai_goal_scoring_call_tu15(m,c.target,a,o);return;
             }
             if(c.target==0x273290u) {
                 last_instruction=c.target;
@@ -2777,13 +3307,106 @@ struct PhysicsLiveWorldTu15::Impl {
                 last_instruction=c.target;
                 native_campaign_ai_command_facing_call_tu15(m,c.target,a,o);return;
             }
-            if(c.target==0x2b2470u || c.target==0x2b2670u || c.target==0x210a10u || c.target==0x2b1200u ||
+            // The public HS evaluator supplies the original opcode and descriptor.
+            const bool forward_velocity=c.target==0x2aba90u && a.gp[0]==0x4eu && a.gp[2]==0x4570e0u;
+            const bool script_vehicle_lookup=c.target==0x2afad0u && a.gp[0]==0x153u && a.gp[2]==0x45857cu;
+            const bool script_vehicle_speed=c.target==0x2b1530u && a.gp[0]==0x196u && a.gp[2]==0x458ae0u;
+            const bool script_shoot_at_actor=c.target==0x2b14b0u && a.gp[0]==0x194u && a.gp[2]==0x458ab8u;
+            const bool script_vehicle_boarding=c.target==0x2afcc0u && a.gp[0]==0x159u && a.gp[2]==0x4585fcu;
+            const bool script_starting_vehicle=c.target==0x2afb10u && a.gp[0]==0x154u && a.gp[2]==0x458590u;
+            const bool script_object_hide=c.target==0x2ab320u && a.gp[0]==0x39u && a.gp[2]==0x456f30u;
+            const bool script_actor_object=c.target==0x2aeb30u && a.gp[0]==0x11cu && a.gp[2]==0x458144u;
+            const bool script_play_line=c.target==0x2b0140u && a.gp[0]==0x167u && a.gp[2]==0x458714u;
+            const bool public_hs_builtin=!c.tail && c.instruction==0x211c1bu &&
+                ((c.target==0x2b2340u && a.gp[0]==0x1b8u && a.gp[2]==0x458d9cu) ||
+                 (c.target==0x2b01a0u && a.gp[0]==0x168u && a.gp[2]==0x458728u) ||
+                 forward_velocity || script_vehicle_lookup || script_vehicle_speed || script_shoot_at_actor ||
+                 script_vehicle_boarding || script_starting_vehicle || script_object_hide || script_actor_object ||
+                 script_play_line);
+            if(public_hs_builtin || c.target==0x2b2470u || c.target==0x2b2670u || c.target==0x210a10u || c.target==0x2b1200u ||
                c.target==0x2b1000u || c.target==0x2b10b0u || c.target==0x2b11b0u || c.target==0x2b1300u ||
                c.target==0x2b2410u || c.target==0x2b0e30u) {
                 NativeCampaignHsCommandChildrenTu15 children;
+                if(public_hs_builtin)children.instruction=services().instruction;
                 children.call=[&](auto site,auto target,auto &state) {
-                    if(target==0x212010u || target==0x211da0u) {
-                        source_run_ai_frame_tu15(m,target,state,fp,services(),o);return;
+                    if(public_hs_builtin && script_shoot_at_actor && site==0x2b14deu && target==0x280ee0u) {
+                        last_instruction=target;
+                        native_campaign_hs_command_builtins_call_tu15(m,target,state,children,o);return;
+                    }
+                    if(public_hs_builtin &&
+                       ((c.target==0x2b01a0u && site==0x2b01d0u && target==0x27fee0u) ||
+                        (script_play_line && site==0x2b016fu && target==0x27fe70u))) {
+                        required_entry_original(m,{site,target,false},state,o);return;
+                    }
+                    if(target==0x212010u || target==0x211da0u ||
+                       (script_vehicle_lookup && site==0x27fb43u && target==0x27c880u) ||
+                       (script_actor_object && ((site==0x2aeb6eu && target==0x27caa0u) ||
+                                                (site==0x2aeb73u && target==0x27cb30u)))) {
+                        source_run_ai_frame_tu15(m,target,state,public_hs_builtin?state.floating_point.value_or(fp):fp,services(),o);return;
+                    }
+                    if(script_object_hide) {
+                        if(site==0x2ab358u && target==0xbbc90u) {
+                            native_campaign_hs_command_builtins_call_tu15(m,target,state,children,o);return;
+                        }
+                        if(((site==0xbbcbau || site==0xbbceeu) && target==0xbbd50u) ||
+                           ((site==0xbbcccu || site==0xbbd00u) && target==0xc0f60u) ||
+                           ((site==0xbbcd5u || site==0xbbd05u) && target==0xbaba0u)) {
+                            source_run_physics_live_support_tu15(m,target,state,state.floating_point.value_or(fp),services(),o);
+                            return;
+                        }
+                    }
+                    if(script_vehicle_boarding) {
+                        const auto controls=state.floating_point.value_or(fp);
+                        if(site==0x2afcf6u && target==0x27e760u) {
+                            native_campaign_hs_command_builtins_call_tu15(m,target,state,children,o);return;
+                        }
+                        if((site==0x27e777u && target==0xbcdf0u) ||
+                           (site==0x27e795u && target==0xbbe00u)) {
+                            required_entry_original(m,{site,target,false},state,o);return;
+                        }
+                        if((site==0x27e78au && target==0x1c1860u) ||
+                           (site==0x27e917u && target==0xca6e0u)) {
+                            source_run_scene_device_constructor_tu15(m,target,state,controls,services(),o);return;
+                        }
+                        if((site==0x27e7cdu && target==0x27caa0u) ||
+                           ((site==0x27e7d2u || site==0x27e87du) && target==0x27cb30u) ||
+                           (site==0x27e862u && target==0x1afbd0u)) {
+                            source_run_ai_frame_tu15(m,target,state,controls,services(),o);return;
+                        }
+                        if((site==0x27e9d9u && target==0xe8e10u) ||
+                           (site==0x27ea12u && target==0xe8e50u)) {
+                            source_run_physics_live_support_tu15(m,target,state,controls,services(),o);return;
+                        }
+                        if(site==0x27e89du && target==0x32b560u) {
+                            auto sort_services=services();
+                            const auto required=sort_services.required_owner;
+                            sort_services.required_owner=[&](auto &mem,const auto &call,auto &sort_state,
+                                const auto &observer) {
+                                if(!call.tail && call.target==0x27e720u) {
+                                    switch(call.instruction) {
+                                    case 0x32b512u:case 0x32b5fau:case 0x32b62cu:case 0x32b65eu:
+                                    case 0x32b69cu:case 0x32b6bcu:case 0x32b6d8u:case 0x32b73au:case 0x32b75cu:
+                                        native_campaign_hs_command_builtins_call_tu15(mem,call.target,
+                                            sort_state,children,observer);return;
+                                    }
+                                }
+                                if(!required)throw NativeCampaignAiPerformRequiredOwnerTu15(call.instruction,call.target);
+                                required(mem,call,sort_state,observer);
+                            };
+                            source_run_combat_action_tu15(m,target,state,controls,sort_services,o);return;
+                        }
+                    }
+                    if(forward_velocity) {
+                        if(site==0x2abac5u && target==0x1100c0u) {
+                            native_campaign_hs_object_velocity_call_tu15(m,state,children,o);return;
+                        }
+                        if((site==0x1101d0u && target==0xb9770u) ||
+                           (site==0x1101deu && target==0x1cd6a0u) ||
+                           (site==0x110220u && target==0xbbbc0u) ||
+                           (site==0x110227u && target==0xb9390u) ||
+                           (site==0x11022eu && target==0xbda50u)) {
+                            required_entry_original(m,{site,target,false},state,o);return;
+                        }
                     }
                     if(target==0x211cb0u || target==0x280c90u || target==0x280d70u) {
                         required_entry_original(m,{site,target,false},state,o);return;
@@ -2821,14 +3444,8 @@ struct PhysicsLiveWorldTu15::Impl {
             }
             if(c.target==0x262a00u || c.target==0x263140u || c.target==0x263aa0u ||
                c.target==0x263bd0u || c.target==0x264860u || c.target==0x1fc720u || c.target==0x1cace0u) {
-                const auto query_data=bank.find_unowned_range(0x60100000u,0x61000000u,0x10000u,16u);
-                if(!query_data)throw FormatError("Native command query has no disjoint DATA range");
-                std::vector<NativeTu15ContactPrivateRange> retained;
-                bank.visit_region_metadata([&](const auto &region) {
-                    if(region.bytes>0xffffffffull)throw FormatError("Native command retained extent exceeds32bits");
-                    retained.push_back({region.address,std::uint32_t(region.bytes)});
-                });
-                NativeCampaignAiBipedRefreshScratchBindingTu15 query_scratch(m,*query_data,retained);
+                auto query_scratch=bind_ai_query_scratch("Native command query has no disjoint DATA range",
+                    "Native command retained extent exceeds32bits");
                 struct Protection final:NativeCampaignAiResourceProtectionTu15 {
                     Impl &owner;
                     explicit Protection(Impl &value):owner(value){}
@@ -2839,11 +3456,34 @@ struct PhysicsLiveWorldTu15::Impl {
                 } protection(*this);
                 NativeCampaignAiPerformServicesTu15 children;children.protection=&protection;
                 last_instruction=c.target;
-                if(c.target==0x1cace0u)native_campaign_ai_behavior_129_perform_call_tu15(m,c.target,a,children,o);
-                else if(c.target==0x1fc720u)native_campaign_ai_publication_call_tu15(m,c.target,a,children,o);
-                else native_campaign_ai_command_movement_call_tu15(m,c.target,a,children,o);
+                if(c.target==0x1cace0u) {
+                    children.behavior_direction_geometry=[&](auto site,auto target,auto &state) {
+                        const bool recorded_owner=
+                            (target==0x16c620u && (site==0x1ca661u || site==0x1ca7a5u)) ||
+                            (target==0x276e10u && site==0x1ca7c7u) ||
+                            (target==0x202970u && site==0x1ca82fu);
+                        if(!recorded_owner)throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                        required_entry_original(m,{site,target,false},state,o);
+                    };
+                    native_campaign_ai_behavior_129_perform_call_tu15(m,c.target,a,children,o);
+                } else {
+                    children.vehicle_navigation_point=[&](auto site,auto target,auto &state) {
+                        if(site!=0x275d8bu || target!=0xf35d0u || word(m,state.gp[4])!=0x275d90u)
+                            throw NativeCampaignAiPerformRequiredOwnerTu15(site,target);
+                        source_run_scene_device_constructor_tu15(m,target,state,state.floating_point.value_or(fp),
+                            services(),o);
+                    };
+                    if(c.target==0x1fc720u)native_campaign_ai_publication_call_tu15(m,c.target,a,children,o);
+                    else native_campaign_ai_command_movement_call_tu15(m,c.target,a,children,o);
+                }
                 return;
             }
+        }
+        if(!c.tail && c.instruction==0x1fbbe8u && c.target==0x1fb800u) {
+            last_instruction=c.target;
+            const auto controls=a.floating_point.value_or(fp);
+            NativeTu15PhysicsFrameFp active_fp{controls.x87_control_word,a.x87_status,controls.mxcsr};
+            native_campaign_ai_update_probe_direction_tu15(m,a,active_fp,o);return;
         }
         if(c.target==0x2e16d0u && native_diagnostic_logger_owner_detail::run(m,c,a,services(),o))return;
         if(c.target==0xc1270u) {
@@ -2857,6 +3497,45 @@ struct PhysicsLiveWorldTu15::Impl {
         if(native_campaign_ai_path_distance_tu15_owns_call(c)) {
             native_campaign_ai_path_distance_tu15_run(m,c,a);return;
         }
+        if(c.target==0x1ca160u &&
+           native_campaign_ai_behavior_score_21_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1b5000u &&
+           native_campaign_ai_behavior_score_43_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1c8590u &&
+           native_campaign_ai_behavior_score_80_tu15_try_run(m,image,c,a,fp,services(),o))return;
+        if(c.target==0x1b3600u &&
+           native_campaign_ai_behavior_score_17_tu15_try_run(m,image,c,a,fp,services(),o))return;
+        if(c.target==0x1c0230u &&
+           native_campaign_ai_behavior_start_42_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1c02b0u &&
+           native_campaign_ai_behavior_update_42_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1c0190u &&
+           native_campaign_ai_behavior_select_42_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1bfbf0u &&
+           native_campaign_ai_behavior_score_50_tu15_try_run(m,image,c,a,fp,services(),o))return;
+        if(c.target==0x1e2f60u &&
+           native_campaign_animation_distance_tu15_try_run(m,image,c,a,fp,services(),o))return;
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
+           ((c.instruction==0x1e2f7eu && c.target==0x1e3150u) ||
+            (c.instruction==0x1e2f9bu && c.target==0x1e5df0u))) {
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
+           ((c.instruction==0x1bfc26u && c.target==0x1ecfc0u) ||
+            (c.instruction==0x1bfc2du && c.target==0x1ed240u) ||
+            (c.instruction==0x1bfc55u && c.target==0x1f1950u) ||
+            (c.instruction==0x1bfc90u && c.target==0x2673a0u))) {
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
+           c.instruction==0x1c02efu && c.target==0x1b05d0u) {
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
+           ((c.instruction==0x1b372du && c.target==0x1d2190u) ||
+            (c.instruction==0x1b373cu && c.target==0x25980u))) {
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
         if(c.target==0x1bbb50u) {
             native_campaign_ai_area_count_tu15_run(m,c,a);return;
         }
@@ -2865,14 +3544,8 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(native_campaign_ai_area_perform_tu15_owns_call(c)) {
             if(&m!=&bank)throw FormatError("Native biped query scratch requires the current world bank");
-            const auto query_data=bank.find_unowned_range(0x60100000u,0x61000000u,0x10000u,16u);
-            if(!query_data)throw FormatError("Native biped query has no disjoint DATA range");
-            std::vector<NativeTu15ContactPrivateRange> retained;
-            bank.visit_region_metadata([&](const auto &region) {
-                if(region.bytes>0xffffffffull)throw FormatError("Native biped query retained extent exceeds32bits");
-                retained.push_back({region.address,std::uint32_t(region.bytes)});
-            });
-            NativeCampaignAiBipedRefreshScratchBindingTu15 query_scratch(m,*query_data,retained);
+            auto query_scratch=bind_ai_query_scratch("Native biped query has no disjoint DATA range",
+                "Native biped query retained extent exceeds32bits");
             native_campaign_ai_area_perform_tu15_run(m,c,a,[this](auto p,auto n,auto f) {
                 if(!arena)throw FormatError("Native 1BBEE0 workspace requires its retained arena owner");
                 arena->protect_pages(p,n,f);
@@ -3070,6 +3743,11 @@ struct PhysicsLiveWorldTu15::Impl {
             return;
         }
         if(c.target==0x21f590u && canonical_cache){run_sound_duration(c,a,o);return;}
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x21f6f3u &&
+           c.target==0x21f590u && !c.tail) {
+            // The AI caller retains its exact literal leaf without MCC projection.
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
         if(c.target==0x1d9080u && c.instruction!=c.target && !c.tail && body_velocity_input_observer)
             body_velocity_input_observer(c.instruction,a,bank);
         if(c.target==0x1da750u && c.instruction!=c.target && !c.tail && phantom_phase_observer) {
@@ -3226,6 +3904,51 @@ struct PhysicsLiveWorldTu15::Impl {
             required(m,{c.target,c.target,false},a,o);
             SourceExecutionObserverScope read_only(bank);
             loop_sound_request_observer(request);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x2b0229u &&
+            c.target==0x2b0229u && !c.tail) {
+            const auto *admitted=object_utterance_call;
+            if(!admitted || !a.floating_point || a.active_mmx || a.x87_depth ||
+               a.gp[0]!=admitted->object || a.gp[2]!=admitted->line || a.gp[4]!=caller_abi().gp[4])
+                throw FormatError("TU1.5 object utterance requires its typed HS caller frame");
+            native_tu15_object_utterance::run(m,a,services(),o,admitted->object,admitted->line,admitted->clock);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x2b01d0u &&
+            c.target==0x27fee0u && !c.tail) {
+            if((a.gp[1]>>30u)!=2u || !a.floating_point || a.active_mmx || a.x87_depth ||
+               Bytes(bank.view(a.gp[4],4)).u32(0)!=0x2b01d5u)
+                throw NativeCampaignAiPerformRequiredOwnerTu15(c.instruction,c.target);
+            native_tu15_authored_utterance::run(m,a,services(),o);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x2b016fu &&
+            c.target==0x27fe70u && !c.tail) {
+            if(!a.floating_point || a.active_mmx || a.x87_depth ||
+               Bytes(bank.view(a.gp[4],4)).u32(0)!=0x2b0174u)
+                throw NativeCampaignAiPerformRequiredOwnerTu15(c.instruction,c.target);
+            auto utterance_services=services();
+            const auto required=utterance_services.required_owner;
+            utterance_services.required_owner=[&,required](auto &mem,const auto &call,auto &state,const auto &observer) {
+                if(!call.tail && ((call.instruction==0x27fe85u && call.target==0x27caa0u) ||
+                                  (call.instruction==0x27fe8au && call.target==0x27cb30u))) {
+                    source_run_ai_frame_tu15(mem,call.target,state,*state.floating_point,services(),observer);return;
+                }
+                required(mem,call,state,observer);
+            };
+            native_tu15_authored_utterance::run(m,a,utterance_services,o,true);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x29bd5eu &&
+            c.target==0x27fdb0u && !c.tail) {
+            const auto clock=admit_actor_utterance(a);
+            if(!clock)
+                throw NativeCampaignAiPerformRequiredOwnerTu15(c.instruction,c.target);
+            native_tu15_utterance::run(m,a,services(),o,*clock);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && c.instruction==0x18c1acu &&
+            c.target==native_tu15_attached_speech_descriptor.front() && !c.tail &&
+            a.gp[7]==native_tu15_attached_speech_descriptor_address) {
+            if(!a.floating_point || a.active_mmx || Bytes(bank.view(a.gp[4],4)).u32(0)!=0x18c1aeu)
+                throw FormatError("TU1.5 attached speech lost its retained positional callback ABI");
+            native_tu15_attached_speech_callback(m,a,*a.floating_point,services(),o);return;
         }
         if(c.instruction==0x18cefcu && c.target==0x223b20u && !c.tail &&
             (sound_submit_observer || sound_request_observer || sound_request_context_observer || weapon_zoom_sound_observer)) {
@@ -4179,7 +4902,19 @@ struct PhysicsLiveWorldTu15::Impl {
         if(nested_caller_frame && std::uint64_t(caller)+4u+args.size()*4u>nested_caller_frame->second)
             throw FormatError("Nested native output arguments overlap the active original caller");
         put(bank,caller,0x60300000u);
-        for(unsigned i=0;i<args.size();++i)put(bank,caller+4+i*4,args[i]);return a;
+        // The projected sphere query supplies two 512-word inline arrays.
+        // Keep their exact stack bytes and logical store count, with scalar
+        // writes for nested callers, taped input and nonordinary backing.
+        if(args.size()>=512 && !nested_caller_frame && !execution_inputs &&
+           !main_receipts.anchors(caller+4u,args.size_bytes())) {
+            static const bool reference=[] {
+                const auto* value=std::getenv("HALO2_REFERENCE_SOURCE_CALL_WORD_STORES");return value && *value;
+            }();
+            const std::array<const void*,1> inert{{&main_receipts}};
+            if(!reference && source_runtime_try_write_words(bank,caller+4u,args,mutations.serial,inert))return a;
+        }
+        for(unsigned i=0;i<args.size();++i)put(bank,caller+4+i*4,args[i]);
+        return a;
     }
     void capture_gameplay_fade(unsigned phase,const SourcePhysicsWorldRuntimeAbi& parent) {
         if(phase) {
@@ -4513,6 +5248,21 @@ struct PhysicsLiveWorldTu15::Impl {
             },&native_object_velocity_handoffs);
         SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
         try {
+            std::optional<native_receiver_transfers::Scope> receiver_transfers;
+            const bool receiver_view=entry==0x134c00u && a.gp[0]==1u && (a.gp[1]==1u || a.gp[1]==6u);
+            const bool receiver_camera=entry==native_receiver_transfers::camera_entry;
+            if(image==SourcePhysicsContactImage::TitleUpdate15 && (receiver_view || receiver_camera) &&
+               a.gp[4]==stack-0x3000u &&
+               !nested_caller_frame && !actual_store_observer && !execution_inputs &&
+               !first_person_phase_active && !weapon_effect_phase_active && !instruction_census_path() &&
+               !native_receiver_transfers::reference()) {
+                const auto &owner=services();
+                using Root=native_receiver_transfers::Scope::Root;
+                if(owner.immutable_instruction_cursor.identifies(owner) &&
+                   (receiver_view || native_receiver_transfers::Scope::owns_camera_root(bank,a.gp[4])))
+                    receiver_transfers.emplace(bank,mutations.serial,owner,a.gp[4],
+                        receiver_camera?Root::Camera:Root::View);
+            }
             required(bank,{entry,entry,false},a,actual_store_observer);
         }catch(const std::exception&e) {
             std::ostringstream message;message<<"TU1.5 live actual root "<<std::hex<<entry
@@ -6137,15 +6887,7 @@ struct PhysicsLiveWorldTu15::Impl {
         // restore the dense job namespace after byte rollback on both returns
         // and exceptions. Other I/O, new backing and synchronization owners
         // remain forbidden during this immutable publication.
-        struct TemporaryAnimationReads {
-            Impl& owner;const std::uint64_t first;
-            explicit TemporaryAnimationReads(Impl& owner):owner(owner),first(owner.next_resource_read){}
-            ~TemporaryAnimationReads() {
-                if(first<=UINT32_MAX)owner.resource_reads.erase(
-                    owner.resource_reads.lower_bound(std::uint32_t(first)),owner.resource_reads.end());
-                owner.next_resource_read=first;
-            }
-        } temporary_reads(*this);
+        TemporaryAnimationReads temporary_reads(*this);
         const auto* reference_journal=std::getenv("HALO2_REFERENCE_BODY_POSE_JOURNAL");
         SourceRuntimeUndoJournal journal(bank,reference_journal && *reference_journal?
             SourceRuntimeUndoJournal::Storage::store_vectors:SourceRuntimeUndoJournal::Storage::packed,
@@ -7345,6 +8087,24 @@ MccScriptSoundWorldAccess PhysicsLiveWorldTu15::script_sound_access(const Cache&
         std::move(provider),*impl_->sound_runtime_plan,*impl_->sound_timing_plan,impl_->sound_timing_memory,
         SoundDriverFloatingPointContext{fp.x87_control_word,fp.mxcsr});
 }
+std::uint32_t PhysicsLiveWorldTu15::play_line_on_object_tu15(std::uint32_t object,std::uint32_t line) {
+    require_execution_boundary();
+    Impl::PublicCall active(*impl_,false);
+    const Impl::ObjectUtteranceCall admitted{object,line,impl_->admit_object_utterance(object,line)};
+    struct Binding {
+        Impl &owner;
+        Binding(Impl &owner,const Impl::ObjectUtteranceCall &call):owner(owner) {
+            if(owner.object_utterance_call)throw FormatError("TU1.5 object utterance cannot reenter");
+            owner.object_utterance_call=&call;
+        }
+        ~Binding(){owner.object_utterance_call=nullptr;}
+    } binding{*impl_,admitted};
+    auto a=impl_->caller_abi();
+    a.gp[0]=object;
+    a.gp[2]=line;
+    run_actual(0x2b0229u,a);
+    return a.gp[0];
+}
 MccSoundVariationProvider PhysicsLiveWorldTu15::sound_variation_provider(const Cache& expected_owner) const {
     Impl::PublicCall active(*impl_,false);impl_->require_executor();
     if(impl_->execution_depth||impl_->render_read_borrows||impl_->continuation_fault)
@@ -7490,13 +8250,19 @@ void PhysicsLiveWorldTu15::run_actual(std::uint32_t p,SourcePhysicsWorldRuntimeA
     if(main && observer)publish_completed_main_camera_tu15();
 }
 
-NativeTu15PhysicsFrameFp PhysicsLiveWorldTu15::run_native_command_frame_tu15(std::uint32_t selector) {
+NativeTu15PhysicsFrameFp PhysicsLiveWorldTu15::run_native_command_frame_tu15(std::uint32_t selector,
+    bool projected_light_stores) {
     Impl::PublicCall active(*impl_);
     const auto scoped_observer=impl_->scoped_main_camera_observer.lock();
     const auto& observer=scoped_observer?scoped_observer->observer:impl_->main_camera_observer;
     const bool main=bool(observer) && selector==0 && word(impl_->bank,0x4cd3a0u)==0x556e18u &&
         !word(impl_->bank,0x556e18u+0x2a78u) && !word(impl_->bank,0x556e18u+0x2a7cu);
-    const auto fp=source_native_command_frame_tu15(*this,selector);
+    // These ordered stores can share the enclosing mutation call. An exception
+    // during publication escapes the entire frame, so this call still tests the
+    // write serial on unwinding. Recording and replay require individual calls.
+    const bool secondary=projected_light_stores && selector==0 && word(impl_->bank,0x4cd3a0u)==0x5598f8u;
+    auto* const light_store_memory=secondary && !source_execution_inputs(impl_->bank)?&impl_->bank:nullptr;
+    const auto fp=source_native_command_frame_tu15(*this,selector,light_store_memory);
     active.writes=impl_->mutations.serial.load();
     if(main && observer)publish_completed_main_camera_tu15();
     return fp;

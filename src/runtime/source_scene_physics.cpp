@@ -7,10 +7,13 @@
 
 namespace halo2 {
 namespace {
-std::uint32_t word(const SourceRuntimeMemory &memory,std::uint32_t p,unsigned n=4) {
-    std::uint32_t value=0;const auto bytes=memory.view(p,n);
-    for(unsigned i=0;i<n;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);
+std::uint32_t word(std::span<const std::byte> bytes) {
+    std::uint32_t value=0;
+    for(unsigned i=0;i<bytes.size();++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);
     return value;
+}
+std::uint32_t word(const SourceRuntimeMemory &memory,std::uint32_t p,unsigned n=4) {
+    return word(memory.view(p,n));
 }
 float scalar(const SourceRuntimeMemory &memory,std::uint32_t p) {
     return std::bit_cast<float>(word(memory,p));
@@ -30,8 +33,10 @@ std::uint32_t body(const SourceRuntimeMemory &memory,std::uint32_t pool,std::uin
     return result;
 }
 Transform matrix(const SourceRuntimeMemory &memory,std::uint32_t p) {
-    memory.view(p,0x34);
-    return {scalar(memory,p),{vector(memory,p+4),vector(memory,p+16),vector(memory,p+28)},vector(memory,p+40)};
+    const auto bytes=memory.view(p,0x34);
+    const auto field=[&](unsigned offset){return std::bit_cast<float>(word(bytes.subspan(offset,4)));};
+    const auto column=[&](unsigned offset){return Vec3{field(offset),field(offset+4),field(offset+8)};};
+    return {field(0),{column(4),column(16),column(28)},column(40)};
 }
 
 }

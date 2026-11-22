@@ -787,6 +787,30 @@ void profile_pointer_geometry(const FrontendContent &content,
   sample.accept();
   check(sample.frame().screen == 10,
         "Start after cancel no longer opens a fresh Choose Profile popup");
+
+  sample.open(6);
+  choose(sample, 2, 19);
+  choose(sample, 0, 193);
+  for (unsigned row : {0u, 2u}) {
+    sample.select(1); // Measure the target row at its resting position.
+    const auto resting = painter.draw(sample, 5);
+    const auto caps = quads(resting, end_cap.name);
+    check(caps.size() == 3, "Settings picker lost the Create or saved profile cap");
+    const auto &a = resting.vertices.at(caps[row]);
+    const auto &b = resting.vertices.at(caps[row] + 4);
+    const float x = b.position.x - 1, y = (a.position.y + b.position.y) * .5f;
+    auto target = painter.pointer_hit(x,y);
+    check(target && target->action == FrontendPointerAction::Entry && target->index == row,
+          "Settings profile end cap cannot receive hover");
+    sample.select(row);
+    painter.draw(sample, 5);
+    target = painter.pointer_hit(x,y);
+    check(target && target->index == row && sample.activate_pointer(*target) &&
+          sample.frame().screen == (row == 0 ? 167 : 194),
+          "Original focus animation moved the Settings profile out from under its click");
+    sample.back();
+    check(sample.frame().screen == 193, "Settings profile click lost its picker parent");
+  }
 }
 void profile_saved_row_appearance(const FrontendContent &content,
                                   FrontendPainter &painter, const Mesh &mesh,
@@ -1010,7 +1034,7 @@ void profile_saved_row_appearance(const FrontendContent &content,
   };
   verify(10, "Saved Tan", persisted);
   choose(sample, 1, 6);
-  choose(sample, 4, 19);
+  choose(sample, 2, 19);
   choose(sample, 0, 193);
   // Signing into the first profile is the existing explicit accept boundary.
   const auto signed_in_bytes = saved_bytes();
@@ -1190,13 +1214,13 @@ void profile_row_emblems(const FrontendContent &content,
   };
   verify(10);
   choose(sample, 1, 6);
-  choose(sample, 4, 19);
+  choose(sample, 2, 19);
   choose(sample, 0, 193);
   verify(193);
   sample.back();sample.back();
   check(sample.frame().screen==6,"Lobby emblem fixture did not return to main menu");
   check(sample.controller_slot(100,true)==0,"Lobby emblem fixture lost host controller");
-  choose(sample,2,30);
+  choose(sample,1,218); choose(sample,0,30);
   for(unsigned player=1;player<3;++player) {
     check(sample.controller_slot(100+player,true)==player&&sample.frame().screen==10,"Lobby emblem fixture did not open another profile picker");
     const auto &entries=sample.frame().entries;
@@ -1325,7 +1349,7 @@ void profile_header_icon(const FrontendContent &content,
   }
   sample.accept();
   choose(sample, 1, 6);
-  choose(sample, 4, 19);
+  choose(sample, 2, 19);
   choose(sample, 0, 193);
   auto saved_bytes = [&] {
     std::ifstream file(preferences, std::ios::binary);
@@ -1484,7 +1508,7 @@ void profile_control_details(const FrontendContent &content,
   }
   sample.accept();
   choose(sample, 1, 6);
-  choose(sample, 4, 19);
+  choose(sample, 2, 19);
   choose(sample, 0, 193);
   const auto saved_bytes = [&] {
     std::ifstream file(preferences, std::ios::binary);
@@ -1928,11 +1952,17 @@ void subtitle_string_binding(const FrontendContent &content,
   for (const auto &[codepoint, x] : original) {
     const auto &g = font.glyphs.at(codepoint);
     check(std::any_of(draw.vertices.begin(), draw.vertices.end(), [&](const auto &v) {
-            return mesh.materials.at(v.material).name == "font/conduit-12" &&
-                v.position.x == x && v.position.y == 427 &&
-                v.uv.x == float(g.x) / font.atlas.width &&
-                v.uv.y == float(g.y) / font.atlas.height &&
-                (v.color.x > 0 || v.color.y > 0 || v.color.z > 0);
+            const auto &m = mesh.materials.at(v.material);
+            if (m.ui_full_surface || v.position.x != x || v.position.y != 427 ||
+                !(v.color.x > 0 || v.color.y > 0 || v.color.z > 0)) return false;
+            // The two source icons retain their logical origins. Their
+            // replacement ink is selector 1 of the packaged Xbox atlas.
+            if (codepoint == 0xe100 || codepoint == 0xe101)
+              return m.name.starts_with("controller-prompts/xbox/atlases/1.dds/") &&
+                  v.uv.x == (codepoint == 0xe100 ? 1.f : 131.f) / m.diffuse.width &&
+                  v.uv.y == 1.f / m.diffuse.height;
+            return m.name == "font/conduit-12" && v.uv.x == float(g.x) / font.atlas.width &&
+                v.uv.y == float(g.y) / font.atlas.height;
           }), "Appearance footer glyph placement differs from original subtitle traversal");
   }
 }
@@ -2070,7 +2100,7 @@ void focused_profile_preview(const FrontendContent &content,
   check(sample.profile_name() == "Active Spartan" &&
             sample.profile_option(52) == 0,
         "preview fixture did not commit the Spartan profile");
-  choose(sample, 4, 19);
+  choose(sample, 2, 19);
   choose(sample, 0, 193);
   check(sample.frame().entries.size() == 3,
         "Edit Profile preview fixture needs Create New and both species");
@@ -2330,7 +2360,7 @@ void retail(const std::filesystem::path &maps) {
   menu.select(1);
   menu.accept();
   check(menu.frame().screen == 6, "cancel sign-out returned to wrong screen");
-  choose(menu, 4, 19);
+  choose(menu, 2, 19);
   choose(menu, 0, 193);
   choose(menu, 0, 167);
   check(menu.frame().entries.size() == 47 && menu.frame().selected == 40,
@@ -2422,7 +2452,7 @@ void retail(const std::filesystem::path &maps) {
   choose(loaded, 0, 193);
   check(loaded.profile_name() == "Player", "profile deletion did not update list");
   menu.open(6);
-  choose(menu, 3, 30);
+  choose(menu, 1, 218); choose(menu, 2, 30);
   choose(menu, 0, 14);
   choose(menu, 1, 23);
   choose(menu, 1, 207); // Original2BB4D2: Change Map, Change Rules, Quick Options.
@@ -2464,16 +2494,16 @@ void retail(const std::filesystem::path &maps) {
     state.accept(); state.accept(); state.text("Launch Test");
     state.commit_text(); state.back();
   };
-  sign_in_local(lan);choose(lan,3,30);choose(lan,0,14);
+  sign_in_local(lan);choose(lan,1,218); choose(lan,2,30);choose(lan,0,14);
   lan.select(0);lan.accept();
   check(lan.launch && lan.launch->multiplayer && !lan.launch->campaign &&
         lan.launch->host_port==2002 && lan.launch->local_players==1 && lan.launch->variant.engine==0,
         "System Link Start Game must launch a real multiplayer match");
-  MenuState split(content);sign_in_local(split);choose(split,2,30);choose(split,0,14);
+  MenuState split(content);sign_in_local(split);choose(split,1,218); choose(split,0,30);choose(split,0,14);
   split.select(0);split.accept();
   check(split.launch && split.launch->multiplayer && split.launch->local_players==1 && !split.launch->host_port,
         "Selecting one local profile must not create a second local player");
-  MenuState king(content);sign_in_local(king);choose(king,3,30);choose(king,0,14);
+  MenuState king(content);sign_in_local(king);choose(king,1,218); choose(king,2,30);choose(king,0,14);
   choose(king,1,23);choose(king,1,207);choose(king,1,208);
   choose(king,0,14);king.select(0);king.accept();
   check(king.launch && king.launch->variant.engine==3 && king.launch->host_port==2002,
@@ -2521,6 +2551,13 @@ void retail(const std::filesystem::path &maps) {
   std::size_t frames = 0;
   for (const auto &[id, screen] : content.screens) {
     MenuState sample(content);
+    if (id == 13) {
+      // The original squad browser remains in the map. LAN uses the
+      // current system-link flow and rejects this retired direct route.
+      check(screen.panes.size() == 1, "original network browser pane inventory changed");
+      rejects([&] { sample.open(id); });
+      continue;
+    }
     if (id != 9)
       sample.open(id);
     for (unsigned pane = 0; pane < screen.panes.size(); ++pane) {
@@ -2534,7 +2571,7 @@ void retail(const std::filesystem::path &maps) {
       ++frames;
     }
   }
-  check(frames == 150, "authored pane coverage");
+  check(frames == 149, "reachable authored pane coverage");
   for (const auto &[id, p] : content.parameters) {
     MenuState sample(content);
     sample.open(223, id);

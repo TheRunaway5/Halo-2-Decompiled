@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     auto content = cache.load_frontend();
     MenuState state(content);
     state.accept(); state.accept(); state.text("Lobby Test"); state.commit_text(); state.back();
-    state.select(2); state.accept(); state.accept();
+    state.select(1); state.accept(); state.select(0); state.accept(); state.accept();
     if (state.frame().screen != 14 || state.signed_in_profile() != "Lobby Test")
       throw std::runtime_error("normal Split Screen route missed signed-in lobby");
     Mesh mesh;

@@ -65,7 +65,7 @@ int main(int argc,char** argv)try {
   state.accept();state.accept();state.text("Roundtrip Pilot");state.commit_text();state.back();
   check(state.frame().screen==6,"Actual selected profile did not reach main menu");
   const auto initial_mainmenu=state.frame();
-  choose(state,2,30);
+  choose(state,1,218); choose(state,0,30);
   if(two_players) {
     check(state.controller_slot(inputs[0],false)==0,"Host controller binding changed");
     check(state.controller_slot(inputs[1],true)==1 && state.frame().screen==10 &&
@@ -190,7 +190,7 @@ int main(int argc,char** argv)try {
     check(state.frame().screen==9 && state.stack().size()==1 && state.local_players().empty(),
         "Main menu Back did not create a fresh signed-out title");
     state.accept();check(state.frame().screen==10,"Title did not open its actual profile picker");
-    choose(state,1,6);choose(state,2,30);
+    choose(state,1,6);choose(state,1,218); choose(state,0,30);
     if(two_players) {
       check(state.controller_slot(inputs[0],true)==0,"Title reentry did not bind the host controller");
       check(state.controller_slot(inputs[1],true)==1,"Title reentry did not add the second controller");
@@ -602,7 +602,7 @@ int main(int argc,char** argv)try {
   }
   leave_to_menu();
   const auto mainmenu_instance=state.frame().instance;
-  choose(state,4,vista_menu(19));state.back();
+  choose(state,2,vista_menu(19));state.back();
   check(state.frame().instance==mainmenu_instance,"Settings lost the returned native menu");
   return_through_title();
   state.select(0);state.accept();flow->update_frontend(state,25000,silent_stage);

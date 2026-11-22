@@ -67,6 +67,32 @@ void validate_constructor_storage(const SourceRuntimeMemory& memory,std::uint32_
 }
 void mount_native_tu15_ui_script_startup_data(SourceRuntimeMemory& memory) {
 #include "ui/native_tu15_ui_script_startup_data.inc"
+    // Pinned TU1.5 .data for external global 0x831e, ai_current_actor.
+    // The type-19 refresh reads the existing 50EF00 command-context value.
+    constexpr std::array<std::byte,4> current_actor_slot{
+        std::byte{0x8c},std::byte{0xf3},std::byte{0x47},std::byte{0x00}};
+    constexpr std::array<std::byte,8> current_actor_descriptor{
+        std::byte{0x13},std::byte{0x00},std::byte{0x00},std::byte{0x00},
+        std::byte{0x00},std::byte{0xef},std::byte{0x50},std::byte{0x00}};
+    memory.mount(0x480800u,current_actor_slot,SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 HS ai_current_actor registry slot");
+    memory.mount(0x47f38cu,current_actor_descriptor,SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 HS ai_current_actor descriptor");
+    // Pinned TU1.5 .data for the 211CB0 and 2125B0 reads of external global
+    // 0x8329, ai_combat_status_uninspected. The type-7 refresh uses the
+    // descriptor's own backing before it updates the VM's live global row.
+    constexpr std::array<std::byte,4> status_slot{
+        std::byte{0xe4},std::byte{0xf3},std::byte{0x47},std::byte{0x00}};
+    constexpr std::array<std::byte,8> status_descriptor{
+        std::byte{0x07},std::byte{0x00},std::byte{0x00},std::byte{0x00},
+        std::byte{0x4c},std::byte{0xc2},std::byte{0x47},std::byte{0x00}};
+    constexpr std::array<std::byte,2> status_value{std::byte{0x04},std::byte{0x00}};
+    memory.mount(0x48082cu,status_slot,SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 HS ai_combat_status_uninspected registry slot");
+    memory.mount(0x47f3e4u,status_descriptor,SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 HS ai_combat_status_uninspected descriptor");
+    memory.mount(0x47c24cu,status_value,SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 HS ai_combat_status_uninspected backing");
 }
 bool source_ui_script_startup_tu15_is_initializer(std::uint32_t entry) {
     switch(entry){case 0x14a1ff:case 0x1410a7:case 0x31d400:case 0x13e9e0:case 0x2129d0:case 0x2035b0:case 0xd7320:return true;default:return false;}

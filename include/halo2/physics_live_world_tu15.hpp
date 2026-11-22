@@ -273,6 +273,9 @@ public:
     MccSoundVariationProvider sound_variation_provider(const Cache& expected_owner) const;
     // Epoch-qualified actual script-sound policy and checkpointed metadata.
     MccScriptSoundWorldAccess script_sound_access(const Cache& expected_owner);
+    // The native HS host has evaluated both arguments. The retained World
+    // selects the authored line and returns the source evaluator's real bits.
+    std::uint32_t play_line_on_object_tu15(std::uint32_t object,std::uint32_t line);
     // Explicit caller input, including retained native stack scratch. The
     // journal owns a copy; arbitrary memory writes remain unrecorded work.
     void write_source_call_input(std::uint32_t,std::span<const std::byte>);
@@ -299,7 +302,8 @@ public:
     void predict_mcc_bitmap_frame(TagHandle, unsigned frame);
     // Ordered native40E80/44AB0/460C0 with genuine named residual services.
     // Publishes the same completed main-camera borrow after all producers.
-    NativeTu15PhysicsFrameFp run_native_command_frame_tu15(std::uint32_t selector=0);
+    NativeTu15PhysicsFrameFp run_native_command_frame_tu15(std::uint32_t selector=0,
+        bool projected_light_stores=false);
     // The 3BC20 callers consume count, stack position and complete descriptors.
     void run_command_selection_tu15(SourcePhysicsWorldRuntimeAbi&);
     // A separately typed source2B770/2B9F0 CPU-prefix scope. The genuine

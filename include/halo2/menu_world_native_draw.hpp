@@ -57,6 +57,9 @@ struct MenuWorldNativeDrawInput {
   // A light shadow target: store screen-linear Z (the original Z buffer)
   // instead of the main view's reconstructed W.
   bool linear_z_depth{};
+  // Original light depth candidates share a vertex bank and pipeline. The
+  // fragment depth offsets -steps..-1,+1..+steps precede the base draw.
+  unsigned depth_neighbour_steps{};
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,
@@ -66,7 +69,7 @@ struct MenuWorldNativeDrawInput {
 //
 // prepare() may be called ONLY after all GPU/command-buffer uses of the previous
 // preparation have completed (normally the renderer frame fence). It retains
-// binding ownership, uploads independent per-draw ABI2/ABI3 and448B set1 slices, and
+// binding ownership, uploads ABI2/ABI3 vertex and 448B per-draw fragment slices, and
 // stores raw immutable geometry. Failure invalidates the prepared draw list.
 // record() is legal inside compatible subpass0; the caller establishes a
 // positive-height viewport and matching scissor. It binds both sets (only the
@@ -89,6 +92,14 @@ struct MenuWorldNativeDrawObservation {
   unsigned first_index{};
   int vertex_offset{};
 };
+// Only for the qualified Original D24 receiver continuation. The caller
+// owns feature admission, image/sampler lifetime, and D24S8 synchronization.
+// Receiver records require a read-only depth/stencil attachment. Shadow Z
+// records in the same preparation keep their separate original target.
+struct MenuWorldProjectedDepthSource {
+  VkImageView view{};
+  VkSampler sampler{};
+};
 class MenuWorldNativeDraw {
 public:
   explicit MenuWorldNativeDraw(MenuWorldNativeDrawContext);
@@ -96,6 +107,7 @@ public:
   MenuWorldNativeDraw(const MenuWorldNativeDraw &)=delete;
   MenuWorldNativeDraw &operator=(const MenuWorldNativeDraw &)=delete;
   void prepare(std::span<const MenuWorldNativeDrawInput>);
+  void prepare(std::span<const MenuWorldNativeDrawInput>,const MenuWorldProjectedDepthSource &);
   void record(VkCommandBuffer,std::size_t index,
       const std::function<void(const MenuWorldNativeDrawObservation &)> & = {}) const;
   std::size_t size() const;

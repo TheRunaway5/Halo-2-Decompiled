@@ -218,6 +218,9 @@ void source_run_physics_phantom_world_tu15_runtime(SourcePhysicsContactMemory &m
 }
 } // namespace halo2
 '''
+ from native_phantom_island_replacements import install
+ text,native_islands=install(text,text)
+ if native_islands!=['1d9ec0']:raise ValueError('Unpinned TU1.5 phantom component island query')
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(text)
  a.manifest.parent.mkdir(parents=True,exist_ok=True);a.manifest.write_text(json.dumps(dict(schema=1,parity_target='English TU1.5 only',
   generator_sha256=sha(__file__),research_sha256=sha(a.research),generated_cpp_sha256=sha(a.output),

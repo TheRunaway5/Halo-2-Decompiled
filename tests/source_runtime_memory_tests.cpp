@@ -76,6 +76,45 @@ void small_region_index() {
         restored.view(0x21000,1)[0]==std::byte{0x88},"restore rebuilds the small index");
   fails([&]{(void)restored.view(0x20010,1);});
 }
+void dense_small_region_index() {
+  using A = SourceRuntimeMemory::Access;
+  constexpr std::uint32_t page=0xfffff000u;
+  SourceRuntimeMemory bank;
+  std::array<std::optional<std::byte>,4096> expected{};
+  const auto mount=[&](std::uint32_t offset,unsigned size,std::byte value) {
+    bank.mount(page+offset,std::vector<std::byte>(size,value),A::ReadOnly,"partial image region");
+    for(unsigned i=offset;i<offset+size;++i)expected[i]=value;
+  };
+  const auto check_all=[&](const SourceRuntimeMemory& memory) {
+    for(unsigned i=0;i<expected.size();++i) {
+      const auto view=memory.try_read_view(page+i,1);
+      check(bool(view)==bool(expected[i]),"dense partial owner or gap differs");
+      if(view)check(view->front()==*expected[i],"dense partial owner bytes differ");
+    }
+  };
+  const std::array edge{std::byte{0xd6},std::byte{0xd7}};
+  bank.mount(page-1,edge,A::ReadOnly,"previous page owner");
+  expected[0]=edge.back();
+  mount(0xf0u,32,std::byte{0xe1});
+  mount(0x300u,768,std::byte{0xe2});
+  mount(4095,1,std::byte{0xe3});
+  for(unsigned i=0;i<270;++i)mount(0x800u+4u*i,2,std::byte(i));
+  check_all(bank); // More than 255 entries use the complete page search.
+  for(unsigned remaining=270;remaining>3;) {
+    const auto offset=0x800u+4u*(--remaining);
+    bank.release(page+offset);
+    expected[offset].reset();expected[offset+1].reset();
+    if(remaining==251 || remaining==4 || remaining==3)check_all(bank);
+  }
+  for(unsigned i=3;i<65;++i)mount(0x800u+4u*i,2,std::byte(255u-i));
+  SourceRuntimeMemory restored;
+  restored.restore(bank.checkpoint());
+  bank.swap_backing(restored);
+  check_all(bank);
+  check_all(restored);
+  SourceRuntimeMemory moved(std::move(restored));
+  check_all(moved);
+}
 // The gap query answers exactly as a full walk of the region map for any
 // query extent and alignment, including candidates inside, between and above
 // mounted regions, and over the image's dense tiny-region neighbourhoods.
@@ -413,6 +452,7 @@ int main() {
     const auto sparse_cost=SourceRuntimeMemory::restore_storage_overhead(sparse);
     check(sparse_cost>dense_cost+1024*1024,"Sparse restore topology escaped derived index accounting");
     small_region_index();
+    dense_small_region_index();
     gap_query_matches_full_walk();
     topology_gap_queries();
     guarded_topology();

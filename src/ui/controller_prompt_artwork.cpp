@@ -59,7 +59,9 @@ struct ControllerPromptArtwork::Impl {
     std::map<std::pair<unsigned,unsigned>,Record> records;
     std::map<std::string,unsigned> materials;};
   Mesh &mesh;std::array<Bank,2> banks;bool enabled{};
-  Impl(Mesh &m,const std::filesystem::path &font):mesh(m) {
+  ControllerPromptCanvas canvas;
+  Impl(Mesh &m,const std::filesystem::path &font,ControllerPromptCanvas canvas)
+      :mesh(m),canvas(canvas) {
     const auto root=resource_directory(font);if(root.empty())return;
     for(unsigned family=0;family<2;++family) {
       auto &bank=banks[family];bank.root=root/(family?"prompts-playstation":"prompts-xbox");
@@ -86,7 +88,9 @@ struct ControllerPromptArtwork::Impl {
   }
 };
 ControllerPromptArtwork::ControllerPromptArtwork(Mesh &mesh,const std::filesystem::path &font)
-    :impl_(std::make_unique<Impl>(mesh,font)) {}
+    :ControllerPromptArtwork(mesh,font,ControllerPromptCanvas::FullSurface) {}
+ControllerPromptArtwork::ControllerPromptArtwork(Mesh &mesh,const std::filesystem::path &font,
+    ControllerPromptCanvas canvas):impl_(std::make_unique<Impl>(mesh,font,canvas)) {}
 ControllerPromptArtwork::~ControllerPromptArtwork()=default;
 void ControllerPromptArtwork::prepare(unsigned selector) {
   if(selector>=12)throw FormatError("Invalid controller prompt selector");
@@ -96,10 +100,19 @@ void ControllerPromptArtwork::prepare(unsigned selector) {
     for(const auto &[key,r]:bank.records)if(key.first==selector && !bank.materials.contains(r.atlas)) {
       const auto name=std::string("controller-prompts/")+(family?"playstation/":"xbox/")+r.atlas+"/"+
           bank.manifest.at("files").at(r.atlas).at("sha256").get<std::string>();
+      const bool full_surface=impl_->canvas==ControllerPromptCanvas::FullSurface;
       const auto existing=std::find_if(impl_->mesh.materials.begin(),impl_->mesh.materials.end(),
-          [&](const auto &m){return m.name==name;});
+          [&](const auto &m){return m.name==name && m.ui_full_surface==full_surface;});
       if(existing!=impl_->mesh.materials.end()) {
         bank.materials.emplace(r.atlas,unsigned(existing-impl_->mesh.materials.begin()));continue;
+      }
+      const auto other=std::find_if(impl_->mesh.materials.begin(),impl_->mesh.materials.end(),
+          [&](const auto &m){return m.name==name;});
+      if(other!=impl_->mesh.materials.end()) {
+        auto material=*other;
+        material.ui_full_surface=full_surface;
+        bank.materials.emplace(r.atlas,unsigned(impl_->mesh.materials.size()));
+        impl_->mesh.materials.push_back(std::move(material));continue;
       }
       const auto data=bytes(bank.root/r.atlas,32*1024*1024);
       authenticate(data,bank.manifest.at("files").at(r.atlas));
@@ -109,7 +122,7 @@ void ControllerPromptArtwork::prepare(unsigned selector) {
            sample.height>texture.height-sample.y))throw FormatError("Controller prompt exceeds atlas");
       const auto material=unsigned(impl_->mesh.materials.size());
       impl_->mesh.materials.push_back({name,std::move(texture)});
-      auto &added=impl_->mesh.materials.back();added.ui_full_surface=true;
+      auto &added=impl_->mesh.materials.back();added.ui_full_surface=full_surface;
       added.texture_states[0].address_u=added.texture_states[0].address_v=3;
       bank.materials.emplace(r.atlas,material);
     }

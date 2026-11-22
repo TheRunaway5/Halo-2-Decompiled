@@ -88,4 +88,29 @@ SPEC=Spec(name='object_hierarchy_root',label='BBD10 object hierarchy root',entry
      ('uncertified-required-owner',ADAPTER,'if(!native_required_owner_policy_detail::preserves_instruction_policy(s.services))return false;','if(!s.services.required_owner)return false;'),
      ('census-without-switch',ADAPTER,'if(native_census_detail::uncursored(s,0xbbd10u,0xbbd47u)){','if(!s.instruction_cursor&&s.services.instruction){'),
     ),guard_mutants=('uncertified-required-owner','census-without-switch'))
-if __name__=='__main__':raise SystemExit(main(SPEC,corpus))
+def check_live_support_binding():
+    import native_object_hierarchy_root_replacements as binding
+    from specialize_native_operands import specialize
+
+    unit = Path(__file__).resolve().parents[1] / 'src/physics/physics_live_support_tu15_generated.cpp'
+    source = unit.read_text()
+    output, receipt = specialize(source)
+    owner = binding.BODY.search(output)
+    if (receipt.get('native_spatial_owners', []).count('bbd10') != 1 or
+            not owner or owner[0].count(binding.PREFIX) != 1 or output.count(binding.INCLUDE) != 1):
+        raise ValueError('Missing production BBD10 live-support binding')
+
+    # Exercise drift on each side of the preparation boundary independently.
+    prepared = output.replace(binding.PREFIX, '', 1)
+    for canonical, candidate in ((source.replace('0x4ecbd0u', '0x4ecbd4u'), prepared),
+                                 (source, prepared.replace('instruction_literal(0xbbd47u)',
+                                                           'instruction_literal(0xbbd46u)')),
+                                 (source, output)):
+        if binding.install(canonical, candidate) != (candidate, []):
+            raise ValueError('BBD10 accepted changed inputs or installed a duplicate prefix')
+
+
+if __name__ == '__main__':
+    if '--require-binding' in sys.argv:
+        check_live_support_binding()
+    raise SystemExit(main(SPEC, corpus))

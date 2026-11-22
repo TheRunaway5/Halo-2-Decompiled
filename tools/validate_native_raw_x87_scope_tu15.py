@@ -172,7 +172,7 @@ def negative_controls(scratch,command,fixture,env):
   ('early-spill-commit','const auto after=capture();restore(before);publish(before);','const auto after=capture();restore(after);publish(after);'),
   ('provider-restores-caller','catch(...) {restore(source);publish(source);throw;}','catch(...) {restore(host_);publish(host_);throw;}'),
   ('drops-source-status','return_host(source);','restore(host_);'),
-  ('drops-child-continuation','try {image=imported();}','try {image=host_;}'),
+  ('drops-child-continuation','image=imported(capture());','image=host_;'),
   ('truncates-extended-value','image.x87.data()+28+n*10,&state_.fp.lanes[n],10','image.x87.data()+28+n*10,&state_.fp.lanes[n],8'),
  )
  receipts=[]

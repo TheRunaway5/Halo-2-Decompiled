@@ -2370,7 +2370,8 @@ ScriptValue Simulation::host(const std::string &name,
         [this]{auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);
           multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();},
         [this](std::uint32_t list,std::uint32_t object){multiplayer_script_lists_->append(list,object);},
-        player_.source_datum};
+        player_.source_datum,
+        [&world](std::uint32_t object,std::uint32_t line){return world.play_line_on_object_tu15(object,line);}};
     if(const auto value=native_campaign_script_builtin_tu15(name,args,services))return *value;
   }
   auto arity = [&](std::size_t count) {
@@ -3361,7 +3362,7 @@ ScriptValue Simulation::host(const std::string &name,
         object==0?eye(player_):object_center(object);
     sounds_.push_back({args[0].bits,position,float(args[2].number()),
         object==null_datum?SoundEvent::NonSpatialImpulse:SoundEvent::Impulse,false,
-        object==0?player_.source_datum:object,effect_collection,effect_row});
+        object==0?player_.source_datum:object,effect_collection,effect_row,true});
     if(sound_duration_) {
       auto at=std::find_if(impulse_clocks_.begin(),impulse_clocks_.end(),[&](const auto &clock){return clock.datum==args[0].bits || clock.datum==null_datum || clock.start+clock.duration<=ticks_;});
       if(at!=impulse_clocks_.end())*at={args[0].bits,ticks_,std::uint64_t(std::max(0.f,std::nearbyint(sound_duration_(args[0].bits)*30.f)))};

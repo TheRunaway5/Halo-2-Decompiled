@@ -15,6 +15,10 @@ std::uint32_t narrowed(std::size_t value) {
     return std::uint32_t(value);
 }
 }
+SourceBspResidentPlan::SourceBspResidentPlan(std::span<const Vertex> vertices)
+    :raw_vertices_(vertices.begin(),vertices.end()) {
+    build_resident_geometry();
+}
 SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::size_t bsp,
     SourceBspResidentLighting lighting):SourceBspResidentPlan(cache,mesh,bsp,lighting,nullptr) {}
 SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::size_t bsp,
@@ -94,6 +98,9 @@ SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::
         if(v.lightmap)for(const auto slot:materials_.at(v.material))resident_lightmaps.insert({slot,v.lightmap});
     }
     mesh.resident_material_lightmaps.assign(resident_lightmaps.begin(),resident_lightmaps.end());
+    build_resident_geometry();
+}
+void SourceBspResidentPlan::build_resident_geometry() {
     std::map<SourceBspDrawKey,unsigned> identities;
     for(const auto &v:raw_vertices_) {
         const auto [it,inserted]=identities.try_emplace(draw_key(v),unsigned(resident_parts_.size()));
@@ -109,6 +116,12 @@ SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::
     }
     packed_vertices_.resize(first);
     for(unsigned i=0;i<raw_vertices_.size();++i)packed_vertices_[cursor[raw_part_[i]]++]=raw_vertices_[i];
+}
+std::vector<SourceBspPartBinding> SourceBspResidentPlan::unchanged_bindings() const {
+    std::vector<SourceBspPartBinding> bindings;
+    bindings.reserve(resident_parts_.size());
+    for(const auto &part:resident_parts_)bindings.push_back({part.original.material,{}});
+    return bindings;
 }
 SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderView &view) const {
     return select(view,{});

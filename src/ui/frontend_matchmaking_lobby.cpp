@@ -78,7 +78,7 @@ void MenuState::update_online_lobby_leave() {
   matchmaking_search_.stop();matchmaking_={};
   matchmaking_search_.left();
   reset_online_matchmaking_progress();launch.reset();
-  while(stack_.size()>1 && frame().screen!=6)stack_.pop_back();
+  while(stack_.size()>1 && frame().screen!=6 && !frame().multiplayer_options())stack_.pop_back();
   ++revision;
 }
 }

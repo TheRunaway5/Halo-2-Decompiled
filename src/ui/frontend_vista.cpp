@@ -659,6 +659,10 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
             throw FormatError("invalid Vista list");
           for (auto v : cache.block(a + 16, 20))
             l.labels.push_back(b.u32(v + 16));
+          // Video Options can fit twelve rows at the authored pitch, with
+          // space for the down arrow inside the full-screen frame.
+          if (id == 256)
+            l.visible = 12;
           skins.insert(l.skin);
           pane.lists.push_back(std::move(l));
         }

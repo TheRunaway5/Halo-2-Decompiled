@@ -117,6 +117,13 @@ public:
         if(!native_raw_x87_detail::direct_read(s_.memory,s_.gp[4],ignored))scope_.io([&]{s_.memory.read(s_.gp[4],ignored);});s_.gp[4]+=4u;return value;
     }
 };
+// 184690 uses only SSE and integer arithmetic. The same live masked
+// owner supplies the original scoped reads when ordinary backing refuses.
+template<class State,class Before=Noop>bool bridge_borrowed(State&s,
+    native_raw_x87_detail::Scope<State>& scope,Before before={}) {
+    if(!scope.admits_empty_frustum_child(s) || !policy_admitted(s))return false;
+    Frame frame{s,std::move(before),scope};classify(frame);return true;
+}
 template<class State,class Before=Noop>bool bridge(State&s,Before before={}){
     if(!admitted(s))return false;
     if constexpr(requires{s.active_mmx;})if(s.active_mmx){

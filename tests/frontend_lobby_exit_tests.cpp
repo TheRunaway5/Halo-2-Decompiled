@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     };
     MenuState state(content);
     state.accept(); state.accept(); state.text("Exit Test"); state.commit_text(); state.back();
-    state.select(2); state.accept(); state.accept();
+    state.select(1); state.accept(); state.select(0); state.accept(); state.accept();
     require(state.frame().screen == 14, "ordinary Split Screen route missed lobby");
     state.select(1); state.accept();
     check_markers(painter.draw(state, 10), active_markers);

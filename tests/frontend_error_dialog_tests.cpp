@@ -22,7 +22,7 @@ int main(int argc, char **argv) try {
   state.select(1); state.accept(); state.select(0); state.accept();
   state.select(1); state.accept(); state.back(); state.back();
   check(state.frame().screen == 6, "Elite customization missed the main menu");
-  state.select(2); state.accept(); state.accept();
+  state.select(1); state.accept(); state.select(0); state.accept(); state.accept();
   check(state.frame().screen == 14, "Split Screen route missed the lobby");
   state.set_multiplayer_map_validator([](const FrontendLaunch &) {
     throw FormatError("The selected player representation has no admitted native biped path");
@@ -57,7 +57,7 @@ int main(int argc, char **argv) try {
   MenuState long_state(content);
   long_state.accept(); long_state.accept(); long_state.text("Long Error");
   long_state.commit_text(); long_state.back();
-  long_state.select(2); long_state.accept(); long_state.accept();
+  long_state.select(1); long_state.accept(); long_state.select(0); long_state.accept(); long_state.accept();
   long_state.set_multiplayer_map_validator([&](const FrontendLaunch &) {
     throw FormatError(diagnostic);
   });

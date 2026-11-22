@@ -1,8 +1,13 @@
 #pragma once
 #include "halo2/menu_world_source_geometry.hpp"
 #include "halo2/vertex_program.hpp"
+#include <map>
+#include <memory>
+#include <tuple>
 
 namespace halo2 {
+struct MenuWorldVertexMetadataEntry;
+class MenuWorldSourceBindingCache;
 enum class MenuWorldSourceOwnerKind { bsp_cluster, bsp_instance, scenery_placement, dynamic_object };
 struct MenuWorldSourceOwner {
   MenuWorldSourceOwnerKind kind{};
@@ -21,42 +26,74 @@ struct MenuWorldSourceInput {
   MenuWorldSourceStream stream;
   bool consumed{};
 };
-// Raw class0..6 upload description. It owns the draw/palette, program,
-// declaration and merged constant bank, sharing only immutable section bytes.
+// Raw class0..6 upload description. Copies keep independent draw ranges and
+// palettes while sharing the immutable program, fetch layout and constant bank.
 // No selector, CPU vertex decoding, graphics operation or clip policy runs.
 class MenuWorldSourceBinding {
 public:
   const MenuWorldSourceOwner &owner() const { return owner_; }
   const MenuWorldSourceDraw &draw() const { return draw_; }
-  std::uint32_t vertex_shader() const { return vertex_shader_; }
-  std::span<const std::byte> program_bytes() const { return program_bytes_; }
-  const VertexProgram &program() const { return program_; }
-  const SourceVertexDeclaration &declaration() const { return declaration_; }
-  const std::vector<MenuWorldSourceInput> &inputs() const { return inputs_; }
-  const std::vector<unsigned> &consumed_registers() const { return consumed_registers_; }
-  const std::vector<unsigned> &consumed_constants() const { return consumed_constants_; }
+  std::uint32_t vertex_shader() const { return data_->vertex_shader; }
+  std::span<const std::byte> program_bytes() const { return data_->program_bytes; }
+  const VertexProgram &program() const { return data_->program; }
+  const SourceVertexDeclaration &declaration() const { return data_->declaration; }
+  const MenuWorldVertexMetadataEntry &vertex_metadata() const { return *data_->vertex_metadata; }
+  const std::vector<MenuWorldSourceInput> &inputs() const { return data_->inputs; }
+  const std::vector<unsigned> &consumed_registers() const { return data_->consumed_registers; }
+  const std::vector<unsigned> &consumed_constants() const { return data_->consumed_constants; }
   // Constant vertex attributes are separate from c[192]. Values are NEVER
   // synthesized here. A graphics consumer must supply these external reads.
-  const std::vector<unsigned> &external_attribute_registers() const { return external_attributes_; }
-  const MenuWorldSourceConstants &constants() const { return constants_; }
+  const std::vector<unsigned> &external_attribute_registers() const { return data_->external_attributes; }
+  const MenuWorldSourceConstants &constants() const { return *constants_; }
   std::span<const std::byte> resource_bytes(unsigned input) const;
+  // Select a range within the already bound part, or restore its full range.
+  // Range validation leaves the prepared shader, palette and constants intact.
+  void set_index_range(std::optional<MenuWorldSourceIndexRange> range);
 private:
   MenuWorldSourceBinding() = default;
+  friend class MenuWorldSourceBindingCache;
   friend MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding &,unsigned);
   friend MenuWorldSourceBinding menu_world_source_resized_viewport(const MenuWorldSourceBinding &,Vec2);
   friend MenuWorldSourceBinding menu_world_source_binding(const Cache &,
       MenuWorldSourceOwner,MenuWorldSourceDraw,std::uint32_t,const MenuWorldSourceConstants &);
   friend MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,
       MenuWorldSourceOwner,MenuWorldSourceDraw,std::uint32_t,unsigned,const MenuWorldSourceConstants &);
+  static MenuWorldSourceBinding bind(const Cache &,MenuWorldSourceOwner,MenuWorldSourceDraw,
+      std::uint32_t,unsigned,const MenuWorldSourceConstants &,MenuWorldSourceBindingCache *);
+  struct Data {
+    std::uint32_t vertex_shader{};
+    std::vector<std::byte> program_bytes;
+    VertexProgram program;
+    SourceVertexDeclaration declaration;
+    const MenuWorldVertexMetadataEntry *vertex_metadata{};
+    std::vector<MenuWorldSourceInput> inputs;
+    std::vector<unsigned> consumed_registers,consumed_constants,external_attributes;
+    unsigned required_palette_rows{};
+  };
+  static void load_inputs(Data &,const Cache &,const MenuWorldSourceSection &,
+      std::uint32_t vertex_shader,unsigned vertex_class);
   MenuWorldSourceOwner owner_;
   MenuWorldSourceDraw draw_;
-  std::uint32_t vertex_shader_{};
-  std::vector<std::byte> program_bytes_;
-  VertexProgram program_;
-  SourceVertexDeclaration declaration_;
-  std::vector<MenuWorldSourceInput> inputs_;
-  std::vector<unsigned> consumed_registers_,consumed_constants_,external_attributes_;
-  MenuWorldSourceConstants constants_;
+  std::shared_ptr<const Data> data_;
+  std::shared_ptr<const MenuWorldSourceConstants> constants_;
+};
+// Scoped to a resident renderer and its Cache. A cached input layout retains
+// the exact immutable geometry section, shader datum and vertex class.
+// Each binding still admits its current owner, range, palette and constants.
+class MenuWorldSourceBindingCache {
+public:
+  explicit MenuWorldSourceBindingCache(const Cache &cache):cache_(cache) {}
+  MenuWorldSourceBinding bind(MenuWorldSourceOwner,MenuWorldSourceDraw,
+      std::uint32_t vertex_shader,unsigned vertex_class,const MenuWorldSourceConstants &);
+private:
+  friend class MenuWorldSourceBinding;
+  using Key=std::tuple<std::uintptr_t,std::uint32_t,unsigned>;
+  struct Entry {
+    std::shared_ptr<const MenuWorldSourceSection> section;
+    std::shared_ptr<const MenuWorldSourceBinding::Data> data;
+  };
+  const Cache &cache_;
+  std::map<Key,Entry> inputs_;
 };
 // The caller supplies actual owner identity, selected vrtx datum and c[192].
 // Only c50..(50+3*palette_count-1) and c170..172 are replaced from the draw.

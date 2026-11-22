@@ -16,7 +16,7 @@
     {
       "command": "add_executable",
       "file": "cmake/MultiplayerEnginesTu15.cmake",
-      "line": 670,
+      "line": 702,
       "target": "multiplayer_engines_tu15_tests"
     }
   ],

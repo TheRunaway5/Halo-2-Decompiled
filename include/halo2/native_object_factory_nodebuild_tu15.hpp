@@ -37,8 +37,7 @@ bool object_animation_frozen(const SourcePhysicsContactMemory&,std::uint32_t obj
 bool animation_manager_valid(const SourcePhysicsContactMemory&,std::uint32_t manager);
 // 1E3150: animation definition of packed id `id` (low word inheritance
 // index, high word animation) in graph `graph` (tag data), or 0. A resolved
-// animation passes through the resource request 1E5C80, whose admission
-// (126200) is not native yet.
+// animation passes through 1E5C80 and its bound TU1.5 resource owner.
 std::uint32_t animation_definition(const SourcePhysicsContactMemory&,std::uint32_t graph,std::uint32_t id);
 // B8780: the manager's current animation definition (1E3150), 0 without an
 // animation index.
@@ -127,13 +126,34 @@ public:
 private:
   const AnimationResourceReader* previous_;
 };
+// The nodebuilder and weapon mode prefetch reach the same 126200 controller.
+// The live World supplies the request, cache-maintenance and I/O owners.
+struct AnimationResourceTouch {
+  static constexpr std::uint32_t mode_load_return=0x1e5ed0u;
+  static constexpr std::uint32_t mode_unload_return=0x1e5f10u;
+  std::uint32_t row,table,graph,enabled,return_address;
+  std::uint32_t mode_row{},mode_entries{},mode_index{};
+  bool mode_load_requested{};
+};
+using AnimationResourceRequester=std::function<void(const SourcePhysicsContactMemory&,const AnimationResourceTouch&)>;
+class AnimationResourceRequesterScope {
+public:
+  AnimationResourceRequesterScope(const SourcePhysicsContactMemory&,const AnimationResourceRequester&,bool backwards);
+  ~AnimationResourceRequesterScope();
+  AnimationResourceRequesterScope(const AnimationResourceRequesterScope&)=delete;
+  AnimationResourceRequesterScope& operator=(const AnimationResourceRequesterScope&)=delete;
+private:
+  const SourcePhysicsContactMemory* previous_memory_;
+  const AnimationResourceRequester* previous_;
+  bool previous_backwards_;
+};
 // 1262F0: address of an animation resource row's cached block (+C cache
 // handle), stamping the cache record's age. A miss allocates the block
 // (125FB0: 13FE50 through the native page allocator with the 1263C0/126400
 // callbacks), claims its entry (16E770) and reads it (1260C0 through the
-// bound reader, mode 0 waiting through 1262B0). A pending request (126190
-// hit, 16E8A0), a load still in flight (1236A0) and the cache age rollover
-// (13FD10) are refused by name.
+// bound reader, mode 0 waiting through 1262B0). The live World retires a
+// pending request through 16E8A0 before loading the row. A load still in
+// flight (1236A0) and cache age rollover (13FD10) retain their named refusals.
 std::uint32_t animation_resource_load(SourcePhysicsContactMemory&,std::uint32_t row,std::uint32_t name);
 // 1E5A70: the codec data of animation `id` in graph `graph` (tag data).
 std::uint32_t animation_resource_data(SourcePhysicsContactMemory&,std::uint32_t graph,std::uint32_t id);

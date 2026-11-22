@@ -9,10 +9,19 @@
 namespace halo2 {
 class SourceRuntimeMemory;
 class SourceRuntimePolicyChange;
+class SourceRuntimeWriteSerial;
 struct SourceRuntimeNativeWriteRange {std::uint32_t address;std::size_t bytes;};
 enum class SourceRuntimeNativeWriteRefusal : std::uint8_t {
     None,Range,ReferenceDispatch,Recursion,PolicyHold,PolicyChange,Observer,Guard,Unavailable,Count
 };
+// Commit consecutive little-endian words in one ordinary extent and count
+// each logical store. All serial subscribers must opt into call-boundary
+// visibility. The caller owns execution and backing topology, and any listed
+// observer must be inert over the extent. False leaves bytes, callbacks and
+// the write serial untouched for scalar fallback.
+bool source_runtime_try_write_words(SourceRuntimeMemory &,std::uint32_t,
+    std::span<const std::uint32_t>,const SourceRuntimeWriteSerial &serial,
+    std::span<const void *const> inert_observers={}) noexcept;
 // Permission-policy admission for an ordinary native memory block. Unknown
 // observers and any guard that can affect a requested write refuse admission;
 // no callback is executed by the check. The explicit observer allowlist is
@@ -33,6 +42,11 @@ public:
     SourceRuntimeNativeWriteLease(const SourceRuntimeNativeWriteLease&)=delete;
     SourceRuntimeNativeWriteLease(SourceRuntimeNativeWriteLease&&)=delete;
 private:
+    friend bool source_runtime_try_write_words(SourceRuntimeMemory &,std::uint32_t,
+        std::span<const std::uint32_t>,const SourceRuntimeWriteSerial &,std::span<const void *const>) noexcept;
+    SourceRuntimeNativeWriteLease(const SourceRuntimeMemory &,
+        std::span<const SourceRuntimeNativeWriteRange>,std::span<const void *const>,
+        const SourceRuntimeWriteSerial *serial) noexcept;
     const SourceRuntimeMemory *memory_{};
     const std::thread::id executor_=std::this_thread::get_id();
     SourceRuntimeNativeWriteRefusal refusal_=SourceRuntimeNativeWriteRefusal::None;
@@ -96,16 +110,24 @@ void source_runtime_validate_write(const SourceRuntimeMemory &,std::uint32_t,std
 // per-bank counter serves every subscriber, without a callback per store.
 class SourceRuntimeWriteSerial final {
 public:
+    // CallBoundary subscribers read at owned execution boundaries. A group
+    // can advance their shared counter once by its exact number of stores.
+    enum class Visibility { EveryStore,CallBoundary };
     explicit SourceRuntimeWriteSerial(const SourceRuntimeMemory &);
+    SourceRuntimeWriteSerial(const SourceRuntimeMemory &,Visibility);
     ~SourceRuntimeWriteSerial();
     SourceRuntimeWriteSerial(const SourceRuntimeWriteSerial &)=delete;
     SourceRuntimeWriteSerial &operator=(const SourceRuntimeWriteSerial &)=delete;
     std::uint64_t load() const noexcept;
     struct Counters;
 private:
+    friend bool source_runtime_try_write_words(SourceRuntimeMemory &,std::uint32_t,
+        std::span<const std::uint32_t>,const SourceRuntimeWriteSerial &,std::span<const void *const>) noexcept;
+    friend class SourceRuntimeNativeWriteLease;
     const SourceRuntimeMemory *memory_;
-    std::shared_ptr<const Counters> counters_;
+    std::shared_ptr<Counters> counters_;
     std::uint64_t base_{};
+    const Visibility visibility_;
 };
 // Permission is checked for all owners before any topology notification or
 // backing change. Observers must not throw and never grant permission.

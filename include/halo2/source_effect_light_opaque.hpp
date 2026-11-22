@@ -36,6 +36,8 @@ struct SourceOpaquePartRanges {
     bool filtered{};
     std::vector<MenuWorldSourceIndexRange> ranges;
 };
+MenuWorldSourceTopology source_effect_light_part_topology(const SourceCullDrawUnit&,
+    const SourceBspRangeGeometry&,unsigned part);
 // Exact4D5E2..4D626 and4DAA0 after successful actual1CAA0 binding. The
 // caller owns that binding decision. Mask addresses refer to the same shared
 // arena used by collection/culling; an unfiltered call never reads it.

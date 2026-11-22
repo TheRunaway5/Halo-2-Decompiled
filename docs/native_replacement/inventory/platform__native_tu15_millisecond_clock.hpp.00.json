@@ -1,11 +1,8 @@
 {
   "callback_image_scope": "image-selected-or-unresolved",
   "cmake_registration_sites": [],
-  "configured_production_scope": "included",
-  "configured_production_target_ids": [
-    "halo2_input_startup_tu15::@6890427a1f51a3e7e1df",
-    "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
-  ],
+  "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+  "configured_production_target_ids": [],
   "gate_sources": {},
   "internal_dispatch_identity_evidence": {},
   "part": 0,
@@ -52,7 +49,7 @@
   "source_inclusion_candidates": [
     {
       "including_source": "src/gameplay/units/source_combat_action_tu15_generated.cpp",
-      "line": 1,
+      "line": 2,
       "preprocessor_admission_qualified": false,
       "production_candidate_targets": [
         "halo2_physics_world_runtime"
@@ -70,7 +67,7 @@
     },
     {
       "including_source": "src/physics/physics_live_support_tu15_generated.cpp",
-      "line": 20,
+      "line": 39,
       "preprocessor_admission_qualified": false,
       "production_candidate_targets": [
         "halo2_physics_world_runtime"

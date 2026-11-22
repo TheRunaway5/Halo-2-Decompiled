@@ -1,5 +1,6 @@
 #include "halo2/source_campaign_model.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/model_section_index.hpp"
 #include "halo2/content.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/world_material.hpp"
@@ -8,12 +9,13 @@
 #include "halo2/scenery.hpp"
 #include <algorithm>
 #include <bit>
+#include <cstdlib>
 #include <map>
 #include <set>
 
 namespace halo2 {
-bool source_campaign_lit_scenery(const RenderModel &model,const ScenarioObject &object) {
-    if(object.type!=6)return false;
+bool source_campaign_lit_object(const RenderModel &model,const ScenarioObject &object) {
+    if(object.type!=6 && object.type!=11)return false;
     return std::ranges::any_of(model.mesh.materials,[](const auto &material) {
         return std::ranges::any_of(material.lods,[](const auto &lod) {
             return (lod.available_layers&((1u<<3)|(1u<<5)))!=0;
@@ -134,12 +136,12 @@ void SourceCampaignModel::prepare_materials(const Cache &cache,Mesh &destination
     if(section_materials_)section_prepare=[&](auto&m,unsigned section){return prepare(m,section,2);};
     auto shaders=std::make_unique<SourceDynamicModelShaders>(cache,resources,render_model_,2,0.f,section_prepare);
     std::optional<RenderModel> defaults;std::unique_ptr<SourceDynamicModelShaders> default_shaders;
-    if(section_materials_ || per_vertex_scenery) {
+    if(section_materials_ || per_vertex_scenery || cache.find_tag({definition_},TagGroup{"bloc"})) {
         defaults=resources;
         try {
-            // TU1.5 2CFE0 can classify a scenery draw as 3 when its baked
-            // lightmap resource is unavailable. 4CBE0 selects that
-            // material's implementation 3 from the same model and LOD.
+            // TU1.5 2CFE0 can classify a prop or scenery unit as 3 when
+            // its lightmap source is unavailable. 4CBE0 selects the same
+            // model and LOD's own default lighting material.
             for(auto&material:defaults->mesh.materials) {
                 const auto colors=material.object_render_colors;
                 if(!prepare(material,first_section,3))throw FormatError("Campaign default model material is unresolved: "+material.name);
@@ -231,6 +233,45 @@ namespace {
 bool submitted_part(const Vertex &vertex) {
     return vertex.source_part_type!=0 && vertex.source_part_type!=5;
 }
+bool reference_campaign_skin_sections() {
+    static const bool reference=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_CAMPAIGN_SKIN_SECTIONS");return value && *value;
+    }();
+    return reference;
+}
+}
+SourceCampaignModel::SectionGeometry SourceCampaignModel::section_geometry(const RenderModel &resource,
+    unsigned section,bool use_index) {
+    SectionGeometry selected;
+    auto& model=selected.model;
+    model.bones=resource.bones;model.compound_nodes=resource.compound_nodes;model.checksum=resource.checksum;
+    const auto append=[&](std::uint32_t ordinal) {
+        const auto& vertex=resource.mesh.vertices[ordinal];
+        if(!submitted_part(vertex))return;
+        model.mesh.vertices.push_back(vertex);
+        model.skin.push_back(resource.skin.at(ordinal));
+        model.vertex_origins.push_back(resource.vertex_origins.at(ordinal));
+        selected.ordinals.push_back(ordinal);
+    };
+    if(use_index) {
+        const auto index=model_section_index(resource);
+        const auto ordinals=index->section(section);
+        model.mesh.vertices.reserve(ordinals.size());model.skin.reserve(ordinals.size());
+        model.vertex_origins.reserve(ordinals.size());selected.ordinals.reserve(ordinals.size());
+        for(const auto ordinal:ordinals)append(ordinal);
+    } else {
+        for(std::uint32_t ordinal=0;ordinal<resource.mesh.vertices.size();++ordinal)
+            if(resource.mesh.vertices[ordinal].source_section==section)append(ordinal);
+    }
+    return selected;
+}
+const SourceCampaignModel::SectionGeometry &SourceCampaignModel::retained_section_geometry(
+    const RenderModel &resource,unsigned section)const {
+    const std::lock_guard lock(section_geometry_mutex_);
+    auto& sections=section_geometry_[&resource];
+    const auto found=sections.find(section);
+    if(found!=sections.end())return found->second;
+    return sections.emplace(section,section_geometry(resource,section,true)).first->second;
 }
 std::vector<Vertex> SourceCampaignModel::vertices(std::uint32_t owner,
     const SourceObjectDrawCollector &collector,std::span<const Transform> nodes)const {
@@ -264,16 +305,38 @@ std::vector<Vertex> SourceCampaignModel::vertices(unsigned lod,std::span<const u
     // Original submission skins only the selected sections. Keep the full
     // palette, but do not pose every unselected permutation in the resource
     // union. Ordered duplicate section requests remain duplicate vertices.
-    const auto &resource=*lods_[lod];RenderModel selected;
-    selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
-    selected.checksum=resource.checksum;
-    for(auto section:sections) {
+    const auto &resource=*lods_[lod];
+    const auto require_section=[&](unsigned section) {
         if(std::ranges::find(sections_[lod],section)==sections_[lod].end())
             throw FormatError("Campaign source selected an unprepared section");
-        for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
-            if(!submitted_part(resource.mesh.vertices[i]))continue;
-            selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
-            selected.vertex_origins.push_back(resource.vertex_origins.at(i));
+    };
+    const bool reference=reference_campaign_skin_sections();
+    if(!reference && sections.size()==1) {
+        const auto section=sections.front();
+        require_section(section);
+        const auto& geometry=retained_section_geometry(resource,section).model;
+        if(!lighting)return skin_model_world_nodes(geometry,nodes);
+        auto selected=geometry;
+        apply_scenery_vertex_lighting(selected,*lighting,instance);
+        return skin_model_world_nodes(selected,nodes);
+    }
+    RenderModel selected;
+    selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
+    selected.checksum=resource.checksum;
+    const auto index=reference || sections.empty()?nullptr:model_section_index(resource);
+    const auto append=[&](std::uint32_t ordinal) {
+        const auto& vertex=resource.mesh.vertices[ordinal];
+        if(!submitted_part(vertex))return;
+        selected.mesh.vertices.push_back(vertex);selected.skin.push_back(resource.skin.at(ordinal));
+        selected.vertex_origins.push_back(resource.vertex_origins.at(ordinal));
+    };
+    for(auto section:sections) {
+        require_section(section);
+        if(index) {
+            for(const auto ordinal:index->section(section))append(ordinal);
+        } else {
+            for(std::uint32_t ordinal=0;ordinal<resource.mesh.vertices.size();++ordinal)
+                if(resource.mesh.vertices[ordinal].source_section==section)append(ordinal);
         }
     }
     if(lighting)apply_scenery_vertex_lighting(selected,*lighting,instance);
@@ -287,18 +350,19 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
     for(auto &vertex:result)vertex.material+=material_base_;
     return result;
 }
-std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
-    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
-    const SourceModelShaderView &view,const BspLighting *current_lighting)const {
+template<class Draws> std::vector<Vertex> SourceCampaignModel::draw_units(std::uint32_t owner,
+    Draws draws,std::span<const Transform> nodes,const SourceModelShaderView &view,
+    const BspLighting *current_lighting)const {
     if(!shaders_)throw FormatError("Campaign source model has no resident shader bank");
     std::map<std::pair<unsigned,unsigned>,std::vector<Vertex>> posed;
     std::vector<Vertex> result;
-    for(const auto &draw:draws) {
+    for(const SourceLiveModelBaseDrawTu15 &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
         if(!admits_ordinary_draw(draw))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
-        if(draw.lod>=6 || draw.lod!=draws.front().lod)
+        const SourceLiveModelBaseDrawTu15 &first_draw=draws.front();
+        if(draw.lod>=6 || draw.lod!=first_draw.lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");
         // Original449D0 returns before consuming a palette or emitting parts
         // when the current source section has no resident resource.
@@ -321,29 +385,32 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
     }
     return result;
 }
-SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owner,
-    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
-    const SourceModelShaderView &view,const BspLighting *current_lighting,bool allow_gpu)const {
-    if(!allow_gpu)return {draw(owner,draws,nodes,view,current_lighting),{}};
+template<class Draws> SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred_units(std::uint32_t owner,
+    Draws draws,std::span<const Transform> nodes,const SourceModelShaderView &view,
+    const BspLighting *current_lighting,bool allow_gpu)const {
+    if(!allow_gpu)return {draw_units(owner,draws,nodes,view,current_lighting),{}};
     if(!shaders_)throw FormatError("Campaign source model has no resident shader bank");
+    const bool reference=reference_campaign_skin_sections();
     using Key=std::pair<unsigned,unsigned>;
     // The original cache key has no lighting-class component. If a class1
     // instance shares a key with class2, preserve its existing CPU reuse too.
     std::set<Key> baked_keys;
-    for(const auto &draw:draws)if(draw.lighting_class==1)
+    for(const SourceLiveModelBaseDrawTu15 &draw:draws)if(draw.lighting_class==1)
         baked_keys.emplace(draw.unit.words[3]>>9&511u,draw.unit.words[3]>>18&2047u);
     struct Pose {
         ModelSkinWorldPose pose;
-        std::vector<std::uint32_t> ordinals;
+        const SectionGeometry* retained{};
+        std::vector<std::uint32_t> reference_ordinals;
     };
     std::map<Key,Pose> posed;
     SourceCampaignDrawGeometry result;
-    for(const auto &draw:draws) {
+    for(const SourceLiveModelBaseDrawTu15 &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
         if(!admits_ordinary_draw(draw))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
-        if(draw.lod>=6 || draw.lod!=draws.front().lod)
+        const SourceLiveModelBaseDrawTu15 &first_draw=draws.front();
+        if(draw.lod>=6 || draw.lod!=first_draw.lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");
         if(!draw.geometry.geometry.resident)continue;
         const bool baked=draw.lighting_class==1;
@@ -364,43 +431,75 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
                     throw FormatError("Campaign model requires its complete rendered WORLD pose");
                 if(std::ranges::find(sections_[draw.lod],section)==sections_[draw.lod].end())
                     throw FormatError("Campaign source selected an unprepared section");
-                // Match vertices(): construct only the selected section, then
-                // run its original palette at the existing final-kernel point.
-                RenderModel selected;
-                selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
-                selected.checksum=resource.checksum;
-                for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
-                    if(!submitted_part(resource.mesh.vertices[i]))continue;
-                    selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
-                    selected.vertex_origins.push_back(resource.vertex_origins.at(i));
-                    prepared.ordinals.push_back(i);
+                if(reference) {
+                    auto selected=section_geometry(resource,section,false);
+                    prepared.pose=model_skin_world_pose(selected.model,nodes,true);
+                    prepared.reference_ordinals=std::move(selected.ordinals);
+                } else {
+                    prepared.retained=&retained_section_geometry(resource,section);
+                    prepared.pose=model_skin_world_pose_borrowed(prepared.retained->model,nodes,true);
                 }
-                prepared.pose=model_skin_world_pose(selected,nodes,true);
             }
             at=posed.emplace(key,std::move(prepared)).first;
         }
         const auto &prepared=at->second;
-        if(prepared.pose.vertices.empty())continue; // Every part of the section is type 0/5.
+        const auto& posed_vertices=prepared.pose.gpu && prepared.retained?
+            prepared.retained->model.mesh.vertices:prepared.pose.vertices;
+        if(posed_vertices.empty())continue; // Every part of the section is type 0/5.
         if(!prepared.pose.gpu) {
             const auto*selected_shaders=baked?baked_shaders_.get():draw.lighting_class==3?default_shaders_.get():shaders_.get();
             selected_shaders->append_selected(result.vertices,prepared.pose.vertices,{0,draw.coverage},view,
                 baked?baked_material_base_:draw.lighting_class==3?default_material_base_:material_base_);
             continue;
         }
-        auto selected=prepared.pose.vertices;auto ordinals=prepared.ordinals;
         const auto*selected_shaders=draw.lighting_class==3?default_shaders_.get():shaders_.get();
         const auto base=draw.lighting_class==3?default_material_base_:material_base_;
-        selected_shaders->select_indexed(selected,ordinals,{0,draw.coverage},view);
+        const auto &source_ordinals=prepared.retained?prepared.retained->ordinals:prepared.reference_ordinals;
+        std::vector<Vertex> selected;
+        std::vector<std::uint32_t> ordinals;
+        if(reference) {
+            selected=posed_vertices;
+            ordinals=source_ordinals;
+            selected_shaders->select_indexed(selected,ordinals,{0,draw.coverage},view);
+            for(auto &vertex:selected)vertex.material+=base;
+        } else {
+            selected_shaders->append_selected(selected,posed_vertices,{0,draw.coverage},view,base,
+                SourceDynamicModelShaders::SelectedOrdinals{source_ordinals,ordinals});
+        }
         if(selected.empty())continue;
-        for(auto &vertex:selected)vertex.material+=base;
         auto geometry=std::make_shared<ModelSkinGeometry>();
         geometry->owner=owner;geometry->definition=definition_;geometry->render_model=render_model_;geometry->lod=draw.lod;
-        geometry->vertices=selected;geometry->palette=prepared.pose.palette;geometry->source_vertices=std::move(ordinals);
+        geometry->palette=prepared.pose.palette;geometry->source_vertices=std::move(ordinals);
+        // Only unmodified local position/binding records survived the complete
+        // arithmetic check. Shader selection filters records and sets material.
+        geometry->arithmetic_admitted=!reference;
         geometry->bindings.reserve(geometry->source_vertices.size());
         for(const auto ordinal:geometry->source_vertices)geometry->bindings.push_back(lods_[draw.lod]->skin.at(ordinal));
-        result.deferred_skins.push_back({result.vertices.size(),std::move(geometry)});
+        const auto first=result.vertices.size();
         result.vertices.insert(result.vertices.end(),selected.begin(),selected.end());
+        geometry->vertices=std::move(selected);
+        result.deferred_skins.push_back({first,std::move(geometry)});
     }
     return result;
+}
+std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
+    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view,const BspLighting *current_lighting)const {
+    return draw_units(owner,draws,nodes,view,current_lighting);
+}
+std::vector<Vertex> SourceCampaignModel::draw_borrowed(std::uint32_t owner,
+    std::span<const DrawReference> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view,const BspLighting *current_lighting)const {
+    return draw_units(owner,draws,nodes,view,current_lighting);
+}
+SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owner,
+    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view,const BspLighting *current_lighting,bool allow_gpu)const {
+    return draw_deferred_units(owner,draws,nodes,view,current_lighting,allow_gpu);
+}
+SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred_borrowed(std::uint32_t owner,
+    std::span<const DrawReference> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view,const BspLighting *current_lighting,bool allow_gpu)const {
+    return draw_deferred_units(owner,draws,nodes,view,current_lighting,allow_gpu);
 }
 }

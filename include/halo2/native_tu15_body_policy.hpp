@@ -21,6 +21,11 @@ struct NativeTu15BodyPolicyStats {
         storage_releases{},base_lock_releases{};
     std::uint64_t gameplay_destructions{};
 };
+// Actual31E7F0. Retire the reference base, then conditionally release the
+// policy through the sized allocator selected by the live Havok table.
+std::uint32_t native_tu15_destroy_body_policy_31e7f0(SourcePhysicsContactMemory&,
+    std::uint32_t policy,std::uint32_t disposing,NativeTu15PhysicsFrameFp&,
+    const NativeTu15BodyPolicyServices&,const SourcePhysicsContactRecordObserver& = {});
 // Actual31B730,31E820/31E760,1E10A0 and31E7F0. The caller retains32 aligned
 // ordinary bound bytes across the real shape service. Native SIMD/x87 own
 // the constructor extent computation; no GP/SIMD frame enters this kernel.

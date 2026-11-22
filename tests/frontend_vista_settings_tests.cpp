@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
       check(task_draw.scenes.front().before_vertex<=task_draw.vertices.size(),"PC model lost its draw ordering boundary");
       leave.close_vista_leave_task(task,3);
       check(leave.frame().screen==6 && leave.frame().instance!=old_lobby &&
-          leave.frame().entries.size()==7,"Task close did not retain the native main menu");
+          leave.frame().entries.size()==5,"Task close did not retain the native main menu");
       bool rejected{};try{leave.open(vista_menu(13));}catch(const FormatError&){rejected=true;}
       check(rejected && leave.frame().screen==6,"Retired PC13 was reachable through native navigation");
 

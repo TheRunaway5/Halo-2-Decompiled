@@ -13,11 +13,24 @@
     "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
   ],
   "gate_sources": {
+    "src/physics/runtime/native_tu15_affine_inverse.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_AFFINE_INVERSE"
+      ],
+      "sha256": "25f983f8c78d21a5617d4bbb96b5ddb479ebcd58e5d00e7469d52901fdccafec"
+    },
+    "src/physics/runtime/native_tu15_closest_segments_source_owner.hpp": {
+      "gates": [
+        "HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER",
+        "HALO2_REFERENCE_CLOSEST_SEGMENTS"
+      ],
+      "sha256": "f6d907006ff41bb9a74fc87c5c2df48b0d2c791d8900ca13fec4fc648492094e"
+    },
     "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": {
       "gates": [
         "HALO2_REFERENCE_MOPP_AABB"
       ],
-      "sha256": "9b383f4aebc839b41f376690dca3f2fb0a0d6a69d022c22be5b336799afcb197"
+      "sha256": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928"
     },
     "src/physics/runtime/native_tu15_polygon_features_abi.hpp": {
       "gates": [
@@ -30,6 +43,31 @@
         "HALO2_REFERENCE_POLYGON_SUPPORT"
       ],
       "sha256": "fe88855c6bca944da866abf8f64d2bb4309ac91a0423e6d11040d3911f2facda"
+    },
+    "src/physics/runtime/native_tu15_simplex_face_select_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_SIMPLEX_FACE_SELECT"
+      ],
+      "sha256": "3c394c220292b77016111342078d134965bd356b7d5069ce35561aa927d35283"
+    },
+    "src/physics/runtime/native_tu15_simplex_helpers_handoff_internal.hpp": {
+      "gates": [
+        "HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER",
+        "HALO2_NATIVE_SIMPLEX_TRIANGLE_SOURCE_OWNER"
+      ],
+      "sha256": "295074fce93421131955591fac99b0f888cf2995761480253766fc17bd7a25c5"
+    },
+    "src/physics/runtime/native_tu15_simplex_paired_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_SIMPLEX_PAIRED"
+      ],
+      "sha256": "ed41b9df28e0d9456307509ba1a9ed3cc59611516cbcb30bc5971dd4878d593e"
+    },
+    "src/physics/runtime/native_tu15_simplex_triangle_source_owner.hpp": {
+      "gates": [
+        "HALO2_NATIVE_SIMPLEX_TRIANGLE_SOURCE_OWNER"
+      ],
+      "sha256": "c06b940a1c6278f4f5cc8ea43765a0f66d53109d9c6d033ec9bbcbd29864dea1"
     }
   },
   "internal_dispatch_identity_evidence": {
@@ -50,9 +88,15 @@
   ],
   "production_scope": "static_production_candidate",
   "reference_verification_gate_names": [
+    "HALO2_NATIVE_CLOSEST_SEGMENTS_SOURCE_OWNER",
+    "HALO2_NATIVE_SIMPLEX_TRIANGLE_SOURCE_OWNER",
+    "HALO2_REFERENCE_AFFINE_INVERSE",
+    "HALO2_REFERENCE_CLOSEST_SEGMENTS",
     "HALO2_REFERENCE_MOPP_AABB",
     "HALO2_REFERENCE_POLYGON_FEATURES",
-    "HALO2_REFERENCE_POLYGON_SUPPORT"
+    "HALO2_REFERENCE_POLYGON_SUPPORT",
+    "HALO2_REFERENCE_SIMPLEX_FACE_SELECT",
+    "HALO2_REFERENCE_SIMPLEX_PAIRED"
   ],
   "routine_count": 477,
   "routines": [
@@ -66,7 +110,7 @@
         "map-pack11": "9b560",
         "tu15": "31dd70"
       },
-      "line": 567,
+      "line": 572,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31dd70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -87,7 +131,7 @@
         "map-pack11": "9d5a0",
         "tu15": "31d520"
       },
-      "line": 573,
+      "line": 578,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31d520",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -108,7 +152,7 @@
         "map-pack11": "9d8e0",
         "tu15": "ad390"
       },
-      "line": 579,
+      "line": 584,
       "literal_dispatch_required_targets": [],
       "observed_entry": "ad390",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -129,7 +173,7 @@
         "map-pack11": "9d900",
         "tu15": "2e8cf0"
       },
-      "line": 585,
+      "line": 590,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e8cf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -150,7 +194,7 @@
         "map-pack11": "9ddc0",
         "tu15": "ab4b0"
       },
-      "line": 591,
+      "line": 596,
       "literal_dispatch_required_targets": [],
       "observed_entry": "ab4b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -171,7 +215,7 @@
         "map-pack11": "a0120",
         "tu15": "a9520"
       },
-      "line": 597,
+      "line": 602,
       "literal_dispatch_required_targets": [],
       "observed_entry": "a9520",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -192,7 +236,7 @@
         "map-pack11": "a47b0",
         "tu15": "adb50"
       },
-      "line": 603,
+      "line": 608,
       "literal_dispatch_required_targets": [],
       "observed_entry": "adb50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -213,7 +257,7 @@
         "map-pack11": "b8250",
         "tu15": "b9390"
       },
-      "line": 609,
+      "line": 614,
       "literal_dispatch_required_targets": [],
       "observed_entry": "b9390",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -237,7 +281,7 @@
         "map-pack11": "bb0c0",
         "tu15": "bc200"
       },
-      "line": 639,
+      "line": 644,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bc200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -258,7 +302,7 @@
         "map-pack11": "bbda0",
         "tu15": "bcee0"
       },
-      "line": 750,
+      "line": 755,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bcee0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -282,7 +326,7 @@
         "map-pack11": "bbe70",
         "tu15": "bcfb0"
       },
-      "line": 812,
+      "line": 817,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_tu15_render_object_ownership_bridge"
@@ -310,7 +354,7 @@
         "map-pack11": "bc910",
         "tu15": "bda50"
       },
-      "line": 832,
+      "line": 837,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bda50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -334,7 +378,7 @@
         "map-pack11": "bd6a0",
         "tu15": "be7e0"
       },
-      "line": 866,
+      "line": 871,
       "literal_dispatch_required_targets": [],
       "observed_entry": "be7e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -357,7 +401,7 @@
         "map-pack11": "dd970",
         "tu15": "b4150"
       },
-      "line": 903,
+      "line": 908,
       "literal_dispatch_required_targets": [],
       "observed_entry": "b4150",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -378,7 +422,7 @@
         "map-pack11": "1218c0",
         "tu15": "122b60"
       },
-      "line": 921,
+      "line": 926,
       "literal_dispatch_required_targets": [],
       "observed_entry": "122b60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -390,7 +434,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "cd2162d2861fc0cb302081120dcc26518f64d137394aff7268aaae47b569d299",
+      "admission_prefix_calls": [
+        "halo2::native_affine_inverse_detail::bridge"
+      ],
+      "body_sha256": "8e35b03276fbca72e05c495b976bd4c7a6b07c114a0119873302813325fab856",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_142d00",
@@ -399,13 +446,16 @@
         "map-pack11": "142d00",
         "tu15": "144090"
       },
-      "line": 969,
+      "line": 974,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_affine_inverse_detail::bridge"
+      ],
       "observed_entry": "144090",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "144090",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
       "state_type": "ObservedWorldState",
       "symbol": "142d00",
       "symbol_kind": "address-named"
@@ -422,7 +472,7 @@
         "map-pack11": "148190",
         "tu15": "149520"
       },
-      "line": 1055,
+      "line": 1061,
       "literal_dispatch_required_targets": [],
       "observed_entry": "149520",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -443,7 +493,7 @@
         "map-pack11": "1482f0",
         "tu15": "149680"
       },
-      "line": 1098,
+      "line": 1104,
       "literal_dispatch_required_targets": [],
       "observed_entry": "149680",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -468,7 +518,7 @@
         "map-pack11": "148360",
         "tu15": "1496f0"
       },
-      "line": 1134,
+      "line": 1140,
       "literal_dispatch_required_targets": [
         "1498a0",
         "1cb330",
@@ -496,7 +546,7 @@
         "map-pack11": "148740",
         "tu15": "149ad0"
       },
-      "line": 1261,
+      "line": 1267,
       "literal_dispatch_required_targets": [],
       "observed_entry": "149ad0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -517,7 +567,7 @@
         "map-pack11": "148800",
         "tu15": "149b90"
       },
-      "line": 1325,
+      "line": 1331,
       "literal_dispatch_required_targets": [],
       "observed_entry": "149b90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -538,7 +588,7 @@
         "map-pack11": "148a10",
         "tu15": "149da0"
       },
-      "line": 1365,
+      "line": 1371,
       "literal_dispatch_required_targets": [
         "149930"
       ],
@@ -561,7 +611,7 @@
         "map-pack11": "148a70",
         "tu15": "149e00"
       },
-      "line": 1402,
+      "line": 1408,
       "literal_dispatch_required_targets": [
         "149930"
       ],
@@ -584,7 +634,7 @@
         "map-pack11": "148b00",
         "tu15": "149e90"
       },
-      "line": 1453,
+      "line": 1459,
       "literal_dispatch_required_targets": [],
       "observed_entry": "149e90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -607,7 +657,7 @@
         "map-pack11": "16d220",
         "tu15": "16e600"
       },
-      "line": 1459,
+      "line": 1465,
       "literal_dispatch_required_targets": [],
       "observed_entry": "16e600",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -632,7 +682,7 @@
         "map-pack11": "16d2c0",
         "tu15": "16e6a0"
       },
-      "line": 1515,
+      "line": 1521,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_weapon_effect_datum_allocate_tu15_run"
@@ -656,7 +706,7 @@
         "map-pack11": "183910",
         "tu15": "184d30"
       },
-      "line": 1612,
+      "line": 1618,
       "literal_dispatch_required_targets": [],
       "observed_entry": "184d30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -677,7 +727,7 @@
         "map-pack11": "183960",
         "tu15": "184d80"
       },
-      "line": 1637,
+      "line": 1643,
       "literal_dispatch_required_targets": [],
       "observed_entry": "184d80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -701,7 +751,7 @@
         "map-pack11": "184600",
         "tu15": "185a00"
       },
-      "line": 1686,
+      "line": 1692,
       "literal_dispatch_required_targets": [],
       "observed_entry": "185a00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -722,7 +772,7 @@
         "map-pack11": "187550",
         "tu15": "31d400"
       },
-      "line": 1854,
+      "line": 1860,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31d400",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -754,7 +804,7 @@
         "map-pack11": "1c5ff0",
         "tu15": "1cb220"
       },
-      "line": 1859,
+      "line": 1865,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cb220",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -782,7 +832,7 @@
         "map-pack11": "1c6270",
         "tu15": "1cb4a0"
       },
-      "line": 1924,
+      "line": 1930,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cb4a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -808,7 +858,7 @@
         "map-pack11": "1c6370",
         "tu15": "1cb5b0"
       },
-      "line": 1980,
+      "line": 1986,
       "literal_dispatch_required_targets": [
         "1cc190"
       ],
@@ -851,7 +901,7 @@
         "map-pack11": "1c66a0",
         "tu15": "1cb8e0"
       },
-      "line": 2058,
+      "line": 2064,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cb8e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -874,7 +924,7 @@
         "map-pack11": "1c6c30",
         "tu15": "1cbe70"
       },
-      "line": 2473,
+      "line": 2479,
       "literal_dispatch_required_targets": [
         "185020"
       ],
@@ -900,7 +950,7 @@
         "map-pack11": "1c7320",
         "tu15": "1cc560"
       },
-      "line": 2608,
+      "line": 2614,
       "literal_dispatch_required_targets": [
         "1cdd60",
         "315ce0"
@@ -950,7 +1000,7 @@
         "map-pack11": "1c73a0",
         "tu15": "1cc5e0"
       },
-      "line": 2654,
+      "line": 2660,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cc5e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -973,7 +1023,7 @@
         "map-pack11": "1c7480",
         "tu15": "1cc6c0"
       },
-      "line": 2731,
+      "line": 2737,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cc6c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1001,7 +1051,7 @@
         "map-pack11": "1c74d0",
         "tu15": "1cc710"
       },
-      "line": 2756,
+      "line": 2762,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cc710",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1035,7 +1085,7 @@
         "map-pack11": "1c7660",
         "tu15": "1cc8d0"
       },
-      "line": 2884,
+      "line": 2890,
       "literal_dispatch_required_targets": [
         "2e2910",
         "2e2990",
@@ -1063,7 +1113,7 @@
         "map-pack11": "1c7b90",
         "tu15": "1cce00"
       },
-      "line": 3025,
+      "line": 3031,
       "literal_dispatch_required_targets": [
         "ba570",
         "16e8a0",
@@ -1093,7 +1143,7 @@
         "map-pack11": "1c8350",
         "tu15": "1cd5c0"
       },
-      "line": 3249,
+      "line": 3255,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cd5c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1116,7 +1166,7 @@
         "map-pack11": "1c89f0",
         "tu15": "1cdc60"
       },
-      "line": 3285,
+      "line": 3291,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cdc60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1137,7 +1187,7 @@
         "map-pack11": "1c8f10",
         "tu15": "1ce1e0"
       },
-      "line": 3370,
+      "line": 3376,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1ce1e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1158,7 +1208,7 @@
         "map-pack11": "1d1c00",
         "tu15": "1d64c0"
       },
-      "line": 3393,
+      "line": 3399,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d64c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1181,7 +1231,7 @@
         "map-pack11": "1d29a0",
         "tu15": "1d7260"
       },
-      "line": 3458,
+      "line": 3464,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7260",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1202,7 +1252,7 @@
         "map-pack11": "1d2c70",
         "tu15": "1d7530"
       },
-      "line": 3537,
+      "line": 3543,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7530",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1226,7 +1276,7 @@
         "map-pack11": "1d2ca0",
         "tu15": "1d7560"
       },
-      "line": 3561,
+      "line": 3567,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7560",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1247,7 +1297,7 @@
         "map-pack11": "1d2cf0",
         "tu15": "1d75b0"
       },
-      "line": 3591,
+      "line": 3597,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d75b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1268,7 +1318,7 @@
         "map-pack11": "1d2d70",
         "tu15": "1d7630"
       },
-      "line": 3615,
+      "line": 3621,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7630",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1289,7 +1339,7 @@
         "map-pack11": "1d2df0",
         "tu15": "1d76b0"
       },
-      "line": 3639,
+      "line": 3645,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d76b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1312,7 +1362,7 @@
         "map-pack11": "1d2f10",
         "tu15": "1d77d0"
       },
-      "line": 3741,
+      "line": 3747,
       "literal_dispatch_required_targets": [
         "186c30",
         "1e1170"
@@ -1336,7 +1386,7 @@
         "map-pack11": "1d32a0",
         "tu15": "1d7b60"
       },
-      "line": 3990,
+      "line": 3996,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7b60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1359,7 +1409,7 @@
         "map-pack11": "1d3700",
         "tu15": "1d7fc0"
       },
-      "line": 4036,
+      "line": 4042,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d7fc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1385,7 +1435,7 @@
         "map-pack11": "1d3df0",
         "tu15": "1d86b0"
       },
-      "line": 4113,
+      "line": 4119,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d86b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1408,7 +1458,7 @@
         "map-pack11": "1d3fc0",
         "tu15": "1d8880"
       },
-      "line": 4268,
+      "line": 4274,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8880",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1432,7 +1482,7 @@
         "map-pack11": "1d40b0",
         "tu15": "1d8970"
       },
-      "line": 4360,
+      "line": 4366,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8970",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1455,7 +1505,7 @@
         "map-pack11": "1d4160",
         "tu15": "1d8a20"
       },
-      "line": 4418,
+      "line": 4424,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8a20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1478,7 +1528,7 @@
         "map-pack11": "1d4260",
         "tu15": "1d8b20"
       },
-      "line": 4506,
+      "line": 4512,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8b20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1501,7 +1551,7 @@
         "map-pack11": "1d42d0",
         "tu15": "1d8b90"
       },
-      "line": 4541,
+      "line": 4547,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8b90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1522,7 +1572,7 @@
         "map-pack11": "1d43c0",
         "tu15": "1d8c80"
       },
-      "line": 4600,
+      "line": 4606,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8c80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1543,7 +1593,7 @@
         "map-pack11": "1d44c0",
         "tu15": "1d8d80"
       },
-      "line": 4628,
+      "line": 4634,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d8d80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1567,7 +1617,7 @@
         "map-pack11": "1d47c0",
         "tu15": "1d9080"
       },
-      "line": 4656,
+      "line": 4662,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d9080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1591,7 +1641,7 @@
         "map-pack11": "1d4840",
         "tu15": "1d9100"
       },
-      "line": 4701,
+      "line": 4707,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d9100",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1622,7 +1672,7 @@
         "map-pack11": "1d4f30",
         "tu15": "1d97f0"
       },
-      "line": 4752,
+      "line": 4758,
       "literal_dispatch_required_targets": [
         "31e430",
         "31e560",
@@ -1647,7 +1697,7 @@
         "map-pack11": "1d5210",
         "tu15": "1d9ad0"
       },
-      "line": 4974,
+      "line": 4980,
       "literal_dispatch_required_targets": [
         "31e820"
       ],
@@ -1672,7 +1722,7 @@
         "map-pack11": "1d53c0",
         "tu15": "1d9c80"
       },
-      "line": 5008,
+      "line": 5014,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d9c80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1695,7 +1745,7 @@
         "map-pack11": "1d8e50",
         "tu15": "1dd710"
       },
-      "line": 5036,
+      "line": 5042,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1dd710",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1719,7 +1769,7 @@
         "map-pack11": "1d8ef0",
         "tu15": "1dd7b0"
       },
-      "line": 5099,
+      "line": 5105,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1dd7b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1743,7 +1793,7 @@
         "map-pack11": "1dc1a0",
         "tu15": "1e0a60"
       },
-      "line": 5234,
+      "line": 5240,
       "literal_dispatch_required_targets": [
         "184c50",
         "1d7660"
@@ -1767,7 +1817,7 @@
         "map-pack11": "1dc750",
         "tu15": "1e1010"
       },
-      "line": 5656,
+      "line": 5662,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e1010",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1791,7 +1841,7 @@
         "map-pack11": "1ecf60",
         "tu15": "1f1880"
       },
-      "line": 5691,
+      "line": 5697,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f1880",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1812,7 +1862,7 @@
         "map-pack11": "1ecfe0",
         "tu15": "1f1900"
       },
-      "line": 5726,
+      "line": 5732,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f1900",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1833,7 +1883,7 @@
         "map-pack11": "1ee380",
         "tu15": "1f2c70"
       },
-      "line": 5754,
+      "line": 5760,
       "literal_dispatch_required_targets": [
         "1f31e0"
       ],
@@ -1856,7 +1906,7 @@
         "map-pack11": "1f1600",
         "tu15": "1f5ef0"
       },
-      "line": 6187,
+      "line": 6193,
       "literal_dispatch_required_targets": [
         "d7e50"
       ],
@@ -1879,7 +1929,7 @@
         "map-pack11": "1f16f0",
         "tu15": "1f5fe0"
       },
-      "line": 6268,
+      "line": 6274,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f5fe0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1903,7 +1953,7 @@
         "map-pack11": "1f1d20",
         "tu15": "1f6610"
       },
-      "line": 6395,
+      "line": 6401,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "halo2::native_polygon_support_detail::bridge"
@@ -1950,7 +2000,7 @@
           "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
           "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
           "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
-          "include/halo2/physics_contact_runtime.hpp": "5ffecc59a7c86aac05c2a26b9bf9d101f085751d787074467151e1c3d0a00878",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
           "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
           "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
           "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
@@ -1958,21 +2008,23 @@
           "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
           "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
           "src/physics/runtime/native_tu11_polygon_support_frame.hpp": "1f4935082e106373fd9251cb59332f316783b263b747081a3ec90934b2ae4f91",
-          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "9b383f4aebc839b41f376690dca3f2fb0a0d6a69d022c22be5b336799afcb197",
-          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "53f97c210a918329a78f630960a795dcd22af5d7ca1dff5a72b29b16927d9c60",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
           "src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp": "00fe8e651e9f8d2ae950c0a11dfddfc03a7b7daf02d983a2867d77b85fcc30e1",
           "src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp": "98ce37759b01fb0cfe07ae7d5227d73d2019def5fda8ffbfcb59077ea5cbc220",
           "src/physics/runtime/native_tu15_polygon_support_frame.hpp": "fe88855c6bca944da866abf8f64d2bb4309ac91a0423e6d11040d3911f2facda",
-          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "6dd00fc3a3c99d86af5fa8111b9407a23679fb971d56692ed67c3df52afcf108",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
           "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e"
         },
-        "source_sha256": "127d9b0f1a002dc702d408430c040089ef820f5c79f7bd7830bc6b248bb71821",
+        "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
         "target_body_rebinding_proved": true,
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "ObservedWorldState",
@@ -1992,7 +2044,7 @@
         "map-pack11": "1f1da0",
         "tu15": "1f6690"
       },
-      "line": 6446,
+      "line": 6452,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "halo2::native_polygon_features_detail::bridge"
@@ -2020,19 +2072,20 @@
           "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
           "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
           "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
           "src/physics/runtime/native_tu15_polygon_features_abi.hpp": "8cd30cce0985cf4782a27811621f65b50d87a29373b0ea89c1e6befd3a7dceb6",
-          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "6dd00fc3a3c99d86af5fa8111b9407a23679fb971d56692ed67c3df52afcf108",
-          "src/physics/runtime/native_tu15_simplex_candidate_abi.hpp": "e5bd3bb144315e2e3971e5c842d6c7a4139fef5de675ada54030431362343d8c",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_simplex_candidate_abi.hpp": "5124190f130d63c7c85c969f92e9370010de1debb10869a559eba5857e39cc25",
           "src/physics/runtime/native_tu15_simplex_direction_abi.hpp": "edc5183836e8eb5fd3edb2fb73f4e815501cd77c7182e67d83b6b0d6f6074ac4",
           "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e"
         },
-        "source_sha256": "127d9b0f1a002dc702d408430c040089ef820f5c79f7bd7830bc6b248bb71821",
+        "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
         "target_body_rebinding_proved": true,
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "ObservedWorldState",
@@ -2049,7 +2102,7 @@
         "map-pack11": "1f1de0",
         "tu15": "1f66d0"
       },
-      "line": 6474,
+      "line": 6480,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f66d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2075,7 +2128,7 @@
         "map-pack11": "1f2420",
         "tu15": "1f6d10"
       },
-      "line": 6508,
+      "line": 6514,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f6d10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2098,7 +2151,7 @@
         "map-pack11": "1f26b0",
         "tu15": "1f6fa0"
       },
-      "line": 6686,
+      "line": 6692,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f6fa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2119,7 +2172,7 @@
         "map-pack11": "1f2710",
         "tu15": "1f7000"
       },
-      "line": 6725,
+      "line": 6731,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f7000",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2142,7 +2195,7 @@
         "map-pack11": "1f2a10",
         "tu15": "1f7300"
       },
-      "line": 6922,
+      "line": 6928,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f7300",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2163,7 +2216,7 @@
         "map-pack11": "1f2db0",
         "tu15": "1f76a0"
       },
-      "line": 6939,
+      "line": 6945,
       "literal_dispatch_required_targets": [
         "186e70"
       ],
@@ -2190,7 +2243,7 @@
         "map-pack11": "1f3320",
         "tu15": "1f7c10"
       },
-      "line": 7025,
+      "line": 7031,
       "literal_dispatch_required_targets": [
         "184e20",
         "1f67c0",
@@ -2216,7 +2269,7 @@
         "map-pack11": "208fb0",
         "tu15": "20d8b0"
       },
-      "line": 7158,
+      "line": 7164,
       "literal_dispatch_required_targets": [],
       "observed_entry": "20d8b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2239,7 +2292,7 @@
         "map-pack11": "209040",
         "tu15": "20d940"
       },
-      "line": 7212,
+      "line": 7218,
       "literal_dispatch_required_targets": [],
       "observed_entry": "20d940",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2267,7 +2320,7 @@
         "map-pack11": "2285a0",
         "tu15": "22cea0"
       },
-      "line": 7241,
+      "line": 7247,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22cea0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2290,7 +2343,7 @@
         "map-pack11": "2287a0",
         "tu15": "22d0a0"
       },
-      "line": 7399,
+      "line": 7405,
       "literal_dispatch_required_targets": [
         "16e8a0",
         "17a0f0",
@@ -2317,7 +2370,7 @@
         "map-pack11": "229490",
         "tu15": "22dd90"
       },
-      "line": 7577,
+      "line": 7583,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22dd90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2340,7 +2393,7 @@
         "map-pack11": "2295f0",
         "tu15": "22def0"
       },
-      "line": 7596,
+      "line": 7602,
       "literal_dispatch_required_targets": [
         "22e040"
       ],
@@ -2363,7 +2416,7 @@
         "map-pack11": "2297d0",
         "tu15": "22e0d0"
       },
-      "line": 7686,
+      "line": 7692,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22e0d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2384,7 +2437,7 @@
         "map-pack11": "2298b0",
         "tu15": "22e1b0"
       },
-      "line": 7768,
+      "line": 7774,
       "literal_dispatch_required_targets": [
         "22e390",
         "22fe30",
@@ -2412,7 +2465,7 @@
         "map-pack11": "22a2a0",
         "tu15": "22eba0"
       },
-      "line": 7806,
+      "line": 7812,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22eba0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2433,7 +2486,7 @@
         "map-pack11": "22a4e0",
         "tu15": "22ede0"
       },
-      "line": 7946,
+      "line": 7952,
       "literal_dispatch_required_targets": [],
       "observed_entry": "22ede0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2454,7 +2507,7 @@
         "map-pack11": "22c660",
         "tu15": "230f60"
       },
-      "line": 8008,
+      "line": 8014,
       "literal_dispatch_required_targets": [],
       "observed_entry": "230f60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2477,7 +2530,7 @@
         "map-pack11": "22e1d0",
         "tu15": "232ad0"
       },
-      "line": 8077,
+      "line": 8083,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232ad0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2498,7 +2551,7 @@
         "map-pack11": "22e380",
         "tu15": "232c80"
       },
-      "line": 8216,
+      "line": 8222,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232c80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2519,7 +2572,7 @@
         "map-pack11": "22e400",
         "tu15": "232d00"
       },
-      "line": 8274,
+      "line": 8280,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232d00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2540,7 +2593,7 @@
         "map-pack11": "22e420",
         "tu15": "232d20"
       },
-      "line": 8286,
+      "line": 8292,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232d20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2561,7 +2614,7 @@
         "map-pack11": "22e430",
         "tu15": "232d30"
       },
-      "line": 8295,
+      "line": 8301,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232d30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2584,7 +2637,7 @@
         "map-pack11": "22e4e0",
         "tu15": "232de0"
       },
-      "line": 8322,
+      "line": 8328,
       "literal_dispatch_required_targets": [],
       "observed_entry": "232de0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2605,7 +2658,7 @@
         "map-pack11": "22e950",
         "tu15": "233250"
       },
-      "line": 8533,
+      "line": 8539,
       "literal_dispatch_required_targets": [],
       "observed_entry": "233250",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2626,7 +2679,7 @@
         "map-pack11": "22eb20",
         "tu15": "233420"
       },
-      "line": 8662,
+      "line": 8668,
       "literal_dispatch_required_targets": [],
       "observed_entry": "233420",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2647,7 +2700,7 @@
         "map-pack11": "22ecb0",
         "tu15": "2335b0"
       },
-      "line": 8694,
+      "line": 8700,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2335b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2668,7 +2721,7 @@
         "map-pack11": "253ee0",
         "tu15": "1cb030"
       },
-      "line": 8714,
+      "line": 8720,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1cb030",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2689,7 +2742,7 @@
         "map-pack11": "27da90",
         "tu15": "281530"
       },
-      "line": 8720,
+      "line": 8726,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281530",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2712,7 +2765,7 @@
         "map-pack11": "27dae0",
         "tu15": "281550"
       },
-      "line": 8735,
+      "line": 8741,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281550",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2733,7 +2786,7 @@
         "map-pack11": "27db30",
         "tu15": "2815a0"
       },
-      "line": 8758,
+      "line": 8764,
       "literal_dispatch_required_targets": [
         "32b479"
       ],
@@ -2759,7 +2812,7 @@
         "map-pack11": "27db80",
         "tu15": "2815f0"
       },
-      "line": 8786,
+      "line": 8792,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2815f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2785,7 +2838,7 @@
         "map-pack11": "27dca0",
         "tu15": "281710"
       },
-      "line": 8853,
+      "line": 8859,
       "literal_dispatch_required_targets": [
         "186c30"
       ],
@@ -2821,7 +2874,7 @@
         "map-pack11": "27de20",
         "tu15": "281890"
       },
-      "line": 9001,
+      "line": 9007,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281890",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2845,7 +2898,7 @@
         "map-pack11": "27e160",
         "tu15": "281bd0"
       },
-      "line": 9257,
+      "line": 9263,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281bd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2868,7 +2921,7 @@
         "map-pack11": "27e2d0",
         "tu15": "281d40"
       },
-      "line": 9377,
+      "line": 9383,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281d40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2893,7 +2946,7 @@
         "map-pack11": "27e3a0",
         "tu15": "281e10"
       },
-      "line": 9460,
+      "line": 9466,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281e10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2916,7 +2969,7 @@
         "map-pack11": "27e4a0",
         "tu15": "281f10"
       },
-      "line": 9562,
+      "line": 9568,
       "literal_dispatch_required_targets": [],
       "observed_entry": "281f10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2939,7 +2992,7 @@
         "map-pack11": "27e5a0",
         "tu15": "282010"
       },
-      "line": 9656,
+      "line": 9662,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282010",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2963,7 +3016,7 @@
         "map-pack11": "27e610",
         "tu15": "282080"
       },
-      "line": 9696,
+      "line": 9702,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2984,7 +3037,7 @@
         "map-pack11": "27e760",
         "tu15": "2e4d60"
       },
-      "line": 9807,
+      "line": 9813,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4d60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3012,7 +3065,7 @@
         "map-pack11": "27e770",
         "tu15": "2821d0"
       },
-      "line": 9812,
+      "line": 9818,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2821d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3033,7 +3086,7 @@
         "map-pack11": "27eca0",
         "tu15": "282700"
       },
-      "line": 10138,
+      "line": 10144,
       "literal_dispatch_required_targets": [
         "b1870",
         "ba570"
@@ -3059,7 +3112,7 @@
         "map-pack11": "27f030",
         "tu15": "282ab0"
       },
-      "line": 10185,
+      "line": 10191,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282ab0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3082,7 +3135,7 @@
         "map-pack11": "27f0f0",
         "tu15": "282b70"
       },
-      "line": 10264,
+      "line": 10270,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282b70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3105,7 +3158,7 @@
         "map-pack11": "27f110",
         "tu15": "282b90"
       },
-      "line": 10273,
+      "line": 10279,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282b90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3129,7 +3182,7 @@
         "map-pack11": "27f190",
         "tu15": "282c10"
       },
-      "line": 10286,
+      "line": 10292,
       "literal_dispatch_required_targets": [
         "ba570",
         "ba8c0",
@@ -3159,7 +3212,7 @@
         "map-pack11": "27f570",
         "tu15": "282fd0"
       },
-      "line": 10566,
+      "line": 10572,
       "literal_dispatch_required_targets": [],
       "observed_entry": "282fd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3183,7 +3236,7 @@
         "map-pack11": "27f6c0",
         "tu15": "283120"
       },
-      "line": 10673,
+      "line": 10679,
       "literal_dispatch_required_targets": [],
       "observed_entry": "283120",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3204,7 +3257,7 @@
         "map-pack11": "27f920",
         "tu15": "283380"
       },
-      "line": 10868,
+      "line": 10874,
       "literal_dispatch_required_targets": [],
       "observed_entry": "283380",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3225,7 +3278,7 @@
         "map-pack11": "27f9f0",
         "tu15": "283450"
       },
-      "line": 10940,
+      "line": 10946,
       "literal_dispatch_required_targets": [],
       "observed_entry": "283450",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3246,7 +3299,7 @@
         "map-pack11": "27fa50",
         "tu15": "2834b0"
       },
-      "line": 10981,
+      "line": 10987,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2834b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3267,7 +3320,7 @@
         "map-pack11": "2b4590",
         "tu15": "8fdb0"
       },
-      "line": 11061,
+      "line": 11067,
       "literal_dispatch_required_targets": [],
       "observed_entry": "8fdb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3288,7 +3341,7 @@
         "map-pack11": "2d7969",
         "tu15": "2db419"
       },
-      "line": 11066,
+      "line": 11072,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2db419",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3313,7 +3366,7 @@
         "map-pack11": "2dac5e",
         "tu15": "2de70e"
       },
-      "line": 11072,
+      "line": 11078,
       "literal_dispatch_required_targets": [
         "2dd7c9",
         "2ddeb9",
@@ -3338,7 +3391,7 @@
         "map-pack11": "2db3c6",
         "tu15": "2dee76"
       },
-      "line": 11639,
+      "line": 11645,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2dee76",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3359,7 +3412,7 @@
         "map-pack11": "2dd590",
         "tu15": "2e1040"
       },
-      "line": 11648,
+      "line": 11654,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1040",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3380,7 +3433,7 @@
         "map-pack11": "2dd5b0",
         "tu15": "2e1060"
       },
-      "line": 11657,
+      "line": 11663,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1060",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3401,7 +3454,7 @@
         "map-pack11": "2dd7f0",
         "tu15": "2e12a0"
       },
-      "line": 11683,
+      "line": 11689,
       "literal_dispatch_required_targets": [
         "2e11e0"
       ],
@@ -3426,7 +3479,7 @@
         "map-pack11": "2dd830",
         "tu15": "2e12d0"
       },
-      "line": 11705,
+      "line": 11711,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e12d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3449,7 +3502,7 @@
         "map-pack11": "2dd960",
         "tu15": "2e1400"
       },
-      "line": 11729,
+      "line": 11735,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1400",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3472,7 +3525,7 @@
         "map-pack11": "2dd9b0",
         "tu15": "2e1450"
       },
-      "line": 11753,
+      "line": 11759,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1450",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3495,7 +3548,7 @@
         "map-pack11": "2dda40",
         "tu15": "2e14e0"
       },
-      "line": 11795,
+      "line": 11801,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e14e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3518,7 +3571,7 @@
         "map-pack11": "2ddab0",
         "tu15": "2e1550"
       },
-      "line": 11837,
+      "line": 11843,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1550",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3542,7 +3595,7 @@
         "map-pack11": "2ddb20",
         "tu15": "2e15f0"
       },
-      "line": 11879,
+      "line": 11885,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e15f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3563,7 +3616,7 @@
         "map-pack11": "2ddca0",
         "tu15": "2e1770"
       },
-      "line": 11959,
+      "line": 11965,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1770",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3586,7 +3639,7 @@
         "map-pack11": "2de250",
         "tu15": "2e1d20"
       },
-      "line": 11972,
+      "line": 11978,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1d20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3607,7 +3660,7 @@
         "map-pack11": "2de4f0",
         "tu15": "2e1fc0"
       },
-      "line": 12075,
+      "line": 12081,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e1fc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3636,7 +3689,7 @@
         "map-pack11": "2ded30",
         "tu15": "2e2800"
       },
-      "line": 12088,
+      "line": 12094,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e2800",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3657,7 +3710,7 @@
         "map-pack11": "2def40",
         "tu15": "2e2a10"
       },
-      "line": 12163,
+      "line": 12169,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e2a10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3678,7 +3731,7 @@
         "map-pack11": "2df360",
         "tu15": "2e2e30"
       },
-      "line": 12181,
+      "line": 12187,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e2e30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3699,7 +3752,7 @@
         "map-pack11": "2df390",
         "tu15": "2e2e60"
       },
-      "line": 12199,
+      "line": 12205,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e2e60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3720,7 +3773,7 @@
         "map-pack11": "2df640",
         "tu15": "2e3110"
       },
-      "line": 12222,
+      "line": 12228,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e3110",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3743,7 +3796,7 @@
         "map-pack11": "2df710",
         "tu15": "2e31e0"
       },
-      "line": 12232,
+      "line": 12238,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e31e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3766,7 +3819,7 @@
         "map-pack11": "2df780",
         "tu15": "2e3250"
       },
-      "line": 12278,
+      "line": 12284,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e3250",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3789,7 +3842,7 @@
         "map-pack11": "2dfa20",
         "tu15": "2e34f0"
       },
-      "line": 12328,
+      "line": 12334,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e34f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3810,7 +3863,7 @@
         "map-pack11": "2e00f0",
         "tu15": "2f7a10"
       },
-      "line": 12350,
+      "line": 12356,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f7a10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3831,7 +3884,7 @@
         "map-pack11": "2e0690",
         "tu15": "2e4150"
       },
-      "line": 12356,
+      "line": 12362,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4150",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3852,7 +3905,7 @@
         "map-pack11": "2e0830",
         "tu15": "2e4320"
       },
-      "line": 12372,
+      "line": 12378,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4320",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3873,7 +3926,7 @@
         "map-pack11": "2e09e0",
         "tu15": "2e44d0"
       },
-      "line": 12385,
+      "line": 12391,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e44d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3894,7 +3947,7 @@
         "map-pack11": "2e0a60",
         "tu15": "2e4550"
       },
-      "line": 12429,
+      "line": 12435,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4550",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3917,7 +3970,7 @@
         "map-pack11": "2e0b60",
         "tu15": "2e4650"
       },
-      "line": 12512,
+      "line": 12518,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4650",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3938,7 +3991,7 @@
         "map-pack11": "2e0ba0",
         "tu15": "2e4690"
       },
-      "line": 12536,
+      "line": 12542,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4690",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3959,7 +4012,7 @@
         "map-pack11": "2e0c70",
         "tu15": "2e4760"
       },
-      "line": 12566,
+      "line": 12572,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4760",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -3980,7 +4033,7 @@
         "map-pack11": "2e0cc0",
         "tu15": "2e47b0"
       },
-      "line": 12594,
+      "line": 12600,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e47b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4001,7 +4054,7 @@
         "map-pack11": "2e0d30",
         "tu15": "2e4820"
       },
-      "line": 12633,
+      "line": 12639,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4820",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4025,7 +4078,7 @@
         "map-pack11": "2e1070",
         "tu15": "2e4b60"
       },
-      "line": 12661,
+      "line": 12667,
       "literal_dispatch_required_targets": [
         "1e10f0"
       ],
@@ -4051,7 +4104,7 @@
         "map-pack11": "2e1280",
         "tu15": "2e4d80"
       },
-      "line": 12831,
+      "line": 12837,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4d80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4074,7 +4127,7 @@
         "map-pack11": "2e1340",
         "tu15": "2e4e40"
       },
-      "line": 12873,
+      "line": 12879,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4e40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4097,7 +4150,7 @@
         "map-pack11": "2e13b0",
         "tu15": "2e4eb0"
       },
-      "line": 12899,
+      "line": 12905,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4eb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4120,7 +4173,7 @@
         "map-pack11": "2e1430",
         "tu15": "2e4f30"
       },
-      "line": 12935,
+      "line": 12941,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4f30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4143,7 +4196,7 @@
         "map-pack11": "2e1470",
         "tu15": "2e4f70"
       },
-      "line": 12962,
+      "line": 12968,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e4f70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4169,7 +4222,7 @@
         "map-pack11": "2e14e0",
         "tu15": "2e4fe0"
       },
-      "line": 12995,
+      "line": 13001,
       "literal_dispatch_required_targets": [
         "309150"
       ],
@@ -4192,7 +4245,7 @@
         "map-pack11": "2e22a0",
         "tu15": "2e5da0"
       },
-      "line": 13255,
+      "line": 13261,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e5da0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4213,7 +4266,7 @@
         "map-pack11": "2e22b0",
         "tu15": "2e5db0"
       },
-      "line": 13262,
+      "line": 13268,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e5db0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4234,7 +4287,7 @@
         "map-pack11": "2e2320",
         "tu15": "2e5e20"
       },
-      "line": 13309,
+      "line": 13315,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e5e20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4255,7 +4308,7 @@
         "map-pack11": "2e2380",
         "tu15": "2e5e80"
       },
-      "line": 13350,
+      "line": 13356,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e5e80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4276,7 +4329,7 @@
         "map-pack11": "2e2530",
         "tu15": "2e6030"
       },
-      "line": 13402,
+      "line": 13408,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e6030",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4297,7 +4350,7 @@
         "map-pack11": "2e26c0",
         "tu15": "2e61c0"
       },
-      "line": 13439,
+      "line": 13445,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e61c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4318,7 +4371,7 @@
         "map-pack11": "2e42a0",
         "tu15": "2e7d90"
       },
-      "line": 13456,
+      "line": 13462,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e7d90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4339,7 +4392,7 @@
         "map-pack11": "2e4320",
         "tu15": "3070f0"
       },
-      "line": 13499,
+      "line": 13505,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3070f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4360,7 +4413,7 @@
         "map-pack11": "2e4360",
         "tu15": "2e7e10"
       },
-      "line": 13524,
+      "line": 13530,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e7e10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4381,7 +4434,7 @@
         "map-pack11": "2e4670",
         "tu15": "2e8120"
       },
-      "line": 13532,
+      "line": 13538,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e8120",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4404,7 +4457,7 @@
         "map-pack11": "2e5bc0",
         "tu15": "2e9670"
       },
-      "line": 13590,
+      "line": 13596,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9670",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4427,7 +4480,7 @@
         "map-pack11": "2e5ce0",
         "tu15": "2e9790"
       },
-      "line": 13609,
+      "line": 13615,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9790",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4448,7 +4501,7 @@
         "map-pack11": "2e5e20",
         "tu15": "2e98d0"
       },
-      "line": 13640,
+      "line": 13646,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e98d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4469,7 +4522,7 @@
         "map-pack11": "2e5ed0",
         "tu15": "2e9980"
       },
-      "line": 13669,
+      "line": 13675,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9980",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4490,7 +4543,7 @@
         "map-pack11": "2e5f10",
         "tu15": "2e99c0"
       },
-      "line": 13695,
+      "line": 13701,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e99c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4511,7 +4564,7 @@
         "map-pack11": "2e5f50",
         "tu15": "2e9a00"
       },
-      "line": 13721,
+      "line": 13727,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9a00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4532,7 +4585,7 @@
         "map-pack11": "2e6170",
         "tu15": "2e9c20"
       },
-      "line": 13752,
+      "line": 13758,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9c20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4558,7 +4611,7 @@
         "map-pack11": "2e6240",
         "tu15": "2e9cf0"
       },
-      "line": 13802,
+      "line": 13808,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9cf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4581,7 +4634,7 @@
         "map-pack11": "2e68d0",
         "tu15": "2ea380"
       },
-      "line": 13877,
+      "line": 13883,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2ea380",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4604,7 +4657,7 @@
         "map-pack11": "2e7500",
         "tu15": "2eafb0"
       },
-      "line": 14861,
+      "line": 14867,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2eafb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4625,7 +4678,7 @@
         "map-pack11": "2e7d80",
         "tu15": "2eb830"
       },
-      "line": 14923,
+      "line": 14929,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2eb830",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4646,7 +4699,7 @@
         "map-pack11": "2e7da0",
         "tu15": "2eba20"
       },
-      "line": 14932,
+      "line": 14938,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2eba20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4667,7 +4720,7 @@
         "map-pack11": "2e8090",
         "tu15": "2eb850"
       },
-      "line": 14985,
+      "line": 14991,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2eb850",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4692,7 +4745,7 @@
         "map-pack11": "2e8260",
         "tu15": "2ebd10"
       },
-      "line": 15041,
+      "line": 15047,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2ebd10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4719,7 +4772,7 @@
         "map-pack11": "2e8a00",
         "tu15": "2ec4b0"
       },
-      "line": 15384,
+      "line": 15390,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2ec4b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4742,7 +4795,7 @@
         "map-pack11": "2eb4c0",
         "tu15": "2eef70"
       },
-      "line": 15784,
+      "line": 15790,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2eef70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4763,7 +4816,7 @@
         "map-pack11": "2ebee0",
         "tu15": "2ef990"
       },
-      "line": 15826,
+      "line": 15832,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2ef990",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4784,7 +4837,7 @@
         "map-pack11": "2ebf60",
         "tu15": "2efa10"
       },
-      "line": 15861,
+      "line": 15867,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2efa10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4805,7 +4858,7 @@
         "map-pack11": "2ebf70",
         "tu15": "2efa20"
       },
-      "line": 15868,
+      "line": 15874,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2efa20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4828,7 +4881,7 @@
         "map-pack11": "2ebfe0",
         "tu15": "2efa90"
       },
-      "line": 15911,
+      "line": 15917,
       "literal_dispatch_required_targets": [
         "2e2d20",
         "2f0220"
@@ -4854,7 +4907,7 @@
         "map-pack11": "2ec230",
         "tu15": "2efce0"
       },
-      "line": 16080,
+      "line": 16086,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2efce0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4878,7 +4931,7 @@
         "map-pack11": "2ec2a0",
         "tu15": "2efd50"
       },
-      "line": 16120,
+      "line": 16126,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2efd50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4904,7 +4957,7 @@
         "map-pack11": "2ec3c0",
         "tu15": "2efe70"
       },
-      "line": 16221,
+      "line": 16227,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2efe70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4927,7 +4980,7 @@
         "map-pack11": "2ec520",
         "tu15": "2effd0"
       },
-      "line": 16322,
+      "line": 16328,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2effd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4950,7 +5003,7 @@
         "map-pack11": "2ec6e0",
         "tu15": "2f0190"
       },
-      "line": 16374,
+      "line": 16380,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f0190",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4973,7 +5026,7 @@
         "map-pack11": "2ed260",
         "tu15": "2f0d30"
       },
-      "line": 16430,
+      "line": 16436,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f0d30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -4996,7 +5049,7 @@
         "map-pack11": "2ee2a0",
         "tu15": "2f1d30"
       },
-      "line": 16460,
+      "line": 16466,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f1d30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5019,7 +5072,7 @@
         "map-pack11": "2ef5c0",
         "tu15": "2f3080"
       },
-      "line": 16490,
+      "line": 16496,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5040,7 +5093,7 @@
         "map-pack11": "2ef630",
         "tu15": "2f30f0"
       },
-      "line": 16520,
+      "line": 16526,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f30f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5061,7 +5114,7 @@
         "map-pack11": "2ef640",
         "tu15": "2f3100"
       },
-      "line": 16527,
+      "line": 16533,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3100",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5082,7 +5135,7 @@
         "map-pack11": "2ef680",
         "tu15": "2f3140"
       },
-      "line": 16559,
+      "line": 16565,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3140",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5105,7 +5158,7 @@
         "map-pack11": "2ef8f0",
         "tu15": "2f33b0"
       },
-      "line": 16594,
+      "line": 16600,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f33b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5126,7 +5179,7 @@
         "map-pack11": "2ef970",
         "tu15": "2f3430"
       },
-      "line": 16657,
+      "line": 16663,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3430",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5147,7 +5200,7 @@
         "map-pack11": "2efa10",
         "tu15": "2f34d0"
       },
-      "line": 16711,
+      "line": 16717,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f34d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5168,7 +5221,7 @@
         "map-pack11": "2efac0",
         "tu15": "2f3580"
       },
-      "line": 16769,
+      "line": 16775,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3580",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5189,7 +5242,7 @@
         "map-pack11": "2efb60",
         "tu15": "2f3620"
       },
-      "line": 16803,
+      "line": 16809,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f3620",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5217,7 +5270,7 @@
         "map-pack11": "2efc30",
         "tu15": "2f36f0"
       },
-      "line": 16827,
+      "line": 16833,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f36f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5240,7 +5293,7 @@
         "map-pack11": "2f1ad0",
         "tu15": "2f5590"
       },
-      "line": 17406,
+      "line": 17412,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f5590",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5263,7 +5316,7 @@
         "map-pack11": "2f2070",
         "tu15": "3051a0"
       },
-      "line": 17436,
+      "line": 17442,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3051a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5286,7 +5339,7 @@
         "map-pack11": "2f2160",
         "tu15": "2f5c00"
       },
-      "line": 17455,
+      "line": 17461,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f5c00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5309,7 +5362,7 @@
         "map-pack11": "2f31a0",
         "tu15": "2f6c10"
       },
-      "line": 17495,
+      "line": 17501,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f6c10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5332,7 +5385,7 @@
         "map-pack11": "2f3700",
         "tu15": "2fc540"
       },
-      "line": 17525,
+      "line": 17531,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2fc540",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5355,7 +5408,7 @@
         "map-pack11": "2f3cc0",
         "tu15": "2f7720"
       },
-      "line": 17544,
+      "line": 17550,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f7720",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5378,7 +5431,7 @@
         "map-pack11": "2f3f70",
         "tu15": "2f79c0"
       },
-      "line": 17574,
+      "line": 17580,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f79c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5401,7 +5454,7 @@
         "map-pack11": "2f4800",
         "tu15": "2f8260"
       },
-      "line": 17600,
+      "line": 17606,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f8260",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5424,7 +5477,7 @@
         "map-pack11": "2f4870",
         "tu15": "2f82d0"
       },
-      "line": 17630,
+      "line": 17636,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f82d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5448,7 +5501,7 @@
         "map-pack11": "2f48a0",
         "tu15": "2f8300"
       },
-      "line": 17650,
+      "line": 17656,
       "literal_dispatch_required_targets": [
         "309150"
       ],
@@ -5476,7 +5529,7 @@
         "map-pack11": "2f4bd0",
         "tu15": "2f8630"
       },
-      "line": 17713,
+      "line": 17719,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f8630",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5499,7 +5552,7 @@
         "map-pack11": "2f5450",
         "tu15": "2f8eb0"
       },
-      "line": 17917,
+      "line": 17923,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f8eb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5522,7 +5575,7 @@
         "map-pack11": "2f5ec0",
         "tu15": "2f9920"
       },
-      "line": 17934,
+      "line": 17940,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f9920",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5545,7 +5598,7 @@
         "map-pack11": "2f63e0",
         "tu15": "2f9e40"
       },
-      "line": 17951,
+      "line": 17957,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f9e40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5568,7 +5621,7 @@
         "map-pack11": "2f73c0",
         "tu15": "2fadf0"
       },
-      "line": 17968,
+      "line": 17974,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2fadf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5591,7 +5644,7 @@
         "map-pack11": "2f8070",
         "tu15": "2fbaa0"
       },
-      "line": 17998,
+      "line": 18004,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2fbaa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5614,7 +5667,7 @@
         "map-pack11": "2f8dc0",
         "tu15": "2fc850"
       },
-      "line": 18028,
+      "line": 18034,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2fc850",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5637,7 +5690,7 @@
         "map-pack11": "2fa870",
         "tu15": "2fe2c0"
       },
-      "line": 18058,
+      "line": 18064,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2fe2c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5660,7 +5713,7 @@
         "map-pack11": "2fe000",
         "tu15": "301a90"
       },
-      "line": 18075,
+      "line": 18081,
       "literal_dispatch_required_targets": [],
       "observed_entry": "301a90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5683,7 +5736,7 @@
         "map-pack11": "2fee90",
         "tu15": "302920"
       },
-      "line": 18105,
+      "line": 18111,
       "literal_dispatch_required_targets": [],
       "observed_entry": "302920",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5706,7 +5759,7 @@
         "map-pack11": "2ffc60",
         "tu15": "3036f0"
       },
-      "line": 18135,
+      "line": 18141,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3036f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5727,7 +5780,7 @@
         "map-pack11": "2ffe20",
         "tu15": "3038c0"
       },
-      "line": 18165,
+      "line": 18171,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3038c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5748,7 +5801,7 @@
         "map-pack11": "300100",
         "tu15": "303ba0"
       },
-      "line": 18181,
+      "line": 18187,
       "literal_dispatch_required_targets": [],
       "observed_entry": "303ba0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5771,7 +5824,7 @@
         "map-pack11": "300170",
         "tu15": "303c10"
       },
-      "line": 18214,
+      "line": 18220,
       "literal_dispatch_required_targets": [],
       "observed_entry": "303c10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5792,7 +5845,7 @@
         "map-pack11": "3001d0",
         "tu15": "303c70"
       },
-      "line": 18245,
+      "line": 18251,
       "literal_dispatch_required_targets": [],
       "observed_entry": "303c70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5813,7 +5866,7 @@
         "map-pack11": "300260",
         "tu15": "303d00"
       },
-      "line": 18300,
+      "line": 18306,
       "literal_dispatch_required_targets": [],
       "observed_entry": "303d00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5837,7 +5890,7 @@
         "map-pack11": "300400",
         "tu15": "303ee0"
       },
-      "line": 18357,
+      "line": 18363,
       "literal_dispatch_required_targets": [],
       "observed_entry": "303ee0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5858,7 +5911,7 @@
         "map-pack11": "300650",
         "tu15": "304130"
       },
-      "line": 18397,
+      "line": 18403,
       "literal_dispatch_required_targets": [
         "303800"
       ],
@@ -5891,7 +5944,7 @@
         "map-pack11": "300870",
         "tu15": "304350"
       },
-      "line": 18543,
+      "line": 18549,
       "literal_dispatch_required_targets": [],
       "observed_entry": "304350",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5914,7 +5967,7 @@
         "map-pack11": "301040",
         "tu15": "304b20"
       },
-      "line": 19081,
+      "line": 19087,
       "literal_dispatch_required_targets": [],
       "observed_entry": "304b20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5937,7 +5990,7 @@
         "map-pack11": "301400",
         "tu15": "2f5b30"
       },
-      "line": 19111,
+      "line": 19117,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2f5b30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5960,7 +6013,7 @@
         "map-pack11": "301f40",
         "tu15": "305a20"
       },
-      "line": 19116,
+      "line": 19122,
       "literal_dispatch_required_targets": [],
       "observed_entry": "305a20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -5981,7 +6034,7 @@
         "map-pack11": "302070",
         "tu15": "2e9600"
       },
-      "line": 19146,
+      "line": 19152,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e9600",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6002,7 +6055,7 @@
         "map-pack11": "3037c0",
         "tu15": "3077c0"
       },
-      "line": 19153,
+      "line": 19159,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3077c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6023,7 +6076,7 @@
         "map-pack11": "3037f0",
         "tu15": "3077f0"
       },
-      "line": 19169,
+      "line": 19175,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3077f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6044,7 +6097,7 @@
         "map-pack11": "3039c0",
         "tu15": "3079c0"
       },
-      "line": 19299,
+      "line": 19305,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3079c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6067,7 +6120,7 @@
         "map-pack11": "303e30",
         "tu15": "307e30"
       },
-      "line": 19435,
+      "line": 19441,
       "literal_dispatch_required_targets": [],
       "observed_entry": "307e30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6091,7 +6144,7 @@
         "map-pack11": "305560",
         "tu15": "309060"
       },
-      "line": 19454,
+      "line": 19460,
       "literal_dispatch_required_targets": [],
       "observed_entry": "309060",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6119,7 +6172,7 @@
         "map-pack11": "305e40",
         "tu15": "309940"
       },
-      "line": 19540,
+      "line": 19546,
       "literal_dispatch_required_targets": [
         "2e3080",
         "2e30e0"
@@ -6156,22 +6209,24 @@
           "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
           "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
           "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
-          "include/halo2/physics_contact_runtime.hpp": "5ffecc59a7c86aac05c2a26b9bf9d101f085751d787074467151e1c3d0a00878",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
           "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
           "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
           "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
           "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
           "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
           "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
-          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "9b383f4aebc839b41f376690dca3f2fb0a0d6a69d022c22be5b336799afcb197"
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d"
         },
-        "source_sha256": "127d9b0f1a002dc702d408430c040089ef820f5c79f7bd7830bc6b248bb71821",
+        "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
         "target_body_rebinding_proved": true,
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "ObservedWorldState",
@@ -6190,7 +6245,7 @@
         "map-pack11": "3066e0",
         "tu15": "30a1e0"
       },
-      "line": 20009,
+      "line": 20015,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30a1e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6211,7 +6266,7 @@
         "map-pack11": "306f40",
         "tu15": "30aa40"
       },
-      "line": 20113,
+      "line": 20119,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30aa40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6232,7 +6287,7 @@
         "map-pack11": "307fe0",
         "tu15": "30bad0"
       },
-      "line": 20119,
+      "line": 20125,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30bad0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6253,7 +6308,7 @@
         "map-pack11": "308f70",
         "tu15": "30ca60"
       },
-      "line": 20125,
+      "line": 20131,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30ca60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6276,7 +6331,7 @@
         "map-pack11": "309210",
         "tu15": "30cd00"
       },
-      "line": 20155,
+      "line": 20161,
       "literal_dispatch_required_targets": [
         "30caa0"
       ],
@@ -6301,7 +6356,7 @@
         "map-pack11": "309450",
         "tu15": "30cf40"
       },
-      "line": 20346,
+      "line": 20352,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30cf40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6322,7 +6377,7 @@
         "map-pack11": "309860",
         "tu15": "30d350"
       },
-      "line": 20542,
+      "line": 20548,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30d350",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6334,7 +6389,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "4e6518483279df6cc9969a6a52b0048995d21dcd3a1eb08e16e408ee1852db9b",
+      "admission_prefix_calls": [
+        "halo2::native_simplex_triangle_detail::bridge"
+      ],
+      "body_sha256": "efaaf9085889804d8940185f3fcb628c5b7511268d2010c80e58fb155a31a0e8",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_309900",
@@ -6343,19 +6401,26 @@
         "map-pack11": "309900",
         "tu15": "30d3f0"
       },
-      "line": 20591,
+      "line": 20597,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_simplex_triangle_detail::bridge"
+      ],
       "observed_entry": "30d3f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "30d3f0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
       "state_type": "ObservedWorldState",
       "symbol": "309900",
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "14092a34987ac851b948c1a49773cf6e32e9a2b93b27d47e7be504f6d3944e12",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_simplex_face_select_owner_detail::bridge"
+      ],
+      "body_sha256": "9e1401c3ff2f6decc7bc8df1ea7fafd6bed1fde6de14f5a146e351f278e11e54",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_309ae0",
@@ -6364,21 +6429,28 @@
         "map-pack11": "309ae0",
         "tu15": "30d5d0"
       },
-      "line": 20732,
+      "line": 20739,
       "literal_dispatch_required_targets": [
         "30d1a0"
+      ],
+      "native_admission_hints": [
+        "halo2::native_simplex_face_select_owner_detail::bridge"
       ],
       "observed_entry": "30d5d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "30d5d0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
       "state_type": "ObservedWorldState",
       "symbol": "309ae0",
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "d18b28718a1fcfe8fd416bcb137c0bfe1470da3ed0bda40d7217224af2540551",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_simplex_paired_owner_detail::bridge"
+      ],
+      "body_sha256": "3462820b96dd2d5385ca50c9f052e14c2124214f5882ae484c43feac1df6cbd4",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "309900",
@@ -6390,13 +6462,85 @@
         "map-pack11": "309d40",
         "tu15": "30d830"
       },
-      "line": 20925,
+      "line": 20933,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_simplex_paired_owner_detail::bridge"
+      ],
       "observed_entry": "30d830",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "30d830",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_simplex_paired_replacements.py",
+        "binder_sha256": "8f496d3b215eff0979a351d2a62847525837f0812d7eb54723df9b09b31f08d9",
+        "entry_symbol": "309d40",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_closest_segments_kernel.hpp": "6625463626bbd6b60c20a11fbfa4308d5460229d47cf060f97e7717105db9757",
+          "include/halo2/native_tu15_mopp_aabb_projection_kernel.hpp": "1c825ce247993ad1be5452631bc710514480895164de6b343f26c18c6a0c94b8",
+          "include/halo2/native_tu15_mopp_aabb_traversal_kernel.hpp": "f4be3a1b5d8d3c0be69d1d444a5cce18e635a189ad1aba351608eee3c0298b5b",
+          "include/halo2/native_tu15_mopp_integer_program_kernel.hpp": "cf33b23d22ecb06ac64a944be91a6d5b5d657ccd9493c3fcbc1d24c64acecf50",
+          "include/halo2/native_tu15_mopp_primitive_key_kernel.hpp": "f6dc6dea35affca048e2be5b87b5e3e5de14298f942938bc3f9b49ff7417f134",
+          "include/halo2/native_tu15_mopp_ray_branch_kernel.hpp": "65791b071220bd870a64e28d92f3b9c82790aae13485d28ff27a885fd035d65c",
+          "include/halo2/native_tu15_mopp_ray_crossing_kernel.hpp": "e0a73514ba84e4f8f96b4e17cc9646cd821e949cade1da79210e604ca21c061e",
+          "include/halo2/native_tu15_mopp_ray_plane_kernel.hpp": "9cda47b07670c728a787739be4981652f2d360012c4f8dbe520c786626cde7fa",
+          "include/halo2/native_tu15_mopp_ray_projection_kernel.hpp": "6105a9ed77f4d003e4ae781f2056cdf4d7034e6cec26574a81ec6317df212506",
+          "include/halo2/native_tu15_mopp_ray_resume_kernel.hpp": "add29b6953cd9af3df4f22b312d5ab1f264aeafa57a1b0537800f7bdaa6fd488",
+          "include/halo2/native_tu15_mopp_ray_scale_kernel.hpp": "4eabae9e0826a5a54dc9ae94542e1de6d557c0c8fb51ecab1952acb41de76d45",
+          "include/halo2/native_tu15_mopp_ray_setup.hpp": "e7ab191778edeb17f948e56bee75367e196b3e220980e7743185208cc2e93a3f",
+          "include/halo2/native_tu15_mopp_ray_slab_kernel.hpp": "2d6e395cb2eddd197048958c1fe3ce6b29318504e29d862e745f80656d2ffdcb",
+          "include/halo2/native_tu15_mopp_ray_traversal.hpp": "1175a71e8fbc252ba0e4cc11d1eb0b6864409040c2026aaf40de82b6598ddfd8",
+          "include/halo2/native_tu15_mopp_ray_traversal_kernel.hpp": "8cda6e1597801166665ffaf2c273b78cc17c5223f4dd478df7be6e1739c13fa0",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_simplex_direction_kernel.hpp": "c937bd7a72a83cbacff0deed659995b556d4e391de1cb5ebab8a2b5325a96ca4",
+          "include/halo2/native_tu15_simplex_face_select_kernel.hpp": "45aef58183df02d522d53297b5e81ac4bec7efdd33daeb8fe1894b173fabe7aa",
+          "include/halo2/native_tu15_simplex_initialize_kernel.hpp": "b26e93bfd9137840d8758de4ff5edfd830c5f2bb2be1743cb39c02823449fcb3",
+          "include/halo2/native_tu15_simplex_paired_kernel.hpp": "d7a8bcadf95eab8e7b1e219ea59dcedcc81c72c9533caa68a7c746b88d330487",
+          "include/halo2/native_tu15_simplex_projection_kernel.hpp": "45af9f9a852ce9c276dd2ae6e0fe6e0658453c59e36470cb8d76ea7f8196c684",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp": "00fe8e651e9f8d2ae950c0a11dfddfc03a7b7daf02d983a2867d77b85fcc30e1",
+          "src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp": "98ce37759b01fb0cfe07ae7d5227d73d2019def5fda8ffbfcb59077ea5cbc220",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33",
+          "src/physics/runtime/native_tu15_simplex_paired_frame.hpp": "454462b3a6b82ac462adddf35652eec543cf8eed457d1c5117cfcdce2e7e04fa",
+          "src/physics/runtime/native_tu15_simplex_paired_source_owner.hpp": "ed41b9df28e0d9456307509ba1a9ed3cc59611516cbcb30bc5971dd4878d593e",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d"
+        },
+        "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "ObservedWorldState",
       "symbol": "309d40",
       "symbol_kind": "address-named"
@@ -6416,7 +6560,7 @@
         "map-pack11": "30a370",
         "tu15": "30de60"
       },
-      "line": 21251,
+      "line": 21260,
       "literal_dispatch_required_targets": [
         "30dc10",
         "314710"
@@ -6446,7 +6590,7 @@
         "map-pack11": "30ae40",
         "tu15": "30e930"
       },
-      "line": 21980,
+      "line": 21989,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30e930",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6458,7 +6602,10 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "9490b95842d933fdfbcd672f0213f7ab559a34b06e6e859690ba8a35d235f8fb",
+      "admission_prefix_calls": [
+        "halo2::native_closest_segments_owner_detail::bridge"
+      ],
+      "body_sha256": "147a20cf3871853730733b14734a5708c68b958506fe7d725eab1168e6625268",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_30eb30",
@@ -6467,13 +6614,83 @@
         "map-pack11": "30eb30",
         "tu15": "312620"
       },
-      "line": 23004,
+      "line": 23013,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_closest_segments_owner_detail::bridge"
+      ],
       "observed_entry": "312620",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "312620",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_closest_segments_replacements.py",
+        "binder_sha256": "565eda9d32d048b06d5241db877f728d0a27a4848bd0087684b2b5c03e12717b",
+        "entry_symbol": "30eb30",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_tu15_closest_segments_kernel.hpp": "6625463626bbd6b60c20a11fbfa4308d5460229d47cf060f97e7717105db9757",
+          "include/halo2/native_tu15_mopp_aabb_projection_kernel.hpp": "1c825ce247993ad1be5452631bc710514480895164de6b343f26c18c6a0c94b8",
+          "include/halo2/native_tu15_mopp_aabb_traversal_kernel.hpp": "f4be3a1b5d8d3c0be69d1d444a5cce18e635a189ad1aba351608eee3c0298b5b",
+          "include/halo2/native_tu15_mopp_integer_program_kernel.hpp": "cf33b23d22ecb06ac64a944be91a6d5b5d657ccd9493c3fcbc1d24c64acecf50",
+          "include/halo2/native_tu15_mopp_primitive_key_kernel.hpp": "f6dc6dea35affca048e2be5b87b5e3e5de14298f942938bc3f9b49ff7417f134",
+          "include/halo2/native_tu15_mopp_ray_branch_kernel.hpp": "65791b071220bd870a64e28d92f3b9c82790aae13485d28ff27a885fd035d65c",
+          "include/halo2/native_tu15_mopp_ray_crossing_kernel.hpp": "e0a73514ba84e4f8f96b4e17cc9646cd821e949cade1da79210e604ca21c061e",
+          "include/halo2/native_tu15_mopp_ray_plane_kernel.hpp": "9cda47b07670c728a787739be4981652f2d360012c4f8dbe520c786626cde7fa",
+          "include/halo2/native_tu15_mopp_ray_projection_kernel.hpp": "6105a9ed77f4d003e4ae781f2056cdf4d7034e6cec26574a81ec6317df212506",
+          "include/halo2/native_tu15_mopp_ray_resume_kernel.hpp": "add29b6953cd9af3df4f22b312d5ab1f264aeafa57a1b0537800f7bdaa6fd488",
+          "include/halo2/native_tu15_mopp_ray_scale_kernel.hpp": "4eabae9e0826a5a54dc9ae94542e1de6d557c0c8fb51ecab1952acb41de76d45",
+          "include/halo2/native_tu15_mopp_ray_setup.hpp": "e7ab191778edeb17f948e56bee75367e196b3e220980e7743185208cc2e93a3f",
+          "include/halo2/native_tu15_mopp_ray_slab_kernel.hpp": "2d6e395cb2eddd197048958c1fe3ce6b29318504e29d862e745f80656d2ffdcb",
+          "include/halo2/native_tu15_mopp_ray_traversal.hpp": "1175a71e8fbc252ba0e4cc11d1eb0b6864409040c2026aaf40de82b6598ddfd8",
+          "include/halo2/native_tu15_mopp_ray_traversal_kernel.hpp": "8cda6e1597801166665ffaf2c273b78cc17c5223f4dd478df7be6e1739c13fa0",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_simplex_direction_kernel.hpp": "c937bd7a72a83cbacff0deed659995b556d4e391de1cb5ebab8a2b5325a96ca4",
+          "include/halo2/native_tu15_simplex_face_select_kernel.hpp": "45aef58183df02d522d53297b5e81ac4bec7efdd33daeb8fe1894b173fabe7aa",
+          "include/halo2/native_tu15_simplex_initialize_kernel.hpp": "b26e93bfd9137840d8758de4ff5edfd830c5f2bb2be1743cb39c02823449fcb3",
+          "include/halo2/native_tu15_simplex_projection_kernel.hpp": "45af9f9a852ce9c276dd2ae6e0fe6e0658453c59e36470cb8d76ea7f8196c684",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_closest_segments_frame.hpp": "b9f79f9d2712c0a929726ec327ca09c69529e02b400a6d510b0e1b977614cbb5",
+          "src/physics/runtime/native_tu15_closest_segments_source_owner.hpp": "f6d907006ff41bb9a74fc87c5c2df48b0d2c791d8900ca13fec4fc648492094e",
+          "src/physics/runtime/native_tu15_mopp_aabb_traversal.hpp": "793668fa05461a02193bfd5968b2dc085dcd61c3b4c829d2994965095ec1c928",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_mopp_ray_integer_frame.hpp": "00fe8e651e9f8d2ae950c0a11dfddfc03a7b7daf02d983a2867d77b85fcc30e1",
+          "src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp": "98ce37759b01fb0cfe07ae7d5227d73d2019def5fda8ffbfcb59077ea5cbc220",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d"
+        },
+        "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "ObservedWorldState",
       "symbol": "30eb30",
       "symbol_kind": "address-named"
@@ -6488,7 +6705,7 @@
         "map-pack11": "311490",
         "tu15": "314f80"
       },
-      "line": 23198,
+      "line": 23208,
       "literal_dispatch_required_targets": [],
       "observed_entry": "314f80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6509,7 +6726,7 @@
         "map-pack11": "3114f0",
         "tu15": "314fe0"
       },
-      "line": 23235,
+      "line": 23245,
       "literal_dispatch_required_targets": [],
       "observed_entry": "314fe0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6530,7 +6747,7 @@
         "map-pack11": "311680",
         "tu15": "315170"
       },
-      "line": 23265,
+      "line": 23275,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315170",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6554,7 +6771,7 @@
         "map-pack11": "311810",
         "tu15": "315300"
       },
-      "line": 23275,
+      "line": 23285,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315300",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6575,7 +6792,7 @@
         "map-pack11": "3119f0",
         "tu15": "3154e0"
       },
-      "line": 23333,
+      "line": 23343,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3154e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6598,7 +6815,7 @@
         "map-pack11": "311f80",
         "tu15": "315a70"
       },
-      "line": 23373,
+      "line": 23383,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315a70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6622,7 +6839,7 @@
         "map-pack11": "312010",
         "tu15": "315b00"
       },
-      "line": 23431,
+      "line": 23441,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315b00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6643,7 +6860,7 @@
         "map-pack11": "3121a0",
         "tu15": "315c90"
       },
-      "line": 23490,
+      "line": 23500,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315c90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6667,7 +6884,7 @@
         "map-pack11": "3121c0",
         "tu15": "315cb0"
       },
-      "line": 23504,
+      "line": 23514,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315cb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6690,7 +6907,7 @@
         "map-pack11": "312220",
         "tu15": "315d10"
       },
-      "line": 23526,
+      "line": 23536,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315d10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6713,7 +6930,7 @@
         "map-pack11": "312320",
         "tu15": "315e10"
       },
-      "line": 23556,
+      "line": 23566,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315e10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6736,7 +6953,7 @@
         "map-pack11": "312360",
         "tu15": "315e50"
       },
-      "line": 23578,
+      "line": 23588,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315e50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6759,7 +6976,7 @@
         "map-pack11": "3123a0",
         "tu15": "315e90"
       },
-      "line": 23600,
+      "line": 23610,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315e90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6782,7 +6999,7 @@
         "map-pack11": "312410",
         "tu15": "315f00"
       },
-      "line": 23622,
+      "line": 23632,
       "literal_dispatch_required_targets": [],
       "observed_entry": "315f00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6803,7 +7020,7 @@
         "map-pack11": "3126d0",
         "tu15": "3161e0"
       },
-      "line": 23666,
+      "line": 23676,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3161e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6824,7 +7041,7 @@
         "map-pack11": "3126e0",
         "tu15": "3161f0"
       },
-      "line": 23672,
+      "line": 23682,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3161f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6845,7 +7062,7 @@
         "map-pack11": "3126f0",
         "tu15": "316200"
       },
-      "line": 23678,
+      "line": 23688,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6868,7 +7085,7 @@
         "map-pack11": "312700",
         "tu15": "316210"
       },
-      "line": 23684,
+      "line": 23694,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316210",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6889,7 +7106,7 @@
         "map-pack11": "3129e0",
         "tu15": "3164f0"
       },
-      "line": 23718,
+      "line": 23728,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3164f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6910,7 +7127,7 @@
         "map-pack11": "312a00",
         "tu15": "316510"
       },
-      "line": 23727,
+      "line": 23737,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316510",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6931,7 +7148,7 @@
         "map-pack11": "312a30",
         "tu15": "316570"
       },
-      "line": 23741,
+      "line": 23751,
       "literal_dispatch_required_targets": [
         "316460"
       ],
@@ -6956,7 +7173,7 @@
         "map-pack11": "312a90",
         "tu15": "3165d0"
       },
-      "line": 23772,
+      "line": 23782,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3165d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -6982,7 +7199,7 @@
         "map-pack11": "312c60",
         "tu15": "3167e0"
       },
-      "line": 23833,
+      "line": 23843,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3167e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7007,7 +7224,7 @@
         "map-pack11": "312dd0",
         "tu15": "316950"
       },
-      "line": 23956,
+      "line": 23966,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316950",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7031,7 +7248,7 @@
         "map-pack11": "312f20",
         "tu15": "316aa0"
       },
-      "line": 24064,
+      "line": 24074,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316aa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7054,7 +7271,7 @@
         "map-pack11": "312fa0",
         "tu15": "316b20"
       },
-      "line": 24112,
+      "line": 24122,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316b20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7077,7 +7294,7 @@
         "map-pack11": "312fe0",
         "tu15": "316b60"
       },
-      "line": 24134,
+      "line": 24144,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316b60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7100,7 +7317,7 @@
         "map-pack11": "313020",
         "tu15": "316ba0"
       },
-      "line": 24156,
+      "line": 24166,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316ba0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7124,7 +7341,7 @@
         "map-pack11": "313060",
         "tu15": "316be0"
       },
-      "line": 24178,
+      "line": 24188,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316be0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7148,7 +7365,7 @@
         "map-pack11": "313150",
         "tu15": "316cd0"
       },
-      "line": 24231,
+      "line": 24241,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316cd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7172,7 +7389,7 @@
         "map-pack11": "3131c0",
         "tu15": "316d40"
       },
-      "line": 24274,
+      "line": 24284,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316d40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7195,7 +7412,7 @@
         "map-pack11": "313240",
         "tu15": "316dc0"
       },
-      "line": 24323,
+      "line": 24333,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316dc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7219,7 +7436,7 @@
         "map-pack11": "313290",
         "tu15": "316e10"
       },
-      "line": 24350,
+      "line": 24360,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316e10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7243,7 +7460,7 @@
         "map-pack11": "313310",
         "tu15": "316e90"
       },
-      "line": 24400,
+      "line": 24410,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316e90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7266,7 +7483,7 @@
         "map-pack11": "313390",
         "tu15": "316540"
       },
-      "line": 24448,
+      "line": 24458,
       "literal_dispatch_required_targets": [],
       "observed_entry": "316540",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7289,7 +7506,7 @@
         "map-pack11": "3136b0",
         "tu15": "317200"
       },
-      "line": 24467,
+      "line": 24477,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7310,7 +7527,7 @@
         "map-pack11": "313750",
         "tu15": "3172a0"
       },
-      "line": 24504,
+      "line": 24514,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3172a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7333,7 +7550,7 @@
         "map-pack11": "3137a0",
         "tu15": "3172f0"
       },
-      "line": 24511,
+      "line": 24521,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3172f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7356,7 +7573,7 @@
         "map-pack11": "3137d0",
         "tu15": "317320"
       },
-      "line": 24530,
+      "line": 24540,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317320",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7382,7 +7599,7 @@
         "map-pack11": "313800",
         "tu15": "317350"
       },
-      "line": 24548,
+      "line": 24558,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317350",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7405,7 +7622,7 @@
         "map-pack11": "313870",
         "tu15": "3173c0"
       },
-      "line": 24600,
+      "line": 24610,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3173c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7428,7 +7645,7 @@
         "map-pack11": "3138e0",
         "tu15": "317430"
       },
-      "line": 24651,
+      "line": 24661,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317430",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7453,7 +7670,7 @@
         "map-pack11": "313950",
         "tu15": "3174a0"
       },
-      "line": 24702,
+      "line": 24712,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3174a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7474,7 +7691,7 @@
         "map-pack11": "313c90",
         "tu15": "3177e0"
       },
-      "line": 24759,
+      "line": 24769,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3177e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7495,7 +7712,7 @@
         "map-pack11": "313e50",
         "tu15": "317870"
       },
-      "line": 24812,
+      "line": 24822,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317870",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7516,7 +7733,7 @@
         "map-pack11": "313ef0",
         "tu15": "317a40"
       },
-      "line": 24868,
+      "line": 24878,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317a40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7537,7 +7754,7 @@
         "map-pack11": "313f80",
         "tu15": "317ad0"
       },
-      "line": 24923,
+      "line": 24933,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317ad0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7560,7 +7777,7 @@
         "map-pack11": "314020",
         "tu15": "317b70"
       },
-      "line": 24980,
+      "line": 24990,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317b70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7584,7 +7801,7 @@
         "map-pack11": "3140f0",
         "tu15": "317c40"
       },
-      "line": 25060,
+      "line": 25070,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317c40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7607,7 +7824,7 @@
         "map-pack11": "314180",
         "tu15": "317cd0"
       },
-      "line": 25123,
+      "line": 25133,
       "literal_dispatch_required_targets": [],
       "observed_entry": "317cd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7634,7 +7851,7 @@
         "map-pack11": "3144d0",
         "tu15": "318020"
       },
-      "line": 25152,
+      "line": 25162,
       "literal_dispatch_required_targets": [
         "317d20"
       ],
@@ -7664,7 +7881,7 @@
         "map-pack11": "314a00",
         "tu15": "318550"
       },
-      "line": 25292,
+      "line": 25302,
       "literal_dispatch_required_targets": [],
       "observed_entry": "318550",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7694,7 +7911,7 @@
         "map-pack11": "314c70",
         "tu15": "3187c0"
       },
-      "line": 25395,
+      "line": 25405,
       "literal_dispatch_required_targets": [
         "321eb0",
         "37c170",
@@ -7725,7 +7942,7 @@
         "map-pack11": "315820",
         "tu15": "319370"
       },
-      "line": 25881,
+      "line": 25891,
       "literal_dispatch_required_targets": [],
       "observed_entry": "319370",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7746,7 +7963,7 @@
         "map-pack11": "315c00",
         "tu15": "319750"
       },
-      "line": 25920,
+      "line": 25930,
       "literal_dispatch_required_targets": [
         "282bc0",
         "282be0",
@@ -7775,7 +7992,7 @@
         "map-pack11": "315d50",
         "tu15": "3198a0"
       },
-      "line": 25966,
+      "line": 25976,
       "literal_dispatch_required_targets": [
         "3181e0",
         "318360",
@@ -7804,7 +8021,7 @@
         "map-pack11": "316180",
         "tu15": "319cd0"
       },
-      "line": 26037,
+      "line": 26047,
       "literal_dispatch_required_targets": [],
       "observed_entry": "319cd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7832,7 +8049,7 @@
         "map-pack11": "316200",
         "tu15": "319d50"
       },
-      "line": 26086,
+      "line": 26096,
       "literal_dispatch_required_targets": [],
       "observed_entry": "319d50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7867,7 +8084,7 @@
         "map-pack11": "316440",
         "tu15": "319f90"
       },
-      "line": 26247,
+      "line": 26257,
       "literal_dispatch_required_targets": [],
       "observed_entry": "319f90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7900,7 +8117,7 @@
         "map-pack11": "316710",
         "tu15": "31a260"
       },
-      "line": 26443,
+      "line": 26453,
       "literal_dispatch_required_targets": [
         "2e2ef0",
         "2e2f90",
@@ -7929,7 +8146,7 @@
         "map-pack11": "316e50",
         "tu15": "31a9a0"
       },
-      "line": 26896,
+      "line": 26906,
       "literal_dispatch_required_targets": [
         "317250",
         "3197b0"
@@ -7956,7 +8173,7 @@
         "map-pack11": "317650",
         "tu15": "31b1a0"
       },
-      "line": 26957,
+      "line": 26967,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b1a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -7977,7 +8194,7 @@
         "map-pack11": "317720",
         "tu15": "31b270"
       },
-      "line": 26973,
+      "line": 26983,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b270",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8000,7 +8217,7 @@
         "map-pack11": "317890",
         "tu15": "31b3e0"
       },
-      "line": 27022,
+      "line": 27032,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b3e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8023,7 +8240,7 @@
         "map-pack11": "317a30",
         "tu15": "31b570"
       },
-      "line": 27053,
+      "line": 27063,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b570",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8046,7 +8263,7 @@
         "map-pack11": "317bf0",
         "tu15": "31b730"
       },
-      "line": 27104,
+      "line": 27114,
       "literal_dispatch_required_targets": [
         "1e10a0",
         "31e820"
@@ -8070,7 +8287,7 @@
         "map-pack11": "317d10",
         "tu15": "31b850"
       },
-      "line": 27195,
+      "line": 27205,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b850",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8093,7 +8310,7 @@
         "map-pack11": "317df0",
         "tu15": "31b930"
       },
-      "line": 27262,
+      "line": 27272,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b930",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8116,7 +8333,7 @@
         "map-pack11": "317e80",
         "tu15": "31b9c0"
       },
-      "line": 27295,
+      "line": 27305,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b9c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8144,7 +8361,7 @@
         "map-pack11": "317ea0",
         "tu15": "31b9e0"
       },
-      "line": 27311,
+      "line": 27321,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31b9e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8173,7 +8390,7 @@
         "map-pack11": "318100",
         "tu15": "31bc40"
       },
-      "line": 27486,
+      "line": 27496,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31bc40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8196,7 +8413,7 @@
         "map-pack11": "318870",
         "tu15": "31c3b0"
       },
-      "line": 27605,
+      "line": 27615,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31c3b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8217,7 +8434,7 @@
         "map-pack11": "318900",
         "tu15": "31c450"
       },
-      "line": 27618,
+      "line": 27628,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31c450",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8240,7 +8457,7 @@
         "map-pack11": "318a20",
         "tu15": "31c570"
       },
-      "line": 27678,
+      "line": 27688,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31c570",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8263,7 +8480,7 @@
         "map-pack11": "318a90",
         "tu15": "31c5e0"
       },
-      "line": 27726,
+      "line": 27736,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31c5e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8286,7 +8503,7 @@
         "map-pack11": "318af0",
         "tu15": "31c640"
       },
-      "line": 27765,
+      "line": 27775,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31c640",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8307,7 +8524,7 @@
         "map-pack11": "31b250",
         "tu15": "31ede0"
       },
-      "line": 27815,
+      "line": 27825,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31ede0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8328,7 +8545,7 @@
         "map-pack11": "31b810",
         "tu15": "31f3a0"
       },
-      "line": 27821,
+      "line": 27831,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f3a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8349,7 +8566,7 @@
         "map-pack11": "31b880",
         "tu15": "31f410"
       },
-      "line": 27859,
+      "line": 27869,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f410",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8370,7 +8587,7 @@
         "map-pack11": "31b8d0",
         "tu15": "31f460"
       },
-      "line": 27889,
+      "line": 27899,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f460",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8391,7 +8608,7 @@
         "map-pack11": "31b950",
         "tu15": "31f4e0"
       },
-      "line": 27932,
+      "line": 27942,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f4e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8412,7 +8629,7 @@
         "map-pack11": "31b9d0",
         "tu15": "31f560"
       },
-      "line": 27975,
+      "line": 27985,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f560",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8435,7 +8652,7 @@
         "map-pack11": "31bad0",
         "tu15": "31f660"
       },
-      "line": 28039,
+      "line": 28049,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f660",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8460,7 +8677,7 @@
         "map-pack11": "31bbe0",
         "tu15": "31f770"
       },
-      "line": 28100,
+      "line": 28110,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f770",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8485,7 +8702,7 @@
         "map-pack11": "31bd00",
         "tu15": "31f860"
       },
-      "line": 28161,
+      "line": 28171,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31f860",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8508,7 +8725,7 @@
         "map-pack11": "31bed0",
         "tu15": "31fa60"
       },
-      "line": 28290,
+      "line": 28300,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fa60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8529,7 +8746,7 @@
         "map-pack11": "31c110",
         "tu15": "31fca0"
       },
-      "line": 28312,
+      "line": 28322,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fca0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8552,7 +8769,7 @@
         "map-pack11": "31c140",
         "tu15": "31fcd0"
       },
-      "line": 28325,
+      "line": 28335,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fcd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8575,7 +8792,7 @@
         "map-pack11": "31c1a0",
         "tu15": "31fd30"
       },
-      "line": 28335,
+      "line": 28345,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fd30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8596,7 +8813,7 @@
         "map-pack11": "31c2e0",
         "tu15": "31fe70"
       },
-      "line": 28347,
+      "line": 28357,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fe70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8617,7 +8834,7 @@
         "map-pack11": "31c350",
         "tu15": "31fee0"
       },
-      "line": 28398,
+      "line": 28408,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31fee0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8638,7 +8855,7 @@
         "map-pack11": "31c3c0",
         "tu15": "31ff50"
       },
-      "line": 28449,
+      "line": 28459,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31ff50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8659,7 +8876,7 @@
         "map-pack11": "31c430",
         "tu15": "31ffc0"
       },
-      "line": 28500,
+      "line": 28510,
       "literal_dispatch_required_targets": [],
       "observed_entry": "31ffc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8680,7 +8897,7 @@
         "map-pack11": "31c4b0",
         "tu15": "320040"
       },
-      "line": 28558,
+      "line": 28568,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320040",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8701,7 +8918,7 @@
         "map-pack11": "31c520",
         "tu15": "3200b0"
       },
-      "line": 28603,
+      "line": 28613,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3200b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8722,7 +8939,7 @@
         "map-pack11": "31c570",
         "tu15": "320100"
       },
-      "line": 28634,
+      "line": 28644,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320100",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8743,7 +8960,7 @@
         "map-pack11": "31c5a0",
         "tu15": "320130"
       },
-      "line": 28652,
+      "line": 28662,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320130",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8766,7 +8983,7 @@
         "map-pack11": "31c620",
         "tu15": "3201b0"
       },
-      "line": 28661,
+      "line": 28671,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3201b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8787,7 +9004,7 @@
         "map-pack11": "31c980",
         "tu15": "320510"
       },
-      "line": 28733,
+      "line": 28743,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320510",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8808,7 +9025,7 @@
         "map-pack11": "31ca20",
         "tu15": "3205b0"
       },
-      "line": 28800,
+      "line": 28810,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3205b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8831,7 +9048,7 @@
         "map-pack11": "31cfe0",
         "tu15": "320b70"
       },
-      "line": 29241,
+      "line": 29251,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320b70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8852,7 +9069,7 @@
         "map-pack11": "31d0f0",
         "tu15": "320c80"
       },
-      "line": 29343,
+      "line": 29353,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320c80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8875,7 +9092,7 @@
         "map-pack11": "31d210",
         "tu15": "320da0"
       },
-      "line": 29466,
+      "line": 29476,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320da0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8898,7 +9115,7 @@
         "map-pack11": "31d250",
         "tu15": "320de0"
       },
-      "line": 29495,
+      "line": 29505,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320de0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8921,7 +9138,7 @@
         "map-pack11": "31d2b0",
         "tu15": "320e40"
       },
-      "line": 29533,
+      "line": 29543,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320e40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8946,7 +9163,7 @@
         "map-pack11": "31d360",
         "tu15": "320ef0"
       },
-      "line": 29577,
+      "line": 29587,
       "literal_dispatch_required_targets": [],
       "observed_entry": "320ef0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8967,7 +9184,7 @@
         "map-pack11": "31d5f0",
         "tu15": "321180"
       },
-      "line": 29808,
+      "line": 29818,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321180",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -8988,7 +9205,7 @@
         "map-pack11": "31d690",
         "tu15": "321220"
       },
-      "line": 29863,
+      "line": 29873,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321220",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9009,7 +9226,7 @@
         "map-pack11": "31d730",
         "tu15": "3212c0"
       },
-      "line": 29922,
+      "line": 29932,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3212c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9035,7 +9252,7 @@
         "map-pack11": "31d980",
         "tu15": "321510"
       },
-      "line": 29975,
+      "line": 29985,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321510",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9061,7 +9278,7 @@
         "map-pack11": "31db70",
         "tu15": "321700"
       },
-      "line": 30129,
+      "line": 30139,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321700",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9087,7 +9304,7 @@
         "map-pack11": "31dee0",
         "tu15": "321a70"
       },
-      "line": 30411,
+      "line": 30421,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321a70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9111,7 +9328,7 @@
         "map-pack11": "31e190",
         "tu15": "321d20"
       },
-      "line": 30620,
+      "line": 30630,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321d20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9138,7 +9355,7 @@
         "map-pack11": "31e2c0",
         "tu15": "321e50"
       },
-      "line": 30721,
+      "line": 30731,
       "literal_dispatch_required_targets": [],
       "observed_entry": "321e50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9159,7 +9376,7 @@
         "map-pack11": "31e610",
         "tu15": "3221a0"
       },
-      "line": 30757,
+      "line": 30767,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3221a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9180,7 +9397,7 @@
         "map-pack11": "31e6f0",
         "tu15": "322280"
       },
-      "line": 30807,
+      "line": 30817,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322280",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9201,7 +9418,7 @@
         "map-pack11": "31e7d0",
         "tu15": "322360"
       },
-      "line": 30857,
+      "line": 30867,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322360",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9222,7 +9439,7 @@
         "map-pack11": "31e840",
         "tu15": "3223d0"
       },
-      "line": 30907,
+      "line": 30917,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3223d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9243,7 +9460,7 @@
         "map-pack11": "31e8b0",
         "tu15": "322440"
       },
-      "line": 30957,
+      "line": 30967,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322440",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9264,7 +9481,7 @@
         "map-pack11": "31e940",
         "tu15": "3224d0"
       },
-      "line": 31008,
+      "line": 31018,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3224d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9285,7 +9502,7 @@
         "map-pack11": "31e9d0",
         "tu15": "322560"
       },
-      "line": 31059,
+      "line": 31069,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322560",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9306,7 +9523,7 @@
         "map-pack11": "31ead0",
         "tu15": "322660"
       },
-      "line": 31110,
+      "line": 31120,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322660",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9327,7 +9544,7 @@
         "map-pack11": "31ebb0",
         "tu15": "322740"
       },
-      "line": 31212,
+      "line": 31222,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322740",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9350,7 +9567,7 @@
         "map-pack11": "31ec90",
         "tu15": "322820"
       },
-      "line": 31314,
+      "line": 31324,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322820",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9371,7 +9588,7 @@
         "map-pack11": "31ed30",
         "tu15": "3228c0"
       },
-      "line": 31373,
+      "line": 31383,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3228c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9392,7 +9609,7 @@
         "map-pack11": "31edc0",
         "tu15": "322950"
       },
-      "line": 31423,
+      "line": 31433,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322950",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9413,7 +9630,7 @@
         "map-pack11": "31ee50",
         "tu15": "3229e0"
       },
-      "line": 31476,
+      "line": 31486,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3229e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9434,7 +9651,7 @@
         "map-pack11": "31f130",
         "tu15": "322ca0"
       },
-      "line": 31529,
+      "line": 31539,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322ca0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9460,7 +9677,7 @@
         "map-pack11": "31f1b0",
         "tu15": "322d20"
       },
-      "line": 31539,
+      "line": 31549,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322d20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9486,7 +9703,7 @@
         "map-pack11": "31f400",
         "tu15": "322f70"
       },
-      "line": 31738,
+      "line": 31748,
       "literal_dispatch_required_targets": [],
       "observed_entry": "322f70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9507,7 +9724,7 @@
         "map-pack11": "31f4b0",
         "tu15": "323020"
       },
-      "line": 31800,
+      "line": 31810,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323020",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9528,7 +9745,7 @@
         "map-pack11": "31f4d0",
         "tu15": "323040"
       },
-      "line": 31811,
+      "line": 31821,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323040",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9551,7 +9768,7 @@
         "map-pack11": "31f4f0",
         "tu15": "323060"
       },
-      "line": 31822,
+      "line": 31832,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323060",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9574,7 +9791,7 @@
         "map-pack11": "31f540",
         "tu15": "3230b0"
       },
-      "line": 31859,
+      "line": 31869,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3230b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9598,7 +9815,7 @@
         "map-pack11": "31f550",
         "tu15": "3230c0"
       },
-      "line": 31865,
+      "line": 31875,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3230c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9619,7 +9836,7 @@
         "map-pack11": "31f620",
         "tu15": "323190"
       },
-      "line": 31943,
+      "line": 31953,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323190",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9643,7 +9860,7 @@
         "map-pack11": "31f640",
         "tu15": "3231b0"
       },
-      "line": 31953,
+      "line": 31963,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3231b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9664,7 +9881,7 @@
         "map-pack11": "31f6b0",
         "tu15": "323220"
       },
-      "line": 31986,
+      "line": 31996,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323220",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9689,7 +9906,7 @@
         "map-pack11": "31f6c0",
         "tu15": "323230"
       },
-      "line": 31996,
+      "line": 32006,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323230",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9712,7 +9929,7 @@
         "map-pack11": "31f740",
         "tu15": "3232b0"
       },
-      "line": 32034,
+      "line": 32044,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3232b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9735,7 +9952,7 @@
         "map-pack11": "31f770",
         "tu15": "3232e0"
       },
-      "line": 32053,
+      "line": 32063,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3232e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9756,7 +9973,7 @@
         "map-pack11": "31f8a0",
         "tu15": "323420"
       },
-      "line": 32091,
+      "line": 32101,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323420",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9777,7 +9994,7 @@
         "map-pack11": "31f8b0",
         "tu15": "323430"
       },
-      "line": 32097,
+      "line": 32107,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323430",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9801,7 +10018,7 @@
         "map-pack11": "31f970",
         "tu15": "3234f0"
       },
-      "line": 32159,
+      "line": 32169,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3234f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9822,7 +10039,7 @@
         "map-pack11": "31fd40",
         "tu15": "3238a0"
       },
-      "line": 32193,
+      "line": 32203,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3238a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9843,7 +10060,7 @@
         "map-pack11": "31feb0",
         "tu15": "323a10"
       },
-      "line": 32200,
+      "line": 32210,
       "literal_dispatch_required_targets": [],
       "observed_entry": "323a10",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9867,7 +10084,7 @@
         "map-pack11": "320cc0",
         "tu15": "324810"
       },
-      "line": 32231,
+      "line": 32241,
       "literal_dispatch_required_targets": [],
       "observed_entry": "324810",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9890,7 +10107,7 @@
         "map-pack11": "320e50",
         "tu15": "3249c0"
       },
-      "line": 32264,
+      "line": 32274,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3249c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9913,7 +10130,7 @@
         "map-pack11": "321320",
         "tu15": "324e90"
       },
-      "line": 32280,
+      "line": 32290,
       "literal_dispatch_required_targets": [],
       "observed_entry": "324e90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9934,7 +10151,7 @@
         "map-pack11": "321530",
         "tu15": "3250a0"
       },
-      "line": 32313,
+      "line": 32323,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3250a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9959,7 +10176,7 @@
         "map-pack11": "321600",
         "tu15": "325170"
       },
-      "line": 32370,
+      "line": 32380,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325170",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -9982,7 +10199,7 @@
         "map-pack11": "321760",
         "tu15": "3252d0"
       },
-      "line": 32473,
+      "line": 32483,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3252d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10006,7 +10223,7 @@
         "map-pack11": "3218a0",
         "tu15": "325410"
       },
-      "line": 32562,
+      "line": 32572,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325410",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10031,7 +10248,7 @@
         "map-pack11": "321a60",
         "tu15": "3255d0"
       },
-      "line": 32690,
+      "line": 32700,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3255d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10056,7 +10273,7 @@
         "map-pack11": "321f80",
         "tu15": "325af0"
       },
-      "line": 32850,
+      "line": 32860,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325af0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10081,7 +10298,7 @@
         "map-pack11": "322060",
         "tu15": "325bd0"
       },
-      "line": 32917,
+      "line": 32927,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325bd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10106,7 +10323,7 @@
         "map-pack11": "3220d0",
         "tu15": "325c40"
       },
-      "line": 32961,
+      "line": 32971,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325c40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10127,7 +10344,7 @@
         "map-pack11": "322220",
         "tu15": "325d90"
       },
-      "line": 33005,
+      "line": 33015,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325d90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10148,7 +10365,7 @@
         "map-pack11": "322320",
         "tu15": "325e90"
       },
-      "line": 33094,
+      "line": 33104,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325e90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10171,7 +10388,7 @@
         "map-pack11": "322380",
         "tu15": "325ef0"
       },
-      "line": 33129,
+      "line": 33139,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325ef0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10194,7 +10411,7 @@
         "map-pack11": "3223b0",
         "tu15": "325f20"
       },
-      "line": 33148,
+      "line": 33158,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325f20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10218,7 +10435,7 @@
         "map-pack11": "322410",
         "tu15": "325f80"
       },
-      "line": 33187,
+      "line": 33197,
       "literal_dispatch_required_targets": [],
       "observed_entry": "325f80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10239,7 +10456,7 @@
         "map-pack11": "322590",
         "tu15": "326100"
       },
-      "line": 33324,
+      "line": 33334,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326100",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10262,7 +10479,7 @@
         "map-pack11": "322690",
         "tu15": "326200"
       },
-      "line": 33374,
+      "line": 33384,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326200",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10283,7 +10500,7 @@
         "map-pack11": "322ab0",
         "tu15": "326620"
       },
-      "line": 33684,
+      "line": 33694,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326620",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10304,7 +10521,7 @@
         "map-pack11": "322ac0",
         "tu15": "326630"
       },
-      "line": 33692,
+      "line": 33702,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326630",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10325,7 +10542,7 @@
         "map-pack11": "322ad0",
         "tu15": "326640"
       },
-      "line": 33701,
+      "line": 33711,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326640",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10348,7 +10565,7 @@
         "map-pack11": "322d60",
         "tu15": "3268d0"
       },
-      "line": 33857,
+      "line": 33867,
       "literal_dispatch_required_targets": [
         "2e3850",
         "37c5c0"
@@ -10376,7 +10593,7 @@
         "map-pack11": "322ed0",
         "tu15": "326a40"
       },
-      "line": 33986,
+      "line": 33996,
       "literal_dispatch_required_targets": [],
       "observed_entry": "326a40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10397,7 +10614,7 @@
         "map-pack11": "324d00",
         "tu15": "328870"
       },
-      "line": 36198,
+      "line": 36208,
       "literal_dispatch_required_targets": [],
       "observed_entry": "328870",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10418,7 +10635,7 @@
         "map-pack11": "325b70",
         "tu15": "3296e0"
       },
-      "line": 36223,
+      "line": 36233,
       "literal_dispatch_required_targets": [],
       "observed_entry": "3296e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10439,7 +10656,7 @@
         "map-pack11": "325bb0",
         "tu15": "329720"
       },
-      "line": 36247,
+      "line": 36257,
       "literal_dispatch_required_targets": [],
       "observed_entry": "329720",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10463,7 +10680,7 @@
         "map-pack11": "326820",
         "tu15": "32a390"
       },
-      "line": 37172,
+      "line": 37182,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "try_native_constraint_schema_emitter_tu15"
@@ -10489,7 +10706,7 @@
         "map-pack11": "32684b",
         "tu15": "32a3bb"
       },
-      "line": 37192,
+      "line": 37202,
       "literal_dispatch_required_targets": [
         "32a41e",
         "32cf28"
@@ -10513,7 +10730,7 @@
         "map-pack11": "326970",
         "tu15": "32a4e0"
       },
-      "line": 37212,
+      "line": 37222,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32a4e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10534,7 +10751,7 @@
         "map-pack11": "326b74",
         "tu15": "32a6e4"
       },
-      "line": 37325,
+      "line": 37335,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32a6e4",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10555,7 +10772,7 @@
         "map-pack11": "326baf",
         "tu15": "32a71f"
       },
-      "line": 37348,
+      "line": 37358,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32a71f",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10576,7 +10793,7 @@
         "map-pack11": "3276fc",
         "tu15": "32b26c"
       },
-      "line": 37361,
+      "line": 37371,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32b26c",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10597,7 +10814,7 @@
         "map-pack11": "32778e",
         "tu15": "32b2fe"
       },
-      "line": 37420,
+      "line": 37430,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32b2fe",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10618,7 +10835,7 @@
         "map-pack11": "32781c",
         "tu15": "32b38c"
       },
-      "line": 37473,
+      "line": 37483,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32b38c",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10641,7 +10858,7 @@
         "map-pack11": "327855",
         "tu15": "32b3c5"
       },
-      "line": 37499,
+      "line": 37509,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32b3c5",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10665,7 +10882,7 @@
         "map-pack11": "327866",
         "tu15": "32b3d6"
       },
-      "line": 37511,
+      "line": 37521,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32b3d6",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10689,7 +10906,7 @@
         "map-pack11": "329233",
         "tu15": "32cda3"
       },
-      "line": 37537,
+      "line": 37547,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32cda3",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10714,7 +10931,7 @@
         "map-pack11": "3292f1",
         "tu15": "32ce61"
       },
-      "line": 37555,
+      "line": 37565,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32ce61",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10737,7 +10954,7 @@
         "map-pack11": "32933b",
         "tu15": "32ceab"
       },
-      "line": 37581,
+      "line": 37591,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32ceab",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10761,7 +10978,7 @@
         "map-pack11": "329353",
         "tu15": "32cec3"
       },
-      "line": 37593,
+      "line": 37603,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32cec3",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10784,7 +11001,7 @@
         "map-pack11": "32937a",
         "tu15": "32ceea"
       },
-      "line": 37611,
+      "line": 37621,
       "literal_dispatch_required_targets": [
         "32cf28"
       ],
@@ -10809,7 +11026,7 @@
         "map-pack11": "3293a6",
         "tu15": "32cf16"
       },
-      "line": 37631,
+      "line": 37641,
       "literal_dispatch_required_targets": [],
       "observed_entry": "32cf16",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10832,7 +11049,7 @@
         "map-pack11": "378a30",
         "tu15": "2e42f0"
       },
-      "line": 37641,
+      "line": 37651,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2e42f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10853,7 +11070,7 @@
         "map-pack11": "378a60",
         "tu15": "37c580"
       },
-      "line": 37660,
+      "line": 37670,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c580",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10874,7 +11091,7 @@
         "map-pack11": "378ab0",
         "tu15": "37c5d0"
       },
-      "line": 37690,
+      "line": 37700,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c5d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10895,7 +11112,7 @@
         "map-pack11": "378ca0",
         "tu15": "37c7c0"
       },
-      "line": 37763,
+      "line": 37773,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c7c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10916,7 +11133,7 @@
         "map-pack11": "378ce0",
         "tu15": "37c800"
       },
-      "line": 37780,
+      "line": 37790,
       "literal_dispatch_required_targets": [
         "37c750"
       ],
@@ -10939,7 +11156,7 @@
         "map-pack11": "378d40",
         "tu15": "37c830"
       },
-      "line": 37799,
+      "line": 37809,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c830",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -10960,7 +11177,7 @@
         "map-pack11": "378d80",
         "tu15": "37c870"
       },
-      "line": 37817,
+      "line": 37827,
       "literal_dispatch_required_targets": [
         "37c8a0"
       ],
@@ -10983,7 +11200,7 @@
         "map-pack11": "378eb0",
         "tu15": "37c960"
       },
-      "line": 37836,
+      "line": 37846,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37c960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11004,7 +11221,7 @@
         "map-pack11": "379030",
         "tu15": "37cae0"
       },
-      "line": 37988,
+      "line": 37998,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37cae0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11027,7 +11244,7 @@
         "map-pack11": "379070",
         "tu15": "37cb20"
       },
-      "line": 38013,
+      "line": 38023,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37cb20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11050,7 +11267,7 @@
         "map-pack11": "379140",
         "tu15": "37cbf0"
       },
-      "line": 38101,
+      "line": 38111,
       "literal_dispatch_required_targets": [],
       "observed_entry": "37cbf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11071,7 +11288,7 @@
         "map-pack11": "37f110",
         "tu15": "382ba0"
       },
-      "line": 38140,
+      "line": 38150,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382ba0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11092,7 +11309,7 @@
         "map-pack11": "37f130",
         "tu15": "382bc0"
       },
-      "line": 38148,
+      "line": 38158,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382bc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11113,7 +11330,7 @@
         "map-pack11": "37f150",
         "tu15": "382be0"
       },
-      "line": 38156,
+      "line": 38166,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382be0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11134,7 +11351,7 @@
         "map-pack11": "37f1e0",
         "tu15": "382c70"
       },
-      "line": 38164,
+      "line": 38174,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382c70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11155,7 +11372,7 @@
         "map-pack11": "37f240",
         "tu15": "382cd0"
       },
-      "line": 38172,
+      "line": 38182,
       "literal_dispatch_required_targets": [],
       "observed_entry": "382cd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11176,7 +11393,7 @@
         "map-pack11": "37fc70",
         "tu15": "383700"
       },
-      "line": 38180,
+      "line": 38190,
       "literal_dispatch_required_targets": [],
       "observed_entry": "383700",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11197,7 +11414,7 @@
         "map-pack11": "37fc90",
         "tu15": "383720"
       },
-      "line": 38188,
+      "line": 38198,
       "literal_dispatch_required_targets": [],
       "observed_entry": "383720",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11218,7 +11435,7 @@
         "map-pack11": "37fcb0",
         "tu15": "383740"
       },
-      "line": 38196,
+      "line": 38206,
       "literal_dispatch_required_targets": [],
       "observed_entry": "383740",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -11232,7 +11449,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/physics/runtime/physics_world_runtime_generated.cpp",
-  "source_bytes": 5692112,
+  "source_bytes": 5693024,
   "source_filename_scope": "generated",
-  "source_sha256": "127d9b0f1a002dc702d408430c040089ef820f5c79f7bd7830bc6b248bb71821"
+  "source_sha256": "619a8c66094eb1f157eb83eae60fe01ba8bf0b44066bf653e812687a562432a2"
 }

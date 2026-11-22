@@ -50,6 +50,11 @@ struct NativeCampaignAiPerformServicesTu15 {
     // candidates) require identical stores and EAX. [0] matched, [1] native
     // refusals (the translated result is kept).
     std::array<std::uint64_t,2> *differential_goal_evaluation{};
+    // The direction probe's real collision, floor projection and gated
+    // navigation-link owners. The campaign World authenticates each call site.
+    NativeCampaignAiPerformCalleeTu15 behavior_direction_geometry;
+    // Real vehicle point/collision owner for 275D8B -> F35D0 in command movement.
+    NativeCampaignAiPerformCalleeTu15 vehicle_navigation_point;
 };
 // Existing native26A2E0 goal-selection owner exposed for other actual callers.
 // EDI actor, EBX type-4 request; stack mode, output actor, leased workspace,

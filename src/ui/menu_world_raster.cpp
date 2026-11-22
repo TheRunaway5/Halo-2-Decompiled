@@ -11,7 +11,7 @@ bool base(MenuWorldRasterLayer layer) {
 bool supported(MenuWorldRasterLayer layer) {
   return base(layer) || layer==MenuWorldRasterLayer::emissive_7 ||
       layer==MenuWorldRasterLayer::shadow_10 || layer==MenuWorldRasterLayer::shadow_apply_11 ||
-      layer==MenuWorldRasterLayer::sphere_diffuse_12 ||
+      layer==MenuWorldRasterLayer::sphere_diffuse_12 || layer==MenuWorldRasterLayer::light_texture_14 ||
       layer==MenuWorldRasterLayer::planar_fog_16 || layer==MenuWorldRasterLayer::hologram_21;
 }
 }

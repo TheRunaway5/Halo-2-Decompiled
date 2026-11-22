@@ -1,10 +1,8 @@
 {
   "callback_image_scope": "image-selected-or-unresolved",
   "cmake_registration_sites": [],
-  "configured_production_scope": "included",
-  "configured_production_target_ids": [
-    "halo2_native_weapon_effect_dispatch_tu15::@6890427a1f51a3e7e1df"
-  ],
+  "configured_production_scope": "not_in_configured_prepared_source_or_include_closure_requires_audit",
+  "configured_production_target_ids": [],
   "gate_sources": {},
   "internal_dispatch_identity_evidence": {},
   "part": 0,
@@ -138,7 +136,7 @@
   "source_inclusion_candidates": [
     {
       "including_source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
-      "line": 1636,
+      "line": 1640,
       "preprocessor_admission_qualified": false,
       "production_candidate_targets": [
         "halo2_native_weapon_effect_dispatch_tu15"

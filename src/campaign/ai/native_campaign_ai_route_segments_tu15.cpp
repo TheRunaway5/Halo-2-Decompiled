@@ -3,9 +3,9 @@
 #include "halo2/native_campaign_ai_point_geometry_tu15.hpp"
 #include "halo2/native_tu15_look_vector_angle.hpp"
 #include "halo2/detail/native_tu15_arithmetic_environment.hpp"
+#include "halo2/detail/physics_scalar_memory.hpp"
 #include <bit>
 #include <cstring>
-#include <vector>
 
 namespace halo2 {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -56,10 +56,7 @@ struct Segments {
         return value;
     }
     void w(u32 site,u32 address,u32 value,unsigned width=4)const {
-        SourcePhysicsContactRecordStore event{site,address,{},std::vector<std::byte>(width)};
-        if(observe){event.before.resize(width);memory.read(address,event.before);}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));
-        memory.write(address,event.written);if(observe)observe(event);
+        physics_step_detail::w(memory,observe,site,address,width,value);
     }
     void push(u32 &sp,u32 value)const {
         sp-=4u;std::array<std::byte,4> raw{};

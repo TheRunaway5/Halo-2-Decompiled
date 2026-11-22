@@ -12,6 +12,7 @@ struct SourceWorldDrawStorageContext {
     VkPhysicalDevice physical{};
     VkDescriptorSetLayout texture_layout{};
     VkDeviceSize material_uniform_size{};
+    bool reuse_descriptor_sets{};
 };
 // Complete dimensional bank for one already-owned selected image page.
 // Inactive dimensions retain the caller's actual resident fallback views.

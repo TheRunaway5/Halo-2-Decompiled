@@ -21,6 +21,7 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include <map>
 #include <array>
+#include <cstdlib>
 #include <cstring>
 #include <algorithm>
 #include <set>
@@ -63,6 +64,11 @@ struct SourceMachineScene::Impl {
         // checkpoint state. Each hit also retains the fresh kernel's FP/errno
         // effects through ModelWorldPoseCache's strict admission gate.
         std::array<ModelWorldPoseCache,6> pose_cache;
+        std::uint32_t campaign_pose_owner=0xffffffffu;
+        void clear_campaign_poses() noexcept {
+            pose_cache={};
+            campaign_pose_owner=0xffffffffu;
+        }
         std::array<std::uint8_t,6> lod_alias{0,1,2,3,4,5};
         std::array<const void*,12> lod_alias_key{};
         bool lod_alias_ready=false;
@@ -541,6 +547,10 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
     packet->resources_=impl_;packet->authority_=impl_->campaign_authority;
     packet->generation_=impl_->campaign_authority->generation.load(std::memory_order_acquire);
     packet->sections_.reserve(draws.size());packet->ordinals.reserve(draws.size());
+    static const bool reference_skins=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_CAMPAIGN_MACHINE_VIEW_SKINS");
+        return value && *value;
+    }();
     std::set<unsigned> consumed;
     for(const auto&draw:draws) {
         const auto owned=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),
@@ -554,7 +564,7 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         if(at==impl_->state.machines.end()||live.handle!=draw.object||
            live.script_hidden||(!live.visible&&!live.bsp_hidden))
             throw FormatError("Campaign machine draw lost its actual full scene owner/placement");
-        const auto&machine=*at;Impl::require_resources(machine);
+        auto&machine=*at;Impl::require_resources(machine);
         if(draw.unit.words[1]!=machine.definition.render_model||draw.lod>=6||draw.override_slot!=255||
            (draw.lighting_class!=2&&draw.lighting_class!=3)||draw.lighting_class!=(draw.unit.words[0]>>29))
             throw FormatError("Campaign machine draw lost its actual model/LOD/class/override contract");
@@ -577,7 +587,21 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         const auto nodes=world.rendered_world_nodes(draw.object);
         if(!nodes||nodes->empty())throw FormatError("Campaign machine draw lost its completed rendered WORLD nodes");
         const auto section=(draw.unit.words[3]>>9u)&511u;
-        auto selected=machine.geometry.selected_section_world(draw.lod,section,{0,draw.coverage},shader,*nodes);
+        const SourceModelShaderCollector collector{0,draw.coverage};
+        auto selected=[&] {
+            if(reference_skins)
+                return machine.geometry.selected_section_world(draw.lod,section,collector,shader,*nodes);
+            if(machine.campaign_pose_owner!=draw.object) {
+                machine.clear_campaign_poses();
+                machine.campaign_pose_owner=draw.object;
+            }
+            // Section selection still uses the current draw's shader and coverage.
+            // Only the same model's WORLD skin can be reused, after checking the
+            // newly observed nodes and the original arithmetic effects.
+            const auto& model=machine.geometry.at(draw.lod).model;
+            const auto pose=machine.pose_cache[draw.lod].update_preserving_effects(model,*nodes);
+            return machine.geometry.selected_section_pose(draw.lod,section,collector,shader,pose.vertices);
+        }();
         const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16u));
         for(auto&vertex:selected.vertices)vertex.source_stipple_level=stipple;
         if(selected.vertices.empty())continue;
@@ -626,7 +650,10 @@ void SourceMachineScene::rebase_campaign_materials(unsigned before,unsigned afte
     for(const auto&machine:impl_->state.machines)if(!machine.resource_error)
         machine.geometry.validate_material_rebase(before,after);
     impl_->retire_campaign_packets();
-    for(auto&machine:impl_->state.machines)if(!machine.resource_error)machine.geometry.rebase_materials(before,after);
+    for(auto&machine:impl_->state.machines)if(!machine.resource_error) {
+        machine.clear_campaign_poses();
+        machine.geometry.rebase_materials(before,after);
+    }
     for(auto&slot:impl_->resource_slots)slot.material=translate(slot.material);
 }
 std::unique_ptr<SourceMachineScene> SourceMachineScene::fork()const {
@@ -777,6 +804,7 @@ void SourceMachineScene::reset_lifetimes() noexcept {
         const auto generation=s.campaign_authority->generation.load(std::memory_order_relaxed);
         if(generation==std::numeric_limits<std::uint64_t>::max())s.campaign_authority->alive.store(false,std::memory_order_release);
         else s.campaign_authority->generation.store(generation+1,std::memory_order_release);
+        for(auto& machine:s.state.machines)machine.clear_campaign_poses();
         s.campaign_frame=0;++s.revision;return;
     }
     ++s.revision;s.state.last_tick=0;s.state.render_frame=0;s.state.lifetimes_bound=false;

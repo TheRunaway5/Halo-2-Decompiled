@@ -33,7 +33,7 @@ int main(int argc,char** argv)try {
     for(unsigned i=0;i<4;++i)file<<"option "<<std::quoted(name)<<' '<<256+i<<' '<<3+i<<'\n';}
   MenuState menu(frontend,preferences.path);menu.accept();menu.accept();
   check(menu.signed_in_profile()==name,"Selected saved profile was not signed in");
-  choose(menu,2,30);choose(menu,0,14);menu.select(0);menu.accept();
+  choose(menu,1,218); choose(menu,0,30);choose(menu,0,14);menu.select(0);menu.accept();
   check(menu.launch && menu.launch->selected_profiles.size()==1 && menu.launch->local_players==1,
       "Normal Start lost the selected complete profile or invented users");
   const auto requested=menu.launch->selected_profiles[0];

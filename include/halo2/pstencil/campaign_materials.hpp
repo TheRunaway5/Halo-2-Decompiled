@@ -17,6 +17,7 @@ public:
     CampaignMaterialUpdates();
     ~CampaignMaterialUpdates();
     void request(Renderer&,std::span<const Material>);
-    void flush(Renderer&,std::span<const Material>,const CampaignMaterialConsumers&,std::uint64_t frame);
+    void flush(Renderer&,std::span<const Material>,const CampaignMaterialConsumers&,
+               std::uint64_t frame,std::uint64_t bank_generation);
 };
 }

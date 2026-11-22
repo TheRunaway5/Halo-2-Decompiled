@@ -76,6 +76,7 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESS
     endif()
     foreach(_fixture native_campaign_hs_command_builtins native_campaign_hs_command_face
             native_campaign_hs_command_look native_campaign_hs_command_go_face
+            native_campaign_hs_combat_status_abort
             native_campaign_ai_command_facing native_campaign_ai_command_hs_parents)
         add_test(NAME ${_fixture}_tu15
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_native_campaign_screen_lifecycle_tu15.py"

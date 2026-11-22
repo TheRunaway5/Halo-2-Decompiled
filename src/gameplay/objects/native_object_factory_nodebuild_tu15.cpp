@@ -13,15 +13,23 @@
 #include "halo2/native_object_factory_unitactions_tu15.hpp"
 #include "halo2/native_tu15_object_motion.hpp"
 #include "native_object_factory_tu15_internal.hpp"
+#include "gameplay/animation/native_tu15_animation_channel_postprocess.hpp"
 #include "campaign/scripting/native_campaign_script_fp_tu15.hpp"
+#if HALO2_NATIVE_SCRIPT_X86_FP
+#include "physics/runtime/native_tu15_matrix_leaves.hpp"
+#endif
 #include "halo2/native_tu15_page_allocator.hpp"
 #include "halo2/native_tu15_data_array_delete.hpp"
 #include <array>
+#include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
+#include <span>
 #include <xmmintrin.h>
 #include <cstdio>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace halo2::native_object_factory_tu15 {
@@ -88,6 +96,27 @@ public:
   u32 r32(u32 a)const{return local(a,4)?load(a,4):detail::r32(m_,a);}
   u32 r16(u32 a)const{return local(a,2)?load(a,2):detail::r16(m_,a);}
   u32 r8(u32 a)const{return local(a,1)?load(a,1):detail::r8(m_,a);}
+  // Only use within a consecutive read-only part of the original routine.
+  // A declined extent leaves all reads, including faults, to the scalar path.
+  template<std::size_t Size>
+  bool try_read_words(u32 a,std::span<std::byte,Size> words)const noexcept {
+    if constexpr(std::endian::native!=std::endian::little)return false;
+    if(a<base) {
+      if(Size>base-a)return false;
+      if(const auto* page=m_.direct_page(a,Size)) {
+        std::memcpy(words.data(),page->bytes+(a&4095u),Size);
+        return true;
+      }
+      if(const auto view=m_.try_read_view(a,Size);view && view->size()==Size) {
+        std::memcpy(words.data(),view->data(),Size);
+        return true;
+      }
+    } else if(a>=base+floor_ && a<=base+size && Size<=base+size-a) {
+      std::memcpy(words.data(),locals_.data()+(a-base),Size);
+      return true;
+    }
+    return false;
+  }
   void w32(u32 a,u32 v){if(local(a,4))save(a,v,4);else detail::w32(m_,a,v);}
   void w16(u32 a,u32 v){if(local(a,2))save(a,v,2);else detail::w16(m_,a,std::uint16_t(v));}
   void w8(u32 a,u32 v){if(local(a,1))save(a,v,1);else detail::w8(m_,a,std::uint8_t(v));}
@@ -163,6 +192,7 @@ private:
 class FrameMemory final : public M {
 public:
   explicit FrameMemory(Frame& f):f_(f){}
+  const M& backing()const{return f_.world();}
   void read(u32 a,std::span<std::byte> out)const override {
     if(a<Frame::base){f_.world().read(a,out);return;}
     for(std::size_t k=0;k<out.size();++k)out[k]=std::byte(f_.r8(a+u32(k)));
@@ -178,24 +208,83 @@ private:
 // REP MOVSD: ascending word copy, one read then one store per word.
 void copy_words(Frame& f,u32 to,u32 from,u32 words){for(u32 n=0;n<words;++n)f.w32(to+4u*n,f.r32(from+4u*n));}
 
+#if HALO2_NATIVE_SCRIPT_X86_FP
+struct ProductRows {
+  __m128 forward,left,up,position;
+
+  static __m128 row(const std::array<u32,3>& words) {
+    return std::bit_cast<__m128>(std::array{words[0],words[1],words[2],0u});
+  }
+  static __m128 broadcast(u32 word) {
+    return std::bit_cast<__m128>(std::array{word,word,word,word});
+  }
+  template<bool translation>
+  std::array<u32,3> compose(u32 bx,u32 by,u32 bz,u32 scale,u32 mxcsr)const {
+    using native_tu15_leaves::ordered_add_ps;
+    using native_tu15_leaves::ordered_mul_ps;
+    auto x=broadcast(bx),y=broadcast(by),z=broadcast(bz);
+    const auto mode=sse::sse_control(mxcsr);
+    u32 host;
+    // Arithmetic depends on the three coefficients after the mode load.
+    // Restore the host environment before any subsequent bank observation.
+    asm volatile("stmxcsr %0\n\tldmxcsr %4"
+        :"=&m"(host),"+x"(x),"+x"(y),"+x"(z):"m"(mode):"memory");
+    x=ordered_mul_ps(x,forward);
+    y=ordered_mul_ps(y,left);
+    z=ordered_mul_ps(z,up);
+    if constexpr(translation)
+      x=ordered_add_ps(ordered_mul_ps(ordered_add_ps(ordered_add_ps(x,y),z),broadcast(scale)),position);
+    else
+      x=ordered_add_ps(x,ordered_add_ps(y,z));
+    asm volatile("ldmxcsr %1":"+x"(x):"m"(host):"memory");
+    const auto words=std::bit_cast<std::array<u32,4>>(x);
+    return {words[0],words[1],words[2]};
+  }
+};
+#endif
+
 // 145560. A is read whole before the first store; each B row is read around
 // the preceding row's store exactly as the original orders them.
 u32 product(Frame& f,u32 a,u32 b,u32 out) {
+  static const bool scalar_reads=[] {
+    const auto* value=std::getenv("HALO2_REFERENCE_NODE_MATRIX_READS");
+    return value && *value && *value!='0';
+  }();
   const u32 as=f.r32(a),bs=f.r32(b);
-  const u32 bpx=f.r32(b+0x28u),bpy=f.r32(b+0x2cu),bpz=f.r32(b+0x30u);
+  std::array<u32,3> position;
+  if(scalar_reads || !f.try_read_words(b+0x28u,std::as_writable_bytes(std::span(position)))) {
+    position={f.r32(b+0x28u),f.r32(b+0x2cu),f.r32(b+0x30u)};
+  }
+  const auto [bpx,bpy,bpz]=position;
   const u32 scale=f.mul(bs,as);
-  std::array<u32,3> af,al,au,ap;
-  for(u32 k=0;k<3;++k){af[k]=f.r32(a+4u+4u*k);al[k]=f.r32(a+0x10u+4u*k);au[k]=f.r32(a+0x1cu+4u*k);}
-  for(u32 k=0;k<3;++k)ap[k]=f.r32(a+0x28u+4u*k);
+  std::array<std::array<u32,3>,4> rows;
+  static_assert(sizeof(rows)==0x30u);
+  auto& [af,al,au,ap]=rows;
+  if(scalar_reads || !f.try_read_words(a+4u,std::as_writable_bytes(std::span(rows)))) {
+    for(u32 k=0;k<3;++k){af[k]=f.r32(a+4u+4u*k);al[k]=f.r32(a+0x10u+4u*k);au[k]=f.r32(a+0x1cu+4u*k);}
+    for(u32 k=0;k<3;++k)ap[k]=f.r32(a+0x28u+4u*k);
+  }
   std::array<u32,3> row;
-  for(u32 k=0;k<3;++k)
-    row[k]=f.add(f.mul(f.add(f.add(f.mul(bpx,af[k]),f.mul(bpy,al[k])),f.mul(bpz,au[k])),as),ap[k]);
+#if HALO2_NATIVE_SCRIPT_X86_FP
+  static const bool reference=[] {
+    const auto *p=std::getenv("HALO2_REFERENCE_NODE_MATRIX_PRODUCT");return p && *p;
+  }();
+  const ProductRows packed{ProductRows::row(af),ProductRows::row(al),ProductRows::row(au),ProductRows::row(ap)};
+  if(!reference)row=packed.compose<true>(bpx,bpy,bpz,as,f.mxcsr());
+  else
+#endif
+    for(u32 k=0;k<3;++k)
+      row[k]=f.add(f.mul(f.add(f.add(f.mul(bpx,af[k]),f.mul(bpy,al[k])),f.mul(bpz,au[k])),as),ap[k]);
   // Up/left/forward: x*f + (y*l + z*u); z is read before the previous store.
   u32 z=f.r32(b+0x24u);
   f.w32(out+0x28u,row[0]);f.w64(out+0x2cu,row[1],row[2]);
   const auto basis=[&](u32 at,u32 next_z,u32 store_at) {
     const u32 y=f.r32(b+at+4u),x=f.r32(b+at);
-    for(u32 k=0;k<3;++k)row[k]=f.add(f.mul(x,af[k]),f.add(f.mul(y,al[k]),f.mul(z,au[k])));
+#if HALO2_NATIVE_SCRIPT_X86_FP
+    if(!reference)row=packed.compose<false>(x,y,z,as,f.mxcsr());
+    else
+#endif
+      for(u32 k=0;k<3;++k)row[k]=f.add(f.mul(x,af[k]),f.add(f.mul(y,al[k]),f.mul(z,au[k])));
     if(next_z)z=f.r32(b+next_z);
     f.w32(out+store_at,row[0]);f.w64(out+store_at+4u,row[1],row[2]);
   };
@@ -206,36 +295,129 @@ u32 product(Frame& f,u32 a,u32 b,u32 out) {
   return out;
 }
 
-// 144CF0.
+#if HALO2_NATIVE_SCRIPT_X86_FP
+u32 packed_orientation_length(__m128 q,u32 mxcsr) {
+  using namespace native_tu15_leaves;
+  const auto mode=sse::sse_control(mxcsr);
+  u32 host;
+  asm volatile("stmxcsr %0\n\tldmxcsr %2":"=&m"(host),"+x"(q):"m"(mode):"memory");
+  auto length=ordered_mul_ps(q,q);
+  length=ordered_add_ps(length,_mm_movehl_ps(length,length));
+  length=ordered_sum_ss(length,_mm_shuffle_ps(length,length,0x55));
+  asm volatile("ldmxcsr %1":"+x"(length):"m"(host):"memory");
+  return low_bits(length);
+}
+
+struct PackedOrientationProducts {
+  __m128 scaled,i,w,j;
+
+  static PackedOrientationProducts make(__m128 q,u32 length,u32 mxcsr) {
+    using namespace native_tu15_leaves;
+    auto n=scalar_bits(length);
+    const auto mode=sse::sse_control(mxcsr);
+    u32 host;
+    asm volatile("stmxcsr %0\n\tldmxcsr %3"
+        :"=&m"(host),"+x"(q),"+x"(n):"m"(mode):"memory");
+    const auto r=_mm_rcp_ss(n);
+    const auto nr=ordered_mul_ss(ordered_mul_ss(n,r),r);
+    const auto refined=ordered_difference_ss(ordered_sum_ss(r,r),nr);
+    const auto factor=ordered_sum_ss(refined,refined);
+    auto scaled=ordered_mul_ps(q,_mm_shuffle_ps(factor,factor,0));
+    auto i=ordered_mul_ps(_mm_shuffle_ps(q,q,0),scaled);
+    auto w=ordered_mul_ps(_mm_shuffle_ps(q,q,0xff),scaled);
+    auto j=ordered_mul_ps(_mm_shuffle_ps(q,q,0x55),scaled);
+    asm volatile("ldmxcsr %4":"+x"(scaled),"+x"(i),"+x"(w),"+x"(j):"m"(host):"memory");
+    return {scaled,i,w,j};
+  }
+
+  std::pair<std::array<u32,4>,u32> finish(u32 k,u32 mxcsr) const {
+    using namespace native_tu15_leaves;
+    auto kk=_mm_movehl_ps(scaled,scaled);
+    auto left=_mm_shuffle_ps(i,i,0x99);
+    const auto signs=std::bit_cast<__m128>(std::array{sign_bit,0u,0u,sign_bit});
+    const auto right=_mm_xor_ps(_mm_shuffle_ps(w,w,0x66),signs);
+    const auto mode=sse::sse_control(mxcsr);
+    u32 host;
+    asm volatile("stmxcsr %0\n\tldmxcsr %3"
+        :"=&m"(host),"+x"(kk),"+x"(left):"m"(mode):"memory");
+    kk=ordered_mul_ss(kk,scalar_bits(k));
+    left=ordered_add_ps(left,right);
+    asm volatile("ldmxcsr %2":"+x"(kk),"+x"(left):"m"(host):"memory");
+    return {std::bit_cast<std::array<u32,4>>(left),low_bits(kk)};
+  }
+};
+#endif
+
+// 144CF0. Keep the world observations between masked arithmetic scopes.
 void orientation(Frame& f,u32 out,u32 q) {
   if(!(f.r8(epsilon_flag)&1u)) {
     f.w32(epsilon_flag,f.r32(epsilon_flag)|1u);
     f.w32(epsilon_value,epsilon_f);
   }
-  const u32 i=f.r32(q),j=f.r32(q+4u),k=f.r32(q+8u),w=f.r32(q+0xcu);
-  const u32 n=f.add(f.add(f.mul(i,i),f.mul(k,k)),f.add(f.mul(j,j),f.mul(w,w)));
+  static const bool scalar_reads=[] {
+    const auto* value=std::getenv("HALO2_REFERENCE_NODE_ORIENTATION_READS");
+    return value && *value && *value!='0';
+  }();
+  std::array<u32,4> operands;
+  if(scalar_reads || !f.try_read_words(q,std::as_writable_bytes(std::span(operands))))
+    operands={f.r32(q),f.r32(q+4u),f.r32(q+8u),f.r32(q+0xcu)};
+  const auto [i,j,k,w]=operands;
+  u32 n;
+#if HALO2_NATIVE_SCRIPT_X86_FP
+  static const bool reference=[] {
+    const auto* value=std::getenv("HALO2_REFERENCE_NODE_ORIENTATION_MATH");
+    return value && *value;
+  }();
+  const auto quaternion=std::bit_cast<__m128>(std::array{i,j,k,w});
+  if(!reference)n=packed_orientation_length(quaternion,f.mxcsr());
+  else
+#endif
+    n=f.add(f.add(f.mul(i,i),f.mul(k,k)),f.add(f.mul(j,j),f.mul(w,w)));
   if(!f.greater(n,f.r32(epsilon_value))) {
     f.w64(out+4u,one,0);f.w64(out+0xcu,0,0);f.w64(out+0x14u,one,0);f.w64(out+0x1cu,0,0);f.w32(out+0x24u,one);
   } else {
-    const u32 r=f.rcp(n);
-    const u32 s=[&]{const u32 twice=f.sub(f.add(r,r),f.mul(f.mul(n,r),r));return f.add(twice,twice);}();
-    const std::array qs{f.mul(i,s),f.mul(j,s),f.mul(k,s),f.mul(w,s)};
-    std::array<u32,4> I,W,J;
-    for(u32 n2=0;n2<4;++n2){I[n2]=f.mul(i,qs[n2]);W[n2]=f.mul(w,qs[n2]);J[n2]=f.mul(j,qs[n2]);}
-    const u32 kk=f.mul(qs[2],f.r32(q+8u));
-    const std::array X{f.add(I[1],W[2]^sign_bit),f.add(I[2],W[1]),f.add(I[1],W[2]),f.add(I[2],W[1]^sign_bit)};
+    u32 ii,jj,jk,wi,kk;
+    std::array<u32,4> X;
+#if HALO2_NATIVE_SCRIPT_X86_FP
+    if(!reference) {
+      const auto products=PackedOrientationProducts::make(quaternion,n,f.mxcsr());
+      const u32 current_k=f.r32(q+8u);
+      const auto cross=products.finish(current_k,f.mxcsr());
+      const auto j_products=std::bit_cast<std::array<u32,4>>(products.j);
+      ii=native_tu15_leaves::low_bits(products.i);
+      jj=j_products[1];
+      jk=j_products[2];
+      wi=native_tu15_leaves::low_bits(products.w);
+      X=cross.first;
+      kk=cross.second;
+    } else
+#endif
+    {
+      const u32 r=f.rcp(n);
+      const u32 twice=f.sub(f.add(r,r),f.mul(f.mul(n,r),r));
+      const u32 s=f.add(twice,twice);
+      const std::array qs{f.mul(i,s),f.mul(j,s),f.mul(k,s),f.mul(w,s)};
+      std::array<u32,4> I,W,J;
+      for(u32 n2=0;n2<4;++n2){I[n2]=f.mul(i,qs[n2]);W[n2]=f.mul(w,qs[n2]);J[n2]=f.mul(j,qs[n2]);}
+      kk=f.mul(qs[2],f.r32(q+8u));
+      X={f.add(I[1],W[2]^sign_bit),f.add(I[2],W[1]),f.add(I[1],W[2]),f.add(I[2],W[1]^sign_bit)};
+      ii=I[0];jj=J[1];jk=J[2];wi=W[0];
+    }
     f.w64(out+8u,X[2],X[3]);
     f.w32(out+0x10u,X[0]);
     f.w64(out+0x18u,X[0],X[1]);
     const u32 a=f.sub(one,kk);
-    f.w32(out+4u,f.sub(a,J[1]));
-    f.w32(out+0x14u,f.sub(a,I[0]));
-    f.w32(out+0x24u,f.sub(f.sub(one,I[0]),J[1]));
-    f.w32(out+0x20u,f.sub(J[2],W[0]));
-    f.w32(out+0x18u,f.add(J[2],W[0]));
+    f.w32(out+4u,f.sub(a,jj));
+    f.w32(out+0x14u,f.sub(a,ii));
+    f.w32(out+0x24u,f.sub(f.sub(one,ii),jj));
+    f.w32(out+0x20u,f.sub(jk,wi));
+    f.w32(out+0x18u,f.add(jk,wi));
   }
   f.w32(out,f.r32(q+0x1cu));
-  const u32 tx=f.r32(q+0x10u),ty=f.r32(q+0x14u);
+  std::array<u32,2> translation;
+  if(scalar_reads || !f.try_read_words(q+0x10u,std::as_writable_bytes(std::span(translation))))
+    translation={f.r32(q+0x10u),f.r32(q+0x14u)};
+  const auto [tx,ty]=translation;
   f.w64(out+0x28u,tx,ty);
   f.w32(out+0x30u,f.r32(q+0x18u));
 }
@@ -356,12 +538,22 @@ u32 physics_height(Frame& f,u32 object) {
   return f.mul(recovery_ramp(f,body+0x3ecu),height_scale_f);
 }
 
+thread_local const M* requester_memory=nullptr;
+thread_local const AnimationResourceRequester* bound_requester=nullptr;
+thread_local bool requester_backwards=false;
+bool has_animation_resource_requester(const M& memory) {
+  return &memory==requester_memory && bound_requester && *bound_requester;
+}
+void touch_animation_resource(const M& m,u32 graph,u32 animation,u32 return_address) {
+  if(!(r8(m,animation+0x16u)&0x10u))return;
+  const u32 index=r32(m,animation+0x24u);
+  const u32 table=r32(m,graph+0xb0u),row=index*20u+table;
+  request_animation_resource(m,{.row=row,.table=table,.graph=graph,.enabled=0,.return_address=return_address});
+}
 // 1E5AF0 (EAX animation index, EDX graph): resource-backed animation row.
 void animation_resource(const M& m,u32 graph,u32 index) {
   const u32 animation=index==none?0:r32(m,graph+0x30u)+index*0x6cu;
-  if(!(r8(m,animation+0x16u)&0x10u))return;
-  const u32 row=r32(m,animation+0x24u)*20u+r32(m,graph+0xb0u);
-  if(r8(m,row+0x10u))refuse("126200","animation resource admission");
+  touch_animation_resource(m,graph,animation,0x1e5cfeu);
 }
 // 1E3270: inherited graph `index` of `graph`, or 0.
 u32 inherited_graph(const M& m,u32 graph,u32 index) {
@@ -383,10 +575,7 @@ void animation_request(const M& m,u32 graph,u32 id) {
   animation_resource(m,g,high);
   while(r16(m,current+0x32u)!=0xffffu) {
     const u32 next=row(sx16(r16(m,current+0x32u)));
-    if(r8(m,next+0x16u)&0x10u) {
-      const u32 resource=r32(m,next+0x24u)*20u+r32(m,g+0xb0u);
-      if(r8(m,resource+0x10u))refuse("126200","animation resource admission");
-    }
+    touch_animation_resource(m,g,next,0x1e5d3du);
     current=row(sx16(r16(m,current+0x32u)));
   }
 }
@@ -1458,7 +1647,12 @@ void resource_read(Frame& f,u32 entry,u32 mode) {
 // claims its entry (16E770) and reads the resource (1260C0).
 u32 resource_load(Frame& f,u32 row,u32 name) {
   (void)name;
-  if(pending_request(f,row)!=none)refuse("16E8A0","animation resource request release");
+  const u32 pending=pending_request(f,row);
+  if(pending!=none) {
+    if(!has_animation_resource_requester(f.world()) || requester_backwards)
+      refuse("16E8A0","animation resource request release");
+    native_tu15_data_array_delete(f.world(),f.r32(resource_requests),pending);
+  }
   const u32 handle=f.r32(row+0xcu);
   if(handle==none) {
     const u32 block=cache_allocate(f,row);
@@ -2358,12 +2552,18 @@ u32 blend_fraction(Frame& f,u32 manager) {
   else if(f.greater(x,blend_limit_f))x=blend_limit_f;
   return clamp_unit(f,f.mul(x,blend_scale_f));
 }
+// 1D63C0: apply the channel-2 displacement to the sampled root.
+void postprocess_channel(Frame& f,u32 manager,u32 weight,u32 orientations) {
+  native_animation_channel_postprocess_detail::apply(f,manager,weight,orientations,
+      [&](u32 graph,u32 id){return animation_lookup(f.world(),graph,id);});
+}
 // 1D5840: channel 2 (+40), the channel 1 (+20) blend, else channel 0.
 void sample_channels(Frame& f,u32 manager,u32 weight,u32 mask,u32 orientations,u32 count) {
   if(f.r8(0x47c1b5u) && f.r32(manager+0x40u)!=none && f.r16(manager+0x46u)!=0xffffu) {
     sample_channel(f,manager+0x40u,weight,mask,count,orientations);
     if(s32(count)<=0 || (mask && !(f.r8(mask)&1u)))return;
-    refuse("1D63C0","animation channel post-process");
+    postprocess_channel(f,manager,weight,orientations);
+    return;
   }
   if(f.r8(0x47c1b4u) && f.r32(manager+0x20u)!=none) {
     if(f.r16(manager+0x26u)!=0xffffu && f.at_least(f.r32(manager+0x80u),blend_limit_f)) {
@@ -4638,6 +4838,17 @@ void first_person_update(Frame& f,u32 user) {
 }
 
 NodeRebuildDebugLog& node_rebuild_debug_log(){thread_local NodeRebuildDebugLog log;return log;}
+void detail::request_animation_resource(const M& m,AnimationResourceTouch touch) {
+  touch.enabled=r8(m,touch.row+0x10u);
+  if(!touch.enabled)return;
+  const M* backing=&m;
+  // Weapon channels may live in a private node frame. A resource row
+  // wholly below that frame still belongs to its real World backing.
+  if(std::uint64_t(touch.row)+20u<=Frame::base)
+    while(const auto* frame=dynamic_cast<const FrameMemory*>(backing))backing=&frame->backing();
+  if(!has_animation_resource_requester(*backing))refuse("126200","animation resource admission without a bound requester");
+  (*bound_requester)(*backing,touch);
+}
 bool node_mask_empty(const M& m,std::uint32_t mask) {
   bool empty=true;
   for(u32 n=8;n-->0;)empty=!r32(m,mask+4u*n) && empty;
@@ -4679,6 +4890,9 @@ bool object_animation_frozen(const M& m,std::uint32_t object) {
   return object!=none && r8(m,object_body(m,object)+0xb3u)!=0;
 }
 bool animation_manager_valid(const M& m,std::uint32_t manager){return manager_valid(m,manager);}
+void weapon_animation::graph_require_resident(const M& m,std::uint32_t graph,std::uint32_t handle) {
+  animation_request(m,graph,handle);
+}
 std::uint32_t animation_definition(const M& m,std::uint32_t graph,std::uint32_t id){return animation_lookup(m,graph,id);}
 std::uint32_t animation_manager_definition(const M& m,std::uint32_t manager){return manager_animation(m,manager);}
 std::uint32_t biped_physics_height(const M& m,std::uint32_t object,std::uint32_t mxcsr) {
@@ -4743,6 +4957,14 @@ AnimationResourceReaderScope::AnimationResourceReaderScope(const AnimationResour
   bound_reader=&reader;
 }
 AnimationResourceReaderScope::~AnimationResourceReaderScope(){bound_reader=previous_;}
+AnimationResourceRequesterScope::AnimationResourceRequesterScope(const M& memory,
+    const AnimationResourceRequester& requester,bool backwards)
+    :previous_memory_(requester_memory),previous_(bound_requester),previous_backwards_(requester_backwards) {
+  requester_memory=&memory;bound_requester=&requester;requester_backwards=backwards;
+}
+AnimationResourceRequesterScope::~AnimationResourceRequesterScope() {
+  requester_memory=previous_memory_;bound_requester=previous_;requester_backwards=previous_backwards_;
+}
 void object_physics_nodes(M& m,std::uint32_t component,std::uint32_t mask,std::uint32_t height,NodeRebuildFp& fp) {
   Frame f(m,fp);
   physics_node_delivery(f,component,mask,8u,height);

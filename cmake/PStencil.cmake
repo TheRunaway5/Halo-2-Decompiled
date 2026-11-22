@@ -354,7 +354,7 @@ if(BUILD_TESTING)
             "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
             ${CMAKE_CURRENT_BINARY_DIR}/pstencil-scenario-light-results)
         add_test(NAME pstencil_projected_resident_constants COMMAND pstencil_projected_constants_tests
-            "${PSTENCIL_GAMEPLAY_XBE}" ${PROJECT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+            "${PSTENCIL_GAMEPLAY_XBE}" "${halo2_point_light_asset_root}/assets/disc/maps/00a_introduction.map")
         add_test(NAME pstencil_native_attached_light COMMAND pstencil_attached_lights_tests
             "${PSTENCIL_GAMEPLAY_XBE}" "${halo2_point_light_asset_root}/assets/disc/maps/coagulation.map")
         add_test(NAME pstencil_native_cinematic_incident COMMAND pstencil_native_incident_tests

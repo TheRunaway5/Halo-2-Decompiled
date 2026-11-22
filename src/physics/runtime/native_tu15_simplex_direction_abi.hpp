@@ -17,7 +17,7 @@ template<class State,class Before=Noop>struct Access {
     static bool first(const Data&d){return d.side==Side::first_edge;}
     void at(std::uint32_t pc){
         if(s.instruction_cursor&&s.instruction_cursor->position)*s.instruction_cursor->position=pc;
-        fp.io([&]{before(s,pc);});
+        if(!native_raw_x87_detail::skip_hook<Before>())fp.io([&]{before(s,pc);});
     }
     std::uint32_t vector_pc(P phase,const Data&d)const{
         const bool a=first(d);

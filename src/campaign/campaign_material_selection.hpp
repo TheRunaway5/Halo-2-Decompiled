@@ -2,18 +2,27 @@
 #include "halo2/pstencil/campaign_materials.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "rendering/renderer/material_frame_selection.hpp"
+#include <optional>
 
 namespace halo2 {
 // Select the completed frame's resident roots, including every owner of any
 // shared child pass. Selection does not advance animation or copy Materials.
 class CampaignMaterialSelection {
     MaterialFrameSelection selection_;
+    std::optional<std::uint64_t> bank_generation_;
 public:
-    explicit CampaignMaterialSelection(std::span<const Material> materials):selection_(materials){}
+    explicit CampaignMaterialSelection(std::span<const Material> materials,
+        std::optional<std::uint64_t> bank_generation={}):selection_(materials),bank_generation_(bank_generation){}
     std::vector<unsigned> collect(std::span<const Material> materials,
-                                 const pstencil::CampaignMaterialConsumers& c) {
-        // Campaign producers can replace entire child graphs, not only detach.
-        selection_.begin_frame(materials);
+                                 const pstencil::CampaignMaterialConsumers& c,
+                                 std::optional<std::uint64_t> bank_generation={}) {
+        // Weapon, HUD and pause animation can only change values or detach
+        // passes within a resident BSP bank. A new bank can reuse its storage.
+        if(bank_generation) {
+            if(bank_generation_!=bank_generation)selection_=MaterialFrameSelection(materials);
+            selection_.begin_frame_with_detach_only_pass_graph(materials);
+        } else selection_.begin_frame(materials);
+        bank_generation_=bank_generation;
         for(const auto vertices:{c.world,c.debug,c.foreground,c.background,c.hud})selection_.add(vertices);
         const auto light_volume=[&](const SourceLightVolumeDraw& draw) {
             selection_.add(draw.material);

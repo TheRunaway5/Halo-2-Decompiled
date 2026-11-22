@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_command_part_prepare.hpp"
+#include "../src/rendering/world/native_tu15_command_arithmetic.hpp"
 #include <algorithm>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -23,12 +24,12 @@ struct Memory:SourcePhysicsContactMemory {
     }
     void write(std::uint32_t,std::span<const std::byte>)override {throw std::runtime_error("45CD0 wrote outside its typed packet");}
 };
-J run(const J& row) {
+J run(const J& row,detail::CommandArithmeticPolicy policy) {
     Memory m;for(const auto& b:row.at("banks"))m.banks.push_back({b.at("address"),decode(b.at("before"))});
     std::array<std::byte,44> initial{};const auto packet=row.at("packet").get<std::uint32_t>();m.read(packet,initial);
     const auto& f=row.at("before_fp");NativeTu15PhysicsFrameFp fp{f[0],f[1],f[2]};
-    const auto out=native_tu15_command_part_prepare_45cd0(m,row.at("gp")[1],row.at("matrix"),row.at("source"),initial,fp);
-    J writes=J::array();for(const auto& s:out.stores) {
+    const auto out=detail::command_part_prepare(m,row.at("gp")[1],row.at("matrix"),row.at("source"),initial,fp,policy);
+    J writes=J::array();for(const auto& s:out.stores()) {
         std::array<std::byte,4> bytes{};for(unsigned i=0;i<s.bytes;++i)bytes[i]=std::byte(s.value>>(8*i));
         writes.push_back(J{{"instruction",s.instruction},{"address",packet+s.offset},{"written",hex(std::span(bytes).first(s.bytes))}});
     }
@@ -36,5 +37,14 @@ J run(const J& row) {
 }
 }
 int main()try {
-    std::string line;while(std::getline(std::cin,line))std::cout<<run(J::parse(line)).dump()<<'\n'<<std::flush;return 0;
+    using Policy=detail::CommandArithmeticPolicy;
+    std::string line;
+    while(std::getline(std::cin,line)) {
+        const auto row=J::parse(line);
+        const auto expected=run(row,Policy::Full);
+        const auto actual=detail::reference_command_x87_scope()?expected:run(row,Policy::RetainedSse);
+        if(actual!=expected)throw std::runtime_error("SSE-only 45CD0 differs from its full x87 scope");
+        std::cout<<actual.dump()<<'\n'<<std::flush;
+    }
+    return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

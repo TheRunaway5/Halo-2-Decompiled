@@ -2,11 +2,33 @@
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "halo2/native_tu15_mopp_aabb_traversal_kernel.hpp"
 #include "halo2/physics_contact_runtime.hpp"
+#include <bit>
 #include <cstdlib>
+#include <cstring>
 
 namespace halo2::native_mopp_aabb_abi_detail {
 using namespace native_mopp_aabb_detail;
 inline bool reference_mode(){static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_MOPP_AABB");return p&&*p;}();return enabled;}
+// Same-kernel comparison that restores virtual word reads at traversal entry.
+inline bool reference_read_scope() noexcept {
+    static const bool enabled=[]{const auto*p=std::getenv("HALO2_REFERENCE_MOPP_AABB_READ_SCOPE");return p&&*p;}();
+    return enabled;
+}
+
+// World admission is reevaluated at the same existing entry. This replaces
+// only selection of the authenticated immutable, non-tail self-call target.
+template<class State>bool retained_world_self_call(const State& s,std::uint32_t target,
+    std::uint32_t canonical_site,bool tail) noexcept {
+    if(tail || target!=0x309940u || s.image!=SourcePhysicsContactImage::TitleUpdate15 ||
+       !s.selected_observation_pcs)return false;
+    switch(canonical_site) {
+    case 0x306009u:case 0x30604du:case 0x306084u:case 0x3060f9u:break;
+    default:return false;
+    }
+    static const bool reference=[]{const auto* value=std::getenv("HALO2_REFERENCE_MOPP_WORLD_SELF_DISPATCH");
+        return value && *value;}();
+    return !reference;
+}
 struct Activity {std::uint64_t calls{},recursive_calls{},growths{},diagnostics{};};
 inline Activity&activity(){thread_local Activity value;return value;}
 struct Noop {template<class State>void operator()(State&,std::uint32_t)const{}};
@@ -50,9 +72,23 @@ template<unsigned Count,class State>std::uint32_t shifted_immediate(State&s,std:
     return s.flags.shift(value,Count,4);
 #endif
 }
-template<class State,class Call,class Before>class Frame {
+template<class State,class Call,class Before,bool DirectReads>class Frame {
     State&s_;Call&call_;Before&before_;bool first_{true};
     std::uint32_t word(std::uint32_t address,unsigned width=4)const{
+        if constexpr(DirectReads&&std::endian::native==std::endian::little) {
+            // A complete ordinary page has no read side effects. Look it up
+            // at the original read after the cursor/callback and keep virtual
+            // access for crossings, unpublished pages and other providers.
+            if(const auto*page=s_.memory.direct_page(address,width)) {
+                const auto*bytes=page->bytes+(address&4095u);
+                if(width==1u)return std::to_integer<std::uint32_t>(*bytes);
+                if(width==4u) {
+                    std::uint32_t value;
+                    std::memcpy(&value,bytes,sizeof(value));
+                    return value;
+                }
+            }
+        }
         std::array<std::byte,4>bytes{};s_.memory.read(address,std::span(bytes).first(width));std::uint32_t value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(n*8u);return value;
     }
@@ -354,7 +390,14 @@ template<bool CanonicalState,class State,class Call,class Before>bool bridge_pol
         if(s.observe&&!c->observation_only_stores)return false;
         for(const auto site:c->service_sites)if((site>=0x309940u&&site<=0x309f2cu)||(site>=0x305e40u&&site<=0x30642cu))return false;
     }
-    ++activity().calls;Frame<State,Call,Before> frame(s,call,before);native_mopp_aabb_detail::Traversal<decltype(frame)>(frame).run();return true;
+    ++activity().calls;
+    const auto run=[&]<bool DirectReads>{
+        Frame<State,Call,Before,DirectReads> frame(s,call,before);
+        native_mopp_aabb_detail::Traversal<decltype(frame)>(frame).run();
+    };
+    if(s.image==SourcePhysicsContactImage::TitleUpdate15&&!reference_read_scope())run.template operator()<true>();
+    else run.template operator()<false>();
+    return true;
 #endif
 }
 template<class State,class Call,class Before>bool bridge(State&s,Call call,Before before){return bridge_policy<false>(s,call,before);}

@@ -12,7 +12,20 @@
   "configured_production_target_ids": [
     "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
   ],
-  "gate_sources": {},
+  "gate_sources": {
+    "src/physics/runtime/native_tu15_arena_initialize_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_ARENA_INITIALIZE"
+      ],
+      "sha256": "70d78ced8b0ac958476a7ea63d13045be41c8eb2c99ef01506dcca42fe5653ef"
+    },
+    "src/physics/runtime/native_tu15_arena_world_initialize_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_ARENA_INITIALIZE"
+      ],
+      "sha256": "fd48287a14e5d0fe7ea53b6ae8bb41527b55e7ff97a1d203669d840684a17620"
+    }
+  },
   "internal_dispatch_identity_evidence": {
     "map-pack11": {
       "basis": "Complete simple internal actual-target dispatcher; selected resolver authenticated by exact grammar.",
@@ -30,7 +43,9 @@
     "halo2_physics_world_runtime"
   ],
   "production_scope": "static_production_candidate",
-  "reference_verification_gate_names": [],
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_ARENA_INITIALIZE"
+  ],
   "routine_count": 17,
   "routines": [
     {
@@ -43,7 +58,7 @@
         "map-pack11": "11e0f0",
         "tu15": "11f390"
       },
-      "line": 89,
+      "line": 91,
       "literal_dispatch_required_targets": [
         "32ba80"
       ],
@@ -66,7 +81,7 @@
         "map-pack11": "121fd0",
         "tu15": "123270"
       },
-      "line": 105,
+      "line": 107,
       "literal_dispatch_required_targets": [
         "2dbf74",
         "2e0342",
@@ -96,7 +111,7 @@
         "map-pack11": "122020",
         "tu15": "1232c0"
       },
-      "line": 132,
+      "line": 134,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_async_order_detail::insert"
@@ -118,23 +133,39 @@
         "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
         "runtime_include_source_sha256": {
           "include/halo2/native_tu15_async_queue_kernel.hpp": "3aff5dae2996f7498c53d388eae58e061fabccc300e4c75d31415cc5ee9718d7",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
           "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
           "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
           "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
           "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
-          "src/physics/runtime/native_tu15_matrix_leaves.hpp": "d37d36306486c9f4bb1f514b4a269b7cc11774eaabbf37da614b1f30fbdb9c06",
-          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "6dd00fc3a3c99d86af5fa8111b9407a23679fb971d56692ed67c3df52afcf108",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_matrix_leaves.hpp": "230be849a126915f156fb2004f59947131a23ee6334f07f8e80dc6b21a1de647",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
           "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
           "src/platform/native_tu15_async_order.hpp": "80cff0cd00fa6b113d3b54b0ffab3b0d3a1bd2a5eab0c3142393e48a572b8157",
-          "src/platform/native_tu15_async_queue_abi.hpp": "7ac572e0081e2e0d080e5b48c97d028948125f090a0869f721782509b854a921"
+          "src/platform/native_tu15_async_queue_abi.hpp": "eee8c059218cb7fdf63ccf84b09a417a8e64571d24df90a70370a37d2c3f45eb"
         },
-        "source_sha256": "cc3c66de58b417da176cd655f9bb94cf87103961df001cf1004068d9adf4180f",
+        "source_sha256": "a86a9e9ba2e3309bc6d4f6fae69e1ca5bb8a1491395c2492ed796bcb09e562b3",
         "target_body_rebinding_proved": true,
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "WorldState",
@@ -153,7 +184,7 @@
         "map-pack11": "1220e0",
         "tu15": "123380"
       },
-      "line": 208,
+      "line": 210,
       "literal_dispatch_required_targets": [
         "2e02c4",
         "2e0342",
@@ -178,7 +209,7 @@
         "map-pack11": "122150",
         "tu15": "1233f0"
       },
-      "line": 247,
+      "line": 249,
       "literal_dispatch_required_targets": [
         "2e0342",
         "2e0478"
@@ -202,7 +233,7 @@
         "map-pack11": "1221b0",
         "tu15": "123450"
       },
-      "line": 277,
+      "line": 279,
       "literal_dispatch_required_targets": [
         "2dbea6",
         "2dc0b6",
@@ -230,7 +261,7 @@
         "map-pack11": "122350",
         "tu15": "1235f0"
       },
-      "line": 329,
+      "line": 331,
       "literal_dispatch_required_targets": [],
       "observed_entry": "122350",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -253,7 +284,7 @@
         "map-pack11": "122360",
         "tu15": "123600"
       },
-      "line": 335,
+      "line": 337,
       "literal_dispatch_required_targets": [
         "2e02c4",
         "2e0342",
@@ -269,7 +300,13 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "29de6f07a200826b98de37dc58b56b2bd9cd59f81e0c96e169e51de821af0551",
+      "admission_prefix_calls": [
+        "dispatch",
+        "halo2::native_arena_initialize_owner_detail::bridge",
+        "halo2::native_arena_world_initialize_owner_detail::bridge",
+        "std::logic_error"
+      ],
+      "body_sha256": "abd537a41738991c9599717a872b285cbaafe8fe2fd58d300936c5371fe90423",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "1656a0",
@@ -281,15 +318,91 @@
         "map-pack11": "125280",
         "tu15": "126640"
       },
-      "line": 385,
+      "line": 387,
       "literal_dispatch_required_targets": [
         "21b920"
+      ],
+      "native_admission_hints": [
+        "halo2::native_arena_initialize_owner_detail::bridge",
+        "halo2::native_arena_world_initialize_owner_detail::bridge"
       ],
       "observed_entry": "125280",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "125280",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_arena_world_initialize_replacements.py",
+        "binder_sha256": "6645b369c2d4b5b0c894bde68fbb5d14b341d4f431a976dd0e81ed87930216f0",
+        "entry_symbol": "125280",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact Arena-only125280/actual126640 preserves the independent callback-free Borrow fallback. Prepared callback-bearing World uses the private exact construction/const-table producer and authenticated retired-I/O continuations; raw callbacks, unknown producers/schedules, fixed1.1 owners and original physical/file/CRC descendant closure remain explicit retained scopes.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/native_runtime_address.hpp": "6d1c98b8f37ce58db581eddd77abf7d5f0892e3bc045902a271e601a759dd736",
+          "include/halo2/native_synchronization.hpp": "ef2ccf36b139c9f52458fc5790104b01df64ebdc1b0bdcd9779e8f946a609dd2",
+          "include/halo2/native_tu15_arena_initialize_kernel.hpp": "043477c13a767ede139c5b71b807d40046332fe5537f53ed6a5a13641c65f083",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_retained_counter_update.hpp": "97bf337b5b4b1712fcf0fbc1fbb305f819367315d3abd9991f6cd2289d6195ee",
+          "include/halo2/native_tu15_retained_store_observation.hpp": "2f4dae893411001127d1a2abd52bcc14eb3196e5d9040ac83cc5f7aafb9faffe",
+          "include/halo2/native_tu15_retained_store_observer.hpp": "f19fc82bac0f3169a9fdaa8dfdc02608259bd383be34cb59924bdf330f5479ae",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_game_arena_native.hpp": "7021af839ce2b74b4ae64382909398b6b8c7d5cefc05a95a59590a073dd0f665",
+          "include/halo2/physics_game_arena_runtime.hpp": "fb2a377ad547cf7800ce908292b383c397069ce4f3e356a80defedbd68d69357",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/source_runtime_call.hpp": "8fb084c11c74dca72deccf049955506287e43c7026e2f70e39a1d8f7ccb80c44",
+          "include/halo2/source_runtime_host_physical_memory.hpp": "e1a82e0e3883350b6600311b6aac8967fa791db243b35722cf365b2fbeeef7ce",
+          "include/halo2/source_runtime_host_storage.hpp": "188e0e156761382c95cd83b4293c314edbf638018d091537974f2eab85562e19",
+          "include/halo2/source_runtime_memory.hpp": "9ed78cbb25b1b75eb29229ffeaba4c3f8752a52c31c4f489b8986a33bfa373e7",
+          "include/halo2/source_runtime_snapshot_bytes.hpp": "5d67d95ff670de8cd8a6fc2c9a94204d669aac405031f2a47b2f636e5424d6c5",
+          "include/halo2/source_static_allocation.hpp": "08c34297b877dab6c289ebbeffe6897eefeea094cb3b31b32c9a1e680b8fb119",
+          "include/halo2/unit_animation_selection_runtime.hpp": "42c1938b75fbd70766389d5cfb2ab7b686c3cc9a5984aa86fb8151139668b5c9",
+          "src/physics/runtime/native_tu15_arena_initialize_frame.hpp": "a9a941923a0b07fe0d1e038bb8dbddf276553ef254c8ef32d230fcc0134d6f7c",
+          "src/physics/runtime/native_tu15_arena_initialize_owner.hpp": "70d78ced8b0ac958476a7ea63d13045be41c8eb2c99ef01506dcca42fe5653ef",
+          "src/physics/runtime/native_tu15_arena_initialize_source_frame.hpp": "3f5010db3410ae75cf0abd26cf73cfa2da8deeb08c968c33a23035c4b8e52417",
+          "src/physics/runtime/native_tu15_arena_publication.hpp": "6185292bc072f601b0a57d946564aeb8b670923f3d2b37c87b79260a2b00d6fa",
+          "src/physics/runtime/native_tu15_arena_world_initialize_owner.hpp": "fd48287a14e5d0fe7ea53b6ae8bb41527b55e7ff97a1d203669d840684a17620",
+          "src/physics/runtime/native_tu15_arena_world_publication.hpp": "92f5e7e77136bf678f8a9f9052b1572a01b0f6b5e8a9183b02a42952ba73f7f0",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_required_abi_fp.hpp": "a7618221c99721297516f767e129c382e7df88c342e32bc7a3f19084b017449e",
+          "src/physics/runtime/native_tu15_required_owner_policy.hpp": "f2c10b4e304ec2e0e8673d63a6a7f45d9b787f2077674e0daf25bbc161141d33"
+        },
+        "source_sha256": "a86a9e9ba2e3309bc6d4f6fae69e1ca5bb8a1491395c2492ed796bcb09e562b3",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_arena_initialize_continuation_replacements.py": "902a8139d6f6316e447b255801ec45b28f8fe77d0064c0ce3a0f4501529adb14",
+          "native_arena_initialize_replacements.py": "42b2ea5e86eebcf98291a669052a65ab9fa10cb1bb9add624eae1dc043cfc36f",
+          "native_arena_owner_policy_prototype.py": "3984185bbef574daea7fc5b41abec678f2985ad3ebdc7c002e0f5b831f03c1f5",
+          "native_arena_world_policy_prototype.py": "eaa5cb4068629e7eca801090dfb3f522bb4c8d9da1b85ebf8ada09ce12c7cc54",
+          "native_arena_world_producer_inputs.py": "ec46d7d1bebfc23e5b48a67c2ddb9ef3051cd40a4d647e5d7f863413013bf579",
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "125280",
       "symbol_kind": "address-named"
@@ -306,7 +419,7 @@
         "map-pack11": "125e50",
         "tu15": "127210"
       },
-      "line": 434,
+      "line": 438,
       "literal_dispatch_required_targets": [],
       "observed_entry": "125e50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -329,7 +442,7 @@
         "map-pack11": "1656a0",
         "tu15": "166a80"
       },
-      "line": 457,
+      "line": 461,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1656a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -350,7 +463,7 @@
         "map-pack11": "165700",
         "tu15": "166ae0"
       },
-      "line": 490,
+      "line": 494,
       "literal_dispatch_required_targets": [],
       "observed_entry": "165700",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -371,7 +484,7 @@
         "map-pack11": "1a4250",
         "tu15": "1aa500"
       },
-      "line": 517,
+      "line": 521,
       "literal_dispatch_required_targets": [
         "125200",
         "2dc640",
@@ -399,7 +512,7 @@
         "map-pack11": "1a4c20",
         "tu15": "1aaed0"
       },
-      "line": 646,
+      "line": 650,
       "literal_dispatch_required_targets": [
         "2dc2f4",
         "2dc378"
@@ -426,7 +539,7 @@
         "map-pack11": "1a4c70",
         "tu15": "1aaf20"
       },
-      "line": 677,
+      "line": 681,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1a4c70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -450,7 +563,7 @@
         "map-pack11": "1a5080",
         "tu15": "1ab330"
       },
-      "line": 723,
+      "line": 727,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_async_order_detail::compare"
@@ -472,23 +585,39 @@
         "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
         "runtime_include_source_sha256": {
           "include/halo2/native_tu15_async_queue_kernel.hpp": "3aff5dae2996f7498c53d388eae58e061fabccc300e4c75d31415cc5ee9718d7",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
           "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
           "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
           "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
           "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
-          "src/physics/runtime/native_tu15_matrix_leaves.hpp": "d37d36306486c9f4bb1f514b4a269b7cc11774eaabbf37da614b1f30fbdb9c06",
-          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "6dd00fc3a3c99d86af5fa8111b9407a23679fb971d56692ed67c3df52afcf108",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "src/physics/runtime/native_tu15_census_admission.hpp": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5",
+          "src/physics/runtime/native_tu15_matrix_leaves.hpp": "230be849a126915f156fb2004f59947131a23ee6334f07f8e80dc6b21a1de647",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
           "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
           "src/platform/native_tu15_async_order.hpp": "80cff0cd00fa6b113d3b54b0ffab3b0d3a1bd2a5eab0c3142393e48a572b8157",
-          "src/platform/native_tu15_async_queue_abi.hpp": "7ac572e0081e2e0d080e5b48c97d028948125f090a0869f721782509b854a921"
+          "src/platform/native_tu15_async_queue_abi.hpp": "eee8c059218cb7fdf63ccf84b09a417a8e64571d24df90a70370a37d2c3f45eb"
         },
-        "source_sha256": "cc3c66de58b417da176cd655f9bb94cf87103961df001cf1004068d9adf4180f",
+        "source_sha256": "a86a9e9ba2e3309bc6d4f6fae69e1ca5bb8a1491395c2492ed796bcb09e562b3",
         "target_body_rebinding_proved": true,
         "validation_dependency_sha256": {
           "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
           "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
-          "native_source_prefixes.py": "4b29fec0081d719f08a31df68aed5369803fcdd3df6e3b6f328b109b580596e9",
-          "specialize_native_operands.py": "2f3949a283b97e6551c1eb5e350840e88df72f0631935fad96aa3e43cd6c03d2"
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
         }
       },
       "state_type": "WorldState",
@@ -510,7 +639,7 @@
         "map-pack11": "217090",
         "tu15": "21b990"
       },
-      "line": 785,
+      "line": 789,
       "literal_dispatch_required_targets": [
         "2dbf74"
       ],
@@ -526,7 +655,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/physics/physics_game_arena_runtime_generated.cpp",
-  "source_bytes": 94799,
+  "source_bytes": 97871,
   "source_filename_scope": "generated",
-  "source_sha256": "cc3c66de58b417da176cd655f9bb94cf87103961df001cf1004068d9adf4180f"
+  "source_sha256": "a86a9e9ba2e3309bc6d4f6fae69e1ca5bb8a1491395c2492ed796bcb09e562b3"
 }

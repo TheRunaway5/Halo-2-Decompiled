@@ -18,7 +18,7 @@ struct SourceWorldDrawStorage::Impl {
     VkBuffer materials{},banks{};
     VkDeviceMemory material_memory{},bank_memory{};
     VkDeviceSize material_stride{},bank_stride{};
-    std::size_t capacity{};
+    std::size_t capacity{},initialized_sets{};
     std::vector<VkDescriptorSet> sets;
     explicit Impl(SourceWorldDrawStorageContext input):context(std::move(input)) {
         if(!context.device || !context.physical || !context.texture_layout ||
@@ -41,7 +41,7 @@ struct SourceWorldDrawStorage::Impl {
         if(material_memory)vkFreeMemory(context.device,material_memory,nullptr);
         if(bank_memory)vkFreeMemory(context.device,bank_memory,nullptr);
         pool=VK_NULL_HANDLE;materials=banks=VK_NULL_HANDLE;
-        material_memory=bank_memory=VK_NULL_HANDLE;capacity=0;sets.clear();
+        material_memory=bank_memory=VK_NULL_HANDLE;capacity=initialized_sets=0;sets.clear();
     }
     void buffer(VkDeviceSize size,VkBuffer &buffer,VkDeviceMemory &memory) {
         VkBufferCreateInfo create{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -66,16 +66,38 @@ struct SourceWorldDrawStorage::Impl {
         if(requested>std::numeric_limits<std::uint32_t>::max()/12u ||
            requested>std::numeric_limits<VkDeviceSize>::max()/std::max(material_stride,bank_stride))
             throw FormatError("queued world storage exceeds Vulkan count range");
-        clear_uploads();capacity=requested;
-        buffer(material_stride*capacity,materials,material_memory);
-        buffer(bank_stride*capacity,banks,bank_memory);
-        const VkDescriptorPoolSize sizes[]{
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,std::uint32_t(capacity*12)},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,std::uint32_t(capacity)},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,std::uint32_t(capacity)}};
-        VkDescriptorPoolCreateInfo create{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        create.maxSets=std::uint32_t(capacity);create.poolSizeCount=3;create.pPoolSizes=sizes;
-        check(vkCreateDescriptorPool(context.device,&create,nullptr,&pool),"create queued world descriptor pool");
+        clear_uploads();
+        try {
+            buffer(material_stride*requested,materials,material_memory);
+            buffer(bank_stride*requested,banks,bank_memory);
+            const VkDescriptorPoolSize sizes[]{
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,std::uint32_t(requested*12)},
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,std::uint32_t(requested)},
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,std::uint32_t(requested)}};
+            VkDescriptorPoolCreateInfo create{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+            create.maxSets=std::uint32_t(requested);create.poolSizeCount=3;create.pPoolSizes=sizes;
+            check(vkCreateDescriptorPool(context.device,&create,nullptr,&pool),"create queued world descriptor pool");
+        } catch(...) {
+            clear_uploads();
+            throw;
+        }
+        capacity=requested;
+    }
+    void prepare_sets(std::size_t count) {
+        reserve(count);
+        if(!context.reuse_descriptor_sets) {
+            check(vkResetDescriptorPool(context.device,pool,0),"reset retired world descriptors");
+            sets.clear();initialized_sets=0;
+        }
+        if(sets.size()>=count)return;
+        const auto missing=count-sets.size();
+        sets.reserve(count);
+        const std::vector<VkDescriptorSetLayout> layouts(missing,context.texture_layout);
+        std::vector<VkDescriptorSet> added(missing);
+        VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        allocation.descriptorPool=pool;allocation.descriptorSetCount=std::uint32_t(missing);allocation.pSetLayouts=layouts.data();
+        check(vkAllocateDescriptorSets(context.device,&allocation,added.data()),"allocate queued world descriptors");
+        sets.insert(sets.end(),added.begin(),added.end());
     }
     std::span<const VkDescriptorSet> upload(std::span<const SourceWorldDrawUpload> draws) {
         for(const auto &draw:draws) {
@@ -91,13 +113,8 @@ struct SourceWorldDrawStorage::Impl {
                    (stage==0 && draw.target_view))
                     throw FormatError("incomplete or conflicting queued world image selection");
         }
-        if(draws.empty()){sets.clear();return sets;}
-        reserve(draws.size());
-        check(vkResetDescriptorPool(context.device,pool,0),"reset retired world descriptors");
-        sets.resize(draws.size());std::vector<VkDescriptorSetLayout> layouts(draws.size(),context.texture_layout);
-        VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        allocation.descriptorPool=pool;allocation.descriptorSetCount=std::uint32_t(draws.size());allocation.pSetLayouts=layouts.data();
-        check(vkAllocateDescriptorSets(context.device,&allocation,sets.data()),"allocate queued world descriptors");
+        if(draws.empty())return {};
+        prepare_sets(draws.size());
         void *material_data{},*bank_data{};
         check(vkMapMemory(context.device,material_memory,0,VK_WHOLE_SIZE,0,&material_data),"map queued world materials");
         struct Mapping {VkDevice device;VkDeviceMemory memory;~Mapping(){vkUnmapMemory(device,memory);}} material_map{context.device,material_memory};
@@ -125,7 +142,11 @@ struct SourceWorldDrawStorage::Impl {
             writes[0].dstBinding=4;writes[0].descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;writes[0].pBufferInfo=&material;
             writes[1].dstBinding=7;writes[1].descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;writes[1].pBufferInfo=&bank;
             writes[2].dstBinding=0;writes[2].descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;writes[2].pImageInfo=&target;
-            vkUpdateDescriptorSets(context.device,draw.target_view?3:2,writes,0,nullptr);
+            // Uniform buffer slices remain fixed until the pool grows. The
+            // resident image bank above can change even when its handle is
+            // unchanged, so every draw still copies and patches those images.
+            if(i>=initialized_sets)vkUpdateDescriptorSets(context.device,draw.target_view?3:2,writes,0,nullptr);
+            else if(draw.target_view)vkUpdateDescriptorSets(context.device,1,&writes[2],0,nullptr);
             // Copies above retain the global image/sampler bank. Each draw's
             // completed owner may replace its own selected pages afterwards;
             // another draw sharing the same resident set stays independent.
@@ -145,7 +166,8 @@ struct SourceWorldDrawStorage::Impl {
                 vkUpdateDescriptorSets(context.device,3,image_writes,0,nullptr);
             }
         }
-        return sets;
+        initialized_sets=std::max(initialized_sets,draws.size());
+        return std::span<const VkDescriptorSet>(sets).first(draws.size());
     }
 };
 SourceWorldDrawStorage::SourceWorldDrawStorage(SourceWorldDrawStorageContext context):impl_(std::make_unique<Impl>(std::move(context))){}

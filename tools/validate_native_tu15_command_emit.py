@@ -143,6 +143,12 @@ def cases(image, single=False):
     for count in (0, -1):
         add(count=count, stop=0x411ae)
     add(full_pool=True, pool_notice=0)
+    for mode,fp,depth in ((0,(0x003f,0x3925,0x3fc1),1),
+                         (1,(0x077f,0x6941,0x9fa2),3),
+                         (3,(0x0e3f,0x2d40,0x5f84),2)):
+        add(mode=mode,flags=6,layers=0x8084,scale=0x7f812345,fp=fp)
+        rows[-1]['name']=f'sse-scope-mode-{mode}'
+        rows[-1]['live_x87']=[struct.pack('<QH',0x8000000000000000+k,0x3fff).hex() for k in range(depth)]
     return rows
 
 

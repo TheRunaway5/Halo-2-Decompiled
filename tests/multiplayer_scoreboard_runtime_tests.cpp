@@ -69,7 +69,7 @@ int main(int argc,char **argv) {
         check(found!=rows.end(),"Authored Team Slayer menu selector missing");return unsigned(found-rows.begin());
       };
       menu.accept();choose(0,167);menu.text("Rendered Team");menu.commit_text();menu.back();
-      choose(2,30);choose(0,14);choose(1,23);choose(1,207);choose(entry(variant->engine),208);
+      choose(1,218); choose(0,30);choose(0,14);choose(1,23);choose(1,207);choose(entry(variant->engine),208);
       choose(entry(int(variant-content.variants.begin())),14);
       menu.auxiliary();menu.navigate(1,0);menu.navigate(1,0);menu.accept();
       menu.select(0);menu.accept();check(menu.launch && menu.launch->selected_teams==std::vector<std::int8_t>{2},"Normal menu Team Slayer handoff failed");

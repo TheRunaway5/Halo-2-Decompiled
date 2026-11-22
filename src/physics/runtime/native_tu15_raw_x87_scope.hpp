@@ -125,9 +125,8 @@ template<class State>class Scope {
     bool live_{true};
     std::uint64_t generation_{};
     static void require(bool condition,const char*why) {if(!condition)throw std::runtime_error(why);}
-    Image imported() const {
-        require(supported(state_),"Raw x87 continuation is outside dense masked ownership");
-        auto image=capture();image.word(4,state_.fp.word());
+    Image imported(Image image) const noexcept {
+        image.word(4,state_.fp.word());
         std::uint16_t tags=0xffffu;
         for(unsigned n=0;n<state_.fp.count;++n){
             std::memcpy(image.x87.data()+28+n*10,&state_.fp.lanes[n],10);
@@ -155,7 +154,10 @@ template<class State>class Scope {
     }
     void adopt_child() {
         Image image;
-        try {image=imported();}
+        try {
+            require(supported(state_),"Raw x87 continuation is outside dense masked ownership");
+            image=imported(capture());
+        }
         catch(...) {
             // An unsupported actual child outcome cannot be retried after its
             // side effects. Preserve its retained State for the outer owner,
@@ -170,13 +172,21 @@ public:
     // restoring only the caller's register file, tags and coherent host TOP.
     explicit Scope(State&state):state_(state),host_(capture()) {
         require(supported(state_),"Raw x87 input is outside dense masked ownership");
-        restore(imported());
+        // Only the host controls and empty lanes come from this snapshot.
+        // The retained State supplies the logical stack, tags and status.
+        restore(imported(host_));
     }
     Scope(const Scope&)=delete;Scope&operator=(const Scope&)=delete;
     ~Scope() noexcept {
         if(!live_)return;
         const auto source=capture();publish(source);
         return_host(source);
+    }
+    // A frustum child uses the same retained state and leaves an empty
+    // x87 register file empty. Its normal I/O still runs through this scope.
+    bool admits_empty_frustum_child(const State& state) const noexcept {
+        return live_ && &state==&state_ && state_.fp.count==0 &&
+            !scoped_access_reference() && supported(state_);
     }
     void publish() noexcept {publish(capture());}
     void require_capacity(unsigned extra) const {

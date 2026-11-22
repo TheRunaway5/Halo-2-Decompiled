@@ -1,4 +1,5 @@
 #include "halo2/source_final_startup_storage_tu15.hpp"
+#include "halo2/native_campaign_ai_vehicle_movement_tu15.hpp"
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -128,6 +129,11 @@ void mount_native_tu15_final_startup_storage_data(SourceRuntimeMemory& memory) {
 #include "campaign/native_tu15_campaign_damage_reaction_data.inc"
 #include "campaign/ai/native_tu15_campaign_prop_creation_storage.inc"
 #include "campaign/ai/native_tu15_campaign_hs_function_data.inc"
+    // 2A2AA0 writes the vehicle movement candidate rows before 2A3EA0
+    // reads them. The rows and count are in the source loader's zero tail.
+    cold(memory, vehicle_candidates_tu15::rows, vehicle_candidates_tu15::bytes);
+    // 2A2E65 compares the rounded heading with the original -1.0 double.
+    literal(memory, 0x46a4e0u, std::array<std::uint8_t,8>{0,0,0,0,0,0,0xf0,0xbf});
 }
 bool source_final_startup_storage_tu15_is_initializer(std::uint32_t entry) {
     switch (entry) {

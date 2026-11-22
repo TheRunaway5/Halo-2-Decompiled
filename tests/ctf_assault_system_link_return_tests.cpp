@@ -17,7 +17,7 @@ unsigned entry(const MenuState& menu,int value){const auto& rows=menu.frame().en
 FrontendLaunch select(FrontendSession& frontend,const FrontendContent& content,
     const std::filesystem::path& map,const std::string& preset,const char* name,int team) {
   frontend.retain_content(content);auto& menu=frontend.create_state();menu.accept();choose(menu,0,167);
-  menu.text(name);menu.commit_text();menu.back();choose(menu,3,30);choose(menu,0,14);
+  menu.text(name);menu.commit_text();menu.back();choose(menu,1,218); choose(menu,2,30);choose(menu,0,14);
   const auto m=std::ranges::find_if(content.multiplayer_maps,[&](const auto& v){return v.scenario_path.ends_with(map.stem().string());});
   const auto v=std::ranges::find_if(content.variants,[&](const auto& v){std::string_view n=v.name;if(n.ends_with(" \xee\x80\x88"))n.remove_suffix(4);return n==preset;});
   need(m!=content.multiplayer_maps.end() && v!=content.variants.end(),"System Link original map/preset missing");

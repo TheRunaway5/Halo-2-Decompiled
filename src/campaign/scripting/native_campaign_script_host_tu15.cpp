@@ -75,6 +75,9 @@ const std::map<std::string_view,Builtin>& table() {
     {"pvs_set_object",{{50},4,false,[](const Context& c){k::pvs_set_object(c.bank,c.a[0]);return none();}}},
     {"pvs_clear",{{},4,false,[](const Context& c){k::pvs_clear(c.bank);return none();}}},
     {"object_get_parent",{{50},50,false,[](const Context& c){return std::optional(k::object_get_parent(c.bank,c.a[0]));}}},
+    {"ai_play_line_on_object",{{50,11},6,false,[](const Context& c){
+      if(!c.services.play_line_on_object)throw FormatError("ai_play_line_on_object requires its retained speech World");
+      return std::optional(c.services.play_line_on_object(c.a[0],c.a[1]));}}},
     {"object_set_phantom_power",{{50,5},4,false,[](const Context& c){
       k::object_set_phantom_power(c.bank,c.a[0],c.boolean(1));return none();}}},
     {"object_set_deleted_when_deactivated",{{50},4,false,[](const Context& c){

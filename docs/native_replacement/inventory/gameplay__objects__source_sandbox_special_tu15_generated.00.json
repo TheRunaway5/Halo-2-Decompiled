@@ -4,7 +4,7 @@
     {
       "command": "target_sources",
       "file": "cmake/PhysicsLiveWorldTu15.cmake",
-      "line": 1232,
+      "line": 1233,
       "target": "halo2_physics_world_runtime"
     }
   ],
@@ -12,14 +12,30 @@
   "configured_production_target_ids": [
     "halo2_physics_world_runtime::@6890427a1f51a3e7e1df"
   ],
-  "gate_sources": {},
+  "gate_sources": {
+    "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_MODEL_MARKER_LOOKUP"
+      ],
+      "sha256": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e"
+    },
+    "src/physics/runtime/native_tu15_codec_scale_source_owner.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_CODEC_SCALE"
+      ],
+      "sha256": "afc274067083fd18d5bf23b27a650400025119da3a3ffe9236b2f0f8ff5fcc0c"
+    }
+  },
   "internal_dispatch_identity_evidence": {},
   "part": 0,
   "production_candidate_targets": [
     "halo2_physics_world_runtime"
   ],
   "production_scope": "static_production_candidate",
-  "reference_verification_gate_names": [],
+  "reference_verification_gate_names": [
+    "HALO2_REFERENCE_CODEC_SCALE",
+    "HALO2_REFERENCE_MODEL_MARKER_LOOKUP"
+  ],
   "routine_count": 133,
   "routines": [
     {
@@ -31,7 +47,7 @@
       "direct_run_symbols": [],
       "function_name": "run_30bd0",
       "instruction_callback_sites": 38,
-      "line": 485,
+      "line": 488,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_tu15_normalize_vector_try"
@@ -51,7 +67,7 @@
       "direct_run_symbols": [],
       "function_name": "run_b1a70",
       "instruction_callback_sites": 84,
-      "line": 530,
+      "line": 533,
       "literal_dispatch_required_targets": [
         "8e220",
         "b1b70",
@@ -74,7 +90,7 @@
       "direct_run_symbols": [],
       "function_name": "run_b1f00",
       "instruction_callback_sites": 40,
-      "line": 618,
+      "line": 621,
       "literal_dispatch_required_targets": [
         "b1c30",
         "107020"
@@ -94,7 +110,7 @@
       "direct_run_symbols": [],
       "function_name": "run_b1f80",
       "instruction_callback_sites": 210,
-      "line": 662,
+      "line": 665,
       "literal_dispatch_required_targets": [
         "866f0",
         "afb30",
@@ -123,7 +139,7 @@
       ],
       "function_name": "run_b9960",
       "instruction_callback_sites": 88,
-      "line": 875,
+      "line": 878,
       "literal_dispatch_required_targets": [],
       "observed_entry": "b9960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -140,7 +156,7 @@
       "direct_run_symbols": [],
       "function_name": "run_bac30",
       "instruction_callback_sites": 14,
-      "line": 966,
+      "line": 969,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bac30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -166,7 +182,7 @@
       ],
       "function_name": "run_bad60",
       "instruction_callback_sites": 119,
-      "line": 984,
+      "line": 987,
       "literal_dispatch_required_targets": [
         "bacd0"
       ],
@@ -188,7 +204,7 @@
       "direct_run_symbols": [],
       "function_name": "run_bc330",
       "instruction_callback_sites": 25,
-      "line": 1114,
+      "line": 1117,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bc330",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -200,18 +216,99 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "85928a501bfc9101c77ec90ea28bad7f671178173909f4a52220e06e3fc3320c",
+      "admission_prefix_calls": [
+        "halo2::native_object_lookup_copies_detail::bridge",
+        "std::runtime_error"
+      ],
+      "body_sha256": "c89ceed18105b0a2e54567287527b587944eb96aa38cdedc7f10232bc5513027",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_bcdf0",
       "instruction_callback_sites": 35,
-      "line": 1143,
+      "line": 1146,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_object_lookup_copies_detail::bridge"
+      ],
       "observed_entry": "bcdf0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "bcdf0",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_object_lookup_copies_replacements.py",
+        "binder_sha256": "8a31ff5cb18056811dc4a063de6fef46ad58894b50e12df5a7f64bf1a5652791",
+        "entry_symbol": "bcdf0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Four exact SceneDevice/SandboxSpecial/ParticleDraw/AI TU15 helpers share the childless lookup with independently authenticated complete owners and retired-I/O continuations. Parent routines, other owners/images, opaque MMX and complete runtime/descendant closure remain separate.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_object_body_kernel.hpp": "6dbc6e6351f3738c18dcaf1d630e406af29dacad8162aec882ed610a3ea86a29",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/objects/native_tu15_object_body_frame.hpp": "e65fee89dd135b32247fb0b5cc5a539fdd1cc5594b4213bf374404d28e07681f",
+          "src/gameplay/objects/native_tu15_object_body_source_frame.hpp": "5a99099509267b83ac24f554decab2cc2673b498eb3aa2c7a0272545b82fd21b",
+          "src/gameplay/objects/native_tu15_object_body_source_owner.hpp": "e468f6dff8d5026c10da07112927bcef9cab6a68d5db5977ca5e88707b3cf1ad",
+          "src/gameplay/objects/native_tu15_object_lookup_copies_source_owner.hpp": "e727fa2ffcc124e7e65bbc8fdf8fc1ba6f7ac1bbd0252d9ad4223442d524bfe1",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_host_fp_io.hpp": "673230ed6d8a72e6f183a354077c49dd908f58c0c8f358d5a7b56b751758fcce",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "371ca2b82b0d79ae8aaaa98cd503bc9b5e484e25c8e6f28341cc4f889cd1d9d0",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_object_body_replacements.py": "0153bb09978278df38922e0e410c2033d688dfa13febee72d92d1f288b25a96d",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "bcdf0",
       "symbol_kind": "address-named"
@@ -222,7 +319,7 @@
       "direct_run_symbols": [],
       "function_name": "run_bcf70",
       "instruction_callback_sites": 19,
-      "line": 1182,
+      "line": 1186,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bcf70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -243,7 +340,7 @@
       "direct_run_symbols": [],
       "function_name": "run_bcfb0",
       "instruction_callback_sites": 0,
-      "line": 1205,
+      "line": 1209,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "native_tu15_render_object_ownership_bridge"
@@ -265,7 +362,7 @@
       ],
       "function_name": "run_c1c60",
       "instruction_callback_sites": 31,
-      "line": 1211,
+      "line": 1215,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c1c60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -282,7 +379,7 @@
       "direct_run_symbols": [],
       "function_name": "run_c95e0",
       "instruction_callback_sites": 23,
-      "line": 1246,
+      "line": 1250,
       "literal_dispatch_required_targets": [],
       "observed_entry": "c95e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -304,7 +401,7 @@
       ],
       "function_name": "run_ca770",
       "instruction_callback_sites": 206,
-      "line": 1273,
+      "line": 1277,
       "literal_dispatch_required_targets": [
         "bc200"
       ],
@@ -331,7 +428,7 @@
       ],
       "function_name": "run_cabc0",
       "instruction_callback_sites": 108,
-      "line": 1483,
+      "line": 1487,
       "literal_dispatch_required_targets": [
         "106040",
         "18c4b0"
@@ -354,7 +451,7 @@
       "direct_run_symbols": [],
       "function_name": "run_caef0",
       "instruction_callback_sites": 13,
-      "line": 1603,
+      "line": 1607,
       "literal_dispatch_required_targets": [],
       "observed_entry": "caef0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -374,7 +471,7 @@
       ],
       "function_name": "run_cd4a0",
       "instruction_callback_sites": 287,
-      "line": 1620,
+      "line": 1624,
       "literal_dispatch_required_targets": [
         "bbe00",
         "bbf20",
@@ -400,7 +497,7 @@
       ],
       "function_name": "run_cdbb0",
       "instruction_callback_sites": 97,
-      "line": 1911,
+      "line": 1915,
       "literal_dispatch_required_targets": [],
       "observed_entry": "cdbb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -417,7 +514,7 @@
       "direct_run_symbols": [],
       "function_name": "run_d28f0",
       "instruction_callback_sites": 17,
-      "line": 2012,
+      "line": 2016,
       "literal_dispatch_required_targets": [
         "e65a0"
       ],
@@ -438,7 +535,7 @@
       ],
       "function_name": "run_d2920",
       "instruction_callback_sites": 107,
-      "line": 2033,
+      "line": 2037,
       "literal_dispatch_required_targets": [
         "d8bb0",
         "da0d0",
@@ -459,7 +556,7 @@
       "direct_run_symbols": [],
       "function_name": "run_d39d0",
       "instruction_callback_sites": 46,
-      "line": 2144,
+      "line": 2148,
       "literal_dispatch_required_targets": [],
       "observed_entry": "d39d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -478,7 +575,7 @@
       ],
       "function_name": "run_d91d0",
       "instruction_callback_sites": 227,
-      "line": 2194,
+      "line": 2198,
       "literal_dispatch_required_targets": [
         "bd080",
         "d9a30",
@@ -502,7 +599,7 @@
       ],
       "function_name": "run_e31c0",
       "instruction_callback_sites": 72,
-      "line": 2424,
+      "line": 2428,
       "literal_dispatch_required_targets": [],
       "observed_entry": "e31c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -519,7 +616,7 @@
       "direct_run_symbols": [],
       "function_name": "run_f0be0",
       "instruction_callback_sites": 94,
-      "line": 2500,
+      "line": 2504,
       "literal_dispatch_required_targets": [
         "e8e10",
         "16b736"
@@ -539,7 +636,7 @@
       "direct_run_symbols": [],
       "function_name": "run_ff100",
       "instruction_callback_sites": 31,
-      "line": 2598,
+      "line": 2602,
       "literal_dispatch_required_targets": [
         "fdeb0"
       ],
@@ -560,7 +657,7 @@
       ],
       "function_name": "run_102980",
       "instruction_callback_sites": 41,
-      "line": 2633,
+      "line": 2637,
       "literal_dispatch_required_targets": [],
       "observed_entry": "102980",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -580,7 +677,7 @@
       ],
       "function_name": "run_102fb0",
       "instruction_callback_sites": 82,
-      "line": 2678,
+      "line": 2682,
       "literal_dispatch_required_targets": [],
       "observed_entry": "102fb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -597,7 +694,7 @@
       "direct_run_symbols": [],
       "function_name": "run_105c10",
       "instruction_callback_sites": 20,
-      "line": 2764,
+      "line": 2768,
       "literal_dispatch_required_targets": [
         "1059c0"
       ],
@@ -616,7 +713,7 @@
       "direct_run_symbols": [],
       "function_name": "run_105c50",
       "instruction_callback_sites": 184,
-      "line": 2788,
+      "line": 2792,
       "literal_dispatch_required_targets": [
         "b9390",
         "1059c0",
@@ -637,7 +734,7 @@
       "direct_run_symbols": [],
       "function_name": "run_106760",
       "instruction_callback_sites": 57,
-      "line": 2976,
+      "line": 2980,
       "literal_dispatch_required_targets": [
         "ce230",
         "cfb40"
@@ -657,7 +754,7 @@
       "direct_run_symbols": [],
       "function_name": "run_106be0",
       "instruction_callback_sites": 36,
-      "line": 3037,
+      "line": 3041,
       "literal_dispatch_required_targets": [],
       "observed_entry": "106be0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -674,7 +771,7 @@
       "direct_run_symbols": [],
       "function_name": "run_106e80",
       "instruction_callback_sites": 56,
-      "line": 3077,
+      "line": 3081,
       "literal_dispatch_required_targets": [
         "108a70",
         "15c7f0"
@@ -694,7 +791,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1071d0",
       "instruction_callback_sites": 206,
-      "line": 3137,
+      "line": 3141,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1071d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -711,7 +808,7 @@
       "direct_run_symbols": [],
       "function_name": "run_107610",
       "instruction_callback_sites": 165,
-      "line": 3347,
+      "line": 3351,
       "literal_dispatch_required_targets": [
         "bbe00",
         "d3750",
@@ -735,7 +832,7 @@
       "direct_run_symbols": [],
       "function_name": "run_107aa0",
       "instruction_callback_sites": 11,
-      "line": 3516,
+      "line": 3520,
       "literal_dispatch_required_targets": [],
       "observed_entry": "107aa0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -752,7 +849,7 @@
       "direct_run_symbols": [],
       "function_name": "run_107d30",
       "instruction_callback_sites": 28,
-      "line": 3531,
+      "line": 3535,
       "literal_dispatch_required_targets": [
         "10ab50",
         "10b060"
@@ -772,7 +869,7 @@
       "direct_run_symbols": [],
       "function_name": "run_107d90",
       "instruction_callback_sites": 51,
-      "line": 3563,
+      "line": 3567,
       "literal_dispatch_required_targets": [
         "106f50",
         "108a70",
@@ -808,7 +905,7 @@
       ],
       "function_name": "run_108080",
       "instruction_callback_sites": 634,
-      "line": 3618,
+      "line": 3622,
       "literal_dispatch_required_targets": [
         "b9390",
         "cabc0",
@@ -841,7 +938,7 @@
       "direct_run_symbols": [],
       "function_name": "run_109100",
       "instruction_callback_sites": 23,
-      "line": 4256,
+      "line": 4260,
       "literal_dispatch_required_targets": [
         "ba570",
         "108a70"
@@ -886,7 +983,7 @@
       ],
       "function_name": "run_109220",
       "instruction_callback_sites": 1196,
-      "line": 4283,
+      "line": 4287,
       "literal_dispatch_required_targets": [
         "b9b70",
         "bbe00",
@@ -911,7 +1008,7 @@
       "direct_run_symbols": [],
       "function_name": "run_10a680",
       "instruction_callback_sites": 100,
-      "line": 5482,
+      "line": 5486,
       "literal_dispatch_required_targets": [],
       "observed_entry": "10a680",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -930,7 +1027,7 @@
       ],
       "function_name": "run_10b3d0",
       "instruction_callback_sites": 77,
-      "line": 5586,
+      "line": 5590,
       "literal_dispatch_required_targets": [],
       "observed_entry": "10b3d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -947,7 +1044,7 @@
       "direct_run_symbols": [],
       "function_name": "run_10b4b0",
       "instruction_callback_sites": 27,
-      "line": 5667,
+      "line": 5671,
       "literal_dispatch_required_targets": [],
       "observed_entry": "10b4b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -964,7 +1061,7 @@
       "direct_run_symbols": [],
       "function_name": "run_10eeb0",
       "instruction_callback_sites": 120,
-      "line": 5698,
+      "line": 5702,
       "literal_dispatch_required_targets": [
         "bbe00"
       ],
@@ -983,7 +1080,7 @@
       "direct_run_symbols": [],
       "function_name": "run_10f080",
       "instruction_callback_sites": 37,
-      "line": 5822,
+      "line": 5826,
       "literal_dispatch_required_targets": [],
       "observed_entry": "10f080",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1002,7 +1099,7 @@
       ],
       "function_name": "run_116cd0",
       "instruction_callback_sites": 36,
-      "line": 5863,
+      "line": 5867,
       "literal_dispatch_required_targets": [],
       "observed_entry": "116cd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1021,7 +1118,7 @@
       ],
       "function_name": "run_11fd70",
       "instruction_callback_sites": 112,
-      "line": 5903,
+      "line": 5907,
       "literal_dispatch_required_targets": [
         "11f9c0"
       ],
@@ -1040,7 +1137,7 @@
       "direct_run_symbols": [],
       "function_name": "run_13f620",
       "instruction_callback_sites": 6,
-      "line": 6019,
+      "line": 6023,
       "literal_dispatch_required_targets": [],
       "observed_entry": "13f620",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1057,7 +1154,7 @@
       "direct_run_symbols": [],
       "function_name": "run_140ea0",
       "instruction_callback_sites": 13,
-      "line": 6029,
+      "line": 6033,
       "literal_dispatch_required_targets": [],
       "observed_entry": "140ea0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1074,7 +1171,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1441c0",
       "instruction_callback_sites": 20,
-      "line": 6046,
+      "line": 6050,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1441c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1091,7 +1188,7 @@
       "direct_run_symbols": [],
       "function_name": "run_144cb0",
       "instruction_callback_sites": 16,
-      "line": 6070,
+      "line": 6074,
       "literal_dispatch_required_targets": [
         "144910"
       ],
@@ -1110,7 +1207,7 @@
       "direct_run_symbols": [],
       "function_name": "run_145070",
       "instruction_callback_sites": 49,
-      "line": 6090,
+      "line": 6094,
       "literal_dispatch_required_targets": [],
       "observed_entry": "145070",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1127,7 +1224,7 @@
       "direct_run_symbols": [],
       "function_name": "run_148e20",
       "instruction_callback_sites": 144,
-      "line": 6143,
+      "line": 6147,
       "literal_dispatch_required_targets": [],
       "observed_entry": "148e20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1144,7 +1241,7 @@
       "direct_run_symbols": [],
       "function_name": "run_150990",
       "instruction_callback_sites": 6,
-      "line": 6291,
+      "line": 6295,
       "literal_dispatch_required_targets": [],
       "observed_entry": "150990",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1161,7 +1258,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1563a0",
       "instruction_callback_sites": 18,
-      "line": 6301,
+      "line": 6305,
       "literal_dispatch_required_targets": [
         "166a80"
       ],
@@ -1180,7 +1277,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1563e0",
       "instruction_callback_sites": 41,
-      "line": 6323,
+      "line": 6327,
       "literal_dispatch_required_targets": [
         "156dd0"
       ],
@@ -1199,7 +1296,7 @@
       "direct_run_symbols": [],
       "function_name": "run_157e10",
       "instruction_callback_sites": 34,
-      "line": 6367,
+      "line": 6371,
       "literal_dispatch_required_targets": [
         "166a80"
       ],
@@ -1218,7 +1315,7 @@
       "direct_run_symbols": [],
       "function_name": "run_157eb0",
       "instruction_callback_sites": 66,
-      "line": 6404,
+      "line": 6408,
       "literal_dispatch_required_targets": [
         "246190"
       ],
@@ -1237,7 +1334,7 @@
       "direct_run_symbols": [],
       "function_name": "run_15e1e0",
       "instruction_callback_sites": 101,
-      "line": 6473,
+      "line": 6477,
       "literal_dispatch_required_targets": [
         "b7e50",
         "15e070"
@@ -1260,7 +1357,7 @@
       ],
       "function_name": "run_15f6e0",
       "instruction_callback_sites": 65,
-      "line": 6578,
+      "line": 6582,
       "literal_dispatch_required_targets": [],
       "observed_entry": "15f6e0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1279,7 +1376,7 @@
       ],
       "function_name": "run_15f8b0",
       "instruction_callback_sites": 560,
-      "line": 6647,
+      "line": 6651,
       "literal_dispatch_required_targets": [
         "b1a40",
         "b1e80",
@@ -1309,7 +1406,7 @@
       "direct_run_symbols": [],
       "function_name": "run_161530",
       "instruction_callback_sites": 10,
-      "line": 7211,
+      "line": 7215,
       "literal_dispatch_required_targets": [],
       "observed_entry": "161530",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1326,7 +1423,7 @@
       "direct_run_symbols": [],
       "function_name": "run_165670",
       "instruction_callback_sites": 26,
-      "line": 7225,
+      "line": 7229,
       "literal_dispatch_required_targets": [
         "b7e50"
       ],
@@ -1340,7 +1437,7 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "86bedb0b9c083f6156f5df09ca2765602dccde805a9f704e9e375161767bf1e3",
+      "body_sha256": "d182f718b0ddeb34865cb447e8f917487bf22826cb766504c2faf9903ee994d1",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "150990",
@@ -1348,9 +1445,10 @@
       ],
       "function_name": "run_168ca1",
       "instruction_callback_sites": 64,
-      "line": 7255,
+      "line": 7259,
       "literal_dispatch_required_targets": [
         "ce230",
+        "169c46",
         "16ad45",
         "16b16a"
       ],
@@ -1371,7 +1469,7 @@
       ],
       "function_name": "run_168d76",
       "instruction_callback_sites": 53,
-      "line": 7323,
+      "line": 7327,
       "literal_dispatch_required_targets": [
         "145560"
       ],
@@ -1394,7 +1492,7 @@
       ],
       "function_name": "run_168ded",
       "instruction_callback_sites": 243,
-      "line": 7378,
+      "line": 7382,
       "literal_dispatch_required_targets": [
         "11e060",
         "144090",
@@ -1416,7 +1514,7 @@
       "direct_run_symbols": [],
       "function_name": "run_16961f",
       "instruction_callback_sites": 154,
-      "line": 7624,
+      "line": 7628,
       "literal_dispatch_required_targets": [
         "f0e00",
         "169863"
@@ -1436,7 +1534,7 @@
       "direct_run_symbols": [],
       "function_name": "run_169ba2",
       "instruction_callback_sites": 38,
-      "line": 7782,
+      "line": 7786,
       "literal_dispatch_required_targets": [
         "158290",
         "18be50"
@@ -1458,7 +1556,7 @@
       ],
       "function_name": "run_169c21",
       "instruction_callback_sites": 5,
-      "line": 7824,
+      "line": 7828,
       "literal_dispatch_required_targets": [],
       "observed_entry": "169c21",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1477,7 +1575,7 @@
       ],
       "function_name": "run_169c33",
       "instruction_callback_sites": 6,
-      "line": 7833,
+      "line": 7837,
       "literal_dispatch_required_targets": [],
       "observed_entry": "169c33",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1489,7 +1587,7 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "3058baf2ac47daa52f1be5181f429728df3957bb51698c56b7d736b078f498f3",
+      "body_sha256": "b585cdd5bda74c40da020a4c7de3d26a5e1ca01a719e90b068f2d1e6de97800e",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [
         "13f620",
@@ -1503,7 +1601,7 @@
       ],
       "function_name": "run_169c46",
       "instruction_callback_sites": 578,
-      "line": 7843,
+      "line": 7847,
       "literal_dispatch_required_targets": [
         "24570",
         "259b0",
@@ -1516,6 +1614,7 @@
         "169432",
         "169863",
         "169b0a",
+        "16a4dd",
         "16b1bc",
         "16b2b9",
         "1ce6d0",
@@ -1554,7 +1653,7 @@
       ],
       "function_name": "run_16a4dd",
       "instruction_callback_sites": 589,
-      "line": 8425,
+      "line": 8429,
       "literal_dispatch_required_targets": [
         "b8760",
         "b8780",
@@ -1586,7 +1685,7 @@
       "direct_run_symbols": [],
       "function_name": "run_16b240",
       "instruction_callback_sites": 48,
-      "line": 9017,
+      "line": 9021,
       "literal_dispatch_required_targets": [
         "145560"
       ],
@@ -1610,7 +1709,7 @@
       ],
       "function_name": "run_16b4e8",
       "instruction_callback_sites": 161,
-      "line": 9068,
+      "line": 9072,
       "literal_dispatch_required_targets": [
         "b87b0",
         "cfb40",
@@ -1636,7 +1735,7 @@
       ],
       "function_name": "run_16d620",
       "instruction_callback_sites": 73,
-      "line": 9233,
+      "line": 9237,
       "literal_dispatch_required_targets": [
         "16c620"
       ],
@@ -1655,7 +1754,7 @@
       "direct_run_symbols": [],
       "function_name": "run_179800",
       "instruction_callback_sites": 54,
-      "line": 9310,
+      "line": 9314,
       "literal_dispatch_required_targets": [
         "178e30"
       ],
@@ -1674,7 +1773,7 @@
       "direct_run_symbols": [],
       "function_name": "run_17f8a0",
       "instruction_callback_sites": 60,
-      "line": 9367,
+      "line": 9371,
       "literal_dispatch_required_targets": [
         "37dc0a"
       ],
@@ -1693,7 +1792,7 @@
       "direct_run_symbols": [],
       "function_name": "run_18a210",
       "instruction_callback_sites": 9,
-      "line": 9431,
+      "line": 9435,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18a210",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1712,7 +1811,7 @@
       ],
       "function_name": "run_18a300",
       "instruction_callback_sites": 334,
-      "line": 9444,
+      "line": 9448,
       "literal_dispatch_required_targets": [
         "11f7e0",
         "189fd0"
@@ -1732,7 +1831,7 @@
       "direct_run_symbols": [],
       "function_name": "run_18a830",
       "instruction_callback_sites": 7,
-      "line": 9782,
+      "line": 9786,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18a830",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1749,7 +1848,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19b2b0",
       "instruction_callback_sites": 54,
-      "line": 9793,
+      "line": 9797,
       "literal_dispatch_required_targets": [],
       "observed_entry": "19b2b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1766,7 +1865,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19b7d0",
       "instruction_callback_sites": 43,
-      "line": 9851,
+      "line": 9855,
       "literal_dispatch_required_targets": [],
       "observed_entry": "19b7d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1783,7 +1882,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19b860",
       "instruction_callback_sites": 43,
-      "line": 9898,
+      "line": 9902,
       "literal_dispatch_required_targets": [],
       "observed_entry": "19b860",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1800,7 +1899,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19b8f0",
       "instruction_callback_sites": 87,
-      "line": 9945,
+      "line": 9949,
       "literal_dispatch_required_targets": [],
       "observed_entry": "19b8f0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1817,7 +1916,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19bb20",
       "instruction_callback_sites": 23,
-      "line": 10036,
+      "line": 10040,
       "literal_dispatch_required_targets": [],
       "observed_entry": "19bb20",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1838,7 +1937,7 @@
       ],
       "function_name": "run_19bb60",
       "instruction_callback_sites": 46,
-      "line": 10062,
+      "line": 10066,
       "literal_dispatch_required_targets": [
         "32bbae"
       ],
@@ -1857,7 +1956,7 @@
       "direct_run_symbols": [],
       "function_name": "run_19de80",
       "instruction_callback_sites": 22,
-      "line": 10112,
+      "line": 10116,
       "literal_dispatch_required_targets": [
         "bbe00"
       ],
@@ -1883,7 +1982,7 @@
       ],
       "function_name": "run_1ad7f0",
       "instruction_callback_sites": 299,
-      "line": 10138,
+      "line": 10142,
       "literal_dispatch_required_targets": [
         "bbe00",
         "1582f0",
@@ -1905,7 +2004,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1ae4a0",
       "instruction_callback_sites": 27,
-      "line": 10441,
+      "line": 10445,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1ae4a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1925,7 +2024,7 @@
       ],
       "function_name": "run_1af670",
       "instruction_callback_sites": 127,
-      "line": 10472,
+      "line": 10476,
       "literal_dispatch_required_targets": [
         "1ae500",
         "1aea30",
@@ -1948,7 +2047,7 @@
       ],
       "function_name": "run_1af7e0",
       "instruction_callback_sites": 101,
-      "line": 10603,
+      "line": 10607,
       "literal_dispatch_required_targets": [
         "bce50"
       ],
@@ -1967,7 +2066,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1af920",
       "instruction_callback_sites": 22,
-      "line": 10706,
+      "line": 10710,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1af920",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -1984,7 +2083,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1cc310",
       "instruction_callback_sites": 38,
-      "line": 10732,
+      "line": 10736,
       "literal_dispatch_required_targets": [
         "1d73d0",
         "1d8470",
@@ -2006,7 +2105,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1d23e0",
       "instruction_callback_sites": 86,
-      "line": 10774,
+      "line": 10778,
       "literal_dispatch_required_targets": [
         "203d80"
       ],
@@ -2025,7 +2124,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1d3f90",
       "instruction_callback_sites": 16,
-      "line": 10864,
+      "line": 10868,
       "literal_dispatch_required_targets": [
         "1e5250"
       ],
@@ -2044,7 +2143,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1d3fe0",
       "instruction_callback_sites": 7,
-      "line": 10884,
+      "line": 10888,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d3fe0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2063,7 +2162,7 @@
       ],
       "function_name": "run_1d4000",
       "instruction_callback_sites": 12,
-      "line": 10895,
+      "line": 10899,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d4000",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2082,7 +2181,7 @@
       ],
       "function_name": "run_1d4030",
       "instruction_callback_sites": 16,
-      "line": 10911,
+      "line": 10915,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1d4030",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2099,7 +2198,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1d4510",
       "instruction_callback_sites": 23,
-      "line": 10931,
+      "line": 10935,
       "literal_dispatch_required_targets": [
         "1e3f30"
       ],
@@ -2118,7 +2217,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1d4560",
       "instruction_callback_sites": 10,
-      "line": 10958,
+      "line": 10962,
       "literal_dispatch_required_targets": [
         "1e1720"
       ],
@@ -2137,7 +2236,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1dd3d0",
       "instruction_callback_sites": 203,
-      "line": 10972,
+      "line": 10976,
       "literal_dispatch_required_targets": [
         "1d8fa0",
         "283450",
@@ -2161,25 +2260,95 @@
     {
       "admission_prefix_calls": [
         "catch",
+        "halo2::native_model_marker_lookup_detail::bridge",
         "load",
         "native_weapon_effect_dispatch_tu15_run",
         "save"
       ],
-      "body_sha256": "455760eb53cfbb209d956b2fa5edfc04088200476830c19b6b5bd61e6180411f",
+      "body_sha256": "7b26ae5d856bae64e46c8d45c16d289de926a11474b96cb5a8ef8204358fea4e",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_1e11b0",
       "instruction_callback_sites": 28,
-      "line": 11179,
+      "line": 11183,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
+        "halo2::native_model_marker_lookup_detail::bridge",
         "native_weapon_effect_dispatch_tu15_run"
       ],
       "observed_entry": "1e11b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "1e11b0",
-      "route_status": "retained_translation_with_native_admission_hint_requires_audit",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_model_marker_lookup_replacements.py",
+        "binder_sha256": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+        "entry_symbol": "1e11b0",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Exact old instruction-shaped body remains for reference/unknown admission; child closure and engine-wide native execution remain unproved.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "371ca2b82b0d79ae8aaaa98cd503bc9b5e484e25c8e6f28341cc4f889cd1d9d0",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_sandbox_dispatch_preservation.py": "f2fe3bc42ddf716a839949f6bc2008d62b02b9d60ddb12f7bfc9080a312a268a",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "1e11b0",
       "symbol_kind": "address-named"
@@ -2196,7 +2365,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1e1200",
       "instruction_callback_sites": 106,
-      "line": 11219,
+      "line": 11224,
       "literal_dispatch_required_targets": [
         "144910",
         "145560"
@@ -2222,7 +2391,7 @@
       ],
       "function_name": "run_1e1360",
       "instruction_callback_sites": 17,
-      "line": 11337,
+      "line": 11342,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e1360",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2239,7 +2408,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1e5470",
       "instruction_callback_sites": 65,
-      "line": 11358,
+      "line": 11363,
       "literal_dispatch_required_targets": [
         "144cf0",
         "145560"
@@ -2259,7 +2428,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1e5540",
       "instruction_callback_sites": 133,
-      "line": 11427,
+      "line": 11432,
       "literal_dispatch_required_targets": [
         "144cf0",
         "145560"
@@ -2279,7 +2448,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1e5a50",
       "instruction_callback_sites": 8,
-      "line": 11564,
+      "line": 11569,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1e5a50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2296,7 +2465,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1eec30",
       "instruction_callback_sites": 25,
-      "line": 11576,
+      "line": 11581,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1eec30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2313,7 +2482,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1eecf0",
       "instruction_callback_sites": 18,
-      "line": 11605,
+      "line": 11610,
       "literal_dispatch_required_targets": [
         "166a80"
       ],
@@ -2332,7 +2501,7 @@
       "direct_run_symbols": [],
       "function_name": "run_1eed30",
       "instruction_callback_sites": 22,
-      "line": 11627,
+      "line": 11632,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1eed30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2352,7 +2521,7 @@
       ],
       "function_name": "run_1f1fc0",
       "instruction_callback_sites": 84,
-      "line": 11652,
+      "line": 11657,
       "literal_dispatch_required_targets": [
         "b7e50"
       ],
@@ -2373,7 +2542,7 @@
       ],
       "function_name": "run_1f20d0",
       "instruction_callback_sites": 45,
-      "line": 11740,
+      "line": 11745,
       "literal_dispatch_required_targets": [
         "b7e50"
       ],
@@ -2397,7 +2566,7 @@
       ],
       "function_name": "run_1f2890",
       "instruction_callback_sites": 132,
-      "line": 11789,
+      "line": 11794,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f2890",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2420,7 +2589,7 @@
       ],
       "function_name": "run_1f2a50",
       "instruction_callback_sites": 87,
-      "line": 11925,
+      "line": 11930,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f2a50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2440,7 +2609,7 @@
       ],
       "function_name": "run_1f39d0",
       "instruction_callback_sites": 107,
-      "line": 12016,
+      "line": 12021,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f39d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2459,7 +2628,7 @@
       ],
       "function_name": "run_1f3b80",
       "instruction_callback_sites": 736,
-      "line": 12127,
+      "line": 12132,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1f3b80",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2478,7 +2647,7 @@
       ],
       "function_name": "run_206090",
       "instruction_callback_sites": 190,
-      "line": 12867,
+      "line": 12872,
       "literal_dispatch_required_targets": [
         "11f9c0",
         "2063e0"
@@ -2500,7 +2669,7 @@
       ],
       "function_name": "run_2131b0",
       "instruction_callback_sites": 29,
-      "line": 13061,
+      "line": 13066,
       "literal_dispatch_required_targets": [
         "166a80",
         "2dbc2e"
@@ -2520,7 +2689,7 @@
       "direct_run_symbols": [],
       "function_name": "run_213260",
       "instruction_callback_sites": 8,
-      "line": 13094,
+      "line": 13099,
       "literal_dispatch_required_targets": [],
       "observed_entry": "213260",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2540,7 +2709,7 @@
       ],
       "function_name": "run_213690",
       "instruction_callback_sites": 50,
-      "line": 13105,
+      "line": 13110,
       "literal_dispatch_required_targets": [],
       "observed_entry": "213690",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2560,7 +2729,7 @@
       ],
       "function_name": "run_213890",
       "instruction_callback_sites": 61,
-      "line": 13159,
+      "line": 13164,
       "literal_dispatch_required_targets": [],
       "observed_entry": "213890",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2577,7 +2746,7 @@
       "direct_run_symbols": [],
       "function_name": "run_21f670",
       "instruction_callback_sites": 16,
-      "line": 13224,
+      "line": 13229,
       "literal_dispatch_required_targets": [],
       "observed_entry": "21f670",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2594,7 +2763,7 @@
       "direct_run_symbols": [],
       "function_name": "run_21f6b0",
       "instruction_callback_sites": 47,
-      "line": 13244,
+      "line": 13249,
       "literal_dispatch_required_targets": [
         "21f590"
       ],
@@ -2613,7 +2782,7 @@
       "direct_run_symbols": [],
       "function_name": "run_21fe40",
       "instruction_callback_sites": 30,
-      "line": 13295,
+      "line": 13300,
       "literal_dispatch_required_targets": [],
       "observed_entry": "21fe40",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2630,7 +2799,7 @@
       "direct_run_symbols": [],
       "function_name": "run_2293e0",
       "instruction_callback_sites": 18,
-      "line": 13329,
+      "line": 13334,
       "literal_dispatch_required_targets": [
         "166a80"
       ],
@@ -2649,7 +2818,7 @@
       "direct_run_symbols": [],
       "function_name": "run_229420",
       "instruction_callback_sites": 27,
-      "line": 13351,
+      "line": 13356,
       "literal_dispatch_required_targets": [],
       "observed_entry": "229420",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2666,7 +2835,7 @@
       "direct_run_symbols": [],
       "function_name": "run_22c280",
       "instruction_callback_sites": 34,
-      "line": 13381,
+      "line": 13386,
       "literal_dispatch_required_targets": [
         "192cb7",
         "33b590"
@@ -2686,7 +2855,7 @@
       "direct_run_symbols": [],
       "function_name": "run_248550",
       "instruction_callback_sites": 84,
-      "line": 13419,
+      "line": 13424,
       "literal_dispatch_required_targets": [
         "248e40"
       ],
@@ -2705,7 +2874,7 @@
       "direct_run_symbols": [],
       "function_name": "run_25bc90",
       "instruction_callback_sites": 2,
-      "line": 13507,
+      "line": 13512,
       "literal_dispatch_required_targets": [],
       "observed_entry": "25bc90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2717,18 +2886,100 @@
       "symbol_kind": "address-named"
     },
     {
-      "body_sha256": "a3c15470d8dbf7c4ac2ed125a9e2b8a8d4985eb2cba66fbab062ab6900912ddb",
+      "admission_prefix_calls": [
+        "halo2::native_codec_scale_owner_detail::bridge",
+        "std::logic_error"
+      ],
+      "body_sha256": "751b9e4e332dd77fd49479324506cc9111a43a75787bb4061f74527d3d2093d3",
       "callback_image_scope": "image-selected-or-unresolved",
       "direct_run_symbols": [],
       "function_name": "run_296220",
       "instruction_callback_sites": 8,
-      "line": 13513,
+      "line": 13518,
       "literal_dispatch_required_targets": [],
+      "native_admission_hints": [
+        "halo2::native_codec_scale_owner_detail::bridge"
+      ],
       "observed_entry": "296220",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
       "observed_map_pack11_entry": null,
       "observed_tu15_entry": "296220",
-      "route_status": "retained_translation_no_native_admission_proven",
+      "route_status": "hash_authenticated_source_native_prefix_with_retained_reference",
+      "source_native_prefix_evidence": {
+        "admission_placement": "function_entry",
+        "authenticated": true,
+        "binder": "tools/native_codec_scale_replacements.py",
+        "binder_sha256": "b518a4498535bcad78dd7e0c2f203aa761c7de2afcc0183fa355374e23f54085",
+        "entry_symbol": "296220",
+        "native_dependency_closure_proved": false,
+        "qualification": "complete source/body/resolver/dispatcher checks implemented by the owning exact binder",
+        "retained_fallback_scope": "Two exact ModelRender/Sandbox TU15 codec scalar-copy owners retain their whole reference bodies and retired-I/O suffixes. Source FP metadata/host control feedback, raw instruction-callback format, other images, complete parent/runtime closure and delivery remain separate.",
+        "runtime_admission_proved": false,
+        "runtime_include_scope": "Private source include closure; conditional preprocessing and execution are not proved.",
+        "runtime_include_source_sha256": {
+          "include/halo2/cache.hpp": "8dfe4ad002b335835a568ccca51bca6c7846b719d8a584899d019be25a057d77",
+          "include/halo2/material_pass_bank.hpp": "826b39d121c8788ceae5fa87694e622e73ecdf011aab8a9682ac52a27f02d26b",
+          "include/halo2/native_tu15_codec_scale_kernel.hpp": "d957315fe566a9829754ac75e4266cbe82da01ee040cafb0e04ef078a2b55293",
+          "include/halo2/native_tu15_id_search_kernel.hpp": "9c00d32262698a209baac581908da0cca2d5f7ae130b6b5ca4ed9694e944974b",
+          "include/halo2/native_tu15_model_marker_lookup_kernel.hpp": "496a080e1cbd8d1db56d75821a168f85776ea7fab33b9eba099d9c13f6c824c6",
+          "include/halo2/native_tu15_normalize_vector.hpp": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+          "include/halo2/native_tu15_physics_frame.hpp": "d5385050326cbb71c43bb49ea747ed7ef7fc74f0889e2c4233c0f08ebe6aefb0",
+          "include/halo2/native_tu15_word_copy_kernel.hpp": "39d4adea6af7819da8471d66fbc5421ac36a9fa4d9f19f053859e53961b287ef",
+          "include/halo2/native_weapon_effect_birth_color_observer.hpp": "857860fcfaf1092dd83e99f5161a277b366d9d86d40201997153564191535d84",
+          "include/halo2/physics_agent_scheduler.hpp": "c3d3f3ef8da8d53ef28a6f45d98618346fb4582d93cde4146005015b74e3d13c",
+          "include/halo2/physics_body_factory.hpp": "4e1e03fbc4dee922ef4df2a42094e6d32a46748ed225d42330fe18cf3b261c99",
+          "include/halo2/physics_body_state.hpp": "07ab6e847ffb63e584e043c4eeb56ab8f92e0d730827181aeb6ba536f3674f61",
+          "include/halo2/physics_broadphase.hpp": "2402dfce36827b16336ceca2fd10f974fdadfb37b89e13a4992ff8f52e66f271",
+          "include/halo2/physics_bsp_children.hpp": "d8aab95ddc5cf2d88374c4734146b59222a945b139143d4ce43b3af61d8b8d92",
+          "include/halo2/physics_child_agents.hpp": "c9ec760206fd073843acf471ee23c100c50fad72e6906facf152263376dc0d70",
+          "include/halo2/physics_contact_batches.hpp": "53292573f27b8b866e55ef2dfbb63f6644789b3187227e9a6edcc230b3144882",
+          "include/halo2/physics_contact_lifecycle.hpp": "289d623c2f0c25715b8f7291b3a69688e70cc8f383c82ddb8ec4404beac7ab46",
+          "include/halo2/physics_contact_record.hpp": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+          "include/halo2/physics_contact_runtime.hpp": "f1381f88a024aa83f9072eb3fc936f6a6dfd502baa227fbe433a743334831b9d",
+          "include/halo2/physics_current_broadphase.hpp": "f4c4eef3eaf181b4285f9e2b8d8f4340a1ff3af78543af41c347d4c26c4e5a18",
+          "include/halo2/physics_gjk.hpp": "1bca7e23ee44a5562d9372829763ad75dd3c542ec90c0866884ad06acd16464b",
+          "include/halo2/physics_motion_step.hpp": "cd858bc3f1d2cb005a29ac06baa02a2573f44c4a5ff14fd1e48f08d5e804b0ed",
+          "include/halo2/physics_narrowphase_owners.hpp": "abcea2a863d13d3104aef9eae740536fa0dfed73b90c0ed0179c5eaf94b2983f",
+          "include/halo2/physics_pair_manager.hpp": "f7531a449de6f0bac2d01e0a66b9b354797517317454cd9ef20eff2b2ad52e93",
+          "include/halo2/physics_solver.hpp": "881f78ed9a1f0e93ed8cf3627eafd1e1e88538dba751bda7176ddebb7a0b4808",
+          "include/halo2/physics_world_runtime.hpp": "63af7fae8137ae6c09420c4d954f6a43fb68e3e22f6c58f6ec07dcf6b750e5f6",
+          "include/halo2/render_program.hpp": "d9e0e4333c628f4477bfb3f08ffca1a0bb688c9683c7ada6daa36f8e3fd6781d",
+          "include/halo2/shader_animation.hpp": "99a35827b9da6f89fb500ed285aadfa9528c9d31be5ea4f3b58991f5303505c3",
+          "include/halo2/source_effect_location.hpp": "369d8798df2448a64e583b754c1583cf382d1c1082c1f446368def14f4090e5e",
+          "include/halo2/source_vertex_declaration.hpp": "de7b4ba607acf886b5d15c6d26c768fb4a2235c79a2e737f3678ab3fec0d434a",
+          "include/halo2/tags/binary.hpp": "e0669ca4610161a85b15ee2c8aaaf468d7b523969b045df7f00d61925e2ef318",
+          "include/halo2/tags/directory.hpp": "6cdf257a1ceb698505f8725ec8b5758f613d250b32a33b365abe853700170dec",
+          "include/halo2/tags/groups.def": "4f685aeb8490bcb2b64c68c6db5b2f4d87dabad8ed032c7a014b657f34331362",
+          "include/halo2/tags/types.hpp": "13137b20e1775171e22c61c5be0f5224d5a84bbf90ebeb17589f9117b2fe67c2",
+          "include/halo2/texture_pixels.hpp": "08784641b70a9817662a1d98c2616beab159bd821ad7af18ea8b7474af39a7d4",
+          "include/halo2/transform.hpp": "d34104c0796e6cdee42a030d6995c6b65b67070d02b24f7d78b92bb5d2e271ab",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup.hpp": "2a7bfe2b4d7dab36ec7052cd7428acab5616145d52b48f54706475a4b584b923",
+          "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e",
+          "src/physics/runtime/native_tu15_codec_scale_frame.hpp": "dd4745d027cb29493825e8515ab3e618283847ce982b9da4264c7798bcc698e3",
+          "src/physics/runtime/native_tu15_codec_scale_source_frame.hpp": "b9e37d835142aba1976a9b6e2593b5494c094cf92e8f774b7a4894ef23674906",
+          "src/physics/runtime/native_tu15_codec_scale_source_owner.hpp": "afc274067083fd18d5bf23b27a650400025119da3a3ffe9236b2f0f8ff5fcc0c",
+          "src/physics/runtime/native_tu15_integer_fp_scope.hpp": "2b5449e148919bf014e8c24f5b026d7715c497b30a2ac4ffe819adb344c5fea8",
+          "src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp": "3f77a7405eb69604346fc5ff16515b7773e62823f7eee8149b8f58819db5dc57",
+          "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+          "src/physics/runtime/native_tu15_raw_x87_scope.hpp": "85d36c17a61e4cb0c4da870bd2e135444e9b7e9dae6d9648835f8903bed6ef08",
+          "src/physics/runtime/native_tu15_sse_mmx_scope.hpp": "3579471c6d859b29295a8469c468c091eb63c2b9f1b991858e45b100ca8b4433",
+          "src/physics/runtime/physics_contact_runtime_internal.hpp": "facb4ba8a51ac91199778d92b4f4dc1891ff8836d2604fcf8585457d20fb7a16",
+          "src/physics/runtime/physics_instruction_remap_tu15.hpp": "a0ba3e928826d0f41e25306d949957daf342531430de0fbb315f50b47db0345d",
+          "src/physics/runtime/physics_solver_internal.hpp": "3ab05d75d2cafc6175cbce18c2108a39ac1eb2d8874b7151d6ad3697ee3550da",
+          "src/physics/runtime/physics_step_internal.hpp": "33aa3eb78098a2275ba9116d0705b76ea2e045441b7259c2820dec0845c6928e",
+          "src/physics/runtime/physics_world_runtime_internal.hpp": "7cbc3a908ce6a20939e2da65cc1672d024e24c121d185099dfdcb6e180ed1569"
+        },
+        "source_sha256": "371ca2b82b0d79ae8aaaa98cd503bc9b5e484e25c8e6f28341cc4f889cd1d9d0",
+        "target_body_rebinding_proved": true,
+        "validation_dependency_sha256": {
+          "native_halfword_bit_query_replacements.py": "21af6a97b141a7e828affa2ca66519c19f63e063d7bebe1ef6a97abdbf4a4592",
+          "native_model_marker_lookup_replacements.py": "5ce766f5b6474d78271e446c28b69bc4717e47e118df7953ac498114d0f1e99d",
+          "native_sandbox_dispatch_preservation.py": "f2fe3bc42ddf716a839949f6bc2008d62b02b9d60ddb12f7bfc9080a312a268a",
+          "native_selected_operand_binding.py": "fe46463f053225abb672a61897ade6877354288daec9240e6dc0a53ae1c767eb",
+          "native_source_prefixes.py": "8aea5d795a3fffaf9981117e5a102c37b8309cb917a92f864792b1d8fddb815c",
+          "specialize_native_operands.py": "805f5005d74d15d25106fabf2262bf80254d9d6c11ac4b60b8b83c375d7a8932"
+        }
+      },
       "state_type": "WorldState",
       "symbol": "296220",
       "symbol_kind": "address-named"
@@ -2743,7 +2994,7 @@
       ],
       "function_name": "run_2c5dd0",
       "instruction_callback_sites": 83,
-      "line": 13525,
+      "line": 13531,
       "literal_dispatch_required_targets": [],
       "observed_entry": "2c5dd0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2760,7 +3011,7 @@
       "direct_run_symbols": [],
       "function_name": "run_30b980",
       "instruction_callback_sites": 38,
-      "line": 13612,
+      "line": 13618,
       "literal_dispatch_required_targets": [],
       "observed_entry": "30b980",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -2777,7 +3028,7 @@
       "direct_run_symbols": [],
       "function_name": "run_33b3ac",
       "instruction_callback_sites": 19,
-      "line": 13654,
+      "line": 13660,
       "literal_dispatch_required_targets": [
         "2dbc84"
       ],
@@ -2793,7 +3044,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/gameplay/objects/source_sandbox_special_tu15_generated.cpp",
-  "source_bytes": 1635709,
+  "source_bytes": 1637903,
   "source_filename_scope": "generated",
-  "source_sha256": "cb53e57eee661939bd46c51bdc00ef08f5b626737e891de093a64b8704f643c1"
+  "source_sha256": "371ca2b82b0d79ae8aaaa98cd503bc9b5e484e25c8e6f28341cc4f889cd1d9d0"
 }

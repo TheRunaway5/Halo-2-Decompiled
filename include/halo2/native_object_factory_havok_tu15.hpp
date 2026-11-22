@@ -2,7 +2,10 @@
 #include "halo2/native_tu15_array_growth.hpp"
 #include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/physics_contact_record.hpp"
+#include <array>
 #include <cstdint>
+#include <functional>
+#include <optional>
 
 // Native object factory Havok owners (track "havok"). Each binds the existing
 // src/physics native owner with services that are themselves native; an owner
@@ -104,8 +107,8 @@ void havok_world_remove_phantom(SourcePhysicsContactMemory&,std::uint32_t world,
 // 1D8470(component row): release the row's body references (+7C records,
 // +70 rows with their 0x2001/0x2002 body properties reset to -1 through
 // 31C450/31C5E0, +98, +9C), freeing record arrays through the allocator;
-// a reference reaching zero runs the body destructor (only the default
-// 2E4D60 is native; others are refused).
+// a reference reaching zero runs the default 2E4D60 leaf or the 31B610
+// rigid-body teardown with checked motion, shape and listener owners.
 void havok_component_reset(SourcePhysicsContactMemory&,std::uint32_t component,HavokFp&);
 // ---- hkWorld entities and the component's world membership ----
 // `sp` is the original ESP at the owner's entry (the return address slot).
@@ -152,19 +155,66 @@ void havok_component_remove(SourcePhysicsContactMemory&,std::uint32_t component,
 // bit 3 clears, bit 5 sets. Refused: constraints (+80, 317350) and a
 // non-unit model scale (31E430/31E560/31E590).
 void havok_component_add(SourcePhysicsContactMemory&,std::uint32_t component,HavokFp&,std::uint32_t sp=0);
+struct HavokBipedControllerRequest {
+  std::uint32_t component,definition,physical_state;
+  std::uint32_t live_class,dead_class;
+  bool constrained,dead;
+};
+struct HavokBipedRefreshServices {
+  // 1DDBF0 receives (component, 0, 0, 1) for a ragdoll.
+  std::function<std::uint8_t(SourcePhysicsContactMemory&,std::uint32_t component,HavokFp&)> group_ragdoll;
+  std::function<void(SourcePhysicsContactMemory&,const HavokBipedControllerRequest&,HavokFp&)> construct_controller;
+};
+struct HavokBipedBodyRequest {
+  std::uint32_t component,shape,body_mass,definition_scalar,motion_class,body_class;
+  std::array<std::uint32_t,4> shape_center;
+  std::array<std::uint32_t,16> transform;
+};
+// 1DEFB0 through the 1DF380 body construction call. The authored no-body
+// path returns no request and publishes the original component selector.
+std::optional<HavokBipedBodyRequest> havok_prepare_biped_controller(SourcePhysicsContactMemory&,
+    const HavokBipedControllerRequest&,HavokFp&);
+// 31B3E0 initializes the aligned 1DF380 rigid-body descriptor. Retains
+// padding and exposes no allocated body or shape ownership.
+std::uint32_t havok_rigid_body_info(SourcePhysicsContactMemory&,std::uint32_t info);
+// The 1DF380 controller path with original class 9, motion 7 and identity
+// rotation. Writes its aligned 0xB6-byte descriptor and allocates the actual
+// sized block, then returns its identity at the 31BC40 call boundary.
+// An unsupported request returns without writing or allocating.
+std::optional<std::uint32_t> havok_prepare_fixed_biped_body(SourcePhysicsContactMemory&,
+    const HavokBipedBodyRequest&,std::uint32_t info,HavokFp&);
+// 31BC40's fixed class-9/motion-7 path over the real allocated body and
+// empty-property descriptor. Returns false before stores for other paths.
+bool havok_construct_fixed_biped_body(SourcePhysicsContactMemory&,std::uint32_t body,
+    std::uint32_t info,HavokFp&);
 // 1D73D0 (EAX component datum): the shape refresh dispatch. The object's
 // definition type (body +AA) selects, through the byte map 0x1D74BC and the
 // table 0x1D74A4, the unit 1DEE30, vehicle 1DD9A0, machine 1DDBF0 (after
 // +4 |= 0x80; its result is +1C), crate 1DD950 or creature 1DEF50 shape
 // builder, then 1CD6A0 (+88/+94, no force), +4 |= 1 and bit 17 from the
-// header's +2 bit 0. Every builder is still a named refusal (at its entry).
-void havok_component_refresh(SourcePhysicsContactMemory&,std::uint32_t datum,HavokFp&);
+// header's +2 bit 0. Supplying the biped services admits 1DEE30's native
+// caller. Each selected child still requires its actual construction owner.
+void havok_component_refresh(SourcePhysicsContactMemory&,std::uint32_t datum,HavokFp&,
+    const HavokBipedRefreshServices* biped_services=nullptr);
 // 1CC310(object, flags): with a Havok component (+B4) the component row
 // is removed (1D9510, when +4 bit 5), reset (1D8470, native), given
-// `flags`, refreshed (1D73D0) and reactivated (1D97F0, native). 1D9510 and
-// 1D73D0 are refused at their entries (an active row before any store, an
-// inactive one after the reset and the flag store): composed tracks stop
-// there. Their natives are havok_component_remove/havok_component_refresh.
+// `flags`, refreshed (1D73D0) and reactivated (1D97F0, native). The live
+// scope admits removal and refresh dispatch, including the native biped
+// controller prefix and its no-body path. A selected builder that needs
+// remaining construction stops at its actual owner.
+using HavokPairContactCleanup=std::function<void(SourcePhysicsContactMemory&,std::uint32_t receiver,
+    std::uint32_t owner,std::uint32_t scratch_end,HavokFp&)>;
+class HavokComponentRemovalScope final {
+ public:
+  // A supplied World callback must outlive the synchronous removal scope.
+  explicit HavokComponentRemovalScope(const HavokPairContactCleanup* = nullptr) noexcept;
+  ~HavokComponentRemovalScope();
+  HavokComponentRemovalScope(const HavokComponentRemovalScope&)=delete;
+  HavokComponentRemovalScope& operator=(const HavokComponentRemovalScope&)=delete;
+ private:
+  bool previous_;
+  const HavokPairContactCleanup* previous_cleanup_;
+};
 void havok_component_state_flags(SourcePhysicsContactMemory&,std::uint32_t object,std::uint32_t flags,HavokFp&,
     std::uint32_t sp=0);
 }

@@ -55,7 +55,7 @@ Totals exercise(const FrontendContent &content,const std::filesystem::path &maps
   check(profile!=state.frame().entries.end(),"scratch profile did not use native profile loading");
   choose(state,unsigned(profile-state.frame().entries.begin()),6);
   check(state.signed_in_profile()=="Map Selection Test","normal profile sign-in failed");
-  choose(state,2,30); // Actual local Split Screen main-menu row.
+  choose(state,1,218); choose(state,0,30); // Actual local Split Screen main-menu row.
   choose(state,0,14);
   check(state.local_players().size()==1,"local map routing lost the signed-in player");
   const auto initial=state.lobby_view();

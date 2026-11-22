@@ -38,6 +38,10 @@ public:
     virtual ~SourcePhysicsContactMemory() = default;
     virtual void read(std::uint32_t address, std::span<std::byte> output) const = 0;
     virtual void write(std::uint32_t address, std::span<const std::byte> input) = 0;
+    // Attempt one complete scalar write. Neither outcome invokes callbacks,
+    // allocates, or changes floating-point state. Refusal leaves memory and
+    // write observers untouched. The caller owns backing topology.
+    virtual bool try_callback_free_write(std::uint32_t, std::span<const std::byte>) noexcept { return false; }
     // A source vector operand consists of four ordered scalar reads. Device
     // adapters keep that access/fault sequence, including32-bit address wrap.
     // Retained ordinary storage can specialize the side-effect-free access.

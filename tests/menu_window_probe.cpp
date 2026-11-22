@@ -59,7 +59,7 @@ extern "C" int SDL_PollEvent(SDL_Event *event) {
   if(windows==1 && event && std::getenv("HALO2_WINDOW_PROBE_TWO_PLAYERS")) {
     struct Press {unsigned pad;SDL_GameControllerButton button;};
     constexpr Press presses[]{{0,SDL_CONTROLLER_BUTTON_A},{0,SDL_CONTROLLER_BUTTON_A},
-      {0,SDL_CONTROLLER_BUTTON_DPAD_DOWN},{0,SDL_CONTROLLER_BUTTON_DPAD_DOWN},{0,SDL_CONTROLLER_BUTTON_A},
+      {0,SDL_CONTROLLER_BUTTON_DPAD_DOWN},{0,SDL_CONTROLLER_BUTTON_A},{0,SDL_CONTROLLER_BUTTON_A},
       {1,SDL_CONTROLLER_BUTTON_START},{1,SDL_CONTROLLER_BUTTON_DPAD_DOWN},{1,SDL_CONTROLLER_BUTTON_A},
       {0,SDL_CONTROLLER_BUTTON_A},{0,SDL_CONTROLLER_BUTTON_A}};
     if(injected<std::size(presses)) {
@@ -70,7 +70,7 @@ extern "C" int SDL_PollEvent(SDL_Event *event) {
     return original(event);
   }
   constexpr SDL_Keycode keys[]{SDLK_RETURN, SDLK_RETURN,
-                               SDLK_DOWN, SDLK_DOWN, SDLK_RETURN,
+                               SDLK_DOWN, SDLK_RETURN, SDLK_RETURN,
                                SDLK_RETURN, SDLK_RETURN};
   if (windows == 1 && event && injected < std::size(keys)) {
     *event = {};

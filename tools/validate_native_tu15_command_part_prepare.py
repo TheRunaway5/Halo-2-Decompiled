@@ -120,6 +120,12 @@ def cases(tables):
         for kind in ('model','cluster','instance'):add(kind,'instance'if kind=='instance'else'cluster',part=part)
     for kind,index,selector in itertools.product(('cluster','instance'),(0,31,32,127,254),(-1,0,1)):
         add(kind,'instance'if kind=='instance'else'cluster',visibility_index=index,selector=selector)
+    for kind,fp,depth in (('model',(0x003f,0x3925,0x3fc1),1),
+                          ('cluster',(0x077f,0x6941,0x9fa2),3),
+                          ('instance',(0x0e3f,0x2d40,0x5f84),2)):
+        add(kind,'instance' if kind=='instance' else 'cluster',lod=0x7f812345,fp=fp)
+        rows[-1]['name']='sse-scope-'+kind
+        rows[-1]['live_x87']=[struct.pack('<QH',0x8000000000000000+k,0x3fff).hex() for k in range(depth)]
     return rows
 
 

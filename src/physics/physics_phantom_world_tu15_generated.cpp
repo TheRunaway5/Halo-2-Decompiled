@@ -1,3 +1,4 @@
+#include "physics/runtime/native_tu15_phantom_island.hpp"
 // Generated static source address bindings; no original code or decoder.
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/physics_world_runtime.hpp"
@@ -21,6 +22,7 @@ void run_22d460(MathState &);
 void run_2816a0(MathState &);
 void run_282870(MathState &);
 void run_1d9ec0(MathState &s) {
+    if (halo2::native_phantom_island_detail::query_component(s)) return;
 if(s.services.instruction)s.services.instruction(0x1d9ec0u); s.push(0x1d9ec0u,s.reg(1,4,0));
 if(s.services.instruction)s.services.instruction(0x1d9ec1u); s.set(0,r(s.memory,(0x74u+s.gp[6]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x1d9ec4u); s.push(0x1d9ec4u,s.reg(3,4,0));

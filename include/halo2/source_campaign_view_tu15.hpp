@@ -7,6 +7,7 @@
 #include "halo2/source_campaign_environment_frame_tu15.hpp"
 #include "halo2/source_live_transparent_groups_tu15.hpp"
 #include "halo2/source_transparent_group_parts.hpp"
+#include "halo2/renderer_timing.hpp"
 #include <functional>
 #include <map>
 #include <optional>
@@ -51,6 +52,9 @@ struct SourceCampaignViewInputTu15 {
     // An actual renderer query owner supplies20700 after its once-per-frame
     //20680. Absence retains the standalone CPU collector's original gates.
     std::function<void(PhysicsLiveWorldTu15 &,unsigned)> prepare_lens_view;
+    // The caller can time the returned main-view stages in the existing
+    // renderer report. The collector borrows this only during collect().
+    RendererHostPreparationTiming::NativeView* timings{};
 };
 struct SourceCampaignViewFrameTu15 {
     SourcePortalVisibilitySet visibility;

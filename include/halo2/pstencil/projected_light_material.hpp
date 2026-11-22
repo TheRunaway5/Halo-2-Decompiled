@@ -32,10 +32,20 @@ std::vector<Material> prepare_projected_light_shadow_material(const Cache&,const
     const EffectLightDefinition&,const EffectLightUniforms&,unsigned layer,unsigned implementation);
 std::vector<Material> complete_projected_light_shadow_constants(const Cache&,const Material&,
     const EffectLightDefinition&,const EffectLightUniforms&,unsigned layer,unsigned implementation);
+// The projected light's layer 14 writes the selected material into target 1.
+// The native layer 12 response can then sample extern 3 at this owner’s pixels.
+std::vector<Material> prepare_projected_light_texture_material(const Cache&,const Material&,
+    const EffectLightUniforms&,bool load_images);
 // Complete only the per-light shader/constant/raster metadata. These results
 // contain no loaded images and are exclusively packet inputs for an already
 // resident material slot prepared by the full function above.
 std::vector<Material> complete_projected_light_constants(const Cache&,const Material&,
     const EffectLightDefinition&,const EffectLightUniforms&,unsigned implementation,
+    std::uint32_t feature_mask);
+// Packet-only completion with one selected pass per result. The live remaps
+// are identical to full completion. Use the existing resident material slot
+// for image, animation, and pipeline ownership.
+std::vector<Material> complete_projected_light_packet_materials(const Cache&,const Material&,
+    const EffectLightDefinition&,const EffectLightUniforms&,unsigned layer,unsigned implementation,
     std::uint32_t feature_mask);
 }

@@ -6,8 +6,12 @@
 #include "halo2/source_object_draw_collector.hpp"
 #include "halo2/source_prt.hpp"
 #include <array>
+#include <functional>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <set>
+#include <span>
 
 namespace halo2 {
 struct SourceLiveModelBaseDrawTu15;
@@ -20,7 +24,7 @@ struct SourceCampaignDrawGeometry {
 };
 // Definition-level capability, independent of any representative placement's
 // baked identity. The submitting unit owns the live lighting classification.
-bool source_campaign_lit_scenery(const RenderModel &,const ScenarioObject &);
+bool source_campaign_lit_object(const RenderModel &,const ScenarioObject &);
 // Resources for all authored permutations and LODs. Loading never chooses a
 // live variant or advances the source RNG. Original4B5D0 selects every draw;
 // its completed deferred WORLD pose is supplied separately by the live world.
@@ -60,13 +64,35 @@ public:
         std::span<const SourceLiveModelBaseDrawTu15>,
         std::span<const Transform> rendered_world_nodes,const SourceModelShaderView &,
         const BspLighting *current_lighting=nullptr,bool allow_gpu=true)const;
+    using DrawReference=std::reference_wrapper<const SourceLiveModelBaseDrawTu15>;
+    // The renderer owns these units for the duration of the synchronous call.
+    std::vector<Vertex> draw_borrowed(std::uint32_t owner,
+        std::span<const DrawReference>,std::span<const Transform> rendered_world_nodes,
+        const SourceModelShaderView &,const BspLighting *current_lighting=nullptr)const;
+    SourceCampaignDrawGeometry draw_deferred_borrowed(std::uint32_t owner,
+        std::span<const DrawReference>,std::span<const Transform> rendered_world_nodes,
+        const SourceModelShaderView &,const BspLighting *current_lighting=nullptr,bool allow_gpu=true)const;
 private:
+    template<class Draws> std::vector<Vertex> draw_units(std::uint32_t owner,Draws,
+        std::span<const Transform>,const SourceModelShaderView &,const BspLighting *)const;
+    template<class Draws> SourceCampaignDrawGeometry draw_deferred_units(std::uint32_t owner,Draws,
+        std::span<const Transform>,const SourceModelShaderView &,const BspLighting *,bool allow_gpu)const;
+    struct SectionGeometry {
+        RenderModel model;
+        std::vector<std::uint32_t> ordinals;
+    };
+    static SectionGeometry section_geometry(const RenderModel &,unsigned section,bool use_index);
+    const SectionGeometry &retained_section_geometry(const RenderModel &,unsigned section)const;
     std::vector<Vertex> vertices(unsigned lod,std::span<const unsigned> sections,
         std::span<const Transform> rendered_world_nodes,const BspLighting *lighting=nullptr,
         unsigned instance=0x7ffu)const;
     std::uint32_t definition_{},variant_{},render_model_{};
     std::vector<std::uint32_t> variant_names_;
     std::array<std::shared_ptr<const RenderModel>,6> lods_;
+    // LODs that share an immutable resource also share its selected sections.
+    // These banks contain local records only. Each draw still owns its pose.
+    mutable std::mutex section_geometry_mutex_;
+    mutable std::map<const RenderModel*,std::map<unsigned,SectionGeometry>> section_geometry_;
     std::array<std::vector<unsigned>,6> sections_;
     std::vector<unsigned> union_sections_;
     std::vector<ModelScaleReset> scale_resets_;

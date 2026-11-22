@@ -41,8 +41,10 @@ unsigned native_tu15_queue_sections_42750(SourcePhysicsContactMemory&,std::uint3
 void native_tu15_command_frame_40e80(SourcePhysicsContactMemory&,std::uint32_t selector,
     NativeTu15PhysicsFrameFp&,const NativeTu15CommandFrameServices&);
 class PhysicsLiveWorldTu15;
+class SourceRuntimeMemory;
 struct SourcePhysicsContactRuntimeAbi;
-NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15&,std::uint32_t selector=0);
+NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15&,std::uint32_t selector=0,
+    SourceRuntimeMemory* admitted_light_store_memory=nullptr);
 // Whole 40E80 at a native secondary-view caller (projected light, shadow
 // root) whose context is already published at 4CD3A0. EAX is the selector;
 // the call's FP words receive the completed arithmetic state. Native by
@@ -50,6 +52,8 @@ NativeTu15PhysicsFrameFp source_native_command_frame_tu15(PhysicsLiveWorldTu15&,
 // restore the original at that site; HALO2_SECONDARY_COMMANDS_ORACLE=1 runs
 // the native kernel in an undo journal, then the original, and compares every
 // non-stack store and the FP words (counts: HALO2_NATIVE_COMMAND_SITE_STATS=1).
+// HALO2_REFERENCE_PROJECTED_LIGHT_COMMAND_WRITES=1 keeps native projected
+// light packet and command stores on the individual World-call route.
 enum class SourceCommandFrameSiteTu15 : unsigned {light,shadow};
 void source_command_frame_site_tu15(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&,SourceCommandFrameSiteTu15);
 void source_native_transparent_collection_tu15(PhysicsLiveWorldTu15&,SourcePhysicsContactRuntimeAbi&);

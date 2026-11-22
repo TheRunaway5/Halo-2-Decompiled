@@ -4,13 +4,13 @@
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 6422,
+      "line": 6455,
       "target": "ctf_activation_tu15_tests"
     },
     {
       "command": "add_executable",
       "file": "CMakeLists.txt",
-      "line": 6433,
+      "line": 6466,
       "target": "ctf_configuration_tu15_tests"
     },
     {
@@ -22,13 +22,13 @@
     {
       "command": "add_executable",
       "file": "cmake/MultiplayerEnginesTu15.cmake",
-      "line": 670,
+      "line": 702,
       "target": "multiplayer_engines_tu15_tests"
     },
     {
       "command": "target_sources",
       "file": "cmake/PhysicsLiveWorldTu15.cmake",
-      "line": 1184,
+      "line": 1185,
       "target": "halo2_physics_world_runtime"
     }
   ],

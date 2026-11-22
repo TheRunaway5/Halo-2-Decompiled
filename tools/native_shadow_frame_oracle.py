@@ -57,6 +57,7 @@ class Spec:
     guard_mutants:tuple=()
     max_rounds:int=64
     free_x87_topology:bool=False
+    undefined_flag_scope:tuple=()
 
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
 def entry_name(entry):return format(entry,'x')
@@ -232,9 +233,14 @@ def run(spec,corpus,args):
     def metadata(image):
         result=original_metadata(image);code=common._Code(image,'.text')
         for site in result['sites']:
-            mnemonic=code.at(site['instruction']).mnemonic
+            instruction=code.at(site['instruction']);mnemonic=instruction.mnemonic
             if mnemonic in('ret','pop'):site['operands'].append(dict(base=4,index=-1,scale=1,displacement=0,bytes=4,read=True,write=False))
             if mnemonic.startswith('prefetch'):site['operands']=[]
+            # Capstone marks the m64 destinations of MOVHPS/MOVLPS as reads.
+            if mnemonic in ('movhps','movlps') and bytes(instruction.bytes[:2]) in (b'\x0f\x17', b'\x0f\x13'):
+                if len(site['operands'])!=1 or site['operands'][0]['bytes']!=8:
+                    raise ValueError('Original packed-half store metadata drift')
+                site['operands'][0].update(read=False,write=True)
             # Capstone leaves access=0 on memory operands of `test [mem], reg`.
             for o in site['operands']:
                 if not o['read']and not o['write']:o['read']=True
@@ -337,6 +343,8 @@ def run(spec,corpus,args):
         segment_rounds=rounds,prefix_segment_rounds=prefix_rounds,stubbed_required_calls=stubbed,original_instructions=instructions,
         owned_sites=len(owned_sites),declared_unreachable=[hex(pc)for pc in spec.unreachable],unexecuted_owned_sites=[hex(pc)for pc in unexecuted],physical_original=authority,physical_prefix_original=prefix_authority,additional_source_checks=checks,compiled_semantic_mutants=mutated,compiler=args.compiler,sanitizers=args.sanitizers,diagnostic=diagnostic,retained_large_artifacts=[])
     if passed:report['native']={key:sum(item[key]for item in outcomes)for key in outcomes[0]if key!='passed'}
+    if spec.undefined_flag_scope:
+        report['undefined_flag_comparison_scope'] = spec.undefined_flag_scope
     args.report.parent.mkdir(parents=True,exist_ok=True);args.report.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({key:report[key]for key in('passed','physical_cases','normal_cases','prefix_cases','stubbed_required_calls','owned_sites','unexecuted_owned_sites','changed_inputs')}));print(diagnostic[-3000:])
     return 0 if report['passed']else 1

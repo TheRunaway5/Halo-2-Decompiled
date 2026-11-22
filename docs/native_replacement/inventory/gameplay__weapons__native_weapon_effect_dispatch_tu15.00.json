@@ -23,13 +23,37 @@
       "gates": [
         "HALO2_REFERENCE_EFFECT_SLOT_SCAN"
       ],
-      "sha256": "49c98116086140129747937d191d5c96c1a2ef6a8eb388809c99d918a12fe530"
+      "sha256": "ffc3d7600c5f5dd4bd86c6eb41bdeda4b508224fcb17f80c91e43c0e1897be67"
     },
     "src/gameplay/weapons/native_tu15_effect_transform_product.hpp": {
       "gates": [
         "HALO2_REFERENCE_EFFECT_TRANSFORM_PRODUCT"
       ],
       "sha256": "10ce05e6e4cae2e65c7374a1e68d5c9678a2f8ea4ff0579bbb11bb5899fbe093"
+    },
+    "src/gameplay/weapons/native_tu15_marker_owner_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_MARKER_OWNER"
+      ],
+      "sha256": "f097983f5866013ddd79a379e4e195691c39fb19449f427fd2d960ed4aa42871"
+    },
+    "src/gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_MODEL_MARKER_LOOKUP"
+      ],
+      "sha256": "80f3460b72ecb7638a2743bfd7cd4bb1a5c16c3941bd7ac3f8fbc326e3e82e9e"
+    },
+    "src/gameplay/weapons/native_tu15_object_parent_mode_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_OBJECT_PARENT_MODE"
+      ],
+      "sha256": "48d6bf4568ce65d44f7e47db599acad17c37b681c94359e7b8ad951077a5aa0f"
+    },
+    "src/physics/runtime/native_tu15_census_admission.hpp": {
+      "gates": [
+        "HALO2_REFERENCE_INSTRUCTION_CALLBACKS"
+      ],
+      "sha256": "87d74a2a4e8c77b54f8c99e2fa1ee3ca54230ad8dfebf4e4b3efb0987b2418e5"
     }
   },
   "internal_dispatch_identity_evidence": {},
@@ -41,7 +65,11 @@
   "reference_verification_gate_names": [
     "HALO2_REFERENCE_EFFECT_DATUM_ALLOCATE",
     "HALO2_REFERENCE_EFFECT_SLOT_SCAN",
-    "HALO2_REFERENCE_EFFECT_TRANSFORM_PRODUCT"
+    "HALO2_REFERENCE_EFFECT_TRANSFORM_PRODUCT",
+    "HALO2_REFERENCE_INSTRUCTION_CALLBACKS",
+    "HALO2_REFERENCE_MARKER_OWNER",
+    "HALO2_REFERENCE_MODEL_MARKER_LOOKUP",
+    "HALO2_REFERENCE_OBJECT_PARENT_MODE"
   ],
   "routine_count": 22,
   "routines": [
@@ -77,7 +105,7 @@
       "direct_run_symbols": [],
       "function_name": "effect_origin",
       "instruction_callback_sites": 76,
-      "line": 74,
+      "line": 78,
       "literal_dispatch_required_targets": [],
       "observed_entry": "bbe00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -102,7 +130,7 @@
       "direct_run_symbols": [],
       "function_name": "direction_packets",
       "instruction_callback_sites": 38,
-      "line": 168,
+      "line": 172,
       "literal_dispatch_required_targets": [],
       "observed_entry": "1791c0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -128,7 +156,7 @@
       "direct_run_symbols": [],
       "function_name": "select_object",
       "instruction_callback_sites": 30,
-      "line": 209,
+      "line": 213,
       "literal_dispatch_required_targets": [],
       "observed_entry": "106f90",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -161,7 +189,7 @@
       "direct_run_symbols": [],
       "function_name": "dispatch",
       "instruction_callback_sites": 64,
-      "line": 245,
+      "line": 249,
       "literal_dispatch_required_targets": [],
       "observed_entry": "108a70",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -203,7 +231,7 @@
       "direct_run_symbols": [],
       "function_name": "allocate_effect_datum",
       "instruction_callback_sites": 80,
-      "line": 341,
+      "line": 345,
       "literal_dispatch_required_targets": [],
       "native_admission_hints": [
         "halo2::native_effect_datum_allocate_detail::try_native"
@@ -237,7 +265,7 @@
       "direct_run_symbols": [],
       "function_name": "next_effect_location",
       "instruction_callback_sites": 43,
-      "line": 463,
+      "line": 467,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17dce0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -274,7 +302,7 @@
       "direct_run_symbols": [],
       "function_name": "reset_effect_components",
       "instruction_callback_sites": 38,
-      "line": 592,
+      "line": 596,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17dc60",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -314,7 +342,7 @@
       "direct_run_symbols": [],
       "function_name": "reset_effect_event",
       "instruction_callback_sites": 60,
-      "line": 634,
+      "line": 638,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17b130",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -347,7 +375,7 @@
       "direct_run_symbols": [],
       "function_name": "restart_effect",
       "instruction_callback_sites": 45,
-      "line": 692,
+      "line": 696,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17a1a0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -381,7 +409,7 @@
       "direct_run_symbols": [],
       "function_name": "refresh_effect",
       "instruction_callback_sites": 37,
-      "line": 746,
+      "line": 750,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17dff0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -411,7 +439,7 @@
       "direct_run_symbols": [],
       "function_name": "create_attached_effect",
       "instruction_callback_sites": 55,
-      "line": 794,
+      "line": 798,
       "literal_dispatch_required_targets": [],
       "observed_entry": "179610",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -437,7 +465,7 @@
       "direct_run_symbols": [],
       "function_name": "sound_is_local",
       "instruction_callback_sites": 26,
-      "line": 861,
+      "line": 865,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18be00",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -465,7 +493,7 @@
       "direct_run_symbols": [],
       "function_name": "direct_sound",
       "instruction_callback_sites": 30,
-      "line": 895,
+      "line": 899,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18be50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -493,7 +521,7 @@
       "direct_run_symbols": [],
       "function_name": "unowned_zoom_sound",
       "instruction_callback_sites": 18,
-      "line": 934,
+      "line": 938,
       "literal_dispatch_required_targets": [],
       "observed_entry": "18c4b0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -521,7 +549,7 @@
       "direct_run_symbols": [],
       "function_name": "initialize_effect_placement",
       "instruction_callback_sites": 29,
-      "line": 962,
+      "line": 966,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17b0d0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -544,7 +572,7 @@
       "direct_run_symbols": [],
       "function_name": "initialize_effect_handles",
       "instruction_callback_sites": 1,
-      "line": 1001,
+      "line": 1005,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17e63f",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -569,7 +597,7 @@
       "direct_run_symbols": [],
       "function_name": "initialize_effect_locations",
       "instruction_callback_sites": 10,
-      "line": 1011,
+      "line": 1015,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17b960",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -602,7 +630,7 @@
       "direct_run_symbols": [],
       "function_name": "allocate_effect",
       "instruction_callback_sites": 84,
-      "line": 1029,
+      "line": 1033,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17afb0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -639,7 +667,7 @@
       "direct_run_symbols": [],
       "function_name": "create_effect",
       "instruction_callback_sites": 199,
-      "line": 1139,
+      "line": 1143,
       "literal_dispatch_required_targets": [],
       "observed_entry": "178e30",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -682,7 +710,7 @@
       "direct_run_symbols": [],
       "function_name": "reset_zoom",
       "instruction_callback_sites": 105,
-      "line": 1399,
+      "line": 1403,
       "literal_dispatch_required_targets": [],
       "observed_entry": "cabc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -714,7 +742,7 @@
       "direct_run_symbols": [],
       "function_name": "copy_effect_location",
       "instruction_callback_sites": 39,
-      "line": 1541,
+      "line": 1545,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17dd50",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -743,7 +771,7 @@
       "direct_run_symbols": [],
       "function_name": "copy_effect_location_selected",
       "instruction_callback_sites": 29,
-      "line": 1590,
+      "line": 1594,
       "literal_dispatch_required_targets": [],
       "observed_entry": "17ddc0",
       "observed_entry_semantics": "first literal callback; function-entry identity requires independent qualification",
@@ -757,7 +785,7 @@
   ],
   "schema": "native-migration-source-inventory-v1",
   "source": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
-  "source_bytes": 98099,
+  "source_bytes": 98373,
   "source_filename_scope": "nongenerated",
-  "source_sha256": "5395464ef2b95c78e1a164b9970b85067d184d692da05804b440c2cf69089e4e"
+  "source_sha256": "74c50ecc332dfd6b895314c9712ffb7555ec2ddedc749c375467f916ff3f65c3"
 }

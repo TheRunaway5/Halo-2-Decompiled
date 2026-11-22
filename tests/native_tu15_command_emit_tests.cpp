@@ -3,6 +3,7 @@
 #include "halo2/native_tu15_command_walk.hpp"
 #include "halo2/native_tu15_material_selection.hpp"
 #include "halo2/source_opaque_sort.hpp"
+#include "../src/rendering/world/native_tu15_command_arithmetic.hpp"
 #include <algorithm>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -64,7 +65,7 @@ Json run_group(Memory& memory,const Json& row,NativeTu15PhysicsFrameFp& fp) {
         std::array<std::byte,44> initial{};
         memory.read(packet,initial);
         const auto result=native_tu15_command_part_prepare_45cd0(memory,unit,part,matrix,initial,arithmetic);
-        for(const auto& s:result.stores)store(s.instruction,packet+s.offset,s.value,s.bytes);
+        for(const auto& s:result.stores())store(s.instruction,packet+s.offset,s.value,s.bytes);
         return result.accepted;
     };
     services.emit_41030=[&](const auto& emit,auto& arithmetic) {
@@ -78,7 +79,7 @@ Json run_group(Memory& memory,const Json& row,NativeTu15PhysicsFrameFp& fp) {
     return Json{{"stores",stores},{"rejected",false},{"fp",{fp.control_word,fp.status,fp.mxcsr}},
         {"eax",end},{"esp",stack+36u},{"packet",hex(final_packet)},{"controls",hex(controls)}};
 }
-Json run(const Json& row) {
+Json run(const Json& row,detail::CommandArithmeticPolicy policy) {
     Memory memory;
     for(const auto& bank:row.at("banks")) {
         const auto& hex=bank.at("before").get_ref<const std::string&>();
@@ -114,7 +115,7 @@ Json run(const Json& row) {
     }
     const auto& a=row.at("args");auto stores=Json::array();bool rejected=false;
     try {
-        const auto plan=native_tu15_command_emit_41030(memory,{a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7],a[8]},fp);
+        const auto plan=detail::command_emit(memory,{a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7],a[8]},fp,policy);
         for(const auto& s:plan.rows())stores.push_back({s.instruction,s.address,s.value,s.width});
     } catch(const std::invalid_argument&) {rejected=true;}
     return Json{{"stores",stores},{"rejected",rejected},{"fp",{fp.control_word,fp.status,fp.mxcsr}}};
@@ -122,7 +123,15 @@ Json run(const Json& row) {
 }
 
 int main() try {
+    using Policy=detail::CommandArithmeticPolicy;
     std::string line;
-    while(std::getline(std::cin,line))std::cout<<run(Json::parse(line)).dump()<<'\n'<<std::flush;
+    while(std::getline(std::cin,line)) {
+        const auto row=Json::parse(line);
+        const auto expected=run(row,Policy::Full);
+        const auto actual=row.at("entry")==0x41030 && !detail::reference_command_x87_scope()?
+            run(row,Policy::RetainedSse):expected;
+        if(actual!=expected)throw std::runtime_error("SSE-only 41030 differs from its full x87 scope");
+        std::cout<<actual.dump()<<'\n'<<std::flush;
+    }
     return 0;
 } catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}

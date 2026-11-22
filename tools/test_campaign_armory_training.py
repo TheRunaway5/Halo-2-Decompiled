@@ -22,7 +22,18 @@ def parse_training_lines(lines):
     for n,line in enumerate(lines,1):
         if match:=re.match(r'^Campaign input: tick=(\d+) input_tick=(\d+)\b',line):
             report['input_step_observations'].append(dict(line=n,map_tick_before=int(match[1]),input_tick=int(match[2])))
-    report['input_diagnostics']=[json.loads(line.removeprefix('Campaign input diagnostic: '))for line in lines if line.startswith('Campaign input diagnostic: ')]
+    report['input_diagnostics']=[]
+    report['input_diagnostic_errors']=[]
+    diagnostic_prefix='Campaign input diagnostic: '
+    for n,line in enumerate(lines,1):
+        if not line.startswith(diagnostic_prefix):continue
+        try:
+            row=json.loads(line.removeprefix(diagnostic_prefix))
+            if not isinstance(row,dict):raise ValueError('Expected a JSON object')
+        except ValueError as error:
+            report['input_diagnostic_errors'].append(dict(line=n,error=str(error)))
+        else:
+            report['input_diagnostics'].append(row)
     return report
 
 def recorded_input_sequence_matches(report,ticks):
@@ -49,6 +60,7 @@ def clean_training_execution(report,ticks):
     initial=report.get('initial_scenarios',[]);statuses=report.get('source_status',[])
     milestones=report.get('required_milestones',[])
     return bool(report.get('returncode')==0 and not report.get('timeout')and initial and statuses
+        and not report.get('input_diagnostic_errors')and not report.get('file_open_audit_error')
         and initial[0].get('scenario')==ARMORY and initial[0].get('tick')==0
         and initial[0].get('scripts',0)>0 and initial[0].get('level_finished')is False
         and initial[0].get('difficulty')==1
@@ -111,21 +123,29 @@ def main():
         '--campaign-input-script',str(schedule),'--mute']
     env={k:v for k,v in os.environ.items()if not k.startswith('HALO2_')or k=='HALO2_TEST_SCRATCH'}
     for key in('XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME'):env[key]=str(scratch/key.lower())
-    env['SDL_AUDIODRIVER']='dummy';trace=scratch/'opens.log';log=scratch/'runtime.log'
+    env['SDL_AUDIODRIVER']='dummy';trace=scratch/'opens.log'
+    output_log=scratch/'runtime.stdout.log';error_log=scratch/'runtime.stderr.log'
     report=dict(passed=False,scope=__doc__,command=command,runtime=str(runtime),runtime_sha256=sha(runtime),
         map_sha256=sha(map_path),mcc_inputs=inputs,input_schedule=events,input_sha256=sha(schedule),tool_sha256=sha(__file__),
         scratch=str(scratch),retained_large_artifacts=[],full_campaign_qualified=False,native_only_qualified=False,
         rendered_training_qualified=False,launcher_promoted=False)
     began=time.monotonic()
     try:
-        with log.open('wb')as stream:
+        with output_log.open('wb')as output,error_log.open('wb')as errors:
             r=subprocess.run(['strace','--kill-on-exit','-f','-e','trace=openat','-o',str(trace),'--',*command],
-                cwd=scratch,env=env,stdout=stream,stderr=subprocess.STDOUT,timeout=a.timeout)
+                cwd=scratch,env=env,stdout=output,stderr=errors,timeout=a.timeout)
         report['returncode']=r.returncode
     except subprocess.TimeoutExpired:report['timeout']=True
-    text=log.read_text(errors='replace');lines=text.splitlines();report.update(parse_training_lines(lines))
+    # Keep stderr summaries from interrupting large LF-delimited JSON records
+    # on stdout. Other Unicode line separators are allowed inside values.
+    text=output_log.read_text(errors='replace')+'\n'+error_log.read_text(errors='replace')
+    report.update(parse_training_lines(text.split('\n')))
     report['required_milestones']=[dict(text=required,observed=any(required in row['text']for row in report['script_milestones']))for required in a.require_line]
-    opens=trace.read_text(errors='replace');paths=re.findall(r'openat\([^,]+, "([^"]+)"',opens)
+    try:
+        opens=trace.read_text(errors='replace')
+    except OSError as error:
+        opens='';report['file_open_audit_error']=str(error)
+    paths=re.findall(r'openat\([^,]+, "([^"]+)"',opens)
     report['reference_inputs_opened']=sorted({path for path in paths if path.lower().endswith('.xbe')or(path.lower().endswith('.map')and not Path(path).resolve().is_relative_to(cache))})
     report['cache_write_attempts']=[line[:800]for line in opens.splitlines()if str(cache)in line and re.search(r'O_WRONLY|O_RDWR|O_CREAT|O_TRUNC',line)]
     report['runtime_unchanged']=sha(runtime)==report['runtime_sha256']

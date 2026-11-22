@@ -41,7 +41,9 @@ public:
         default:throw std::runtime_error("Invalid simplex projection vector phase");
         }
         if constexpr(Retained){
-            at(pc);io([&]{s_.xmm[reg]=physics_step_detail::v(s_.memory,address);});
+            at(pc);
+            if(!native_host_fp_io_detail::read_simplex_projection_vector(s_.memory,address,s_.xmm[reg]))
+                io([&]{s_.xmm[reg]=physics_step_detail::v(s_.memory,address);});
         }else s_.xmm[reg]=Base::vector(pc,address);
         return s_.xmm[reg];
     }
@@ -57,7 +59,9 @@ public:
         default:throw std::runtime_error("Invalid simplex projection scalar store");
         }
         if constexpr(Retained){
-            at(pc);io([&]{physics_step_detail::w(s_.memory,s_.observe,pc,address,4u,value);});
+            at(pc);
+            if(!native_host_fp_io_detail::write_simplex_retained_word(s_,address,value))
+                io([&]{physics_step_detail::w(s_.memory,s_.observe,pc,address,4u,value);});
         }else Base::store(pc,address,value,[]{});
     }
     std::uint32_t scalar_read(P phase,const Data&){
@@ -101,7 +105,9 @@ public:
         at(0x30ee7au);
         if constexpr(Retained){
             const auto bits=physics_step_detail::u(physics_step_detail::spill(s_.fp.st(0)));
-            io([&]{physics_step_detail::w(s_.memory,s_.observe,0x30ee7au,s_.gp[4]+0x10u,4u,bits);});
+            const auto address=s_.gp[4]+0x10u;
+            if(!native_host_fp_io_detail::write_simplex_retained_word(s_,address,bits))
+                io([&]{physics_step_detail::w(s_.memory,s_.observe,0x30ee7au,address,4u,bits);});
             s_.fp.pop();
         }else{
             auto& fp_=*scope_;const auto pending=fp_.stage_single(true);

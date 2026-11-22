@@ -1,6 +1,7 @@
 """Bind the native TU1.5 convex pair owners in the physics world unit: the
 2F8630 closest point (canonical run_2f4bd0, the GSK agent's query) and the
-2E4FE0 swept pair (canonical run_2e14e0, which calls 2F8630).
+2E4FE0 swept pair (canonical run_2e14e0, which calls 2F8630), plus the 30E930
+closest-feature simplex controller and its 30DE60 hull fallback.
 
 Each prefix is installed only into the build-local specialized copy, and only
 when its canonical body matches its pin (state type normalized), its selected()
@@ -42,6 +43,77 @@ OWNERS = {
 # 2E4760 (run_2e0c70): run inline by 2F8630's adapter; its translated body is
 # the reference's, and is given explicit-destination SSE.
 FORWARD = ('2e0c70', '879b5a694bd14b6ba40d1b6350c1c2c3a389b7da0043cdefc876aaa251a52924')
+
+SIMPLEX = '30ae40'
+SIMPLEX_ENTRY = '30e930'
+HULL = '30a370'
+HULL_ENTRY = '30de60'
+SIMPLEX_INCLUDE = '#include "physics/runtime/native_tu15_simplex_owner_source.hpp"\n'
+SIMPLEX_PINS = (
+    '4831de546a5dc35bdbd910bbf393eb7438a992a4b2cb8d7c2718ba1a5fed8113',
+    '20de37b96fc56e19b3ec67f5a2e7aedebe84b001436654380330b4704430f0f2',
+    'c5ea0c5e4c241d9a0b448bea12cb9fc24cc8a208b0d861a57d22dd9dc0fc143c',
+    '7c93aac13aa7930e203cbe9cd111ec6a112037e49cf659f8fd6781ba20792ec2',
+)
+HULL_PINS = (
+    '08aea2d6c59de447d6dcebd6c3bc4182e5b47b25da1d1b8d28e20d1d7503abf7',
+    SIMPLEX_PINS[1], SIMPLEX_PINS[2],
+    'e5779c8ed411532bc15334539a7814df2a584d81946b32d413bb5346d166e5c6',
+    'cb782506d89e5292b91cf2af63c700e9db63fdb29726f7c9975645104dff802b',
+)
+SIMPLEX_PREFIX = '''
+    // BEGIN native simplex controller 30E930
+    const auto simplex_child = [](auto &state, std::uint32_t target, std::uint32_t site) {
+        switch(site) {
+        case 0x30e96du:
+        case 0x30e985u:
+            if(handoff_native_contact_features(state,target,site))return;
+            break;
+        case 0x30ea7bu:
+            run_309d40(state);return;
+        case 0x30eaccu:
+            if(!handoff_native_simplex_helpers(state,target,site))run_30eb30(state);
+            return;
+        case 0x30eb3fu:
+        case 0x30ecb0u:
+            run_309ae0(state);return;
+        case 0x30eb85u:
+        case 0x30ece2u:
+            if(!handoff_native_simplex_helpers(state,target,site))run_309900(state);
+            return;
+        case 0x30f59au:
+            run_30a370(state);return;
+        default:
+            break;
+        }
+        // World dispatch accepts canonical call-site labels. The retained
+        // parent adapter publishes the selected TU1.5 label before the call.
+        dispatch(state,target,site-0x3af0u,false);
+    };
+    if(halo2::native_simplex_source_owner_detail::bridge(s,simplex_child))return;
+    // END native simplex controller 30E930'''
+HULL_PREFIX = '''
+    // BEGIN native simplex hull controller 30DE60
+    const auto hull_child = [](auto &state, std::uint32_t target, std::uint32_t site) {
+        switch(site) {
+        case 0x30e29cu:
+            run_309d40(state);return;
+        case 0x30e2fdu:
+            run_30eb30(state);return;
+        case 0x30e370u:
+        case 0x30e4e1u:
+            run_309ae0(state);return;
+        case 0x30e3b6u:
+            if(!handoff_native_simplex_helpers(state,target,site))run_309900(state);
+            return;
+        case 0x30e513u:
+            run_309900(state);return;
+        default:
+            dispatch(state,target,site-0x3af0u,false);return;
+        }
+    };
+    if(halo2::native_simplex_source_owner_detail::bridge_hull(s,hull_child))return;
+    // END native simplex hull controller 30DE60'''
 
 # SSE: the first operand owns the NaN payload when both are NaNs. As for the
 # world leaves, the translated routes and their references keep explicit
@@ -136,6 +208,33 @@ def prefix(name):
             f'    // END native convex pair {entry}')
 
 
+def install_simplex(canonical, output):
+    """Bind the retained World controllers to their original child routes."""
+    resolver = re.search(r'std::uint32_t selected\(std::uint32_t p,SourcePhysicsContactImage image\)\{[^\n]*\}', canonical)
+    dispatcher = re.search(r'static void dispatch\(ObservedWorldState &s,std::uint32_t target,std::uint32_t site,bool tail\)\{[^\n]*\}', canonical)
+    estimate = re.search(r'std::uint32_t source_estimate\(ObservedWorldState &s,std::uint32_t input\) \{[^}]+\}', canonical)
+    branch = re.search(r'^std::uint32_t canonical_branch[^\n]+', canonical, re.M)
+    extend = re.search(r'^std::uint32_t sign_extend[^\n]+\n[\s\S]*?^}', canonical, re.M)
+    owners = (
+        (SIMPLEX, SIMPLEX_ENTRY, (estimate,), SIMPLEX_PINS, SIMPLEX_PREFIX),
+        (HULL, HULL_ENTRY, (branch, extend), HULL_PINS, HULL_PREFIX),
+    )
+    installed = []
+    for name, entry, helpers, pins, prefix in owners:
+        context = body(canonical, name), resolver, dispatcher, *helpers
+        if not all(context) or tuple(hashlib.sha256(match[0].encode()).hexdigest() for match in context) != pins:
+            continue
+        current = body(output, name)
+        if not current or prefix in current[0]:
+            continue
+        opening = current.start() + current[0].index('{') + 1
+        output = output[:opening] + prefix + output[opening:]
+        installed.append(entry)
+    if installed and SIMPLEX_INCLUDE not in output:
+        output = SIMPLEX_INCLUDE + output
+    return output, installed
+
+
 def install(canonical, output):
     """Return (output, installed TU1.5 entries)."""
     installed = []
@@ -156,4 +255,5 @@ def install(canonical, output):
             output = output[:forward.start()] + ordered(forward[0]) + output[forward.end():]
         if INCLUDE not in output:
             output = INCLUDE + output
-    return output, installed
+    output, simplex = install_simplex(canonical, output)
+    return output, installed + simplex

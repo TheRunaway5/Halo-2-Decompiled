@@ -18,14 +18,16 @@ void push(SourcePhysicsContactMemory &memory,SourcePhysicsWorldRuntimeAbi &abi,u
     abi.gp[4]-=4u;stack_store(memory,abi.gp[4],value);
 }
 void al(SourcePhysicsWorldRuntimeAbi &abi,u32 value){abi.gp[0]=(abi.gp[0]&0xffffff00u)|(value&255u);}
-void navigation(const Port &p,u32 entry,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp) {
+void navigation(const Port &p,u32 entry,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
     abi.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};abi.x87_status=fp.status;
     struct Publish {SourcePhysicsWorldRuntimeAbi &abi;NativeTu15PhysicsFrameFp &fp;
         ~Publish(){fp.control_word=abi.floating_point->x87_control_word;fp.mxcsr=abi.floating_point->mxcsr;fp.status=abi.x87_status;}}publish{abi,fp};
-    native_campaign_ai_object_navigation_call_tu15(p.memory,entry,abi,p.observe);
+    native_campaign_ai_object_navigation_call_tu15(p.memory,entry,abi,p.observe,vehicle_point);
 }
 
-void position(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp) {
+void position(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
     const auto entry=abi.gp[4],saved_esi=abi.gp[6],saved_edi=abi.gp[7],saved_ebx=abi.gp[3];
     abi.gp[0]=p.r32(0x5020c8u);abi.gp[1]=p.r32(abi.gp[0]+0x44u);
     const auto offset=(abi.gp[2]&0xffffu)*0x888u;
@@ -49,16 +51,16 @@ void position(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsF
             abi.gp[1]=p.r32(row+0x26cu);
             if(abi.gp[1]!=none) {
                 push(p.memory,abi,abi.gp[6]);push(p.memory,abi,abi.gp[7]);push(p.memory,abi,0x275f23u);
-                navigation(p,0x275cb0u,abi,fp);
+                navigation(p,0x275cb0u,abi,fp,vehicle_point);
             } else {
                 push(p.memory,abi,saved_ebx);abi.gp[3]=p.r32(row+0x18u);
                 if(abi.gp[3]!=none) {
                     abi.gp[0]=abi.gp[3];push(p.memory,abi,0x275f36u);
-                    navigation(p,0x275ba0u,abi,fp);
+                    navigation(p,0x275ba0u,abi,fp,vehicle_point);
                     if(abi.gp[0]&255u) {
                         push(p.memory,abi,abi.gp[6]);push(p.memory,abi,abi.gp[7]);abi.gp[1]=abi.gp[3];
                         push(p.memory,abi,0x275f43u);
-                        navigation(p,0x275cb0u,abi,fp);
+                        navigation(p,0x275cb0u,abi,fp,vehicle_point);
                     }
                 }
             }
@@ -67,7 +69,8 @@ void position(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsF
     abi.gp[3]=saved_ebx;abi.gp[6]=saved_esi;abi.gp[7]=saved_edi;abi.gp[4]=entry+4u;
 }
 
-void query(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp) {
+void query(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFrameFp &fp,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
 #ifdef HALO2_NATIVE_GOAL_EVALUATION_X86
     const auto entry=abi.gp[4],saved_ebp=abi.gp[5],saved_esi=abi.gp[6],saved_edi=abi.gp[7];
     abi.gp[0]=p.r32(0x5020c8u);abi.gp[1]=p.r32(abi.gp[0]+0x44u);
@@ -111,7 +114,7 @@ void query(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFram
         abi.gp[2]=p.r32(abi.gp[4]+0x18u); // the high half is real stack history
         p.w32(0x2014abu,out+0x24u,none);p.w32(0x2014afu,out+0x20u,abi.gp[2]);p.w8(0x2014b3u,out+0x10u,1);
     } else {
-        abi.gp[2]=abi.gp[5];push(p.memory,abi,0x2014c5u);position(p,abi,fp);
+        abi.gp[2]=abi.gp[5];push(p.memory,abi,0x2014c5u);position(p,abi,fp,vehicle_point);
         abi.gp[0]=p.r32(row+0x28cu);p.w8(0x2014d1u,out+0x10u,1);
         abi.gp[2]=p.r32(row+0x27cu);abi.gp[1]=out+0x14u;p.w32(0x2014dau,abi.gp[1],abi.gp[2]);
         abi.gp[2]=p.r32(row+0x280u);p.w32(0x2014dfu,abi.gp[1]+4u,abi.gp[2]);
@@ -125,14 +128,15 @@ void query(const Port &p,SourcePhysicsWorldRuntimeAbi &abi,NativeTu15PhysicsFram
 }
 }
 void native_campaign_ai_actor_path_query_call_tu15(SourcePhysicsContactMemory &memory,u32 entry,
-    SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &observe) {
+    SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &observe,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
     if(!abi.floating_point || abi.active_mmx)throw std::invalid_argument("Native actor path query requires retained FP controls");
     NativeTu15PhysicsFrameFp fp{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
     struct Publication {SourcePhysicsWorldRuntimeAbi &abi;NativeTu15PhysicsFrameFp &fp;
         ~Publication(){abi.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};abi.x87_status=fp.status;}} publication{abi,fp};
     const Port port{memory,observe};
-    if(entry==0x2013b0u)query(port,abi,fp);
-    else if(entry==0x275e90u)position(port,abi,fp);
+    if(entry==0x2013b0u)query(port,abi,fp,vehicle_point);
+    else if(entry==0x275e90u)position(port,abi,fp,vehicle_point);
     else throw std::invalid_argument("Native actor path query requires2013B0 or275E90");
 }
 void native_campaign_ai_evaluate_goals_with_query_call_tu15(SourcePhysicsContactMemory &memory,

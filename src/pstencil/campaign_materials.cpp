@@ -15,9 +15,13 @@ struct CampaignMaterialUpdates::Impl {
     static double milliseconds(Clock::time_point start) {
         return std::chrono::duration<double,std::milli>(Clock::now()-start).count();
     }
-    std::vector<unsigned> collect(std::span<const Material> materials,const CampaignMaterialConsumers& c) {
-        if(!selection)selection=std::make_unique<CampaignMaterialSelection>(materials);
-        return selection->collect(materials,c);
+    std::vector<unsigned> collect(std::span<const Material> materials,const CampaignMaterialConsumers& c,
+                                  std::uint64_t bank_generation) {
+        const auto* recheck=std::getenv("HALO2_REFERENCE_CAMPAIGN_MATERIAL_GRAPH");
+        const auto generation=recheck && *recheck && *recheck!='0'?
+            std::nullopt:std::optional{bank_generation};
+        if(!selection)selection=std::make_unique<CampaignMaterialSelection>(materials,generation);
+        return selection->collect(materials,c,generation);
     }
 };
 CampaignMaterialUpdates::CampaignMaterialUpdates():impl_(std::make_unique<Impl>()){}
@@ -32,12 +36,12 @@ void CampaignMaterialUpdates::request(Renderer& renderer,std::span<const Materia
     }
 }
 void CampaignMaterialUpdates::flush(Renderer& renderer,std::span<const Material> materials,
-    const CampaignMaterialConsumers& consumers,std::uint64_t frame) {
+    const CampaignMaterialConsumers& consumers,std::uint64_t frame,std::uint64_t bank_generation) {
     auto& i=*impl_;if(!i.requests)return;
     const auto start=Impl::Clock::now();
     std::vector<unsigned> roots;
     if(i.pending) {
-        roots=i.collect(materials,consumers);
+        roots=i.collect(materials,consumers,bank_generation);
         renderer.update_material_constants(materials,roots);
     }
     const auto elapsed=i.immediate_ms+Impl::milliseconds(start);

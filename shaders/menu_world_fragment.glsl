@@ -80,6 +80,23 @@ vec4 menuWorldFragment(vec4 front0,vec4 front1,vec4 p0,vec4 p1,vec4 p2,float slo
     if(MENU_WORLD_W_CLIP_MODE()==16u)depth=clamp(depth,clip.z,clip.w);
     else if(depth<clip.z || depth>clip.w)demote;
     gl_FragDepth=MENU_WORLD_ENCODE_DEPTH(depth);
+#ifdef H2_PROJECTED_DEPTH_QUAD
+    if(projectedQuadMode==2u) {
+        bool mayMatch=!helperInvocationEXT();
+        if(mayMatch && depth>=0.0 && depth<=16777215.0) {
+            ivec2 coord=ivec2(gl_FragCoord.xy);
+            if(all(greaterThanEqual(coord,ivec2(0))) &&
+                all(lessThan(coord,textureSize(projectedSceneDepth,0)))) {
+                float stored=texelFetch(projectedSceneDepth,coord,0).r;
+                if(stored>=0.0 && stored<=1.0)
+                    mayMatch=uint(roundEven(stored*16777215.0))==uint(floor(depth));
+            }
+        }
+        // Keep every original derivative lane whenever its quad can pass.
+        // The original late hardware EQUAL still controls surviving fragments.
+        if(!subgroupQuadAny(mayMatch)) {demote;return vec4(0);}
+    }
+#endif
     vec4 samples[4];runTextureStages(samples);
     H2_FIXED_STAGE_UNROLL for(uint i=0u;i<4u;++i) {
         uint mode=textureMode(i);

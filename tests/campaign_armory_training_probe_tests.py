@@ -103,4 +103,17 @@ class TrainingProbeTests(unittest.TestCase):
             report=self.report();report['source_status'][n]['script_faults']=1
             self.assertFalse(armory_to_cairo_succeeded(report,12000))
 
+    def test_truncated_input_diagnostic_preserves_runtime_progress_and_fails_acceptance(self):
+        parsed=parse_training_lines([
+            initial(ARMORY),
+            'Campaign input diagnostic: {"input_tick":6241,"text":"truncated',
+            'tick=6242 bsp=0 actors=11 scripts=2 script_faults=0 level_finished=0',
+        ])
+        self.assertEqual(parsed['source_status'][-1]['tick'],6242)
+        self.assertEqual(parsed['input_diagnostics'],[])
+        self.assertEqual(parsed['input_diagnostic_errors'][0]['line'],2)
+        report=self.report()
+        report['input_diagnostic_errors']=parsed['input_diagnostic_errors']
+        self.assertFalse(armory_to_cairo_succeeded(report,12000))
+
 if __name__=='__main__':unittest.main()

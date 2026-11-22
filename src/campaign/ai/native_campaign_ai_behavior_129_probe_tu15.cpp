@@ -2,6 +2,7 @@
 #include "halo2/native_campaign_ai_perception_refs_tu15.hpp"
 #include "halo2/native_campaign_ai_vector_math_tu15.hpp"
 #include "halo2/native_tu15_retained_store_observation.hpp"
+#include "native_campaign_ai_behavior_129_obstacle_probe.hpp"
 #include <bit>
 #include <vector>
 namespace halo2 {
@@ -11,6 +12,7 @@ using U=std::uint32_t;using V=std::array<U,3>;constexpr U none=0xffffffffu;
 struct Probe {
     SourcePhysicsContactMemory &memory;SourcePhysicsWorldRuntimeAbi &abi;
     const SourcePhysicsContactRecordObserver &observe;NativeTu15PhysicsFrameFp &fp;
+    const NativeCampaignAiPerformServicesTu15 &services;
     U r(U at,unsigned width=4)const {
         std::array<std::byte,4> raw{};memory.read(at,std::span(raw).first(width));U value{};
         for(unsigned n=0;n<width;++n)value|=std::to_integer<U>(raw[n])<<(n*8u);return value;
@@ -51,6 +53,15 @@ struct Probe {
         w(0,sp-4u,request);w(0,sp-8u,direction);w(0,sp-12u,actor);w(0,sp-16u,site+5u);
         abi.gp[4]=sp-16u;throw NativeCampaignAiPerformRequiredOwnerTu15(site,0x1ca560u);
     }
+    bool query(U site,U first_push,U second_push,U third_push,U actor,U direction,U request,U sp) {
+        if(!services.behavior_direction_geometry)missing(site,actor,direction,request,sp);
+        w(first_push,sp-4u,request);w(second_push,sp-8u,direction);
+        w(third_push,sp-12u,actor);w(site,sp-16u,site+5u);
+        abi.gp[4]=sp-16u;
+        behavior_129_direction::ObstacleProbe(memory,abi,fp,services,observe).run();
+        if(abi.gp[4]!=sp)throw std::runtime_error("Native behavior129 probe returned another stack");
+        return (abi.gp[0]&0xffu)!=0;
+    }
     void nearest(const std::array<U,8>&g) {
         const auto actor=r(g[4]+4u),offset=(actor&0xffffu)*0x888u;auto best_distance=r(0x45695cu);
         const auto properties=r(0x50eef0u),body=r(r(0x5020c8u)+0x44u)+offset;
@@ -72,7 +83,15 @@ struct Probe {
         if(fallback)point(direction,point(body+0x290u));
         const auto request=r(f+0x20u),actor_argument=r(f+0x1cu);
         abi.gp={request,direction,actor_argument,body+(fallback?0x290u:0u),f,properties,rows,g[7]};
-        missing(0x1ca9ffu,actor_argument,direction,request,f);
+        if(services.behavior_direction_geometry) {
+            w(0x1ca918u,g[4]-16u,g[3]);
+            w(0x1ca91fu,g[4]-20u,g[5]);
+            w(0x1ca926u,g[4]-24u,g[6]);
+        }
+        query(0x1ca9ffu,0x1ca9f8u,0x1ca9fdu,0x1ca9feu,actor_argument,direction,request,f);
+        abi.gp[6]=r(f);abi.gp[5]=r(f+4u);abi.gp[3]=r(f+8u);
+        abi.gp[0]=(abi.gp[0]&0xffffff00u)|1u;
+        (void)r(g[4]);abi.gp[4]=g[4]+12u;
     }
     void fan(const std::array<U,8>&g) {
         const auto f=g[4]-0x84u,body=r(r(0x5020c8u)+0x44u)+(g[7]&0xffffu)*0x888u;
@@ -96,18 +115,25 @@ struct Probe {
         directions[6]={six_x,six_y,six_z};directions[7]={nx,inverse_y,nz};
         for(unsigned n=0;n<8;++n)point(f+0x24u+n*12u,directions[n]);
         abi.gp=g;abi.gp[0]=0;abi.gp[1]=0;abi.gp[2]=f+0x24u;abi.gp[6]=0;
-        missing(0x1cac7du,g[7],f+0x24u,g[3],f-4u);
+        if(services.behavior_direction_geometry)w(0x1cac05u,f-4u,g[6]);
+        for(U index=0;index<8u;++index) {
+            abi.gp[0]=index;abi.gp[1]=index*3u;abi.gp[6]=index;
+            abi.gp[2]=f+0x24u+index*12u;
+            if(query(0x1cac7du,0x1cac76u,0x1cac7bu,0x1cac7cu,g[7],abi.gp[2],g[3],f-4u))break;
+        }
+        abi.gp[0]=(abi.gp[0]&0xffffff00u)|1u;
+        abi.gp[6]=r(f-4u);(void)r(g[4]);abi.gp[4]=g[4]+4u;
     }
 };
 }
 void native_campaign_ai_behavior_129_probe_call_tu15(SourcePhysicsContactMemory &memory,U entry,
-    SourcePhysicsWorldRuntimeAbi &abi,const NativeCampaignAiPerformServicesTu15 &,
+    SourcePhysicsWorldRuntimeAbi &abi,const NativeCampaignAiPerformServicesTu15 &services,
     const SourcePhysicsContactRecordObserver &observe) {
     if(!abi.floating_point || abi.active_mmx)throw std::invalid_argument("Native behavior probes require retained x87 FP");
     NativeTu15PhysicsFrameFp fp{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
     if((fp.mxcsr&0x1f80u)!=0x1f80u || (fp.mxcsr&0xffff0000u))throw std::runtime_error("Native behavior probes require SIMD trap owner");
     const auto publish=[&]{abi.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};abi.x87_status=fp.status;};
-    Probe probe{memory,abi,observe,fp};const auto saved=abi.gp;
+    Probe probe{memory,abi,observe,fp,services};const auto saved=abi.gp;
     try{if(entry==0x1ca900u)probe.nearest(saved);else if(entry==0x1caa20u)probe.fan(saved);else throw std::invalid_argument("Unknown native behavior probe entry");}
     catch(...){publish();throw;}publish();
 }

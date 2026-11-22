@@ -79,7 +79,7 @@ def main():
         with log.open('w')as stream:
             process=subprocess.Popen(command,cwd=root,env=env,stdout=stream,stderr=subprocess.STDOUT)
             wait(lambda:'Menu ready screen=6'in text(),'main menu')
-            for _ in range(5):key('Down')
+            for _ in range(3):key('Down')
             key('Return');wait(lambda:bool(re.search(r'Menu screen 60\b',text())),'Mods catalog')
             for _ in range(index):key('Down')
             key('Return');time.sleep(.5) # The native same-screen context changes retain screen60.

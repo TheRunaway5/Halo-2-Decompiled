@@ -2,12 +2,12 @@
 #include "halo2/native_campaign_ai_action_identity_tu15.hpp"
 #include "halo2/native_campaign_ai_area_perform_tu15.hpp"
 #include "halo2/native_campaign_ai_point_geometry_tu15.hpp"
+#include "halo2/detail/physics_scalar_memory.hpp"
 #include <array>
 #include <bit>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
-#include <vector>
 #include "halo2/detail/native_tu15_arithmetic_environment.hpp"
 
 namespace halo2 {
@@ -86,15 +86,10 @@ private:
     std::uint32_t count_{};
     unsigned depth_{};
     std::uint32_t read(std::uint32_t address,unsigned width=4)const {
-        std::array<std::byte,4> bytes{};memory_.read(address,std::span(bytes).first(width));std::uint32_t value{};
-        for(unsigned n=0;n<width;++n)value|=std::to_integer<unsigned>(bytes[n])<<(n*8u);
-        return value;
+        return physics_step_detail::r(memory_,address,width);
     }
     void publish(std::uint32_t site,std::uint32_t address,std::uint32_t value,unsigned width) {
-        SourcePhysicsContactRecordStore event{site,address,{},std::vector<std::byte>(width)};
-        if(observe_){event.before.resize(width);memory_.read(address,event.before);}
-        for(unsigned n=0;n<width;++n)event.written[n]=std::byte(value>>(n*8u));
-        memory_.write(address,event.written);if(observe_)observe_(event);
+        physics_step_detail::w(memory_,observe_,site,address,width,value);
     }
     std::uint32_t candidate()const{return std::uint32_t(word(count_))*0x78u+candidates_;}
     bool squad(std::uint32_t squad);

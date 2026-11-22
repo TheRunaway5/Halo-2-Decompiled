@@ -1,4 +1,5 @@
 #include "halo2/source_object_render_queue.hpp"
+#include "halo2/detail/source_object_render_queue_promotion.hpp"
 #include <algorithm>
 #include <string>
 
@@ -25,10 +26,7 @@ void source_object_render_queue_order(std::span<SourceBspAdmissionRecord> queue,
     std::span<const SourceObjectRenderQueueDefinition> definitions,
     std::span<const SourceObjectRenderQueueModel> models,
     std::span<const SourceObjectRenderQueueGeometry> geometry) {
-    // Classify before mutating, so an unresolved lookup cannot partially
-    // reorder the caller's actual queue. Original valid-bank ordering follows.
-    std::vector<bool> promote;promote.reserve(queue.size());
-    for(const auto &record:queue) {
+    source_object_render_queue_detail::promote(queue,[&](const auto& record) {
         bool selected=false;
         if(record.id!=none) {
             const auto &owner=lookup(owners,record.id,"owner");
@@ -49,13 +47,8 @@ void source_object_render_queue_order(std::span<SourceBspAdmissionRecord> queue,
                 }
             }
         }
-        promote.push_back(selected);
-    }
-    std::size_t first=0;
-    for(std::size_t current=0;current<queue.size();++current)if(promote[current]) {
-        if(first!=current)std::swap(queue[first],queue[current]);
-        ++first;
-    }
+        return selected;
+    });
 }
 std::uint16_t source_object_render_queue_fade_flags(std::uint16_t flags,
     SourceModelFadeBytes fade) {

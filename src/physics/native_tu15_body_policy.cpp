@@ -70,6 +70,12 @@ public:
         }
         word(0xb4173u,p,0x45edf0u);
     }
+    std::uint32_t destroy_body_policy(std::uint32_t policy,std::uint32_t flags){ //31E7F0
+        if(stats_)++stats_->native_destructions;
+        destroy_base(policy);
+        if(flags&1u)release(policy,0x26u);
+        return policy;
+    }
     void destroy(std::uint32_t policy,std::uint32_t flags){
         const auto table=word(policy),owner=word(table);
         if(owner==0x1d9c80u){
@@ -83,9 +89,8 @@ public:
             };
             (void)native_tu15_destroy_gameplay_body_policy(memory_,policy,flags,fp_,gameplay,observer_);return;
         }
-        if(owner==0x31e7f0u){ //31E7F0
-            if(stats_)++stats_->native_destructions;destroy_base(policy);
-            if(flags&1u)release(policy,0x26u);return;
+        if(owner==0x31e7f0u){
+            (void)destroy_body_policy(policy,flags);return;
         }
         if(!services_.destroy_policy)throw std::runtime_error("Native TU1.5 body policy requires its actual policy destructor");
         if(stats_)++stats_->unconverted_destructions;services_.destroy_policy(policy,{owner},flags,fp_);
@@ -157,6 +162,11 @@ public:
         }
     }
 };
+}
+std::uint32_t native_tu15_destroy_body_policy_31e7f0(SourcePhysicsContactMemory&memory,
+    std::uint32_t policy,std::uint32_t disposing,NativeTu15PhysicsFrameFp&fp,
+    const NativeTu15BodyPolicyServices&services,const SourcePhysicsContactRecordObserver&observer){
+    return Policy(memory,observer,services,fp,0,{},nullptr).destroy_body_policy(policy,disposing);
 }
 void native_tu15_select_body_policy(SourcePhysicsContactMemory&memory,NativeTu15PhysicsBody body,
  std::uint32_t kind,NativeTu15BodyPolicyScratch scratch,NativeTu15PhysicsFrameFp&fp,unsigned depth,

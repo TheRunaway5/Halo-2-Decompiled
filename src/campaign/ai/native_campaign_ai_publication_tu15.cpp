@@ -291,7 +291,8 @@ u8 Movement::update(u32 entry,const Saved &caller) {
                     abi.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};abi.x87_status=fp.status;
                     const auto publish=[&]{fp.control_word=abi.floating_point->x87_control_word;
                         fp.mxcsr=abi.floating_point->mxcsr;fp.status=abi.x87_status;};
-                    try {native_campaign_ai_actor_path_query_call_tu15(memory,0x2013b0u,abi,observe);}
+                    try {native_campaign_ai_actor_path_query_call_tu15(memory,0x2013b0u,abi,observe,
+                        services.vehicle_navigation_point);}
                     catch(...){publish();throw;}
                     publish();
                     if(abi.gp[4]!=frame)throw std::runtime_error("Native 2013B0 returned another movement stack");

@@ -680,7 +680,7 @@ struct MultiplayerObjectRuntime::Continuation {
   std::unique_ptr<SourceProjectileEffectObserver> projectile_effects;
   bool staging{},fault{},live_campaign_lens_renderer{};
   // Observed writes plus topology changes, the same serial one observer pair kept.
-  SourceRuntimeWriteSerial observed_writes{bank};
+  SourceRuntimeWriteSerial observed_writes{bank,SourceRuntimeWriteSerial::Visibility::CallBoundary};
   std::shared_ptr<std::atomic<std::uint64_t>> topology_changes=std::make_shared<std::atomic<std::uint64_t>>(0);
   std::uint64_t mutating_calls{};
   std::uint64_t writes() const noexcept {return observed_writes.load()+topology_changes->load(std::memory_order_relaxed);}

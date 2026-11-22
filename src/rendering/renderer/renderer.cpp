@@ -324,6 +324,8 @@ struct Renderer::Impl {
     VkRenderPass render_pass{};
     VkImageLayout scene_layout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     VkRenderPass continuation_pass{}, fog_pass{};
+    VkRenderPass projected_depth_read_pass{};
+    bool projected_depth_quad_enabled{};
     std::vector<VkFramebuffer> fog_framebuffers;
     VkPipeline fog_pipeline{};
     std::map<std::string_view,VkPipeline> fog_pipelines;
@@ -526,6 +528,7 @@ struct Renderer::Impl {
     std::uint32_t vertex_count{};
     const SourceBspResidentPlan *bsp_resident_plan{};
     std::array<SourceBspMergedDrawPlan,4> bsp_frame_plans;
+    std::uint64_t resident_bsp_admission_views{},resident_bsp_admitted{},resident_bsp_hidden{};
     struct Draw {
         std::uint32_t first{}, count{}, material{}, lightmap{};
         VkDescriptorSet descriptor{}; int cluster=-1;
@@ -967,6 +970,9 @@ struct Renderer::Impl {
     }
 
     ~Impl() {
+        if(resident_bsp_admission_views)
+            std::cerr<<"Resident BSP admission: views="<<resident_bsp_admission_views
+                <<" admitted="<<resident_bsp_admitted<<" hidden="<<resident_bsp_hidden<<'\n';
         presentation_copy_worker.reset();
         if (device) {
             vkDeviceWaitIdle(device);
@@ -1324,6 +1330,41 @@ struct Renderer::Impl {
             address_features.bufferDeviceAddressCaptureReplay=address_features.bufferDeviceAddressMultiDevice=VK_FALSE;
             if(address_features.bufferDeviceAddress){address_features.pNext=const_cast<void*>(device_info.pNext);device_info.pNext=&address_features;}
         }
+#if defined(HALO2_NATIVE_PROJECTED_DEPTH_QUAD) && defined(HALO2_MENU_WORLD_NATIVE_AVAILABLE)
+        VkPhysicalDeviceVulkanMemoryModelFeatures projected_memory{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES};
+        VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR projected_merge{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MAXIMAL_RECONVERGENCE_FEATURES_KHR};
+        VkPhysicalDeviceShaderQuadControlFeaturesKHR projected_quad{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_QUAD_CONTROL_FEATURES_KHR};
+        if(source_world_device.instance_api_version>=VK_API_VERSION_1_3 && properties.apiVersion>=VK_API_VERSION_1_3 &&
+           world_features.shaderDemoteToHelperInvocation && properties.vendorID==0x10deu &&
+           properties.driverVersion==2601615744u && std::string_view(properties.deviceName)=="NVIDIA GeForce RTX 5080" &&
+           properties.limits.maxBoundDescriptorSets>=3 && properties.limits.maxPerStageDescriptorSamplers>=13 &&
+           properties.limits.maxPerStageDescriptorSampledImages>=13) {
+            // The complete normalized D24 round trip and hardware EQUAL
+            // decisions are qualified on this driver/GPU pair (620.70.06).
+            constexpr const char *projected_extensions[]{VK_KHR_SHADER_QUAD_CONTROL_EXTENSION_NAME,
+                VK_KHR_SHADER_MAXIMAL_RECONVERGENCE_EXTENSION_NAME};
+            VkPhysicalDeviceDriverProperties driver{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
+            VkPhysicalDeviceProperties2 query_properties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+            query_properties.pNext=&driver;vkGetPhysicalDeviceProperties2(physical,&query_properties);
+            if(driver.driverID==VK_DRIVER_ID_NVIDIA_PROPRIETARY && std::ranges::all_of(projected_extensions,[&](const char *name) {
+                return std::ranges::any_of(available_extensions,[&](const auto &extension) {
+                    return std::strcmp(name,extension.extensionName)==0;
+                });
+            })) {
+                projected_memory.pNext=&projected_merge;projected_merge.pNext=&projected_quad;
+                VkPhysicalDeviceFeatures2 query_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+                query_features.pNext=&projected_memory;vkGetPhysicalDeviceFeatures2(physical,&query_features);
+                if(projected_memory.vulkanMemoryModel && projected_merge.shaderMaximalReconvergence && projected_quad.shaderQuadControl) {
+                    projected_memory.vulkanMemoryModelDeviceScope=projected_memory.vulkanMemoryModelAvailabilityVisibilityChains=VK_FALSE;
+                    for(const auto *name:projected_extensions)
+                        if(std::ranges::none_of(enabled_extensions,[&](const char *extension){return std::strcmp(name,extension)==0;}))
+                            enabled_extensions.push_back(name);
+                    projected_quad.pNext=const_cast<void*>(device_info.pNext);device_info.pNext=&projected_memory;
+                    projected_depth_quad_enabled=true;
+                }
+            }
+        }
+#endif
         device_info.pEnabledFeatures = &enabled;
         device_info.queueCreateInfoCount = 1;
         device_info.pQueueCreateInfos = &queue_info;
@@ -2331,10 +2372,11 @@ struct Renderer::Impl {
             const bool projected_light_caster=material.forward_vertex==6 && material.forward_pass &&
                 material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0 &&
                 material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_generation");
+            const bool projected_light_texture=material.forward_vertex==6 && source_material_layers[i]==14;
             if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
                 for(const auto &binding:material.passes[material.forward_pass_index].textures)
                     if(binding.external==13 && binding.stage<4)shadow_stage_masks[i]|=std::uint8_t(1u<<binding.stage);
-            if(material.forward_blend==10 || projected_light || projected_light_alpha || projected_light_caster) {
+            if(material.forward_blend==10 || projected_light || projected_light_alpha || projected_light_caster || projected_light_texture) {
                 source_effect_light_draw(unsigned(i),material,{});
                 effect_light_materials[i]=true;
                 effect_light_blends[i]=material.forward_blend;
@@ -2482,7 +2524,9 @@ struct Renderer::Impl {
             // additive self-illumination belongs to layer 7, before fog.
             after_fog.push_back(detail::material_after_fog(material));
             projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
-            if(!material.hud_pass && !material.light_volume_pass &&
+            // Projected texture writes use the raw source draw and have no packed vertex program.
+            const bool projected_texture_write=effect_light_materials[i] && source_material_layers[i]==14;
+            if(!material.hud_pass && !material.light_volume_pass && !projected_texture_write &&
                 (material.forward_pass || material.static_lightmap_pass || material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass ||
                  native_world_kernel_indices[i]!=~0u)) {
                 const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
@@ -2813,6 +2857,8 @@ struct Renderer::Impl {
         fog_framebuffers.clear();
         if(fog_pass)vkDestroyRenderPass(device,fog_pass,nullptr);
         if(continuation_pass)vkDestroyRenderPass(device,continuation_pass,nullptr);
+        if(projected_depth_read_pass)vkDestroyRenderPass(device,projected_depth_read_pass,nullptr);
+        projected_depth_read_pass=VK_NULL_HANDLE;
         fog_pipeline=VK_NULL_HANDLE;fog_pass=VK_NULL_HANDLE;continuation_pass=VK_NULL_HANDLE;
         destroy_light_shadow_targets();
         if(accumulation_framebuffer) vkDestroyFramebuffer(device,accumulation_framebuffer,nullptr);
@@ -3442,6 +3488,19 @@ struct Renderer::Impl {
             check(vkCreateRenderPass(device,&ui_render,nullptr,&native_ui_pass),"create native interface pass");
         }
         check(vkCreateRenderPass(device,&continuation,nullptr,&continuation_pass),"create fog continuation pass");
+#if defined(HALO2_NATIVE_PROJECTED_DEPTH_QUAD) && defined(HALO2_MENU_WORLD_NATIVE_AVAILABLE)
+        if(projected_depth_quad_enabled && depth_format==VK_FORMAT_D24_UNORM_S8_UINT) {
+            auto read_only_attachments=loaded;
+            auto &retained=read_only_attachments[1];
+            retained.storeOp=retained.stencilStoreOp=VK_ATTACHMENT_STORE_OP_NONE;
+            retained.initialLayout=retained.finalLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            const VkAttachmentReference read_only_depth{1,VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
+            auto read_only_subpass=subpass;read_only_subpass.pDepthStencilAttachment=&read_only_depth;
+            auto read_only=continuation;read_only.pAttachments=read_only_attachments.data();
+            read_only.pSubpasses=&read_only_subpass;
+            check(vkCreateRenderPass(device,&read_only,nullptr,&projected_depth_read_pass),"create projected read-only depth pass");
+        }
+#endif
         if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),[](const auto &p){return p.camouflage_alias;})) {
             auto alias_attachments=loaded;
             alias_attachments[0].format=VK_FORMAT_R8G8B8A8_UNORM;
@@ -4153,7 +4212,8 @@ struct Renderer::Impl {
     }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
     void prepare_native_world(MenuWorldNativeDraw &native,
-        std::span<const MenuWorldNativeDrawInput> inputs,std::size_t &role_draws) {
+        std::span<const MenuWorldNativeDrawInput> inputs,std::size_t &role_draws,
+        const MenuWorldProjectedDepthSource *projected_depth=nullptr) {
         ++frame_timing.world_native_prepare_calls;
         using Clock=std::chrono::steady_clock;
         const auto begin=measure_frames?Clock::now():Clock::time_point{};
@@ -4161,7 +4221,10 @@ struct Renderer::Impl {
             if(measure_frames)frame_timing.world_native_prepare_ms+=
                 std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
         };
-        try { native.prepare(inputs); }
+        try {
+            if(projected_depth)native.prepare(inputs,*projected_depth);
+            else native.prepare(inputs);
+        }
         catch(...) { finish();throw; }
         finish();
         ++frame_timing.world_native_prepare_completed_calls;
@@ -4888,7 +4951,6 @@ struct Renderer::Impl {
                 throw FormatError("Sphere diffuse view mixes two unordered geometry representations");
             for(const auto &draw:view.raw_effect_lights) {
                 if(draw.material_slot>=effect_light_materials.size() || !effect_light_materials[draw.material_slot] ||
-                   draw.vertex_bank.range!=std::array<std::uint32_t,4>{34,6,0,0} ||
                    std::memcmp(draw.source.constants().data(),view.source_view_shader_constants->world.data(),
                        sizeof(view.source_view_shader_constants->world)))
                     throw FormatError("Raw sphere diffuse draw differs from its world camera/material binding");
@@ -5143,6 +5205,16 @@ struct Renderer::Impl {
         group(background, background_draws,true);
         group(debug, dynamic_draws);
         group(first_person, foreground_draws);
+        const SourceBspAdmission *prepared_resident_admission=nullptr;
+        std::size_t prepared_resident_prefix{};
+        static const bool reference_resident_admission=[] {
+            const auto *value=std::getenv("HALO2_REFERENCE_UNFILTERED_RESIDENT_BSP");
+            return value && *value;
+        }();
+        static const bool collect_resident_admission_stats=[] {
+            const auto *value=std::getenv("HALO2_RESIDENT_BSP_ADMISSION_STATS");
+            return value && *value;
+        }();
         std::vector<std::vector<Draw>> view_draws;
         struct ObjectDrawRange {std::size_t view{},object{},first{},count{};};
         std::vector<ObjectDrawRange> object_ranges;
@@ -5161,10 +5233,33 @@ struct Renderer::Impl {
                     std::streamsize(input.size()*sizeof(Vertex)));
                 group_input_first+=input.size();
             }
+            // The ordinary view uses this same completed BSP admission in every pass.
+            // Exact constructor bindings have already validated their descriptor pairs.
+            // Keep diagnostic catalogues, changed bindings, and dynamic tails complete.
+            if(!reference_resident_admission && views.size()==1 && view.full_surface &&
+               view.source_bsp_admission && display.graphics_mode==pstencil::GraphicsMode::Original &&
+               !camera_scene && !mainmenu_world && !view.source_world_depth && !view.source_model_depth &&
+               !capture_bsp_draw_bindings && !group_input_layout.is_open() && !verify_frame &&
+               !view.completed_material_upload_observer && !view.completed_bsp_draw_observer &&
+               !view.completed_object_draw_observer && !view.completed_geometry_draw_observer &&
+               !std::getenv("HALO2_VIEW_DIAGNOSTICS") &&
+               std::ranges::equal(view.source_bsp_bindings,bsp_resident_plan->parts(),
+                   [](const auto &binding,const auto &part) {
+                       return binding.material==part.original.material && !binding.stipple;
+                   }))
+                prepared_resident_admission=view.source_bsp_admission;
+            if(prepared_resident_admission && collect_resident_admission_stats)++resident_bsp_admission_views;
             auto &list=view_draws.back();list.reserve(plan.draws.size());
             for(const auto &token:plan.draws) {
                 const auto &key=token.key;
                 const bool resident=token.storage==SourceBspVertexStorage::resident;
+                if(resident && prepared_resident_admission) {
+                    if(!prepared_resident_admission->geometry_visible(key.geometry)) {
+                        if(collect_resident_admission_stats)++resident_bsp_hidden;
+                        continue;
+                    }
+                    if(collect_resident_admission_stats)++resident_bsp_admitted;
+                }
                 const DrawKey identity{key.material,key.lightmap,key.geometry,key.section,key.part};
                 const auto input=token.storage==SourceBspVertexStorage::objects?view.vertices:std::span<const Vertex>{plan.dynamic_vertices};
                 auto first=token.first;
@@ -5198,6 +5293,7 @@ struct Renderer::Impl {
                     }
                 }
             }
+            if(prepared_resident_admission)prepared_resident_prefix=list.size();
             }
             if(view.source_world_depth)for(auto& draw:view_draws.back()) {
                 const SourceBspDrawKey key{draw.material,draw.lightmap,draw.cluster,draw.source_section,draw.source_part};
@@ -6547,22 +6643,25 @@ struct Renderer::Impl {
                     if(material==~0u || used.at(material))return;
                     used[material]=true;materials.push_back(material);
                 };
-                const auto collect=[&](const auto &draws) {
-                    for(const auto &draw:draws) {
-                        const auto m=draw.material;
-                        add(m);add(environment_materials[m]);add(planar_materials[m]);
-                        if(pstencil_enabled)add(pstencil_texture_mask_materials[m]);
-                        if(pstencil_enabled)add(pstencil_environment_companions[m]);
-                        for(const auto child:world_before[m])add(child);
-                        for(const auto child:world_after[m])add(child);
-                        for(const auto child:world_bloom[m])add(child);
-                        for(const auto child:world_planar_materials[m])add(child);
-                    }
+                const auto collect_material=[&](unsigned m) {
+                    add(m);add(environment_materials[m]);add(planar_materials[m]);
+                    if(pstencil_enabled)add(pstencil_texture_mask_materials[m]);
+                    if(pstencil_enabled)add(pstencil_environment_companions[m]);
+                    for(const auto child:world_before[m])add(child);
+                    for(const auto child:world_after[m])add(child);
+                    for(const auto child:world_bloom[m])add(child);
+                    for(const auto child:world_planar_materials[m])add(child);
                 };
-                // Retain every possible pass of every packed draw, including
-                // sky/reflections, FP, water and owner objects. Visibility and
-                // source layer admission remain in the command recorder.
-                collect(view_draws[i]);collect(view_foreground[i]);
+                const auto collect=[&](const auto &draws) {
+                    for(const auto &draw:draws)collect_material(draw.material);
+                };
+                // Validate every authored material in the same order. The
+                // original plan still owns the prefix before the object draws.
+                if(prepared_resident_admission) {
+                    for(const auto &token:bsp_plans[i]->draws)collect_material(token.key.material);
+                    collect(std::span{view_draws[i]}.subspan(prepared_resident_prefix));
+                } else collect(view_draws[i]);
+                collect(view_foreground[i]);
                 collect(view_background[i]);collect(view_reflection_background[i]);
                 for(const auto &phase:transparent_views[i])for(const auto &step:phase) {
                     collect(step.geometry);
@@ -7365,6 +7464,10 @@ struct Renderer::Impl {
         std::vector<std::vector<std::vector<std::size_t>>> pstencil_specular_indices(views.size());
         std::vector<std::vector<Vertex>> pstencil_specular_vertices;
         pstencil_specular_vertices.reserve(pstencil_specular_count);
+        static const bool reference_light_preparation=[] {
+            const auto *value=std::getenv("HALO2_REFERENCE_EFFECT_LIGHT_PREPARATION");
+            return value && *value;
+        }();
         std::vector<SourceWorldDrawUpload> light_uploads;light_uploads.reserve(effect_light_draw_count+raw_effect_light_draw_count);
         for(std::size_t i=0;i<views.size();++i)for(const auto &draw:views[i].effect_lights) {
             auto &uniform=light_uniforms.emplace_back(view_material_uniform(views[i],draw.material_slot));
@@ -7381,24 +7484,42 @@ struct Renderer::Impl {
         pstencil::Frame pstencil_frame(views.size());
         std::vector<std::vector<std::size_t>> raw_light_views(views.size());
         std::set<std::size_t> pstencil_response_receivers;
-        for(std::size_t i=0;i<views.size();++i)for(const auto &draw:views[i].raw_effect_lights) {
-            auto &uniform=light_uniforms.emplace_back(view_material_uniform(views[i],draw.material_slot));
-            uniform.program=draw.program.words;
-            uniform.vertex_attributes=draw.constants[0];uniform.vertex_constants=draw.constants[1];
-            raw_light_views[i].push_back(light_uploads.size());
-            light_uploads.push_back({textures.at(draw.material_slot).descriptor,
-                {reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)},draw.vertex_bank});
+        for(std::size_t i=0;i<views.size();++i) {
+          const EffectLightRawDraw *previous=nullptr;
+          std::size_t upload{};
+          for(const auto &draw:views[i].raw_effect_lights) {
             if(draw.shadow_generate || draw.shadow_sample) {
                 if(std::max(draw.shadow_generate,draw.shadow_sample)>16)
                     throw FormatError("Raw light draw names a shadow target outside the frame bank");
                 ensure_light_shadow_targets(std::max(draw.shadow_generate,draw.shadow_sample));
             }
-            if(draw.shadow_sample) {
-                const auto &target=light_shadow_targets.at(draw.shadow_sample-1u);
-                for(unsigned stage=0;stage<4;++stage)if(shadow_stage_masks.at(draw.material_slot)&(1u<<stage))
-                    light_uploads.back().stage_images[stage]=SourceWorldDrawStageImages{
-                        stage_samplers.at(draw.material_slot)[stage],target.sample_view,cube_fallback.cube_view,volume_fallback.view};
+            // Projected depth neighbours change raster state only. Keep every
+            // draw and its order while sharing byte-identical upload inputs
+            // from this view, including the selected shadow image bank.
+            const bool same_upload=!reference_light_preparation && previous &&
+                draw.material_slot==previous->material_slot && draw.shadow_sample==previous->shadow_sample &&
+                draw.program.words==previous->program.words &&
+                std::memcmp(&draw.constants,&previous->constants,sizeof(draw.constants))==0 &&
+                std::memcmp(draw.vertex_globals.data(),previous->vertex_globals.data(),sizeof(draw.vertex_globals))==0;
+            if(!same_upload) {
+                upload=light_uploads.size();
+                auto &uniform=light_uniforms.emplace_back(view_material_uniform(views[i],draw.material_slot));
+                uniform.program=draw.program.words;
+                uniform.vertex_attributes=draw.constants[0];uniform.vertex_constants=draw.constants[1];
+                auto &descriptor=light_uploads.emplace_back();
+                descriptor.resident=textures.at(draw.material_slot).descriptor;
+                descriptor.material_uniform={reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)};
+                descriptor.vertex_bank.range={34,6,0,0};
+                std::copy(draw.vertex_globals.begin(),draw.vertex_globals.end(),descriptor.vertex_bank.constants.begin());
+                if(draw.shadow_sample) {
+                    const auto &target=light_shadow_targets.at(draw.shadow_sample-1u);
+                    for(unsigned stage=0;stage<4;++stage)if(shadow_stage_masks.at(draw.material_slot)&(1u<<stage))
+                        light_uploads.back().stage_images[stage]=SourceWorldDrawStageImages{
+                            stage_samplers.at(draw.material_slot)[stage],target.sample_view,cube_fallback.cube_view,volume_fallback.view};
+                }
             }
+            raw_light_views[i].push_back(upload);
+            previous=&draw;
             auto& specular_indices=pstencil_specular_indices[i].emplace_back();
             // All companion phases use this receiver's identical posed stream.
             // Material is descriptor-selected, not a vertex input attribute.
@@ -7417,14 +7538,17 @@ struct Renderer::Impl {
                 light_uploads.push_back({textures.at(specular.material_slot).descriptor,
                     {reinterpret_cast<const std::byte*>(&specular_uniform),sizeof(specular_uniform)},specular.vertex_bank});
             }
+          }
         }
         if(!effect_light_storage && !light_uploads.empty())
             effect_light_storage=std::make_unique<SourceWorldDrawStorage>(SourceWorldDrawStorageContext{
-                device,physical,texture_layout,sizeof(MaterialUniform)});
+                device,physical,texture_layout,sizeof(MaterialUniform),!reference_light_preparation});
         const auto light_descriptors=effect_light_storage?upload_source_world(*effect_light_storage,light_uploads):std::span<const VkDescriptorSet>{};
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
         std::vector<MenuWorldNativeDrawInput> raw_light_inputs;
         raw_light_inputs.reserve(raw_effect_light_draw_count);
+        std::vector<std::array<std::size_t,2>> raw_light_record_ranges(views.size());
+        std::size_t prepared_light_draws{};
         Texture accumulation_shape;
         accumulation_shape.width=extent.width;accumulation_shape.height=extent.height;
         accumulation_shape.format=11;
@@ -7432,6 +7556,7 @@ struct Renderer::Impl {
         light_shadow_shape.width=light_shadow_shape.height=light_shadow_size;light_shadow_shape.format=11;
         // Prepared draw indices that render into a light shadow target.
         std::map<std::size_t,std::pair<unsigned,std::array<std::uint16_t,2>>> raw_light_casters;
+        std::vector<std::size_t> raw_light_texture_writes;
         const auto &enabled=source_world_device;
         if(raw_effect_light_draw_count && (enabled.instance_api_version<VK_API_VERSION_1_3 ||
            enabled.physical_api_version<VK_API_VERSION_1_3 || !enabled.geometry_shader_enabled ||
@@ -7440,17 +7565,31 @@ struct Renderer::Impl {
             throw FormatError("Raw sphere diffuse requires its enabled Vulkan source-world features");
         for(std::size_t i=0;i<views.size();++i) {
             const auto &view=views[i];
+            auto& range=raw_light_record_ranges[i];
+            range[0]=prepared_light_draws;
             for(std::size_t j=0;j<view.raw_effect_lights.size();++j) {
                 const auto &draw=view.raw_effect_lights[j];const auto slot=draw.material_slot;
                 const auto upload=raw_light_views[i][j];
+                if(draw.texture_accumulation_write) {
+                    if(display.graphics_mode!=pstencil::GraphicsMode::Original || draw.shadow_generate ||
+                       draw.shadow_sample || draw.depth_neighbour_steps || accumulation_materials.at(slot) ||
+                       source_material_layers.at(slot)!=14 || !foreground_accumulation_pass)
+                        throw FormatError("Layer 14 light draw lacks its authored retained texture target");
+                    raw_light_texture_writes.push_back(prepared_light_draws);
+                }
+                if(draw.depth_neighbour_steps && (draw.depth_neighbour_steps>8 || pstencil_enabled || draw.shadow_generate))
+                    throw FormatError("Raw light depth candidates require an Original receiver");
                 // A shadow caster owns its fixed light-target raster; the
                 // temporal input scale and jitter belong to the main view.
                 const Vec2 input_scale=temporal_upscaler && !draw.shadow_generate?Vec2{float(extent.width)/presentation_extent.width,float(extent.height)/presentation_extent.height}:Vec2{1,1};
-                const auto scaled_source=menu_world_source_resized_viewport(draw.source,input_scale);
-                MenuWorldNativePacketInput input{scaled_source,generated_menu_world_vertex_catalog::entries,
+                std::optional<MenuWorldSourceBinding> scaled_source;
+                if(reference_light_preparation || input_scale.x!=1.f || input_scale.y!=1.f)
+                    scaled_source.emplace(menu_world_source_resized_viewport(draw.source,input_scale));
+                MenuWorldNativePacketInput input{scaled_source?*scaled_source:draw.source,generated_menu_world_vertex_catalog::entries,
                     light_uniforms[upload]};
                 input.fragment_offsets=draw.program.fragment_offsets;
-                input.forward=material_forward_states.at(slot);input.forward_blend=effect_light_blends.at(slot);
+                input.forward=material_forward_states.at(slot);
+                input.forward_blend=draw.texture_accumulation_write?material_forward_blends.at(slot):effect_light_blends.at(slot);
                 input.vertex_attribute_components=draw.vertex_attribute_components;
                 input.fog_alpha_bound=draw.pstencil_light_domain==2;
                 input.texture_states=stage_sampler_states.at(slot);
@@ -7494,27 +7633,41 @@ struct Renderer::Impl {
                     const auto &image=*stages[stage];
                     if(image.source_image && (image.view || image.cube_view))input.images[stage]=&image.source_shape;
                 }
-                raw_light_views[i][j]=raw_light_inputs.size();
                 if(pstencil_enabled && draw.pstencil_specular && (draw.pstencil_specular->empty() ||
                     std::any_of(pstencil_specular_indices[i][j].begin(),pstencil_specular_indices[i][j].end(),[&](auto index) {
                     return pstencil_response_phases.at(pstencil_specular_views[i].at(index).material)==2;
-                })))pstencil_response_receivers.insert(raw_light_inputs.size());
-                if(pstencil_enabled)pstencil_frame.add(i,draw,raw_light_inputs.size(),pstencil_specular_indices[i][j],
+                })))pstencil_response_receivers.insert(prepared_light_draws);
+                if(pstencil_enabled)pstencil_frame.add(i,draw,prepared_light_draws,pstencil_specular_indices[i][j],
                     !views[i].pstencil_native_point_casters);
                 if(pstencil_enabled)input.raster=pstencil::receiver_raster(input.raster);
                 auto packet=menu_world_native_packet(input);
                 if(temporal_upscaler && !draw.shadow_generate) {
                     const auto jitter=temporal_upscaler->jitter();packet.raster_offset={jitter.x,jitter.y};
                 }
-                if(draw.shadow_generate)raw_light_casters.emplace(raw_light_inputs.size(),std::pair{unsigned(draw.shadow_generate),draw.shadow_extent});
+                packet.depth_neighbour_steps=draw.depth_neighbour_steps;
+                if(draw.shadow_generate)raw_light_casters.emplace(prepared_light_draws,std::pair{unsigned(draw.shadow_generate),draw.shadow_extent});
                 raw_light_inputs.push_back(std::move(packet));
+                prepared_light_draws+=draw.draw_count();
             }
+            range[1]=prepared_light_draws;
         }
         if(!effect_light_native && !raw_light_inputs.empty())effect_light_native=std::make_unique<MenuWorldNativeDraw>(
             MenuWorldNativeDrawContext{device,physical,render_pass,texture_layout,enabled.instance_api_version,
                 enabled.geometry_shader_enabled,enabled.geometry_point_size_enabled,
                 enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled,shader_directory});
-        if(effect_light_native)prepare_native_world(*effect_light_native,raw_light_inputs,frame_timing.world_native_light_prepared_draws);
+        const bool sample_projected_depth=projected_depth_read_pass && depth_view && fog_depth_sampler &&
+            prepared_light_draws>raw_light_casters.size() && views.size()==1 && views.front().full_surface &&
+            raw_light_texture_writes.empty() &&
+            !camera_scene && !path_tracing_enabled && !temporal_upscaler && display.graphics_mode==pstencil::GraphicsMode::Original &&
+            !capture_bsp_draw_bindings &&
+            std::ranges::all_of(raw_light_inputs,[](const auto &input) {
+                if(input.linear_z_depth)return true;
+                return input.depth_neighbour_steps && input.forward.depth_enable && input.forward.depth_function==0x202u &&
+                    !input.forward.depth_write && !input.raster.stencil.enabled && input.raster_offset==std::array<float,2>{};
+            });
+        const MenuWorldProjectedDepthSource projected_depth{depth_view,fog_depth_sampler};
+        if(effect_light_native)prepare_native_world(*effect_light_native,raw_light_inputs,
+            frame_timing.world_native_light_prepared_draws,sample_projected_depth?&projected_depth:nullptr);
         if(pstencil_enabled)for(std::size_t i=0;i<views.size();++i) {
             for(const auto& caster:views[i].pstencil_point_casters)pstencil_frame.add_caster(i,caster);
             for(const auto& caster:views[i].pstencil_lightmap_casters)
@@ -8334,7 +8487,10 @@ struct Renderer::Impl {
                     for(const auto &group:view.hologram_groups)
                         if(std::ranges::find(group.owners,*owner)!=group.owners.end())return false;
             }
-            if(bsp_admission)return bsp_admission->geometry_visible(draw.cluster);
+            if(bsp_admission) {
+                if(draw.source_resident && bsp_admission==prepared_resident_admission)return true;
+                return bsp_admission->geometry_visible(draw.cluster);
+            }
             return !visibility_bank || visibility_bank->geometry_visible(draw.cluster,visible_clusters);
         };
         const auto bind_draw_vertices=[&](const Draw &draw,VkBuffer ordinary) {
@@ -8439,7 +8595,9 @@ struct Renderer::Impl {
                 bsp_capture.view->completed_bsp_draw_observer(observed);
             }
             draw_material_geometry(draw);
-            if(bsp_capture.view && bsp_capture.view->completed_geometry_draw_observer) {
+            if(bsp_capture.view && bsp_capture.view->completed_geometry_draw_observer &&
+               (!bsp_capture.view->completed_geometry_draw_filter ||
+                bsp_capture.view->completed_geometry_draw_filter(draw.observed_object,source_material_layers.at(material)))) {
                 const auto pipeline_facts=observed_pipelines.find(observed_handle(handle));
                 const auto descriptor_facts=observed_descriptors.find(observed_handle(descriptor));
                 if(!capture_bsp_draw_bindings || !bsp_capture.camera_known || !bsp_capture.viewport_known ||
@@ -8452,6 +8610,11 @@ struct Renderer::Impl {
                 facts.parent_material=draw.material;facts.first=draw.first;facts.count=draw.count;facts.dynamic_offset=dynamic_offset;
                 facts.object_index=draw.observed_object;facts.owner_constants=draw.object_alias!=std::numeric_limits<std::size_t>::max();
                 facts.camera_push=bsp_capture.push;facts.viewport=bsp_capture.viewport;facts.scissor=bsp_capture.scissor;
+                facts.source_layer=source_material_layers.at(material);
+                if(const auto pass=fog_material_passes.find(material);pass!=fog_material_passes.end()) {
+                    facts.source_implementation=pass->second.implementation;
+                    facts.source_template_pass=pass->second.template_pass;
+                }
                 if(facts.owner_constants) {
                     const auto alias=object_aliases.at(draw.object_alias).at({material,draw.lightmap});
                     const auto &uniform=object_gpu_uniforms.at(alias);
@@ -9598,7 +9761,59 @@ struct Renderer::Impl {
                     }
                     pstencil_render->end(command,framebuffers[index]);
                 } else if(!path_tracing_enabled) {
-                    for(const auto draw:raw_light_views[i])if(!raw_light_casters.contains(draw)){capture_binding_only();record_native_world(*effect_light_native,command,draw);}
+                    const auto [first,last]=raw_light_record_ranges[i];
+                    constexpr auto depth_stages=VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                    VkImageMemoryBarrier depth_boundary{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+                    if(sample_projected_depth) {
+                        vkCmdEndRenderPass(command);
+                        depth_boundary.srcAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                        depth_boundary.dstAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_SHADER_READ_BIT;
+                        depth_boundary.oldLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                        depth_boundary.newLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                        depth_boundary.srcQueueFamilyIndex=depth_boundary.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                        depth_boundary.image=depth;
+                        depth_boundary.subresourceRange={VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT,0,1,0,1};
+                        vkCmdPipelineBarrier(command,depth_stages,depth_stages|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                            0,0,nullptr,0,nullptr,1,&depth_boundary);
+                        auto read_only=render;read_only.renderPass=projected_depth_read_pass;
+                        read_only.clearValueCount=0;read_only.pClearValues=nullptr;
+                        vkCmdBeginRenderPass(command,&read_only,VK_SUBPASS_CONTENTS_INLINE);capture_target(read_only);
+                    }
+                    const auto switch_light_target=[&](bool texture_target) {
+                        vkCmdEndRenderPass(command);
+                        auto target=render;
+                        target.renderPass=texture_target?foreground_accumulation_pass:continuation_pass;
+                        if(texture_target) {
+                            target.framebuffer=accumulation_framebuffer;
+                            target.renderArea=clip;
+                        }
+                        target.clearValueCount=0;target.pClearValues=nullptr;
+                        vkCmdBeginRenderPass(command,&target,VK_SUBPASS_CONTENTS_INLINE);capture_target(target);
+                    };
+                    auto texture_write=std::lower_bound(raw_light_texture_writes.begin(),raw_light_texture_writes.end(),first);
+                    bool texture_target=false;
+                    for(auto draw=first;draw<last;++draw)if(!raw_light_casters.contains(draw)) {
+                        const bool writes_texture=texture_write!=raw_light_texture_writes.end() && *texture_write==draw;
+                        if(writes_texture)++texture_write;
+                        // TU1.5 3135D binds target 1 for layer 14 without
+                        // clearing color or shared depth before layer 12.
+                        if(texture_target!=writes_texture) {
+                            switch_light_target(writes_texture);
+                            texture_target=writes_texture;
+                        }
+                        capture_binding_only();record_native_world(*effect_light_native,command,draw);
+                    }
+                    if(texture_target)switch_light_target(false);
+                    if(sample_projected_depth) {
+                        vkCmdEndRenderPass(command);
+                        std::swap(depth_boundary.oldLayout,depth_boundary.newLayout);
+                        std::swap(depth_boundary.srcAccessMask,depth_boundary.dstAccessMask);
+                        vkCmdPipelineBarrier(command,depth_stages|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,depth_stages,
+                            0,0,nullptr,0,nullptr,1,&depth_boundary);
+                        auto resumed=render;resumed.renderPass=continuation_pass;
+                        resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                        vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);
+                    }
                 }
                 if(!path_tracing_enabled && !raw_light_views[i].empty()) {
                     {set_temporal_viewport(model_view);}
@@ -10544,6 +10759,9 @@ struct Renderer::Impl {
                 returned(view.model_collection);returned(view.main_cull);returned(view.main_commands);
                 returned(view.shadow_selection);returned(view.shadow_roots);
             }
+            timing_report<<'\t'<<host.texture_camera_prepare_ms;
+            timing_report<<'\t';
+            if(host.common_thread_cpu_ms)timing_report<<*host.common_thread_cpu_ms;
             // Profiling readers correlate each completed row with CPU time.
             // Publish it here so buffering cannot move that boundary into teardown.
             timing_report<<'\n'<<std::flush;
@@ -10586,7 +10804,7 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
         for(unsigned view=0;view<4;++view)
             for(const auto *phase:{"model_collection","main_cull","main_commands","shadow_selection","shadow_roots"})
                 impl_->timing_report<<"\thost_view"<<view<<'_'<<phase<<"_ms\thost_view"<<view<<'_'<<phase<<"_calls";
-        impl_->timing_report<<'\n';
+        impl_->timing_report<<"\thost_texture_camera_prepare_ms\thost_common_thread_cpu_ms\n";
         impl_->timing_previous_shadow_prefix=source_shadow_native_prefix_tu15_stats();
         impl_->measure_frames=true;
     }
@@ -10673,7 +10891,7 @@ void Renderer::renew_texture_camera_frame(SourceTextureCameraFrameTu15 &frame) {
 bool Renderer::draw_texture_camera(const Camera &camera,const RendererTextureCameraSubmissionTu15 &texture_camera,
     std::span<const ModelView> views,const std::filesystem::path &screenshot,bool reticle,
     ScreenEffects effects,std::span<const Vertex> ui,std::span<const UiBackdrop> backdrops,
-    const std::function<void()> *overlap) {
+    const std::function<void()> *overlap,const RendererHostPreparationTiming *host_preparation) {
     if(!texture_camera.source)throw FormatError("Texture camera submission lost its source work receipt");
     unsigned expected=0;
     if(!texture_camera.source->submission_->compare_exchange_strong(expected,1u))
@@ -10686,7 +10904,7 @@ bool Renderer::draw_texture_camera(const Camera &camera,const RendererTextureCam
     if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
         throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
     const auto run=[&]{return impl_->draw(camera,screenshot,{},reticle,{},effects,ui,views,{},backdrops,
-        nullptr,nullptr,false,nullptr,&texture_camera);};
+        nullptr,nullptr,false,host_preparation,&texture_camera);};
     if(!overlap || !*overlap){receipt.submitted=run();return receipt.submitted;}
     native_overlap_run([&]{receipt.submitted=run();},*overlap);return receipt.submitted;
 }
@@ -10711,11 +10929,21 @@ SourceTextureCameraNativeTargetsTu15 Renderer::prepare_texture_camera_targets(
         throw FormatError("Texture camera18 allocation differs from exact original1DE30/640x480");
     if(impl_->scene_layout!=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || (impl_->scene_targets.empty() && !impl_->can_capture))
         throw FormatError("Texture camera requires an actual readable native scene attachment");
-    check(vkWaitForFences(impl_->device,1,&impl_->fence,VK_TRUE,UINT64_MAX),"wait texture-camera resources");
-    impl_->retire_weather_aliases();
     const bool needed=(input.cinematic_auxiliary && input.cinematic) ||
         (input.camera_words[0] && input.camera_words[0]!=0xffffffffu);
     const std::array<bool,2> allocate{needed,copy20.has_value()};
+    static const bool reference_wait=[] {
+        const auto *value=std::getenv("HALO2_REFERENCE_INACTIVE_TEXTURE_CAMERA_WAIT");
+        return value && *value;
+    }();
+    // An inactive-to-inactive camera touches no GPU resource. Leave unrelated
+    // aliases for retirement after draw's existing frame fence, so campaign
+    // view collection can overlap the preceding GPU submission.
+    if(reference_wait || allocate[0] || allocate[1] ||
+       impl_->texture_camera_copies[0] || impl_->texture_camera_copies[1]) {
+        check(vkWaitForFences(impl_->device,1,&impl_->fence,VK_TRUE,UINT64_MAX),"wait texture-camera resources");
+        impl_->retire_weather_aliases();
+    }
     for(unsigned slot=0;slot<2;++slot) {
         if(!allocate[slot]) {
             impl_->texture_camera_copies[slot].reset();impl_->texture_camera_bindings[slot]={};

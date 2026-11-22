@@ -93,7 +93,7 @@ std::unique_ptr<FrontendSession> launch_from_owned_assets(
   state.commit_text(); state.back();
   require(state.frame().screen==6 && state.signed_in_profile()=="Retained Pilot",
           "disposable profile did not use the ordinary sign-in route");
-  choose(state,2,30); choose(state,0,14);
+  choose(state,1,218); choose(state,0,30); choose(state,0,14);
   choose(state,1,23); choose(state,0,206);
   unsigned map_index=unsigned(state.frame().entries.size());
   for (unsigned i=0;i<state.frame().entries.size();++i)

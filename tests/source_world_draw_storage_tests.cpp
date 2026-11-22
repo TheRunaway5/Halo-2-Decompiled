@@ -20,7 +20,8 @@ template<class T>std::uintptr_t key(T value) {
 using ImageKey=std::pair<unsigned,unsigned>;
 struct Driver {
     std::uintptr_t next=100;
-    unsigned updates{},copies{},resets{};
+    unsigned updates{},copies{},resets{},allocations{};
+    bool fail_pool{},fail_allocation{};
     std::map<std::uintptr_t,VkDeviceSize> buffers;
     std::map<std::uintptr_t,std::vector<std::byte>> memory;
     std::map<std::uintptr_t,std::map<ImageKey,VkDescriptorImageInfo>> images;
@@ -53,7 +54,7 @@ void metadata() {
     wrong=shape;wrong.pixels={std::byte{1}};check(!matches(wrong,pin),"unretired CPU pixels accepted as uploaded shape");
     source.pixels[0]^=std::byte{1};check(!matches(shape,pin),"stale source frame identity accepted");
 }
-void isolation() {
+void isolation(bool reuse) {
     using namespace halo2;
     const auto device=handle<VkDevice>(1);
     const auto physical=handle<VkPhysicalDevice>(2);
@@ -62,7 +63,8 @@ void isolation() {
     for(unsigned table=0;table<3;++table)for(unsigned stage=0;stage<4;++stage)
         original[{table?table+4:stage,table?stage:0}]={sampler,handle<VkImageView>(10+table*4+stage),VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const auto snapshot=original;
-    SourceWorldDrawStorage storage({device,physical,handle<VkDescriptorSetLayout>(5),32});
+    const auto initial_copies=driver.copies,initial_resets=driver.resets,initial_allocations=driver.allocations;
+    SourceWorldDrawStorage storage({device,physical,handle<VkDescriptorSetLayout>(5),32,reuse});
     std::array<std::byte,32> uniform{};
     std::array<SourceWorldDrawUpload,2> draws;
     for(auto& draw:draws){draw.resident=resident;draw.material_uniform=uniform;draw.vertex_bank.range={34,158,0,0};}
@@ -88,9 +90,15 @@ void isolation() {
     // A completed fence permits the next upload to recycle storage; the
     // selected images reverse without carrying either previous owner forward.
     draws[0].stage_images[0]=selected(1);draws[1].stage_images[0]=selected(0);
+    const auto new_resident_view=handle<VkImageView>(80);
+    original.at({2,0}).imageView=new_resident_view;
+    check(storage.upload({}).empty(),"empty frame exposed a retired draw");
     upload=storage.upload(draws);
+    check((first[0]==upload[0] && first[1]==upload[1])==reuse,"descriptor set reuse policy was not selected");
     check(driver.images.at(key(upload[0])).at({0,0}).imageView==handle<VkImageView>(51) &&
           driver.images.at(key(upload[1])).at({0,0}).imageView==handle<VkImageView>(50),"reused per-owner frame selection leaked");
+    check(driver.images.at(key(upload[0])).at({2,0}).imageView==new_resident_view,
+          "resident descriptor updated in place did not refresh the draw set");
     auto invalid=draws[0];invalid.stage_images[0]->cube=VK_NULL_HANDLE;rejects([&]{storage.upload({&invalid,1});});
     invalid=draws[0];invalid.stage_images[0]->sampler=VK_NULL_HANDLE;rejects([&]{storage.upload({&invalid,1});});
     invalid=draws[0];invalid.target_view=handle<VkImageView>(70);invalid.target_sampler=sampler;
@@ -98,7 +106,23 @@ void isolation() {
     invalid.stage_images[0].reset();invalid.stage_images[1]=selected(1);upload=storage.upload({&invalid,1});
     check(driver.images.at(key(upload[0])).at({0,0}).imageView==handle<VkImageView>(70),"external target was displaced by another stage");
     check(driver.images.at(key(upload[0])).at({1,0}).imageView==handle<VkImageView>(51),"independent animated stage was not selected");
-    check(driver.copies==6*5 && driver.resets==3,"unexpected upload ownership/lifecycle calls");
+    check(driver.copies-initial_copies==6*5 && driver.resets-initial_resets==(reuse?0u:3u) &&
+          driver.allocations-initial_allocations==(reuse?1u:3u),"unexpected upload ownership/lifecycle calls");
+    if(reuse) {
+        const std::array expanded{draws[0],draws[1],draws[0]};
+        const auto old_material=driver.uniforms.at({key(first[0]),4}).buffer;
+        const auto fails=[&] {
+            try{storage.upload(expanded);}catch(const std::runtime_error&){return;}
+            throw std::runtime_error("Vulkan allocation failure was not propagated");
+        };
+        driver.fail_pool=true;fails();
+        driver.fail_allocation=true;fails();
+        upload=storage.upload(expanded);
+        check(upload.size()==3 && upload[0]!=first[0],"growth did not publish all new sets after retry");
+        const auto material=driver.uniforms.at({key(upload[0]),4}).buffer;
+        check(material!=old_material && driver.uniforms.at({key(upload[2]),4}).buffer==material &&
+              driver.uniforms.at({key(upload[2]),4}).offset==64,"growth failed to bind the new per-draw uniform slices");
+    }
 }
 }
 
@@ -120,10 +144,13 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateMemory(VkDevice,const VkMemoryAllocateI
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory(VkDevice,VkBuffer,VkDeviceMemory,VkDeviceSize){return VK_SUCCESS;}
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateDescriptorPool(VkDevice,const VkDescriptorPoolCreateInfo*,const VkAllocationCallbacks*,VkDescriptorPool* out) {
+    if(driver.fail_pool){driver.fail_pool=false;return VK_ERROR_OUT_OF_DEVICE_MEMORY;}
     *out=handle<VkDescriptorPool>(driver.next++);return VK_SUCCESS;
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkResetDescriptorPool(VkDevice,VkDescriptorPool,VkDescriptorPoolResetFlags){++driver.resets;return VK_SUCCESS;}
 VKAPI_ATTR VkResult VKAPI_CALL vkAllocateDescriptorSets(VkDevice,const VkDescriptorSetAllocateInfo* p,VkDescriptorSet* out) {
+    if(driver.fail_allocation){driver.fail_allocation=false;return VK_ERROR_OUT_OF_POOL_MEMORY;}
+    ++driver.allocations;
     for(unsigned n=0;n<p->descriptorSetCount;++n)out[n]=handle<VkDescriptorSet>(driver.next++);return VK_SUCCESS;
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkMapMemory(VkDevice,VkDeviceMemory m,VkDeviceSize at,VkDeviceSize,VkMemoryMapFlags,void** out) {
@@ -146,5 +173,5 @@ VKAPI_ATTR void VKAPI_CALL vkUpdateDescriptorSets(VkDevice,unsigned count,const 
     }
 }
 }
-int main(){try{metadata();isolation();std::cout<<"per-owner frame descriptors and uploaded image identity passed\n";return 0;}
+int main(){try{metadata();isolation(false);isolation(true);std::cout<<"per-owner frame descriptors and uploaded image identity passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

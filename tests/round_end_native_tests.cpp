@@ -18,7 +18,7 @@ FrontendLaunch normal_launch(const FrontendContent& content,bool team,unsigned p
   MenuState menu(content);menu.accept();choose(menu,0,167);menu.text("Life Settings");menu.commit_text();
   check(menu.frame().screen==38,"Finite-life profile creation missed customization");menu.back();
   check(menu.frame().screen==6 && !menu.signed_in_profile().empty(),"Finite-life profile failed actual sign-in");
-  choose(menu,protocol?3:2,30);choose(menu,0,14);choose(menu,1,23);choose(menu,1,207);
+  choose(menu,1,218); choose(menu,protocol?2:0,30);choose(menu,0,14);choose(menu,1,23);choose(menu,1,207);
   choose(menu,entry(menu,0),208);choose(menu,entry(menu,team?1:0),14);
   choose(menu,1,23);choose(menu,1,207);choose(menu,entry(menu,0),208);
   menu.select(entry(menu,team?1:0));menu.auxiliary();

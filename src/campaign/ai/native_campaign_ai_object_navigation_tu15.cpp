@@ -5,6 +5,7 @@
 #include "halo2/native_campaign_ai_frame_geometry_tu15.hpp"
 #include "halo2/native_tu15_object_body_kernel.hpp"
 #include "native_campaign_ai_goal_port_tu15.hpp"
+#include "physics/runtime/physics_contact_runtime_internal.hpp"
 #include <array>
 
 namespace halo2 {
@@ -208,7 +209,8 @@ void eligibility(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
         allowed=(~(p.r8(abi.gp[0]+0x12cu)>>7u))&1u;
     abi.gp[0]=(abi.gp[0]&0xffffff00u)|allowed; abi.gp[4]=sp+4u;
 }
-void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
+void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
     const auto sp=abi.gp[4], saved_ebp=abi.gp[5], saved_esi=abi.gp[6], saved_edi=abi.gp[7];
     abi.gp[4]-=0x74u; push(p.memory,abi,saved_ebp);
     abi.gp[5]=p.r32(abi.gp[4]+0x80u); push(p.memory,abi,saved_esi);
@@ -231,6 +233,20 @@ void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
         if (abi.gp[0]) p.w32(0x275e1bu,abi.gp[0],abi.gp[7]);
         abi.gp[7]=saved_edi; abi.gp[6]=saved_esi; abi.gp[5]=saved_ebp; abi.gp[4]=sp+12u;
     };
+    const auto publish_point=[&](u32 return_pc) {
+        abi.gp[7]=p.r32(frame+0xcu);
+        if (!abi.gp[5]) return;
+        if (abi.gp[7]!=abi.gp[6]) {
+            abi.gp[0]=p.r32(frame+0x10u);abi.gp[1]=p.r32(frame+0x14u);
+            push(p.memory,abi,abi.gp[0]);abi.gp[0]=abi.gp[5];abi.gp[6]=abi.gp[4]+0x1cu;
+            push(p.memory,abi,return_pc);framed_point(p,abi);
+        } else {
+            abi.gp[2]=p.r32(frame+0x18u);abi.gp[0]=p.r32(frame+0x1cu);abi.gp[1]=abi.gp[5];
+            p.w32(0x275dfau,abi.gp[1],abi.gp[2]);abi.gp[2]=p.r32(frame+0x20u);
+            p.w32(0x275e00u,abi.gp[1]+4u,abi.gp[0]);p.w32(0x275e03u,abi.gp[1]+8u,abi.gp[2]);
+            p.w16(0x275e06u,abi.gp[5]+0xcu,abi.gp[6]);
+        }
+    };
     p.w32(0x275d04u,frame+0xcu,none); p.w32(0x275d08u,frame+0x14u,none);
     p.w32(0x275d0cu,frame+0x10u,none);
     if (abi.gp[1]==0) {
@@ -240,19 +256,7 @@ void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
         abi.gp[2]=abi.gp[4]+0x18u; push(p.memory,abi,abi.gp[2]);
         push(p.memory,abi,0); push(p.memory,abi,0x275dceu);
         biped_point(p,abi);
-        if(abi.gp[5]) {
-            abi.gp[7]=p.r32(frame+0xcu);
-            if(abi.gp[7]!=abi.gp[6]) {
-                abi.gp[0]=p.r32(frame+0x10u);abi.gp[1]=p.r32(frame+0x14u);
-                push(p.memory,abi,abi.gp[0]);abi.gp[0]=abi.gp[5];abi.gp[6]=abi.gp[4]+0x1cu;
-                push(p.memory,abi,0x275deeu);framed_point(p,abi);
-            } else {
-                abi.gp[2]=p.r32(frame+0x18u);abi.gp[0]=p.r32(frame+0x1cu);abi.gp[1]=abi.gp[5];
-                p.w32(0x275dfau,abi.gp[1],abi.gp[2]);abi.gp[2]=p.r32(frame+0x20u);
-                p.w32(0x275e00u,abi.gp[1]+4u,abi.gp[0]);p.w32(0x275e03u,abi.gp[1]+8u,abi.gp[2]);
-                p.w16(0x275e06u,abi.gp[5]+0xcu,abi.gp[6]);
-            }
-        } else abi.gp[7]=p.r32(frame+0xcu);
+        publish_point(0x275deeu);
         finish();return;
     }
     --abi.gp[1];
@@ -262,7 +266,20 @@ void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
         abi.gp[1]=abi.gp[4]+0x24u; push(p.memory,abi,abi.gp[1]);
         abi.gp[2]=abi.gp[4]+0x1cu; push(p.memory,abi,abi.gp[2]);
         push(p.memory,abi,0); abi.gp[3]=abi.gp[0]; push(p.memory,abi,0x275d90u);
-        throw NativeCampaignAiPerformRequiredOwnerTu15(0x275d8bu,0xf35d0u);
+        if (!vehicle_point) throw NativeCampaignAiPerformRequiredOwnerTu15(0x275d8bu,0xf35d0u);
+        constexpr u32 arithmetic_flags=0x8d5u;
+        // The type check (SUB 0; DEC 1) leaves ZF and PF set.
+        abi.eflags=(abi.eflags&~arithmetic_flags)|0x44u;
+        vehicle_point(0x275d8bu,0xf35d0u,abi);
+        if (abi.gp[4]!=frame-4u)
+            throw std::runtime_error("TU1.5 vehicle point returned another navigation stack");
+        abi.gp[3]=p.r32(abi.gp[4]);abi.gp[4]+=4u;
+        publish_point(0x275db1u);
+        finish();
+        physics_contact_runtime_detail::Flags flags;
+        flags.plus(frame+12u,0x74u,4);
+        abi.eflags=(abi.eflags&~arithmetic_flags)|flags.bits();
+        return;
     }
     abi.gp[0]=p.r32(0x4ecc18u); abi.gp[1]=p.r32(abi.gp[0]+0xc4u);
     if (static_cast<i32>(abi.gp[1])>0) {
@@ -283,10 +300,11 @@ void point(const Port &p, SourcePhysicsWorldRuntimeAbi &abi) {
 }
 void native_campaign_ai_object_navigation_call_tu15(SourcePhysicsContactMemory &memory,
     std::uint32_t entry, SourcePhysicsWorldRuntimeAbi &abi,
-    const SourcePhysicsContactRecordObserver &observe) {
+    const SourcePhysicsContactRecordObserver &observe,
+    const NativeCampaignAiPerformCalleeTu15 &vehicle_point) {
     const Port port{memory,observe};
     if (entry==0x275ba0u) eligibility(port,abi);
-    else if (entry==0x275cb0u) point(port,abi);
+    else if (entry==0x275cb0u) point(port,abi,vehicle_point);
     else if (entry==0xe2300u) biped_point(port,abi);
     else if (entry==0xe04b0u) biped_dynamic_sector(port,abi);
     else if (entry==0xe22c0u) biped_reset(port,abi);

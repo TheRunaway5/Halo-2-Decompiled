@@ -43,7 +43,7 @@ int main(int argc,char **argv)try {
     choose(6,233);state.select(11+i);state.accept();state.back();state.back();
     state.back();choose(0,9);
   }
-  state.accept();choose(1,6);check(state.controller_slot(100,true)==0,"Host controller lost");choose(2,30);
+  state.accept();choose(1,6);check(state.controller_slot(100,true)==0,"Host controller lost");choose(1,218); choose(0,30);
   for(unsigned i=1;i<3;++i) {
     check(state.controller_slot(100+i,true)==i,"Local controller lost");
     const auto &entries=state.frame().entries;

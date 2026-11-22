@@ -42,7 +42,7 @@ FrontendLaunch selected(const FrontendContent &content,unsigned custom,unsigned 
   MenuState menu(content);menu.accept();choose(menu,0,167);
   menu.text("Mode Pilot 1");menu.commit_text();menu.back();
   need(menu.frame().screen==6,"Custom primary profile did not reach the main menu");
-  choose(menu,lan?3:2,30);choose(menu,0,14);
+  choose(menu,1,218); choose(menu,lan?2:0,30);choose(menu,0,14);
   need(menu.controller_slot(100,true)==0,"Custom host controller did not bind");
   for(unsigned player=1;player<players;++player) {
     need(menu.controller_slot(100+player,true)==player && menu.frame().screen==10,

@@ -21,6 +21,8 @@ struct NativeCampaignScriptHostServices {
   std::function<void(std::uint32_t,std::uint32_t)> list_append;
   // The native VM's local-player alias (object handle 0) resolves here.
   std::uint32_t player{0xffffffffu};
+  // The retained World admits the authored line, playback and source FP.
+  std::function<std::uint32_t(std::uint32_t,std::uint32_t)> play_line_on_object;
 };
 
 // Returns nullopt when the name is not one of the native semantic builtins.

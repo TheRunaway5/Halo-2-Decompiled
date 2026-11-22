@@ -40,6 +40,7 @@
 #include "halo2/source_ui_script_startup_tu15.hpp"
 #include "halo2/source_final_startup_storage_tu15.hpp"
 #include "halo2/source_input_startup_tu15.hpp"
+#include "halo2/native_tu15_attached_speech_data.hpp"
 #include <algorithm>
 #include <set>
 #include <sstream>
@@ -1212,6 +1213,12 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x18f1a0u,0x18f420u,0x18f490u,0u,0x18f6b0u,0u,0x18f750u,0x18f770u}),
         SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored weapon sound request callback descriptor");
+    memory.mount(native_tu15_attached_speech_descriptor_address,encode(native_tu15_attached_speech_descriptor),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored attached speech callback descriptor");
+    share_immutable_word(memory,native_tu15_attached_speech_origin_address,native_tu15_attached_speech_origin,
+        "native TU1.5 authored attached speech direction origin binding");
+    share_immutable_word(memory,0x46aaf4u,0x4171999au,
+        "native TU1.5 authored script speech attention score scale");
     // Complete2835B0 clears twenty-four channel scratch words and fills the
     // animation decode context itself before consuming actual clip bytes.
     memory.mount(0x56e000u,std::array<std::byte,24*4>{},SourceRuntimeMemory::Access::ReadWrite,
@@ -1748,6 +1755,8 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 authored 16CD50 physical update comparison operand");
     share_immutable_word(memory,0x46a388u,0x3d000000u,
         "native TU1.5 authored 16CE07 physical update interval operand");
+    share_immutable_word(memory,0x46a8d4u,0xc0800000u,
+        "native TU1.5 authored 276E57 obstacle probe ray scale");
     share_immutable_word(memory,0x46ab04u,0x3f350481u,
         "native TU1.5 authored FAFBE object update comparison operand");
     share_immutable_word(memory,0x46a590u,0x42124925u,
@@ -1816,6 +1825,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // these four original priorities; retain their authored .data access.
     memory.mount(0x47d6c4u,encode(std::array{0u,0x00030002u}),SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored bounded AI target-state priorities");
+    // Original 27019E maps the style's three combat-status decay options
+    // to their combat-state floors. This table belongs to writable .data.
+    memory.mount(0x47d700u,std::array{std::byte{1},std::byte{0},std::byte{2},
+        std::byte{0},std::byte{3},std::byte{0}},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored AI style combat-status floors");
     // Original271B01 divides this authored half-life exponent by the
     // selected update interval before its original x87 exponential sequence.
     share_immutable_word(memory,0x46a7dcu,0xbf317218u,

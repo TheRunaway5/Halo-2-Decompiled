@@ -2,6 +2,21 @@
 
 This document is the actionable `.MD` checklist for agents continuing the Halo 2 TU1.5 translated-to-native replacement effort. See [REMAINING_TRANSLATED_20261115.md](REMAINING_TRANSLATED_20261115.md) for the historical progress log across earlier waves.
 
+## November 20 particle motion and hierarchy update
+
+The x86-64 Release performance binary `630d7fe83b6f432f900cfa815cb1f07038c941435e26787df8121784850d6074` runs the TU1.5 `2C2AD0` particle motion owner and binds the existing `BBD10` hierarchy kernel in live support. The particle kernel preserves the authored jump table, gravity and drag calculations, particle traversal, and the original child calls. The component comparison exercised 199 original instruction sites across 8,000 cases per mode, including 1,143 injected interruptions. All nine compiled mutations were detected.
+
+| Workload | Owner | Translated callbacks with reference switches | Translated callbacks with native defaults |
+|---|---|---:|---:|
+| Coagulation, four players, 600 ticks | `2C2AD0` | 11,524,444 | 0 |
+| Coagulation, four players, 600 ticks | `BBD10` | 1,144,899 | 0 |
+| Armory, 300 frames | `2C2AD0` | 23,861 | 0 |
+| Armory, 300 frames | `BBD10` | 129,029 | 0 |
+
+The reference runs used the same binary with `HALO2_REFERENCE_EFFECT_OWNERS=2c2ad0` and `HALO2_REFERENCE_OBJECT_HIERARCHY_ROOT=1`. The latter restores the translated walk in every bound unit. Both workloads matched their reference frames, and Armory matched its reference trace. Coagulation verification replayed 16,093 particle motion calls. The largest remaining translated routine there was `1770C0` (17,919 callbacks per tick), followed among the unconverted routines by `1772C0` (10,776 per tick). The largest in Armory was `30E930` (4,750 per frame). Component and live results are in `build/test-results/particle-motion-20261120/`.
+
+Nine scripted 600-tick multiplayer cases across eight maps matched their translated reference captures byte for byte. Four-player Lockout reached tick 600 on all four runs. Its two translated-reference frames differed from each other, as did its two native-verification frames. Both native runs matched their per-call reference replay. Lockout frame parity remains open. The first comparison and repeat evidence are in `live/summary.json` and `repeats/summary.json` under the same results directory.
+
 ---
 
 ## 1. Current Baseline & Summary of Completed Work (as of 2026-11-19)
@@ -140,10 +155,9 @@ Per-frame instruction counts below come directly from the 2026-11-19 Armory cens
 
 ### Group L — Live Support Remainder (`physics_live_support_tu15_generated.cpp` & Multi-Copy Leaves)
 
-> **Binding mechanism**: `physics_live_support_tu15_generated.cpp` is whole-file SHA256 pinned! Always bind via `tools/native_live_support_leaves_replacements.py` (`LEAVES`, `CHILDREN`, `CHILD_CALLS`, `CANONICAL`), never by editing `physics_live_support_tu15_generated.cpp`.
+> The project pins the SHA256 of the complete live-support source. The operand specializer binds native owners in its build-local copy. The shared leaves use `tools/native_live_support_leaves_replacements.py`, and `BBD10` uses `tools/native_object_hierarchy_root_replacements.py`.
 
-- [ ] **Bind `BBD10` (`259.1/frame` remaining in `physics_live_support_tu15_generated.cpp`)**
-  - **Notes**: `BBD10` (`object_hierarchy_root`) is already proven on physical i386 (`build/test-results/shadow-frame-20261119/object_hierarchy_root.json`) and bound in `source_shadow_frame` and `source_ai_frame` (reducing `BBD10` from `430.1/frame` to `259.1/frame`). Adding `kernel_bbd10` to `native_tu15_live_support_leaves.hpp` and `LEAVES` in `tools/native_live_support_leaves_replacements.py` will eliminate the remaining `259.1/frame` in `physics_live_support_tu15_generated.cpp` at build time without touching its file SHA256 pin.
+- [x] **Bind `BBD10` in `physics_live_support_tu15_generated.cpp`.** The build-time operand specializer installs the existing hierarchy-root bridge after checking the complete literal and prepared bodies. The native census counted zero callbacks for the walk in Armory and four-player Coagulation on November 20.
 - [ ] **`1D6FB0`** (`1,601/frame`) — `physics_live_support_tu15_generated.cpp`
   - **Notes**: Largest remaining routine in `physics_live_support`.
 - [ ] **`2F8B60`** (`842/frame`) — `physics_live_support_tu15_generated.cpp`

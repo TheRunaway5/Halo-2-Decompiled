@@ -14,10 +14,11 @@ using namespace halo2;
 namespace {
 void need(bool value,const char *message){if(!value)throw std::runtime_error(message);}
 using Clock=std::chrono::steady_clock;
-void policy_changes() {
+void policy_changes(std::size_t owner_bytes) {
     SourceRuntimeMemory bank,other;
     const std::array initial{std::byte{0},std::byte{0},std::byte{0},std::byte{0}};
-    for(auto *memory:{&bank,&other})memory->mount(0x1000,initial,SourceRuntimeMemory::Access::ReadWrite,"dispatch owner");
+    const std::vector<std::byte> backing(owner_bytes);
+    for(auto *memory:{&bank,&other})memory->mount(0x1000,backing,SourceRuntimeMemory::Access::ReadWrite,"dispatch owner");
     std::array<int,4> owners{};std::vector<unsigned> actual,expected;
     bool deny_guard{},deny_observer{};
     const auto guard=[&](unsigned i){return [&,i](auto p,auto n){
@@ -36,13 +37,20 @@ void policy_changes() {
     source_runtime_register_write_observer(bank,&owners[2],observer(2));
     source_runtime_register_write_observer(other,&owners[2],observer(9));
     const std::array value{std::byte{1},std::byte{2},std::byte{3},std::byte{4}};
+    SourceRuntimeWriteSerial serial(bank,SourceRuntimeWriteSerial::Visibility::CallBoundary);
     for(unsigned iteration=0;iteration<400;++iteration) {
         actual.clear();bank.write(0x1000,value);
         need(actual==std::vector<unsigned>{0,1,2,3},"dispatch lost guard/observer ordering");
         actual.clear();other.write(0x1000,value);need(actual==std::vector<unsigned>{9},"dispatch reused another bank's policies");
-        actual.clear();bank.validate_mutable_view(0x1000,4);
+        actual.clear();const auto writes=serial.load();bank.validate_mutable_view(0x1000,4);
         need(actual==std::vector<unsigned>{0,1},"validation-only admission notified write observers");
+        need(serial.load()==writes,"validation-only admission advanced the write serial");
         actual.clear();deny_guard=true;
+        try{bank.validate_mutable_view(0x1000,4);need(false,"preflight accepted forbidden write");}
+        catch(const std::runtime_error &e){need(std::string(e.what())=="guard denied","wrong preflight exception");}
+        need(actual==std::vector<unsigned>{0,1} && serial.load()==writes && std::ranges::equal(bank.view(0x1000,4),value),
+            "preflight rejection changed bytes, count or ordering");
+        actual.clear();
         try{bank.write(0x1000,initial);need(false,"guard accepted forbidden write");}catch(const std::runtime_error &e){need(std::string(e.what())=="guard denied","wrong guard exception");}
         deny_guard=false;
         need(actual==std::vector<unsigned>{0,1} && std::ranges::equal(bank.view(0x1000,4),value),"guard rejection changed bytes or delivered observers");
@@ -121,7 +129,7 @@ void benchmark() {
 }
 }
 int main(int argc,char **argv)try {
-    policy_changes();concurrent_retirement();recursive_and_large_banks();
+    policy_changes(4);policy_changes(4096);concurrent_retirement();recursive_and_large_banks();
     if(argc==2 && std::string_view(argv[1])=="--benchmark")benchmark();
     std::cout<<"PASS dispatch ordering, exceptions, policy replacement, bank isolation and concurrent retirement\n";
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

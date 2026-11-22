@@ -230,6 +230,27 @@ int main(int argc,char **argv) {try {
     partial.push_back(ranged(bindings[1],{strip_first+1,14})); // Odd start; local parity.
     const auto ranges=storage.store(partial);
     require(ranges.size()==9,"storage lost submitted source ranges");
+    std::vector<const MenuWorldSourceDrawGeometry *> retained_ranges;
+    const auto slice=[](const MenuWorldSourceBufferSlice &value){return std::tuple{value.buffer,value.offset,value.size};};
+    const auto fetch=[](const VkVertexInputAttributeDescription &value){return std::tuple{value.location,value.binding,value.format,value.offset};};
+    const auto vertex_binding=[](const VkVertexInputBindingDescription &value){return std::tuple{value.binding,value.stride,value.inputRate};};
+    for(unsigned i=0;i<ranges.size();++i) {
+      const auto &current=storage.retain_geometry(partial[i]);const auto &reference=ranges[i];
+      retained_ranges.push_back(&current);
+      require(current.source_index_range.first==reference.source_index_range.first &&
+          current.source_index_range.count==reference.source_index_range.count &&
+          current.index_count==reference.index_count && current.index_type==reference.index_type &&
+          current.topology==reference.topology && slice(current.indices)==slice(reference.indices) &&
+          current.vertex_buffers==reference.vertex_buffers && current.vertex_offsets==reference.vertex_offsets &&
+          std::ranges::equal(current.resources,reference.resources,{},slice,slice) &&
+          std::ranges::equal(current.vertex_attributes,reference.vertex_attributes,{},fetch,fetch) &&
+          std::ranges::equal(current.vertex_bindings,reference.vertex_bindings,{},vertex_binding,vertex_binding),
+          "retained raw draw geometry differs from the owning reference");
+    }
+    require(retained_ranges[0]==retained_ranges[4] && retained_ranges[0]!=retained_ranges[1] &&
+        retained_ranges[0]!=retained_ranges[2] && retained_ranges[6]!=retained_ranges[7] &&
+        retained_ranges[5]==&storage.retain_geometry(bindings[0]),
+        "retained raw draw conflated source ranges or failed to share repeated geometry");
     for(unsigned i=0;i<8;++i) {
       require(ranges[i].resources[0].buffer==retained.buffer,
               "partial ranges duplicated unchanged section vertex resources");
@@ -256,6 +277,9 @@ int main(int argc,char **argv) {try {
     require(reloaded.size()==1 && reloaded[0].resources[0].buffer==retained.buffer &&
         reloaded[0].resources[0].offset==retained.offset,"identical separately loaded source section was not shared");
     require(storage.store({}).empty(),"empty metadata submission retained previous draw tokens");
+    require(&storage.retain_geometry(partial[0])==retained_ranges[0] &&
+        &storage.retain_geometry(repeated)==retained_ranges[5],
+        "raw draw geometry lost its resident identity after a separate store or section load");
     require(gpu.readback(retained)==expected,"metadata refresh invalidated live immutable geometry buffer");
     MenuWorldSourceStorage triangle_storage({gpu.device,gpu.physical,true});
     const auto triangle_draws=triangle_storage.store(bindings);

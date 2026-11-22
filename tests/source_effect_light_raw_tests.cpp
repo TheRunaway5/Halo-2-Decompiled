@@ -52,6 +52,9 @@ int main(int argc,char** argv)try {
         MenuWorldRasterContext raster;raster.viewport_reset({640,480});raster.game_initialize_offset();raster.layer_begin(MenuWorldRasterLayer::sphere_diffuse_12);raster.entry_begin({false,false,false});const auto raster_packet=raster.snapshot({MenuWorldRasterPrimitive::ordinary_triangles,MenuWorldRasterPolygon::fill,std::array<std::int32_t,2>{1,1},true});raster.entry_end();
         const auto packet=source_effect_light_raw_draw(7,material,pass,submitted,raster_packet,{0,16777215,.0000152587890625f,1},{1,1});
         require(packet.material_slot==7 && packet.program.words==material.forward_program.words && packet.source.owner()==owner && packet.source.draw().indices().size()==draw.indices().size(),"sphere raw completed draw lost source identity");++raw_packets;
+        const auto packed=source_effect_light_draw(7,material,{});
+        require(std::memcmp(packet.vertex_globals.data(),packed.vertex_bank.constants.data(),sizeof(packet.vertex_globals))==0,
+            "sphere raw compact c34..39 differs from the packed vertex bank");
         auto wrong=completed;wrong[31][0]+=1.f;const auto unbound=menu_world_source_binding_class(cache,owner,draw,vertex,classification,wrong);
         rejected=false;try{(void)source_effect_light_raw_draw(7,material,pass,unbound,raster_packet,{0,16777215,.0000152587890625f,1},{1,1});}catch(const FormatError&){rejected=true;}require(rejected,"sphere raw accepted stale c31 light constants");++raw_controls;
     }

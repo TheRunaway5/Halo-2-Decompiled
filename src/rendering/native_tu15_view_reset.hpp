@@ -8,6 +8,7 @@
 // restores the translated body. HALO2_CENSUS_NATIVE_BRIDGES=1 also admits the
 // uncursored census callbacks (1373F0..13745C holds no service PC).
 #include "rendering/native_tu15_view_reset_systems.hpp"
+#include "rendering/native_tu15_receiver_transfers.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "physics/runtime/native_tu15_required_owner_policy.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
@@ -71,6 +72,13 @@ template<class State,class Before>class Adapter:public native_mopp_ray_caller_de
     void stosd(std::uint32_t pc,std::uint32_t dst,std::uint32_t count,std::uint32_t value){
         r(eax)=value;r(ecx)=count;r(edi)=dst;
         const auto delta=(s_.other_flags&0x400u)?0xfffffffcu:4u;
+        if(count && delta==4u && r(edx)==native_receiver_transfers::secondary_view &&
+           native_raw_x87_detail::skip_hook<Before>()) {
+            if(const auto *scope=native_receiver_transfers::current(s_)) {
+                at(pc);
+                if(scope->fill(r(esp),pc,dst,count,value)) {r(edi)+=count*4u;r(ecx)=0;return;}
+            }
+        }
         while(r(ecx)){
             at(pc);
             store(pc,r(edi),r(eax),[&]{r(edi)+=delta;--r(ecx);},true);

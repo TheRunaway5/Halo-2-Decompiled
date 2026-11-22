@@ -23,7 +23,8 @@ template<class State,class Before,bool Retained=false>class Access:public native
     void write(std::uint32_t pc,std::uint32_t address,std::uint32_t value,bool positioned=false){
         if constexpr(Retained){
             if(!positioned)at(pc);
-            io([&]{physics_step_detail::w(s_.memory,s_.observe,pc,address,4u,value);});
+            if(!native_host_fp_io_detail::write_simplex_retained_word(s_,address,value))
+                io([&]{physics_step_detail::w(s_.memory,s_.observe,pc,address,4u,value);});
         }else Base::store(pc,address,value,[]{},positioned);
     }
 public:

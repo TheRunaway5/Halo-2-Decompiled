@@ -1,4 +1,7 @@
 #pragma once
+#include <array>
+#include <bit>
+#include <cstdlib>
 #include <type_traits>
 #include <utility>
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -54,4 +57,34 @@ template<class Callback>void preserve_empty(Callback&&callback){
 #endif
     preserve(std::forward<Callback>(callback));
 }
+
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+inline bool reference_simplex_iteration_projection_io() noexcept {
+    static const bool reference=[] {
+        const auto* value=std::getenv("HALO2_REFERENCE_SIMPLEX_ITERATION_PROJECTION_IO");
+        return value && *value;
+    }();
+    return reference;
+}
+
+// The retained iteration and projection stages keep source x87 in their
+// State. These transports have no host FP effects. A refused access still
+// reaches its original scoped provider and publishes the same fault prefix.
+template<class Memory>
+bool read_simplex_projection_vector(const Memory& memory,std::uint32_t address,__m128& output) noexcept {
+    if(reference_simplex_iteration_projection_io())return false;
+    if(const auto* page=memory.direct_page(address,sizeof(output))) {
+        std::memcpy(&output,page->bytes+(address&4095u),sizeof(output));
+        return true;
+    }
+    return false;
+}
+
+template<class State>
+bool write_simplex_retained_word(State& state,std::uint32_t address,std::uint32_t value) noexcept {
+    if(state.observe || reference_simplex_iteration_projection_io())return false;
+    const auto bytes=std::bit_cast<std::array<std::byte,4>>(value);
+    return state.memory.try_callback_free_write(address,bytes);
+}
+#endif
 } // namespace halo2::native_host_fp_io_detail

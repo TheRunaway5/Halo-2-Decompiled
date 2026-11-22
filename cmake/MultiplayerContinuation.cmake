@@ -76,7 +76,7 @@ if(BUILD_TESTING)
     target_link_libraries(source_execution_live_model_native_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_execution_live_model_native_tu15 COMMAND source_execution_live_model_native_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(source_execution_live_model_native_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     add_executable(source_execution_abi_native_tests tests/source_execution_abi_native_tests.cpp)
     target_link_libraries(source_execution_abi_native_tests PRIVATE halo2_authority_codec)

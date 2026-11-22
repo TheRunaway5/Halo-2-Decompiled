@@ -9,6 +9,7 @@
 #include "halo2/source_shadow_raw_draw.hpp"
 #include "halo2/source_texture_camera_scene_prefix_tu15.hpp"
 #include <bit>
+#include <chrono>
 #include <cstring>
 #include <cstdlib>
 
@@ -63,6 +64,16 @@ void SourceCampaignViewTu15::prepare_bsp(PhysicsLiveWorldTu15 &world,const Sourc
 SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15 &world,
     const SourceCampaignViewInputTu15 &input,const BspAtmosphere &atmosphere,
     const BspFogSample &fog) {
+    using Clock = std::chrono::steady_clock;
+    using ViewTiming = RendererHostPreparationTiming::NativeView;
+    const auto timed = [&](auto phase, auto operation) {
+        if (!input.timings) { operation(); return; }
+        const auto start = Clock::now();
+        operation();
+        auto& sample = input.timings->*phase;
+        sample.nanoseconds += std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - start).count();
+        ++sample.calls;
+    };
     auto &memory=world.memory();
     if(input.view>=4 || !input.local_players || input.local_players>4 ||
        input.actual_local_user< -1 || input.actual_local_user>=4)
@@ -204,8 +215,10 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
     source_live_shadow_main_inputs_tu15(world,context);
     publish_shader_multipliers();
     if(consume_particles)world.call_actual(0xc35d0u);
-    source_live_model_draws_tu15(world,frame.objects,frame.units,context);
-    frame.base_draws=selected.copy(world,frame.units);
+    timed(&ViewTiming::model_collection,[&] {
+        source_live_model_draws_tu15(world,frame.objects,frame.units,context);
+        frame.base_draws=selected.copy(world,frame.units);
+    });
     for(unsigned n=0;n<frame.units.draw_count;++n) {
         if(frame.units.units[n].words[1]==0xffffffffu)continue;
         const auto context_address=frame.units.units[n].words[4];
@@ -217,13 +230,17 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
             [&](auto address,auto bytes){world.write_source_call_input(address,bytes);});
         source_live_shadow_main_queues_tu15(world,frame.bsp,frame.objects);
         static const bool reference_cull=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_CULL");return p && *p;}();
-        if(reference_cull) {auto cull=world.prepare_source_call();world.run_actual(0x44710u,cull);}
-        else main_cull_.run(world,&frame.visibility);
+        timed(&ViewTiming::main_cull,[&] {
+            if(reference_cull) {auto cull=world.prepare_source_call();world.run_actual(0x44710u,cull);}
+            else main_cull_.run(world,&frame.visibility);
+        });
         // Authenticated normal13660→13768→2BCB0 argument5=0; after the
         // real completed main handoff/cull, never a model-only boolean.
         static const bool reference_commands=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_COMMANDS");return p && *p;}();
-        if(reference_commands){auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);}
-        else world.run_native_command_frame_tu15();
+        timed(&ViewTiming::main_commands,[&] {
+            if(reference_commands){auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);}
+            else world.run_native_command_frame_tu15();
+        });
         frame.main_commands_completed=true;
         frame.transparent_commands=source_live_transparent_queue_tu15(world);
         frame.transparent_groups=source_live_transparent_groups_tu15(world);
