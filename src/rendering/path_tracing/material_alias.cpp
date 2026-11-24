@@ -62,6 +62,7 @@ void reserve_headers(Scene& scene,std::size_t slots) {
             material.emission[3]=std::bit_cast<float>(p+delta);
         if(material.texture[3]&surface_flag)
             material.base[3]=std::bit_cast<float>(std::bit_cast<std::uint32_t>(material.base[3])+delta);
+        for(unsigned record=0;record<2;++record)if(material.detail[record])material.detail[record]+=delta;
     }
     for(auto& image:scene.material_alias_images)image.image[0]+=delta;
 }

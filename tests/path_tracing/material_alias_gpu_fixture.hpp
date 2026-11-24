@@ -77,7 +77,7 @@ int material_alias_gpu(const std::filesystem::path& shaders) {
     auto reflect=[&] {
         for(unsigned n=0;n<12;++n)geometry[n].material=wall_aliases[n/6].material;
         pt::update_geometry(secondary,geometry);
-        secondary.materials[1].response={0,1,1,0};secondary.materials[1].base={1,1,1,1};
+        make_mirror(secondary.materials[1],0);secondary.materials[1].base={1,1,1,1};
         for(auto& v:primary)v.material=1;
         std::memset(gpu.uniform.mapped,0,sizeof(WorldMaterialUniform));gpu.primary_color({0,0,0,1});
         return gpu.draw(secondary,primary,{},Camera{},~0u,false,false,&black);

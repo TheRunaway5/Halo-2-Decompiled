@@ -22,6 +22,15 @@ namespace {
 inline __m128 ld_ss(const M &m,std::uint32_t p){return _mm_set_ss(f32(m,p));}
 inline std::uint32_t fb(__m128 v){return std::bit_cast<std::uint32_t>(_mm_cvtss_f32(v));}
 
+// An 18E970 listener-record load (original 127400 record). A bound native
+// camera view answers it when that view opted in with background_sound;
+// otherwise the original record is read, as an unbound call does.
+inline std::uint32_t listener_read(LoopContext &c,std::uint32_t instruction,std::uint32_t address,unsigned size){
+    if(c.views)if(const auto value=source_object_audio_view_operand_tu15(c.views,u32(c.m,0x4f2c50u),instruction,address,size))
+        return *value;
+    return size==1?u8(c.m,address):size==2?u16(c.m,address):u32(c.m,address);
+}
+
 // COMISS (ordered): cf = a<b (also set on unordered), zf = a==b. Exactly the
 // predicate the lifted scalar_compare(a,b,false) produces.
 struct Cmp{bool cf,zf;};
@@ -1005,15 +1014,15 @@ L18ea01:
     g[1]=0x88u+g[7]+g[0]*1u;
     store(m,o,0x18ea0fu,0x44u+g[4],g[1]);
     if(!eq) goto L18ec44;
-    g[0]=u8(m,0x6u+g[1]);
+    g[0]=listener_read(c,0x18ea19u,0x6u+g[1],1);
     if((g[0]&0xffu)==0u) goto L18ec44;
-    g[0]=u16(m,0x4u+g[1]);
+    g[0]=listener_read(c,0x18ea24u,0x4u+g[1],2);
     if((g[0]&0xffffu)==(g[5]&0xffffu)) goto L18ec44;
     g[1]=g[1]+0x30u;
-    g[2]=u32(m,0x0u+g[1]);
+    g[2]=listener_read(c,0x18ea34u,0x0u+g[1],4);
     g[7]=sx16(g[0]);
-    g[0]=u32(m,0x4u+g[1]);
-    g[1]=u32(m,0x8u+g[1]);
+    g[0]=listener_read(c,0x18ea39u,0x4u+g[1],4);
+    g[1]=listener_read(c,0x18ea3cu,0x8u+g[1],4);
     store(m,o,0x18ea3fu,0x38u+g[4],g[2]);
     g[2]=u32(m,0x15cu+g[4]);
     g[4]-=4u; store(m,o,0x18ea4au,g[4],g[2]);     // push arg
@@ -1241,6 +1250,24 @@ L18ed54:
     g[4]+=0x148u;
     for(int i=0;i<8;++i) set_xmm(a,i,xm[i]);
     pop_return(m,a,4);
+}
+
+// =====================================================================
+// 18DC40  stdcall(a, b, values): EAX = values[a] > values[b] (COMISS, JBE),
+// XMM0 = values[a]; ret 12. 18DC70's portal sort (190520 -> 140BC0) calls it
+// through a function pointer, so it is entered through the live world.
+// =====================================================================
+void r_18dc40(LoopContext &c,Abi &a){
+    M &m=c.m;
+    auto &g=a.gp;
+    g[0]=u32(m,0xcu+g[4]);
+    g[1]=u32(m,0x4u+g[4]);
+    g[2]=u32(m,0x8u+g[4]);
+    const __m128 value=ld_ss(m,g[0]+g[1]*4u);
+    set_xmm(a,0,value);
+    const auto compared=comi(value,ld_ss(m,g[0]+g[2]*4u));
+    g[0]=(!compared.cf && !compared.zf)?1u:0u;
+    pop_return(m,a,12);
 }
 
 // =====================================================================
@@ -2250,6 +2277,7 @@ std::span<const LoopRoutineEntry> object_loop_update_routines(){
         {0x129170u,r_129170},
         {0x18d960u,r_18d960},
         {0x190a80u,r_190a80},
+        {0x18dc40u,r_18dc40},
         {0x18dc70u,r_18dc70},
         {0x18e970u,r_18e970},
     };

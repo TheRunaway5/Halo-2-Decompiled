@@ -1048,6 +1048,309 @@ L18ef24:
     goto L18eedb;
 }
 
+
+// =====================================================================
+// HS looping-sound builtins over the loop pool ([4F9B5C], 0x18-byte rows:
+// +3 type (0 object, 4 scripted), +4 flags (1 live, 2 stop, 4 stop with
+// music fade, 8 stop now, 0x10 alternate, 0x20 current, 0x40 started in a
+// cinematic), +8 scale, +0xC looping sound tag, +0x10 end tick).
+// =====================================================================
+// 190150: ECX = looping sound tag. AL = 1 when a track's loop sound has the
+// music (0x20) or cinematic music (0x26) class. ret.
+void r_190150(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&ebx=x.ebx,&esi=x.esi,&edi=x.edi;
+    x.push(0x190150u,ebx);
+    ebx=x.d(tag_instances);
+    ecx&=0xffffu;ecx<<=4;
+    edx=x.d(ecx+ebx+8u);
+    x.push(0x190164u,esi);
+    esi=x.d(edx+0x1cu);                        // track count
+    x.push(0x190168u,edi);
+    lo8(eax,0u);
+    edi=0u;
+    if(std::int32_t(esi)>0) {
+        edx=x.d(edx+0x20u);                    // tracks, 0x58 each
+        ecx=0u;
+        do {
+            ecx=ecx*0x58u+edx;
+            ecx=x.d(ecx+0x20u);                // loop sound tag
+            if(ecx!=0xffffffffu) {
+                ecx&=0xffffu;ecx<<=4;
+                ecx=x.d(ecx+ebx+8u);
+                lo16(ecx,sx8(x.b(ecx+2u)));    // sound class
+                if((ecx&0xffffu)==0x20u || (ecx&0xffffu)==0x26u) {
+                    lo8(eax,1u);
+                    edi=x.pop();esi=x.pop();ebx=x.pop();x.ret();return;
+                }
+            }
+            ++edi;
+            ecx=sx16(edi&0xffffu);
+        } while(less(ecx,esi));
+    }
+    edi=x.pop();esi=x.pop();ebx=x.pop();x.ret();
+}
+// 1900D0: EBX = looping sound tag, arg0 the stop kind. Marks its current
+// row stopping (clears 0x20, sets 2), clears the current bit of the row the
+// tag now resolves to, then adds 4 (kind 1) or 8 (kind 2). ret 4.
+void r_1900d0(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&ebx=x.ebx,&esi=x.esi,&edi=x.edi,&esp=x.esp;
+    if(ebx==0xffffffffu){x.ret(4);return;}
+    x.push(0x1900d5u,ebx);
+    x.call(0x1900d6u,0x18ffb0u);
+    if(eax==0xffffffffu){x.ret(4);return;}
+    x.push(0x1900e0u,esi);
+    eax&=0xffffu;
+    x.push(0x1900e6u,edi);
+    edi=x.d(loop_pool);
+    esi=x.d(edi+0x44u);
+    eax=eax+eax*2u;eax<<=3;
+    x.and8(0x1900f6u,esi+eax+4u,0xdfu);
+    ecx=x.d(edi+0x44u);
+    x.or8(0x1900feu,eax+ecx+4u,0x2u);
+    esi+=eax;
+    eax=eax+ecx+4u;
+    x.push(0x190109u,ebx);
+    x.call(0x19010au,0x18ffb0u);
+    if(eax!=0xffffffffu) {
+        eax&=0xffffu;
+        edx=eax+eax*2u;
+        eax=x.d(edi+0x44u);
+        ecx=x.d(eax+edx*8u+0xcu);
+        eax=eax+edx*8u;
+        if(ecx==ebx)x.and8(0x19012au,eax+4u,0xdfu);
+    }
+    eax=x.d(esp+0xcu);
+    --eax;
+    if(eax==0u)x.or8(0x190141u,esi+4u,0x4u);
+    else if(--eax==0u)x.or8(0x190138u,esi+4u,0x8u);
+    edi=x.pop();esi=x.pop();x.ret(4);
+}
+// 1901C0: every object or scripted row whose looping sound is music stops
+// with the music fade (1900D0 kind 1). ret.
+void r_1901c0(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&ebx=x.ebx,&esi=x.esi,&edi=x.edi,&ebp=x.ebp;
+    x.push(0x1901c0u,ebp);
+    ebp=x.d(loop_pool);
+    x.push(0x1901c7u,edi);
+    edx=0u;
+    ecx=ebp;
+    x.call(0x1901ccu,0x16ea60u);
+    ecx=0xffffffffu;
+    if(eax!=0xffffffffu) {
+        ecx=x.d(ebp+0x24u);edx=x.d(ebp+0x44u);
+        ecx=sx16(x.w16(ecx*eax+edx));
+        ecx=(ecx<<16)|eax;
+    }
+    edi=ecx;
+    if(edi!=0xffffffffu) {
+        x.push(0x1901f6u,ebx);
+        x.push(0x1901f7u,esi);
+        do {
+            ecx=x.d(ebp+0x44u);
+            esi=edi&0xffffu;
+            eax=esi+esi*2u;
+            ecx=ecx+eax*8u;
+            lo8(eax,x.b(ecx+3u));
+            if((eax&0xffu)==0u || (eax&0xffu)==4u) {
+                ebx=x.d(ecx+0xcu);
+                ecx=ebx;
+                x.call(0x190221u,0x190150u);
+                if(eax&0xffu) {
+                    x.push(0x19022au,1u);
+                    x.call(0x19022cu,0x1900d0u);
+                }
+            }
+            eax=edi==0xffffffffu?0u:esi+1u;
+            esi=0xffffffffu;
+            if(!less(eax,0u)) {
+                edi=x.d(ebp+0x38u);
+                if(less(eax,edi)) {
+                    edx=x.d(ebp+0x48u);
+                    do {
+                        ecx=eax&0x1fu;ebx=1u<<ecx;
+                        ecx=sar(eax,5);
+                        if(x.d(edx+ecx*4u)&ebx){esi=eax;break;}
+                        ++eax;
+                    } while(less(eax,edi));
+                }
+            }
+            eax=0xffffffffu;
+            if(esi!=0xffffffffu) {
+                edx=x.d(ebp+0x24u)*esi;
+                eax=sx16(x.w16(edx+x.d(ebp+0x44u)));
+                eax=(eax<<16)|esi;
+            }
+            edi=eax;
+        } while(eax!=0xffffffffu);
+        esi=x.pop();ebx=x.pop();
+    }
+    edi=x.pop();ebp=x.pop();x.ret();
+}
+// 18D3F0: EAX = looping sound tag, XMM0 its scale. Allocates a scripted
+// (type 4) row with no object; a definition with a duration (+4 seconds)
+// ends at that many ticks from now, otherwise never (-1). EAX = row.
+void r_18d3f0(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&esi=x.esi,&edi=x.edi,&esp=x.esp;
+    esp-=8u;
+    x.push(0x18d3f3u,edi);
+    edi=eax;
+    eax=0xffffffffu;
+    if(edi!=0xffffffffu) {
+        edx=x.d(loop_pool);
+        x.call(0x18d408u,0x16e6a0u);
+        if(eax!=0xffffffffu) {
+            // 16E6A0 never writes EDX; reload the same pool pointer.
+            edx=x.d(x.d(loop_pool)+0x44u);
+            ecx=edi&0xffffu;ecx<<=4;
+            x.push(0x18d424u,esi);
+            esi=x.d(tag_instances);
+            esi=x.d(ecx+esi+8u);
+            ecx=eax&0xffffu;
+            ecx=ecx+ecx*2u;
+            ecx=edx+ecx*8u;
+            x.st8(0x18d43du,ecx+3u,4u);
+            x.st8(0x18d441u,ecx+2u,3u);
+            x.st16(0x18d445u,ecx+4u,0u);
+            x.or8(0x18d44bu,ecx+5u,1u);
+            x.st(0x18d44fu,ecx+8u,a.xmm[0][0]);
+            x.st(0x18d454u,ecx+0xcu,edi);
+            x.st16(0x18d457u,ecx+6u,0xffffu);
+            x.or8(0x18d45du,ecx+4u,1u);
+            const auto duration=x.ld(esi+4u);
+            x.x(0,duration);
+            if(comiss(duration,x.ld(0x46a0e8u)).above()) {
+                edx=x.d(game_time);
+                edi=x.d(edx+8u);
+                edx=sx16(x.w16(edx+2u));
+                const auto product=_mm_mul_ss(_mm_cvtsi32_ss(_mm_setzero_ps(),std::int32_t(edx)),duration);
+                x.x(0,product);
+                x.st(0x18d485u,esp+8u,lane0(product));
+                // FLD/FISTP rounds under the caller's x87 control word.
+                const auto ticks=std::bit_cast<std::uint32_t>(std::int32_t(std::nearbyint(std::bit_cast<float>(lane0(product)))));
+                x.st(0x18d48fu,esp+0xcu,ticks);
+                edx=x.d(esp+0xcu);
+                edx+=edi;
+                esi=x.pop();
+                x.st(0x18d49au,ecx+0x10u,edx);
+                edi=x.pop();esp+=8u;x.ret();return;
+            }
+            x.st(0x18d4a2u,ecx+0x10u,0xffffffffu);
+            esi=x.pop();
+        }
+    }
+    edi=x.pop();esp+=8u;x.ret();
+}
+// 190080: EAX = a new row, EDI its looping sound tag. The tag's previous
+// current row loses bit 0x20; the new row gains it. ret.
+void r_190080(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&esi=x.esi,&edi=x.edi;
+    x.push(0x190080u,esi);
+    x.push(0x190081u,edi);                     // also 18FFB0's argument
+    esi=eax;
+    x.call(0x190084u,0x18ffb0u);
+    ecx=x.d(loop_pool);
+    if(eax!=0xffffffffu) {
+        edx=x.d(ecx+0x44u);
+        eax&=0xffffu;eax=eax+eax*2u;eax=edx+eax*8u;
+        if(x.d(eax+0xcu)==edi)x.and8(0x1900a7u,eax+4u,0xdfu);
+    }
+    if(esi!=0xffffffffu) {
+        ecx=x.d(ecx+0x44u);
+        esi&=0xffffu;
+        eax=esi+esi*2u;eax=ecx+eax*8u;
+        if(x.d(eax+0xcu)==edi)x.or8(0x1900c6u,eax+4u,0x20u);
+    }
+    esi=x.pop();x.ret();
+}
+// 18D2C0 sound_looping_stop: EDI = looping sound tag. Its current row
+// stops (clears 0x20, sets 2); the row the tag now resolves to loses 0x20.
+void r_18d2c0(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&esi=x.esi,&edi=x.edi;
+    if(edi==0xffffffffu){x.ret();return;}
+    x.push(0x18d2c5u,edi);
+    x.call(0x18d2c6u,0x18ffb0u);
+    if(eax==0xffffffffu){x.ret();return;}
+    eax&=0xffffu;
+    x.push(0x18d2d5u,esi);
+    esi=x.d(loop_pool);
+    ecx=x.d(esi+0x44u);
+    eax=eax+eax*2u;eax<<=3;
+    x.and8(0x18d2e5u,ecx+eax+4u,0xdfu);
+    ecx=x.d(esi+0x44u);
+    x.or8(0x18d2efu,eax+ecx+4u,0x2u);
+    eax=eax+ecx+4u;
+    x.push(0x18d2f8u,edi);
+    x.call(0x18d2f9u,0x18ffb0u);
+    if(eax!=0xffffffffu) {
+        eax&=0xffffu;
+        edx=eax+eax*2u;
+        eax=x.d(esi+0x44u);
+        ecx=x.d(eax+edx*8u+0xcu);
+        eax=eax+edx*8u;
+        if(ecx==edi)x.and8(0x18d319u,eax+4u,0xdfu);
+    }
+    esi=x.pop();x.ret();
+}
+// 18D220 sound_looping_start(tag, object, scale): stops the tag's current
+// row, stops all music for a definition flagged 4, then starts a scripted
+// row (music, which ignores the object) or an object row, marks it current
+// and flags music started during a cinematic (0x40). ret 12.
+void r_18d220(LoopContext &c,Abi &a) {
+    Cpu x(c,a);
+    auto &eax=x.eax,&ecx=x.ecx,&edx=x.edx,&ebx=x.ebx,&esi=x.esi,&edi=x.edi,&ebp=x.ebp,&esp=x.esp;
+    x.push(0x18d220u,ebp);
+    ebp=x.d(esp+8u);
+    if(ebp!=0xffffffffu) {
+        ecx=x.d(tag_instances);
+        x.push(0x18d234u,esi);
+        eax=ebp&0xffffu;
+        x.push(0x18d23cu,edi);
+        eax<<=4;
+        esi=x.d(eax+ecx+8u);
+        edi=ebp;
+        x.call(0x18d246u,0x18d2c0u);
+        if(x.b(esi)&4u)x.call(0x18d250u,0x1901c0u);
+        x.push(0x18d255u,ebx);
+        ecx=ebp;
+        x.call(0x18d258u,0x190150u);
+        x.x(0,x.ld(esp+0x1cu));
+        lo8(ebx,eax);
+        eax=ebp;
+        if(ebx&0xffu)x.call(0x18d26bu,0x18d3f0u);
+        else {
+            edi=x.d(esp+0x18u);
+            x.call(0x18d276u,0x18d390u);
+        }
+        esi=eax;
+        if(esi!=0xffffffffu) {
+            edi=ebp;
+            x.call(0x18d284u,0x190080u);
+            if(ebx&0xffu) {
+                eax=x.d(ducking_override);
+                if(eax!=0u) {
+                    lo8(ecx,x.b(eax+5u));
+                    if(ecx&0xffu) {
+                        eax=x.d(loop_pool);
+                        ecx=x.d(eax+0x44u);
+                        esi&=0xffffu;
+                        edx=esi+esi*2u;
+                        x.or8(0x18d2aeu,ecx+edx*8u+4u,0x40u);
+                        eax=ecx+edx*8u+4u;
+                    }
+                }
+            }
+        }
+        ebx=x.pop();edi=x.pop();esi=x.pop();
+    }
+    ebp=x.pop();x.ret(12);
+}
+
 } // namespace
 
 std::span<const LoopRoutineEntry> object_loop_frame_routines() {
@@ -1062,6 +1365,13 @@ std::span<const LoopRoutineEntry> object_loop_frame_routines() {
         {0x129dd0u,r_129dd0},
         {0x18d390u,r_18d390},
         {0x18d3d0u,r_18d3d0},
+        {0x18d220u,r_18d220},
+        {0x18d2c0u,r_18d2c0},
+        {0x18d3f0u,r_18d3f0},
+        {0x190080u,r_190080},
+        {0x1900d0u,r_1900d0},
+        {0x190150u,r_190150},
+        {0x1901c0u,r_1901c0},
     };
     return table;
 }

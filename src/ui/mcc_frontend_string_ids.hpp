@@ -23,10 +23,7 @@ inline bool mcc_frontend_content(const FrontendContent &content) {
 
 // Call only for compiled Xbox identifier constants. Authored MCC StringIDs
 // retain their own namespace and continue through FrontendContent::localized.
-inline std::optional<std::uint32_t> frontend_compiled_string_id(
-    const FrontendContent &content, std::uint32_t original) {
-  if (!mcc_frontend_content(content))
-    return original;
+inline constexpr std::optional<std::uint32_t> mcc_compiled_frontend_id(std::uint32_t original) {
   const auto index = StringId{original}.index();
   const auto found = std::lower_bound(std::begin(mcc_frontend_string_identifiers),
       std::end(mcc_frontend_string_identifiers), index,
@@ -34,6 +31,20 @@ inline std::optional<std::uint32_t> frontend_compiled_string_id(
   if (found == std::end(mcc_frontend_string_identifiers) || found->original_index != index)
     return {};
   return found->mcc_id;
+}
+
+inline std::optional<std::uint32_t> frontend_compiled_string_id(
+    const FrontendContent &content, std::uint32_t original) {
+  if (!mcc_frontend_content(content))
+    return original;
+  return mcc_compiled_frontend_id(original);
+}
+
+template<std::uint32_t Original>
+inline std::uint32_t frontend_model_selector(const Cache &cache) {
+  constexpr auto mapped = mcc_compiled_frontend_id(Original);
+  static_assert(mapped.has_value(), "Menu model selector has no authored MCC equivalent");
+  return cache.is_mcc() ? *mapped : Original;
 }
 
 inline std::string frontend_compiled_localized(const FrontendContent &content,

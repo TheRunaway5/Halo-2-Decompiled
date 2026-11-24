@@ -10,11 +10,17 @@ layout(set=0,binding=4,std140) uniform TraceSurfaceSource {
     layout(offset=0) uvec4 program[15];
     layout(offset=240) vec4 ambientBumpBase;
     layout(offset=256) vec4 ambientBumpDetail;
+    // Material transforms[2] and flags (x: static lightmap pass, w: native
+    // vertex kernel); forward diffuse colour (the texture pass's v0).
+    layout(offset=272) vec4 bumpTransform;
+    layout(offset=288) uvec4 sourceFlags;
     layout(offset=304) vec4 forwardTransforms[8];
+    layout(offset=432) vec4 sourceDiffuseColor;
     // Dedicated PT descriptor copies borrow the native specular constant
     // lane. Native/sky/environment descriptors retain their source values.
     layout(offset=448) vec4 primaryAmbient;
 } traceSurfaceSource;
+#ifndef H2_PATH_TRACING_COMPUTE
 vec3 tracePrimarySourceAmbient(TraceMaterial material,vec2 rawUV) {
     if((material.texture.w&4096u)==0u || traceSurfaceSource.primaryAmbient.w<=0.0)return vec3(0);
     vec2 base=rawUV*traceSurfaceSource.ambientBumpBase.xy+traceSurfaceSource.ambientBumpBase.zw;
@@ -22,6 +28,7 @@ vec3 tracePrimarySourceAmbient(TraceMaterial material,vec2 rawUV) {
     float bumpZ=max(2.0*texture(traceSurfaceTexture2,uv).b-1.0,0.0);
     return max(traceSurfaceSource.primaryAmbient.rgb,vec3(0))*bumpZ;
 }
+#endif
 const uint traceSurfaceFlag=64u,traceSurfaceMagic=0x53525448u,traceSurfaceWords=52u;
 bool traceSurfaceBumpCoverage(uint family) {return family==4u || family==5u;}
 vec4 traceSurfaceColor(uint argb) {
@@ -65,6 +72,7 @@ vec4 traceSurfaceEvaluate(uint family,vec4 first,vec4 second,vec4 third,vec4 fou
 bool traceSurfaceKill(uint record,uint stage,float alpha) {
     return (tracePixels[record+12u+stage*10u+9u]&4u)!=0u && alpha==0.0;
 }
+#ifndef H2_PATH_TRACING_COMPUTE
 bool tracePrimarySurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor) {
     if((material.texture.w&traceSurfaceFlag)==0u) {
         sourceColor=texture(traceSurfaceTexture0,rawUV*material.transform.xy+material.transform.zw);return true;
@@ -108,6 +116,7 @@ bool tracePrimarySurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor)
         traceSurfaceColor(traceSurfaceSource.program[10].w),traceSurfaceColor(traceSurfaceSource.program[11].x));
     return true;
 }
+#endif
 int traceSurfaceAddress(int value,int extent,uint mode) {
     if(mode==3u)return clamp(value,0,extent-1);
     if(mode==4u)return value<0 || value>=extent?-1:value;
@@ -188,6 +197,7 @@ float traceSurfaceOutputAlpha(uint family,float first,float second,float third,f
     float opaque=family==3u?color1:color0,transparent=family==3u?color0:color1;
     return (traceSurfaceBumpCoverage(family)?third:first)>=.5?opaque:transparent;
 }
+#ifndef H2_PATH_TRACING_COMPUTE
 bool tracePrimaryCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
     if((material.texture.w&traceSurfaceFlag)==0u) {
         alpha=texture(traceSurfaceTexture0,rawUV*material.transform.xy+material.transform.zw).a;return true;
@@ -218,6 +228,7 @@ bool tracePrimaryCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
     }
     alpha=traceSurfaceOutputAlpha(family,first,second,third,color0,color1);return true;
 }
+#endif
 bool traceAtlasCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
     if((material.texture.w&traceSurfaceFlag)==0u) {
         vec2 uv=rawUV*material.transform.xy+material.transform.zw;

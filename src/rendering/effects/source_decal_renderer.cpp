@@ -1,10 +1,13 @@
 #include "halo2/source_decal_renderer.hpp"
 #include "halo2/sampler.hpp"
 #include "halo2/native_fragment_kernel.hpp"
+#include "frame_upload_resources.hpp"
 #include <cstring>
 #include <fstream>
 #include <map>
 #include <tuple>
+#include <cstdlib>
+#include <optional>
 namespace halo2 {
 namespace {
 void check(VkResult r){if(r!=VK_SUCCESS)throw FormatError("cached decal Vulkan failure: "+std::to_string(r));}
@@ -35,7 +38,21 @@ struct SourceDecalRenderer::Impl {
     struct Draw{VkDescriptorSet set{};VkPipeline pipeline{};std::uint32_t first{},count{},layer{};};
     using PipelineKey=std::tuple<unsigned,std::string>;
     std::map<const Texture*,Image> images;std::map<PipelineKey,VkPipeline> pipelines;
-    Buffer vertices,uniforms;VkDescriptorPool descriptors{};std::vector<Draw> draws;
+    // The kernel path is a pure function of the program words; remember each
+    // (layer, words) pipeline instead of rescanning the kernel catalogue.
+    std::map<std::pair<unsigned,std::array<std::uint32_t,60>>,VkPipeline> pipelines_by_words;
+    // Per-frame upload buffers and descriptor sets are kept across frames
+    // (frame_upload_resources.hpp). HALO2_REFERENCE_DECAL_FRAME_RESOURCES=1
+    // creates exact-size buffers and a new pool every frame, as before.
+    std::optional<frame_upload::Stream> vertex_stream,uniform_stream;
+    std::optional<frame_upload::DescriptorSets> frame_sets;
+    std::vector<Draw> draws;
+    std::vector<std::byte> frame_constants;std::vector<Vertex> frame_geometry;
+    bool frame_streams_written{}; // this frame's geometry/uniform streams hold data
+    static bool reference_frame_resources() {
+        static const bool value=[]{const auto *p=std::getenv("HALO2_REFERENCE_DECAL_FRAME_RESOURCES");return p && *p;}();
+        return value;
+    }
     Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path&directory):physical(p),device(d),queue(q),pass(rp),shader_directory(directory){
         try{
         vkGetPhysicalDeviceProperties(physical,&properties);
@@ -133,22 +150,34 @@ struct SourceDecalRenderer::Impl {
         const VkDynamicState dynamic[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};VkPipelineDynamicStateCreateInfo di{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};di.dynamicStateCount=2;di.pDynamicStates=dynamic;
         VkGraphicsPipelineCreateInfo pi{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};pi.stageCount=3;pi.pStages=stages;pi.pVertexInputState=&vi;pi.pInputAssemblyState=&ia;pi.pViewportState=&vs;pi.pRasterizationState=&rs;pi.pMultisampleState=&ms;pi.pDepthStencilState=&ds;pi.pColorBlendState=&bs;pi.pDynamicState=&di;pi.layout=layout;pi.renderPass=pass;VkPipeline result{};check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&result));pipelines.emplace(key,result);return result;
     }
-    void clear(){free_buffer(vertices);free_buffer(uniforms);vertices={};uniforms={};draws.clear();if(descriptors)vkDestroyDescriptorPool(device,descriptors,nullptr);descriptors=VK_NULL_HANDLE;}
+    VkPipeline pipeline_for(unsigned layer,const std::array<std::uint32_t,60> &words) {
+        if(reference_frame_resources())return pipeline(layer,words);
+        const auto key=std::pair{layer,words};
+        if(const auto at=pipelines_by_words.find(key);at!=pipelines_by_words.end())return at->second;
+        const auto result=pipeline(layer,words);pipelines_by_words.emplace(key,result);return result;
+    }
+    void clear(){draws.clear();frame_streams_written=false;}
     void prepare(std::span<const SourceDecalDraw> source){
         clear();if(source.empty())return;
         const auto alignment=std::max<VkDeviceSize>(1,properties.limits.minUniformBufferOffsetAlignment);const auto stride=(sizeof(Uniform)+alignment-1)/alignment*alignment;
-        std::vector<std::byte> constants(stride*source.size());std::vector<Vertex> geometry;draws.resize(source.size());
-        const std::array<VkDescriptorPoolSize,2> sizes{{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,std::uint32_t(source.size())},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,std::uint32_t(source.size())}}};VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};pool.maxSets=source.size();pool.poolSizeCount=2;pool.pPoolSizes=sizes.data();check(vkCreateDescriptorPool(device,&pool,nullptr,&descriptors));
-        std::vector<VkDescriptorSetLayout> layouts(source.size(),set_layout);std::vector<VkDescriptorSet> sets(source.size());VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};ai.descriptorPool=descriptors;ai.descriptorSetCount=sets.size();ai.pSetLayouts=layouts.data();check(vkAllocateDescriptorSets(device,&ai,sets.data()));
-        for(std::size_t n=0;n<source.size();++n){const auto &d=source[n];if(!d.texture)throw FormatError("Source decal texture owner missing");auto [at,created]=images.try_emplace(d.texture);if(created){ShaderTextureState sampler;sampler.address_u=sampler.address_v=sampler.address_w=3;at->second=make_image(*d.texture,sampler);}auto &g=draws[n];g.set=sets[n];g.layer=d.layer;g.pipeline=pipeline(d.layer,d.state.pixel.words);g.first=geometry.size();for(const auto &quad:d.quads)for(unsigned i:{0u,1u,2u,0u,2u,3u})geometry.push_back({quad[i].position,quad[i].packed_projection});g.count=geometry.size()-g.first;Uniform uniform{d.constants,d.color,d.viewport,d.clip_range,{0,d.state.depth_bias,1,1},native_fragment_uniform_words(d.state.pixel.words)};std::memcpy(constants.data()+stride*n,&uniform,sizeof(uniform));}
+        auto &constants=frame_constants;constants.assign(stride*source.size(),std::byte{});
+        auto &geometry=frame_geometry;geometry.clear();draws.resize(source.size());
+        if(!frame_sets){frame_sets.emplace(device,set_layout);
+            vertex_stream.emplace(physical,device,VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+            uniform_stream.emplace(physical,device,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);}
+        const bool exact=reference_frame_resources();
+        const auto sets=frame_sets->frame(source.size(),exact);
+        for(std::size_t n=0;n<source.size();++n){const auto &d=source[n];if(!d.texture)throw FormatError("Source decal texture owner missing");auto [at,created]=images.try_emplace(d.texture);if(created){ShaderTextureState sampler;sampler.address_u=sampler.address_v=sampler.address_w=3;at->second=make_image(*d.texture,sampler);}auto &g=draws[n];g.set=sets[n];g.layer=d.layer;g.pipeline=pipeline_for(d.layer,d.state.pixel.words);g.first=geometry.size();for(const auto &quad:d.quads)for(unsigned i:{0u,1u,2u,0u,2u,3u})geometry.push_back({quad[i].position,quad[i].packed_projection});g.count=geometry.size()-g.first;Uniform uniform{d.constants,d.color,d.viewport,d.clip_range,{0,d.state.depth_bias,1,1},native_fragment_uniform_words(d.state.pixel.words)};std::memcpy(constants.data()+stride*n,&uniform,sizeof(uniform));}
         if(geometry.empty())return;
-        vertices=make_buffer(geometry.size()*sizeof(Vertex),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,geometry.data());uniforms=make_buffer(constants.size(),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,constants.data());
-        for(std::size_t n=0;n<source.size();++n){const auto &image=images.at(source[n].texture);VkDescriptorImageInfo ii{image.sampler,image.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};VkDescriptorBufferInfo bi{uniforms.handle,n*stride,sizeof(Uniform)};const std::array<VkWriteDescriptorSet,2> writes{{{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],0,0,1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,&ii,nullptr,nullptr},{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],2,0,1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,nullptr,&bi,nullptr}}};vkUpdateDescriptorSets(device,writes.size(),writes.data(),0,nullptr);}
+        vertex_stream->write(std::as_bytes(std::span(geometry)),exact);
+        uniform_stream->write(constants,exact);
+        frame_streams_written=true;
+        for(std::size_t n=0;n<source.size();++n){const auto &image=images.at(source[n].texture);VkDescriptorImageInfo ii{image.sampler,image.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};VkDescriptorBufferInfo bi{uniform_stream->handle(),n*stride,sizeof(Uniform)};const std::array<VkWriteDescriptorSet,2> writes{{{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],0,0,1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,&ii,nullptr,nullptr},{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,nullptr,sets[n],2,0,1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,nullptr,&bi,nullptr}}};vkUpdateDescriptorSets(device,writes.size(),writes.data(),0,nullptr);}
     }
     void record(VkCommandBuffer command,VkViewport viewport,VkRect2D scissor,std::size_t first,std::size_t count,std::uint32_t layers)const{
-        if(first>draws.size()||count>draws.size()-first)throw FormatError("Cached decal draw range exceeds prepared frame");if(!count||!vertices.handle)return;const VkDeviceSize zero=0;vkCmdSetViewport(command,0,1,&viewport);vkCmdSetScissor(command,0,1,&scissor);vkCmdBindVertexBuffers(command,0,1,&vertices.handle,&zero);for(std::size_t n=first;n<first+count;++n){const auto &d=draws[n];if(!d.count || !(layers&(1u<<d.layer)))continue;vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,d.pipeline);vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&d.set,0,nullptr);vkCmdDraw(command,d.count,1,d.first,0);}
+        if(first>draws.size()||count>draws.size()-first)throw FormatError("Cached decal draw range exceeds prepared frame");if(!count||!frame_streams_written)return;const auto vertices=vertex_stream->handle();const VkDeviceSize zero=0;vkCmdSetViewport(command,0,1,&viewport);vkCmdSetScissor(command,0,1,&scissor);vkCmdBindVertexBuffers(command,0,1,&vertices,&zero);for(std::size_t n=first;n<first+count;++n){const auto &d=draws[n];if(!d.count || !(layers&(1u<<d.layer)))continue;vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,d.pipeline);vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&d.set,0,nullptr);vkCmdDraw(command,d.count,1,d.first,0);}
     }
-    void release(){clear();for(auto [p,i]:images){if(i.sampler)vkDestroySampler(device,i.sampler,nullptr);if(i.view)vkDestroyImageView(device,i.view,nullptr);if(i.handle)vkDestroyImage(device,i.handle,nullptr);if(i.memory)vkFreeMemory(device,i.memory,nullptr);}for(auto [n,p]:pipelines)if(p)vkDestroyPipeline(device,p,nullptr);for(auto s:shaders)if(s)vkDestroyShaderModule(device,s,nullptr);if(layout)vkDestroyPipelineLayout(device,layout,nullptr);if(set_layout)vkDestroyDescriptorSetLayout(device,set_layout,nullptr);if(uploads)vkDestroyCommandPool(device,uploads,nullptr);}
+    void release(){draws.clear();vertex_stream.reset();uniform_stream.reset();frame_sets.reset();for(auto [p,i]:images){if(i.sampler)vkDestroySampler(device,i.sampler,nullptr);if(i.view)vkDestroyImageView(device,i.view,nullptr);if(i.handle)vkDestroyImage(device,i.handle,nullptr);if(i.memory)vkFreeMemory(device,i.memory,nullptr);}for(auto [n,p]:pipelines)if(p)vkDestroyPipeline(device,p,nullptr);for(auto s:shaders)if(s)vkDestroyShaderModule(device,s,nullptr);if(layout)vkDestroyPipelineLayout(device,layout,nullptr);if(set_layout)vkDestroyDescriptorSetLayout(device,set_layout,nullptr);if(uploads)vkDestroyCommandPool(device,uploads,nullptr);}
     ~Impl(){release();}
 };
 SourceDecalRenderer::SourceDecalRenderer(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned f,VkRenderPass r,const std::filesystem::path&s):impl_(std::make_unique<Impl>(p,d,q,f,r,s)){}

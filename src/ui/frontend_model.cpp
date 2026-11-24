@@ -1,5 +1,6 @@
 #include "halo2/frontend_model.hpp"
 #include "halo2/frontend_emblem.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -82,8 +83,9 @@ std::optional<AnimationClip> Cache::load_frontend_model_animation(std::uint32_t 
     }
     return {};
   };
-  constexpr std::uint32_t any=0x030000d9u,idle=0x0400000cu,
-      combat=0x06000086u,ui=0x020001b3u;
+  constexpr std::uint32_t any=0x030000d9u,idle=0x0400000cu,combat=0x06000086u;
+  const auto ui=detail::frontend_model_selector<0x020001b3u>(*this);
+  const auto dual=detail::frontend_model_selector<0x0400054bu>(*this);
   std::uint32_t weapon_class=0x07000083u,weapon_type=any;
   if(const auto weapon=load_frontend_model_weapon(object)) {
     const auto identifiers=load_weapon_animation_identifiers(*weapon);
@@ -91,7 +93,7 @@ std::optional<AnimationClip> Cache::load_frontend_model_animation(std::uint32_t 
   }
   if(const auto alias=find(metadata_block(root+0x54, 8),8,weapon_type)) {
     const auto replacement=data.u32(*alias+4);
-    if(replacement!=null_datum && replacement!=any && weapon_class!=0x0400054bu)
+    if(replacement!=null_datum && replacement!=any && weapon_class!=dual)
       weapon_class=replacement;
   }
   const auto select=[&](std::uint32_t mode)->std::optional<AnimationClip> {

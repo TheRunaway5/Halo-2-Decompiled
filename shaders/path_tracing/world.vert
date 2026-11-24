@@ -8,6 +8,11 @@ layout(location=5) in uint sourceStippleLevel;
 layout(location=6) in uint lightmapIndex;
 layout(location=7) in int bspCluster;
 layout(location=8) in vec2 sourceLightmapUV;
+// Authored tangent basis and the bake's dominant incident light vector
+// (WORLD space; its length is the light's directionality).
+layout(location=9) in vec3 tangent;
+layout(location=10) in vec3 binormal;
+layout(location=11) in vec3 incident;
 // Reuse the completed per-view/per-owner material bank. These explicit offsets
 // match WorldMaterialUniform; no source program or lighting state is replaced.
 layout(set=0,binding=4,std140) uniform SourceCamera {
@@ -28,10 +33,14 @@ layout(location=8) flat out uint sourceDepthRaw;
 layout(location=9) out vec2 traceLightmapUV;
 layout(location=10) flat out uint traceLightmapIndex;
 layout(location=11) out vec3 traceVertexRadiance;
+layout(location=15) out vec3 traceTangent;
+layout(location=16) out vec3 traceBinormal;
+layout(location=17) out vec3 traceIncident;
 void main() {
     gl_Position=camera.viewProjection*vec4(position,1);
     traceWorld=position;traceTexcoord=texcoord;traceWorldNormal=normal;
     traceLightmapUV=sourceLightmapUV;traceLightmapIndex=lightmapIndex;traceVertexRadiance=color;
+    traceTangent=tangent;traceBinormal=binormal;traceIncident=incident;
     uint drawBinding=floatBitsToUint(camera.viewport.w);
     traceMaterialIndex=(drawBinding&0x80000000u)!=0u?drawBinding&0x7fffffffu:material;
     stippleLevel=sourceStippleLevel;

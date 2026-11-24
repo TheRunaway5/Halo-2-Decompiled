@@ -1,3 +1,6 @@
+#include "halo2/source_effect_compiled_symbols_tu15.hpp"
+#include "halo2/native_object_factory_attachments_tu15.hpp"
+#include "halo2/native_tu15_object_motion.hpp"
 #include "halo2/source_effect_frame_tu15.hpp"
 #include <cstdlib>
 #include <iostream>
@@ -827,6 +830,12 @@ Transform MultiplayerObjectRuntime::object_transform(std::uint32_t object)const 
 }
 Vec3 MultiplayerObjectRuntime::object_linear_velocity(std::uint32_t object) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Object velocity presentation requires its TU1.5 physics owner");
+  // BC200 only loads: the root's body motion (+40), or object +88 when it
+  // has no rigid body. native_tu15_object_velocities is that routine.
+  // HALO2_REFERENCE_OBJECT_VELOCITY=1 enters the translated BC200 instead.
+  static const bool reference=[]{const auto* e=std::getenv("HALO2_REFERENCE_OBJECT_VELOCITY");return e && *e;}();
+  static const bool verify=[]{const auto* e=std::getenv("HALO2_VERIFY_OBJECT_VELOCITY");return e && *e;}();
+  if(!reference && !verify)return native_tu15_object_velocities(memory(),object).linear;
   constexpr std::uint32_t output=0x60048000u;
   // BC200: EAX is the object, ECX the linear output, and the sole stack
   // argument is the optional angular output (RET 4). Preserve that register
@@ -836,7 +845,13 @@ Vec3 MultiplayerObjectRuntime::object_linear_velocity(std::uint32_t object) {Con
   abi.gp[4]=stack;abi.fs_base=tls;abi.eflags=2;
   abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
   tu15_->run_actual(0xbc200u,abi);
-  Vec3 result;memory().read(output,std::as_writable_bytes(std::span(&result,1)));return result;
+  Vec3 result;memory().read(output,std::as_writable_bytes(std::span(&result,1)));
+  if(verify) {
+    const auto native=native_tu15_object_velocities(memory(),object).linear;
+    if(std::memcmp(&native,&result,sizeof result))
+      throw FormatError("Native object velocity differs from BC200: object="+std::to_string(object));
+  }
+  return result;
 }
 std::optional<SourceVehicleAudioListenerInputTu15> MultiplayerObjectRuntime::vehicle_audio_listener_inputs(
     std::uint32_t unit,unsigned camera_mode,const SourceObjectAudioViewTu15& observer) {
@@ -1623,10 +1638,50 @@ float MultiplayerObjectRuntime::object_shader_input(std::uint32_t object,std::ui
   Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Object shader inputs require the actual native TU1.5 world");
   (void)tu15_->object_body(object);
+  // BCB70 (object, name, value) stores the object function's value into the
+  // value slot. The default runs native object_function_value, the kernel
+  // already bound at BCB70's light callers (C0700's C0756) and proven there
+  // against the translated routine, on the same caller frame and slot.
+  // HALO2_REFERENCE_OBJECT_SHADER_INPUT=1 enters the translated BCB70;
+  // HALO2_VERIFY_OBJECT_SHADER_INPUT=1 runs both and rejects any difference
+  // in the value slot or the returned active byte. A source-execution
+  // transcript that tracks calls keeps the translated call it records.
+  static const bool reference=[]{const auto* e=std::getenv("HALO2_REFERENCE_OBJECT_SHADER_INPUT");return e && *e;}();
+  static const bool verify=[]{const auto* e=std::getenv("HALO2_VERIFY_OBJECT_SHADER_INPUT");return e && *e;}();
+  auto& bank=tu15_->memory();
   const auto output=tu15_->prepare_source_call().gp[4]+0x100u;
-  auto call=tu15_->prepare_source_call(std::array{object,function,output});
-  tu15_->run_actual(0xbcb70u,call);
-  return Bytes(tu15_->memory().view(output,4)).f32(0);
+  const auto translated=[&] {
+    auto call=tu15_->prepare_source_call(std::array{object,function,output});
+    tu15_->run_actual(0xbcb70u,call);
+    return std::pair{std::uint8_t(call.gp[0]&0xffu),Bytes(bank.view(output,4)).u32(0)};
+  };
+  const auto* transcript=source_execution_inputs(bank);
+  if(reference || (transcript && transcript->tracks_calls()))return std::bit_cast<float>(translated().second);
+  const auto native=[&] {
+    // The caller frame the translated call writes: return address, object,
+    // name and the value slot address.
+    const auto call=tu15_->prepare_source_call(std::array{object,function,output});
+    const auto fp=call.floating_point.value_or(SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80});
+    const native_object_factory_tu15::ObjectFunctionNamespace function_names(
+        source_object_function_compiled_symbol_tu15(bank,0xbcbd9u,0x30005a6u)!=0x30005a6u);
+    native_object_factory_tu15::OriginalOutput value{output};
+    const auto active=native_object_factory_tu15::object_function_value(bank,object,function,value,
+        fp.x87_control_word,fp.mxcsr);
+    return std::pair{active,Bytes(bank.view(output,4)).u32(0)};
+  };
+  if(verify) {
+    const auto expected=translated();
+    const auto actual=native();
+    if(actual!=expected)
+      throw FormatError("Native object shader input differs from BCB70: object="+std::to_string(object)+
+          " function="+std::to_string(function)+" value="+std::to_string(actual.second)+
+          " expected="+std::to_string(expected.second)+" active="+std::to_string(actual.first)+
+          " expected_active="+std::to_string(expected.first));
+    static std::uint64_t verified=0;
+    if(++verified==1 || verified%65536==0)std::cerr<<"Native object shader input: verified="<<verified<<'\n';
+    return std::bit_cast<float>(actual.second);
+  }
+  return std::bit_cast<float>(native().second);
 }
 void MultiplayerObjectRuntime::render_model_view(const std::function<void(PhysicsLiveWorldTu15&)>& draw) {
   Continuation::PublicCall active(*continuation_);

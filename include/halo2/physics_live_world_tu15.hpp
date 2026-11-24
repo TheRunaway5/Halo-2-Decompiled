@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/source_sound_reverb_tu15.hpp"
 #include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/native_tu15_unit_equipment_profile.hpp"
 #include "halo2/source_hud_messages.hpp"
@@ -57,6 +58,7 @@ class Cache;
 struct TagHandle;
 struct SourceTextureCameraScenePrefixTu15;
 class SdlSoundPlatform;
+struct SourceWeatherState;
 class MccSoundVariationProvider;
 class MccScriptSoundWorldAccess;
 class RendererPaletteFactory;
@@ -123,6 +125,9 @@ struct SourceWeaponZoomSoundEventTu15 {
 };
 using SourceWeaponZoomSoundObserverTu15=std::function<void(const SourceWeaponZoomSoundEventTu15 &)>;
 using SourceLoopSoundRequestObserverTu15=std::function<void(const SourceLoopSoundRequestTu15 &)>;
+// Whether the loop lane playing a request has retired it as 21A250 does: a
+// one-shot that played its last packet and has no voice left.
+using SourceLoopSoundFinishedTu15=std::function<bool(const SourceLoopSoundRequestTu15 &)>;
 struct SourceTeleporterActivationTu15 {
     std::uint32_t player{},sound=0xffffffffu;
 };
@@ -456,10 +461,34 @@ public:
     void observe_weapon_zoom_resets(SourceWeaponZoomResetObserverTu15);
     void observe_weapon_zoom_sounds(SourceWeaponZoomSoundObserverTu15);
     void observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15);
+    // The World's own 220C60 runs without sound hardware, so 21A250 never
+    // reports a finished one-shot and 18D5A0 never frees its pool row. With
+    // this bound, 18D5A0's two request sites take the native lane's answer:
+    // a finished request returns true and its row is freed as on Xbox.
+    void answer_finished_loop_sounds(SourceLoopSoundFinishedTu15);
     // Native presentation's actual local camera inputs. Complete18EE50,
     //18F900 and190460 compute every scheduling/PVS/distance result. The
     // legacy listener bank and Xbox driver/map availability stay untouched.
     void step_native_object_audio(const SourceObjectAudioViewsTu15&,float elapsed);
+    // Native weather owner's retail36AB0/398D0 intensity state, written to
+    // its original globals (current47365C, target473660, stopped515F00,
+    // transition515F04, rate515F08). 18DC70 scales weather-flagged BSP
+    // ambience by it during the next object-audio frame.
+    void publish_native_weather(const SourceWeatherState&);
+    // Native cinematic_enable_ambience_details state, written where the
+    // original2AC400 evaluator writes it (loop globals4F9B58 +0x240).
+    // During a cinematic 18DC70 schedules BSP ambience details only when set.
+    void publish_native_ambience_details(bool enabled);
+    // The sound frame time (sound system +0x1E0), which 125B40's time update
+    // sets each sound frame and 129170 fades the two listener environments
+    // by. Publish it before step_native_object_audio.
+    void publish_native_sound_elapsed(float seconds);
+    // The listener's two sound environments as native 18E970/129170 left
+    // them, each with its snde reverb record (or the reverb of none).
+    std::array<SourceSoundListenerEnvironmentTu15,2> native_sound_environments();
+    // set_global_sound_environment's values as the World's evaluator left
+    // them in the loop-sound globals (+0x228..+0x23C).
+    SourceSoundGlobalEnvironmentTu15 native_sound_global_environment();
     // Native pre-view18D5A0/18F9B0 inputs for unparented scen/bloc/ssce
     // ordinary lsnd attachments. Actual function/marker/cluster owners run
     // on this World; host camera/PAS and playback-progress bits are unused.

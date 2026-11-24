@@ -50,6 +50,9 @@ public:
   NativeCampaignAiQueryResult ai_query(std::uint32_t reference,NativeCampaignAiQuery);
   std::size_t place_squad(Simulation &,std::size_t);
   MultiplayerState::Player hud_player(const Simulation &);
+  // The local player's processed look (yaw, pitch) as last published by the
+  // native command path, without building the rest of the HUD snapshot.
+  std::optional<Vec2> player_look();
   MultiplayerObjectRuntime &objects(){return *objects_;}
   // Read-only capture receipt from this actual World, never a replay bank.
   // The optional constructor input is delivered after session configuration,

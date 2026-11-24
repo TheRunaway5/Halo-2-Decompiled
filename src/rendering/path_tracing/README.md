@@ -11,6 +11,126 @@ The setting applies to game-world surfaces. The source main-menu backdrop and
 its model widgets retain their authored renderer, independently of the saved
 game-world graphics choice.
 
+## Frame pipeline (current)
+
+Per view and camera phase (world, then first-person foreground):
+
+1. **Acceleration structures** (`Render::record_acceleration`, frame start). With
+   `VK_KHR_acceleration_structure` + `VK_KHR_ray_query` (enabled by the renderer when
+   present; `HALO2_PATH_TRACING_SOFTWARE_RAYS=1` keeps the portable shader BVH), the
+   triangle bank is the BLAS vertex source and a ray index list maps hits back to
+   triangles. Six bottom levels: static/dynamic x opaque/alpha-tested/light-only. The
+   static (BSP) structures are rebuilt only when a static triangle moves or changes
+   opacity; dynamic objects are rebuilt every frame. Instance masks: static occluders
+   0x01, light-only emitters 0x02, dynamic occluders 0x04. No CPU BVH is built.
+2. **Visibility prepass** (`depth.frag`): source-W depth into a private D32 target.
+3. **Lighting requests** (`lighting.frag`): the visible surface at each grid cell's
+   representative pixel publishes position, normals, colour guide and material.
+   The grid is about 1.3M cells at most: 2x2 pixels up to 1440p, 3x3 at 4K.
+4. **Trace** (`trace.comp`, one thread per cell): the shared transport loop with ray
+   queries, firefly clamps, temporal accumulation (validity-weighted bilinear reuse of
+   four previous cells; diffuse/direct history up to 31 frames, reflections 12), the
+   denoiser's packed copy and calibration samples.
+5. **Denoise** (`denoise.comp`): three edge-aware a-trous passes (5x5 B3 kernel, steps
+   1/2/4) with spatial-variance luminance stopping; reflections additionally require
+   matching roughness and reflected direction. Every pass marks empty cells empty in
+   its destination bank (a stale bank cell once read as a surface).
+6. **Calibration** (`calibrate.comp`): least-squares sums for
+   `baked = ks*sun + ki*grid + c*emitters` over lightmapped cells, where `emitters` is the
+   unscaled light of the surfaces that lit the bake (two shadowed samples per calibration
+   cell) and `grid` excludes it. The host solves after the fence, smooths and uploads
+   `TraceScene.calibration` (x `ks`, y `ki`, w the lightmap-emitter scale `c/ki`;
+   `HALO2_PATH_TRACING_CALIBRATION=0` disables).
+7. **Resolve** (`world.frag`, full resolution): bilinear 2x2 upsample of the denoised
+   grid (wider same-geometry and any-surface passes for thin geometry; only an isolated
+   sliver traces its own path), the sun evaluated per pixel with its own shadow ray,
+   authored surface detail (`source_detail.glsl`: forward texture-pass combiner, detail
+   map relative to its mean, bump-mapped sun normal, baked-direction indirect relief),
+   then `albedo * (baseline + ki*grid*relief + ks*sun) + specular`.
+
+Lighting sources: traced sun (per pixel), traced sky (diffuse rays read a blurred mip
+of the sky cube), local and emissive lights, and the baked lightmap as the energy of
+bounce light at secondary hits (any lightmap or static-radiance guide counts; with a
+static/dynamic split, sun light that a dynamic object blocks at the hit is removed).
+Maps without a distant light use the baked field as the primary diffuse baseline.
+Light sources are derived from the map's own data; none are placed by hand:
+
+- **Glow layers.** Additive and premultiplied self-illuminated transparents
+  (`glow_material`: light bands, floor arrows, teleporter fields, grav lifts, plasma)
+  join the ray scene as light-only emitters that never occlude. Each emits, uniformly and
+  at four times its display value, the average colour it is drawn with: `glow.cpp`
+  evaluates the layer's own NV2A combiner program on a grid of its texels when its images
+  load (environment cube stages count as black, so window glass does not become a lamp).
+- **Self-illumination layers.** An additive `stencil_emissive` layer drawn over an opaque
+  surface (door strips, console and device lamps) makes that surface an emitter: exactly
+  (`emission.hpp` records) for the program families it describes, otherwise uniformly
+  at four times the layer's average drawn colour (`uniform_emission_flag`).
+- **Lightmap emitters.** A shader whose runtime properties give it a lightmap emissive
+  power lit the map's radiosity bake (`lightmap_emission.cpp`: colour, power and the mean
+  of its emissive map, read for every shader of the cache). Its surfaces emit
+  `3 * power * colour * map` (the Deserted pipeline's own Blender-to-bake scale) times
+  the calibrated scale above, so the traced fixtures reproduce the bake's brightness.
+  A receiver that reads its baked field already holds that light: light sampling skips
+  these emitters there (`baked_emission_flag`, bit 31 of the emitter table entry).
+
+Light sampling picks an emitter triangle in proportion to its power: the emitter table
+in `Scene::pixels` holds the triangle indices followed by their running power sum, which
+`traceSampleEmitter` searches. A primary surface that keeps its baked field (maps without a
+distant light) also samples the emitters the bake does not hold.
+
+A self-illumination layer over a path-traced surface is drawn by Path Tracing itself
+(`glow_layer.frag`, `Render::bind_glow_layer`): the retail layer tests depth EQUAL against
+its base, and its own retail vertex program computes that depth with different
+arithmetic than the path tracer's raster, so on objects it never drew. The PT pass shares
+`world.vert` and `world.frag`'s depth expression and evaluates the layer's combiner with
+its live colour constants and the control words of the path tracer's copy of its program
+(`Scene::material_layer_programs`): a layer's per-draw material bank holds only colours.
+
+Surface relief at the resolve (`source_detail.glsl`):
+
+- **Normal maps.** Static lightmap shaders bind their bump map themselves. A model's
+  primary pass does not: its lighting pass does. `find_normal_maps` takes, for each drawn
+  material, the stage-2 image of a lighting pass (`\lightmap\`) of the same shader, if it
+  averages to an outward tangent-space normal. `append_normal_map` stores its mip chain
+  (largest level at most 256 texels) in the material's atlas record (`GpuMaterial::detail.x`),
+  and `traceAtlasNormalMap` samples it in the base texture's coordinates at the level the
+  pixel footprint selects.
+- **Light direction.** Lightmapped world geometry shades its bump against the bake's
+  dominant incident direction, as Halo 2 does. Elsewhere it uses the direction the traced
+  diffuse light came from: `traceLighting` returns the luminance-weighted sum of its sample
+  directions, the history accumulates it (each frame's pull bounded by the cell's light),
+  the record stores it over the cell's own luminance (length = how directional the light
+  is, faded in over the first eight frames), and `traceFilteredIncident` averages it over
+  the 5x5 cells of the same surface.
+- **Mirror reflections.** With hardware rays, polished surfaces (`traceMirrorSharpness`)
+  reflect along their own bump-mapped direction at every pixel (`traceMirrorReflection`:
+  one ray; the hit is lit by its emission and baked field or owner ambient, a miss by the
+  sky), blended with the grid's blurred reflection by roughness.
+
+Lighting records are 20 words and histories 24: every size is a multiple of four words,
+because the denoiser and the resolve read them as 16-byte lanes.
+
+Reflections are additive, as in Halo 2: the retail environment pass adds its (alpha-masked)
+reflection on top of the whole lit surface and never darkens the surface to make room. The
+resolve therefore keeps the full diffuse term, and the transport loop gives each lobe its
+full strength over the probability of choosing it, capping that probability at one half on
+diffuse surfaces so the diffuse lobe stays reachable. Splitting energy between the lobes
+turned shiny painted metal (the Armory's door panels, at authored strength 1) into a black
+mirror of space. A pure mirror is a surface without a diffuse response.
+
+Every raster pass (visibility, lighting requests, resolve) culls each draw by its
+material's retail cull state, as the Original forward pass does, through Vulkan 1.3
+dynamic cull mode (`Render::set_draw_cull_mode`). Drawing both sides showed the back of
+one-sided exterior hulls through windows that should look out at the sky.
+
+Diagnostics: `HALO2_PATH_TRACING_TIMINGS=FILE` (per-pass GPU ms per frame),
+`HALO2_PATH_TRACING_DENOISE_PASSES=0..5`, `HALO2_PATH_TRACING_CALIBRATION_LOG=1`,
+`HALO2_PATH_TRACING_CPU_LOG=1` (host scene preparation ms).
+
+Sections below that describe fragment-shader tracing, the 5x5 resolve filter, the
+16-frame history or the CPU BVH predate this pipeline; the material, emission, colour
+guide and history-invalidation policies they describe still apply.
+
 ## Code map
 
 - `include/halo2/path_tracing/scene.hpp`: CPU/GPU layouts, material adaptation,
@@ -51,7 +171,16 @@ game-world graphics choice.
   GPU into immutable storage binding9. Resources live only while the optional
   mode is active.
 - `shaders/path_tracing/world.vert`, `world.frag`, `scene.glsl`: primary surface
-  rasterization, BVH traversal, shadow any-hit, diffuse transport and reflection.
+  rasterization, ray-query or software BVH traversal, shadow any-hit, diffuse
+  transport and reflection. `world.rt.frag`/`trace.rt.comp` are the ray-query builds.
+- `shaders/path_tracing/trace.comp`, `denoise.comp`, `calibrate.comp`: grid tracing
+  and temporal store, a-trous denoiser, lightmap calibration sums.
+- `shaders/path_tracing/source_detail.glsl`: authored detail/bump at the resolve.
+- `src/rendering/path_tracing/glow.cpp`: average drawn colour of glow and
+  self-illumination layers; mean colour of an image.
+- `src/rendering/path_tracing/lightmap_emission.cpp`: lightmap emissive power of every
+  shader (the light sources of the radiosity bake).
+- `shaders/path_tracing/glow_layer.frag`: self-illumination layers over traced surfaces.
 - `shaders/path_tracing/depth.frag`: source-W visibility prepass with the same
   primary alpha/stipple rejection, without ray traversal.
 - `shaders/path_tracing/lighting_filter.glsl`: HDR lighting records and guided

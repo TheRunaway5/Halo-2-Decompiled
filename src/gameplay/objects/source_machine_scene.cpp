@@ -66,6 +66,8 @@ struct SourceMachineScene::Impl {
         std::array<ModelWorldPoseCache,6> pose_cache;
         std::uint32_t campaign_pose_owner=0xffffffffu;
         void clear_campaign_poses() noexcept {
+            // No bank may keep a postponed copy of the released poses.
+            geometry.discard_pending_publications();
             pose_cache={};
             campaign_pose_owner=0xffffffffu;
         }
@@ -333,14 +335,14 @@ struct SourceMachineScene::Impl {
     static void refresh_lod_aliases(Machine &m) {
         std::array<const void*,12> key{};
         for(unsigned lod=0;lod<6;++lod) {
-            const auto &model=m.geometry.at(lod).model;
+            const auto &model=m.geometry.lod_model(lod);
             key[lod*2]=model.mesh.vertices.data();key[lod*2+1]=model.skin.data();
         }
         if(m.lod_alias_ready && key==m.lod_alias_key)return;
         for(unsigned lod=0;lod<6;++lod) {
             m.lod_alias[lod]=std::uint8_t(lod);
             for(unsigned earlier=0;earlier<lod;++earlier)
-                if(m.lod_alias[earlier]==earlier && skin_identical(m.geometry.at(earlier).model,m.geometry.at(lod).model)) {
+                if(m.lod_alias[earlier]==earlier && skin_identical(m.geometry.lod_model(earlier),m.geometry.lod_model(lod))) {
                     m.lod_alias[lod]=std::uint8_t(earlier);break;
                 }
         }
@@ -373,6 +375,12 @@ struct SourceMachineScene::Impl {
                 static const bool verify_publication=[]{const auto *e=std::getenv("HALO2_VERIFY_MACHINE_POSE_PUBLICATION");return e && *e;}();
                 if(!reference_lods)refresh_lod_aliases(m);
                 std::array<std::span<const Vertex>,6> posed_lods{};
+                // A bank's postponed copy may name a pose this loop replaces;
+                // if the loop does not finish, no bank keeps such a copy.
+                struct Abandon {
+                    SourceObjectGeometry &geometry;bool armed=true;
+                    ~Abandon(){if(armed)geometry.discard_pending_publications();}
+                } abandon{m.geometry};
                 for(unsigned lod=0;lod<6;++lod) {
                   const auto produce=[&](const RenderModel& resident)->SourceObjectGeometry::CachedWorldPose {
                     const unsigned alias=reference_lods?lod:m.lod_alias[lod];
@@ -392,6 +400,7 @@ struct SourceMachineScene::Impl {
                   if(reference_publication)m.geometry.pose_world_lod_view(lod,[&](const RenderModel &resident){return produce(resident).pose;});
                   else m.geometry.pose_world_lod_cached_view(lod,produce,verify_publication);
                 }
+                abandon.armed=false;
             } else m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
                 skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
         }
@@ -538,7 +547,8 @@ void SourceMachineScene::begin_campaign_frame(std::uint64_t frame) {
 std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::collect_campaign_view(
     const SceneObjects&scene,std::span<const SourceLiveModelBaseDrawTu15> draws,
     const SourceModelShaderView&shader,PhysicsLiveWorldTu15&world,
-    const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)>&inputs) {
+    const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)>&inputs,
+    const CampaignNodePresenter&present_nodes) {
     impl_->quiescent();
     if(!impl_->campaign_resources_only||!impl_->campaign_frame||!inputs||!impl_->resources_ready())
         throw FormatError("Campaign machine collection lost its completed frame/material/input owners");
@@ -552,6 +562,8 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         return value && *value;
     }();
     std::set<unsigned> consumed;
+    // Every section of one machine draws the same presented pose.
+    std::map<std::uint32_t,std::vector<Transform>> presented;
     for(const auto&draw:draws) {
         const auto owned=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),
             [&](const auto&machine){return machine.definition_datum==draw.definition;});
@@ -584,13 +596,21 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
         }
         packet->ordinals.push_back(draw.ordinal);
         if(!draw.geometry.geometry.resident)continue; // Actual449D0 no-resource return.
-        const auto nodes=world.rendered_world_nodes(draw.object);
-        if(!nodes||nodes->empty())throw FormatError("Campaign machine draw lost its completed rendered WORLD nodes");
+        auto nodes=presented.find(draw.object);
+        if(nodes==presented.end()) {
+            auto completed=world.rendered_world_nodes(draw.object);
+            if(!completed||completed->empty())throw FormatError("Campaign machine draw lost its completed rendered WORLD nodes");
+            if(present_nodes) {
+                *completed=present_nodes(draw.object,machine.geometry.lod_model(draw.lod),std::move(*completed));
+                if(completed->empty())throw FormatError("Campaign machine presenter lost its rendered WORLD nodes");
+            }
+            nodes=presented.emplace(draw.object,std::move(*completed)).first;
+        }
         const auto section=(draw.unit.words[3]>>9u)&511u;
         const SourceModelShaderCollector collector{0,draw.coverage};
         auto selected=[&] {
             if(reference_skins)
-                return machine.geometry.selected_section_world(draw.lod,section,collector,shader,*nodes);
+                return machine.geometry.selected_section_world(draw.lod,section,collector,shader,nodes->second);
             if(machine.campaign_pose_owner!=draw.object) {
                 machine.clear_campaign_poses();
                 machine.campaign_pose_owner=draw.object;
@@ -598,8 +618,8 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
             // Section selection still uses the current draw's shader and coverage.
             // Only the same model's WORLD skin can be reused, after checking the
             // newly observed nodes and the original arithmetic effects.
-            const auto& model=machine.geometry.at(draw.lod).model;
-            const auto pose=machine.pose_cache[draw.lod].update_preserving_effects(model,*nodes);
+            const auto& model=machine.geometry.lod_model(draw.lod);
+            const auto pose=machine.pose_cache[draw.lod].update_preserving_effects(model,nodes->second);
             return machine.geometry.selected_section_pose(draw.lod,section,collector,shader,pose.vertices);
         }();
         const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16u));
@@ -619,7 +639,7 @@ std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::colle
             std::move(banks),std::move(presentation.colors),std::move(presentation.input),
             selected.ordinary_lighting?std::optional{draw.lighting}:std::nullopt,
             {draw.object,draw.definition,machine.definition.render_model,draw.lod,
-                &machine.geometry.at(draw.lod).model,0,{}}});
+                &machine.geometry.lod_model(draw.lod),0,{}}});
     }
     packet->objects.reserve(packet->sections_.size());
     for(auto&section:packet->sections_) {
@@ -660,6 +680,8 @@ std::unique_ptr<SourceMachineScene> SourceMachineScene::fork()const {
     impl_->require_presentation();
     if(impl_->executor!=std::this_thread::get_id() || impl_->depth)
         throw FormatError("Machine fork requires its completed foreground owner");
+    // The fork copies each bank, never a reference to this scene's poses.
+    for(const auto &m:impl_->state.machines)m.geometry.publish_pending_publications();
     return std::unique_ptr<SourceMachineScene>(new SourceMachineScene(std::make_unique<Impl>(*impl_,Impl::Fork{})));
 }
 SourceMachineScene::~SourceMachineScene(){if(impl_)impl_->campaign_authority->alive.store(false,std::memory_order_release);}
@@ -901,7 +923,7 @@ void SourceMachineScene::append_source_models(std::vector<ModelObjectDraw>& outp
         for(const auto& section:source->sections)if(!section.vertices.empty()) {
             output.push_back({section.vertices,section.ordinary?std::optional{machine.light.lighting}:std::nullopt,section.colors,{},section.prt});
             output.back().source_model_selection=SourceModelDepthSelection{machine.handle,machine.definition_datum,
-                machine.definition.render_model,section.lod,&machine.geometry.at(section.lod).model,0,section.ordinals};
+                machine.definition.render_model,section.lod,&machine.geometry.lod_model(section.lod),0,section.ordinals};
         }
         source->submitted=true;
     }

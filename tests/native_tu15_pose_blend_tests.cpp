@@ -1,0 +1,108 @@
+// Native TU1.5 pose blend (1D5970) against the unmodified translated body of
+// the physics live support unit, extracted by
+// tools/validate_native_frame_misc_tu15.py into body.inc, plus the
+// verification reference the production binder generates (reference.inc).
+// 1CEFB0 and 1D61B0 are hash-driven stubs of their complete entry ABIs (and
+// the pushed value pointer): 1CEFB0 writes a pose vector and value, 1D61B0
+// answers a factor in XMM0 and mostly keeps ECX; each writes scratch, the
+// caller-saved registers, XMM, flags and (by policy) MXCSR are random, and by
+// policy EBX, EBP, ESI or EDI change or the stack is left unbalanced.
+// Fixtures author objects frozen or not (or none), the override and blend
+// flags, references usable or not and weights below, between, at and above
+// the bounds (NaN too), and one region removed injects a fault.
+// Modes: <cases> [census|verify]. Prints a JSON summary with branch coverage.
+#include "native_tu15_frame_misc_harness.hpp"
+#include "gameplay/units/native_tu15_pose_blend.hpp"
+using namespace frame_misc_harness;
+namespace owner=halo2::native_pose_blend_detail;
+namespace {
+constexpr std::uint32_t headers=0x10000000u,datums=0x10010000u,objects=0x10020000u,references=0x10030000u,zero_vector=0x10040000u,
+    outputs=0x10050000u,scratch=0x10600000u;
+std::uint32_t bits_of(float f){std::uint32_t b;std::memcpy(&b,&f,4);return b;}
+void stub(WorldState &s,std::uint32_t target) {
+    std::uint64_t h=entry_hash(s,target);
+    if(target==0x1cefb0u)h=mix(h,r(s.memory,s.gp[4]+4u));
+    log_call(h);
+    std::mt19937_64 rng(h);
+    if(target==0x1cefb0u) {
+        for(std::uint32_t k=0;k<3;++k)w(s.memory,s.observe,0x1cefb1u,s.gp[7]+4u*k,4,rng()%8?bits_of(float(rng()%200)*0.25f-25.f):std::uint32_t(rng()));
+        w(s.memory,s.observe,0x1cefb2u,r(s.memory,s.gp[4]+4u),4,bits_of(float(rng()%9)*0.125f));
+    }
+    w(s.memory,s.observe,target+4u,scratch+std::uint32_t(rng()%64)*4u,4,std::uint32_t(rng()));
+    const auto ecx=s.gp[1];
+    s.gp[0]=std::uint32_t(rng());s.gp[1]=std::uint32_t(rng());s.gp[2]=std::uint32_t(rng());
+    if(target==0x1d61b0u && rng()%4)s.gp[1]=ecx;
+    if(policy&2u && rng()%13==0)s.gp[3]=references+0x100u*std::uint32_t(rng()%2);
+    if(policy&2u && rng()%13==0)s.gp[5]=outputs+0x10u*std::uint32_t(rng()%4);
+    if(policy&2u && rng()%13==0)s.gp[6]=outputs+0x40u+0x10u*std::uint32_t(rng()%4);
+    if(policy&2u && rng()%13==0)s.gp[7]=std::uint32_t(rng());
+    s.flags.load(std::uint32_t(rng())&0x8d5u);
+    if(policy&1u)_mm_setcsr(_mm_getcsr()|std::uint32_t(rng()%64));
+    std::array<std::uint32_t,4> lanes{std::uint32_t(rng()),std::uint32_t(rng()),std::uint32_t(rng()),std::uint32_t(rng())};
+    std::memcpy(&s.xmm[rng()%8],lanes.data(),16);
+    if(target==0x1d61b0u){lanes[0]=rng()%8?bits_of(float(rng()%9)*0.125f):std::uint32_t(rng());std::memcpy(&s.xmm[0],lanes.data(),16);}
+    std::uint32_t cleanup=0u;
+    if(policy&2u && rng()%37==0)cleanup=4u*std::uint32_t(rng()%3);
+    s.gp[4]+=(target==0x1cefb0u?8u:4u)+cleanup;
+}
+}
+namespace original {
+using namespace halo2::physics_world_runtime_detail;
+std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage){return p;}
+static void run_1cefb0(WorldState &s){stub(s,0x1cefb0u);}
+static void run_1d61b0(WorldState &s){stub(s,0x1d61b0u);}
+#include "body.inc"
+#include "reference.inc"
+}
+namespace {
+Case author(std::mt19937 &rng,unsigned n) {
+    Case c;auto &m=c.memory;
+    const auto pick=[&](std::uint32_t k){return std::uint32_t(rng()%k);};
+    const unsigned shape=n%16;
+    const auto stack=0x20010000u+pick(16)*4u;
+    m.put(0x4ecbd0u,headers);m.put(0x474d04u,zero_vector);
+    m.put(0x47c1b4u,pick(5)?1u:0u,1);m.put(0x47c1b5u,pick(3)?0u:1u,1);
+    m.put(0x46a188u,bits_of(1.f));m.put(0x46a0ecu,bits_of(0.001f));
+    for(std::uint32_t at=headers;at<headers+0x50u;at+=4)m.put(at,std::uint32_t(rng()));
+    m.put(headers+0x44u,datums);
+    for(std::uint32_t k=0;k<2;++k){m.put(datums+12u*k,std::uint32_t(rng()));m.put(datums+12u*k+4u,std::uint32_t(rng()));m.put(datums+12u*k+8u,objects+0x100u*k);}
+    for(std::uint32_t k=0;k<2;++k){for(std::uint32_t at=objects+0x100u*k;at<objects+0x100u*(k+1u);at+=4)m.put(at,std::uint32_t(rng()));
+        m.put(objects+0x100u*k+0xb3u,pick(5)?0u:1u+pick(255),1);}
+    static constexpr float weights[]{0.f,0.5f,1.f,0.0005f,0.001f,0.999f,1.5f,-1.f};
+    for(std::uint32_t at=references;at<references+0x200u;at+=4)m.put(at,std::uint32_t(rng()));
+    for(std::uint32_t r=0;r<3;++r){m.put(references+0x20u*r,pick(4)?pick(8):0xffffffffu);m.put(references+0x20u*r+6u,pick(4)?pick(8):0xffffu,2);}
+    m.put(references+0x80u,pick(10)?bits_of(weights[pick(8)]):0x7fc00000u);
+    for(std::uint32_t at=zero_vector;at<zero_vector+0x10u;at+=4)m.put(at,pick(3)?0u:std::uint32_t(rng()));
+    for(std::uint32_t at=outputs;at<outputs+0x100u;at+=4)m.put(at,std::uint32_t(rng()));
+    for(std::uint32_t at=scratch;at<scratch+0x100u;at+=4)m.put(at,std::uint32_t(rng()));
+    for(std::uint32_t at=stack-0x60u;at<stack+0x40u;at+=4)m.put(at,std::uint32_t(rng()));
+    m.put(stack,0xc0000u+pick(0x100));m.put(stack+4u,outputs+0x10u*pick(4));
+    random_abi(rng,c,stack);
+    c.abi.gp[0]=pick(3)?(std::uint32_t(rng())&0xffff0000u)|pick(2):0xffffffffu;
+    c.abi.gp[3]=references;c.abi.gp[6]=outputs+0x40u+0x10u*pick(4);
+    if(shape==15) {
+        static constexpr std::uint32_t regions[]{headers,datums,objects,references,zero_vector,outputs};
+        m.drop(regions[pick(6)]);
+    }
+    return c;
+}
+bool native(WorldState &s) {
+    return owner::bridge(s,[](auto &v){original::native_frame_misc_reference_1d5970(v);},[](auto &v){original::run_1cefb0(v);},
+        [](auto &v){original::run_1d61b0(v);});
+}
+void reference(WorldState &s){original::run_1d5970(s);}
+}
+int main(int argc,char **argv)try {
+    const unsigned cases=argc>1?unsigned(std::stoul(argv[1])):4000;
+    const std::string mode=argc>2?argv[2]:"";
+    set_mode(mode,"HALO2_VERIFY_POSE_BLEND");
+    std::mt19937 rng(0x1d5970u+(census_mode?1u:0u)+(mode=="verify"?2u:0u));
+    Totals t;
+    for(unsigned n=0;n<cases;++n) {
+        const auto c=author(rng,n);
+        if(!compare(n,c,native,reference,t))return 1;
+    }
+    if(!census_mode)check_refusals(author(rng,1),native);
+    report(cases,t,owner::coverage().load(),unsigned(owner::branch_count),mode);
+    return 0;
+}catch(const std::exception &e){std::fprintf(stderr,"%s\n",e.what());return 1;}

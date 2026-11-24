@@ -1,7 +1,8 @@
 #ifndef H2_PATH_TRACING_EMITTER_SAMPLING_GLSL
 #define H2_PATH_TRACING_EMITTER_SAMPLING_GLSL
 // CPU emitter_sampling.cpp appends this optional proposal-only table after
-// the ordinary emissive triangle index list. No additional rays or resources
+// the emitter table (triangle indices, then their running power; see
+// Scene::pixels). No additional rays or resources
 // are used, and sampled radiance always comes from the actual closest hit.
 const uint traceEmitterGroupMagic=0x45525447u,traceEmitterGroupWords=12u;
 uint traceEmitterGroupCandidate(uint table,uint count,float total,inout uint state) {
@@ -14,7 +15,7 @@ uint traceEmitterGroupCandidate(uint table,uint count,float total,inout uint sta
     return min(low,count-1u);
 }
 vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out float weight,float backgroundHint) {
-    weight=1.0;uint header=floatBitsToUint(traceScene.environment.w)+traceScene.counts.w;
+    weight=1.0;uint header=floatBitsToUint(traceScene.environment.w)+2u*traceScene.counts.w;
     uint length=uint(tracePixels.length());
     if(traceScene.counts.w==0u || header>=length || length-header<4u ||
        tracePixels[header]!=traceEmitterGroupMagic)return traceHemisphere(normal,state);
@@ -52,7 +53,7 @@ vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out flo
     // Keep at least one third cosine support for all other sources/paths.
     float sourceHint=maximumScore/tracePi;
     if(traceEnvironmentNee())backgroundHint=max(backgroundHint,
-        traceSourceBrightness(max(textureLod(traceSky,normal,0.0).rgb,vec3(0))));
+        traceSourceBrightness(traceSkyDiffuse(normal)));
     float totalHint=sourceHint+backgroundHint;
     float coneProbability=totalHint>0.0?(2.0/3.0)*(sourceHint/totalHint):0.0;
     vec3 direction;

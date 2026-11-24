@@ -1,4 +1,5 @@
 #include "halo2/multiplayer_presentation.hpp"
+#include <stdexcept>
 #include "halo2/render_interpolation.hpp"
 #include "halo2/source_model_pose.hpp"
 #include "halo2/math.hpp"
@@ -57,11 +58,18 @@ void refresh_multiplayer_body_poses(SourceWorldInterpolation &history,
 }
 MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
     const MultiplayerState &current,float fraction) {
+    MultiplayerState shown;
+    multiplayer_presentation(shown,previous,current,fraction);
+    return shown;
+}
+void multiplayer_presentation(MultiplayerState &shown,const MultiplayerState &previous,
+    const MultiplayerState &current,float fraction) {
     validate_render_fraction(fraction);
-    auto shown=current;
+    if(&shown==&previous || &shown==&current)throw std::invalid_argument("presented state aliases its endpoints");
+    shown=current;
     // A retained snapshot pair can span packet loss. Positions still blend
     // between its endpoints; action clocks require consecutive ticks below.
-    if(current.tick<=previous.tick)return shown;
+    if(current.tick<=previous.tick)return;
     for(unsigned i=0;i<shown.players.size();++i) {
         const auto &a=previous.players[i],&b=current.players[i];auto &out=shown.players[i];
         // The retained vehicle director also owns death/watch transitions.
@@ -117,7 +125,6 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
         if(a==previous.grenade_projectiles.end())continue;
         b.position=render_lerp(a->position,b.position,fraction);
     }
-    return shown;
 }
 std::vector<SourceWorldPredictedRoot> predicted_body_roots(const MultiplayerState &previous,
     const MultiplayerState &current,const MultiplayerState &shown,std::span<const unsigned> slots,

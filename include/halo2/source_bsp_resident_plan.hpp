@@ -91,6 +91,11 @@ public:
     // Complete reference expansion in original input order; intended for
     // differential checks/fallback, not mandatory per-frame construction.
     std::vector<Vertex> expand(std::span<const SourceBspPartBinding>) const;
+    // expand() restricted to the resident parts accept[part] admits: the same
+    // vertices in the same order as filtering expand() by those parts. Every
+    // raw vertex of a part shares that part's complete draw key.
+    std::vector<Vertex> expand_parts(std::span<const SourceBspPartBinding>,
+        std::span<const std::uint8_t> accept) const;
     SourceBspMergedDrawPlan merge(std::span<const SourceBspPartBinding>,
         std::span<const Vertex> dynamic_objects,unsigned material_count,unsigned lightmap_count,
         std::uint32_t dynamic_first=0,std::uint32_t logical_first=0) const;

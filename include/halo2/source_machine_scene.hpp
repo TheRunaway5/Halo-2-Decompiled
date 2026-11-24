@@ -4,7 +4,9 @@
 #include "halo2/source_portal_mask.hpp"
 #include "halo2/source_scene_effect_owner.hpp"
 #include "halo2/material_presentation_continuity.hpp"
+#include "halo2/transform.hpp"
 #include <memory>
+#include <vector>
 
 namespace halo2 {
 class CollisionWorld;
@@ -56,10 +58,16 @@ public:
         std::span<const ScenarioObject>,std::size_t bsp,Mesh &);
     bool owns_definition(std::uint32_t)const;
     void begin_campaign_frame(std::uint64_t actual_frame);
+    // Maps a machine's completed rendered WORLD nodes to the nodes this view
+    // presents, called once per machine per collection. The caller owns any
+    // render-interpolation history. Without one the completed nodes are drawn.
+    using CampaignNodePresenter=std::function<std::vector<Transform>(std::uint32_t object,
+        const RenderModel &,std::vector<Transform> completed)>;
     std::shared_ptr<const SourceCampaignMachineViewPacket> collect_campaign_view(
         const SceneObjects &,std::span<const SourceLiveModelBaseDrawTu15>,
         const SourceModelShaderView &,PhysicsLiveWorldTu15 &,
-        const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)> &);
+        const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)> &,
+        const CampaignNodePresenter &present_nodes={});
     // The caller transfers the same resident common-material block when its
     // BSP geometry prefix changes. No images or coefficient results reload.
     void rebase_campaign_materials(unsigned previous_geometry_count,unsigned next_geometry_count);

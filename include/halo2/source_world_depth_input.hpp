@@ -36,6 +36,25 @@ struct SourceWorldDepthImageUpload {
 };
 class Renderer;
 class SourceWorldDepthInput;
+// One view's completed main camera, checked inside its read-only render
+// borrow on the borrow's executor and then kept as a fixed value. It holds no
+// borrow or World, so its depth input can be completed afterwards on another
+// thread (the draw thread) while the next tick mutates source memory. The
+// depth input then checks its camera against this value and the target use.
+class SourceWorldDepthSealedCameraTu15 {
+private:
+    friend SourceWorldDepthSealedCameraTu15 source_world_depth_sealed_camera_tu15(
+        SourceMainCameraRasterUseTu15,const RendererTargets::Use&);
+    friend SourceWorldDepthInput source_world_depth_input_sealed_main_tu15(
+        const SourceWorldDepthSealedCameraTu15&,const RendererTargets::Use&,const Cache&,
+        const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
+    friend SourceWorldDepthInput source_world_depth_input_completed_main_tu15(
+        SourceMainCameraRasterUseTu15,const RendererTargets::Use&,const Cache&,
+        const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
+    SourceWorldDepthSealedCameraTu15()=default;
+    SourceWorldDepthRaster raster_; // camera, clip_range and logical_surface_size
+    std::array<float,3> eye_{},forward_{},up_{};
+};
 // An actual Renderer frame binding, issued after the bitmap descriptor
 // producer commits. Copies retain no ownership of the synchronous upload
 // epoch, so neither a later draw nor a recycled frame index can reuse it.
@@ -107,6 +126,12 @@ public:
     void validate_geometry(const RendererTargets::Use&,std::span<const Vertex>) const;
     void validate_resident_atlas(const RendererTargets::Use&,const SourceBspResidentPlan&,
         std::span<const Vertex> actually_uploaded) const;
+    // validate_resident_atlas without the byte comparison, for a caller that
+    // has already compared these same immutable buffers (resident_atlas()
+    // and actually_uploaded at the same addresses and sizes).
+    void validate_resident_atlas_owner(const RendererTargets::Use&,const SourceBspResidentPlan&,
+        std::span<const Vertex> actually_uploaded) const;
+    std::span<const Vertex> resident_atlas() const {return resident_atlas_;}
     void validate_resident_view(const RendererTargets::Use&,
         const SourceBspResidentPlan&,std::span<const SourceBspPartBinding>,
         const SourceBspMergedDrawPlan&) const;
@@ -137,12 +162,18 @@ private:
         :camera_owner_(std::move(camera_owner)){}
     explicit SourceWorldDepthInput(SourceMainCameraRasterUseTu15 camera_owner)
         :camera_owner_(std::move(camera_owner)){}
+    struct SealedCompletedCamera {std::array<ShaderVector,12> camera;};
+    explicit SourceWorldDepthInput(SealedCompletedCamera camera_owner)
+        :camera_owner_(camera_owner){}
     std::array<ShaderVector,12> camera(const RendererTargets::Use&) const;
     static SourceWorldDepthInput complete_owners(SourceWorldDepthInput,
         const RendererTargets::Use&,const Cache&,const Mesh&,
         const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
     friend SourceWorldDepthInput source_world_depth_input_completed_main_tu15(
         SourceMainCameraRasterUseTu15,const RendererTargets::Use&,const Cache&,
+        const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
+    friend SourceWorldDepthInput source_world_depth_input_sealed_main_tu15(
+        const SourceWorldDepthSealedCameraTu15&,const RendererTargets::Use&,const Cache&,
         const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
     friend SourceWorldDepthInput source_world_depth_input_tu15(
         const SourceRuntimeMemory&,const RendererTargets::Use&,const Cache&,
@@ -165,7 +196,7 @@ private:
         PixelProgram pixel;
         std::array<bool,5> target_bindings;
     };
-    std::variant<SourceLiveShadowPhaseInputsTu15,SourceMainCameraRasterUseTu15> camera_owner_;
+    std::variant<SourceLiveShadowPhaseInputsTu15,SourceMainCameraRasterUseTu15,SealedCompletedCamera> camera_owner_;
     SourceWorldDepthRaster raster_;
     const Mesh* mesh_{};
     const Cache* cache_{};
@@ -174,7 +205,11 @@ private:
     std::vector<SourceBspShaderPart> parts_;
     std::vector<SourceBspShaderPart> independent_parts_;
     const SourceBspResidentPlan* resident_{};
-    std::vector<Vertex> resident_atlas_,selected_geometry_;
+    // The resident plan's immutable packed catalogue; resident_ already
+    // requires that plan to outlive this input.
+    std::span<const Vertex> resident_atlas_;
+    std::shared_ptr<const std::vector<Vertex>> owned_atlas_;
+    std::vector<Vertex> selected_geometry_;
     std::vector<SourceBspPartBinding> bindings_;
     SourceBspMergedDrawPlan expected_bsp_;
     std::vector<SourceBspDrawKey> selected_draws_;
@@ -215,5 +250,13 @@ SourceWorldDepthInput source_world_depth_input_tu15(const SourceRuntimeMemory&,
 // camera globals; actual target/material/geometry owners remain mandatory.
 SourceWorldDepthInput source_world_depth_input_completed_main_tu15(
     SourceMainCameraRasterUseTu15,const RendererTargets::Use&,const Cache&,
+    const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
+// Call inside the borrow that issued the use, on its executor.
+SourceWorldDepthSealedCameraTu15 source_world_depth_sealed_camera_tu15(
+    SourceMainCameraRasterUseTu15,const RendererTargets::Use&);
+// The same input as source_world_depth_input_completed_main_tu15 for the
+// same camera, target, Cache, Mesh and selection; no borrow is needed.
+SourceWorldDepthInput source_world_depth_input_sealed_main_tu15(
+    const SourceWorldDepthSealedCameraTu15&,const RendererTargets::Use&,const Cache&,
     const Mesh&,const SourceBspResidentPlan&,const SourceBspResidentViewPlan&);
 } // namespace halo2

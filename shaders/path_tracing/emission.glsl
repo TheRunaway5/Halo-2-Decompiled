@@ -29,10 +29,24 @@ vec4 traceEmissionSample(uint record,uint stage,vec2 sourceUV) {
     return mix(mix(traceEmissionTexel(record,stage,pixel),traceEmissionTexel(record,stage,pixel+ivec2(1,0)),weight.x),
         mix(traceEmissionTexel(record,stage,pixel+ivec2(0,1)),traceEmissionTexel(record,stage,pixel+ivec2(1,1)),weight.x),weight.y);
 }
+vec3 traceAuthoredEmission(TraceMaterial material,vec2 uv,vec3 tint);
+// The light a surface emits. A surface that lit the lightmap bake emits its
+// authored bake power at the scale calibrate.comp fits to that bake.
+const uint traceBakedEmissionFlag=524288u;
 vec3 traceEmission(TraceMaterial material,vec2 uv,vec3 tint) {
+    vec3 light=traceAuthoredEmission(material,uv,tint);
+    return (material.texture.w&traceBakedEmissionFlag)!=0u?light*traceScene.calibration.w:light;
+}
+vec3 traceAuthoredEmission(TraceMaterial material,vec2 uv,vec3 tint) {
     uint pointer=floatBitsToUint(material.emission.w);
     if(pointer==0u) {
         if(!any(greaterThan(material.emission.rgb,vec3(0))))return vec3(0);
+        // A glow layer emits its average drawn colour uniformly: its own
+        // texture is often a mask or noise read through a combiner program.
+        if((material.texture.w&traceLightOnlyFlag)!=0u)return material.emission.rgb*tint;
+        // So do self-illumination layers and lightmap emitters (scene.cpp);
+        // the vertex colour of a lightmapped surface is baked light, not tint.
+        if((material.texture.w&traceUniformEmissionFlag)!=0u)return material.emission.rgb;
         return material.emission.rgb*traceTexture(material,uv).rgb*tint;
     }
     uint header=pointer-1u;vec3 result=vec3(0);

@@ -84,7 +84,8 @@ void appearance_prompt_layout(const FrontendContent &content, FrontendPainter &p
       require(footer(popup,false)==parent, "Retained Appearance footer changed device or placement");
 
       // Source PC picker caption at y=-360..-400, projected at 480/1200.
-      // Count the actual non-space glyph quads under each actionable label.
+      // The retained Xbox page also paints text behind this rectangle.
+      // Count the PC picker's own non-space glyphs under each actionable label.
       std::map<Action,unsigned> counts;
       unsigned icons{};
       for (std::size_t i = 0; i < popup.vertices.size(); i += 6) {
@@ -92,6 +93,7 @@ void appearance_prompt_layout(const FrontendContent &content, FrontendPainter &p
         const auto &m=mesh.materials.at(v.material);
         const bool icon=m.name.starts_with("controller-prompts/");
         if (v.position.y < 384 || v.position.y >= 400 || v.position.x < 108 || end.position.x > 353 ||
+            m.name.find("/original-role/") != std::string::npos ||
             (!icon && !m.name.starts_with("font/")) || !(v.color.x || v.color.y || v.color.z) ||
             end.position.x-v.position.x <= .5f) continue;
         const auto hit=painter.pointer_hit((v.position.x+end.position.x)*.5f,(v.position.y+end.position.y)*.5f);
@@ -111,6 +113,39 @@ void appearance_prompt_layout(const FrontendContent &content, FrontendPainter &p
   }
   painter.prompt_device(PromptDevice::Xbox);
 }
+void profile_row_focus(MenuState &menu, FrontendPainter &painter, const Mesh &mesh) {
+  const bool appearance = menu.frame().screen == 47;
+  const auto marker = appearance ? R"(ui\list_skins\playlist_listing\item_background)"
+                                 : R"(ui\list_skins\profile_picker\end_cap)";
+  const float idle = appearance ? 59.f : 98.f, slide = appearance ? 16.f : 17.f;
+  const auto previous = menu.frame().selected;
+  std::vector<bool> resting_hits;
+  for (const unsigned focus : {1u, 0u}) {
+    menu.select(focus);
+    const auto draw = painter.draw(menu, 5.f, -1, 20000, {640,480});
+    bool found = false;
+    for (std::size_t i = 0; i + 5 < draw.vertices.size(); i += 6) {
+      const auto &a = draw.vertices[i], &b = draw.vertices[i + 4];
+      if (mesh.materials.at(a.material).name != marker) continue;
+      require(a.position.x == idle + (focus == 0 ? slide : 0.f),
+              "Profile row lost its authored horizontal focus movement");
+      std::vector<bool> hits;
+      for (unsigned x = 0; x < 640; ++x) {
+        const auto target = painter.pointer_hit(float(x) + .5f, (a.position.y + b.position.y) * .5f);
+        hits.push_back(target && target->action == FrontendPointerAction::Entry && target->index == 0);
+      }
+      require(hits.at(unsigned(idle)) && hits.at(unsigned(idle + slide + b.position.x - a.position.x - 1)),
+              "Profile row does not accept its full resting and selected widths");
+      if (focus == 1) resting_hits = std::move(hits);
+      else require(hits == resting_hits, "Moving profile focus shifted the pointer target");
+      found = true;
+      break;
+    }
+    require(found, "Missing first profile row bitmap");
+  }
+  menu.select(previous);
+}
+
 std::filesystem::path selected_cache(const std::filesystem::path &root) {
   std::ifstream input(root / "assets/mcc-source.tsv");
   std::string signature, key, path;
@@ -596,9 +631,42 @@ int main(int argc, char **argv) try {
         logical_checks.push_back({{"screen", screen}, {"species", species}, {"viewport", viewport}});
       }
     }
+    // These are positions in the Xbox 640x480 framebuffer. The large profile
+    // emblem and grid share this canvas with the independently rendered model.
+    const auto preview_landmarks = [&](const UiDraw &draw, unsigned screen) {
+      const bool appearance = screen == 47;
+      const float left = appearance ? 49.f : 51.f;
+      const float top = appearance ? 74.f : 77.f;
+      bool emblem = false, frame = false;
+      for (std::size_t i = 0; i + 5 < draw.vertices.size(); i += 6) {
+        const auto &a = draw.vertices[i], &b = draw.vertices[i + 4];
+        const auto &material = mesh.materials.at(a.material);
+        const auto at = [&](float x, float y) {
+          return std::abs(a.position.x - x) < .01f && std::abs(a.position.y - y) < .01f;
+        };
+        if (material.ui_emblem_pass && at(left, top) &&
+            std::abs(b.position.x - left - 128.f) < .01f &&
+            std::abs(b.position.y - top - 128.f) < .01f)
+          emblem = true;
+        if (appearance && material.name == R"(ui\global_bitmaps\br_06)" && at(470.f, 273.f))
+          frame = true;
+        if (!appearance && material.name == R"(ui\screens\game_shell\profile_picker\profile_display)" &&
+            at(351.f, 72.f) && std::abs(b.position.x - 607.f) < .01f &&
+            std::abs(b.position.y - 584.f) < .01f)
+          frame = true;
+      }
+      require(emblem, "Large profile emblem moved relative to the Xbox model on screen " + std::to_string(screen));
+      require(frame, "Preview frame moved relative to the Xbox model on screen " + std::to_string(screen));
+    };
+    MenuState profile_picker(content, visual_preferences);
+    profile_picker.open(193);
+    profile_picker.select(1);
     visual.open(47);
+    profile_row_focus(visual, painter, mesh);
+    profile_row_focus(profile_picker, painter, mesh);
     for (const auto viewport : {std::array<unsigned,2>{640,480}, {1280,720}, {2560,1080}}) {
       const auto parent = painter.draw(visual, 5.f, -1, 20000, viewport);
+      preview_landmarks(parent, 47);
       require(parent.scenes.size() == 1, "Appearance must submit one preview model");
       const auto &scene = parent.scenes.front();
       const auto &definition = *scene.definition;
@@ -610,11 +678,17 @@ int main(int argc, char **argv) try {
               "Appearance preview must pair the Original widget viewport with its species-specific lens");
       choose(visual, 1, 50);
       const auto picker = painter.draw(visual, 5.f, -1, 20000, viewport);
+      preview_landmarks(picker, 47);
       require(picker.scenes.size() == 1 && picker.scenes.front().definition == scene.definition &&
               picker.scenes.front().vista_viewport == scene.vista_viewport &&
               length(picker.scenes.front().animation_offset - scene.animation_offset) == 0,
               "Opening Choose Color changed the retained Appearance framing");
       visual.back();
+      const auto select_player = painter.draw(profile_picker, 5.f, -1, 20000, viewport);
+      require(select_player.scenes.size() == 1 && !select_player.scenes.front().vista_viewport &&
+              select_player.scenes.front().definition->objects.front() == (species ? "ui_player1b" : "ui_player1"),
+              "Selected profile lost its Xbox model widget");
+      preview_landmarks(select_player, 193);
       logical_checks.push_back({{"screen", 47}, {"picker", 50}, {"species", species},
                                 {"viewport", viewport}, {"fov", definition.field_of_view}});
     }

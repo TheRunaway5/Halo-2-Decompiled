@@ -122,6 +122,7 @@ std::int32_t source_sound_driver_volume(std::uint32_t source_gain_bits,
     const SoundDriverParameterConstants &c,const SoundDriverFloatingPointContext &context) {
   return calculate_source_sound_driver_volume(source_gain_bits,c,context).driver_volume;
 }
+std::int32_t source_sound_pitch_base(std::uint32_t rate_index) { return pitch_base(rate_index); }
 std::uint32_t source_sound_relative_rate(std::int32_t stored_driver_pitch,
     std::uint32_t rate_index,const SoundDriverParameterConstants &c,
     const SoundDriverFloatingPointContext &context) {

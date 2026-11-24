@@ -90,7 +90,7 @@ nlohmann::json emitter_census(const pt::Scene& scene,std::span<const Material> m
     };
     std::map<std::uint32_t,Energy> energy;
     for(std::uint32_t emitter=0;emitter<scene.emissive_count;++emitter){
-        const auto index=scene.pixels.at(scene.texture_texel_count+emitter);
+        const auto index=scene.pixels.at(scene.texture_texel_count+emitter)&~pt::emitter_baked_bit;
         require(index<scene.triangles.size(),"Emitter index escaped its actual source triangle bank");
         const auto& triangle=scene.triangles[index];const auto slot=triangle.metadata[0];auto& row=energy[slot];++row.triangles;
         const auto area_vector=cross(sub(precise(xyz(triangle.p1)),precise(xyz(triangle.p0))),

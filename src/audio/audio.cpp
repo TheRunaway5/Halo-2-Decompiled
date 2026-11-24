@@ -473,14 +473,18 @@ void AudioEngine::stop(VoiceId id, bool immediate) {
     }
   SDL_UnlockAudioDevice(device_);
 }
-void AudioEngine::fade_out(VoiceId id, float seconds, std::uint16_t curve) {
-  if (!std::isfinite(seconds) || seconds < 0 || seconds > 600 || curve > 1)
+void AudioEngine::fade_out(VoiceId id, float seconds, std::uint16_t curve,
+                          std::span<const std::uint16_t> class_curves) {
+  if (!std::isfinite(seconds) || seconds < 0 || seconds > 600 || curve > 1 ||
+      std::ranges::any_of(class_curves, [](auto value) { return value > 1; }))
     throw FormatError("Invalid source sound fade");
   SDL_LockAudioDevice(device_);
   for (auto &v : voices_) if (v.id == id) {
     const auto time = std::bit_cast<std::int32_t>(std::uint32_t(mixed_frames_.load()/48));
     const float gain = v.fade ? source_sound_playback_fade(*v.fade,time) : 0.f;
-    v.fade = SoundPlaybackFade{curve,gain,std::int32_t(seconds*1000.f),-1,true};
+    const auto cls = v.sound->class_at(v.cursor);
+    const auto selected_curve = cls < class_curves.size() ? class_curves[cls] : curve;
+    v.fade = SoundPlaybackFade{selected_curve,gain,std::int32_t(seconds*1000.f),-1,true};
   }
   SDL_UnlockAudioDevice(device_);
 }

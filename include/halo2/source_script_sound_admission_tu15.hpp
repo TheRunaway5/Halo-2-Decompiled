@@ -144,6 +144,10 @@ public:
   SourceScriptSoundClockQueryBindingTu15(const SourceScriptSoundClockQueryBindingTu15&)=delete;
   SourceScriptSoundClockQueryBindingTu15&operator=(const SourceScriptSoundClockQueryBindingTu15&)=delete;
 };
+inline bool source_has_script_sound_clock_queries_tu15(const Simulation& owner) {
+  std::lock_guard lock(source_script_sound_query_detail::mutex);
+  return source_script_sound_query_detail::bindings.contains(&owner);
+}
 inline std::optional<std::int32_t> source_query_script_sound_stored_time_tu15(
     const Simulation& owner,std::uint32_t sound) {
   return source_script_sound_query_detail::query(owner,

@@ -196,6 +196,9 @@ struct SoundEvent {
   std::uint32_t effect_collection = null_datum;
   std::uint32_t effect_row = null_datum;
   bool authored_impulse{};
+  // A looping-sound event the campaign World's own loop pool already owns
+  // (18D220/18D2C0): delivered for observation, not for host playback.
+  bool source_pool{};
 };
 class Simulation {
 public:
@@ -280,6 +283,13 @@ public:
   bool flashlights_allowed() const { return flashlights_allowed_; }
   std::uint64_t flashlights_changed_tick() const { return flashlights_changed_tick_; }
   bool ambience_details_enabled() const { return ambience_details_enabled_; }
+  // Route sound_looping_start/stop/set_alternate into the campaign World's
+  // loop pool (original 2B3E50/2B3EA0/2B3FA0), for a host that plays that
+  // pool through the World's object-audio frame.
+  void use_source_script_loops(bool enabled) { source_script_loops_ = enabled; }
+  // The looping sound's definition flags when the World's pool owns script
+  // loops (every scripted loop, one-shots included), else nothing.
+  std::optional<std::uint32_t> source_loop_definition_flags(std::uint32_t sound) const;
   void set_difficulty(unsigned value);
   void preview_camera(std::uint32_t graph, std::uint32_t name, int flag) {
     NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
@@ -295,6 +305,8 @@ public:
   float player_pitch() const { return player_pitch_; }
   const std::vector<Unit> &actors() const { return actors_; }
   const CollisionWorld &collision() const;
+  // The structure BSP's own collision, without scenery, devices or props.
+  const CollisionWorld &structure_collision() const;
   std::size_t bsp() const { return bsp_; }
   std::uint64_t bsp_revision() const { return bsp_revision_; }
   void request_bsp(int);
@@ -557,6 +569,7 @@ private:
   std::array<int,5> objectives_{};
   bool flashlights_allowed_ = true, ambience_details_enabled_ = true;
   bool suppress_ambience_rebuild_{};
+  bool source_script_loops_{};
   bool suppress_automatic_objects_{};
   bool multiplayer_weapon_steps_{};
   std::function<SourceVehicleSeatTarget(std::uint32_t,std::uint32_t)> source_vehicle_seat_query_;

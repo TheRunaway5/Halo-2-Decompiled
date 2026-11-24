@@ -1,0 +1,150 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : require
+// Edge-aware a-trous wavelet filter over the lighting grid (Dammertz et al.
+// 2010, with the luminance-variance edge stopping of SVGF, Schied et al.
+// 2017). Each pass applies a 5x5 B3-spline kernel whose taps are `step`
+// cells apart, so three passes (steps 1, 2, 4) cover a 29x29-cell footprint
+// at the cost of 75 taps. Weights reject other surfaces by normal and
+// distance from the receiver's plane, and reject real lighting edges by
+// luminance relative to the receiver's estimated noise.
+//
+// Diffuse and reflected lighting are filtered separately: reflections also
+// require matching roughness and a reflected direction within the material's
+// lobe, so sharp mirrors are not blurred.
+//
+// trace.comp writes every cell's packed record (below) to bank 1. Passes
+// ping-pong between banks 1 and 2; the last writes the record's own lighting
+// lanes, which the full-resolution resolve reads.
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=1,binding=6,std430) restrict buffer TraceVisibility {
+    uvec4 extent;   // full width, full height, depth words, grid scale
+    uvec4 temporal;
+    uvec4 words[];  // Read as 16-byte lanes; the header is two of them.
+} traceVisibility;
+// eye.xyz: camera position; control: step, source bank, destination bank
+// (0 = the records' lighting lanes), pass index.
+layout(push_constant) uniform Filter {vec4 eye;uvec4 control;} traceFilter;
+// Packed cell (two 16-byte lanes):
+//  a.x diffuse.rg  a.y diffuse.b|specular.r  a.z specular.gb (half)
+//  a.w variance (half2: diffuse, specular)
+//  b.x normal (snorm8 xyz) | roughness (unorm8 in w); 0 = no surface
+//  b.yzw WORLD position
+const uint recordWords=20u,historyWords=24u,packedWords=8u;
+uvec2 grid() {
+    uint scale=max(traceVisibility.extent.w,1u);
+    return (traceVisibility.extent.xy+scale-1u)/scale;
+}
+uint cellIndex(uvec2 cell) {return cell.y*grid().x+cell.x;}
+// Word offsets (from the start of words[] after the header) are multiples of
+// four for every lane used here: the depth prefix is padded by the host.
+uint recordWord(uvec2 cell) {return traceVisibility.extent.z+cellIndex(cell)*recordWords;}
+uint packedWord(uint bank,uvec2 cell) {
+    uvec2 size=grid();uint cells=size.x*size.y;
+    return traceVisibility.extent.z+cells*(recordWords+2u*historyWords+(bank-1u)*packedWords)+cellIndex(cell)*packedWords;
+}
+struct Cell {vec3 diffuse,specular;vec2 variance;vec3 normal,position;float roughness;bool valid;};
+Cell loadCell(uint bank,uvec2 cell) {
+    uint lane=packedWord(bank,cell)/4u;
+    uvec4 a=traceVisibility.words[lane],b=traceVisibility.words[lane+1u];
+    Cell value;
+    vec2 x=unpackHalf2x16(a.x),y=unpackHalf2x16(a.y),z=unpackHalf2x16(a.z);
+    value.diffuse=vec3(x,y.x);value.specular=vec3(y.y,z);value.variance=unpackHalf2x16(a.w);
+    vec4 normal=unpackSnorm4x8(b.x);
+    value.valid=b.x!=0u;
+    value.normal=normalize(normal.xyz+vec3(0,0,1.e-6));
+    value.roughness=float(b.x>>24u)/255.0;
+    value.position=uintBitsToFloat(b.yzw);
+    return value;
+}
+void storeCell(uint bank,uvec2 cell,Cell value) {
+    if(bank==0u) {
+        uint word=recordWord(cell);
+        uint lane=word/4u,offset=word%4u; // Records are whole lanes: offset is 0.
+        traceVisibility.words[lane]=uvec4(floatBitsToUint(value.diffuse),traceVisibility.words[lane].w);
+        traceVisibility.words[lane+1u]=uvec4(floatBitsToUint(value.specular),traceVisibility.words[lane+1u].w);
+        return;
+    }
+    value.diffuse=min(value.diffuse,vec3(60000.0));value.specular=min(value.specular,vec3(60000.0));
+    uint lane=packedWord(bank,cell)/4u;
+    traceVisibility.words[lane]=uvec4(packHalf2x16(value.diffuse.rg),packHalf2x16(vec2(value.diffuse.b,value.specular.r)),
+        packHalf2x16(value.specular.gb),packHalf2x16(min(value.variance,vec2(60000.0))));
+    traceVisibility.words[lane+1u]=uvec4((packSnorm4x8(vec4(value.normal,0))&0x00ffffffu)|(uint(clamp(value.roughness,0.0,1.0)*255.0+.5)<<24u),
+        floatBitsToUint(value.position));
+}
+float luminance(vec3 c) {return dot(c,vec3(.2126,.7152,.0722));}
+vec3 reflected(Cell value) {
+    vec3 incoming=value.position-traceFilter.eye.xyz;
+    return reflect(incoming*inversesqrt(max(dot(incoming,incoming),1.e-20)),value.normal);
+}
+// Geometric similarity of a neighbouring cell's surface to the receiver.
+float geometryWeight(Cell p,Cell q,float tolerance) {
+    float facing=max(dot(p.normal,q.normal),0.0);
+    facing*=facing;facing*=facing;facing*=facing;facing*=facing;facing*=facing; // ^32
+    float plane=abs(dot(q.position-p.position,p.normal));
+    return facing*exp(-plane/max(tolerance,1.e-5));
+}
+void main() {
+    uvec2 cell=gl_GlobalInvocationID.xy;uvec2 size=grid();
+    if(any(greaterThanEqual(cell,size)))return;
+    uint step=max(traceFilter.control.x,1u),source=traceFilter.control.y,destination=traceFilter.control.z;
+    Cell center=loadCell(source,cell);
+    if(!center.valid) {
+        // Keep every bank's empty cells marked empty: a stale or freshly
+        // cleared cell must never read as a surface in the next pass.
+        if(destination!=0u)traceVisibility.words[packedWord(destination,cell)/4u+1u].x=0u;
+        return;
+    }
+    uint record=recordWord(cell)/4u;
+    // Footprint (lane 12) and history length (lane 13) of the receiver.
+    uvec4 guides=traceVisibility.words[record+3u];
+    float footprint=uintBitsToFloat(guides.x)*float(max(traceVisibility.extent.w,1u));
+    vec2 variance=center.variance;
+    if(traceFilter.control.w==0u) {
+        // First pass: estimate each cell's remaining noise from the spatial
+        // variance of its compatible 3x3 neighbourhood. Short histories (just
+        // disoccluded) are assumed noisier so they filter more widely.
+        vec2 sum=vec2(0),squares=vec2(0);float weight=0.0;
+        [[unroll]] for(int y=-1;y<=1;++y) [[unroll]] for(int x=-1;x<=1;++x) {
+            ivec2 at=ivec2(cell)+ivec2(x,y);
+            if(any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,ivec2(size))))continue;
+            Cell q=loadCell(source,uvec2(at));
+            if(!q.valid || geometryWeight(center,q,footprint*2.0)<.1)continue;
+            vec2 l=vec2(luminance(q.diffuse),luminance(q.specular));
+            sum+=l;squares+=l*l;weight+=1.0;
+        }
+        vec2 mean=sum/max(weight,1.0);
+        variance=max(squares/max(weight,1.0)-mean*mean,vec2(0));
+        variance*=4.0/float(max(min(guides.y,4u),1u));
+    }
+    const float kernel[3]=float[3](3.0/8.0,1.0/4.0,1.0/16.0);
+    vec2 sigma=4.0*sqrt(variance)+vec2(1.e-3);
+    vec2 centerLuminance=vec2(luminance(center.diffuse),luminance(center.specular));
+    vec3 centerReflected=reflected(center);
+    float lobe=max(.03,center.roughness*center.roughness*1.5);
+    vec3 diffuse=vec3(0),specular=vec3(0);float diffuseWeight=0.0,specularWeight=0.0;
+    vec2 filteredVariance=vec2(0);
+    [[unroll]] for(int y=-2;y<=2;++y) [[unroll]] for(int x=-2;x<=2;++x) {
+        ivec2 at=ivec2(cell)+ivec2(x,y)*int(step);
+        if(any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,ivec2(size))))continue;
+        Cell q=(x==0 && y==0)?center:loadCell(source,uvec2(at));
+        if(!q.valid)continue;
+        float h=kernel[abs(x)]*kernel[abs(y)];
+        float spacing=float(step)*max(length(vec2(x,y)),1.0)*.5;
+        float geometry=h*geometryWeight(center,q,footprint*spacing);
+        if(geometry<=0.0)continue;
+        vec2 l=vec2(luminance(q.diffuse),luminance(q.specular));
+        float wd=geometry*exp(-abs(l.x-centerLuminance.x)/sigma.x);
+        vec3 reflectedDelta=reflected(q)-centerReflected;
+        float ws=abs(q.roughness-center.roughness)<.05?
+            geometry*exp(-abs(l.y-centerLuminance.y)/sigma.y)*exp(-dot(reflectedDelta,reflectedDelta)/(2.0*lobe*lobe)):0.0;
+        diffuse+=q.diffuse*wd;diffuseWeight+=wd;
+        specular+=q.specular*ws;specularWeight+=ws;
+        filteredVariance+=vec2(wd*wd,ws*ws)*(traceFilter.control.w==0u?variance:q.variance);
+    }
+    Cell result=center;
+    if(diffuseWeight>0.0)result.diffuse=diffuse/diffuseWeight;
+    if(specularWeight>0.0)result.specular=specular/specularWeight;
+    result.variance=vec2(diffuseWeight>0.0?filteredVariance.x/(diffuseWeight*diffuseWeight):variance.x,
+                         specularWeight>0.0?filteredVariance.y/(specularWeight*specularWeight):variance.y);
+    storeCell(destination,cell,result);
+}

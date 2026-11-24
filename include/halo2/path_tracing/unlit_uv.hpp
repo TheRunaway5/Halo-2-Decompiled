@@ -1,4 +1,6 @@
 #pragma once
+#include <bit>
+#include <cstring>
 #include "halo2/cache.hpp"
 #include <array>
 #include <cmath>
@@ -112,6 +114,10 @@ inline constexpr std::array<std::uint32_t,105> dynamic_detail_words{
 template<std::size_t N> inline bool exact_vertex(std::span<const std::byte> bytes,
                                                     const std::array<std::uint32_t,N>& expected) {
     if(bytes.size()!=N*4)return false;
+    // Little-endian words compare as their bytes. This runs for every
+    // resident material each frame, so avoid the per-byte shift loop.
+    if constexpr(std::endian::native==std::endian::little)
+        return std::memcmp(bytes.data(),expected.data(),N*4)==0;
     for(std::size_t word=0;word<N;++word)for(unsigned byte=0;byte<4;++byte)
         if(std::to_integer<unsigned>(bytes[word*4+byte])!=((expected[word]>>(byte*8))&255u))return false;
     return true;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "halo2/native_tu15_sound_mono_distortion.hpp"
+#include "halo2/sound_i3dl2_reverb.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -25,6 +27,8 @@ struct SdlSoundPacket {
 
 // Supported host routing is an explicitly supplied stereo matrix. There is
 // deliberately no implicit pan, mix-bin translation or effects substitute.
+// One PCM channel's route to a speaker: 0 front left, 1 front right,
+// 2 back left, 3 back right (mixbins 0, 1, 4 and 5).
 struct SdlSoundRoute {
   std::uint8_t pcm_channel;
   std::uint8_t output_channel;
@@ -40,12 +44,80 @@ struct SdlSoundEffectSend {
   tu15_sound_mono_distortion::Parameters parameters;
 };
 
+// The Xbox APU's per-voice HRTF stage for a 3D voice (see
+// source_sound_hrtf_tu15.hpp): a 31-tap filter per ear and that ear's delay
+// in 48 kHz frames (the voice processor holds one signed delay, so at most
+// one ear's is nonzero). The voice's mono input (its two PCM channels
+// averaged) feeds both ears. Each ear plays into its side's front and back
+// speakers (mixbins 6/8 and 7/9) at its output channel's route gains plus
+// DirectSound's front and rear levels (37DFE1, millibels). A stereo setup
+// has front 0 and rear -10000, which silences the back pair. When the
+// filter changes, the voice processor moves its taps and its delay from the
+// last frame's to the new ones linearly across one 32-sample frame.
+struct SdlSoundHrtf {
+  static constexpr unsigned taps = 31;
+  std::array<float, taps> left{}, right{};
+  std::uint8_t left_delay{}, right_delay{};
+  std::int32_t front{}, rear = -10000;
+  friend bool operator==(const SdlSoundHrtf &, const SdlSoundHrtf &) = default;
+};
+
+// One path of a 3D voice through the voice processor's I3DL2 filter
+// (DirectSound's filter mode 3, from 38368B): the path's linear level and
+// the pole of its one-pole low-pass y = b*y + (1-b)*x, b = pole/65536,
+// rounded like the voice processor's. A zero pole leaves the path open. The direct path feeds the voice's routes;
+// the room path is its send to mixbin 10, the listener reverbs' input.
+struct SdlSoundI3dl2Path {
+  float gain{};
+  std::uint16_t pole{};
+  friend bool operator==(const SdlSoundI3dl2Path &, const SdlSoundI3dl2Path &) = default;
+};
+
+// The voice processor's DLS2 filter on a 3D voice, as its coefficient words
+// (SoundDls2FilterTu15): a state-variable low-pass on the whole voice, ahead
+// of its I3DL2 direct and room paths, with the voice processor's coefficient
+// steps and rounding (sound_dls2_frequency_tu15, sound_filter_round_tu15).
+struct SdlSoundDls2 {
+  std::uint16_t cutoff{}, resonance{};
+  friend bool operator==(const SdlSoundDls2 &, const SdlSoundDls2 &) = default;
+};
+
+// One of the two listener reverbs (the DSP's I3DL2 records 9 and 8, run
+// natively by tu15_sound_ring_effect with DirectSound's parameter words)
+// and the volumes of its four return voices: front left, front right, back
+// left, back right. Each return plays its reverb output one 32-sample DSP
+// block late, as the voice processor reads the previous block; the EP's
+// stereo encoder adds each back channel to its side at -3 dB.
+struct SdlSoundReverb {
+  SoundI3dl2Parameters parameters;
+  std::array<float, 4> speaker_gains{};
+};
+
+// The voice processor's own view of a voice's rate: its sound's sample rate
+// and the pitch register DirectSound writes (4096ths of an octave relative
+// to 48 kHz; 221B90's driver pitch). The PCM arrives at 48 kHz. With this set
+// and the voice processor on, the mixer rebuilds the sound's native-rate
+// samples from it (a band-limited windowed sinc at the native Nyquist) and
+// steps through them as the voice processor does: 2^(pitch/4096) native
+// samples per output sample in 1/65536, through its 8-point Lagrange filter.
+// relative_rate_bits stays the 48 kHz rate for every other path.
+struct SdlSoundNativeRate {
+  std::uint32_t sample_rate{};
+  std::int32_t pitch{};
+  friend bool operator==(const SdlSoundNativeRate &, const SdlSoundNativeRate &) = default;
+};
+
 struct SdlSoundVoiceParameters {
   std::uint32_t relative_rate_bits;
   std::int32_t volume_hundredths_db;
   bool paused;
   std::vector<SdlSoundRoute> routes;
   std::optional<SdlSoundEffectSend> effect{};
+  std::optional<SdlSoundHrtf> hrtf{};
+  std::optional<SdlSoundI3dl2Path> room{};
+  std::optional<SdlSoundI3dl2Path> direct{};
+  std::optional<SdlSoundDls2> dls2{};
+  std::optional<SdlSoundNativeRate> native{};
 };
 
 struct SdlSoundPlatformConfiguration {
@@ -53,6 +125,18 @@ struct SdlSoundPlatformConfiguration {
   Delivery delivery;
   std::uint16_t callback_frames;
   std::optional<std::string> device_name;
+  // DSP record 10's crosstalk stage on the 3D mixbins (6..9), on as the
+  // DSPImage installs it. HALO2_REFERENCE_NO_CROSSTALK also turns it off.
+  bool crosstalk = true;
+  // The voice processor's measured level and resampling behaviour (xemu
+  // pull request 3105's retail-console measurements): each route's level is
+  // DirectSound's attenuation register (380B97) through the hardware's curve
+  // in 1/16384, moving linearly across each 32-sample frame and fading a new
+  // voice in over its first; the cursor steps in 1/65536 with the pitch
+  // moving across each frame in its log form, through 8-point Lagrange
+  // interpolation. Off, levels are exact and immediate and the resampler
+  // linear. HALO2_REFERENCE_IDEAL_VOICES also turns it off.
+  bool voice_processor = true;
 };
 
 enum class SdlSoundCompletionStatus : std::uint32_t {
@@ -216,6 +300,9 @@ public:
   // does not move another voice's deadline or this shared clock.
   void paused(bool);
   std::uint64_t presentation_frames() const;
+  // The two listener reverbs every room send feeds. Speaker gains glide to
+  // new values over about 10 ms.
+  void reverb(const std::array<SdlSoundReverb, 2> &);
 
   // Checkpoint or typed creation enrolls exclusive constructing-executor use.
   // Enrollment rejects prior foreign producer writes; unpublished legacy raw

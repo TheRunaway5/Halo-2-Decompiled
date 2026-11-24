@@ -191,7 +191,8 @@ int run(int argc,char**argv) {
     const auto shape=source_effect_light_sphere(definition,light.runtime.position,{1,0,0},{0,0,1},light_size);
     const auto spatial=cache.load_object_light_spatial_bsp(0);
     auto receiver_view=source_effect_light_receiver_view({spatial,geometry,atmosphere,0},
-        std::int16_t(atmosphere.cluster_at(light.runtime.position)),light.runtime.spatial_center,light_radius,shape,containing_fog,&main_bsp);
+        std::int16_t(atmosphere.cluster_at(light.runtime.position)),light.runtime.spatial_center,light_radius,shape,containing_fog,&main_bsp,
+        definition.flags);
     WorldEffectLightReceiver receiver{light.runtime.identity,1,1,std::move(receiver_view)};
     SourceLiveModelDrawContextTu15 context;
     context.entry.mode=context.draw.draw.mode=1;context.entry.distance_scale=0;

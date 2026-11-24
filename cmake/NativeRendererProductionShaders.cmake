@@ -9,7 +9,8 @@ set(native_renderer_fixed_shaders
     particle_model.geom.spv particle_model.vert.spv particle_perpendicular.vert.spv
     patchy_noise.vert.spv pstencil/lightmap.frag.spv pstencil/lightmap.vert.spv
     path_tracing/world.vert.spv path_tracing/world.frag.spv path_tracing/depth.frag.spv
-    path_tracing/lighting.frag.spv
+    path_tracing/lighting.frag.spv path_tracing/world.rt.frag.spv path_tracing/glow_layer.frag.spv
+    path_tracing/trace.comp.spv path_tracing/trace.rt.comp.spv path_tracing/denoise.comp.spv path_tracing/calibrate.comp.spv
     pstencil/volume.frag.spv pstencil/volume.geom.spv pstencil/volume.vert.spv
     source_contrail.geom.spv source_contrail.vert.spv
     source_decal.geom.spv source_decal.vert.spv

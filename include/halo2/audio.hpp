@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 namespace halo2 {
 struct PcmSound {
   std::string name;
@@ -44,7 +45,8 @@ public:
                         std::shared_ptr<const PcmSound> end, float gain = 1,
                         float pan = 0, LoopNext choose_loop = {});
   void stop(VoiceId, bool immediate = false);
-  void fade_out(VoiceId, float seconds, std::uint16_t source_curve);
+  void fade_out(VoiceId, float seconds, std::uint16_t source_curve,
+                std::span<const std::uint16_t> class_curves = {});
   void parameters(VoiceId, float gain, float pan);
   void next_loop(VoiceId, std::shared_ptr<const PcmSound>);
   std::optional<std::size_t> playback_position(VoiceId) const;

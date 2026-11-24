@@ -16,7 +16,7 @@ layout(location=10) flat in uint traceLightmapIndex;
 layout(location=11) in vec3 traceVertexRadiance;
 // Exact existing material ABI. The cheap visibility phase needs no BVH,
 // emission evaluator, or ray transport calls.
-struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;uvec4 colorGuide;vec4 glancingTint;};
+struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;uvec4 colorGuide;vec4 glancingTint;uvec4 detail;};
 layout(set=1,binding=2,std430) readonly buffer TraceMaterials {TraceMaterial traceMaterials[];};
 layout(set=1,binding=4,std430) readonly buffer TracePixels {uint tracePixels[];};
 #include "source_alpha_test.glsl"

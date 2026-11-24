@@ -1,8 +1,14 @@
-"""Bind actual native camera inputs at seven authenticated listener loads."""
+"""Bind actual native camera inputs at twelve authenticated listener loads.
+
+The last five are 18E970's background-sound loads; source_object_audio_view_
+operand_tu15 answers them only for views that opt in with background_sound."""
 SITES=((0x18f947,'0x2u+s.gp[7]',1),(0x18f94e,'0x0u+s.gp[7]',2),
        (0x18f960,'0x0u+s.gp[7]',2),(0x190475,'0xffffffceu+s.gp[1]',1),
        (0x19047c,'0xfffffff8u+s.gp[1]',4),(0x190485,'0xfffffffcu+s.gp[1]',4),
-       (0x19048f,'0x0u+s.gp[1]',4))
+       (0x19048f,'0x0u+s.gp[1]',4),
+       (0x18ea19,'0x6u+s.gp[1]',1),(0x18ea24,'0x4u+s.gp[1]',2),
+       (0x18ea34,'0x0u+s.gp[1]',4),(0x18ea39,'0x4u+s.gp[1]',4),
+       (0x18ea3c,'0x8u+s.gp[1]',4))
 
 def bind_native_camera_inputs(source):
     inherited='    using physics_world_runtime_detail::WorldState::WorldState;'

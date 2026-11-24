@@ -118,8 +118,8 @@ void validate_controls(const Controls& c){
     word(c.entry_status);if(c.entry_status&forbidden)throw std::invalid_argument("unsupported reverb entry status");
     for(auto m:c.modifiers)if(m!=0xffffffu)throw std::invalid_argument("unsupported reverb addressing mode");
 }
-void process(State& s,Workspace& workspace,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,const Controls& controls,ArithmeticTrace* trace){
-    validate(s,workspace,input,outputs,controls,trace);
+namespace {
+void run(State& s,Workspace& workspace,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,ArithmeticTrace* trace){
     if(trace)trace->count=0;
     if(!(s.flags&1u))initialize(s);
     if(s.flags&4u){s.flags&=~4u;s.fade.sample_count=0;s.fade.pending_mask=1;s.smoothing_count=0;for(unsigned j=0;j<4;j++)for(unsigned k=0;k<2;k++)set_delay(s,13+j*2+k,j,s.delays[6+j*2+k]);for(unsigned j=0;j<4;j++)set_delay(s,25+j,8+j,s.cluster_taps[8+j]);}
@@ -146,5 +146,14 @@ void process(State& s,Workspace& workspace,std::span<Word,32> input,std::array<s
     auto output=[&](unsigned from,unsigned destination){for(unsigned j=0;j<16;j++){workspace[29+j/8][(j*2)%16]=workspace[from][j];workspace[29+j/8][(j*2+1)%16]=workspace[from][j];}add_block(block(29),outputs[destination].data(),trace);add_block(block(30),outputs[destination].data()+16,trace);};
     if(dual){output(25,2);output(26,3);}output(23,0);output(24,1);
     for(unsigned j=0;j<14;j++){auto& ring=s.rings[j];for(unsigned k=0;k<16;k++)ring.words[((ring.write_byte_cursor/4)+k)%ring.words.size()]=workspace[write_block[j]][k];ring.write_byte_cursor=std::uint32_t((ring.write_byte_cursor+64)%(ring.words.size()*4));}
+}
+
+}
+void process(State& s,Workspace& workspace,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,const Controls& controls,ArithmeticTrace* trace){
+    validate(s,workspace,input,outputs,controls,trace);
+    run(s,workspace,input,outputs,trace);
+}
+void process_admitted(State& s,Workspace& workspace,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs){
+    run(s,workspace,input,outputs,nullptr);
 }
 }

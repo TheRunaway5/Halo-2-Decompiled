@@ -382,12 +382,31 @@ SourcePresentedModelPoseScopeTu15::SourcePresentedModelPoseScopeTu15(PhysicsLive
                     };
                     const bool exact=same(body+0x64u,pose.root.position) && same(body+0x70u,pose.root.basis[0]) &&
                         same(body+0x7cu,pose.root.basis[2]) && same(body+0xa0u,pose.root.scale);
-                    const bool unmoved=!reference_relocation && (exact || (word(p.memory,body+0x10u)==~0u &&
-                        word(p.memory,body+0x11cu,2)==0u && near(body+0x64u,pose.root.position) &&
+                    // A root whose shown node 0 is bit-identical to its simulation
+                    // node 0 is at rest (or at its tick endpoint): its shown
+                    // placement differs from the simulation's only by the
+                    // presentation composition's rounding (node0 * inverse(node0)).
+                    // B95D0 to that placement would rebuild riders, held weapons and
+                    // attachments from the same simulation nodes, so it takes the
+                    // childless route too (parked vehicles, dropped weapons: most of
+                    // Zanzibar's and Coagulation's relocation time). Frame-identical
+                    // on Zanzibar/Coagulation 1p/2p/4p endpoint and moving
+                    // fraction-0.5 captures (2026-11-22).
+                    // HALO2_REFERENCE_RESTING_ROOT_RELOCATION=1 relocates them again.
+                    static const bool reference_resting=[]{
+                        const auto *e=std::getenv("HALO2_REFERENCE_RESTING_ROOT_RELOCATION");return e && *e;}();
+                    const auto node_offset=std::bit_cast<std::int16_t>(std::uint16_t(word(p.memory,body+0x116u,2)));
+                    const bool resting=!reference_resting && !pose.nodes.empty() &&
+                        !std::memcmp(p.memory.view(body+std::uint32_t(node_offset),sizeof(Transform)).data(),
+                            &pose.nodes.front(),sizeof(Transform));
+                    const bool unmoved=!reference_relocation && (exact || ((resting || (word(p.memory,body+0x10u)==~0u &&
+                        word(p.memory,body+0x11cu,2)==0u)) && near(body+0x64u,pose.root.position) &&
                         near(body+0x70u,pose.root.basis[0]) && near(body+0x7cu,pose.root.basis[2]) &&
                         near(body+0xa0u,pose.root.scale)));
                     if(unmoved)++p.unmoved_roots;else ++p.moved_roots;
-                    static const bool explain=[]{const auto *e=std::getenv("HALO2_RELOCATION_MOVED_DIAGNOSTICS");return e && *e;}();
+                    // HALO2_RELOCATION_MOVED_DIAGNOSTICS=N prints moved roots from frame N on.
+                    static const long explain_from=[]{const auto *e=std::getenv("HALO2_RELOCATION_MOVED_DIAGNOSTICS");return e && *e?std::strtol(e,nullptr,10):-1L;}();
+                    const bool explain=explain_from>=0 && long(p.frame)>=explain_from;
                     if(explain && !unmoved) {
                         static unsigned printed=0;
                         if(printed<400) {

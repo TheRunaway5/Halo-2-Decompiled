@@ -1,5 +1,6 @@
 #include "halo2/source_loop_phased_output_tu15.hpp"
 #include "halo2/source_loop_track_control_tu15.hpp"
+#include "halo2/source_loop_detail_control_tu15.hpp"
 #include "halo2/menu_music.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
@@ -8,6 +9,11 @@
 namespace halo2 {namespace {
 constexpr auto none=0xffffffffu;
 std::uint32_t advance(std::uint32_t& seed){return seed=seed*0x19660du+0x3c6ef35fu;}
+//21A250/21B940 give each track its own seed for either synchronization bit
+// (lsnd 0x10 playback, 0x20 tracks). Only a real controller (the request's
+// controller definition) also keeps per-track permutation masks.
+bool synchronized(const SourceLoopPhasedOwnerTu15& owner){return (owner.definition.flags&0x30u)!=0;}
+bool controlled(const SourceLoopPhasedOwnerTu15& owner){return synchronized(owner) && owner.synchronization!=none;}
 float base_pitch(const SoundVariationDefinition& definition){
     return float(std::bit_cast<std::int16_t>(Bytes(definition.playback).u16(0x18)));
 }
@@ -46,17 +52,27 @@ MultiplayerLoopPacketParametersTu15 parameters(SourceLoopPhasedOutputTu15& outpu
     std::array<std::int16_t,5> interval{};for(unsigned n=0;n<5;++n)
         interval[n]=std::bit_cast<std::int16_t>(Bytes(definition.pitch_ranges.at(v.range).interval).u16(n*2));
     const auto layer=source_loop_pitch_layer_tu15(interval,pitch,(Bytes(definition.sound).u16(0)&0x2000u)!=0);
+    // 222E10: the voice's gain takes its sound's location scale (with
+    // 129790's losses); the track's slewed control sets only its pitch.
     MultiplayerLoopPacketParametersTu15 result{pitch,
-        owner.definition.tracks.at(ordinal).gain_db+Bytes(owner.location).f32(8)+layer.gain_db,track.control};
+        owner.definition.tracks.at(ordinal).gain_db+Bytes(owner.location).f32(8)+layer.gain_db,
+        output.scale(owner.location,definition)};
     if(owner.combined)result.combined_amplitudes=owner.combined_amplitudes;
+    //21C400 shifts a loop voice's pitch for Doppler when its source flags
+    // carry bit 2, which a combined loop clears (220CF3).
+    const Bytes location(owner.location);
+    result.velocity={location.f32(0x1c),location.f32(0x20),location.f32(0x24)};
+    result.doppler=!owner.combined && (owner.source_flags&2u)!=0;
     return result;
 }
 unsigned select(SourceLoopPhasedOutputTu15& output,std::uint32_t& used,
-    std::uint32_t sound,unsigned range,std::uint32_t& seed,bool continuing,bool synchronized){
-    //2235A0 uses the retained track mask only for a synchronized owner.
+    std::uint32_t sound,unsigned range,std::uint32_t& seed,bool continuing,const SourceLoopPhasedOwnerTu15& owner){
+    //2235A0 uses the retained track mask only for a controlled owner.
     //Otherwise21FED0 selects the actual shared pitch-range state; a phase
-    //change does not clear that bank's no-repeat mask.
-    if(!synchronized)return output.common_permutation(sound,range,seed);
+    //change does not clear that bank's no-repeat mask.21CC30 supplies no
+    // previous permutation for any synchronized definition.
+    if(!controlled(owner))return synchronized(owner)?output.common_permutation_without_previous(sound,range,seed):
+        output.common_permutation(sound,range,seed);
     const auto& definition=output.metadata(sound,range);std::vector<std::uint16_t> chances;
     for(const auto& permutation:definition.permutations)chances.push_back(Bytes(permutation).u16(2));
     if(continuing)used=0;LoopingSoundSelection state{used,-1};
@@ -88,8 +104,7 @@ struct Playback final:SourceLoopTrackPlaybackTu15 {
         const auto selected=range.value_or(pitch_range(sound,track.control));
         SourceLoopPhasedVoiceTu15 created;created.sound=sound;created.range=selected;created.mode=mode;created.base_pitch=pitch;
         created.seed=track.seed;created.used=track.used;
-        const auto permutation=select(output,track.used,sound,selected,seed,mode==2,
-            (owner.definition.flags&0x10u)!=0);
+        const auto permutation=select(output,track.used,sound,selected,seed,mode==2,owner);
         const auto values=parameters(output,owner,track,ordinal,created);
         MultiplayerLoopPacketTu15 packet{sound,owner.emitter,0,selected,permutation,values,position(owner)};
         //220C60/221AF0 complete these controls before the source SDK's
@@ -117,6 +132,7 @@ struct Playback final:SourceLoopTrackPlaybackTu15 {
 };
 void retire(SourceLoopPhasedOwnerTu15& owner,SourceLoopPhasedOutputTu15& output){
     for(auto& track:owner.tracks)for(const auto& v:track.voices)if(output.active(v.id))output.retire(v.id);
+    for(const auto& detail:owner.detail_voices)if(output.active(detail.voice))output.retire(detail.voice);
 }
 void release(SourceLoopPhasedStateTu15& state,std::uint32_t key){
     const auto found=state.synchronization.find(key);
@@ -153,14 +169,21 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
         throw FormatError("Native synchronized loop request escapes its caller domain");
     const auto flags=definition.flags&~0x300u;
     const auto type=std::to_integer<unsigned>(request.location[3])&15u;
-    const bool synchronized=(flags&0x10u)!=0,combined=(flags&0x80u)!=0 && type!=0;
+    const bool synchronized=(flags&0x30u)!=0,controlled=synchronized && args[3]!=none,
+        combined=(flags&0x80u)!=0 && type!=0;
     //220CCD only combines a non-centered location. Always-spatialize and
     //fake-spatialization are not alternative scheduling algorithms:18D5A0
     //already supplied the real location.2218C0/220FA5 test synchronization
-    //independently of those authored bits.
-    if((flags&~0xd8u) || !definition.details.empty() || (synchronized && args[3]==none) ||
-        request.emitter_owner==none || type>1u)
-        throw FormatError("Loop requires its remaining synchronization/profile owner");
+    //independently of those authored bits. Centered (unowned) loops and
+    // detail sounds are ordinary 21A250/21B0E0 owners.
+    // Definition bits 1 (deafening to AI) and 4 (stops music, 18D220) do not
+    // schedule tracks; one-shots (2) finish in the frame below.
+    if((flags&~0xffu) || type>1u)
+        throw FormatError("Loop requires its remaining location owner");
+    //21B940/21F8A0 count a controlled 0x20 loop's new voices and 219D90
+    // starts them together (21F430) once every channel is primed. The native
+    // lane submits a frame's new voices in one mixer pass, so they start
+    // together already; 21BF00's position hold while waiting has no effect.
     const auto key=source_loop_phased_key_tu15(request,definition);auto found=state.owners.find(key);const bool created=found==state.owners.end();
     if(created && args[5]==2)return;
     if(combined)output.require_combined_output();
@@ -170,7 +193,7 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
         //The original phase selector, rather than a required normal loop,
         //decides which authored sound exists for this request.
         for(const auto& track:definition.tracks)if((track.flags&~0x1fu) ||
-            (synchronized && (track.alternate!=none || track.alternate_end!=none ||
+            (controlled && (track.alternate!=none || track.alternate_end!=none ||
                 track.alternate_transition_in!=none || track.alternate_transition_out!=none)))
             throw FormatError("Native phase requires its remaining track profile owner");
         for(const auto& track:definition.tracks)for(const auto sound:{track.start,track.loop,track.end,
@@ -185,7 +208,7 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
                     throw FormatError("Native phase requires its authored multi-chunk queue owner");}
         }
         auto sync=state.synchronization.end();
-        if(synchronized){
+        if(controlled){
             sync=state.synchronization.find(args[3]);
             if(sync==state.synchronization.end())sync=state.synchronization.emplace(args[3],
                 SourceLoopPhasedSynchronizationTu15{output.fresh_secondary(),0}).first;
@@ -194,15 +217,24 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
         SourceLoopPhasedOwnerTu15 owner;owner.definition=definition;owner.emitter=request.emitter_owner;
         owner.synchronization=args[3];owner.location=request.location;owner.tracks.resize(definition.tracks.size());
         owner.combined=combined;
-        if(synchronized)for(auto& track:owner.tracks)track.seed=sync->second.seed;
+        //21AEB0 draws every detail's first deadline before track seeds.
+        const auto clock=definition.details.empty()?0:output.detail_clock();
+        for(const auto& detail:definition.details)owner.detail_deadlines.push_back(
+            source_loop_detail_deadline_tu15(detail.period,detail.flags,clock,output.common_secondary(),true));
+        if(controlled)for(auto& track:owner.tracks)track.seed=sync->second.seed;
+        else if(synchronized)for(auto& track:owner.tracks) {
+            if(!state.default_controller_seed)state.default_controller_seed=output.fresh_secondary();
+            track.seed=advance(*state.default_controller_seed);
+        }
         for(auto& track:owner.tracks)track.control=location.f32(4);
         found=state.owners.emplace(key,std::move(owner)).first;
-        if(synchronized)++sync->second.references;
+        if(controlled)++sync->second.references;
     }
     auto& owner=found->second;
     if(!combined && (owner.synchronization!=args[3] || owner.emitter!=request.emitter_owner))
         throw FormatError("Native synchronized loop changed its source owner generation");
     owner.source_flags=std::uint16_t(args[1]);
+    owner.alternate=(args[6]&1u)!=0;owner.disable_details=(args[6]&4u)!=0;
     if(!(std::to_integer<unsigned>(request.location[0])&2u))owner.location=request.location;
     if(combined){
         owner.combined_amplitudes=source_loop_combined_reset_tu15(owner.combined_amplitudes,owner.last_frame,state.frame);
@@ -221,6 +253,8 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
     owner.last_frame=state.frame;
     auto command=args[5];if(!created && !command && (args[6]&0x10u))command=1;
     for(unsigned n=0;n<owner.tracks.size();++n){auto& track=owner.tracks[n];prune(track,output);
+        // A finished one-shot restarts nothing; only a stop still applies.
+        if(owner.finished && command!=2)continue;
         Playback playback(output,owner,track,n,synchronized?track.seed:output.common_secondary());
         if(command!=0)playback.initial_fade=.5f;
         else if(definition.tracks[n].flags&1u)playback.initial_fade=definition.tracks[n].fade_in;
@@ -235,7 +269,7 @@ void source_loop_phased_frame_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPh
         for(auto& track:owner.tracks)prune(track,output);
         const auto live=[&]{return std::ranges::any_of(owner.tracks,[](const auto& t){return !t.voices.empty();});};
         if((!owner.seen && !(owner.retain&&live())) || (owner.stopping&&!live())){
-            retire(owner,output);if(owner.definition.flags&0x10u)release(state,owner.synchronization);
+            retire(owner,output);if(controlled(owner))release(state,owner.synchronization);
             it=state.owners.erase(it);continue;}
         for(unsigned n=0;n<owner.tracks.size();++n){auto& track=owner.tracks[n];auto* primary=voice(track,track.phase.primary);
             if(primary && !owner.stopping){const auto& d=output.metadata(primary->sound,primary->range);
@@ -243,8 +277,8 @@ void source_loop_phased_frame_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPh
                 const auto pitch=source_sound_control_pitch(d,primary->base_pitch,track.control);
                 const auto selected=source_sound_pitch_range(d.pitch_ranges,std::int16_t(primary->range),pitch);
                 if(selected<0)throw FormatError("Native synchronized frame lost its authored pitch range");
-                auto synchronized_seed=owner.definition.flags&0x10u?state.synchronization.at(owner.synchronization).seed:0u;
-                auto& seed=owner.definition.flags&0x10u?synchronized_seed:output.common_secondary();
+                auto synchronized_seed=controlled(owner)?state.synchronization.at(owner.synchronization).seed:0u;
+                auto& seed=controlled(owner)?synchronized_seed:synchronized(owner)?track.seed:output.common_secondary();
                 Playback playback(output,owner,track,n,seed);
                 if(Bytes(d.sound).u16(0)&0x2000u){
                     const auto current_sound=primary->sound;
@@ -281,9 +315,13 @@ void source_loop_phased_frame_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPh
                     const auto selected=source_sound_pitch_range(d.pitch_ranges,-1,pitch);
                     if(selected<0)throw FormatError("Native phase transition lost its authored range");range=unsigned(selected);
                 }else if(v.mode==3)continue;
-                auto& seed=owner.definition.flags&0x10u?(v.id==track.phase.primary?track.seed:v.seed):output.common_secondary();
+                // Base 21C400: at a one-shot's last loop-phase chunk, stop the channel
+                // (state 4) instead of choosing another permutation.
+                else if((owner.definition.flags&2u) && v.id==track.phase.primary &&
+                    (track.phase.phase==1 || track.phase.phase==4)){v.mode=3;owner.finished=true;continue;}
+                auto& seed=synchronized(owner)?(v.id==track.phase.primary?track.seed:v.seed):output.common_secondary();
                 auto& used=v.id==track.phase.primary?track.used:v.used;
-                const auto permutation=select(output,used,sound,range,seed,transition,(owner.definition.flags&0x10u)!=0);
+                const auto permutation=select(output,used,sound,range,seed,transition,owner);
                 if(!output.queue(v.id,sound,range,permutation))throw FormatError("Native phase lost its available packet slot");
                 if(transition){v.sound=sound;v.range=range;track.phase.phase=track.phase.pending;}
             }

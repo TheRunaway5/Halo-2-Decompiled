@@ -72,6 +72,42 @@ SoundVariationDefinition Cache::load_sound_variation(std::uint32_t datum,unsigne
   }
   return out;
 }
+LoopingMusicFade load_looping_music_fade(const Cache &cache) {
+  LoopingMusicFade result;
+  const auto *globals = cache.find_tag(cache.globals_tag(), tag_groups::globals);
+  if (!globals || !globals->address)
+    return result;
+  const Bytes definition(cache.read_tag_bytes(globals->address, 0xc8));
+  const auto sound_globals = read_tag_block_descriptor(definition, 0xc0);
+  if (!sound_globals.count)
+    return result;
+  const auto prefix = cache.is_mcc() ? 8u : 0u;
+  const Bytes row(cache.read_tag_bytes(sound_globals.address, sound_globals.extent(0x24 + prefix, 1)));
+  const TagHandle mix{row.u32(0x14 + prefix)};
+  if (!mix.is_null()) {
+    const auto *tag = cache.find_tag(mix, tag_groups::sound_mix);
+    if (!tag || !tag->address || tag->size < 0x58)
+      throw FormatError("Game music fade has no resident Sound Mix");
+    result.seconds = Bytes(cache.read_tag_bytes(tag->address, 0x58)).f32(0x54);
+    if (!std::isfinite(result.seconds) || result.seconds < 0 || result.seconds > 600)
+      throw FormatError("Invalid Game Music Fade Out Time");
+  }
+  const TagHandle classes{row.u32(4 + prefix)};
+  const auto *tag = cache.find_tag(classes, tag_groups::sound_classes);
+  if (!tag || !tag->address || tag->size < 8)
+    throw FormatError("Game music fade has no resident Classic Sound Classes");
+  const Bytes header(cache.read_tag_bytes(tag->address, 8));
+  const auto block = read_tag_block_descriptor(header, 0);
+  const auto stride = cache.is_mcc() ? 0x78u : 0x5cu;
+  const auto size = block.extent(stride, 65536);
+  if (size) {
+    const Bytes records(cache.read_tag_bytes(block.address, size));
+    result.class_curves.reserve(block.count);
+    for (std::size_t at = 0; at < size; at += stride)
+      result.class_curves.push_back(std::uint16_t(!(records.u16(at + 10) & 0x400u)));
+  }
+  return result;
+}
 std::uint16_t SoundLocalRandom::advance(std::uint32_t instruction) {
   const auto before=seed;seed=seed*0x0019660du+0x3c6ef35fu;
   stores.push_back({instruction,before,seed});return std::uint16_t(seed>>16);

@@ -46,10 +46,16 @@ void source_request_handoff(const Cache &cache,std::uint32_t sound){
       put(0,flags);bool rejected{};
       try{(void)raw.source_impulse(sound,request,MultiplayerAudioKind::FirstPerson,2);}
       catch(const FormatError&){rejected=true;}
-      check(rejected && raw.voices()==0,"Source controller/forced selector silently became an ordinary impulse");
+      check(rejected && raw.voices()==0,"Source controller or invalid forced selector silently became an ordinary impulse");
     }
+    // 223B20 plays a valid forced selection (AI dialogue) from its own
+    // authored pitch range (+9C) and permutation (+9E).
+    put(0,0x40du);put(0x9c,0u);
+    check(raw.source_impulse(sound,request,MultiplayerAudioKind::FirstPerson,2).has_value() && raw.voices()==1,
+        "Forced source selection lost its authored pitch range and permutation");
+    raw.stop();
   }
-  std::cout<<"PASS raw source impulse preserves caller backing, owner/view, control and actual PCM; controller/forced selectors remain separate\n";
+  std::cout<<"PASS raw source impulse preserves caller backing, owner/view, control and actual PCM; controller selectors remain separate; forced selections are validated and play their authored range/permutation\n";
 }
 void world_distance_handoff(const Cache &cache,std::uint32_t sound){
   const auto measure=[&](Vec3 point,std::span<const Vec3> listeners){
@@ -335,6 +341,9 @@ int main(int argc,char **argv){
       ambient_peak=std::max(ambient_peak,peak(ambient.render(1600)));}
     check(actual_tracks==expected_tracks && ambient_peak>0,"Authored ambient tracks did not reach native PCM output");
     ambient.master_volume(0);
+    // The voice processor takes a level at a voice's next 32-sample frame
+    // and moves to it across that frame.
+    (void)ambient.render(64);
     check(peak(ambient.render(1600))==0 && ambient.voices()>0,"native mute left audible game PCM or stopped ambient voices");
     ambient.master_volume(1);
     check(peak(ambient.render(1600))>0,"native unmute failed to restore ongoing game voices");

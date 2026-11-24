@@ -306,6 +306,7 @@
 #include "halo2/native_tu15_sound_manager.hpp"
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "halo2/source_sound_listener_selection_tu15.hpp"
+#include "halo2/source_weather.hpp"
 #include "halo2/source_sound_gain_tu15.hpp"
 #include "halo2/source_loop_combined_publication_tu15.hpp"
 #include "halo2/source_loop_combined_routing_tu15.hpp"
@@ -950,6 +951,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::optional<std::uint32_t> zoom_sound_unit;
     bool zoom_sound_forced_reset{};
     SourceLoopSoundRequestObserverTu15 loop_sound_request_observer;
+    SourceLoopSoundFinishedTu15 loop_sound_finished;
     SourceEffectLightBirthObserverTu15 effect_light_birth_observer;
     bool first_person_phase_active{};
     std::vector<std::uint32_t> first_person_phase_trace;
@@ -3902,6 +3904,12 @@ struct PhysicsLiveWorldTu15::Impl {
                 }
             }
             required(m,{c.target,c.target,false},a,o);
+            // 18D5A0 frees a row when 220C60 returns true (AL).
+            bool finished=false;
+            if(loop_sound_finished && (c.instruction==0x18d7fau || c.instruction==0x18d93bu) && !(a.gp[0]&0xffu)) {
+                SourceExecutionObserverScope read_only(bank);finished=loop_sound_finished(request);
+            }
+            if(finished)a.gp[0]=(a.gp[0]&~0xffu)|1u;
             SourceExecutionObserverScope read_only(bank);
             loop_sound_request_observer(request);return;
         }
@@ -8881,6 +8889,9 @@ void PhysicsLiveWorldTu15::observe_weapon_zoom_sounds(SourceWeaponZoomSoundObser
 void PhysicsLiveWorldTu15::observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->loop_sound_request_observer=std::move(observer);
 }
+void PhysicsLiveWorldTu15::answer_finished_loop_sounds(SourceLoopSoundFinishedTu15 answer) {Impl::PublicCall active(*impl_);
+    impl_->loop_sound_finished=std::move(answer);
+}
 std::vector<SourceObjectLoopEmitterTu15> PhysicsLiveWorldTu15::object_loop_emitters() {
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::ObjectLoopEmitters,
         []{return std::vector<std::byte>{};});
@@ -8975,6 +8986,69 @@ void PhysicsLiveWorldTu15::step_native_object_audio(const SourceObjectAudioViews
     } else if(native)native_tu15_object_audio_frame(impl_->bank,abi,fp,impl_->services(),&views);
     else source_run_object_loop_audio_tu15(impl_->bank,0x18ee50u,abi,fp,
         impl_->services(),{},&views);
+}
+void PhysicsLiveWorldTu15::publish_native_weather(const SourceWeatherState& weather) {
+    Impl::PublicCall active(*impl_);
+    if(!std::isfinite(weather.current) || !std::isfinite(weather.target) || !std::isfinite(weather.rate))
+        throw FormatError("Native weather publication requires finite intensity state");
+    put(impl_->bank,0x47365cu,std::bit_cast<std::uint32_t>(weather.current));
+    put(impl_->bank,0x473660u,std::bit_cast<std::uint32_t>(weather.target));
+    put(impl_->bank,0x515f00u,std::bit_cast<std::uint32_t>(weather.stopped));
+    put(impl_->bank,0x515f04u,std::bit_cast<std::uint32_t>(weather.transition));
+    put(impl_->bank,0x515f08u,std::bit_cast<std::uint32_t>(weather.rate));
+}
+void PhysicsLiveWorldTu15::publish_native_sound_elapsed(float seconds) {
+    Impl::PublicCall active(*impl_);
+    if(!std::isfinite(seconds) || seconds<0)throw FormatError("Native sound frame time must be finite and non-negative");
+    const auto system=word(impl_->bank,0x4f2c50u);
+    if(!system)throw FormatError("Native sound frame time requires the actual sound system");
+    put(impl_->bank,system+0x1e0u,std::bit_cast<std::uint32_t>(seconds));
+}
+std::array<SourceSoundListenerEnvironmentTu15,2> PhysicsLiveWorldTu15::native_sound_environments() {
+    Impl::PublicCall active(*impl_);
+    const auto system=word(impl_->bank,0x4f2c50u);
+    if(!system)throw FormatError("Native sound environments require the actual sound system");
+    const auto real=[&](std::uint32_t address){return std::bit_cast<float>(word(impl_->bank,address));};
+    std::array<SourceSoundListenerEnvironmentTu15,2> result{};
+    for(unsigned n=0;n<2;++n) {
+        const auto slot=system+0x1a8u+n*0x1cu;auto& environment=result[n];
+        environment.fade=real(slot+4u);
+        for(unsigned k=0;k<4;++k)environment.occlusion[k]=real(slot+0xcu+k*4u);
+        // 127400 hears an environment through its snde record, or the
+        // reverb of none (g_44A2A0) for an empty slot.
+        if(const auto tag=word(impl_->bank,slot+8u);tag!=0xffffffffu) {
+            const auto data=word(impl_->bank,word(impl_->bank,0x4f0414u)+(tag&0xffffu)*16u+8u);
+            if(!data)throw FormatError("Native sound environment lost its snde record");
+            auto& r=environment.reverb;
+            const std::array<float*,12> fields{&r.room,&r.room_hf,&r.room_rolloff,&r.decay_time,&r.decay_hf_ratio,
+                &r.reflections,&r.reflections_delay,&r.reverb,&r.reverb_delay,&r.diffusion,&r.density,&r.hf_reference};
+            for(unsigned k=0;k<fields.size();++k)*fields[k]=real(data+8u+k*4u);
+        }
+        const auto finite=[](float v){return std::isfinite(v);};
+        if(!finite(environment.fade) || !std::ranges::all_of(environment.occlusion,finite) ||
+            !finite(environment.reverb.room) || !finite(environment.reverb.decay_time) || !finite(environment.reverb.hf_reference))
+            throw FormatError("Native sound environment is not finite");
+    }
+    return result;
+}
+SourceSoundGlobalEnvironmentTu15 PhysicsLiveWorldTu15::native_sound_global_environment() {
+    Impl::PublicCall active(*impl_);
+    const auto globals=word(impl_->bank,0x4f9b58u);
+    if(!globals)throw FormatError("Native global sound environment requires the actual loop-sound globals");
+    SourceSoundGlobalEnvironmentTu15 result;
+    for(unsigned n=0;n<4;++n)result.gains[n]=std::bit_cast<float>(word(impl_->bank,globals+0x228u+n*4u));
+    result.filter_frequency=std::bit_cast<std::int32_t>(word(impl_->bank,globals+0x238u));
+    result.filter_gain=std::bit_cast<float>(word(impl_->bank,globals+0x23cu));
+    if(!std::ranges::all_of(result.gains,[](float v){return std::isfinite(v);}) || !std::isfinite(result.filter_gain))
+        throw FormatError("Native global sound environment is not finite");
+    return result;
+}
+void PhysicsLiveWorldTu15::publish_native_ambience_details(bool enabled) {
+    Impl::PublicCall active(*impl_);
+    const auto globals=word(impl_->bank,0x4f9b58u);
+    if(!globals)throw FormatError("Native ambience details require the actual loop-sound globals");
+    const auto value=std::byte{enabled};
+    impl_->bank.write(globals+0x240u,std::span(&value,1));
 }
 void PhysicsLiveWorldTu15::observe_first_person_phase(SourceFirstPersonPhaseObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->first_person_phase_observer=std::move(observer);

@@ -5,7 +5,7 @@ int foreground_reflection_turn_gpu(const std::filesystem::path& shaders) {
     Fixture gpu;gpu.initialize(shaders,extent,true);gpu.fence_submissions=true;
     gpu.environment_side=32;gpu.renderer->set_quality(1,1);
     const std::array materials{white_material()};auto scene=pt::build_scene({},materials);
-    auto& mirror=scene.materials[0];mirror.base=mirror.glancing_tint={1,1,1,1};mirror.response={.12f,1,1,0};
+    auto& mirror=scene.materials[0];mirror.base=mirror.glancing_tint={1,1,1,1};make_mirror(mirror,.12f);
     const std::array<Vec3,6> sky{{{0,1,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{1,0,0}}};
     const auto draw=[&](const pt::Scene& owner,float yaw,bool capture) {
         const float s=std::sin(yaw),c=std::cos(yaw);
@@ -51,7 +51,7 @@ int reflected_object_history_gpu(const std::filesystem::path& shaders) {
     quad(after,4,-1.5f,7,1.5f,-3,{0,0,1},1);
     auto scene=pt::build_scene(before,materials);
     scene.materials[0].base=scene.materials[0].glancing_tint={1,1,1,1};
-    scene.materials[0].response={.12f,1,1,0};
+    make_mirror(scene.materials[0],.12f);
     scene.materials[1].emission={1,0,0,0};
     pt::update_geometry(scene,before);
     Camera camera;camera.eye={0,0,-10000,1};
@@ -93,7 +93,7 @@ int unrelated_reflection_motion_gpu(const std::filesystem::path& shaders) {
     };
     auto scene=pt::build_scene(geometry(0),materials);
     scene.materials[0].base=scene.materials[0].glancing_tint={1,1,1,1};
-    scene.materials[0].response={.25f,1,1,0};
+    make_mirror(scene.materials[0],.25f);
     Camera camera;camera.eye={0,0,-10000,1};
     const std::array<Vec3,6> sky{{{0,1,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{1,0,0}}};
     const auto draw=[&](const pt::Scene& owner,bool capture) {
@@ -125,7 +125,7 @@ int reflection_history_gpu(const std::filesystem::path& shaders) {
     gpu.renderer->set_quality(1,1);
     const std::array materials{white_material()};
     auto scene=pt::build_scene({},materials);
-    scene.materials[0].base={1,1,1,1};scene.materials[0].response={.12f,1,1,0};
+    scene.materials[0].base={1,1,1,1};make_mirror(scene.materials[0],.12f);
     const auto surface=[](float angle) {
         std::vector<Vertex> vertices;
         quad(vertices,-1,-1,1,1,.5f,{std::sin(angle),0,-std::cos(angle)},0);
@@ -172,7 +172,7 @@ int reflection_tint_history_gpu(const std::filesystem::path& shaders) {
     Fixture gpu;gpu.initialize(shaders,{64,64},true);gpu.fence_submissions=true;
     gpu.renderer->set_quality(1,1);
     const std::array materials{white_material()};auto scene=pt::build_scene({},materials);
-    auto& mirror=scene.materials[0];mirror.response={.12f,1,1,0};
+    auto& mirror=scene.materials[0];make_mirror(mirror,.12f);
     mirror.base=mirror.glancing_tint={1,0,0,1};
     std::vector<Vertex> primary;quad(primary,-1,-1,1,1,.5f,{0,0,-1},0);
     const auto draw=[&](bool capture) {

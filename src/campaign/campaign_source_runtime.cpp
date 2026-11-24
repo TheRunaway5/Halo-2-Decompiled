@@ -415,6 +415,12 @@ void CampaignSourceRuntime::step(Simulation &simulation,const Controls &input) {
   deliver_controls(simulation,input);
   objects_->step_objects();adopt(simulation);
 }
+std::optional<Vec2> CampaignSourceRuntime::player_look() {
+  DatumPool players(objects_->memory(),objects_->player_pool());
+  const auto record=std::as_const(players).lookup(player_);
+  if(record.empty())return {};
+  return objects_->player_look(player_,Bytes(std::as_bytes(record)).u32(0x2c));
+}
 MultiplayerState::Player CampaignSourceRuntime::hud_player(const Simulation &simulation) {
   auto result=native_weapon_hud_player(simulation.player_,simulation.content_);
   // Zoom/action admission consumes the separate component at unit+346,

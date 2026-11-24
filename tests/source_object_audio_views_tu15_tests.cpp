@@ -135,7 +135,26 @@ int main(int argc,char**argv)try {
     need(!source_object_audio_view_operand_tu15(&empty,Memory::sound_address,0x190475,
         Memory::sound_address+0x78,1),"Camera binding admitted a source readiness operand");
     need(!source_object_audio_view_operand_tu15(&empty,Memory::sound_address,0x220c94,
-        Memory::sound_address+0x8e,1),"Camera binding escaped its seven original input loads");
+        Memory::sound_address+0x8e,1),"Camera binding escaped its twelve original input loads");
+    // 18E970's background-sound loads bind only views that opt in.
+    SourceObjectAudioViewsTu15 cameras;
+    cameras[1]=SourceObjectAudioViewTu15{{1.5f,-2.f,3.25f},7,{},11};
+    need(!source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea19,
+        Memory::sound_address+0x48+0x8e,1),"Background sound read a view that did not opt in");
+    cameras[1]->background_sound=true;
+    need(source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea19,
+        Memory::sound_address+0x48+0x8e,1)==1u &&
+        source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea24,
+        Memory::sound_address+0x8c+0x48,2)==7u &&
+        source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea34,
+        Memory::sound_address+0xb8+0x48,4)==std::bit_cast<std::uint32_t>(1.5f) &&
+        source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea39,
+        Memory::sound_address+0xbc+0x48,4)==std::bit_cast<std::uint32_t>(-2.f) &&
+        source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea3c,
+        Memory::sound_address+0xc0+0x48,4)==std::bit_cast<std::uint32_t>(3.25f),
+        "Background sound lost its opted-in camera listener");
+    need(!source_object_audio_view_operand_tu15(&cameras,Memory::sound_address,0x18ea19,
+        Memory::sound_address+0x8e,1),"Background sound bound an absent view");
     need(!source_object_audio_view_operand_tu15(nullptr,Memory::sound_address,0x190475,
         Memory::sound_address+0x8e,1),"Unbound source bank acquired a native view");
     cluster_selector();

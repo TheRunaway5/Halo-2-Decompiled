@@ -19,7 +19,7 @@ void append_emitter_groups(Scene& scene) {
     };
     std::map<std::uint32_t,Group> groups;
     for(std::uint32_t emitter=0;emitter<scene.emissive_count;++emitter) {
-        const auto& triangle=scene.triangles.at(scene.pixels.at(scene.texture_texel_count+emitter));
+        const auto& triangle=scene.triangles.at(scene.pixels.at(scene.texture_texel_count+emitter)&~emitter_baked_bit);
         auto& group=groups[triangle.metadata[0]];++group.triangles;
         if(group.samples<group.sample_uv.size())group.sample_uv[group.samples++]={
             (triangle.uv01[0]+triangle.uv01[2]+triangle.uv2[0])/3.f,

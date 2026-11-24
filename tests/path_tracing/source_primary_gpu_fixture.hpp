@@ -77,8 +77,12 @@ int source_primary_gpu(const std::filesystem::path& shaders) {
     for(unsigned frame=0;frame<16;++frame)filtered=draw(scene,true);
     for(unsigned c=0;c<3;++c)require(std::abs(mean(filtered,c)-expected[c])<1.1f,
         "Denoising changed the full-resolution authored primary diffuse baseline");
-    auto unqualified=make({},false);require(mean(draw(unqualified),0)<1,
-        "An unqualified hue guide acquired source lighting energy");
+    // Every baked guide (lightmap image or static radiance) carries its 2*RGB
+    // energy; the authenticated tag no longer gates it (source_indirect.glsl),
+    // so interiors lit only by baked fixtures are not left black.
+    auto unqualified=make({},false);const auto untagged=draw(unqualified);
+    for(unsigned c=0;c<3;++c)require(std::abs(mean(untagged,c)-expected[c])<1.1f,
+        "An untagged baked guide lost its authored diffuse baseline");
     // An authored distant source retains the original traced outdoor route,
     // including a true zero for a sun behind this receiver's normal.
     pt::Light sun;sun.direction=Vec3{0,0,1};sun.color={1,1,1};

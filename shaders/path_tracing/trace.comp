@@ -1,0 +1,107 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_control_flow_attributes : require
+#ifdef H2_PATH_TRACING_HARDWARE_RAYS
+#extension GL_EXT_ray_query : require
+#endif
+// Traces every published lighting-grid request of one camera phase. The raster
+// lighting pass wrote the visible surface of each cell; this pass runs the
+// shared transport loop and temporal store for all cells at full occupancy,
+// instead of one active lane per 2x2 fragment quad.
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=1,binding=6,std430) restrict buffer TraceVisibility {
+    uvec4 extent;
+    uvec4 temporal;
+    uint words[];
+} traceVisibility;
+// The same camera block the lighting draws pushed: samples/bounces in
+// viewport.xy and the history role in eyePosition.w.
+layout(push_constant) uniform Camera {mat4 viewProjection;vec4 eyeForward;vec4 eyePosition;vec4 viewport;} camera;
+#include "source_alpha_test.glsl"
+#include "path_tracing/scene.glsl"
+#include "path_tracing/lighting_filter.glsl"
+// Firefly suppression. A single path that finds a small, very bright source
+// (an emitter, a sun glint, a bright sky texel through a crack) is a rare,
+// huge sample: the temporal/spatial filters would smear it into a blotch.
+// Clamp each sample's luminance well above anything the display range (the
+// demodulated multiplier of an albedo <= 1, clamped at 1) can resolve.
+vec3 traceClampLuminance(vec3 value,float maximum) {
+    float luminance=dot(value,vec3(.2126,.7152,.0722));
+    return luminance>maximum?value*(maximum/luminance):value;
+}
+// The denoiser's packed cell in bank 1 (see denoise.comp); normal word 0
+// marks a cell without a surface.
+uint tracePackedCell(uvec2 cell) {
+    uvec2 grid=traceLightingGrid();uint cells=grid.x*grid.y;
+    return traceVisibility.extent.z+cells*(traceLightingWords+2u*traceHistoryWords)+(cell.y*grid.x+cell.x)*8u;
+}
+void main() {
+    uvec2 cell=gl_GlobalInvocationID.xy;
+    if(any(greaterThanEqual(cell,traceLightingGrid())))return;
+    uint record=traceLightingRecord(cell);
+    uint materialIndex=traceVisibility.words[record+7u];
+    // Unclaimed cells stay invalid; a claim without a published request
+    // (bit31 still set) cannot occur after the render pass, but is rejected.
+    if(materialIndex>=0x80000000u){traceVisibility.words[tracePackedCell(cell)+4u]=0u;return;}
+    TraceMaterial material=traceMaterials[materialIndex];
+    vec3 position=traceLightingLoad3(record+8u);
+    vec3 normal=traceNormalize(unpackSnorm4x8(traceVisibility.words[record+3u]).xyz,vec3(0,0,1));
+    vec3 geometric=traceNormalize(unpackSnorm4x8(traceVisibility.words[record]).xyz,normal);
+    vec4 colorGuide=vec4(unpackHalf2x16(traceVisibility.words[record+1u]),unpackHalf2x16(traceVisibility.words[record+2u]));
+    float pixelFootprint=uintBitsToFloat(traceVisibility.words[record+4u]);
+    bool viewDependent=(traceVisibility.words[record+5u]&traceRequestViewDependent)!=0u;
+    uint packedPixel=traceVisibility.words[record+6u];
+    uvec2 pixel=uvec2(packedPixel&0xffffu,packedPixel>>16u);
+    vec3 incoming=traceNormalize(position-camera.eyePosition.xyz,-normal);
+    bool primaryCachedStatic=tracePrimarySourceAvailable(material,colorGuide);
+    uint frameSeed=traceHash(traceVisibility.temporal.x+0x93d765ddu);
+    uint state=traceHash(pixel.x+pixel.y*65537u+materialIndex*8191u+frameSeed);
+    vec3 diffuseLight=vec3(0),specularLight=vec3(0),currentDirect=vec3(0),currentDirectSpecular=vec3(0),incident=vec3(0);
+    const uint samples=uint(clamp(camera.viewport.x,1.0,2.0));
+    [[dont_unroll]] for(uint sampleIndex=0u;sampleIndex<samples;++sampleIndex) {
+        vec3 diffuseSample,specularSample,directSample,directSpecularSample,incidentSample;
+        // Primary albedo stays outside the estimate; bounce0 never reads it.
+        traceLighting(position,normal,geometric,incoming,material,vec3(1),colorGuide,primaryCachedStatic,state,
+                      diffuseSample,specularSample,directSample,directSpecularSample,incidentSample);
+        // Clamped with its light, so a firefly cannot swing the direction.
+        float sampleLuminance=dot(diffuseSample+directSample,vec3(.2126,.7152,.0722));
+        float kept=dot(traceClampLuminance(diffuseSample,4.0)+traceClampLuminance(directSample,8.0),vec3(.2126,.7152,.0722));
+        incident+=sampleLuminance>0.0?incidentSample*(kept/sampleLuminance):vec3(0);
+        diffuseLight+=traceClampLuminance(diffuseSample,4.0);
+        specularLight+=traceClampLuminance(specularSample,8.0);
+        currentDirect+=traceClampLuminance(directSample,8.0);
+        currentDirectSpecular+=traceClampLuminance(directSpecularSample,8.0);
+    }
+    float inverse=1.0/float(samples);
+    traceLightingStore(cell,record,diffuseLight*inverse,specularLight*inverse,currentDirect*inverse,
+                       currentDirectSpecular*inverse,incident*inverse,position,normal,geometric,incoming,materialIndex,
+                       material.response.x,pixelFootprint,viewDependent);
+    // Calibration samples (calibrate.comp): on a rotating quarter of the
+    // world's static lightmapped cells, record the traced sun irradiance and
+    // the baked lightmap irradiance (both luminance, packed in lane 14) and
+    // the unscaled light of the emitters that lit the bake (lane 15).
+    float sunLuminance=-1.0,bakedLuminance=0.0,emitterLuminance=0.0;
+    // Any lightmap or static-radiance guide is a sample; Halo 2's standard
+    // lightmap combiner transfers 2*RGB (traceSourceIndirect).
+    if(camera.eyePosition.w!=2.0 && !primaryCachedStatic && (material.colorGuide.x==1u || material.colorGuide.x==2u) &&
+       colorGuide.a>0.0 &&
+       ((cell.x+cell.y+traceVisibility.temporal.x)&3u)==0u) {
+        vec3 sunDiffuse,sunSpecular;
+        traceResolveDistantLights(position,normal,normal,geometric,incoming,material,colorGuide,false,sunDiffuse,sunSpecular);
+        sunLuminance=dot(sunDiffuse,vec3(.2126,.7152,.0722));
+        bakedLuminance=dot(traceSourceIndirect(colorGuide),vec3(.2126,.7152,.0722));
+        emitterLuminance=traceBakedEmitterLuminance(position,normal,state);
+    }
+    traceVisibility.words[record+14u]=packHalf2x16(vec2(sunLuminance,bakedLuminance));
+    traceVisibility.words[record+15u]=floatBitsToUint(emitterLuminance);
+    // Packed copy for the denoiser: accumulated lighting and surface guides.
+    uint packed=tracePackedCell(cell);
+    vec3 diffuse=min(traceLightingLoad3(record),vec3(60000.0)),specular=min(traceLightingLoad3(record+4u),vec3(60000.0));
+    traceVisibility.words[packed]=packHalf2x16(diffuse.rg);
+    traceVisibility.words[packed+1u]=packHalf2x16(vec2(diffuse.b,specular.r));
+    traceVisibility.words[packed+2u]=packHalf2x16(specular.gb);
+    traceVisibility.words[packed+3u]=0u;
+    traceVisibility.words[packed+4u]=(packSnorm4x8(vec4(normal,0))&0x00ffffffu)|
+        (uint(clamp(material.response.x,0.0,1.0)*255.0+.5)<<24u);
+    for(uint lane=0u;lane<3u;++lane)traceVisibility.words[packed+5u+lane]=floatBitsToUint(position[lane]);
+}

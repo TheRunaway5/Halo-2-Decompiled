@@ -11,6 +11,7 @@ namespace halo2::detail {
 namespace mcc_logical_layout {
 using Json = nlohmann::json;
 #include "ui/frontend_mcc_logical_layout_data.inc"
+#include "ui/frontend_profile_layout_data.inc"
 inline Json point(Vec2 v) { return {v.x, v.y}; }
 inline Json point(Vec3 v) { return {v.x, v.y, v.z}; }
 inline Json rect(UiRect v) { return {v.top, v.left, v.bottom, v.right}; }
@@ -354,6 +355,82 @@ struct View {
   std::optional<UiScreen> browser;
   float browser_frame_height_delta{};
 };
+
+inline bool matches_widgets(const Codec &codec, const Json &raw) {
+  const auto &source = codec.source;
+  for (const auto &[key, j] : raw.at("screens").items()) {
+    const auto it = source.screens.find(unsigned(std::stoul(key)));
+    if (it == source.screens.end() || codec.screen(it->second) != j)
+      return false;
+  }
+  for (const auto &[key, j] : raw.at("skins").items()) {
+    const auto index = unsigned(std::stoul(key));
+    if (index >= source.skins.size() || codec.skin(source.skins[index]) != j)
+      return false;
+  }
+  for (const auto &[name, j] : raw.at("groups").items())
+    if (codec.skin(source.skin_groups.at(Codec::named(source.skin_groups, name))) != j)
+      return false;
+  return true;
+}
+
+inline void add_widgets(View &view, const Codec &codec, const Json &original) {
+  auto &out = view.content;
+  const auto &source = codec.source;
+  for (const auto &[key, j] : original.at("screens").items())
+    out.screens.emplace(unsigned(std::stoul(key)), codec.screen(j));
+  for (const auto &[key, j] : original.at("skins").items())
+    out.skins.at(unsigned(std::stoul(key))) = codec.skin(j);
+  for (const auto &[name, j] : original.at("groups").items())
+    out.skin_groups.emplace(Codec::named(source.skin_groups, name), codec.skin(j));
+  for (const auto &[name, j] : original.at("images").items()) {
+    const auto id = Codec::named(source.images, name);
+    const auto &actual = source.images.at(id);
+    view.rasters.emplace(name, actual.images);
+    UiImage logical;
+    logical.name = name;
+    logical.sequences = actual.sequences;
+    for (const auto &frame : j.at("frames")) {
+      Texture t;
+      t.width = frame.at("width");
+      t.height = frame.at("height");
+      t.format = frame.at("format");
+      logical.images.push_back(std::move(t));
+    }
+    out.images.emplace(id, std::move(logical));
+  }
+}
+
+inline void add_profile_widgets(View &view, const Codec &codec) {
+  // The scene viewport and its surrounding widgets share the original
+  // 640x480 canvas. Match complete stock definitions before choosing it.
+  static const Json profile = Json::parse(profile_layout_data);
+  const auto &raw = profile.at("raw");
+  try {
+    if (!matches_widgets(codec, raw)) return;
+    for (const auto &[name, expected] : raw.at("images").items()) {
+      const auto &images = codec.source.images;
+      if (codec.image(images.at(Codec::named(images, name))) != expected) return;
+    }
+  } catch (const FormatError &) {
+    return;
+  } catch (const std::out_of_range &) {
+    return;
+  }
+  add_widgets(view, codec, profile.at("original"));
+  // The PC caption bank adds a Keyboard line between Buttons and Highest
+  // Level. Keep its selected-cache value on the original two-line pitch.
+  auto &texts = view.content.screens.at(193).panes.front().texts;
+  auto keyboard = codec.source.screens.at(193).panes.front().texts.at(6);
+  keyboard.bounds = texts.at(4).bounds;
+  const float pitch = texts.at(3).bounds.top - texts.at(4).bounds.top;
+  for (unsigned i : {4u, 5u}) {
+    texts[i].bounds.top -= pitch;
+    texts[i].bounds.bottom -= pitch;
+  }
+  texts.push_back(keyboard);
+}
+
 // This is a finite logical definition projection, not an alternate asset bank.
 // Unknown/modified authored widgets retain their own layout. Every raster and
 // localized string remains owned by the selected MCC cache.
@@ -384,20 +461,7 @@ inline std::optional<View> make_view(const FrontendContent &source) {
   if (codec.globals() != raw.at("globals"))
     return {};
   try {
-    for (const auto &[key, j] : raw.at("screens").items()) {
-      const auto it = source.screens.find(unsigned(std::stoul(key)));
-      if (it == source.screens.end() || codec.screen(it->second) != j)
-        return {};
-    }
-    for (const auto &[key, j] : raw.at("skins").items()) {
-      const auto index = unsigned(std::stoul(key));
-      if (index >= source.skins.size() || codec.skin(source.skins[index]) != j)
-        return {};
-    }
-    for (const auto &[name, j] : raw.at("groups").items())
-      if (codec.skin(source.skin_groups.at(
-              Codec::named(source.skin_groups, name))) != j)
-        return {};
+    if (!matches_widgets(codec, raw)) return {};
     for (const auto &[name, j] : original.at("images").items()) {
       auto expected = raw.at("images").at(name);
       for (auto &frame : expected.at("frames"))
@@ -463,29 +527,8 @@ inline std::optional<View> make_view(const FrontendContent &source) {
   out.typewriter = {type.at(0), type.at(1), type.at(2)};
   for (const auto &a : globals.at("animations"))
     out.animations.push_back(codec.animation(a));
-  for (const auto &[key, j] : original.at("screens").items())
-    out.screens.emplace(unsigned(std::stoul(key)), codec.screen(j));
-  for (const auto &[key, j] : original.at("skins").items())
-    out.skins.at(unsigned(std::stoul(key))) = codec.skin(j);
-  for (const auto &[name, j] : original.at("groups").items())
-    out.skin_groups.emplace(Codec::named(source.skin_groups, name),
-                            codec.skin(j));
-  for (const auto &[name, j] : original.at("images").items()) {
-    const auto id = Codec::named(source.images, name);
-    const auto &actual = source.images.at(id);
-    view.rasters.emplace(name, actual.images);
-    UiImage logical;
-    logical.name = name;
-    logical.sequences = actual.sequences;
-    for (const auto &frame : j.at("frames")) {
-      Texture t;
-      t.width = frame.at("width");
-      t.height = frame.at("height");
-      t.format = frame.at("format");
-      logical.images.push_back(std::move(t));
-    }
-    out.images.emplace(id, std::move(logical));
-  }
+  add_widgets(view, codec, original);
+  add_profile_widgets(view, codec);
   for (const auto &[id, actual] : source.images) {
     // MCC retains these raster tags after removing the Xbox matchmaking
     // player-skin group. Their stock32px pages serve the source empty-row

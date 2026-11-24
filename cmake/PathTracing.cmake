@@ -4,6 +4,8 @@ add_library(halo2_path_tracing STATIC
     src/rendering/path_tracing/material_alias.cpp
     src/rendering/path_tracing/emitter_sampling.cpp
     src/rendering/path_tracing/geometry.cpp
+    src/rendering/path_tracing/glow.cpp
+    src/rendering/path_tracing/lightmap_emission.cpp
     src/rendering/path_tracing/color_guide.cpp
     src/rendering/path_tracing/render.cpp)
 target_include_directories(halo2_path_tracing PUBLIC ${PROJECT_SOURCE_DIR}/include PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -22,6 +24,7 @@ foreach(stage IN ITEMS vert frag)
             shaders/path_tracing/lighting_filter.glsl shaders/path_tracing/surface.glsl
             shaders/path_tracing/color_guide.glsl shaders/path_tracing/surface_ray.glsl shaders/path_tracing/emitter_sampling.glsl
             shaders/path_tracing/source_indirect.glsl shaders/path_tracing/source_ambient.glsl
+            shaders/path_tracing/source_detail.glsl shaders/combiner.glsl
             shaders/source_alpha_test.glsl shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
 endforeach()
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/lighting.frag.spv
@@ -34,6 +37,13 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/light
         shaders/path_tracing/color_guide.glsl shaders/path_tracing/surface_ray.glsl shaders/path_tracing/emitter_sampling.glsl
         shaders/path_tracing/source_indirect.glsl shaders/path_tracing/source_ambient.glsl
         shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/glow_layer.frag.spv
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+    COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
+        ${PROJECT_SOURCE_DIR}/shaders/path_tracing/glow_layer.frag
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/glow_layer.frag.spv
+    DEPENDS shaders/path_tracing/glow_layer.frag shaders/combiner.glsl
+        shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth.frag.spv
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
     COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
@@ -41,11 +51,57 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth
         -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth.frag.spv
     DEPENDS shaders/path_tracing/depth.frag shaders/path_tracing/surface.glsl shaders/source_alpha_test.glsl
         shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
+# Shared transport includes of every tracing variant.
+set(path_tracing_transport_sources shaders/path_tracing/scene.glsl shaders/path_tracing/emission.glsl
+    shaders/path_tracing/lighting_filter.glsl shaders/path_tracing/surface.glsl
+    shaders/path_tracing/color_guide.glsl shaders/path_tracing/surface_ray.glsl shaders/path_tracing/emitter_sampling.glsl
+    shaders/path_tracing/source_indirect.glsl shaders/path_tracing/source_ambient.glsl
+    shaders/path_tracing/source_detail.glsl shaders/combiner.glsl
+    shaders/source_alpha_test.glsl shaders/source_stipple.glsl shaders/world_depth_fragment.glsl)
+# Hardware-ray variants (GL_EXT_ray_query, SPIR-V 1.4) are selected at run
+# time when the device enables acceleration structures and ray queries.
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.rt.frag.spv
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+    COMMAND ${GLSLANG_VALIDATOR} -V --target-env vulkan1.2 -I${PROJECT_SOURCE_DIR}/shaders
+        -DH2_PATH_TRACING_HARDWARE_RAYS=1 ${PROJECT_SOURCE_DIR}/shaders/path_tracing/world.frag
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.rt.frag.spv
+    DEPENDS shaders/path_tracing/world.frag ${path_tracing_transport_sources} VERBATIM)
+foreach(variant IN ITEMS software hardware)
+    if(variant STREQUAL "hardware")
+        set(trace_output trace.rt.comp.spv)
+        set(trace_flags --target-env vulkan1.2 -DH2_PATH_TRACING_HARDWARE_RAYS=1)
+    else()
+        set(trace_output trace.comp.spv)
+        set(trace_flags "")
+    endif()
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/${trace_output}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+        COMMAND ${GLSLANG_VALIDATOR} -V ${trace_flags} -DH2_PATH_TRACING_COMPUTE=1 -I${PROJECT_SOURCE_DIR}/shaders
+            ${PROJECT_SOURCE_DIR}/shaders/path_tracing/trace.comp
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/${trace_output}
+        DEPENDS shaders/path_tracing/trace.comp ${path_tracing_transport_sources} VERBATIM)
+endforeach()
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/denoise.comp.spv
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+    COMMAND ${GLSLANG_VALIDATOR} -V ${PROJECT_SOURCE_DIR}/shaders/path_tracing/denoise.comp
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/denoise.comp.spv
+    DEPENDS shaders/path_tracing/denoise.comp VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calibrate.comp.spv
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+    COMMAND ${GLSLANG_VALIDATOR} -V ${PROJECT_SOURCE_DIR}/shaders/path_tracing/calibrate.comp
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calibrate.comp.spv
+    DEPENDS shaders/path_tracing/calibrate.comp VERBATIM)
 add_custom_target(path_tracing_shaders DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calibrate.comp.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/denoise.comp.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth.frag.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/glow_layer.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/lighting.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.vert.spv
-    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.frag.spv)
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.frag.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.rt.frag.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/trace.comp.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/trace.rt.comp.spv)
 add_dependencies(halo2_path_tracing path_tracing_shaders)
 target_link_libraries(halo2_renderer PUBLIC halo2_path_tracing)
 if(BUILD_TESTING)

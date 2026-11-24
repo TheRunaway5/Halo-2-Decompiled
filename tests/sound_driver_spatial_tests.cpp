@@ -1,4 +1,5 @@
 #include "halo2/sound_driver_spatial.hpp"
+#include "halo2/sound_i3dl2_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <fstream>
@@ -102,10 +103,14 @@ int main(int argc,char **argv)try{
       require(!active&&q.size()==4,"Original filter helper fields");
       const auto value=word(q[2]);const auto got=q[1]=="frequency"?halo2::source_sound_filter_frequency(value,constants,fp):halo2::source_sound_filter_gain(value,constants,fp);
       if(got!=word(q[3])){std::cerr<<q[1]<<" input "<<q[2]<<" output "<<std::hex<<got<<'/'<<word(q[3])<<std::dec<<'\n';throw std::runtime_error("Original filter helper result differs");}
+      // The mixer's native DLS2 words (sound_i3dl2_tu15) for the same input.
+      const auto input=std::bit_cast<float>(value);
+      const auto native=q[1]=="frequency"?halo2::sound_dls2_cutoff_tu15(input):halo2::sound_dls2_resonance_tu15(input);
+      if(native!=word(q[3])){std::cerr<<q[1]<<" input "<<q[2]<<" native "<<std::hex<<native<<'/'<<word(q[3])<<std::dec<<'\n';throw std::runtime_error("Native DLS2 word differs from the original helper");}
       ++helpers;
     }else throw std::runtime_error("Unknown original spatial driver row");
   }
   require(!active&&actual_calls&&declared&&helpers&&missing,"Incomplete original spatial driver evidence");
   std::cout<<"PASS "<<actual_calls<<" actual driver call, "<<declared<<" declared first-SDK boundaries, "<<helpers
-           <<" complete filter helper cases, "<<requests<<" exact SDK payloads, "<<compared_stores<<" ordered prefix stores and "<<missing<<" missing-provider stop. CPU/ABI only.\n";
+           <<" complete filter helper cases (native DLS2 words equal), "<<requests<<" exact SDK payloads, "<<compared_stores<<" ordered prefix stores and "<<missing<<" missing-provider stop. CPU/ABI only.\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

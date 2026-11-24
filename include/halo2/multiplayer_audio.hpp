@@ -1,4 +1,6 @@
 #pragma once
+#include "halo2/source_sound_obstruction_tu15.hpp"
+#include "halo2/source_sound_reverb_tu15.hpp"
 #include "halo2/audio.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/fp_registration.hpp"
@@ -19,6 +21,8 @@ class MccScriptSoundWorldAccess;
 class NativeVistaAnnouncer;
 class NativeUnitDamageAudio;
 class EffectAudioAuxiliary;
+// The native engine plays the Classic audio route for imported MCC sounds.
+bool plays_in_classic_audio(const Cache&, std::uint32_t sound);
 // Literal BSP sound palette/paths, not an initialized Xbox sound system.
 struct MultiplayerAudioBsp {
   struct Palette {std::uint32_t sound=0xffffffffu,inside_sound=0xffffffffu,flags{};
@@ -70,6 +74,10 @@ struct MultiplayerLoopPacketParametersTu15 {
   // consumer must perform2216D0 gain publication and preserve the four routes;
   // scalar distance attenuation is not a consumer for this field.
   std::optional<std::array<std::uint32_t,4>> combined_amplitudes;
+  // The source's velocity (location+0x1C) and whether 21C400 shifts this
+  // voice's pitch for Doppler (request source flag 2; combined loops never).
+  Vec3 velocity{};
+  bool doppler{};
 };
 struct MultiplayerLoopPacketTu15 {
   std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
@@ -274,6 +282,26 @@ public:
   // a normal packet for a different authored controller.
   void object_loop_request(const SourceLoopSoundRequestTu15&);
   void object_loop_frame(float elapsed);
+  // 21A250's result for a request: a one-shot (lsnd 0x02) that has played
+  // its last packet and has no voice still playing is finished, and its
+  // caller frees the loop.
+  bool object_loop_finished(const SourceLoopSoundRequestTu15&)const;
+  // The listener's two sound environments (native 18E970/129170 in the
+  // World): each becomes one of the mixer's reverbs (21ECE0) with its portal
+  // speaker gains (21EE80), and every 3D voice sends to them at its class
+  // reverb gain (227BF0). HALO2_REFERENCE_NO_REVERB=1 keeps voices dry.
+  void sound_environments(const std::array<SourceSoundListenerEnvironmentTu15,2>&);
+  // set_global_sound_environment (HS 878, through 2279E0/227BF0): every 3D
+  // voice's direct level, direct HF level, room send and DLS2 low-pass.
+  void global_sound_environment(const SourceSoundGlobalEnvironmentTu15&);
+  // 129100/221A70/221E30/129790 once per game frame, after
+  // object_loop_listeners: each 3D voice's obstruction, occlusion and room
+  // gain for its nearest listener, scaled by its sound class's transmission
+  // multiplier (+0x50) and eased at its bend rates (+0x54/+0x58). locate
+  // gives a point's structure cluster and leaf.
+  // HALO2_REFERENCE_NO_OBSTRUCTION=1 leaves voices unobstructed.
+  void obstruction_frame(float elapsed,const SourceSoundObstructionWorldTu15&,
+      const std::function<SourceSoundObstructionPointTu15(Vec3)>& locate);
   // Retained actual platform148DB0 supplier (DesktopSession's clock/CRT
   //owner). Bind before playback; this is not a source readiness/RNG setter.
   void bind_object_loop_random_source(std::function<std::uint32_t()>);
@@ -353,7 +381,10 @@ public:
   // listener makes a world voice silent; it never becomes a centered UI sound.
   // Uses authored class/playback distance bounds and original distance gain.
   // This handoff does not provide Xbox HRTF/DSP, portal or PVS processing.
-  void listeners(std::span<const Vec3>);
+  // Local listener positions and, when given, each one's head frame
+  // (forward, up), which places that listener's 3D voices (HRTF).
+  void listeners(std::span<const Vec3>,
+                 std::span<const SourceObjectAudioViewTu15::Orientation> orientations = {});
   // Submitted native cameras and their actual BSP. Geometry is loaded from
   // this Audio's Cache; a position-only update unbinds these oriented inputs.
   void object_loop_listeners(std::size_t bsp,const SourceObjectAudioViewsTu15&);

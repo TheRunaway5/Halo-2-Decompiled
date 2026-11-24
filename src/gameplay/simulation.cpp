@@ -287,6 +287,7 @@ float direct_damage_amount(const WeaponDefinition &weapon) {
 }
 }
 const CollisionWorld &Simulation::collision() const { return prop_collision_?*prop_collision_:*world_->collision; }
+const CollisionWorld &Simulation::structure_collision() const { return *world_->collision; }
 void Simulation::replicate_source_scene(std::span<const SourceSceneRoot> roots,
     std::span<const SourceWorldPose> poses) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
@@ -2355,6 +2356,18 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
   if (save_pending_)
     capture_checkpoint();
 }
+std::optional<std::uint32_t> Simulation::source_loop_definition_flags(std::uint32_t sound) const {
+  if (!source_script_loops_ || !source_campaign_ || sound == null_datum)
+    return std::nullopt;
+  // 18D220 reads the definition through the World's tag instances (4F0414,
+  // 16-byte rows, data at +8); the lsnd flags are its first word.
+  const auto &memory = source_campaign_->objects().tu15_world().memory();
+  const auto word = [&](std::uint32_t at) { return Bytes(memory.view(at, 4)).u32(0); };
+  const auto definition = word(word(0x4f0414u) + (sound & 0xffffu) * 16u + 8u);
+  if (!definition)
+    throw FormatError("Scripted looping sound has no resident World definition");
+  return word(definition);
+}
 ScriptValue Simulation::host(const std::string &name,
                              const std::vector<ScriptValue> &args) {
   if(const auto command=mcc_script_legacy_command(name,args))return *command;
@@ -3363,7 +3376,7 @@ ScriptValue Simulation::host(const std::string &name,
     sounds_.push_back({args[0].bits,position,float(args[2].number()),
         object==null_datum?SoundEvent::NonSpatialImpulse:SoundEvent::Impulse,false,
         object==0?player_.source_datum:object,effect_collection,effect_row,true});
-    if(sound_duration_) {
+    if(sound_duration_ && !source_has_script_sound_clock_queries_tu15(*this)) {
       auto at=std::find_if(impulse_clocks_.begin(),impulse_clocks_.end(),[&](const auto &clock){return clock.datum==args[0].bits || clock.datum==null_datum || clock.start+clock.duration<=ticks_;});
       if(at!=impulse_clocks_.end())*at={args[0].bits,ticks_,std::uint64_t(std::max(0.f,std::nearbyint(sound_duration_(args[0].bits)*30.f)))};
     }
@@ -3373,6 +3386,19 @@ ScriptValue Simulation::host(const std::string &name,
   if (name == "sound_looping_start") {
     if (args.size() != 3 || args[0].type != 35)
       throw FormatError("invalid sound_looping_start");
+    if (source_loop_definition_flags(args[0].bits)) {
+      // 2B3E50 -> 18D220(tag, object, scale) on the World's loop pool.
+      const auto object = args[1].bits == 0 ? null_datum : args[1].bits;
+      auto &world = source_campaign_->objects().tu15_world();
+      auto abi = world.prepare_source_call(std::array{args[0].bits, object,
+          std::bit_cast<std::uint32_t>(float(args[2].number()))});
+      world.run_actual(0x18d220u, abi);
+      SoundEvent event{args[0].bits, {}, float(args[2].number()), SoundEvent::LoopStart};
+      event.source_pool = true;
+      sounds_.push_back(event);
+      source_admit_queued_script_sounds_tu15(*this,sounds_);
+      return {};
+    }
     const auto position = args[1].bits == null_datum || args[1].bits == 0
                               ? eye(player_)
                               : object_center(args[1].bits);
@@ -3380,6 +3406,37 @@ ScriptValue Simulation::host(const std::string &name,
                            SoundEvent::LoopStart};
     sounds_.push_back(event);
     active_loops_[event.datum] = event;
+    source_admit_queued_script_sounds_tu15(*this,sounds_);
+    return {};
+  }
+  if ((name == "sound_looping_stop" || name == "sound_looping_set_alternate") &&
+      !args.empty() && source_loop_definition_flags(args[0].bits)) {
+    const bool alternate = name == "sound_looping_set_alternate";
+    if (args.size() != (alternate ? 2u : 1u))
+      throw FormatError("invalid sound stop/alternate arity");
+    auto &world = source_campaign_->objects().tu15_world();
+    if (!alternate) {
+      // 2B3EA0 -> 18D2C0 with EDI = the tag.
+      auto abi = world.prepare_source_call();
+      abi.gp[7] = args[0].bits;
+      world.run_actual(0x18d2c0u, abi);
+    } else if (args[0].bits != null_datum) {
+      // 2B3FA0: 18FFB0 finds the tag's row; its flags gain or lose 0x10.
+      auto abi = world.prepare_source_call(std::array{args[0].bits});
+      world.run_actual(0x18ffb0u, abi);
+      if (abi.gp[0] != null_datum) {
+        auto &memory = world.memory();
+        const auto word = [&](std::uint32_t at) { return Bytes(memory.view(at, 4)).u32(0); };
+        const auto flags = word(word(0x4f9b5cu) + 0x44u) + (abi.gp[0] & 0xffffu) * 0x18u + 4u;
+        const auto value = std::to_integer<unsigned>(memory.view(flags, 1)[0]);
+        const auto updated = std::byte(args[1].truth() ? value | 0x10u : value & ~0x10u);
+        memory.write(flags, std::span(&updated, 1));
+      }
+    }
+    SoundEvent event{args[0].bits, {}, 1, alternate ? SoundEvent::LoopAlternate : SoundEvent::LoopStop,
+        alternate && args[1].truth()};
+    event.source_pool = true;
+    sounds_.push_back(event);
     source_admit_queued_script_sounds_tu15(*this,sounds_);
     return {};
   }

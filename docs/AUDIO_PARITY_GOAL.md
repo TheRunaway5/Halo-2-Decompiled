@@ -6,6 +6,14 @@ goal. The [campaign completion contract](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md)
 and [current source/original ownership audit](../analysis/campaign-native-audio-20261030/current-scope.json)
 retain the remaining native, composed playback and audible-output gates.
 
+November23 campaign status: [campaign audio parity](CAMPAIGN_AUDIO_PARITY_20261123.md)
+records the Classic-only cue routing, score fades and native dialogue waits;
+BSP background sound and object loops through the original 18EE50 owner
+(campaign and multiplayer host); and campaign delivery of the World's own
+sound requests (footsteps, foley, devices, weapons, AI dialogue). It also
+lists what is still missing: synchronized loop profiles, four-bin combined
+loops, scripted loops through the original pool, and reverb/HRTF.
+
 User request,2026-10-11: ensure all sounds play exactly where they belong.
 The goal is active. It covers sound events, event time, emitter placement,
 listener selection, authored variation/gain/pitch, looping/stop behavior and

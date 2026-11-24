@@ -522,18 +522,32 @@ struct SourceSceneryScene::Impl {
         return {s.source_object,lod,choice.transition,size,input.draw_metric};
     }
     std::vector<Vertex> shader_vertices(const Scenery &s,const Lod &g,const SourceObjectViewLod &view)const {
-        std::vector<Vertex> vertices;
-        if(s.region_union) {
-            // Retain source region order and repeated collectors; the resource
-            // union itself never chooses a live draw or consumes RNG.
-            for(auto section:g.active_sections)for(const auto &vertex:g.vertices)
-                if(vertex.source_section==section)vertices.push_back(vertex);
-        } else vertices=g.vertices;
+        std::vector<Vertex> vertices;append_shader_vertices(vertices,s,g,view);return vertices;
+    }
+    // Appends the admitted vertices of a LOD to out, in source order, with
+    // each admitted part's selected shader slot: the same vertices as
+    // copying the LOD (or its region union) and filtering the copy, without
+    // the intermediate vector. On an exception out is left unchanged.
+    std::size_t append_shader_vertices(std::vector<Vertex> &out,const Scenery &s,const Lod &g,const SourceObjectViewLod &view)const {
+        const auto mark=out.size();
+        try {
         const auto require_bound=[&](unsigned slot) {
             if(const auto at=unresolved_materials.find(slot);at!=unresolved_materials.end())
                 throw FormatError("Admitted SCEN draw requires its live source shader inputs: "+at->second);
         };
-        if(!view.shader){for(const auto &vertex:vertices)require_bound(vertex.material);return vertices;}
+        // Retain source region order and repeated collectors; the resource
+        // union itself never chooses a live draw or consumes RNG.
+        const auto for_each_source_vertex=[&](const auto &visit) {
+            if(s.region_union) {
+                for(auto section:g.active_sections)for(const auto &vertex:g.vertices)
+                    if(vertex.source_section==section)visit(vertex);
+            } else for(const auto &vertex:g.vertices)visit(vertex);
+        };
+        if(!view.shader) {
+            for_each_source_vertex([&](const Vertex &vertex){out.push_back(vertex);});
+            for(auto at=out.begin()+std::ptrdiff_t(mark);at!=out.end();++at)require_bound(at->material);
+            return out.size()-mark;
+        }
         const auto collector=source_model_shader_collector(s.query_state.sphere_center,
             s.query_state.sphere_radius,*view.shader);
         std::map<std::pair<unsigned,unsigned>,unsigned> selected;
@@ -549,21 +563,22 @@ struct SourceSceneryScene::Impl {
         // binding and admission result instead of two map searches per vertex.
         std::pair<unsigned,unsigned> last_part{~0u,~0u};unsigned last_target=0;bool have_part=false;
         unsigned admitted_slot=0;bool have_admitted=false;
-        vertices.erase(std::remove_if(vertices.begin(),vertices.end(),[&](auto &vertex) {
+        for_each_source_vertex([&](const Vertex &vertex) {
             const std::pair<unsigned,unsigned> part{vertex.source_section,vertex.source_part};
             if(!have_part || part!=last_part) {
                 const auto binding=selected.find(part);
                 if(binding==selected.end())throw FormatError("SCEN emitted vertex lost its source shader part");
                 last_part=part;last_target=binding->second;have_part=true;
             }
-            if(last_target==0xffffffffu)return true;
+            if(last_target==0xffffffffu)return;
             // Resource union preparation may retain an unbound shader for a
             // different BSP or unselected LOD.41040 requires its actual inputs
             // only after this part is admitted. Never submit unresolved values.
             if(!have_admitted || admitted_slot!=last_target){require_bound(last_target);admitted_slot=last_target;have_admitted=true;}
-            vertex.material=last_target;return false;
-        }),vertices.end());
-        return vertices;
+            out.push_back(vertex);out.back().material=last_target;
+        });
+        return out.size()-mark;
+        } catch(...){out.resize(mark);throw;}
     }
 };
 struct SourceSceneryScene::Checkpoint::Data {
@@ -675,11 +690,16 @@ void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<Ob
         //4B5D0 evaluates the admitted owner's lighting cache before41040
         //selects part shaders; selected vertex counts do not gate that cache.
         impl_->query_lighting(s,selected.source_distance);
-        const auto draw=impl_->shader_vertices(s,g,view);selected.vertices=draw.size();
-        if(!draw.empty()) {
+        // HALO2_REFERENCE_SCENERY_VERTEX_COPY=1 builds each draw in its own
+        // vector and copies it into the view, as before.
+        static const bool reference_copy=[]{const auto *e=std::getenv("HALO2_REFERENCE_SCENERY_VERTEX_COPY");return e && *e;}();
+        std::size_t appended{};
+        if(reference_copy) {
+            const auto draw=impl_->shader_vertices(s,g,view);appended=draw.size();
             vertices.insert(vertices.end(),draw.begin(),draw.end());
-            if(s.dynamic)bindings.push_back({s.first_material,s.material_count,s.probe?s.probe->lighting:s.light.lighting});
-        }
+        } else appended=impl_->append_shader_vertices(vertices,s,g,view);
+        selected.vertices=appended;
+        if(appended && s.dynamic)bindings.push_back({s.first_material,s.material_count,s.probe?s.probe->lighting:s.light.lighting});
         if(selections)selections->push_back(selected);
     }
 }

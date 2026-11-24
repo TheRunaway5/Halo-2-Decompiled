@@ -2117,6 +2117,8 @@ struct FrontendPainter::Impl {
       const unsigned first = frame.first_visible;
       const unsigned count =
           std::min(list.visible, unsigned(frame.entries.size()) - first);
+      const bool original_profile_focus = original_logical_layout &&
+          (frame.screen == 47 || frame.screen == 193);
       const auto row_focus = [&](bool selected) {
         if (drawing_exit)
           //22E957 gives a type2 row its list-global type3 definition;
@@ -2125,7 +2127,7 @@ struct FrontendPainter::Impl {
         if(skin.animations.empty())return UiKey{selected ? 1.f : .5f, {}};
         const auto idle=std::min(2u,unsigned(skin.animations.size()-1));
         auto focus=interpolate(skin.animations.at(selected?0:idle),1000);
-        if(detail::mcc_frontend_content(content)) {
+        if(detail::mcc_frontend_content(content) && !original_profile_focus) {
           // Hover changes emphasis, while the row and its hit rectangle stay
           // at the authored resting anchor. Moving the hit rectangle with
           // focus makes neighboring options slide under a stationary cursor.
@@ -2330,12 +2332,12 @@ struct FrontendPainter::Impl {
         if (interactive && opacity > 0 &&
             !(is_vista_settings(frame.screen, 253) && frame.entries[index].value == -2)) {
           if (option_box) {
-            if (selected) {
-              // Retail slides the focused option horizontally. A stationary
-              // pointer on its resting edge must still activate it after hover.
-              const float resting_dx = row_focus(false).position.x - focus.position.x;
-              option_box->left += std::min(0.f, resting_dx);
-              option_box->right += std::max(0.f, resting_dx);
+            if (selected || original_profile_focus) {
+              // Profile rows slide to the authored focus anchor. Keep both
+              // ends selectable before hover and after the row moves.
+              const float other_dx = row_focus(!selected).position.x - focus.position.x;
+              option_box->left += std::min(0.f, other_dx);
+              option_box->right += std::max(0.f, other_dx);
             }
             hits.push_back(*option_box);
             continue;

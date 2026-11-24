@@ -55,12 +55,16 @@ public:
         std::array<std::int8_t,4> previous_lod;
     };
     PresentationState capture_presentation()const {
+        publish_pending();
         PresentationState out;
         for(unsigned n=0;n<6;++n){out.vertices[n]=lods[n].vertices;out.palettes[n]=lods[n].palette;out.deferred[n]=lods[n].deferred;}
         out.active_sections=active_sections;out.views=views;
         out.selections=view_selection;out.previous_lod=previous_lod;return out;
     }
     void exchange_presentation(PresentationState &state)noexcept {
+        // The restored banks replace every live bank, including one whose
+        // cached publication was never copied; that publication is retired.
+        pending_poses.fill({});
         pose_publications.fill({});
         static_assert(std::is_nothrow_swappable_v<PresentationState>);
         for(unsigned n=0;n<6;++n){lods[n].vertices.swap(state.vertices[n]);lods[n].palette.swap(state.palettes[n]);std::swap(lods[n].deferred,state.deferred[n]);}
@@ -139,7 +143,20 @@ public:
     void reset_history() noexcept;
     const RenderModel &model()const{return lods[5].model;}
     const SourcePrtDefinition* prt_definition()const{return prt?&*prt:nullptr;}
-    const Lod &at(unsigned lod)const{return lods.at(lod);}
+    const Lod &at(unsigned lod)const{const auto &g=lods.at(lod);publish_pending(lod);return g;}
+    // The resident model alone; never copies a pending LOD publication.
+    const RenderModel &lod_model(unsigned lod)const{return lods.at(lod).model;}
+    // Copy every postponed cached publication now (before this geometry is
+    // copied into an independent owner, for example).
+    void publish_pending_publications()const{publish_pending();}
+    // Forget postponed publications whose pose storage may no longer exist
+    // (a failed or abandoned producer pass, or released pose caches). Their
+    // banks keep the previous copy and lose their publication key, so the
+    // next cached pose copies again; views rebuild.
+    void discard_pending_publications()noexcept {
+        for(unsigned lod=0;lod<6;++lod)if(pending_poses[lod].active){pending_poses[lod]={};pose_publications[lod]={};}
+        invalidate_views();
+    }
     const ViewDraw &view(unsigned index)const{return views.at(index);}
     bool ordinary_lighting()const;
     void validate_material_rebase(unsigned before,unsigned after)const;
@@ -151,6 +168,17 @@ private:
         friend bool operator==(const PosePublication &,const PosePublication &)=default;
     };
     std::array<PosePublication,6> pose_publications{};
+    // pose_world_lod_cached_view records a new cached WORLD publication here
+    // instead of copying it into its LOD bank. The first reader of that bank
+    // copies it and applies the material remap (publish_pending), so every
+    // reader sees exactly the bytes the eager copy produced. Machines
+    // republish all six banks each frame while views read only their
+    // selected LOD, so most of those copies are never needed. The pose stays
+    // valid until its producer next runs, which republishes every bank first.
+    struct PendingPose {ModelSkinWorldPoseView pose;bool active{};};
+    mutable std::array<PendingPose,6> pending_poses{};
+    void publish_pending(unsigned lod)const;
+    void publish_pending()const {for(unsigned lod=0;lod<6;++lod)publish_pending(lod);}
     struct LodChoice {SourceObjectLodInput input;SourceGeometryLodChoice choice;unsigned lod{};};
     LodChoice lod_choice(std::size_t,std::uint32_t,Vec3,float,const SourceObjectViewLod &,
                          const std::array<std::int8_t,4> &)const;

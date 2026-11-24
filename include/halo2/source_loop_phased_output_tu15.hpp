@@ -10,6 +10,13 @@ class SourceLoopPhasedOutputTu15 {
 public:
     virtual ~SourceLoopPhasedOutputTu15()=default;
     virtual const SoundVariationDefinition& metadata(std::uint32_t,unsigned)=0;
+    // A loop voice's gain scale: its sound's location scale (+4), after
+    // 129790's door loss or other-BSP silence for a centered 0x1000 sound
+    // where the output applies them. The track's control slews toward the
+    // unreduced scale and sets only the pitch.
+    virtual float scale(const std::array<std::byte,68>& location,const SoundVariationDefinition&){
+        return Bytes(location).f32(4);
+    }
     virtual bool single_chunk(std::uint32_t,unsigned,unsigned)=0;
     // Multi-chunk admission needs a real retained decoder map and output
     // queue. Existing single-packet ports retain their stricter capability.
@@ -26,6 +33,15 @@ public:
     virtual std::uint32_t fresh_secondary()=0;
     virtual std::uint32_t& common_secondary()=0;
     virtual unsigned common_permutation(std::uint32_t sound,unsigned range,std::uint32_t& seed)=0;
+    //21CC30: a synchronized (lsnd 0x30) loop without a controller keeps the
+    // shared permutation mask but supplies no previous permutation.
+    virtual unsigned common_permutation_without_previous(std::uint32_t,unsigned,std::uint32_t&) {
+        throw FormatError("Synchronized loop requires its shared permutation owner");
+    }
+    // The looping system's millisecond clock that detail deadlines compare to.
+    virtual std::int32_t detail_clock() {
+        throw FormatError("Loop details require their actual mixer clock");
+    }
     // Preflight precedes group mutation/PCM selection. A scalar/stereo-only
     // backend cannot silently accept a four-bin combined request.
     virtual void require_combined_output()const {
@@ -55,8 +71,18 @@ struct SourceLoopPhasedTrackTu15 {
 //native identities. Allocation/admission and packet retirement stay outside.
 void source_loop_phased_insert_voice_tu15(SourceLoopPhasedTrackTu15&,SourceLoopPhasedVoiceTu15);
 void source_loop_phased_retire_voice_tu15(SourceLoopPhasedTrackTu15&,std::uint64_t);
+// A detail sound a loop started, and its offset from a spatial parent.
+struct SourceLoopPhasedDetailVoiceTu15 {std::uint64_t voice{};Vec3 offset;bool attached=true;};
 struct SourceLoopPhasedOwnerTu15 {
     LoopingSound definition;
+    //21AEB0 draws each detail's first deadline at creation; 21B0E0 schedules
+    // them while the loop is not stopping and details are enabled.
+    std::vector<std::int32_t> detail_deadlines;
+    std::vector<SourceLoopPhasedDetailVoiceTu15> detail_voices;
+    bool alternate{},disable_details{};
+    // A one-shot (lsnd 0x02) whose loop phase reached its last packet: the
+    // original stops it there (state 4, sound flags 8) and restarts nothing.
+    bool finished{};
     std::uint32_t emitter=0xffffffffu,synchronization=0xffffffffu;
     std::array<std::byte,68> location{};
     std::vector<SourceLoopPhasedTrackTu15> tracks;
@@ -70,6 +96,9 @@ struct SourceLoopPhasedSynchronizationTu15 {std::uint32_t seed{},references{};};
 struct SourceLoopPhasedStateTu15 {
     std::map<std::pair<std::uint32_t,std::uint32_t>,SourceLoopPhasedOwnerTu15> owners;
     std::map<std::uint32_t,SourceLoopPhasedSynchronizationTu15> synchronization;
+    //21AEB0's default controller (no controller definition): each new track
+    // of a synchronized loop advances it and takes the result as its seed.
+    std::optional<std::uint32_t> default_controller_seed;
     std::uint8_t frame{};
 };
 //220CCD..220CF3: nonzero location mode + root bit7 shares definition-wide

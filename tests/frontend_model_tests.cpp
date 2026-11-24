@@ -1,4 +1,6 @@
 #include "halo2/frontend_model.hpp"
+#include "halo2/frontend_model_ik.hpp"
+#include "halo2/frontend_model_locals.hpp"
 #include "halo2/model.hpp"
 #include "halo2/transform.hpp"
 #include "halo2/content.hpp"
@@ -94,6 +96,40 @@ void animations(const std::filesystem::path &fixture,const std::filesystem::path
   }
   require(cases==10 && spartan==5 && elite==5,"authored preview object coverage changed");
   std::cout<<cases<<" authored preview objects match original animation selection\n";
+}
+int mcc_menu_poses(std::filesystem::path imported,const std::filesystem::path &project) {
+  if(imported=="auto") {
+    std::ifstream index(project/"assets/mcc-source.tsv");
+    std::string signature,key,path;
+    std::getline(index,signature);
+    if(signature!="H2_MCC_ASSET_SOURCE_V1")return 77;
+    while(std::getline(index,key,'\t') && std::getline(index,path))
+      if(key=="cache"){imported=project/path;break;}
+  }
+  const auto map=imported/"halo2/h2_maps_win64_dx11/mainmenu.map";
+  if(!std::filesystem::is_regular_file(map))return 77;
+  Cache cache(map);
+  require(cache.is_mcc(),"Menu pose import regression requires an MCC map");
+  // Original 2B0B96 widget-mode request, plus the grip and world IK that
+  // accompany each preview biped in the retail main menu.
+  for(const bool elite:{false,true}) {
+    const std::string name=std::string(R"(scenarios\ui\mainmenu\alpha_temp\)")+
+        (elite?"alpha_elite":"alpha_masterchief");
+    const auto found=std::ranges::find_if(cache.tags(),[&](const Tag &tag){
+      return tag.group=="bipd" && tag.name==name;
+    });
+    require(found!=cache.tags().end(),"Authored menu biped missing");
+    for(const bool ui:{false,true}) {
+      const auto clip=cache.load_frontend_model_animation(found->datum,ui);
+      require(clip && clip->source_index==(elite?73u:(ui?132u:47u)),
+          "Menu pose retained the wrong animation channel");
+      const auto ik=cache.load_frontend_model_weapon_ik(found->datum,ui?0x020001b3u:0x06000086u);
+      require(ik.definition.constraints.size()==(elite?0u:1u),"Menu pose lost its authored hand constraint");
+    }
+    const auto grip=cache.load_frontend_model_grip(found->datum);
+    require(grip && grip->source_index==(elite?99u:43u),"Menu pose lost its retained grip overlay");
+  }
+  return 0;
 }
 void clocks(const std::filesystem::path &fixture) {
   std::ifstream input(fixture); require(bool(input),"original model clock fixture missing");
@@ -236,6 +272,7 @@ void vista_ring_geometry() {
 }
 int main(int argc,char **argv) {
   try {
+    if(argc==4 && std::string_view(argv[1])=="--mcc-menu-poses")return mcc_menu_poses(argv[2],argv[3]);
     require(argc==4,"frontend model tests require camera/animation fixtures and maps");
     const auto clock=std::filesystem::path(argv[1]).parent_path()/"model-clock-original.tsv";
     if(!std::filesystem::exists(std::filesystem::path(argv[3])/"mainmenu.map") ||

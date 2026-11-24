@@ -2,6 +2,800 @@
 
 This document is the actionable `.MD` checklist for agents continuing the Halo 2 TU1.5 translated-to-native replacement effort. See [REMAINING_TRANSLATED_20261115.md](REMAINING_TRANSLATED_20261115.md) for the historical progress log across earlier waves.
 
+## Ownership change, 2026-11-23
+
+The user handed the remaining native replacement to the Claude performance
+session (session `halo-2-decompiled-c9`): "take over and get it done". It
+works from multiplayer Zanzibar, the heaviest MP map, as well as the Armory.
+Other agents: before porting an owner, check this section and the progress
+log below for claims.
+
+Multiplayer census on 2026-11-23: `build-perf-4k60`, Zanzibar, 400 frames,
+1280x720, `HALO2_CENSUS_NATIVE_BRIDGES=1`:
+
+| | 1p | 4p |
+|---|---|---|
+| Translated instructions per frame | 96,429 | 268,435 |
+| Combat-action targeting cluster (`14D200`, `1AE2B0`, `BD460`, `1AE090`) | 6,021 | 59,037 |
+
+The combat cluster is about 22% of 4p translated work and runs per local
+player per tick. The next routines are `3D7E0` (shadow frame; 5,401 per frame
+in 1p and 10,083 in 4p), `30AA70`, `16B240`, `170730`, `1D30F0` and `333F0`.
+
+Claimed by the Claude performance session, in order: the combat targeting
+cluster, then `3D7E0` and `333F0`.
+
+Progress (2026-11-23). Both owners below are proven with
+`tools/validate_native_frame_misc_tu15.py --owner NAME` and bound through
+`tools/native_frame_misc_replacements.py` (`BOUND`, CTest list in
+`cmake/NativeTu15FrameMisc.cmake`).
+
+| Owner | What it is | Files | Switches | Proof |
+|---|---|---|---|---|
+| `14D200` | Aim cluster flood: the BSP clusters an aim ray sees into through cluster portals (depth-first with a 512-entry frame stack, visit stamp 4F3CE4/4F3CE8, cone test on each portal's bounding sphere) | `src/physics/runtime/native_tu15_aim_clusters_systems.hpp`, `native_tu15_aim_clusters.hpp`, `tests/native_tu15_aim_clusters_tests.cpp` | `HALO2_REFERENCE_AIM_CLUSTERS`, `HALO2_VERIFY_AIM_CLUSTERS` | 8,000 cases (4.7M ordered stores, 800 faults), census, verify, 22/22 branches, ASan/UBSan, 40/40 mutants (`build/test-results/aim-clusters-20261123/validator.json`) |
+| `BD460` | Cluster object query: the unique objects a cluster list references in the collideable and/or non-collideable partitions (query stamp 4EABCC/4EABD0) | `native_tu15_cluster_objects_systems.hpp`, `native_tu15_cluster_objects.hpp`, `tests/native_tu15_cluster_objects_tests.cpp` | `HALO2_REFERENCE_CLUSTER_OBJECTS`, `HALO2_VERIFY_CLUSTER_OBJECTS` | 8,000 cases (682 faults), census, verify, 30/30 branches, ASan/UBSan, 38/38 mutants (`validator-bd460.json`) |
+
+| `1AE2B0` | Aim target chain: an object, its siblings and (for targets) its attached objects; candidate types, unit limit, the 14D200 sphere cone test, 1AE500/1AE7F0, self-recursive | `native_tu15_aim_targets_systems.hpp`, `native_tu15_aim_targets.hpp`, `tests/native_tu15_aim_targets_tests.cpp` | `HALO2_REFERENCE_AIM_TARGETS`, `HALO2_VERIFY_AIM_TARGETS` | 8,000 cases, 25/25 branches, 53/53 mutants |
+| `1AE090` | Weapon targeting search: widest angle/farthest range, x87 FSIN/FCOS cone, 14D200, BD460, players' outermost parents, 1AE2B0 per object | `native_tu15_aim_search_systems.hpp`, `native_tu15_aim_search.hpp`, `tests/native_tu15_aim_search_tests.cpp` | `HALO2_REFERENCE_AIM_SEARCH`, `HALO2_VERIFY_AIM_SEARCH` | 8,000 cases, 30/30, 48/48 |
+| `3D7E0` | Object shadow fade: x87 camera distance, 4BAE0 level, age fade, camouflage, parent recursion, unit camouflage | `src/rendering/shadows/native_tu15_shadow_fade{_systems,}.hpp`, `tests/native_tu15_shadow_fade_tests.cpp` | `HALO2_REFERENCE_SHADOW_FADE`, `HALO2_VERIFY_SHADOW_FADE` | 8,000 cases, 25/25, 60/60 |
+| `16B240` | Node matrix gather (REP MOVSD with the direction flag, or 145560 with a transform) | `src/gameplay/objects/native_tu15_node_gather{_systems,}.hpp`, `tests/native_tu15_node_gather_tests.cpp` | `HALO2_REFERENCE_NODE_GATHER`, `HALO2_VERIFY_NODE_GATHER` | 8,000 cases, 8/8, 28/28 |
+| `170730` | Node hierarchy transform (parent into each child's matrix, recursive) | `native_tu15_node_hierarchy{_systems,}.hpp`, `tests/native_tu15_node_hierarchy_tests.cpp` | `HALO2_REFERENCE_NODE_HIERARCHY`, `HALO2_VERIFY_NODE_HIERARCHY` | 8,000 cases, 10/10, 22/22 |
+| `1D30F0` | Cluster partition removal (references and owned chain entries freed through 16E8A0) | `native_tu15_partition_removal{_systems,}.hpp`, `tests/native_tu15_partition_removal_tests.cpp` | `HALO2_REFERENCE_PARTITION_REMOVAL`, `HALO2_VERIFY_PARTITION_REMOVAL` | 8,000 cases, 10/10, 20/20 |
+| `1E5250` | Keyed record iterator (four stages of two-level 1E5810 lookups, jump table) | `native_tu15_record_iterator{_systems,}.hpp`, `tests/native_tu15_record_iterator_tests.cpp` | `HALO2_REFERENCE_RECORD_ITERATOR`, `HALO2_VERIFY_RECORD_ITERATOR` | 8,000 cases, 13/13, 26/26 |
+| `333F0` | Shadow caster collection (mode filter, 3D7E0, projected size, 3E9B0, 4A7B0/4AC20) | `src/rendering/shadows/native_tu15_shadow_casters{_systems,}.hpp`, `tests/native_tu15_shadow_casters_tests.cpp` | `HALO2_REFERENCE_SHADOW_CASTERS`, `HALO2_VERIFY_SHADOW_CASTERS` | 8,000 cases, 19/19, 41/41 |
+| `15C4E0` | Multiplayer object cleanup (30-tick slots, item/corpse/other timeouts, BBBC0/BA570) | `src/gameplay/multiplayer/native_tu15_object_cleanup{_systems,}.hpp`, `tests/native_tu15_object_cleanup_tests.cpp` | `HALO2_REFERENCE_OBJECT_CLEANUP`, `HALO2_VERIFY_OBJECT_CLEANUP` | 8,000 cases, 30/30, 46/46 |
+| `3F3E0` | Index marks (the bit table of a list's indices, count flags) | `src/rendering/effects/native_tu15_index_marks{_systems,}.hpp` | `HALO2_*_INDEX_MARKS` | 8,000 cases, full branches, all mutants |
+| `BCFE0` | Object ancestry (whether one object is within another's parent chain) | `src/physics/runtime/native_tu15_object_ancestry{_systems,}.hpp` | `HALO2_*_OBJECT_ANCESTRY` | 8,000 cases, full branches, all mutants |
+| `17FAF0` | Effect chain byte (the group byte of an effect chain's head, 17FB60 accept) | `src/gameplay/units/native_tu15_chain_byte{_systems,}.hpp` | `HALO2_*_CHAIN_BYTE` | 8,000 cases, full branches, all mutants |
+| `180520` | Effect record walk | `src/gameplay/units/native_tu15_record_walk{_systems,}.hpp` | `HALO2_*_RECORD_WALK` | 8,000 cases, full branches, all mutants |
+| `144BF0` | Basis matrix (two units: ai frame, scene device constructor) | `src/physics/runtime/native_tu15_basis_matrix{_systems,}.hpp` | `HALO2_*_BASIS_MATRIX` | both copies validated |
+| `179A40` | Marked records (two units: shadow frame, lens flare) | `src/rendering/shadows/native_tu15_marked_records{_systems,}.hpp` | `HALO2_*_MARKED_RECORDS` | 9/9, 17/17, both copies |
+| `1A8E50` | Filtered data array iterator (two units: live support, death cycle) | `src/physics/runtime/native_tu15_filtered_iterator{_systems,}.hpp` | `HALO2_*_FILTERED_ITERATOR` | 7/7, 16/16, both copies |
+| `1902E0` | Player relation (local players' units in an object's hierarchy; two units) | `src/physics/runtime/native_tu15_player_relation{_systems,}.hpp` | `HALO2_*_PLAYER_RELATION` | 10/10, 21/21, both copies |
+| `B1720` | Unit vector check (x87 tolerance; two units) | `src/physics/runtime/native_tu15_unit_vector_check{_systems,}.hpp` | `HALO2_*_UNIT_VECTOR_CHECK` | 8/8, 18/18, both copies |
+| `17FB60` | Effect record fade (expiry with the counted chain, fade byte through 32CC0C) | `src/gameplay/units/native_tu15_record_fade{_systems,}.hpp` | `HALO2_*_RECORD_FADE` | 14/14, 26/26 |
+| `1D2F10` | Cluster partition insert (14D080 set / 14D0E0 sphere / single cluster; REP MOVS payload) | `src/physics/runtime/native_tu15_partition_insert{_systems,}.hpp` | `HALO2_*_PARTITION_INSERT` | 19/19, 34/34 (a set DF is refused) |
+| `17BEB0` | Effect event parts (environment/mode rules, element slots, 17BD40/17BB10) | `src/gameplay/units/native_tu15_effect_parts{_systems,}.hpp` | `HALO2_*_EFFECT_PARTS` | 25/25, 39/39 |
+| `165860` | Player mark counters (per local player, 1A8E50 walk, 53780 gate) | `src/gameplay/multiplayer/native_tu15_player_marks{_systems,}.hpp` | `HALO2_*_PLAYER_MARKS` | 19/19, 34/34 |
+
+| `157FE0` | Player directors (per local player request/state, mode jump table through `canonical_branch`, callbacks, timer, 171FF0) | `src/gameplay/vehicles/native_tu15_player_directors{_systems,}.hpp` | `HALO2_*_PLAYER_DIRECTORS` | 20/20, 36/36 (a set DF is refused) |
+| `E9530` | Object flag bit (bit block at the int16 +0x346) | `src/physics/runtime/native_tu15_object_flag_bit{_systems,}.hpp` | `HALO2_*_OBJECT_FLAG_BIT` | 2/2, 9/9 |
+| `10E1F0` | Object type callbacks (+0x74 of each chained type) | `native_tu15_object_type_callbacks{_systems,}.hpp` | `HALO2_*_OBJECT_TYPE_CALLBACKS` | 5/5, 11/11 |
+| `125790` | Tag iterator (next tag of a group, 125810 parent groups) | `native_tu15_tag_iterator{_systems,}.hpp` | `HALO2_*_TAG_ITERATOR` | 11/11, 13/13 |
+| `1E1390` | Node chain pose (x87 weight test on the logical stack, SSE blend, 122BE0/145560/170730) | `native_tu15_node_chain{_systems,}.hpp` | `HALO2_*_NODE_CHAIN` | 5/5, 27/27 |
+| `116060` | Marker chains (keyed record walk, BAD60 markers, 1E1390 per node) | `native_tu15_marker_chains{_systems,}.hpp` | `HALO2_*_MARKER_CHAINS` | 15/15, 32/32 |
+| `AA200`, `AA270` | Tolerance checks (unit length, near; x87 FABS/FCOMIP), three units each | `native_tu15_tolerance_checks{_systems,}.hpp` | `HALO2_*_TOLERANCE_CHECKS` | 4/4 each, 11/11 and 10/10, all copies |
+| `B9390` | Wake chain (header awake flag up the parent chain), three units | `src/gameplay/objects/native_tu15_wake_chain{_systems,}.hpp` | `HALO2_*_WAKE_CHAIN` | 5/5, 10/10 |
+| `1751B0` | World bounds (each coordinate finite and within 44EA9C..44EAA0) | `native_tu15_world_bounds{_systems,}.hpp` | `HALO2_*_WORLD_BOUNDS` | 4/4, 10/10 |
+| `E65A0` | Unit readiness (flags, FISTP-rounded tick threshold, state, parent) | `native_tu15_unit_ready{_systems,}.hpp` | `HALO2_*_UNIT_READY` | 7/7, 15/15 |
+
+Live checks of the block 157FE0..E65A0 (2026-11-23, binary 897f1296): Armory
+three roles identical (frame `acd375e77ffb11c9`); MP reference vs verify 8/8
+identical, each owner compared thousands of live calls with no mismatch.
+
+| `106230` | Slot kinds | `src/physics/runtime/native_tu15_slot_kinds{_systems,}.hpp` | `HALO2_*_SLOT_KINDS` | 4/4, 10 mutants |
+| `1D9F50` | Entry kind (virtual call through the route) | `native_tu15_entry_kind{_systems,}.hpp` | `HALO2_*_ENTRY_KIND` | 6/6, 12 |
+| `144CB0` | Matrix reset (144910 dispatched) | `native_tu15_matrix_reset{_systems,}.hpp` | `HALO2_*_MATRIX_RESET` | 1/1, 9 (no live calls in the checked scenes) |
+| `BAC30` | Node matrices (count and address) | `native_tu15_node_matrices{_systems,}.hpp` | `HALO2_*_NODE_MATRICES` | 1/1, 8 |
+| `10E340` | Object type events | `native_tu15_object_type_events{_systems,}.hpp` | `HALO2_*_OBJECT_TYPE_EVENTS` | 5/5, 11 |
+| `BE7E0`, `BDA50` | Wake children, wake tree | `src/gameplay/objects/native_tu15_wake_{children,tree}.hpp`, `native_tu15_wake_tree_systems.hpp` | `HALO2_*_WAKE_TREE` | 5/5 and 4/4, 10 each |
+| `1CE810` | Animation frame clamp | `src/gameplay/units/native_tu15_animation_clamp{_systems,}.hpp` | `HALO2_*_ANIMATION_CLAMP` | 9/9, 17 |
+| `130D20` | Geometry cache entry (four of five units; the shadow frame copy publishes differently) | `src/rendering/native_tu15_cache_entry{_systems,}.hpp` | `HALO2_*_CACHE_ENTRY` | 5/5, 14 |
+| `E0500` | Unit motion (x87 speed chain) | `src/physics/runtime/native_tu15_unit_motion{_systems,}.hpp` | `HALO2_*_UNIT_MOTION` | 11/11, 20 |
+| `C0700` | Object function scale (BCB70 dispatched) | `src/rendering/shadows/native_tu15_function_scale{_systems,}.hpp` | `HALO2_*_FUNCTION_SCALE` | 4/4, 14 (no live calls in the checked scenes) |
+| `1EEDB0` | Player input (REP MOVSD) | `src/gameplay/players/native_tu15_player_input{_systems,}.hpp` | `HALO2_*_PLAYER_INPUT` | 6/6, 18 |
+| `18BBC0` | Packed colour (FISTP channels) | `src/rendering/effects/native_tu15_packed_color{_systems,}.hpp` | `HALO2_*_PACKED_COLOR` | 9/9, 15 |
+| `C93D0` | AI state reset (REP STOSD) | `src/campaign/ai/native_tu15_state_reset{_systems,}.hpp` | `HALO2_*_STATE_RESET` | 1/1, 13 |
+
+Live checks of the block 106230..C93D0 (2026-11-23, binary e3a88634): Armory
+three roles identical (frame `acd375e77ffb11c9`, trace `df61945af603`); MP
+reference vs verify 8/8 identical; the verified owners compared between 450
+and 155,000 live calls each with no mismatch.
+
+| `C92C0` | AI state apply (two units) | `src/campaign/ai/native_tu15_state_apply{_systems,}.hpp` | `HALO2_*_STATE_APPLY` | 4/4, 16 |
+| `1E1620` | Transition fraction (curve jump table; 110FC0 direct, 1E1920 through each unit's dispatch) | `src/physics/runtime/native_tu15_transition_fraction{_systems,}.hpp` | `HALO2_*_TRANSITION_FRACTION` | 10/10, 25 |
+| `110FC0`, `1E1920` | Smoothstep, smootherstep (clamped to 0..1; upper lanes carried) | `native_tu15_smooth_curves_systems.hpp`, `native_tu15_smooth{step,erstep}.hpp` | `HALO2_*_SMOOTH_CURVES` | 3/3, 10 each |
+| `11FA50` | Perpendicular (x87 horizontal length, SSE cross; live support copy only, the AI frame copy spills through `native_single_spill`) | `native_tu15_perpendicular{_systems,}.hpp` | `HALO2_*_PERPENDICULAR` | 3/3, 19 |
+| `DFD20` | Unit speed scale (2647E0 adjusts the slot) | `native_tu15_unit_speed_scale{_systems,}.hpp` | `HALO2_*_UNIT_SPEED_SCALE` | 12/12, 26 |
+| `1A8F10` | Linked iterator (the filtered iterator's logic, generalised over its filter; 1A8E50 re-validated) | `native_tu15_linked_iterator.hpp`, `native_tu15_filtered_iterator_systems.hpp` | `HALO2_*_LINKED_ITERATOR` | 6/6, 10 |
+| `175300` | Placement check (seven part checks in order) | `native_tu15_placement_check{_systems,}.hpp` | `HALO2_*_PLACEMENT_CHECK` | 10/10, 16 |
+
+Live checks of the block C92C0..175300 (2026-11-23, binary 9d64bfc5): Armory
+three roles identical; MP reference vs verify 8/8 identical; every owner but
+the smootherstep (no curve 2 in the checked scenes) compared between 16,000
+and 179,000 live calls with no mismatch.
+
+| `175280`, `175240`, `1752C0` | Scalar range checks (finite and within each range) | `native_tu15_finite_checks_systems.hpp`, `native_tu15_scalar_range.hpp` | `HALO2_*_SCALAR_RANGE` | 4/4 each, 8, 6 and 4 |
+| `B16C0` | Finite vector | `native_tu15_finite_vector.hpp` | `HALO2_*_FINITE_VECTOR` | 4/4, 7 |
+| `17C5C0` | Effect activity (two units; all four children through each unit's dispatch) | `src/gameplay/units/native_tu15_effect_activity{_systems,}.hpp` | `HALO2_*_EFFECT_ACTIVITY` | 10/10, 21 |
+| `1AE500` | Action target check (1AE5E0 direct, 1E7810 dispatched) | `src/gameplay/units/native_tu15_action_target_check{_systems,}.hpp` | `HALO2_*_ACTION_TARGET_CHECK` | 6/6, 20 |
+| `212C70` | Object model view (two units; BC190 dispatched) | `src/rendering/models/native_tu15_object_model_view{_systems,}.hpp` | `HALO2_*_OBJECT_MODEL_VIEW` | 3/3, 18 |
+| `30C40` | Object origin | `src/rendering/shadows/native_tu15_object_origin{_systems,}.hpp` | `HALO2_*_OBJECT_ORIGIN` | 1/1, 8 |
+| `11E060` | Kind entry (jump table) | `src/physics/runtime/native_tu15_kind_entry{_systems,}.hpp` | `HALO2_*_KIND_ENTRY` | 6/6, 11 |
+| `D2330` | Flagged weapon slot | `src/gameplay/weapons/native_tu15_flagged_slot{_systems,}.hpp` | `HALO2_*_FLAGGED_SLOT` | 4/4, 9 |
+| `105950` | Active entry | `src/physics/runtime/native_tu15_active_entry{_systems,}.hpp` | `HALO2_*_ACTIVE_ENTRY` | 5/5, 12 |
+
+Live checks of the block 175280..105950 (2026-11-23, binary 34872ded):
+Armory three roles identical; MP reference vs verify 8/8 identical; every
+group compared between 8,000 and 131,000 live calls with no mismatch.
+
+| `10DDE0` | Object type query chain (+0x48 queries until one answers) | `src/physics/runtime/native_tu15_object_type_query_chain{_systems,}.hpp` | `HALO2_*_OBJECT_TYPE_QUERY_CHAIN` | 4/4, 11 |
+| `10B0F0` | Linked object query (15C7F0) | `native_tu15_linked_object_query{_systems,}.hpp` | `HALO2_*_LINKED_OBJECT_QUERY` | 6/6, 12 |
+| `1D3F90` | Record iterator start (1E5250 dispatched) | `src/gameplay/objects/native_tu15_record_iterator_start{_systems,}.hpp` | `HALO2_*_RECORD_ITERATOR_START` | 1/1, 9 |
+| `16E290` | Object state bits | `native_tu15_object_state_bits{_systems,}.hpp` | `HALO2_*_OBJECT_STATE_BITS` | 6/6, 14 |
+| `B8D90` | Object cluster test (machines through 10DDE0) | `native_tu15_object_cluster_test{_systems,}.hpp` | `HALO2_*_OBJECT_CLUSTER_TEST` | 5/5, 13 |
+| `BBFF0` | Object axes (two units; the parent's node matrix) | `native_tu15_object_axes{_systems,}.hpp` | `HALO2_*_OBJECT_AXES` | 5/5, 16 |
+| `CAAA0` | Unit free test (E9530, 105950) | `src/gameplay/units/native_tu15_unit_free{_systems,}.hpp` | `HALO2_*_UNIT_FREE` | 6/6, 15 |
+
+Live checks of the block 10DDE0..CAAA0 (2026-11-23, binary 7e6f2070):
+Armory three roles identical; MP reference vs verify 8/8 identical; every
+owner compared between 6,000 and 52,000 live calls with no mismatch.
+
+| `14FBC0` | Record sanity check | `src/physics/runtime/native_tu15_record_sanity{_systems,}.hpp` | `HALO2_*_RECORD_SANITY` | 3/3, 20 |
+| `CE230`, `CFB40` | Slot handle, both slots (two units each) | `native_tu15_object_slots_systems.hpp`, `native_tu15_{slot_handle,both_slots}.hpp` | `HALO2_*_OBJECT_SLOTS` | 2/2 and 3/3, 7 and 6 |
+| `13F620`, `11E780`, `E3310`, `15DD10` | Game hold, cluster visibility, unit override, session variant | `native_tu15_small_queries_systems.hpp`, `native_tu15_{game_hold,cluster_visible,unit_override,session_variant}.hpp` | `HALO2_*_SMALL_QUERIES` | 2/2, 2/2, 4/4, 5/5 |
+
+Live checks of the block 14FBC0..15DD10 (2026-11-23, binary 5aab663e):
+Armory three roles identical; MP reference vs verify 8/8 identical; every
+owner compared between 16,000 and 119,000 live calls with no mismatch.
+
+| `BC330`, `BBD50` | Object root words, root flag | `native_tu15_object_root_systems.hpp`, `native_tu15_{root_words,root_flag}.hpp` | `HALO2_*_OBJECT_ROOT` | 3/3, 3/3 |
+| `15C7F0` | Team query (session variant, mode 7, team mask) | `src/physics/runtime/native_tu15_team_query{_systems,}.hpp` | `HALO2_*_TEAM_QUERY` | 5/5 |
+| `DF820` | Code class (compare tree) | `src/physics/runtime/native_tu15_code_class{_systems,}.hpp` | `HALO2_*_CODE_CLASS` | 4/4 |
+| `111D10` | Animation words (live support and AI frame units) | `src/gameplay/units/native_tu15_animation_words{_systems,}.hpp` | `HALO2_*_ANIMATION_WORDS` | 4/4 |
+| `C5250` | Partition unlink (through 1D30F0) | `src/physics/runtime/native_tu15_partition_unlink{_systems,}.hpp` | `HALO2_*_PARTITION_UNLINK` | 2/2 |
+| `17C330`, `C9590`, `1E5D60` | Header unanswered (BBD10 through dispatch in both units), special animation (two units), entry refresh | `native_tu15_small_calls_systems.hpp`, `native_tu15_{header_unanswered,special_animation,entry_refresh}.hpp` | `HALO2_*_SMALL_CALLS` | 3/3 each |
+| `BA910` | Object summary (state bits through 16E290) | `src/gameplay/objects/native_tu15_object_summary{_systems,}.hpp` | `HALO2_*_OBJECT_SUMMARY` | 2/2 |
+
+Live checks of `BC330`..`111D10` (2026-11-23, binary 2c8295db): Armory three
+roles identical; MP reference vs verify 8/8 identical; between 20,000 and
+62,000 live calls each with no mismatch. A first build of this round failed
+to link on `path_tracing::Render::record_acceleration` while a peer's
+renderer edit was mid-write; the rebuild linked. `C5250`..`BA910` are bound
+in the next round (validators passed).
+
+Live checks of `C5250`..`BA910` (2026-11-23, binary da820cd5): Armory three
+roles identical; MP reference vs verify 8/8 identical; between 2,300 (entry
+refresh) and 87,000 (partition unlink) live calls each with no mismatch.
+
+| `D2B00` | Unit chain step (the next biped or vehicle along an object chain) | `src/gameplay/objects/native_tu15_unit_chain{_systems,}.hpp` | `HALO2_*_UNIT_CHAIN` | 4/4 |
+| `1062A0` | Entry kind query (combat action unit) | `src/gameplay/units/native_tu15_entry_kind{_systems,}.hpp` | `HALO2_*_ENTRY_KIND` | 4/4 |
+| `1CD620` | Cluster notice (flags 1, 7, 8 and two byte arguments, through 1DC270) | `src/physics/runtime/native_tu15_cluster_notify{_systems,}.hpp` | `HALO2_*_CLUSTER_NOTIFY` | 6/6 |
+| `11E600` | Point location (leaf through 14CDB0, cluster, BSP index) | `src/physics/runtime/native_tu15_point_location{_systems,}.hpp` | `HALO2_*_POINT_LOCATION` | 3/3 |
+| `152E00` | Player biped query (through E65A0) | `src/gameplay/units/native_tu15_player_biped{_systems,}.hpp` | `HALO2_*_PLAYER_BIPED` | 6/6 |
+| `106040` | Inactive choice query (through 105950) | `src/gameplay/objects/native_tu15_inactive_choice{_systems,}.hpp` | `HALO2_*_INACTIVE_CHOICE` | 3/3 |
+| `115FF0`, `1E15D0` | Timer sweep (five byte timers through 1E15D0) and the byte timer step | `native_tu15_timer_sweep{_systems,}.hpp`, `native_tu15_byte_timer{_systems,}.hpp` | `HALO2_*_TIMER_SWEEP`, `HALO2_*_BYTE_TIMER` | 2/2, 6/6 |
+| `C6E50`, `15B470` | Uncontrolled unit (through C6DD0), player live (two units, through 160570) | `native_tu15_player_queries_systems.hpp`, `native_tu15_{uncontrolled_unit,player_live}.hpp` | `HALO2_*_UNCONTROLLED_UNIT`, `HALO2_*_PLAYER_LIVE` | 4/4, 7/7 |
+| `1F0F90` | Repeat tracker | `src/gameplay/objects/native_tu15_repeat_tracker{_systems,}.hpp` | `HALO2_*_REPEAT_TRACKER` | 4/4 |
+| `17E100` | Role check (death cycle unit) | `src/gameplay/units/native_tu15_role_check{_systems,}.hpp` | `HALO2_*_ROLE_CHECK` | 6/6 |
+| `161560` | Team admission (multiplayer engines unit) | `src/gameplay/multiplayer/native_tu15_team_admission{_systems,}.hpp` | `HALO2_*_TEAM_ADMISSION` | 4/4 |
+
+Live checks of `D2B00`..`161560` (2026-11-23, binary 7e7a3e14): Armory three
+roles identical; MP reference vs verify 8/8 identical; byte timer 221,810,
+point location 86,569, cluster notice 44,555, entry kind 27,100 live calls
+down to the role check's 3, with no mismatch (the unit chain step ran no
+live call in these scenarios).
+
+| `1CEE60` | Indexed tag reference | `src/physics/runtime/native_tu15_indexed_tag{_systems,}.hpp` | `HALO2_*_INDEXED_TAG` | 4/4 |
+| `1059C0` | Seat sum (four unrolled seats, separate last-seat epilogue, through 10B0F0) | `src/gameplay/units/native_tu15_seat_sum{_systems,}.hpp` | `HALO2_*_SEAT_SUM` | 11/11 |
+| `144210`, `1452F0` | Orientation frame built from forward and up; vector projected onto a frame's axes (scalar SSE) | `native_tu15_orientation_frame_systems.hpp`, `native_tu15_{orientation_frame,frame_projection}.hpp` | `HALO2_*_ORIENTATION_FRAME` | 1/1, 2/2 |
+| `BA7E0` | Object disconnect (C0F60, 1D30F0 on one of two partitions) | `src/physics/runtime/native_tu15_object_disconnect{_systems,}.hpp` | `HALO2_*_OBJECT_DISCONNECT` | 2/2 |
+| `B92C0` | Object activation (two units, 1CC3F0 through dispatch) | `src/physics/runtime/native_tu15_object_activate{_systems,}.hpp` | `HALO2_*_OBJECT_ACTIVATE` | 6/6 |
+| `D3A80` | Seat pair check (106710 twice, E8E10) | `src/gameplay/units/native_tu15_seat_pair{_systems,}.hpp` | `HALO2_*_SEAT_PAIR` | 4/4 |
+| `31EDF0`, `33210C`, `161530`, `1D4140`, `116480`, `E32C0` | Tiny leaves: six, double exponent, variant option, definition word, block ready, tick seconds | `native_tu15_tiny_leaves_systems.hpp` and one adapter each | `HALO2_*_TINY_LEAVES` | all branches |
+| `CB440` | Child unit search | `src/gameplay/objects/native_tu15_child_unit{_systems,}.hpp` | `HALO2_*_CHILD_UNIT` | 3/3 |
+
+Live checks of `1CEE60`..`CB440` (2026-11-23, binary f0a0f54f): Armory three
+roles identical; MP reference vs verify 8/8 identical; object activation
+47,736, object disconnect 46,469, indexed tag 40,800, seat pair 19,476,
+six 15,504 live calls down to the frame projection's 1,051, with no
+mismatch.
+
+| `172200`, `BCF70`, `111F00` | Indexed record, attachment root (three units), ready slot | `native_tu15_object_leaves_systems.hpp`, `native_tu15_{indexed_record,attachment_root,ready_slot}.hpp` | `HALO2_*_OBJECT_LEAVES` | 3/3 each |
+| `140EC0` | Bit vector union | `src/physics/runtime/native_tu15_bit_union{_systems,}.hpp` | `HALO2_*_BIT_UNION` | 2/2 |
+| `105FD0` | Charge gate (COMISS against 1) | `src/gameplay/units/native_tu15_charge_gate{_systems,}.hpp` | `HALO2_*_CHARGE_GATE` | 6/6 |
+| `C8C20` | Unit countdowns (1D1F30, D2500 through dispatch) | `src/gameplay/units/native_tu15_unit_countdowns{_systems,}.hpp` | `HALO2_*_UNIT_COUNTDOWNS` | 5/5 |
+| `113C70` | Animation mask query (1E3150 twice) | `src/gameplay/units/native_tu15_animation_mask{_systems,}.hpp` | `HALO2_*_ANIMATION_MASK` | 3/3 |
+| `1E5160` | Record cursor step (1E5C80) | `src/physics/runtime/native_tu15_record_cursor{_systems,}.hpp` | `HALO2_*_RECORD_CURSOR` | 3/3 |
+
+Live checks of `172200`..`1E5160` (2026-11-23, round 58): Armory three roles
+identical; MP reference vs verify 8/8 identical; indexed record 45,124,
+attachment root 34,191, unit countdowns 23,090, animation mask 17,200,
+ready slot 16,050 live calls down to the charge gate's 5,167, with no
+mismatch.
+
+| `1E5DF0` | Animation record (1E3150, 1E5A70; two units) | `src/gameplay/units/native_tu15_animation_record{_systems,}.hpp` | `HALO2_*_ANIMATION_RECORD` | 2/2 |
+| `1CF070` | Reference pose (a stack record through 1E5DF0, then 212D40) | `src/gameplay/units/native_tu15_reference_pose{_systems,}.hpp` | `HALO2_*_REFERENCE_POSE` | 2/2 |
+| `1CEFB0` | Scaled reference pose (the argument slot reused for floats, CVTTSS2SI, scalar SSE) | `src/gameplay/units/native_tu15_scaled_pose{_systems,}.hpp` | `HALO2_*_SCALED_POSE` | 2/2 |
+
+Live checks of `1E5DF0`..`1CEFB0` (2026-11-23, round 59): Armory three roles
+identical; MP reference vs verify 8/8 identical; about 16,500 live calls
+each, with no mismatch.
+
+| `1E5A70` | Animation entry value (two units, through 1262F0) | `src/gameplay/units/native_tu15_animation_entry{_systems,}.hpp` | `HALO2_*_ANIMATION_ENTRY` | 4/4 |
+| `BBF20` | Root point (root's cluster entry, or BBE00) | `src/gameplay/objects/native_tu15_root_point{_systems,}.hpp` | `HALO2_*_ROOT_POINT` | 4/4 |
+
+Live checks of `1E5A70` and `BBF20` (2026-11-23, round 60): Armory three
+roles identical; MP reference vs verify 8/8 identical; 16,606 and 6,718
+live calls, with no mismatch.
+
+| `1D4E50` | Channel reset (three 32-byte channels; two units) | `src/gameplay/units/native_tu15_channel_reset{_systems,}.hpp` | `HALO2_*_CHANNEL_RESET` | 1/1 |
+| `1FA110` | Root notice (player roots, 184EC0 through dispatch) | `src/gameplay/objects/native_tu15_root_notice{_systems,}.hpp` | `HALO2_*_ROOT_NOTICE` | 4/4 |
+| `102910` | Flagged object visit (a stack iterator through BCEE0, 102980) | `src/gameplay/objects/native_tu15_flagged_objects{_systems,}.hpp` | `HALO2_*_FLAGGED_OBJECTS` | 3/3 |
+
+Live checks of `1D4E50`, `1FA110` and `102910` (2026-11-23, round 61):
+Armory three roles identical; MP reference vs verify 8/8 identical; 20,216,
+16,490 and 10,500 live calls, with no mismatch.
+
+| `1E5F20` | Animation fallbacks (five 1E5E40 lookups) | `src/gameplay/units/native_tu15_animation_fallbacks{_systems,}.hpp` | `HALO2_*_ANIMATION_FALLBACKS` | 3/3 |
+| `1E7810` | Team hostility (alliance bits through C1E90, 160A60 through dispatch; two units) | `src/gameplay/multiplayer/native_tu15_team_hostility{_systems,}.hpp` | `HALO2_*_TEAM_HOSTILITY` | 5/5 |
+| `212D40` | Pose sample (8/12/16-byte frames) | `src/gameplay/units/native_tu15_pose_sample{_systems,}.hpp` | `HALO2_*_POSE_SAMPLE` | 4/4 |
+
+Live checks of `1E5F20`, `1E7810` and `212D40` (2026-11-24, round 62):
+Armory three roles identical; MP reference vs verify 8/8 identical; 4,398,
+18,727 and 16,484 live calls, with no mismatch.
+
+| `1E5E40` | Animation select (three 1E5810 lookups, 126200 per listed item; three units) | `src/gameplay/units/native_tu15_animation_select{_systems,}.hpp` | `HALO2_*_ANIMATION_SELECT` | 5/5 |
+| `1521B0` | Input edges (new buttons, trigger pressed/released, latches) | `src/gameplay/players/native_tu15_input_edges{_systems,}.hpp` | `HALO2_*_INPUT_EDGES` | 10/10 |
+| `152D60` | Flat axes (forward via 30BD0 with fallbacks, left) | `src/gameplay/units/native_tu15_flat_axes{_systems,}.hpp` | `HALO2_*_FLAT_AXES` | 3/3 |
+
+Live checks of `1E5E40`, `1521B0` and `152D60` (2026-11-24, round 63):
+Armory three roles identical; MP reference vs verify 8/8 identical; 21,990,
+16,024 and 11,170 live calls, with no mismatch.
+
+| `C8CF0` | Unit camouflage (forced in unallied team games via C1E90; fades; B7E50 notice) | `src/gameplay/units/native_tu15_unit_camouflage{_systems,}.hpp` | `HALO2_*_UNIT_CAMOUFLAGE` | 7/7 |
+| `1BE90` | Pixel scales (shadow frame unit) | `src/rendering/shadows/native_tu15_pixel_scales{_systems,}.hpp` | `HALO2_*_PIXEL_SCALES` | 2/2 |
+
+Live checks of `C8CF0` and `1BE90` (2026-11-24, round 64): Armory three
+roles identical; MP reference vs verify 8/8 identical; 23,090 and 15,874 live
+calls, with no mismatch.
+
+| `2A0100` | Animation wildcard search (three units; a bridge per pin: the live support copy asks the MCC class symbol) | `src/gameplay/units/native_tu15_animation_wildcard.hpp` | `HALO2_*_ANIMATION_WILDCARD` | 9/9 |
+| `2DB80` | Lens request (lens flare unit; 2E210, 20990, 20B20) | `src/rendering/effects/native_tu15_lens_request.hpp` | `HALO2_*_LENS_REQUEST` | 8/8 |
+| `1D3930` | Model switch (by distance) | `src/gameplay/objects/native_tu15_model_switch.hpp` | `HALO2_*_MODEL_SWITCH` | 3/3 |
+| `1DC610` | Record frame (1D8B90 or BC190 through dispatch, then 1DC680) | `src/gameplay/objects/native_tu15_record_frame.hpp` | `HALO2_*_RECORD_FRAME` | 3/3 |
+| `BC190` | Object frame (scene device constructor unit; 144BF0, 145560) | `src/gameplay/objects/native_tu15_object_frame.hpp` | `HALO2_*_OBJECT_FRAME` | 2/2 |
+| `10C5D0` | Device tree (recursing through its own bridge; B9390) | `src/gameplay/objects/native_tu15_device_tree.hpp` | `HALO2_*_DEVICE_TREE` | 3/3 |
+| `DFE30` | Object rate (DFD20, E65A0, E3310) | `src/gameplay/objects/native_tu15_object_rate.hpp` | `HALO2_*_OBJECT_RATE` | 5/5 |
+| `1E5A50` | Reference clear (sandbox special unit) | `src/gameplay/native_tu15_reference_clear.hpp` | `HALO2_*_REFERENCE_CLEAR` | 1/1 |
+| `335B0` | Shadow option (shadow frame unit) | `src/gameplay/native_tu15_shadow_option.hpp` | `HALO2_*_SHADOW_OPTION` | 3/3 |
+| `150990` | Seat player (combat action and sandbox special units) | `src/gameplay/native_tu15_seat_player.hpp` | `HALO2_*_SEAT_PLAYER` | 2/2 |
+| `25BC70` | Word change (multiplayer engines unit) | `src/gameplay/native_tu15_word_change.hpp` | `HALO2_*_WORD_CHANGE` | 2/2 |
+| `226B0` | Cluster match (shadow frame unit) | `src/gameplay/native_tu15_cluster_match.hpp` | `HALO2_*_CLUSTER_MATCH` | 3/3 |
+
+Live checks of `2A0100`..`226B0` (2026-11-24, round 65): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 96,584 animation
+wildcard, 47,570 object frame, 36,031 model switch, 26,808 record frame,
+21,000 seat player, 17,678 word change, 16,490 object rate, 13,868 reference
+clear, 6,660 device tree, with no mismatch (lens request, shadow option and
+cluster match were not reached by these scenarios).
+
+| `189F20` | Director value (vehicle director unit; CAD60) | `src/gameplay/vehicles/native_tu15_director_value.hpp` | `HALO2_*_DIRECTOR_VALUE` | 4/4 |
+| `158450` | Seat camera mode (158340 through dispatch, 158900) | `src/gameplay/vehicles/native_tu15_seat_camera_mode.hpp` | `HALO2_*_SEAT_CAMERA_MODE` | 4/4 |
+| `25BCC0` | Option flag (multiplayer engines unit) | `src/gameplay/multiplayer/native_tu15_option_flag.hpp` | `HALO2_*_OPTION_FLAG` | 4/4 |
+| `D2B60` | Carrier (the biped or vehicle carrying an object) | `src/gameplay/objects/native_tu15_carrier.hpp` | `HALO2_*_CARRIER` | 4/4 |
+| `1D9F10` | Item notice (death cycle and live support units; 315CB0 through dispatch) | `src/gameplay/objects/native_tu15_item_notice.hpp` | `HALO2_*_ITEM_NOTICE` | 3/3 |
+| `43980` | Stamp advance (combat action unit; 13FD10) | `src/gameplay/native_tu15_stamp_advance.hpp` | `HALO2_*_STAMP_ADVANCE` | 2/2 |
+| `12F0C0` | Framed stamp advance (12F040, 13FD10) | `src/gameplay/native_tu15_stamp_framed.hpp` | `HALO2_*_STAMP_FRAMED` | 3/3 |
+| `118760` | Datum visit (death cycle unit; 47860 through dispatch) | `src/gameplay/native_tu15_datum_visit.hpp` | `HALO2_*_DATUM_VISIT` | 2/2 |
+| `1D6430` | Tagged play (three units; 1D45A0, 1E5FB0) | `src/gameplay/units/native_tu15_tagged_play.hpp` | `HALO2_*_TAGGED_PLAY` | 2/2 |
+| `304C50` | Record view (2F4990) | `src/physics/runtime/native_tu15_record_view.hpp` | `HALO2_*_RECORD_VIEW` | 1/1 |
+| `1582F0` | Mode action (combat action unit; 158340 through dispatch, 244F80, 245D10) | `src/gameplay/units/native_tu15_mode_action.hpp` | `HALO2_*_MODE_ACTION` | 2/2 |
+
+Live checks of `189F20`..`1582F0` (2026-11-24, round 66): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 450 framed stamp
+advance, 420 tagged play, 300 each director value, seat camera mode and
+stamp advance, 4 item notice, with no mismatch (option flag, carrier, datum
+visit, record view and mode action were not reached by these scenarios).
+
+| `18A240` | Director player (vehicle director unit) | `src/gameplay/multiplayer/native_tu15_director_player.hpp` | `HALO2_*_DIRECTOR_PLAYER` | 2/2 |
+| `171FF0` | Director bind (175380 through dispatch) | `src/gameplay/vehicles/native_tu15_director_bind.hpp` | `HALO2_*_DIRECTOR_BIND` | 2/2 |
+| `20700` | Lens broadcast (lens flare unit; 20E30) | `src/rendering/effects/native_tu15_lens_broadcast.hpp` | `HALO2_*_LENS_BROADCAST` | 3/3 |
+| `1F33C0` | Page scan | `src/physics/runtime/native_tu15_page_scan.hpp` | `HALO2_*_PAGE_SCAN` | 3/3 |
+| `C5170` | Light admits (light portal unit) | `src/pstencil/native_tu15_light_admits.hpp` | `HALO2_*_LIGHT_ADMITS` | 4/4 |
+| `31500` | Light gate (light portal unit; 3E9B0) | `src/pstencil/native_tu15_light_gate.hpp` | `HALO2_*_LIGHT_GATE` | 4/4 |
+| `10DB40` | Type hooks (hook functions through dispatch by address) | `src/gameplay/objects/native_tu15_type_hooks.hpp` | `HALO2_*_TYPE_HOOKS` | 4/4 |
+| `2E9750` | Aligned query (three units) | `src/physics/runtime/native_tu15_aligned_query.hpp` | `HALO2_*_ALIGNED_QUERY` | 1/1 |
+
+Live checks of `18A240`..`2E9750` (2026-11-24, round 67): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 15,874 lens
+broadcast, 15,874 director bind, 15,600 director player, 11,593 light gate,
+11,593 light admits, 5,297 aligned query, 3,339 type hooks and 985 page scan,
+with no mismatch.
+
+| `243510` | Polygon inside (light portal and live support units) | `src/physics/runtime/native_tu15_polygon_inside.hpp` | `HALO2_*_POLYGON_INSIDE` | 3/3 |
+| `16E7F0` | Datum claim (UI script startup and campaign runtime units; a bridge per pin) | `src/gameplay/native_tu15_datum_claim.hpp` | `HALO2_*_DATUM_CLAIM` | 4/4 |
+| `2E3250` | Array grow (scene device constructor unit) | `src/rendering/renderer/native_tu15_array_grow.hpp` | `HALO2_*_ARRAY_GROW` | 2/2 |
+| `158340` | Seat mode (live support, campaign camera and map world support units; a bridge per pin) | `src/gameplay/units/native_tu15_seat_mode.hpp` | `HALO2_*_SEAT_MODE` | 5/5 |
+| `1D9080` | Item light place (scene device constructor unit) | `src/rendering/renderer/native_tu15_item_light_place.hpp` | `HALO2_*_ITEM_LIGHT_PLACE` | 3/3 |
+| `1D9100` | Item light aim (scene device constructor unit) | `src/rendering/renderer/native_tu15_item_light_aim.hpp` | `HALO2_*_ITEM_LIGHT_AIM` | 3/3 |
+| `3D2B0` | First-person unit (texture camera producer and first-person light pose units) | `src/gameplay/animation/native_tu15_first_person_unit.hpp` | `HALO2_*_FIRST_PERSON_UNIT` | 5/5 |
+| `1E5360` | Element search (AI frame and live support units) | `src/campaign/ai/native_tu15_element_search.hpp` | `HALO2_*_ELEMENT_SEARCH` | 5/5 |
+| `244F80` | Unit view (combat action unit) | `src/gameplay/units/native_tu15_unit_view.hpp` | `HALO2_*_UNIT_VIEW` | 5/5 |
+
+Live checks of `243510`..`244F80` (2026-11-24, round 68): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 33,356 seat mode,
+17,482 unit view, 15,874 first-person unit, 10,649 polygon inside, 9,999 item
+light place, 9,526 datum claim, 436 element search and 327 item light aim,
+with no mismatch (array grow was not reached by these scenarios).
+
+| `168D76` | First-person model record (sandbox special unit; 16B240, 145560; REP MOVSD) | `src/gameplay/objects/native_tu15_model_record.hpp` | `HALO2_*_MODEL_RECORD` | 4/4 |
+| `158790` | Seat camera death (vehicle director unit; 158450, 246CF0, 158900) | `src/gameplay/vehicles/native_tu15_seat_camera_death.hpp` | `HALO2_*_SEAT_CAMERA_DEATH` | 7/7 |
+| `161610` | Seat status (multiplayer engines unit; 1618B0) | `src/gameplay/multiplayer/native_tu15_seat_status.hpp` | `HALO2_*_SEAT_STATUS` | 5/5 |
+| `13DA89` | Weapon HUD state (weapon HUD unit; 1055F0) | `src/gameplay/weapons/native_tu15_weapon_hud_state.hpp` | `HALO2_*_WEAPON_HUD_STATE` | 1/1 |
+| `1540D0` | Biped action test (combat action unit; 1E7810 through dispatch, E8110, E79C0, 153E10) | `src/gameplay/units/native_tu15_biped_action.hpp` | `HALO2_*_BIPED_ACTION` | 5/5 |
+| `15B620` | Team count (multiplayer engines unit; 15B470 through dispatch) | `src/gameplay/multiplayer/native_tu15_team_count.hpp` | `HALO2_*_TEAM_COUNT` | 7/7 |
+
+Live checks of `168D76`..`15B620` (2026-11-24, round 69): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 62,296 model
+record, 17,805 biped action, 15,874 seat camera death, 15,678 weapon HUD
+state, 4,800 team count and 4,800 seat status, with no mismatch.
+
+| `1AE5E0` | Deferred action target check (combat action unit; 1AE500, 1AE6F0) | `src/gameplay/units/native_tu15_action_target_defer.hpp` | `HALO2_*_ACTION_TARGET_DEFER` | 5/5 |
+| `15B2D0` | Player factor (live support unit; the original's jump table) | `src/gameplay/players/native_tu15_player_factor.hpp` | `HALO2_*_PLAYER_FACTOR` | 6/6 |
+| `154D00` | Player timers (multiplayer engines unit; D3340 through dispatch) | `src/gameplay/players/native_tu15_player_timers.hpp` | `HALO2_*_PLAYER_TIMERS` | 3/3 |
+| `13E670` | Curve value (lens draw and live support units; 13DE70) | `src/rendering/effects/native_tu15_curve_value.hpp` | `HALO2_*_CURVE_VALUE` | 5/5 |
+| `11EF70` | Tag group fixups (live support unit; map load) | `src/physics/runtime/native_tu15_tag_fixups.hpp` | `HALO2_*_TAG_FIXUPS` | 7/7 |
+| `1262F0` | Resource acquire (AI frame and live support units; steps per pin) | `src/gameplay/animation/native_tu15_resource_acquire.hpp` | `HALO2_*_RESOURCE_ACQUIRE` | 3/3 |
+| `1AE6F0` | Rider check (combat action unit; D2B00, 1E7810 through dispatch) | `src/gameplay/units/native_tu15_rider_check.hpp` | `HALO2_*_RIDER_CHECK` | 3/3 |
+| `B95D0` | Object placement (death cycle and live support units; steps per pin) | `src/gameplay/objects/native_tu15_object_placement.hpp` | `HALO2_*_OBJECT_PLACEMENT` | 3/3 |
+
+Live checks of `1AE5E0`..`B95D0` (2026-11-24, round 70): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 43,910 object
+placement, 29,861 curve value, 16,606 resource acquire, 16,050 player timers,
+15,626 player factor, 1,255 rider check, 849 deferred action target check and
+9 tag group fixups, with no mismatch.
+
+| `C9010` | Unit actions (live support unit; the unit from the Kept) | `src/gameplay/units/native_tu15_unit_actions.hpp` | `HALO2_*_UNIT_ACTIONS` | all |
+| `1DC680` | Record place (scene device constructor unit) | `src/gameplay/objects/native_tu15_record_place.hpp` | `HALO2_*_RECORD_PLACE` | 6/6 |
+| `1157D0` | Unit animation update (live support unit; seven children) | `src/gameplay/units/native_tu15_unit_animation_update.hpp` | `HALO2_*_UNIT_ANIMATION_UPDATE` | 4/4 |
+| `153360` | Player unit search (multiplayer engines unit; BD080, 1538B0) | `src/gameplay/multiplayer/native_tu15_player_unit_search.hpp` | `HALO2_*_PLAYER_UNIT_SEARCH` | 5/5 |
+| `2E2E30` | Memory copy (scene device constructor unit) | `src/rendering/renderer/native_tu15_memory_copy.hpp` | `HALO2_*_MEMORY_COPY` | 1/1 |
+| `1EDDA0` | State dispatch (live support unit; the original's jump table) | `src/physics/runtime/native_tu15_state_dispatch.hpp` | `HALO2_*_STATE_DISPATCH` | 4/4 |
+| `1CEB70` | Countdown step (live support unit; 1CE950) | `src/physics/runtime/native_tu15_countdown_step.hpp` | `HALO2_*_COUNTDOWN_STEP` | 4/4 |
+| `C3960` | Shape copy (four identical units) | `src/pstencil/native_tu15_shape_copy.hpp` | `HALO2_*_SHAPE_COPY` | 2/2 |
+| `140CF0` | Pool reset (four units) | `src/rendering/renderer/native_tu15_pool_reset.hpp` | `HALO2_*_POOL_RESET` | 2/2 |
+| `C3A20` | Light shape source (three units; steps per pin) | `src/pstencil/native_tu15_light_shape_source.hpp` | `HALO2_*_LIGHT_SHAPE_SOURCE` | 6/6 |
+| `BE2B0` | Object allocation (live support unit; 16E6A0, 1910A0, 16E8A0) | `src/gameplay/objects/native_tu15_object_allocate.hpp` | `HALO2_*_OBJECT_ALLOCATE` | 3/3 |
+| `15CAB0` | Kind slot (live support unit) | `src/gameplay/multiplayer/native_tu15_kind_slot.hpp` | `HALO2_*_KIND_SLOT` | 4/4 |
+
+`C9010`..`15CAB0` passed their validators in round 70 and were bound in
+round 71. `C9010`'s `push` mutant still named the adapter's old `gp[esi]`
+push; its anchor now names the Kept unit (it passed again in round 71).
+
+Round 71's perf build failed: the new C3A20 port shared the namespace
+`halo2::native_light_shape`, its file names and the `HALO2_*_LIGHT_SHAPE`
+switches with the older C3AB0 light volume builder
+(`src/rendering/native_tu15_light_shape.hpp`), and both headers land in the
+light shape unit. C3A20 is now `native_tu15_light_shape_source`
+(`halo2::native_light_shape_source`, `HALO2_*_LIGHT_SHAPE_SOURCE`), 118120
+`native_tu15_cluster_pairs` (it had taken B8D90's
+`halo2::native_object_cluster_test` and test file), and
+`tools/check_frame_misc_unit_headers.py` compiles every unit's prepended
+headers from all binders together before a build. Three tests that a new
+port's test had overwritten were restored: C3AB0's harness
+`tests/native_tu15_light_shape_tests.cpp` from git (its 11-19 validation hash
+matches), B8D90's `tests/native_tu15_object_cluster_test_tests.cpp` and
+1D9F50's test (now `tests/native_tu15_entry_check_tests.cpp`; 1062A0 keeps
+`tests/native_tu15_entry_kind_tests.cpp`) from the session transcripts; all
+three pass again. Round 71's validators passed for `118120`, `4B150`,
+`C3820`, `1617A0` and `1A6830` (bound in round 72); `1718C0`'s
+`sample-size` survived because the adapter rebuilt the sample pointer from
+registers (it now pushes the logic's), and `15B740`'s `handle` because
+161530's stub almost never answered 0 (now half the time). Round 72 builds
+and live-checks `C9010`..`15CAB0` and these five, and validates `1718C0`,
+`15B740`, `118120`, `C3A20` (renamed) and the new ports:
+- `E53E0` motion names (live support unit; 1D3BD0; the original's jump table
+  at E54C0).
+- `E52D0` biped recovery (live support unit; E7E80, 111B10, C1A70, 2031F0
+  through dispatch).
+- `113B70` seated blend (live support unit; C9550, 113C70; the original's
+  binary search over the action names replayed for its flags).
+- `14FDC0` player activation (live support unit; 69AD0, B7E50, the
+  variant's method through the dispatch).
+
+Live checks of `C9010`..`15CAB0`, `118120`, `4B150`, `C3820`, `1617A0` and
+`1A6830` (2026-11-24, round 72; the switches file was rewritten after zsh
+passed its name list as one word): Armory three roles identical; MP reference
+vs verify 8/8 identical; live calls 34,727 countdown step, 20,585 unit
+animation update, 17,833 unit actions, 9,726 kind slot, 6,172 cluster pairs,
+4,826 player exclusion, 4,800 teleporter update, 3,339 object allocation,
+2,980 state dispatch, 1,488 record place, 612 light shape source, 603 light
+record, 450 player unit search, 300 shape copy and 27 pool reset, with no
+mismatch (memory copy and record sort were not reached). Round 72's
+validators passed for `1718C0`, `15B740`, `118120`, `C3A20` (after the
+renames), `E53E0`, `E52D0`, `113B70` and `14FDC0`; the last six are bound in
+round 73, which validates `17CD10` effect part places (shadow frame and lens
+flare units; 17DD50, 145560 and 159690 through the dispatch) and re-validates
+`B8D90` and `1D9F50` with their restored tests.
+
+Live checks of `1718C0`, `15B740`, `E53E0`, `E52D0`, `113B70` and `14FDC0`
+(2026-11-24, round 73): Armory three roles identical; MP reference vs verify
+8/8 identical; live calls 17,200 seated blend, 16,490 motion names, 16,490
+biped recovery, 5,250 player activation, 4,800 round end and 2,251 sound
+readiness, with no mismatch. Round 73's validators passed for `17CD10`
+(bound in round 74) and, with their restored tests, `B8D90` and `1D9F50`.
+Round 74 validates:
+- `1CE950` channel advance (live support unit; TU1.1 1CA090: 1CEE60, 1E3150,
+  1CF700 three times, 1D3660, B8780 and 1CE810; the step and last frame in
+  the first two argument slots).
+- `BA630` object connect (live support unit; the cluster re-registration:
+  11E600, BA910, 1D2F10, C0F60, B8D90, B92C0, B1870, BA570, B9330, 1CC290,
+  1496F0 and 282C10 through dispatch; the all-cluster set by REP STOSD).
+- `1CEC60` event window (live support and AI actor units; TU1.1 1CA3A0:
+  1E3150; the original's four-wide event walk and UCOMISS/LAHF window side).
+- `E06E0` aim offset (live support unit; 111F00, BAD60, CDF30, E05D0; the
+  per-axis step clamp at 46A558/46A18C).
+
+Live check of `17CD10` (2026-11-24, round 74): Armory three roles identical;
+MP reference vs verify 8/8 identical; 103,475 live effect part places with no
+mismatch. Round 74's validators passed for `1CE950`, `BA630`, `1CEC60` and
+`E06E0` (bound in round 75). Round 75 validates:
+- `1CF700` channel events (live support unit; TU1.1 1CAE40: the events,
+  sounds and effects a step passes, each handed to the callback in EBX
+  through the dispatch as a 20-byte record).
+- `15B4D0` side count (multiplayer engines unit; the teams of a team game,
+  four at a time, or the players in use).
+- `1459B0` rotation product (scene device constructor unit; a 3x3 product,
+  each element's terms in the original's operand order).
+
+Live checks of `1CE950`, `BA630`, `1CEC60` and `E06E0` (2026-11-24, round
+75): Armory three roles identical (acd375e77ffb11c9, trace df61945af603); MP
+reference vs verify 8/8 identical; live calls 60,602 event window, 47,721
+object connect, 42,001 channel advance and 16,490 aim offset, with no
+mismatch. Round 75's validators passed for `1CF700`, `15B4D0` and `1459B0`
+(bound in round 76). Round 76 validates:
+- `15BE80` score lead (multiplayer engines unit).
+- `1181F0` object lights (scene device constructor unit).
+- `C8E70` object team (live support unit; D2B60 and D2BD0, the riders'
+  teams through the iterator on the stack).
+- `C8390` channel fades (live support unit; D3150, D05A0, E8E10; the weights
+  faded in single precision, UCOMISS/LAHF at their ends).
+- `D35C0` seat transform (live support unit; BAD60, BBE00; the marker's matrix
+  by REP MOVSD in either direction, the pops between the last copy's loads and
+  stores).
+- `1601B0` respawn wait (live support unit; 1A8E50 twice over, 160570).
+- `160360` team respawn wait (live support unit; 1A8E50, 160570, 1601B0,
+  164890; byte team counts in the frame, the share at least 2).
+- `160570` lives spent (live support and death cycle units, one pin each) and
+  `164890` team active (live support unit), both leaves.
+Deferred: `185670` (aligned stack, CRT `_controlfp` dispatches 32B3D6 and
+32B3C5).
+
+Live checks of `1CF700`, `15B4D0` and `1459B0` (2026-11-24, round 76):
+Armory three roles identical (acd375e77ffb11c9); MP reference vs verify 8/8
+identical; live calls 55,787 channel events, 25,310 rotation product and
+4,800 side count, with no mismatch. Round 76's validators passed for all
+nine (`15BE80`, `1181F0`, `C8E70`, `C8390`, `D35C0`, `1601B0`, `160360`,
+`160570`, `164890`; bound in round 77). Round 77 validates:
+- `1D5970` pose blend (live support unit; 1CEFB0 three ways, 1D61B0's factor
+  in XMM0 and the ECX it returns; the factor in the argument's slot).
+- `CDCF0` seated vector (live support unit; BBFF0, 30BD0 twice with the
+  UCOMISS/LAHF fallback, 144210; the frame's matrix).
+- `69AD0` machine address (live support unit; REPE CMPSW in either
+  direction, the translated route reading EDI's word first; 6C3F0).
+- `1AFA90` list slots (AI actor and final startup storage units; a jump
+  table through canonical_branch).
+- `E71A0` unit reaction (live support unit, through the dispatch; E72E0).
+- `144910` quaternion matrix (AI frame and scene device constructor units;
+  XMM0 to XMM7 as the original leaves them).
+- `1D45A0` animation names (live support, AI actor and AI frame units, two
+  pins; 1E5810).
+- `191130` pool resize (live support unit; 33B590, 1910A0, 191220; REP
+  MOVSD/MOVSB either way).
+- `BE3B0` object extension (live support unit; 191130; REP STOSD/STOSB).
+- `175380` placement repair (live support unit; 175300 twice, B1720, B16C0;
+  the tail JMP 1722C0).
+Live checks of `15BE80`, `1181F0`, `C8E70`, `C8390`, `D35C0`, `1601B0`,
+`160360`, `160570` and `164890` (2026-11-24, round 77): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 23,090 each
+seat transform, object team and channel fades, 15,698 each respawn wait and
+team respawn wait, 13,260 score lead, 6,701 object lights and 316 lives
+spent, with no mismatch. Round 77's validators passed for nine (bound in
+round 78); `144910` left a `degenerate` mutant alive (a norm exactly at the
+least value), so its fixture now puts unit quaternions on a least norm of 1
+and round 78 re-validates it with `1AF970` behavior tables (AI actor and
+final startup storage units; 1AFA90, an eight-byte aligned 0x2F0 frame, REP
+STOSD/MOVSD), `1D39C0` animation step (live support unit; 1CEB70, 1E3150,
+1D38A0, 1D3930, 1CE950), `111B10` animation change (live support and AI
+actor units, two pins; 1D5320, 115E20, 1D4350, 115E90, BC380, 115AF0),
+`16BDA0` point blocked (live support unit; 14CDB0, 16BBC0, 16E360, the
+object iterator BA970/BA9E0, 16BC80) and `16BBC0` instance blocks (live
+support and death cycle units, two pins; 16B810, 145200, 14CDB0).
+Deferred: `19AE70` (the stack probe 32A660 under a 0x4568-byte frame).
+
+Live checks of `1D5970`, `CDCF0`, `69AD0`, `1AFA90`, `E71A0`, `1D45A0`,
+`191130`, `BE3B0` and `175380` (2026-11-24, round 78): Armory three roles
+identical; MP reference vs verify 8/8 identical; live calls 31,898 seated
+vector, 26,958 object extension, 20,710 animation names, 16,490 each unit
+reaction and pose blend, 16,050 machine address, 9,372 pool resize, 2,880
+list slots and 600 placement repair, with no mismatch. Round 78's
+validators passed for `144910` (its fixture fixed), `1AF970`, `1D39C0`,
+`111B10` and `16BBC0` (bound in round 79). `16BDA0` left `shape-size` and
+`kind-mask` alive: its adapter computed the shape offset itself, and the
+fixture's kinds stayed below 8; the logic now computes both offsets and
+the kinds span 0 to 0x7F. Round 79 re-validates `16BDA0` with `1CEBD0`
+channel seek (scene device constructor unit; 1E3150 and 1CE950 through the
+dispatch), `185820` ray hit accept (live support unit; 186C10, 1D7530
+through the dispatch) and `13B610` cluster visibility (live support unit;
+1532A0, 140EC0, 16FD40 through the dispatch; REP STOSD).
+Deferred: `20FBB0` and `21F260` (dispatch targets that live in no generated
+unit, their stack cleanup unknown here), `CAD60` (tail jump to 106160).
+
+Live checks of `144910`, `1AF970`, `1D39C0`, `111B10` and `16BBC0`
+(2026-11-24, round 79): Armory three roles identical; MP reference vs
+verify 8/8 identical; live calls 36,031 animation step, 10,279 instance
+blocks, 4,835 animation change and 9 behavior tables, with no mismatch
+(the quaternion matrix had no live calls in these runs; its validator
+stands). Round 79's validators passed for `16BDA0` (7/7 branches, 16
+mutants), `1CEBD0`, `185820` and `13B610` (bound in round 80).
+
+Round 80 adds 16- and 8-byte vector accesses to the boundary framework
+(`native_tu15_object_tick.hpp`): `Port::read_vector` (as the unit's `v()`,
+recorded as four ordered 4-byte reads, the memory contract of
+`read_vector`), `read_half`, `store_half` and `store_vector` (two 8-byte
+stores, as `vw()`), `Memory::load128`/`load_half`/`store128`/`store_half`,
+and verify events carrying up to 16 bytes. The frame misc verification
+references pin `_mm_add_ps`/`_mm_mul_ps` to the original's destination
+(`native_tu15_packed_sse.hpp`), as `tools/specialize_native_operands.py`
+pins the matrix leaves: without instruction callbacks the compiler swapped
+a MULPS's operands, so a dual-NaN product took the wrong payload. Round 80
+validates `16E510` data array restore (campaign runtime unit; strncpy
+32A4E0 through the dispatch, caller-cleaned; BA fill as REP STOSD/STOSB in
+either direction), `13DC44` HUD weapon flags (weapon HUD unit; EBP frame;
+BCDF0 and 1E7810 through the dispatch, 10B3D0 direct), `1D8B90` body
+matrix and `1D9190` body place (scene device constructor unit; aligned
+stack transforms; 2E4650 and 2E58F0 direct, 2E4470 and 2E4350 through the
+dispatch) and `2E9140` shape ray hit (live support unit; two virtual calls;
+the normal rotated by packed SSE). `145560` needs no port: the operand
+specializer installs `kernel_145560` in that unit (the census lists it only
+because census mode disables the leaf kernels).
+
+Live checks of `16BDA0`, `1CEBD0`, `185820` and `13B610` (2026-11-24, round
+80): Armory three roles identical; MP reference vs verify 8/8 identical;
+live calls 10,500 cluster visibility, 6,669 channel seek, 4,754 ray hit
+accept and 1,158 point blocked, with no mismatch. Round 80's validators
+passed for `16E510`, `13DC44` (24 mutants), `1D8B90`, `1D9190` and `2E9140`
+(bound in round 81), the first owners with 16-byte vector accesses.
+
+The validator now compares an owner against its translated body with the
+same packed-SSE pinning as the verification reference
+(`native_frame_misc_replacements.pinned`): unpinned at -O2, GCC swapped a
+MULPS in 315190's body, so a dual-NaN product took the wrong payload there
+too. The reference generator replays `s.required` children (as
+`tools/native_object_subtree_replacements.py` does), so an owner whose child
+leaves the unit through the World's required owner binds with a route
+`v.required(site,target,false)`. Round 81 validates `315190` body list ray
+(live support; each body's shape cast, a packed transpose rotation),
+`2F20F0` child agents (map world support; a C++ exception frame through
+fs:[0], a stack wrapper shape, the dispatcher's agent table), `1DDEA0`
+rigid body build (live support; four direct children with 31 arguments,
+REP MOVS in either direction, the shape's release), `168CA1` player weapon
+sync (sandbox special; 169C46 through the required owner), `164EF0` round
+timer and `164750` players facing (multiplayer engines; scalar SSE).
+
+Live checks of `16E510`, `13DC44`, `1D8B90`, `1D9190` and `2E9140`
+(2026-11-24, round 81): Armory three roles identical; MP reference vs
+verify 8/8 identical; live calls 28,424 body matrix, 25,143 shape ray hit,
+16,278 HUD weapon flags, 6,755 body place and 9 data array restore, with no
+mismatch (the first vector-access owners). Round 81's validators passed for
+`315190`, `2F20F0`, `1DDEA0` (8/8 branches), `168CA1`, `164EF0` and
+`164750` (bound in round 82). Round 82 validates `17BD40` effect element
+(death cycle; six direct children, the reciprocal scale by DIVSS), `13B6F0`
+cluster visibility update (live support; REP MOVSD copies, REPE CMPSD
+comparisons, 0x44 listeners at 44AEEC), `154270` object reach and `E79C0`
+weapon trade (combat action; scalar SSE reach and facing, CFC90 hands,
+NEG/SBB, XMM5 to XMM7 kept across 11B560) and `15E870` round countdown
+(multiplayer engines; CVTSI2SS/CVTTSS2SI, 15DDC0 through the required
+owner). `BC200` needs no port: its translated body already opens with
+`model_light_source_detail::bridge`.
+
+Live checks of `315190`, `2F20F0`, `1DDEA0`, `168CA1`, `164EF0` and
+`164750` (2026-11-24, round 82): Armory three roles identical; MP headlong
+and midship 4p identical; the other six MP cases exited 1 in both the
+reference and verify sweeps at map load ("Source tag alias has no owned
+same-address payload", `src/tags/directory.cpp`), raised by a concurrent
+session's uncommitted `src/rendering/path_tracing/lightmap_emission.cpp`
+(`cache.tag_payload` on a zero-size shader alias), not by these owners;
+those cases are to be re-run once that is fixed. Live calls in the maps
+that ran: 2,282 rigid body build, 1,656 player weapon sync, 1,206 round
+timer, 648 child agents, 465 body list ray and 357 players facing, every
+verify line identical. Round 82's validators passed for `17BD40`,
+`13B6F0`, `154270`, `15E870` and `E79C0` (bound in round 83). Round 83
+validates `1AE7F0` action candidates (combat action; 0xF0 frame, up to 64
+candidates, 1AEA30/1AECE0 direct, BAD60 through the dispatch), `1ADC90`
+weapon ranges (combat action; DIVSS/MULSS ranges, primary and secondary
+weapons; 106160 stays translated as its direct child) and `1770C0` effect
+elements draw (effect particle draw; the element data array walk with
+16EA60, the visible cluster bitmap at 557034). Deferred: `E4D30` (the
+biped falling damage unit's literal constants are MapPack11 addresses,
+mapped by `selected()` for TU1.5, while the harness stubs `selected()` as
+identity) and `2F4990` (Havok monitor stream reads RDTSC through the
+`timestamp_counter` service, under an SEH frame with a 0x398-byte
+in-place array).
+
+Live checks of `17BD40`, `13B6F0`, `154270`, `15E870` and `E79C0`
+(2026-11-24, round 83): Armory three roles identical; MP headlong and
+midship 4p identical, the other six MP cases again exiting 1 at map load
+(the round 83 build compiled `lightmap_emission.cpp` before that session's
+fix, which skips zero-size alias shader tags). Live calls: 7,036 effect
+element, 5,682 weapon trade, 1,656 cluster visibility update, 1,206 round
+countdown and 66 object reach, every verify line identical. Round 83's
+validators passed for `1AE7F0` (11 mutants), `1ADC90` (10) and `1770C0`
+(10), bound in round 84. Round 84 re-runs the full MP sweep for the
+fourteen owners of rounds 82 to 84 on a build with the fix, and validates
+`245060` director aim (vehicle director; the aim record's position,
+forward and up from the unit's weapon marker (BAD60) or its parent's node
+matrix (144BF0) and its transpose, XMM6/XMM7 kept across 11FA50) and
+`C7DD0` unit weapon controls (physics live support; the timers at +0x1F5,
++0x1FA and +0x1FB counting down, the stance through 116480/1164D0, weapon
+change, trigger and stun actions through E8E10, the grenade through
+CE3A0, the zoom with its weapon or global sound through 18C000 scaled by
+level / (levels - 1), and each hand's control word to 105500; 25
+mutants).
+
+Round 84 (2026-11-24) on a build with that session's fix: Armory three
+roles identical and all eight MP cases identical in the reference and
+verify sweeps for the fourteen owners of rounds 82 to 84, so rounds 82 and
+83 are now fully live-checked. Live calls: 17,932 weapon ranges, 16,895
+effect element, 16,464 weapon trade, 6,290 effect elements draw, 5,250
+player weapon sync, 5,250 cluster visibility update, 4,800 round timer,
+4,800 round countdown, 2,692 rigid body build and 613 players facing.
+`live_check.py` keeps only the last eight verify lines, so the rest were
+rerun on headlong and midship 4p with only their switches: 648 child
+agents, 465 body list ray, 566 action candidates and 66 object reach, all
+identical. Every verify line was identical. Validators passed for `245060`
+(9 mutants) and `C7DD0` (25), bound in round 85, which validates `113190`
+animation busy (physics live support and AI frame; the two compiled
+string-id searches as name sets, with the adapter mapping an unlisted
+channel animation to the original's epilogue; 15 mutants), `1F8710`
+platform carry (physics live support; REP MOVSD rotation copies under the
+direction flag, the found byte reloaded from the ESP 1FA1A0 left; 15),
+`1618B0` respawn status (multiplayer engines; fifteen exits, each with its
+own epilogue; 13) and `17C370` effect follow (physics live support and
+death cycle; every child through the dispatch so both units bind; 14).
+
+Round 85 (2026-11-24): `245060` and `C7DD0` live: Armory three roles
+identical, all eight MP cases identical, 15,874 director aim and 23,090
+unit weapon controls calls, every verify line identical. Validators passed
+for `113190` (15 mutants), `1F8710` (15) and `17C370` (14), bound in round
+86. `1618B0`'s validator stopped on its adapter having no `enum Branch`
+(the exits were its branches); it now names them and validates again in
+round 86, with `CD4A0` unit camera position (physics live support, AI
+frame and sandbox special; the biped eye height, E18D0's move and two
+16C620 rays with the plane test; the seat and head markers through BAD60;
+19 mutants), `17EAD0` contrails update (contrail geometry; the frame-rate
+loop keeps XMM1 to XMM5 across 17EE10, so its SSE results keep the
+registers' upper lanes; 16) and `14D790` point surface (physics live
+support, map world support, model render and combat action; the leaf's
+references on the plane, their three vertices and 1211C0; 15).
+
+Round 86 (2026-11-24): `113190`, `1F8710` and `17C370` live: Armory
+identical, all eight MP cases identical, 23,740 animation busy, 16,490
+platform carry and 131,530 effect follow calls, every verify line
+identical. Validators passed for `1618B0` (15/15 branches, 13 mutants),
+`17EAD0` (16) and `14D790` (15), bound in round 87. `CD4A0`'s
+`back-off-order` mutant (swapping MULSS's operands, which differs only in
+which of two NaNs survives) survived and became `back-off-scale`; it
+validates again in round 87, with three new ports: `1DE8E0` group flood
+(physics live support; recursive through its own native port, the pairs
+read through the ESI and EDI each child returned; 18 mutants), `1538B0`
+item pickup (multiplayer engines; the reach test, the four weapons'
+ammunition, grenades and powerups, and the weapon handed over or
+requested; 21) and `1700E0` permutation choice (physics live support; the
+four-at-a-time listing on the frame, the weight kept in XMM4 across
+170930 and 170B40; 17).
+
+Round 87 (2026-11-24): `1618B0`, `17EAD0` and `14D790` live: Armory
+identical, all eight MP cases identical, 15,600 respawn status, 5,092
+contrails update and 1,865 point surface calls, every verify line
+identical. Validators passed for `CD4A0` (12/12 branches, 19 mutants),
+`1DE8E0` (11/11, 18), `1538B0` (15/15, 21) and `1700E0` (11/11, 17), bound
+in round 88. Round 88 validates six more ports:
+- `14D410` object point surface (physics live support, model render and
+  combat action; the region's permutation and BSP, the point in the node's
+  space through 145200 twice, the part the node names, the leaf's
+  references on the plane and their triangle through 243F20 and 1211C0;
+  17 mutants).
+- `1115D0` unit state change (physics live support; the compiled compare
+  tree on the state string id is the adapter's, the states it leads to the
+  logic's; the byte counter that throttles 1D6430; 13).
+- `1ADF60` aim choice (combat action; the stack probe, 14CDB0's leaf, the
+  aim search 1AE090, qsort and the first candidate 1AF3E0 accepts, copied
+  by REP MOVSD; 15).
+- `1139D0` unit aim enabled (physics live support; two compiled string id
+  searches, one through the code's jump table whose two reads it keeps, as
+  sets; C9550 and 113C70; 13).
+- `15D890` item points (multiplayer engines; weight 1.15M in the census:
+  the per-tick share of item points, two IDIVs, the engine's first method,
+  the vehicle-away count and the respawn timers scaled by the game's
+  setting; 17).
+- `D2BD0` rider iterator (physics live support; a leaf walk of the object
+  tree for riding units; 10).
+Not counted before: `15D890`, `19AE70`, `1115D0`, `1139D0`, `1ADF60` and
+`D2BD0` were missing from the earlier plain-candidate list. `2E5760` and
+`106160` use x87.
+
+Round 88 (2026-11-24): all six validators passed (`14D410` 14/14
+branches, 17 mutants; `1115D0` 9/9, 13; `1ADF60` 6/6, 15; `1139D0` 7/7,
+13; `15D890` 15/15, 17; `D2BD0` 5/5, 10). The build failed before the
+live check: the `4A7B0` port's first name, `shadow_casters`, reused the
+bound `333F0` port's file names and overwrote its untracked files. `333F0`
+was restored by replaying its creation commands from the session
+transcript; all 40 of its validator mutant texts are present, and its test
+gives 8,000 cases with 19/19 branches as recorded. `4A7B0` became
+`shadow_record_merge`. Round 89 builds once and live-checks round 88's
+owners and the six bound after its validators, then validates `4A7B0`
+shadow record merge (shadow frame; a leaf whose exit state is EAX, ECX, the
+EDX mask, XMM0 and the last compare; 13 mutants). Staged: `4AC20` shadow
+schedule (shadow frame; partition, stale moves, the two sorts through
+4B150, the four-at-a-time fade and the growth, the output; 11/11 branches,
+16 mutants).
+
+Round 89 (2026-11-24): one build, two live passes, Armory and all eight MP
+cases identical in each, every verify line identical: 46,465 unit camera
+position, 20,259 unit state change, 17,200 unit aim enabled, 15,574 aim
+choice, 10,154 rider iterator, 4,800 item points, 2,728 group flood, 1,242
+permutation choice and 162 item pickup calls (object point surface had no
+live calls in these maps; its validator stands). `4A7B0`'s validator
+passed (6/6 branches, 13 mutants); bound in round 90, which validates
+`4AC20` shadow schedule and `1EFD60` action allowed (multiplayer engines,
+the census's heaviest remaining owner at 2.05M: the 32-case jump table of
+the player actions, each case's own epilogue; the weapon lookups through
+EBX, EDI or EBP as each child returned them; 18 mutants).
+Not ports: `B8780`, `B87B0`, `179DF0`, `C9070`, `130980` and others in the
+census list are already native-headed. Flags for the rest: x87 (76 owners),
+16-byte vectors (`1E1010`), tail jumps through the dispatch (`1CE8D0`).
+
+Ports validated in round 71:
+- `118120` cluster pairs (scene device constructor unit; the
+  `empty_range` branch is unreachable: a positive int16 count added to the
+  int16 first reference always ends past it).
+- `1718C0` sound readiness (live support unit; 21F260).
+- `4B150` record sort (shadow frame unit; a bubble sort whose pass counter
+  lives in the first's slot; REP MOVSD both directions).
+- `C3820` light record (map world support and light portal units; C3A20 and
+  C3AB0, steps per pin).
+- `15B740` round end (multiplayer engines unit; 15B4D0, 15B620, 161530
+  through dispatch).
+- `1617A0` player exclusion (live support unit; 1A8E50, 1601B0, 160360).
+- `1A6830` teleporter update (teleporter unit; 1A8F10 through dispatch,
+  1A6930, 1A6A40).
+Also parked: `145560` (8-byte half-register SSE loads and stores),
+`1262B0`, `126190`, `3EB10` and `16E860` (native-headed), `160A60` (tail
+jump through a table). Parked: `2E5810` (16-byte MOVAPS accesses the trace events
+cannot carry yet),
+`17F8A0` (an 8-byte FLD the trace events cannot carry yet, and two copy
+groups that differ in C1), `122BE0` (a register-allocated SSE solve: next
+large port). B9460 needs binder support for `required(...)` children before
+it can be ported in this framework.
+
+Binding notes: the binder digests the `src/` generated text; every adapter
+header must compile on its own (it is included at the top of the unit); a
+failed `tools/build_perf.sh` leaves the old binary in place, so check its
+first line and the binary's time before a live check.
+
+Live checks (Armory three roles; MP reference vs native-verify on Zanzibar 1/4p,
+Coagulation, Headlong, Waterworks, Turf, Burial Mounds, Midship 4p): identical for
+every owner through 333F0 that has been bound; verify compared hundreds of
+thousands of live calls per owner with no mismatch. Lockout 4p and Ascension 4p
+are not deterministic run to run (the reference role differs from itself), so
+they are not part of the sweep. Zanzibar 4p census after the four targeting
+owners: 268k to 196k translated instructions per frame.
+
+Census caution: routines whose translated body begins with an older native
+kernel (30BD0 normalize, 125280, 17C140, ...) refuse under the census's
+instruction callbacks and are counted although normal runs are native; rank
+with those excluded.
+
+Armory, 300 frames: default, reference and verify roles all give frame
+`acd375e77ffb11c9` / trace `df61945af603`. The tree has moved since 11-19, so
+the hashes differ from the 11-19 baseline, but the three roles agree. The
+targeting search does not run in that room. Next: `1AE2B0` (16.5k/frame in
+Zanzibar 4p: the candidate chain walk with the same cone test and children
+1AE500/1AE7F0, self-recursive), then `1AE090` (11.0k; x87 FSIN/FCOS cone
+setup, calls 14D200, BD460, 16EA60, 1AE2B0).
+
 ## November 20 particle motion and hierarchy update
 
 The x86-64 Release performance binary `630d7fe83b6f432f900cfa815cb1f07038c941435e26787df8121784850d6074` runs the TU1.5 `2C2AD0` particle motion owner and binds the existing `BBD10` hierarchy kernel in live support. The particle kernel preserves the authored jump table, gravity and drag calculations, particle traversal, and the original child calls. The component comparison exercised 199 original instruction sites across 8,000 cases per mode, including 1,143 injected interruptions. All nine compiled mutations were detected.

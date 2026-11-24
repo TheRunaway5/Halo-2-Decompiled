@@ -7,6 +7,9 @@
 #include "halo2/audio.hpp"
 #include "halo2/mcc_script_sound_world_access.hpp"
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/source_loop_sound_request_tu15.hpp"
+#include "halo2/source_object_audio_views_tu15.hpp"
+#include "halo2/source_weather.hpp"
 #include "halo2/sound_variation.hpp"
 #include "halo2/source_script_sound_admission_tu15.hpp"
 #include "halo2/source_script_sound_clock_native64_tu15.hpp"
@@ -115,6 +118,7 @@
 #include <cstdlib>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -2094,17 +2098,73 @@ int main(int argc, char **argv) {
         std::cerr << "Audio unavailable: " << e.what() << '\n';
       }
     }
-    // The existing authored adapter consumes playback/scale/class/permutation
-    // gain, pitch and original distance kernels. One shared path serves the
-    // campaign and multiplayer; AudioEngine still owns UI and loop previews.
+    // Keep the script clock on the actual campaign World even when muted.
+    // Audible playback uses the same admitted pitch range and permutation.
     std::optional<halo2::MccScriptSoundWorldAccess> script_sound_world;
     std::shared_ptr<halo2::SourceScriptSoundClockNative64Tu15> script_sound_clock;
+    // Loop-sound requests the campaign World's 18EE50 object-audio frame
+    // makes (object loops and 18E970's BSP background sound), consumed by
+    // the native loop lane after that frame.
+    std::vector<halo2::SourceLoopSoundRequestTu15> campaign_loop_requests;
+    // Completed original sound requests (18CEFC's 160-byte submit) the
+    // campaign World makes during its ticks.
+    struct CampaignSoundRequest {
+      std::uint32_t sound;
+      std::array<std::byte,160> raw;
+      bool zoom;
+    };
+    std::vector<CampaignSoundRequest> campaign_sound_requests;
+    // Set while one of those requests is being delivered to the mixer, and
+    // whether it is unit dialogue (a forced-selection request with a speaker),
+    // whose playback drives the speaker's facial animation (18F510).
+    bool delivering_source_sound{},delivering_source_speech{};
+    // Loop sounds the native lane rejected (a controller it lacks). BSP
+    // background sounds among them keep the earlier main-track ambience lane
+    // rather than going silent.
+    std::set<std::uint32_t> campaign_rejected_loops;
+    // HALO2_REFERENCE_CAMPAIGN_AMBIENT_LANE=1 restores the earlier BSP
+    // ambience lane (no object-audio frame); HALO2_REFERENCE_CAMPAIGN_SCRIPT_LOOP_LANE=1
+    // keeps scripted loops on the host AudioEngine path. Otherwise scripted
+    // loops live in the World's loop pool and play through its frame.
+    static const bool reference_campaign_ambient_lane=[]{
+      const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_AMBIENT_LANE");return p && *p;}();
+    static const bool reference_campaign_script_loops=[]{
+      const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_SCRIPT_LOOP_LANE");return p && *p;}();
+    // Scripted loop tags the World's pool owns, for tracing their requests.
+    std::set<std::uint32_t> campaign_pool_script_loops;
+    // Simulation tick of the last campaign object-audio step, and the real
+    // time accumulated since it.
+    std::uint64_t campaign_loop_audio_tick=std::numeric_limits<std::uint64_t>::max();
+    float campaign_loop_audio_elapsed{};
     const auto bind_script_sound_world = [&] {
       script_sound_world.reset();
       script_sound_clock.reset();
+      campaign_loop_requests.clear();
+      campaign_rejected_loops.clear();
+      campaign_pool_script_loops.clear();
+      if(simulation)simulation->use_source_script_loops(false);
+      campaign_loop_audio_tick=std::numeric_limits<std::uint64_t>::max();
+      campaign_loop_audio_elapsed=0;
       if(!cache.is_mcc() || !simulation || !simulation->campaign_source())return;
       auto &world=simulation->campaign_source()->objects().tu15_world();
+      world.observe_loop_sound_requests([&](const halo2::SourceLoopSoundRequestTu15 &request) {
+        campaign_loop_requests.push_back(request);
+      });
+      // A finished one-shot frees its pool row, as 21A250/18D5A0 do.
+      world.answer_finished_loop_sounds([&](const halo2::SourceLoopSoundRequestTu15 &request) {
+        return scripted_audio && !reference_campaign_ambient_lane && scripted_audio->object_loop_finished(request);
+      });
+      campaign_sound_requests.clear();
+      world.observe_sound_requests_with_context([&](std::uint32_t sound,std::span<const std::byte,160> raw,
+          std::optional<std::uint32_t> zoom_unit) {
+        if(campaign_sound_requests.size()>=1024)return;
+        CampaignSoundRequest request{sound,{},zoom_unit.has_value()};
+        std::ranges::copy(raw,request.raw.begin());
+        campaign_sound_requests.push_back(request);
+      });
       script_sound_world.emplace(world.script_sound_access(cache));
+      if(scripted_audio && !reference_campaign_ambient_lane && !reference_campaign_script_loops)
+        simulation->use_source_script_loops(true);
       if(scripted_audio) {
         scripted_audio->bind_native_sound_metadata(world.sound_variation_provider(cache));
         script_sound_clock=scripted_audio->make_script_sound_clock(script_sound_world->clock_rows(cache));
@@ -2150,34 +2210,50 @@ int main(int argc, char **argv) {
         return remaining;
       }
     };
+    std::optional<halo2::SourceScriptSoundClockQueryBindingTu15> sound_query_binding;
     const auto create_scripted_audio = [&] {
-    if(audio && simulation && !cache.is_vista()) {
-      scripted_audio=std::make_unique<halo2::MultiplayerAudio>(std::shared_ptr<const halo2::Cache>(scene_cache),scripted_audio_random,
-          halo2::SdlSoundPlatformConfiguration{halo2::SdlSoundPlatformConfiguration::Delivery::DeviceCallback,1024,{}},
-          [&](const halo2::MultiplayerAudioSubmission &cue) {
-            if(std::getenv("HALO2_SCRIPT_CALL_TRACE"))
-              std::cout<<(cue.kind==halo2::MultiplayerAudioKind::Ambient?
-                  "Script audio ambience: tick=":"Script audio packet: tick=")<<std::to_string(simulation->ticks())
-                  <<" sound="<<std::to_string(cue.sound)<<" owner="<<std::to_string(cue.owner)
-                  <<" voice="<<std::to_string(cue.voice)<<" pitch_range="<<std::to_string(cue.pitch_range)
-                  <<" permutation="<<std::to_string(cue.permutation)
-                  <<" source_pitch_bits="<<std::to_string(cue.source_pitch_bits)
-                  <<" packet_frames="<<std::to_string(cue.frames)<<" bsp="<<simulation->bsp()<<'\n';
-            if(cue.owner!=halo2::null_datum && simulation->campaign_source())
-              scripted_speech.insert_or_assign(cue.voice,cue);
-          },&scripted_audio_random);
-      if(auto error=scripted_audio->speaker_layout(desktop->display_settings.speakers);!error.empty())
-        std::cerr<<"Scripted audio layout: "<<error<<'\n';
-    }
-    bind_script_sound_world();
+      if(audio && simulation && !cache.is_vista()) {
+        scripted_audio=std::make_unique<halo2::MultiplayerAudio>(std::shared_ptr<const halo2::Cache>(scene_cache),scripted_audio_random,
+            halo2::SdlSoundPlatformConfiguration{halo2::SdlSoundPlatformConfiguration::Delivery::DeviceCallback,1024,{}},
+            [&](const halo2::MultiplayerAudioSubmission &cue) {
+              if(std::getenv("HALO2_SCRIPT_CALL_TRACE"))
+                std::cout<<(cue.kind==halo2::MultiplayerAudioKind::Ambient?"Script audio ambience: tick=":
+                    delivering_source_sound?"Source audio packet: tick=":"Script audio packet: tick=")
+                    <<std::to_string(simulation->ticks())
+                    <<" sound="<<std::to_string(cue.sound)<<" owner="<<std::to_string(cue.owner)
+                    <<" voice="<<std::to_string(cue.voice)<<" pitch_range="<<std::to_string(cue.pitch_range)
+                    <<" permutation="<<std::to_string(cue.permutation)
+                    <<" source_pitch_bits="<<std::to_string(cue.source_pitch_bits)
+                    <<" packet_frames="<<std::to_string(cue.frames)<<" bsp="<<simulation->bsp()<<'\n';
+              // Owned script impulses are unit speech. Loop tracks and
+              // details (Ambient) and the World's own sound requests (foley,
+              // footsteps, devices) keep their object as owner.
+              if(cue.kind!=halo2::MultiplayerAudioKind::Ambient &&
+                  (!delivering_source_sound || delivering_source_speech) &&
+                  cue.owner!=halo2::null_datum && simulation->campaign_source())
+                scripted_speech.insert_or_assign(cue.voice,cue);
+            },&scripted_audio_random);
+        scripted_audio->bind_object_loop_random_source([desktop]{return desktop->fresh_secondary_random();});
+        if(auto error=scripted_audio->speaker_layout(desktop->display_settings.speakers);!error.empty())
+          std::cerr<<"Scripted audio layout: "<<error<<'\n';
+      }
+      bind_script_sound_world();
+      if(script_sound_world)sound_query_binding.emplace(*simulation,script_sound_queries);
     };
     create_scripted_audio();
     if(pause_menu)pause_menu->audio(audio.get());
     if (audio)
       std::cout << "SDL audio driver: " << SDL_GetCurrentAudioDriver() << '\n';
+    struct LoopTrackPlayback {
+      std::size_t ordinal;
+      std::uint32_t body, alternate;
+      halo2::AudioEngine::VoiceId voice{};
+      float fade_seconds{};
+      std::uint16_t fade_curve{};
+    };
     struct LoopPlayback {
-      halo2::LoopingSound definition;
-      std::vector<halo2::AudioEngine::VoiceId> voices;
+      std::vector<LoopTrackPlayback> tracks;
+      bool music{};
     };
     std::unordered_map<std::uint32_t, LoopPlayback> loops;
     std::unordered_map<std::uint32_t, std::vector<halo2::AudioEngine::VoiceId>>
@@ -2185,6 +2261,7 @@ int main(int argc, char **argv) {
     std::map<halo2::MultiplayerAudio::Voice,std::uint32_t> scripted_emitters;
     std::optional<std::pair<std::size_t,halo2::MultiplayerAudioBsp>> campaign_ambience_bsp;
     std::set<std::size_t> reported_ambience_bsp_faults;
+    std::set<std::string> reported_campaign_loop_gaps;
     halo2::CampaignAudioTimeline scripted_audio_timeline;
     const auto update_scripted_speech = [&] {
       if(!scripted_audio || !simulation->campaign_source())return;
@@ -2223,10 +2300,33 @@ int main(int argc, char **argv) {
       }
     };
     auto pcm = [&](std::uint32_t id) -> std::shared_ptr<const halo2::PcmSound> {
-      if (id == halo2::null_datum)
+      if (!halo2::plays_in_classic_audio(cache,id))
         return {};
       if (!sounds.contains(id)) sounds.emplace(id,residency.sound(id));
       return sounds.at(id);
+    };
+    // Retail 18D360 music stop for host-lane loops (a definition flagged 4
+    // starting), with 18D6E0's Sound Mix fade.
+    const auto stop_host_music = [&] {
+      std::optional<halo2::LoopingMusicFade> music_fade;
+      std::erase_if(loops, [&](const auto &entry) {
+        const auto &loop = entry.second;
+        if (!loop.music)
+          return false;
+        if (!cache.is_vista() && !music_fade)
+          music_fade = halo2::load_looping_music_fade(cache);
+        for (const auto &track : loop.tracks) {
+          if (!music_fade)
+            audio->stop(track.voice, true);
+          else if (music_fade->seconds > 0)
+            audio->fade_out(track.voice, music_fade->seconds, 1, music_fade->class_curves);
+          else if (track.fade_seconds > 0)
+            audio->fade_out(track.voice, track.fade_seconds, track.fade_curve);
+          else
+            audio->stop(track.voice);
+        }
+        return true;
+      });
     };
     auto loop_event = [&](const halo2::SoundEvent &event) {
       using Event = halo2::SoundEvent;
@@ -2239,6 +2339,25 @@ int main(int argc, char **argv) {
         if(scripted_audio)scripted_audio_timeline.anchor(simulation->ticks(),scripted_audio->presentation_frames());
         loops.clear();
         impulses.clear();
+        return;
+      }
+      if (event.source_pool) {
+        // The World's loop pool owns this loop; its object-audio frame plays it.
+        if (event.action == Event::LoopStart) {
+          campaign_pool_script_loops.insert(event.datum);
+          // The pool's own 1901C0 stopped its music; host-lane music stops too.
+          if (audio && (cache.load_looping_sound(event.datum).flags & 4u))
+            stop_host_music();
+        }
+        if (simulation && std::getenv("HALO2_SCRIPT_CALL_TRACE")) {
+          std::cout << "Script audio loop: tick=" << simulation->ticks() << " sound=" << event.datum;
+          if (event.action == Event::LoopStart) {
+            const auto definition = cache.load_looping_sound(event.datum);
+            std::cout << " action=start tracks=" << definition.tracks.size() << " flags=" << definition.flags;
+          } else
+            std::cout << " action=" << (event.action == Event::LoopStop ? "stop" : "alternate");
+          std::cout << " owner=pool\n";
+        }
         return;
       }
       if (event.action == Event::ImpulseStop) {
@@ -2259,30 +2378,17 @@ int main(int argc, char **argv) {
         if (const auto found = loops.find(event.datum); found != loops.end()) {
           const auto &playback = found->second;
           const bool trace = simulation && std::getenv("HALO2_SCRIPT_CALL_TRACE");
-          for (std::size_t i = 0; i < playback.voices.size(); ++i) {
-            const auto voice = playback.voices[i];
-            const auto &track = playback.definition.tracks[i];
-            const auto position = trace ? audio->playback_position(voice) : std::nullopt;
-            // A one-shot with just a body packet fades that packet in place.
-            const bool fading_body = (playback.definition.flags & 2u) && (track.flags & 2u) &&
-                track.fade_out > 0 && track.loop != halo2::null_datum &&
-                track.start == halo2::null_datum && track.end == halo2::null_datum &&
-                track.alternate == halo2::null_datum && track.alternate_end == halo2::null_datum &&
-                track.alternate_transition_in == halo2::null_datum && track.alternate_transition_out == halo2::null_datum;
-            float fade_seconds = 0;
-            if (fading_body) {
-              const auto sound = cache.load_sound_variation(track.loop);
-              const auto curve = std::uint16_t(!(halo2::Bytes(sound.sound_class).u16(10) & 0x400u));
-              audio->fade_out(voice, track.fade_out, curve);
-              fade_seconds = track.fade_out;
-            } else {
-              audio->stop(voice);
-            }
+          for (const auto &track : playback.tracks) {
+            const auto position = trace ? audio->playback_position(track.voice) : std::nullopt;
+            if (track.fade_seconds > 0)
+              audio->fade_out(track.voice, track.fade_seconds, track.fade_curve);
+            else
+              audio->stop(track.voice);
             if (trace)
               std::cout << "Script audio loop: tick=" << simulation->ticks()
-                        << " sound=" << event.datum << " action=stop track=" << i
+                        << " sound=" << event.datum << " action=stop track=" << track.ordinal
                         << " source_frames=" << position.value_or(0)
-                        << " fade_milliseconds=" << std::int32_t(fade_seconds * 1000.f) << '\n';
+                        << " fade_milliseconds=" << std::int32_t(track.fade_seconds * 1000.f) << '\n';
           }
           loops.erase(found);
         }
@@ -2290,42 +2396,45 @@ int main(int argc, char **argv) {
       }
       if (event.action == Event::LoopAlternate) {
         if (const auto found = loops.find(event.datum); found != loops.end())
-          for (std::size_t i = 0; i < found->second.voices.size(); ++i) {
-            const auto &track = found->second.definition.tracks[i];
-            const auto id = event.alternate ? track.alternate : track.loop;
-            if (id != halo2::null_datum)
-              audio->next_loop(found->second.voices[i], pcm(id));
-          }
+          for (const auto &track : found->second.tracks)
+            if (const auto clip = pcm(event.alternate ? track.alternate : track.body))
+              audio->next_loop(track.voice, clip);
         return;
       }
-      auto definition = cache.load_looping_sound(event.datum);
+      const auto definition = cache.load_looping_sound(event.datum);
       if (cache.is_mcc() && (definition.flags & 0x200u))
         return;
       if (definition.flags & 4u)
-        std::erase_if(loops, [&](const auto &entry) {
-          const auto &loop = entry.second;
-          // The original music selector examines the body sound's class.
-          const bool music = std::ranges::any_of(loop.definition.tracks, [&](const auto &track) {
-            const auto sound = sounds.find(track.loop);
-            return sound != sounds.end() && (sound->second->sound_class == 32 || sound->second->sound_class == 38);
-          });
-          if (music)
-            for (auto voice : loop.voices)
-              audio->stop(voice, true);
-          return music;
-        });
+        stop_host_music();
       if (const auto found = loops.find(event.datum); found != loops.end()) {
-        for (auto id : found->second.voices)
-          audio->stop(id, true);
+        for (const auto &track : found->second.tracks)
+          audio->stop(track.voice, true);
         loops.erase(found);
       }
-      LoopPlayback playback{definition, {}};
+      const bool one_shot = definition.flags & 2u;
+      LoopPlayback playback;
+      playback.tracks.reserve(definition.tracks.size());
       try {
-        for (const auto &track : definition.tracks) {
+        for (std::size_t i = 0; i < definition.tracks.size(); ++i) {
+          const auto &track = definition.tracks[i];
           const auto start = pcm(track.start), body = pcm(track.loop),
                      end = pcm(track.end);
+          if (!start && !body && !(one_shot && end))
+            continue;
+          LoopTrackPlayback playing{i, track.loop, track.alternate};
+          // Retail 18D360 selects music by the body sound's class.
+          playback.music |= body && (body->sound_class == 32 || body->sound_class == 38);
+          // A one-shot with only a body packet fades that packet in place.
+          if (!cache.is_vista() && one_shot && body && (track.flags & 2u) && track.fade_out > 0 &&
+              track.start == halo2::null_datum && track.end == halo2::null_datum &&
+              track.alternate == halo2::null_datum && track.alternate_end == halo2::null_datum &&
+              track.alternate_transition_in == halo2::null_datum && track.alternate_transition_out == halo2::null_datum) {
+            const auto sound = cache.load_sound_variation(track.loop);
+            playing.fade_seconds = track.fade_out;
+            playing.fade_curve = std::uint16_t(!(halo2::Bytes(sound.sound_class).u16(10) & 0x400u));
+          }
           const float gain = event.gain * std::pow(10.f, track.gain_db / 20.f);
-          if (definition.flags & 2) {
+          if (one_shot) {
             auto joined = std::make_shared<halo2::PcmSound>();
             joined->name = definition.name;
             for (auto clip : {start, body, end})
@@ -2339,26 +2448,25 @@ int main(int argc, char **argv) {
                   for (const auto &span:clip->class_spans)
                     joined->class_spans.push_back({base+span.end_frame,span.sound_class});
               }
-            playback.voices.push_back(audio->play(joined, gain));
+            playing.voice = audio->play(joined, gain);
           } else
-            playback.voices.push_back(
-                audio->play_sequence(start, body, end, gain));
+            playing.voice = audio->play_sequence(start, body, end, gain);
+          playback.tracks.push_back(playing);
         }
+        if (playback.tracks.empty())
+          return;
+        const auto tracks = playback.tracks.size();
+        loops.emplace(event.datum, std::move(playback));
+        std::cout << "Looping sound: " << definition.name << " tracks=" << tracks << '\n';
+        if (simulation && std::getenv("HALO2_SCRIPT_CALL_TRACE"))
+          std::cout << "Script audio loop: tick=" << simulation->ticks()
+                    << " sound=" << event.datum << " action=start tracks="
+                    << tracks << " flags=" << definition.flags << '\n';
       } catch (...) {
-        for (auto id : playback.voices)
-          audio->stop(id, true);
+        for (const auto &track : playback.tracks)
+          audio->stop(track.voice, true);
         throw;
       }
-      std::cout << "Looping sound: " << definition.name
-                << " tracks=" << playback.voices.size() << '\n';
-      if (simulation && std::getenv("HALO2_SCRIPT_CALL_TRACE"))
-        std::cout << "Script audio loop: tick=" << simulation->ticks()
-                  << " sound=" << event.datum << " action=start tracks="
-                  << playback.voices.size() << " flags=" << definition.flags << '\n';
-      loops.emplace(event.datum, std::move(playback));
-    };
-    const auto request_script_sound_stop = [&](const auto &voice) {
-      if(voice) (void)scripted_audio->request_script_stop(*voice);
     };
     auto submit_script_sound = [&](const halo2::SoundEvent &sound) {
       try {
@@ -2367,6 +2475,16 @@ int main(int argc, char **argv) {
         if(sound.action==halo2::SoundEvent::Reset) {loop_event(sound);return;}
         if(audio)audio->class_gains(simulation->sound_classes().gains());
         if(scripted_audio)scripted_audio->class_gains(simulation->sound_classes().gains());
+        const auto request_script_sound_stop = [&](const auto &voice) {
+          if(!voice)return;
+          if(std::getenv("HALO2_SCRIPT_CALL_TRACE") && scripted_audio->voice_active(voice->id())) {
+            const auto consumed=scripted_audio->playback_position(voice->id());
+            std::cout<<"Script audio stop: tick="<<simulation->ticks()<<" sound="<<sound.datum
+                <<" voice="<<voice->id()<<" source_frames="<<consumed.source_frames
+                <<" reason="<<(sound.action==halo2::SoundEvent::ImpulseStop?"authored_stop":"authored_restart")<<'\n';
+          }
+          (void)scripted_audio->request_script_stop(*voice);
+        };
         const bool impulse=sound.action==halo2::SoundEvent::Impulse ||
             sound.action==halo2::SoundEvent::NonSpatialImpulse;
         if(!impulse) {
@@ -2385,6 +2503,7 @@ int main(int argc, char **argv) {
         auto *world=simulation->campaign_source()?&simulation->campaign_source()->objects().tu15_world():nullptr;
         std::optional<halo2::MultiplayerPreparedScriptImpulseTu15> prepared;
         if(script_sound_world && sound.authored_impulse) {
+          if(!script_sound_clock && !halo2::plays_in_classic_audio(cache,sound.datum))return;
           const auto before=script_sound_world->clock_rows(cache);
           auto after=before;
           auto policy=script_sound_world->policy(cache);
@@ -2592,6 +2711,19 @@ int main(int argc, char **argv) {
     // resource age must never reuse a frame token when presentation declines.
     std::uint64_t campaign_render_epoch{};
     auto last = Clock::now();
+    // Frame clock reading for the next block, taken when an overlapped draw
+    // starts (overlap_campaign_draw); a serial block reads its own.
+    std::optional<Clock::time_point> advance_clock;
+    // Diagnostic only: HALO2_CAMPAIGN_PRESENTATION_TRACE=path writes one JSON
+    // line per presented gameplay camera and per presented machine root.
+    std::unique_ptr<std::ofstream> presentation_trace;
+    if(const auto *path=std::getenv("HALO2_CAMPAIGN_PRESENTATION_TRACE");path && *path)
+      presentation_trace=std::make_unique<std::ofstream>(path);
+    std::unordered_map<std::uint32_t,std::pair<halo2::Vec3,std::uint64_t>> presentation_trace_machines;
+    const auto presentation_trace_origin=last;
+    const auto presentation_trace_ms=[&](Clock::time_point at) {
+      return std::chrono::duration<double,std::milli>(at-presentation_trace_origin).count();
+    };
     bool running = true;
     unsigned frames = 0;
     std::size_t reported_faults = 0;
@@ -2614,6 +2746,8 @@ int main(int argc, char **argv) {
     std::vector<halo2::Unit> previous_actors;
     std::vector<halo2::NativeWeaponProjectile> previous_projectiles;
     halo2::Unit previous_player;
+    // Processed look before the last tick (CampaignSourceRuntime::player_look).
+    std::optional<halo2::Vec2> previous_look;
     bool presentation_paired=false;
     halo2::CampaignCaptureCarry capture_carry;
     halo2::Controls campaign_live_controls;
@@ -2675,9 +2809,12 @@ int main(int argc, char **argv) {
     // then samples input as soon as the draw starts (the multiplayer order).
     static const bool overlap_early_input=[]{const auto *p=std::getenv("HALO2_REFERENCE_OVERLAP_EARLY_INPUT");return p && *p;}();
     static const bool overlap_current_tick_only=[]{const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_OVERLAP_SLOT");return p && *p;}();
+    // HALO2_REFERENCE_OVERLAP_SAMPLE_CLOCK=1 reads an overlapped block's frame
+    // clock after the guard's wait, as input is read, instead of at draw start.
+    static const bool reference_overlap_sample_clock=[]{const auto *p=std::getenv("HALO2_REFERENCE_OVERLAP_SAMPLE_CLOCK");return p && *p;}();
     std::optional<nlohmann::json> campaign_after_render_state;
     // advance's outputs read by the rest of the frame.
-    float dt{};
+    float dt{},audio_dt{};
     bool game_paused{};
     const bool write_campaign_timings=renderer->writes_frame_timings();
     const auto host_elapsed_ms=[](Clock::duration elapsed) {
@@ -2695,8 +2832,9 @@ int main(int argc, char **argv) {
       if(multiplayer_options.menu_audio_update)multiplayer_options.menu_audio_update();
       reference_state("frame_begin");
       if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","frame_begin"},{"frame",frames}});
-      const auto now = Clock::now();
-      const float audio_dt=reference_capture?reference_capture->interval:std::chrono::duration<float>(now-last).count();
+      const auto now = advance_clock.value_or(Clock::now());
+      advance_clock.reset();
+      audio_dt=reference_capture?reference_capture->interval:std::chrono::duration<float>(now-last).count();
       dt = std::min(audio_dt, 0.05f);
       last = now;
       SDL_Event event;
@@ -2785,6 +2923,7 @@ int main(int argc, char **argv) {
         if(audio)audio->stop();
         if(scripted_audio)scripted_audio->stop();
         scripted_audio.reset();
+        sound_query_binding.reset();
         script_sound_clock.reset();
         script_sound_world.reset();
         scripted_speech.clear();traced_scripted_voice_volumes.clear();
@@ -2874,16 +3013,14 @@ int main(int argc, char **argv) {
       const auto common_cpu_begin=write_campaign_timings?campaign_thread_cpu_time():std::nullopt;
       if (simulation) {
         std::optional<halo2::SourceScriptSoundAdmissionBindingTu15> sound_admission;
-        std::optional<halo2::SourceScriptSoundClockQueryBindingTu15> sound_queries;
         if(audio && scripted_audio) {
           scripted_audio->paused(game_paused);
           scripted_audio->master_volume(float(desktop->display_settings.volume)/10.f);
           if(!scripted_audio_timeline.anchored())
             scripted_audio_timeline.anchor(simulation->ticks(),scripted_audio->presentation_frames());
         }
-        if(audio && scripted_audio || script_sound_world)
+        if(scripted_audio || script_sound_world)
           sound_admission.emplace(*simulation,submit_script_sound);
-        if(script_sound_world)sound_queries.emplace(*simulation,script_sound_queries);
         if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","simulation_begin"},{"frame",frames},{"tick",simulation->ticks()}});
         if(!game_paused)simulation->advance_audio(audio_dt);
         const float caller_frame_interval=bsp_replay?halo2::tick_seconds:audio_dt;
@@ -2955,6 +3092,7 @@ int main(int argc, char **argv) {
           }
           input.skip_cinematic = skip_requested;
           previous_player=simulation->player();previous_actors=simulation->actors();
+          previous_look=simulation->campaign_source()?simulation->campaign_source()->player_look():std::nullopt;
           previous_projectiles=simulation->presentation_projectiles();
           const auto prior_tick=simulation->ticks(),prior_bsp=simulation->bsp_revision(),prior_restores=simulation->checkpoint_restores();
           try {
@@ -3177,6 +3315,21 @@ int main(int argc, char **argv) {
         if(simulation->campaign_source()) {
           const auto processed=simulation->campaign_source()->hud_player(*simulation);
           render_camera.yaw=processed.yaw;render_camera.pitch=processed.pitch;
+          // The processed look changes only on ticks. Present it between ticks
+          // at the same time as the interpolated eye position, as multiplayer
+          // presentation does; exact endpoints keep the source words.
+          // HALO2_REFERENCE_CAMPAIGN_TICK_LOOK=1 presents the latest tick's look.
+          static const bool reference_tick_look=[]{const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_TICK_LOOK");return p && *p;}();
+          const auto &shown=simulation->player();
+          if(!reference_tick_look && presentation_paired && previous_look &&
+             !previous_player.vitality.dead && !shown.vitality.dead &&
+             previous_player.source_datum==shown.source_datum && previous_player.source_parent==shown.source_parent &&
+             halo2::length(shown.body.position-previous_player.body.position)<5)
+            if(const auto current=simulation->campaign_source()->player_look()) {
+              const float f=render_fraction(presentation_paired,1.f);
+              render_camera.yaw=halo2::render_angle(previous_look->x,current->x,f);
+              render_camera.pitch=std::lerp(previous_look->y,current->y,f);
+            }
           render_camera.oriented=false;
         }
         const auto forward=render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch);
@@ -3205,6 +3358,17 @@ int main(int argc, char **argv) {
       }
       if(simulation && simulation->campaign_source())
         simulation->campaign_source()->objects().publish_native_observer_position(0,render_camera.position);
+      if(presentation_trace && simulation && gameplay_camera) {
+        halo2::campaign_reference_capture::Environment isolated;
+        const auto forward=render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch);
+        *presentation_trace<<nlohmann::json{{"event","camera"},{"frame",frames},{"tick",simulation->ticks()},
+            {"paired",presentation_paired},{"fraction",render_fraction(presentation_paired,1.f)},
+            {"clock_ms",presentation_trace_ms(last)},{"now_ms",presentation_trace_ms(Clock::now())},
+            {"guard_wait_ms",overlap_input_wait_ms},{"vehicle",campaign_vehicle_view},
+            {"parent",simulation->player().source_parent},
+            {"position",{render_camera.position.x,render_camera.position.y,render_camera.position.z}},
+            {"forward",{forward.x,forward.y,forward.z}}}.dump()<<'\n';
+      }
       mouse_look.reset();
       if(simulation && play && !simulation->presentation().scripted &&
           !simulation->presentation().cinematic) {
@@ -3246,8 +3410,14 @@ int main(int argc, char **argv) {
             ++it;
           }
         }
-        scripted_audio->listeners(std::span(&render_camera.position,1));
-        if(!game_paused && simulation->campaign_source() && character_atmosphere)try {
+        // The camera's head frame places 3D voices (the HRTF stage).
+        const halo2::SourceObjectAudioViewTu15::Orientation listener_frame{
+            render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch),
+            render_camera.oriented?render_camera.up:halo2::Vec3{0,0,1}};
+        scripted_audio->listeners(std::span(&render_camera.position,1),std::span(&listener_frame,1));
+        // HALO2_REFERENCE_CAMPAIGN_AMBIENT_LANE=1 restores the earlier BSP
+        // ambience lane: main tracks only, no details, alternates or object loops.
+        if(!game_paused && simulation->campaign_source() && character_atmosphere && reference_campaign_ambient_lane)try {
           if(!campaign_ambience_bsp || campaign_ambience_bsp->first!=bsp)
             campaign_ambience_bsp.emplace(bsp,cache.load_multiplayer_audio_bsp(bsp));
           const auto &weather=simulation->weather();
@@ -3259,6 +3429,115 @@ int main(int argc, char **argv) {
           if(reported_ambience_bsp_faults.insert(bsp).second)
             std::cerr<<"Campaign ambience: "<<error.what()<<'\n';
         }
+        else if(!game_paused && simulation->campaign_source() && character_atmosphere)try {
+          // The original 18EE50 object-audio frame owns every loop sound: the
+          // BSP background sound (18E970: palette and portal choice, weather,
+          // fades and its random detail sounds) and each object's loops. The
+          // native loop lane plays the requests it makes, as in multiplayer.
+          auto &world=simulation->campaign_source()->objects().tu15_world();
+          const auto location=character_atmosphere->location_at(render_camera.position);
+          halo2::SourceObjectAudioViewsTu15 views{};
+          views[0]=halo2::SourceObjectAudioViewTu15{render_camera.position,std::int16_t(location.cluster),
+              halo2::SourceObjectAudioViewTu15::Orientation{
+                  render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch),
+                  render_camera.oriented?render_camera.up:halo2::Vec3{0,0,1}},
+              location.leaf,true};
+          // The original runs this sound update once per 30 Hz game frame.
+          // Step it once per completed simulation tick with the real time
+          // since the previous step; render-only frames keep its voices.
+          campaign_loop_audio_elapsed+=audio_dt;
+          if(simulation->ticks()!=campaign_loop_audio_tick) {
+            campaign_loop_audio_tick=simulation->ticks();
+            const float elapsed=std::exchange(campaign_loop_audio_elapsed,0.f);
+            world.publish_native_weather(simulation->weather());
+            world.publish_native_ambience_details(simulation->ambience_details_enabled());
+            // 129170 fades the listener's sound environments by the sound
+            // frame time; their reverbs then reach the mixer.
+            world.publish_native_sound_elapsed(elapsed);
+            scripted_audio->object_loop_listeners(bsp,views);
+            campaign_loop_requests.clear();
+            world.step_native_object_audio(views,elapsed);
+            scripted_audio->sound_environments(world.native_sound_environments());
+            scripted_audio->global_sound_environment(world.native_sound_global_environment());
+            for(const auto &request:campaign_loop_requests)try {
+                if(request.arguments[5]==2 && campaign_pool_script_loops.contains(request.arguments[0]) &&
+                    std::getenv("HALO2_SCRIPT_CALL_TRACE")) {
+                  const auto definition=cache.load_looping_sound(request.arguments[0]);
+                  std::cout<<"Script audio loop stop: tick="<<simulation->ticks()<<" sound="<<request.arguments[0]
+                      <<" duration_ms="<<std::int32_t(std::bit_cast<float>(request.arguments[7])*1000.f)
+                      <<" track_fade_ms="<<std::int32_t((definition.tracks.empty()?0.f:definition.tracks[0].fade_out)*1000.f)<<'\n';
+                  campaign_pool_script_loops.erase(request.arguments[0]);
+                }
+                scripted_audio->object_loop_request(request);
+              } catch(const std::exception &error) {
+                campaign_rejected_loops.insert(request.arguments[0]);
+                const auto key="Campaign loop sound "+std::to_string(request.arguments[0])+": "+error.what();
+                if(reported_campaign_loop_gaps.insert(key).second)std::cerr<<key<<'\n';
+              }
+            campaign_loop_requests.clear();
+            scripted_audio->object_loop_frame(elapsed);
+            // 221A70/221E30: obstruction and occlusion through the structure.
+            const halo2::SourceSoundObstructionWorldTu15 structure{
+                [&world](std::uint32_t address,std::size_t size){return world.memory().view(address,size);},
+                [&](halo2::Vec3 from,halo2::Vec3 to)->std::optional<float>{
+                  const auto delta=to-from;const float length=halo2::length(delta);
+                  if(!(length>0.f))return std::nullopt;
+                  if(const auto hit=simulation->structure_collision().raycast(from,delta*(1.f/length),length))
+                    return hit->distance/length;
+                  return std::nullopt;
+                }};
+            scripted_audio->obstruction_frame(elapsed,structure,[&](halo2::Vec3 point){
+              const auto location=character_atmosphere->location_at(point);
+              return halo2::SourceSoundObstructionPointTu15{point,std::int32_t(location.cluster),std::int32_t(location.leaf)};
+            });
+          }
+          if(!campaign_ambience_bsp || campaign_ambience_bsp->first!=bsp)
+            campaign_ambience_bsp.emplace(bsp,cache.load_multiplayer_audio_bsp(bsp));
+          const auto &weather=simulation->weather();
+          auto targets=halo2::multiplayer_ambient_targets(campaign_ambience_bsp->second,
+              *character_atmosphere,render_camera.position,location.cluster,weather.current,weather.stopped==0);
+          std::erase_if(targets,[&](const auto &target){return !campaign_rejected_loops.contains(target.sound);});
+          scripted_audio->ambient(targets,audio_dt);
+        } catch(const std::exception &error) {
+          campaign_loop_requests.clear();
+          if(reported_ambience_bsp_faults.insert(bsp).second)
+            std::cerr<<"Campaign object audio: "<<error.what()<<'\n';
+        }
+        // The campaign World's completed sound requests: footsteps, foley,
+        // devices, effects and weapons. The original caller has chosen the
+        // sound, owner, scale, gain and position, as for multiplayer's
+        // source weapon sounds. HALO2_REFERENCE_CAMPAIGN_NO_SOURCE_SOUNDS=1
+        // drops them, as campaign did before.
+        static const bool reference_no_source_sounds=[]{
+          const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_NO_SOURCE_SOUNDS");return p && *p;}();
+        if(!reference_no_source_sounds)
+          for(const auto &request:campaign_sound_requests)try {
+            const auto location=std::to_integer<unsigned>(request.raw[0xf])&15u;
+            const halo2::Bytes raw(request.raw);
+            delivering_source_sound=true;
+            delivering_source_speech=(raw.u32(0)&0x408u)==0x408u && raw.u32(0x50)!=halo2::null_datum;
+            struct Delivered {bool &sound,&speech;~Delivered(){sound=speech=false;}}
+                delivered{delivering_source_sound,delivering_source_speech};
+            (void)scripted_audio->source_impulse(request.sound,request.raw,
+                location?halo2::MultiplayerAudioKind::Impulse:halo2::MultiplayerAudioKind::FirstPerson,0);
+          } catch(const std::exception &error) {
+            const auto key="Campaign source sound "+std::to_string(request.sound)+": "+error.what();
+            if(reported_campaign_loop_gaps.insert(key).second)std::cerr<<key<<'\n';
+          }
+        if(std::getenv("HALO2_SOURCE_SOUND_TRACE"))
+          for(const auto &request:campaign_sound_requests) {
+            const halo2::Bytes raw(request.raw);
+            const auto *tag=cache.find_tag(halo2::TagHandle{request.sound});
+            std::cout<<"Source sound request: tick="<<simulation->ticks()<<" sound="<<request.sound
+                <<std::hex<<" flags="<<raw.u32(0)<<" location="<<(std::to_integer<unsigned>(request.raw[0xf])&15u)
+                <<" owner="<<raw.u32(0x50)<<std::dec<<" zoom="<<request.zoom<<" control="<<raw.f32(0x10)
+                <<" gain="<<raw.f32(0x14)<<" position="<<raw.f32(0x18)<<','<<raw.f32(0x1c)<<','<<raw.f32(0x20)
+                <<" name="<<(tag?tag->name:std::string("?"))<<" bytes=";
+            for(unsigned n=0;n<0x60;++n)std::cout<<std::hex<<std::setw(2)<<std::setfill('0')
+                <<std::to_integer<unsigned>(request.raw[n]);
+            std::cout<<std::dec<<std::setfill(' ')<<'\n';
+          }
+        campaign_sound_requests.clear();
         scripted_audio->update();
       }
       // The cinematic/vehicle observer is the listener. Its completed pose
@@ -3484,10 +3763,17 @@ int main(int argc, char **argv) {
           // deviation, and the wait ends early once the draw is done. The finite
           // reference capture keeps its declared interval, so its frames do
           // not depend on this wait.
+          // The block's frame clock is read here, as the draw starts, not
+          // after the wait: the wait is longer before render-only blocks than
+          // before ticking ones, so a clock read after it would place ticking
+          // frames earlier relative to their presentation and motion would
+          // advance unevenly at 30 Hz. Input is still read after the wait.
+          const auto launched=Clock::now();
+          if(!reference_overlap_sample_clock)advance_clock=launched;
           {
             Isolated isolated;
             if(!overlap_early_input && overlap_draw_ms && simulation) {
-              const auto now=Clock::now();
+              const auto now=launched;
               constexpr auto poll=std::chrono::microseconds(200);
               const bool forecast=!overlap_current_tick_only && !reference_capture && !bsp_replay &&
                   !capture_carry.pending_ticks() && simulation->campaign_source();
@@ -3508,9 +3794,10 @@ int main(int argc, char **argv) {
               const auto slot=tick_slot_at(now);
               auto until=deadline(slot);
               if(until>now) {
-                if(forecast) {
+                if(forecast && reference_overlap_sample_clock) {
                   // Waiting on a cheap render-only estimate can itself put
                   // a full simulation tick on the draw's critical path.
+                  // (With the clock read at draw start the wait cannot.)
                   const auto reachable=tick_slot_at(until+poll);
                   for(unsigned next=slot+1;next<=reachable;++next)until=std::min(until,deadline(next));
                 }
@@ -3544,6 +3831,8 @@ int main(int argc, char **argv) {
         join();
         if(reference_trace)reference_trace->release();
         Isolated isolated;
+        if(presentation_trace)*presentation_trace<<nlohmann::json{{"event","draw"},{"frame",frame_before},
+            {"overlap",true},{"begin_ms",presentation_trace_ms(draw_begin)},{"end_ms",presentation_trace_ms(draw_end)}}.dump()<<'\n';
         const double ms=std::chrono::duration<double,std::milli>(draw_end-draw_begin).count();
         overlap_draw_ms=overlap_draw_ms?*overlap_draw_ms+.25*(ms-*overlap_draw_ms):ms;
       };
@@ -3780,8 +4069,30 @@ int main(int argc, char **argv) {
           });
         }
         if(source_machine_models && source && source_frame && character_shader_view) {
+          // Machines (doors, lifts, gondolas) present between ticks like
+          // actors and the eye, so a rider's floor does not step at 30 Hz.
+          // HALO2_REFERENCE_CAMPAIGN_MACHINE_TICK_POSE=1 draws completed nodes.
+          static const bool reference_machine_tick_pose=[]{const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_MACHINE_TICK_POSE");return p && *p;}();
           campaign_machine_packet=source_machine_models->collect_campaign_view(simulation->scene(),
-              source_frame->base_draws,*character_shader_view,source->tu15_world(),machine_inputs);
+              source_frame->base_draws,*character_shader_view,source->tu15_world(),machine_inputs,
+              [&](std::uint32_t object,const halo2::RenderModel &model,std::vector<halo2::Transform> completed) {
+                if(completed.size()!=model.bones.size())return completed;
+                auto &history=cinematic_render_interpolation[object];
+                history.capture_render(simulation->ticks(),completed);
+                auto shown=reference_machine_tick_pose?completed:
+                    history.sample_render(model,hologram_owns(object)?1.f:fraction);
+                if(presentation_trace) {
+                  halo2::campaign_reference_capture::Environment isolated;
+                  const auto &a=completed.front().position,&b=shown.front().position;
+                  // Only machines that moved during the last two ticks.
+                  auto [seen,inserted]=presentation_trace_machines.try_emplace(object,a,simulation->ticks());
+                  if(!inserted && std::memcmp(&seen->second.first,&a,sizeof(a)))seen->second={a,simulation->ticks()};
+                  if(!inserted && simulation->ticks()-seen->second.second<=2)
+                  *presentation_trace<<nlohmann::json{{"event","machine"},{"frame",frames},{"tick",simulation->ticks()},
+                      {"object",object},{"paired",history.paired()},{"completed",{a.x,a.y,a.z}},{"shown",{b.x,b.y,b.z}}}.dump()<<'\n';
+                }
+                return shown;
+              });
           if(!campaign_machine_packet)throw halo2::FormatError("Campaign machine view lost its native packet owner");
           campaign_machine_packet->require_current();
           trace_machine_packet("ordinary",*campaign_machine_packet);
@@ -4772,7 +5083,16 @@ int main(int argc, char **argv) {
         };
         return;
       }
-      complete_campaign(draw_campaign());
+      {
+        const auto draw_begin=Clock::now();
+        const bool submitted=draw_campaign();
+        if(presentation_trace) {
+          halo2::campaign_reference_capture::Environment isolated;
+          *presentation_trace<<nlohmann::json{{"event","draw"},{"frame",frames},{"overlap",false},
+              {"begin_ms",presentation_trace_ms(draw_begin)},{"end_ms",presentation_trace_ms(Clock::now())}}.dump()<<'\n';
+        }
+        complete_campaign(submitted);
+      }
       if(pstencil_controls && texture_camera_frame)
         halo2::pstencil::campaign_capture_controls(*renderer,*campaign_view,pstencil_capture,draw_pstencil_capture);
       if(campaign_controls)

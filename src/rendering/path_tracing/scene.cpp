@@ -6,6 +6,7 @@
 #include "halo2/path_tracing/surface.hpp"
 #include "halo2/path_tracing/material_surface.hpp"
 #include "halo2/path_tracing/color_guide.hpp"
+#include "halo2/path_tracing/glow.hpp"
 #include "halo2/path_tracing/source_ambient.hpp"
 #include "halo2/pstencil/environment.hpp"
 #include "halo2/pstencil/combined_environment.hpp"
@@ -16,9 +17,14 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <unordered_map>
 
 namespace halo2::path_tracing {
 namespace {
+// Glow layers are drawn additively over a dark, LDR frame; Halo 2 baked them
+// as radiosity emitters well above that display value. Four times the layer's
+// drawn colour reads as a lit fixture without overexposing nearby walls.
+constexpr float glow_gain=4.f;
 constexpr std::size_t maximum_triangles=2'000'000,maximum_texels=16'777'216;
 // Source vertex IDs and GPU triangle material slots are uint32. Preserve that
 // identity namespace, including preloaded slots activated by later geometry.
@@ -232,6 +238,77 @@ void append_texture(Scene &scene,GpuMaterial &target,const Texture &source,unsig
     const Bytes bytes(image.pixels);
     for(std::size_t p=0;p<count;++p)scene.pixels.push_back(bytes.u32(mip.offset+p*4));
 }
+// A surface's normal map, for primary pixels: its mip chain from the largest
+// level no wider than 256 texels down to 4, as RGBA8. Record: the level count,
+// then per level its offset from the record, width and height; then texels.
+// Returns the record's offset in `image`, or none when it cannot be decoded.
+constexpr std::uint32_t no_normal_map=~0u,normal_map_levels=7;
+std::uint32_t append_normal_map(Scene& image,const Texture& source) {
+    if(!source.width || !source.height || source.pixels.empty() || source.layers!=1 || source.depth)return no_normal_map;
+    Texture decoded=source;
+    if(decoded.mips.empty()) {
+        const auto bytes=decoded.format==11?std::size_t(decoded.width)*decoded.height*4:
+            std::size_t((decoded.width+3)/4)*((decoded.height+3)/4)*(decoded.format==14?8:16);
+        decoded.mips.push_back({decoded.width,decoded.height,0,bytes});
+    }
+    try {
+        if(decoded.format>=14 && decoded.format<=16)decoded=prepare_xemu_bc_texture(decoded);
+    } catch(const FormatError&) {return no_normal_map;}
+    if(decoded.format!=11)return no_normal_map;
+    std::size_t first=0;
+    while(first+1<decoded.mips.size() && (decoded.mips[first].width>256 || decoded.mips[first].height>256))++first;
+    std::vector<std::size_t> levels;
+    for(auto level=first;level<decoded.mips.size() && levels.size()<normal_map_levels;++level) {
+        const auto& mip=decoded.mips[level];
+        if(mip.width<4 || mip.height<4)break;
+        if(mip.offset>decoded.pixels.size() || std::size_t(mip.width)*mip.height*4>decoded.pixels.size()-mip.offset)break;
+        levels.push_back(level);
+    }
+    if(levels.empty())return no_normal_map;
+    const auto record=std::uint32_t(image.pixels.size());
+    image.pixels.push_back(std::uint32_t(levels.size()));
+    const auto headers=image.pixels.size();
+    image.pixels.resize(headers+levels.size()*3);
+    const Bytes bytes(decoded.pixels);
+    for(std::size_t n=0;n<levels.size();++n) {
+        const auto& mip=decoded.mips[levels[n]];
+        image.pixels[headers+n*3]=std::uint32_t(image.pixels.size())-record;
+        image.pixels[headers+n*3+1]=mip.width;image.pixels[headers+n*3+2]=mip.height;
+        for(std::size_t texel=0;texel<std::size_t(mip.width)*mip.height;++texel)image.pixels.push_back(bytes.u32(mip.offset+texel*4));
+    }
+    return record;
+}
+// An authored reflection cube map for primary pixels: one level of its six
+// faces no wider than 64 texels (Halo 2's environment maps are soft), as
+// RGBA8. Record: the face size, then the faces +X -X +Y -Y +Z -Z. Returns the
+// record's offset in `image`, or none when it cannot be decoded.
+constexpr std::uint32_t no_environment_map=~0u;
+std::uint32_t append_environment_map(Scene& image,const Texture& source) {
+    if(source.layers!=6 || source.depth || source.width!=source.height || source.mips.empty() || source.mips.size()%6)
+        return no_environment_map;
+    Texture decoded=source;
+    try {
+        if(decoded.format>=14 && decoded.format<=16)decoded=prepare_xemu_bc_texture(decoded);
+    } catch(const FormatError&) {return no_environment_map;}
+    if(decoded.format!=11 || decoded.mips.size()!=source.mips.size())return no_environment_map;
+    const std::size_t levels=decoded.mips.size()/6;
+    std::size_t level=0;
+    while(level+1<levels && decoded.mips[level].width>64)++level;
+    const auto size=decoded.mips[level].width;
+    if(size<1 || decoded.mips[level].height!=size)return no_environment_map;
+    const auto record=std::uint32_t(image.pixels.size());
+    image.pixels.push_back(size);
+    const Bytes bytes(decoded.pixels);
+    for(unsigned face=0;face<6;++face) {
+        const auto& mip=decoded.mips[face*levels+level];
+        const auto count=std::size_t(size)*size;
+        if(mip.width!=size || mip.height!=size || mip.offset>decoded.pixels.size() || count*4>decoded.pixels.size()-mip.offset) {
+            image.pixels.resize(record);return no_environment_map;
+        }
+        for(std::size_t texel=0;texel<count;++texel)image.pixels.push_back(bytes.u32(mip.offset+texel*4));
+    }
+    return record;
+}
 const Texture &current_base_texture(const Material &material) {
     if(material.animated_textures[0].empty())return material.diffuse;
     const auto frame=material.texture_frames[0];
@@ -331,7 +408,7 @@ void append_surface(Scene& image,GpuMaterial& target,const Material& material) {
     target.texture[3]|=surface_flag;target.base[3]=std::bit_cast<float>(record+1);
 }
 std::array<std::uint64_t,2> material_image_key(const Material &material) {
-    if(!traces_material(material))return {};
+    if(!ray_material(material))return {};
     const auto &texture=current_base_texture(material);
     std::uint64_t metadata=14695981039346656037ull;
     const auto add=[&](std::uint64_t value){metadata^=value;metadata*=1099511628211ull;};
@@ -374,12 +451,65 @@ std::array<std::uint64_t,2> material_image_key(const Material &material) {
     }
     return {metadata,texture.pixels.fingerprint()};
 }
+float triangle_area(const GpuTriangle& triangle) {
+    const auto& a=triangle.p0;const auto& b=triangle.p1;const auto& c=triangle.p2;
+    const float x=(b[1]-a[1])*(c[2]-a[2])-(b[2]-a[2])*(c[1]-a[1]);
+    const float y=(b[2]-a[2])*(c[0]-a[0])-(b[0]-a[0])*(c[2]-a[2]);
+    const float z=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+    return .5f*std::sqrt(x*x+y*y+z*z);
+}
+// The emitter table light sampling reads (scene.glsl traceDirect): every
+// emissive triangle, then the running sum of their power, so a shadow ray
+// goes to a source in proportion to the light it gives off rather than to
+// its triangle count. A source whose sampled colour is black keeps a small
+// share: its texture may still emit away from the sampled point.
+// The complete pixel programs of a surface's world_overlays_after layers
+// (Scene::material_layer_programs), when one of them is an additive
+// self-illumination layer that glow_layer.frag draws. Returns their offset
+// in `image`.
+std::uint32_t append_layer_programs(Scene& image,const Material& material) {
+    const bool glowing=std::ranges::any_of(material.world_overlays_after,[](const auto& layer) {
+        return layer && layer->forward_vertex==2 && layer->forward_blend==3;
+    });
+    if(!glowing)return no_layer_programs;
+    const auto at=std::uint32_t(image.pixels.size());
+    for(const auto& layer:material.world_overlays_after) {
+        const auto words=layer?layer->forward_program.words:std::array<std::uint32_t,layer_program_words>{};
+        image.pixels.insert(image.pixels.end(),words.begin(),words.end());
+    }
+    return at;
+}
+// Additive self-illumination layers drawn over a traced surface (door and
+// console lights, the training device's lamps) whose program has no exact
+// emission record (emission_passes). Each emits its average drawn colour.
+std::vector<const Material*> self_illumination_layers(const Material& material) {
+    std::vector<const Material*> layers;
+    for(const auto& pass:material.world_overlays_after)
+        if(pass && pass->forward_pass && pass->forward_vertex==2 && !supports_emission(*pass))layers.push_back(pass.get());
+    return layers;
+}
 void refresh_emitters(Scene &scene) {
     scene.pixels.resize(scene.texture_texel_count);scene.emissive_count=0;
+    std::vector<float> power;
     for(std::uint32_t n=0;n<scene.triangles.size();++n) {
-        const auto &emission=scene.materials[scene.triangles[n].metadata[0]].emission;
-        if(std::bit_cast<std::uint32_t>(emission[3]) || emission[0]>0 || emission[1]>0 || emission[2]>0) {scene.pixels.push_back(n);++scene.emissive_count;}
+        const auto& triangle=scene.triangles[n];
+        const auto& material=scene.materials[triangle.metadata[0]];
+        const auto& emission=material.emission;
+        if(!std::bit_cast<std::uint32_t>(emission[3]) && !(emission[0]>0) && !(emission[1]>0) && !(emission[2]>0))continue;
+        // A surface that carries baked light (a lightmap or static vertex
+        // radiance) was part of the bake its own emission lit.
+        const bool baked=(material.texture[3]&baked_emission_flag) && std::bit_cast<std::uint32_t>(triangle.color_guide[3])!=0;
+        scene.pixels.push_back(n|(baked?emitter_baked_bit:0u));++scene.emissive_count;
+        const Vec2 centre{(triangle.uv01[0]+triangle.uv01[2]+triangle.uv2[0])/3.f,
+                          (triangle.uv01[1]+triangle.uv01[3]+triangle.uv2[1])/3.f};
+        const auto colour=material_emission(scene,triangle.metadata[0],centre);
+        const float luminance=.2126f*colour.x+.7152f*colour.y+.0722f*colour.z;
+        const float area=triangle_area(triangle);
+        const float value=area*std::max(std::isfinite(luminance)?luminance:0.f,1.e-3f);
+        power.push_back(std::isfinite(value) && value>0?value:1.e-12f);
     }
+    float running=0;
+    for(const auto value:power) {running+=value;scene.pixels.push_back(std::bit_cast<std::uint32_t>(running));}
     append_emitter_groups(scene);
 }
 bool alpha_pass(const Scene &scene,const GpuTriangle &triangle,float u,float v) {
@@ -424,8 +554,7 @@ std::array<std::uint32_t,3> append_image(Scene& scene,const Texture& image,unsig
     return {temporary.texture[0],temporary.texture[1],temporary.texture[2]};
 }
 }
-GpuMaterial material_response(const Material &material) {
-    GpuMaterial result;
+const Material* reflection_pass(const Material &material) {
     const Material *environment=material.environment_pass.get();
     if(environment && environment->forward_vertex!=4)environment=nullptr;
     if(material.forward_vertex==4)environment=&material;
@@ -435,6 +564,11 @@ GpuMaterial material_response(const Material &material) {
     find_environment(material.world_overlays_before);find_environment(material.world_overlays_after);
     if(!environment)environment=pstencil::combined_visor_environment(material);
     if(!environment && pstencil::supports_combined_environment_strength(material))environment=&material;
+    return environment;
+}
+GpuMaterial material_response(const Material &material) {
+    GpuMaterial result;
+    const Material *environment=reflection_pass(material);
     // Halo's legacy response has no physical roughness. This optional policy
     // deliberately broadens weak reflections instead of making every surface
     // metallic. Authored facing/glancing strengths remain independently bounded.
@@ -462,7 +596,11 @@ GpuMaterial material_response(const Material &material) {
     if(material.texture_states[0].address_u==3)flags|=2u;
     if(material.texture_states[0].address_v==3)flags|=4u;
     if(material.texture_states[0].alpha_kill&4u)flags|=8u;
-    if(!traces_material(material))flags|=16u;
+    if(glow_material(material)) {
+        // Light-only emitter: no albedo (flag 32), no vertex tint (128); its
+        // radiance is the authored texture times the pass's diffuse tint.
+        flags|=light_only_flag|32u|128u;
+    } else if(!traces_material(material))flags|=16u;
     if(material.forward_vertex==2)flags|=32u; // Primary root emits; child passes retain their source draw.
     if(qualified_unlit_white_tint(material) || (material.forward_vertex==2 && supports_emission(material)))flags|=128u;
     if(source_ambient_owner(material))flags|=source_ambient_flag;
@@ -474,7 +612,27 @@ GpuMaterial material_response(const Material &material) {
             // consumed by the separate environment pass, including animated
             // C24.a for dynamic detail. Other families do not claim that mask.
             flags|=2048u;
-    flags|=(material.forward_raster.alpha_function&7u)<<8;result.texture[3]=flags;
+    // The environment pass blends its cube map in proportion to the
+    // destination alpha the texture pass left: the base map's alpha, its
+    // specular mask, unless alpha is the surface's coverage.
+    if(environment && environment->forward_blend==8 && !(flags&2048u) && !material.forward_raster.alpha_test)
+        flags|=environment_mask_flag;
+    flags|=(material.forward_raster.alpha_function&7u)<<8;
+    // Authored surface detail for the full-resolution resolve (world.frag):
+    // the static lightmap pass binds diffuse/detail/bump at stages 0/1/2
+    // (lightmap_tex has no detail and its bump on stage 1), and an
+    // unqualified forward texture pass is evaluated with its own combiner.
+    const auto real=[](const Texture& texture){return texture.width>4 && texture.height>4;};
+    if(material.static_lightmap_pass && !material.passes.empty()) {
+        const auto& name=material.passes[0].name;
+        const auto leaf=std::string_view(name).substr(name.find_last_of('\\')+1);
+        if(leaf=="lightmap_tex_detail") {
+            if(real(material.detail))flags|=surface_detail_stage1_flag;
+            if(real(material.bump))flags|=surface_bump_stage2_flag;
+        } else if(leaf=="lightmap_tex" && real(material.detail))flags|=surface_bump_stage1_flag;
+    }
+    if(material.forward_pass && material.forward_vertex==3 && !qualified_surface(material))flags|=surface_forward_combiner_flag;
+    result.texture[3]=flags;
     result.transform=material.texture_transforms[0];
     // These complete native vertex identities use c18 for base UVs even
     // when their pixel family falls back to the ordinary source texture.
@@ -485,13 +643,100 @@ GpuMaterial material_response(const Material &material) {
     };
     emission(material);for(const auto &pass:material.world_overlays_after)if(pass)emission(*pass);
     result.color_guide=color_guide_material(material);
+    if(glow_material(material)) {
+        // Until its images are read (refresh_materials_impl replaces this
+        // with the layer's average drawn colour), a glow emits its tint.
+        const auto tint=material.forward_diffuse;
+        const bool tinted=tint[0]>0 || tint[1]>0 || tint[2]>0;
+        for(unsigned n=0;n<3;++n)result.emission[n]=glow_gain*(tinted?positive(tint[n]):1.f);
+    }
+    return result;
+}
+// Halo 2's lighting passes also bind normalization cube maps: each texel
+// encodes its own direction (dir * .5 + .5), for per-pixel vector math. They
+// are not pictures of an environment. Each face of one averages to its axis.
+static bool normalization_cube(const Texture& cube) {
+    Scene image;
+    const auto record=append_environment_map(image,cube);
+    if(record==no_environment_map)return false;
+    const auto size=image.pixels[record];
+    const std::array<std::array<float,3>,6> axes{{{1,.5f,.5f},{0,.5f,.5f},{.5f,1,.5f},{.5f,0,.5f},{.5f,.5f,1},{.5f,.5f,0}}};
+    for(unsigned face=0;face<6;++face) {
+        double sum[3]{};
+        for(std::size_t texel=0;texel<std::size_t(size)*size;++texel) {
+            const auto word=image.pixels[record+1+face*size*size+texel];
+            for(unsigned c=0;c<3;++c)sum[c]+=double((word>>(8*c))&255u)/255.0;
+        }
+        const double count=double(size)*size;
+        for(unsigned c=0;c<3;++c)if(std::abs(sum[c]/count-axes[face][c])>.2)return false;
+    }
+    return true;
+}
+std::vector<const Texture*> find_environment_maps(std::span<const Material> materials) {
+    std::vector<const Texture*> result(materials.size());
+    std::unordered_map<const Texture*,bool> pictures;
+    for(std::size_t n=0;n<materials.size();++n) {
+        if(!traces_material(materials[n]))continue;
+        const auto* pass=reflection_pass(materials[n]);
+        if(!pass)continue;
+        for(unsigned stage=0;stage<4 && !result[n];++stage) {
+            const auto& image=emission_texture(*pass,stage);
+            if(image.layers!=6 || image.depth || image.width<4 || image.width!=image.height || image.pixels.empty())continue;
+            auto found=pictures.find(&image);
+            if(found==pictures.end())found=pictures.emplace(&image,!normalization_cube(image)).first;
+            if(found->second)result[n]=&image;
+        }
+    }
+    return result;
+}
+std::vector<const Texture*> find_normal_maps(std::span<const Material> materials) {
+    // A model shader's normal map is bound by its lighting pass (the
+    // lightmap passes put it on stage 2), a separate material of the same
+    // shader from the one the path tracer draws. Accept an image only if it
+    // averages to an outward tangent-space normal.
+    const auto normal_map=[](const Texture& image) {
+        if(image.width<8 || image.height<8 || image.layers!=1 || image.depth)return false;
+        const auto mean=average_image_rgba(image);
+        if(!mean)return false;
+        const float x=2.f*(*mean)[0]-1.f,y=2.f*(*mean)[1]-1.f,z=2.f*(*mean)[2]-1.f;
+        return z>.5f && std::abs(x)<.35f && std::abs(y)<.35f;
+    };
+    std::unordered_map<std::uint32_t,const Texture*> by_shader;
+    for(const auto& material:materials) {
+        if(material.source_shader_datum==0xffffffffu || material.forward_pass_index>=material.passes.size())continue;
+        if(material.passes[material.forward_pass_index].name.find("\\lightmap\\")==std::string::npos)continue;
+        auto& found=by_shader[material.source_shader_datum];
+        if(!found && normal_map(material.bump))found=&material.bump;
+    }
+    std::vector<const Texture*> result(materials.size());
+    for(std::size_t n=0;n<materials.size();++n) {
+        const auto& material=materials[n];
+        // Static lightmap passes already bind their own bump (source_detail.glsl).
+        if(material.static_lightmap_pass || !traces_material(material))continue;
+        if(const auto found=by_shader.find(material.source_shader_datum);found!=by_shader.end())result[n]=found->second;
+    }
     return result;
 }
 GpuSceneUniform Scene::uniform(Vec3 environment) const {
     if(!finite(environment) || environment.x<0 || environment.y<0 || environment.z<0)
         throw FormatError("Path Tracing source environment is non-finite or negative");
     return {{std::uint32_t(nodes.size()),std::uint32_t(triangles.size()),std::uint32_t(lights.size()),emissive_count},
-        {environment.x,environment.y,environment.z,std::bit_cast<float>(texture_texel_count)}};
+        {environment.x,environment.y,environment.z,std::bit_cast<float>(texture_texel_count)},{1,1,0,1}};
+}
+bool glow_material(const Material &material) {
+    // Additive blending (ONE/ONE or SRC_ALPHA/ONE) only adds light to the
+    // frame: the surface is a pure emitter. Premultiplied self-illuminated
+    // transparents (one_alpha_env_illum: Coagulation's light bands, floor
+    // arrows) are glowing panels too. UI, HUD, water and the other special
+    // passes are never scene emitters.
+    const bool additive=material.forward_blend==3 || material.forward_blend==18;
+    const bool illuminated=material.forward_blend==2 && material.template_name.find("illum")!=std::string::npos;
+    return material.forward_pass && (additive || illuminated) &&
+        (material.forward_vertex==1 || material.forward_vertex==2 || material.forward_vertex==3) &&
+        !material.hud_pass && !material.light_volume_pass && !material.water_pass && !material.vista_loading &&
+        !material.ui_emblem_pass && !material.ui_full_surface && !material.ui_widescreen_background &&
+        !material.ui_frame_center && !material.camouflage_group_pass && !material.camouflage_scene_texture &&
+        !material.diffuse.pixels.empty();
 }
 bool traces_material(const Material &material) {
     return !(material.forward_pass && material.forward_vertex==2 && !supports_emission(material)) &&
@@ -525,25 +770,38 @@ void refresh_materials_impl(Scene &scene,std::span<const Material> materials,std
        materials.size()!=scene.material_texel_capacities.size() || (!active.empty() && active.size()!=materials.size()))
         throw FormatError("Path Tracing material refresh changed its resident slot owner");
     scene.pixels.resize(scene.texture_texel_count);
+    scene.material_records_ready.resize(materials.size());
+    scene.material_glow.resize(materials.size());
+    scene.material_layer_programs.resize(materials.size(),no_layer_programs);
     for(std::size_t n=0;n<materials.size();++n) {
+        // An unreferenced, non-resident record is only read once it becomes
+        // active, when it is refreshed again. Skip the per-frame qualification.
+        if(!active.empty() && !active[n] && scene.material_texel_capacities[n]==0 && scene.material_records_ready[n])continue;
+        scene.material_records_ready[n]=1;
         auto response=material_response(materials[n]);
         const auto authored_flags=response.texture[3];
         if(scene.materials[n].texture[3]&surface_flag) {
             response.texture[3]=(response.texture[3]&~8u)|surface_flag|(scene.materials[n].texture[3]&8u);
             response.base[3]=scene.materials[n].base[3];
         }
+        const bool glow=glow_material(materials[n]);
         const auto previous=scene.materials[n].texture;
-        response.emission[3]=scene.materials[n].emission[3];
+        response.emission[3]=scene.materials[n].emission[3];response.detail=scene.materials[n].detail;
         response.texture[0]=previous[0];response.texture[1]=previous[1];response.texture[2]=previous[2];
         const bool resident=scene.material_texel_capacities[n]!=0;
-        const bool requested=!active.empty() && active[n] && traces_material(materials[n]);
+        const bool requested=!active.empty() && active[n] && ray_material(materials[n]);
         if(!resident && !requested) {scene.materials[n]=response;continue;}
         const auto key=material_image_key(materials[n]);
         if(!resident || key!=scene.material_image_keys[n]) {
-            Scene image;response.emission[3]=0;response.base[3]=1.f;response.texture[3]=authored_flags;
-            append_texture(image,response,traces_material(materials[n])?current_base_texture(materials[n]):Texture{});
+            Scene image;response.emission[3]=0;response.base[3]=1.f;response.texture[3]=authored_flags;response.detail={};
+            append_texture(image,response,ray_material(materials[n])?current_base_texture(materials[n]):Texture{});
             append_emission(image,response,materials[n]);
             append_surface(image,response,materials[n]);
+            scene.material_layer_programs[n]=append_layer_programs(image,materials[n]);
+            const auto* normal_map=n<scene.material_normal_maps.size()?scene.material_normal_maps[n]:nullptr;
+            const auto normal_record=normal_map?append_normal_map(image,*normal_map):no_normal_map;
+            const auto* environment_map=n<scene.material_environment_maps.size()?scene.material_environment_maps[n]:nullptr;
+            const auto environment_record=environment_map?append_environment_map(image,*environment_map):no_environment_map;
             const auto count=std::uint32_t(image.pixels.size());
             std::uint32_t offset=previous[0];
             if(count>scene.material_texel_capacities[n]) {
@@ -558,6 +816,36 @@ void refresh_materials_impl(Scene &scene,std::span<const Material> materials,std
             if(response.texture[3]&surface_flag)
                 response.base[3]=std::bit_cast<float>(offset+std::bit_cast<std::uint32_t>(response.base[3]));
             response.texture[0]=offset;scene.material_image_keys[n]=key;
+            if(normal_record!=no_normal_map)response.detail[0]=offset+normal_record;
+            if(environment_record!=no_environment_map)response.detail[1]=offset+environment_record;
+            if(glow) {
+                const auto color=average_glow_color(materials[n]);
+                scene.material_glow[n]=color?ShaderVector{color->x,color->y,color->z,1.f}:ShaderVector{};
+            } else if(!std::bit_cast<std::uint32_t>(response.emission[3])) {
+                // Sum the drawn colour of the layers that emission_passes
+                // could not describe exactly.
+                ShaderVector sum{};
+                for(const auto* layer:self_illumination_layers(materials[n]))
+                    if(const auto color=average_glow_color(*layer)) {
+                        sum[0]+=color->x;sum[1]+=color->y;sum[2]+=color->z;sum[3]=1.f;
+                    }
+                scene.material_glow[n]=sum;
+            }
+        }
+        // Light sources, by what is known about them. A glow layer and a
+        // surface's self-illumination emit the colour they are drawn with; a
+        // surface whose shader lit the lightmap bake emits the power it gave
+        // the bake instead, since that is the light the map was authored with.
+        // A pure emissive pass keeps its exact record: it is also its own
+        // visible colour (world.frag).
+        const auto lightmap=n<scene.material_lightmap_emission.size()?scene.material_lightmap_emission[n]:Vec3{};
+        const bool baked=!glow && !(response.texture[3]&32u) && (lightmap.x>0 || lightmap.y>0 || lightmap.z>0);
+        if(baked) {
+            response.emission={lightmap.x,lightmap.y,lightmap.z,0.f};
+            response.texture[3]|=uniform_emission_flag|baked_emission_flag;
+        } else if(scene.material_glow[n][3]>0) {
+            for(unsigned c=0;c<3;++c)response.emission[c]=glow_gain*scene.material_glow[n][c];
+            if(!glow)response.texture[3]|=uniform_emission_flag;
         }
         scene.materials[n]=response;
     }
@@ -580,20 +868,10 @@ void refresh_materials_for_geometry(Scene &scene,std::span<const Material> mater
     }
     refresh_materials_impl(scene,materials,active);
 }
-void update_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<const Light> lights) {
-    if(vertices.size()%3 || vertices.size()/3>maximum_triangles || lights.size()>65536)
-        throw FormatError("Path Tracing scene exceeds finite geometry/light limits");
-    if(scene.material_texel_capacities.size()!=scene.materials.size())
-        throw FormatError("Path Tracing geometry lacks its material residency owner");
-    std::vector<std::uint32_t> permutation;
-    const bool reusable=reusable_hierarchy(scene,permutation);
-    // Keep old nodes out of the live Scene while admitting new geometry. An
-    // invalid source triangle must not leave an old tree addressing a partial
-    // replacement bank if the caller catches the validation error.
-    auto previous_nodes=std::move(scene.nodes);
-    scene.triangles.clear();scene.lights.clear();
-    scene.pixels.resize(scene.texture_texel_count);
-    scene.triangles.reserve(vertices.size()/3);
+namespace {
+// Converts source triangles to GPU records, appended after scene.triangles.
+// Returns false if no triangle was admitted.
+void append_triangles(Scene &scene,std::span<const Vertex> vertices) {
     for(std::size_t first=0;first<vertices.size();first+=3) {
         const auto &a=vertices[first],&b=vertices[first+1],&c=vertices[first+2];
         if(a.material>=scene.materials.size() || a.material!=b.material || a.material!=c.material ||
@@ -621,8 +899,56 @@ void update_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<con
             (std::uint32_t(std::round(unit(c.y)*255))<<8)|(std::uint32_t(std::round(unit(c.z)*255))<<16)|0xff000000u;};
         triangle.metadata={a.material,color(a),color(b),color(c)};scene.triangles.push_back(triangle);
     }
+}
+void set_lights(Scene &scene,std::span<const Light> lights) {
+    scene.lights.clear();
+    for(const auto &light:lights) {
+        if(!finite(light.position) || !finite(light.color) || !std::isfinite(light.radius) ||
+           !std::isfinite(light.intensity) || light.radius<0 || light.intensity<0 ||
+           light.color.x<0 || light.color.y<0 || light.color.z<0)
+            throw FormatError("Path Tracing light lacks finite authored source values");
+        for(const auto &plane:light.planes)for(const auto value:plane)
+            if(!std::isfinite(value))throw FormatError("Path Tracing influence plane is non-finite");
+        if(light.intensity<=0)continue;
+        auto position=light.position;float radius=light.radius;
+        if(light.direction) {
+            const auto direction=*light.direction;const auto squared=dot(direction,direction);
+            if(!finite(direction) || !std::isfinite(squared) || squared<=1.e-18f)
+                throw FormatError("Path Tracing distant light lacks a finite nonzero source direction");
+            position=mul(direction,1.f/std::sqrt(squared));radius=-1;
+        } else if(radius<=0)continue;
+        scene.lights.push_back({{position.x,position.y,position.z,radius},
+            {light.color.x,light.color.y,light.color.z,light.intensity},light.planes});
+    }
+}
+}
+void update_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<const Light> lights,std::size_t static_vertices) {
+    if(vertices.size()%3 || vertices.size()/3>maximum_triangles || lights.size()>65536 ||
+       static_vertices%3 || static_vertices>vertices.size())
+        throw FormatError("Path Tracing scene exceeds finite geometry/light limits");
+    if(scene.material_texel_capacities.size()!=scene.materials.size())
+        throw FormatError("Path Tracing geometry lacks its material residency owner");
+    std::vector<std::uint32_t> permutation;
+    const bool reusable=scene.cpu_hierarchy && reusable_hierarchy(scene,permutation);
+    // Keep old nodes out of the live Scene while admitting new geometry. An
+    // invalid source triangle must not leave an old tree addressing a partial
+    // replacement bank if the caller catches the validation error.
+    auto previous_nodes=std::move(scene.nodes);
+    scene.triangles.clear();
+    scene.pixels.resize(scene.texture_texel_count);
+    scene.triangles.reserve(vertices.size()/3);
+    append_triangles(scene,vertices.first(static_vertices));
+    scene.static_triangles=std::uint32_t(scene.triangles.size());
+    append_triangles(scene,vertices.subspan(static_vertices));
+    scene.static_reused=false;
     scene.nodes=std::move(previous_nodes);
     bool refitted=false;
+    if(!scene.cpu_hierarchy) {
+        // Hardware traversal: no CPU BVH, and triangles stay in admission
+        // order so ordinal==index for temporal/acceleration bookkeeping.
+        scene.nodes.clear();
+        refitted=true;
+    }
     if(reusable && permutation.size()==scene.triangles.size()) {
         const auto baseline=scene.nodes[0].minimum[3];
         reorder_for_refit(scene,permutation);refit_hierarchy(scene);
@@ -643,24 +969,21 @@ void update_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<con
         }
     }
     refresh_emitters(scene);
-    for(const auto &light:lights) {
-        if(!finite(light.position) || !finite(light.color) || !std::isfinite(light.radius) ||
-           !std::isfinite(light.intensity) || light.radius<0 || light.intensity<0 ||
-           light.color.x<0 || light.color.y<0 || light.color.z<0)
-            throw FormatError("Path Tracing light lacks finite authored source values");
-        for(const auto &plane:light.planes)for(const auto value:plane)
-            if(!std::isfinite(value))throw FormatError("Path Tracing influence plane is non-finite");
-        if(light.intensity<=0)continue;
-        auto position=light.position;float radius=light.radius;
-        if(light.direction) {
-            const auto direction=*light.direction;const auto squared=dot(direction,direction);
-            if(!finite(direction) || !std::isfinite(squared) || squared<=1.e-18f)
-                throw FormatError("Path Tracing distant light lacks a finite nonzero source direction");
-            position=mul(direction,1.f/std::sqrt(squared));radius=-1;
-        } else if(radius<=0)continue;
-        scene.lights.push_back({{position.x,position.y,position.z,radius},
-            {light.color.x,light.color.y,light.color.z,light.intensity},light.planes});
-    }
+    set_lights(scene,lights);
+}
+void update_dynamic_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<const Light> lights) {
+    if(scene.cpu_hierarchy || scene.static_triangles>scene.triangles.size())
+        throw FormatError("Path Tracing static geometry reuse requires hardware traversal and a static prefix");
+    if(vertices.size()%3 || (vertices.size()/3+scene.static_triangles)>maximum_triangles || lights.size()>65536)
+        throw FormatError("Path Tracing scene exceeds finite geometry/light limits");
+    if(scene.material_texel_capacities.size()!=scene.materials.size())
+        throw FormatError("Path Tracing geometry lacks its material residency owner");
+    scene.triangles.resize(scene.static_triangles);
+    scene.pixels.resize(scene.texture_texel_count);
+    append_triangles(scene,vertices);
+    scene.static_reused=true;
+    refresh_emitters(scene);
+    set_lights(scene,lights);
 }
 std::optional<ShaderVector> material_surface(const Scene& scene,std::uint32_t material,Vec2 uv) {
     const auto& target=scene.materials.at(material);
@@ -726,6 +1049,8 @@ Vec3 material_emission(const Scene& scene,std::uint32_t material,Vec2 uv) {
         return ShaderVector{float(value&255u)/255.f,float((value>>8)&255u)/255.f,
             float((value>>16)&255u)/255.f,float(value>>24)/255.f};
     };
+    if(!pointer && (target.texture[3]&(light_only_flag|uniform_emission_flag)))
+        return {target.emission[0],target.emission[1],target.emission[2]}; // Emitted evenly.
     if(!pointer) {
         auto x=uv.x*target.transform[0]+target.transform[2],y=uv.y*target.transform[1]+target.transform[3];
         x=target.texture[3]&2u?std::clamp(x,0.f,1.f):x-std::floor(x);

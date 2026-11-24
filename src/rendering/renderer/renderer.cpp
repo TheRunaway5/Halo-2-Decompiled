@@ -89,6 +89,7 @@
 #include "halo2/path_tracing/geometry.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/path_tracing/color_guide.hpp"
+#include "halo2/path_tracing/lightmap_emission.hpp"
 #include "halo2/source_shadow_draw_storage.hpp"
 #include "rendering/renderer/resident_draw_storage.hpp"
 #include "halo2/mainmenu_world_source.hpp"
@@ -221,6 +222,34 @@ glm::mat4 source_water_reflection_clip(const std::array<ShaderVector,7> &constan
         if(!std::isfinite(value))throw FormatError("Water reflection source clip coefficient is nonfinite");
         result[column][row]=row==1?-value:value;
     }
+    return result;
+}
+// The view-projection the native world kernels draw with, for Path Tracing's
+// raster: source rows c0..c3 are Original 12D30's view/projection products
+// (clip Y up, W scaled by a common factor). The ordinary camera can use a
+// different field of view (campaign views: about 80 against 71 degrees), so
+// a path-traced frame would not line up with the authored overlays, glow
+// layers and effects drawn with the source rows. X and Y come from the
+// source, rescaled to the ordinary camera's W; Z keeps the ordinary depth
+// mapping, which the source W-depth path does not use. Empty unless both
+// describe the same eye and view direction (their W rows agree).
+std::optional<glm::mat4> source_view_clip(const std::array<ShaderVector,7> &rows,const glm::mat4 &ordinary) {
+    const auto row=[&](unsigned r){return glm::vec4(ordinary[0][r],ordinary[1][r],ordinary[2][r],ordinary[3][r]);};
+    const auto source=[&](unsigned r){return glm::vec4(rows[r][0],rows[r][1],rows[r][2],rows[r][3]);};
+    const auto ordinary_w=row(3),source_w=source(3);
+    const float ordinary_length=glm::length(glm::vec3(ordinary_w)),source_length=glm::length(glm::vec3(source_w));
+    if(!(ordinary_length>0.f) || !(source_length>0.f) || !std::isfinite(source_length))return {};
+    const float scale=ordinary_length/source_length;
+    const auto difference=source_w*scale-ordinary_w;
+    if(glm::length(glm::vec3(difference))>1.e-3f*ordinary_length ||
+       std::abs(difference.w)>1.e-3f*std::max(1.f,std::abs(ordinary_w.w)))return {};
+    glm::mat4 result=ordinary;
+    for(unsigned column=0;column<4;++column) {
+        result[column][0]=rows[0][column]*scale;
+        result[column][1]=-rows[1][column]*scale;
+    }
+    for(unsigned column=0;column<4;++column)for(unsigned r=0;r<2;++r)
+        if(!std::isfinite(result[column][r]))return {};
     return result;
 }
 } // namespace
@@ -435,6 +464,11 @@ struct Renderer::Impl {
     std::vector<SourceWorldDepthMaterialIdentity> source_world_depth_identities;
     std::vector<const Material*> source_depth_constructor_materials;
     std::vector<Vertex> source_depth_constructor_atlas;
+    // The depth input's resident atlas whose bytes were last compared with
+    // source_depth_constructor_atlas. Both buffers are immutable while this
+    // renderer and its resident plan live, so one comparison per buffer pair
+    // suffices. HALO2_REFERENCE_DEPTH_ATLAS_EVERY_FRAME=1 compares every frame.
+    std::span<const Vertex> compared_depth_atlas;
     VkPipeline pipeline{}, sky_pipeline{};
     VkPipeline light_volume_pipeline{};
     bool light_volume_materials{};
@@ -710,13 +744,29 @@ struct Renderer::Impl {
     // Borrow the existing asset owner; inactive RT retains no geometry/image
     // snapshots. The explicit binder guarantees the Mesh lifetime.
     const Mesh* path_tracing_source_mesh{};
+    // Shaders that lit the map's lightmap bake (by shader datum): their
+    // surfaces are light sources to the path tracer too.
+    std::unordered_map<std::uint32_t,path_tracing::LightmapEmission> path_tracing_emissions;
     struct PathTracingState {
         std::array<std::unique_ptr<path_tracing::Render>,5> renderers;
         std::array<std::optional<path_tracing::Scene>,5> scenes;
         std::array<std::unique_ptr<ResidentDrawStorage>,5> sky_storage;
         std::array<std::unique_ptr<ResidentDrawStorage>,4> ambient_storage;
+        // The static world (resident BSP) of each view's ray scene. While its
+        // source identity and alias bindings are unchanged, its converted
+        // triangles are kept and only dynamic geometry is rebuilt per frame.
+        struct StaticWorld {
+            std::uint64_t key{};
+            bool valid{};
+            std::vector<path_tracing::MaterialAliasKey> keys; // Unique (unowned, material, lightmap).
+            std::vector<std::uint32_t> bound;                 // Ray material each key resolved to.
+        };
+        std::array<StaticWorld,5> static_world;
     };
     bool path_tracing_fragment_stores{};
+    // VK_KHR_acceleration_structure + VK_KHR_ray_query were enabled: Path
+    // Tracing traverses with the GPU's ray-tracing hardware.
+    bool path_tracing_hardware_rays{};
     std::unique_ptr<PathTracingState> path_tracing_state;
     void release_path_tracing() {
         if(!path_tracing_state)return;
@@ -799,6 +849,9 @@ struct Renderer::Impl {
     std::map<unsigned,MaterialPass> planar_passes;
     std::vector<std::array<unsigned,3>> world_planar_materials;
     std::map<unsigned,MaterialPass> fog_material_passes;
+    // fog_material_passes by material slot (null where absent), rebuilt with
+    // the map; per-object uniforms look passes up here instead of in the map.
+    std::vector<const MaterialPass*> fog_material_pass_slots;
     std::map<unsigned,ShaderAnimation> owner_material_animations;
     std::map<unsigned,std::vector<BitmapFrameAnimation>> owner_bitmap_animations;
     std::map<unsigned,std::array<std::int32_t,8>> fog_material_switches;
@@ -1330,6 +1383,39 @@ struct Renderer::Impl {
             address_features.bufferDeviceAddressCaptureReplay=address_features.bufferDeviceAddressMultiDevice=VK_FALSE;
             if(address_features.bufferDeviceAddress){address_features.pNext=const_cast<void*>(device_info.pNext);device_info.pNext=&address_features;}
         }
+        // Optional ray-tracing hardware for Path Tracing. Without it (or with
+        // HALO2_PATH_TRACING_SOFTWARE_RAYS=1) rays use the portable shader BVH.
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_features{
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+        VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+        {
+            const auto available=[&](const char* name) {
+                return std::any_of(available_extensions.begin(),available_extensions.end(),
+                    [&](const auto& e){return std::strcmp(e.extensionName,name)==0;});
+            };
+            const auto* software=std::getenv("HALO2_PATH_TRACING_SOFTWARE_RAYS");
+            if(address_features.bufferDeviceAddress && !(software && *software && std::strcmp(software,"0")!=0) &&
+               available(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) && available(VK_KHR_RAY_QUERY_EXTENSION_NAME) &&
+               available(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) && properties.apiVersion>=VK_API_VERSION_1_2 &&
+               source_world_device.instance_api_version>=VK_API_VERSION_1_2) {
+                acceleration_features.pNext=&ray_query_features;
+                VkPhysicalDeviceFeatures2 query{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};query.pNext=&acceleration_features;
+                vkGetPhysicalDeviceFeatures2(physical,&query);
+                if(acceleration_features.accelerationStructure && ray_query_features.rayQuery) {
+                    acceleration_features.accelerationStructureCaptureReplay=VK_FALSE;
+                    acceleration_features.accelerationStructureIndirectBuild=VK_FALSE;
+                    acceleration_features.accelerationStructureHostCommands=VK_FALSE;
+                    acceleration_features.descriptorBindingAccelerationStructureUpdateAfterBind=VK_FALSE;
+                    for(const char* name:{VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,VK_KHR_RAY_QUERY_EXTENSION_NAME,
+                                          VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME})
+                        if(std::none_of(enabled_extensions.begin(),enabled_extensions.end(),
+                            [&](const char* e){return std::strcmp(e,name)==0;}))enabled_extensions.push_back(name);
+                    ray_query_features.pNext=const_cast<void*>(device_info.pNext);
+                    device_info.pNext=&acceleration_features;
+                    path_tracing_hardware_rays=true;
+                }
+            }
+        }
 #if defined(HALO2_NATIVE_PROJECTED_DEPTH_QUAD) && defined(HALO2_MENU_WORLD_NATIVE_AVAILABLE)
         VkPhysicalDeviceVulkanMemoryModelFeatures projected_memory{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES};
         VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR projected_merge{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MAXIMAL_RECONVERGENCE_FEATURES_KHR};
@@ -1460,6 +1546,7 @@ struct Renderer::Impl {
             }
         }
         if(bsp_resident_plan)source_depth_constructor_atlas=grouped;
+        compared_depth_atlas={};
         const VkDeviceSize bytes = std::max<std::size_t>(1,grouped.size()) * sizeof(Vertex);
         make_buffer(bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertex_buffer, vertex_memory);
         void* mapped;
@@ -2165,6 +2252,9 @@ struct Renderer::Impl {
             if(!bitmap_animations.empty())owner_bitmap_animations.emplace(i,std::move(bitmap_animations));
             fog_material_switches.emplace(i,materials[i]->shader_switches);
         }
+        fog_material_pass_slots.assign(materials.size(),nullptr);
+        for(const auto &[index,pass]:fog_material_passes)
+            if(index<fog_material_pass_slots.size())fog_material_pass_slots[index]=&pass;
         // These authored mappings never change when animation updates the
         // live program words. Retain their exact order once per material.
         view_direction_remaps.resize(materials.size());view_fog_remaps.resize(materials.size());
@@ -2951,6 +3041,10 @@ struct Renderer::Impl {
                 return "Path Tracing visibility shader is unavailable in this runtime.";
             if(!std::filesystem::is_regular_file(shader_directory/"path_tracing/lighting.frag.spv"))
                 return "Path Tracing HDR lighting shader is unavailable in this runtime.";
+            for(const auto* name:{path_tracing_hardware_rays?"trace.rt.comp.spv":"trace.comp.spv",
+                                  path_tracing_hardware_rays?"world.rt.frag.spv":"world.frag.spv","denoise.comp.spv","calibrate.comp.spv"})
+                if(!std::filesystem::is_regular_file(shader_directory/"path_tracing"/name))
+                    return "Path Tracing ray tracing shaders are unavailable in this runtime.";
             for(const auto* name:{"world.frag.spv","lighting.frag.spv"}) {
                 std::error_code error;
                 const auto size=std::filesystem::file_size(shader_directory/"path_tracing"/name,error);
@@ -4895,7 +4989,14 @@ struct Renderer::Impl {
             }
             if(view.source_bsp_resident_plan) {
                 if(view.source_bsp_resident_plan!=bsp_resident_plan)throw FormatError("source world depth lost actual resident upload owner");
-                view.source_world_depth->validate_resident_atlas(*view.source_world_depth_targets,*bsp_resident_plan,source_depth_constructor_atlas);
+                static const bool atlas_every_frame=[]{const auto *p=std::getenv("HALO2_REFERENCE_DEPTH_ATLAS_EVERY_FRAME");return p && *p;}();
+                const auto atlas=view.source_world_depth->resident_atlas();
+                if(!atlas_every_frame && atlas.data()==compared_depth_atlas.data() && atlas.size()==compared_depth_atlas.size())
+                    view.source_world_depth->validate_resident_atlas_owner(*view.source_world_depth_targets,*bsp_resident_plan,source_depth_constructor_atlas);
+                else {
+                    view.source_world_depth->validate_resident_atlas(*view.source_world_depth_targets,*bsp_resident_plan,source_depth_constructor_atlas);
+                    compared_depth_atlas=atlas;
+                }
             } else view.source_world_depth->validate_geometry(*view.source_world_depth_targets,view.vertices);
         }
         for(const auto& view:views)if(view.raw_source_shadow_targets) {
@@ -5731,8 +5832,15 @@ struct Renderer::Impl {
 #endif
         std::vector<std::pair<std::size_t,std::size_t>> decal_ranges(views.size());
 #if HALO2_SOURCE_DECALS_AVAILABLE
-        std::vector<SourceDecalDraw> prepared_decals;
-        for(std::size_t i=0;i<views.size();++i){decal_ranges[i]={prepared_decals.size(),views[i].source_decals.size()};prepared_decals.insert(prepared_decals.end(),views[i].source_decals.begin(),views[i].source_decals.end());}
+        // A single view's decals are already one contiguous range; several
+        // views are joined in view order.
+        std::vector<SourceDecalDraw> joined_decals;
+        std::span<const SourceDecalDraw> prepared_decals;
+        if(views.size()==1){decal_ranges[0]={0,views[0].source_decals.size()};prepared_decals=views[0].source_decals;}
+        else {
+            for(std::size_t i=0;i<views.size();++i){decal_ranges[i]={joined_decals.size(),views[i].source_decals.size()};joined_decals.insert(joined_decals.end(),views[i].source_decals.begin(),views[i].source_decals.end());}
+            prepared_decals=joined_decals;
+        }
         if(!prepared_decals.empty() && !decal_renderer) {
             if(!source_world_device.geometry_shader_enabled || !source_world_device.depth_clamp_enabled)
                 throw FormatError("Cached decal W-depth needs enabled geometry/depth-clamp features");
@@ -5742,8 +5850,13 @@ struct Renderer::Impl {
 #endif
         std::vector<std::size_t> contrail_first(views.size());
 #if HALO2_SOURCE_CONTRAILS_AVAILABLE
-        std::vector<SourceContrailDraw> prepared_contrails;
-        for(std::size_t i=0;i<views.size();++i){contrail_first[i]=prepared_contrails.size();prepared_contrails.insert(prepared_contrails.end(),views[i].contrails.begin(),views[i].contrails.end());}
+        std::vector<SourceContrailDraw> joined_contrails;
+        std::span<const SourceContrailDraw> prepared_contrails;
+        if(views.size()==1){contrail_first[0]=0;prepared_contrails=views[0].contrails;}
+        else {
+            for(std::size_t i=0;i<views.size();++i){contrail_first[i]=joined_contrails.size();joined_contrails.insert(joined_contrails.end(),views[i].contrails.begin(),views[i].contrails.end());}
+            prepared_contrails=joined_contrails;
+        }
         if(!prepared_contrails.empty() && !contrail_renderer) {
             if(!source_world_device.geometry_shader_enabled || !source_world_device.depth_clamp_enabled)
                 throw FormatError("Contrail W-depth needs enabled geometry/depth-clamp features");
@@ -6209,7 +6322,10 @@ struct Renderer::Impl {
                                              const ObjectColors *owner_render_colors=nullptr,bool native_admission=true) {
 
             const auto &prepared=prepared_views[std::size_t(&view-views.data())];
-            const auto pass=fog_material_passes.find(unsigned(m));
+            static const bool reference_pass_map=[]{const auto *e=std::getenv("HALO2_REFERENCE_FOG_PASS_MAP");return e && *e;}();
+            const MaterialPass *fog_pass=nullptr;
+            if(reference_pass_map){const auto at=fog_material_passes.find(unsigned(m));if(at!=fog_material_passes.end())fog_pass=&at->second;}
+            else if(m<fog_material_pass_slots.size())fog_pass=fog_material_pass_slots[m];
             auto uniform=material_uniforms[m];
             if(source_material_layers[m]==18 || source_material_layers[m]==19) {
                 const auto &selected=fog_material_passes.at(unsigned(m));
@@ -6242,11 +6358,11 @@ struct Renderer::Impl {
                 uniform.source_camera_control[2]=31;
             }
             const auto apply_light=[&](const ObjectLightingState &state) {
-                if(pass!=fog_material_passes.end()) {
+                if(fog_pass) {
                     PixelProgram program{uniform.program,material_fragment_offsets[m]};
                     ShaderConstants object_constants{uniform.vertex_attributes,uniform.vertex_constants};
                     const auto brightness=material_lighting_brightness[m];
-                    apply_object_lighting_bindings(program,object_constants,pass->second,state,
+                    apply_object_lighting_bindings(program,object_constants,*fog_pass,state,
                         fog_material_switches.at(unsigned(m)),brightness[0],brightness[1]);
                     uniform.program=program.words;
                     uniform.vertex_attributes=object_constants[0];uniform.vertex_constants=object_constants[1];
@@ -6254,10 +6370,10 @@ struct Renderer::Impl {
             };
             if(owner_light)apply_light(*owner_light);
             else if(const auto *state=prepared.lighting[material_roots[m]])apply_light(*state);
-            if((owner_colors || owner_render_colors) && pass!=fog_material_passes.end()) {
+            if((owner_colors || owner_render_colors) && fog_pass) {
                 PixelProgram program{uniform.program,material_fragment_offsets[m]};
                 ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
-                apply_object_render_color_bindings(program,constants,pass->second,
+                apply_object_render_color_bindings(program,constants,*fog_pass,
                     owner_colors?source_object_render_colors(*owner_colors):*owner_render_colors,
                     fog_material_switches.at(unsigned(m)));
                 uniform.program=program.words;
@@ -6267,40 +6383,40 @@ struct Renderer::Impl {
                 }
             }
             if(owner_blend)*owner_blend=material_blend_colors[m];
-            if(owner_camouflage && pass!=fog_material_passes.end()) {
+            if(owner_camouflage && fog_pass) {
                 PixelProgram program{uniform.program,material_fragment_offsets[m]};
                 ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
                 auto blend=material_blend_colors[m];
-                bind_object_camouflage_constants(program,constants,blend,pass->second,
+                bind_object_camouflage_constants(program,constants,blend,*fog_pass,
                     fog_material_switches.at(unsigned(m)),*owner_camouflage);
                 uniform.program=program.words;uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
                 if(owner_blend)*owner_blend=blend;
             }
-            if(owner_input && pass!=fog_material_passes.end()) {
+            if(owner_input && fog_pass) {
                 if(const auto animation=owner_material_animations.find(unsigned(m));animation!=owner_material_animations.end()) {
                     PixelProgram program{uniform.program,material_fragment_offsets[m]};
                     ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
-                    animate_forward_constants(animation->second,pass->second,fog_material_switches.at(unsigned(m)),
+                    animate_forward_constants(animation->second,(*fog_pass),fog_material_switches.at(unsigned(m)),
                         view.effect_time,*owner_input,program,constants);
                     uniform.program=program.words;uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
                     uniform.diffuse=constants[0][10];uniform.specular=constants[0][11];
                     std::copy_n(constants[1].begin(),8,uniform.forward_transforms.begin());
                 }
             }
-            if(pass!=fog_material_passes.end()) {
+            if(fog_pass) {
                 PixelProgram program{uniform.program,material_fragment_offsets[m]};
                 remap_pixel_externs(program,{},prepared.direction,view_direction_remaps[m],
-                    pass->second.fragments,fog_material_switches.at(unsigned(m)));
+                    fog_pass->fragments,fog_material_switches.at(unsigned(m)));
                 uniform.program=program.words;
             }
             if(view.atmosphere) {
                 uniform.fog_constants=prepared.fog;
-                if(pass!=fog_material_passes.end()) {
+                if(fog_pass) {
                     PixelProgram program{uniform.program,material_fragment_offsets[m]};
                     if(cache_view_bindings)
                         remap_pixel_externs(program,prepared.fog_externs.scalars,prepared.fog_externs.colors,
-                            view_fog_remaps[m],pass->second.fragments,fog_material_switches.at(unsigned(m)));
-                    else apply_bsp_fog_pixel_externs(program,pass->second,*view.atmosphere,fog_material_switches.at(unsigned(m)));
+                            view_fog_remaps[m],fog_pass->fragments,fog_material_switches.at(unsigned(m)));
+                    else apply_bsp_fog_pixel_externs(program,(*fog_pass),*view.atmosphere,fog_material_switches.at(unsigned(m)));
                     uniform.program=program.words;
                 }
             }
@@ -7865,7 +7981,19 @@ struct Renderer::Impl {
             // independent of primary visibility: secondary rays leave the view.
             const auto prepare=[&](std::size_t slot,const ModelView* view) {
                 auto& scene=path_tracing_state->scenes[slot];
-                if(!scene)scene=path_tracing::build_scene({},path_tracing_materials);
+                auto& static_world=path_tracing_state->static_world[slot];
+                if(!scene) {
+                    scene=path_tracing::build_scene({},path_tracing_materials);
+                    scene->material_normal_maps=path_tracing::find_normal_maps(path_tracing_materials);
+                    scene->material_environment_maps=path_tracing::find_environment_maps(path_tracing_materials);
+                    scene->material_lightmap_emission.assign(path_tracing_materials.size(),{});
+                    for(std::size_t m=0;m<path_tracing_materials.size();++m)
+                        if(const auto found=path_tracing_emissions.find(path_tracing_materials[m].source_shader_datum);
+                           found!=path_tracing_emissions.end())
+                            scene->material_lightmap_emission[m]=path_tracing::lightmap_radiance(found->second);
+                    scene->cpu_hierarchy=!path_tracing_hardware_rays;
+                    static_world={};
+                }
                 path_tracing::clear_material_aliases(*scene,path_tracing_materials.size());
                 path_tracing::refresh_color_guides(*scene,path_tracing_source_mesh->lightmaps);
                 std::vector<Vertex> geometry;
@@ -7883,24 +8011,49 @@ struct Renderer::Impl {
                 const auto append=[&](std::span<const Vertex> bank) {append_owner(bank,path_unowned_material,no_object);};
                 // Ordinary game views without a resident plan already carry
                 // their BSP followed by dynamic vertices in the same bank.
-                if(view && view->source_bsp_resident_plan) {
+                // The resident bank is immutable while its plan lives; its
+                // identity plus each part's selected material key the cache.
+                std::uint64_t static_key{};
+                const auto append_resident_world=[&] {
                     const auto& resident=*view->source_bsp_resident_plan;
                     const auto& bank=resident.resident_vertices();
                     const auto& parts=resident.parts();
-                    if(view->source_bsp_bindings.size()!=parts.size())
-                        throw FormatError("Path Tracing BSP bindings lost their resident part owner");
                     for(std::size_t part=0;part<parts.size();++part) {
                         const auto& range=parts[part];
                         const auto material=view->source_bsp_bindings[part].material.value_or(range.original.material);
-                        if(material>=path_tracing_materials.size())throw FormatError("Path Tracing BSP material outside resident roots");
-                        if(!path_tracing::traces_material(path_tracing_materials[material]))continue;
+                        if(!path_tracing::ray_material(path_tracing_materials[material]))continue;
                         for(const auto& source:std::span(bank).subspan(range.first,range.count)) {
                             auto vertex=source;vertex.material=material;geometry.push_back(vertex);
                         }
                     }
-                    if(!geometry.empty())owner_geometry.push_back({0,geometry.size(),no_object,path_unowned_material});
+                };
+                if(view && view->source_bsp_resident_plan) {
+                    const auto& resident=*view->source_bsp_resident_plan;
+                    const auto& parts=resident.parts();
+                    if(view->source_bsp_bindings.size()!=parts.size())
+                        throw FormatError("Path Tracing BSP bindings lost their resident part owner");
+                    std::uint64_t key=14695981039346656037ull;
+                    const auto add=[&](std::uint64_t value){key^=value;key*=1099511628211ull;};
+                    add(reinterpret_cast<std::uintptr_t>(resident.resident_vertices().data()));
+                    add(resident.resident_vertices().size());add(parts.size());
+                    for(std::size_t part=0;part<parts.size();++part) {
+                        const auto material=view->source_bsp_bindings[part].material.value_or(parts[part].original.material);
+                        if(material>=path_tracing_materials.size())throw FormatError("Path Tracing BSP material outside resident roots");
+                        add(parts[part].first);add(parts[part].count);add(material);
+                    }
+                    static_key=key|1u;
+                }
+                const bool reuse_static=path_tracing_hardware_rays && static_world.valid && static_key &&
+                    static_world.key==static_key && !scene->triangles.empty() && scene->static_triangles>0;
+                if(view && view->source_bsp_resident_plan) {
+                    if(!reuse_static) {
+                        append_resident_world();
+                        if(!geometry.empty())owner_geometry.push_back({0,geometry.size(),no_object,path_unowned_material});
+                    }
                 } else if(!view || !view->full_surface)
                     append(path_tracing_source_mesh->vertices);
+                // Everything appended so far is the static world (BSP).
+                const auto static_vertices=geometry.size();
                 if(view) {
                     append(path_tracing::posed_vertices(view->vertices,view->deferred_skins));
                     for(std::size_t index=0;index<view->objects.size();++index) {
@@ -8008,6 +8161,16 @@ struct Renderer::Impl {
                     };
                     for(const auto& run:owner_geometry)for(std::size_t n=run.first;n<run.first+run.count;n+=3)
                         request({run.owner,geometry[n].material,geometry[n].lightmap},run.object);
+                    // A kept static world still needs its material aliases
+                    // refreshed (current animated constants) every frame.
+                    if(reuse_static)for(const auto& key:static_world.keys)request(key,no_object);
+                    else if(static_key) {
+                        static_world.keys.clear();
+                        for(std::size_t n=0;n<static_vertices;n+=3)
+                            static_world.keys.push_back({path_unowned_material,geometry[n].material,geometry[n].lightmap});
+                        std::sort(static_world.keys.begin(),static_world.keys.end());
+                        static_world.keys.erase(std::unique(static_world.keys.begin(),static_world.keys.end()),static_world.keys.end());
+                    }
                     const auto request_primary=[&](const auto& list) {
                         for(const auto& draw:list)if(draw.count && draw.material<path_tracing_materials.size() &&
                            path_tracing::traces_material(path_tracing_materials[draw.material]))
@@ -8029,13 +8192,35 @@ struct Renderer::Impl {
                     }
                     auto& bindings=path_material_bindings[slot];
                     bindings=path_tracing::refresh_material_aliases(*scene,path_tracing_materials,inputs);
-                    for(const auto& run:owner_geometry)for(std::size_t n=run.first;n<run.first+run.count;++n) {
-                        auto& vertex=geometry[n];const path_tracing::MaterialAliasKey key{run.owner,vertex.material,vertex.lightmap};
+                    const auto bound_material=[&](const path_tracing::MaterialAliasKey& key)->std::uint32_t {
                         const auto at=std::lower_bound(bindings.begin(),bindings.end(),key,
                             [](const auto& binding,const auto& wanted){return binding.key<wanted;});
-                        if(at!=bindings.end() && at->key==key)vertex.material=at->material;
+                        return at!=bindings.end() && at->key==key?at->material:key.material;
+                    };
+                    for(const auto& run:owner_geometry)for(std::size_t n=run.first;n<run.first+run.count;++n) {
+                        auto& vertex=geometry[n];
+                        vertex.material=bound_material({run.owner,vertex.material,vertex.lightmap});
                     }
-                    path_tracing::update_geometry(*scene,geometry,view->path_tracing_lights);
+                    // A kept static world is valid only while each of its
+                    // keys still resolves to the same ray material.
+                    bool keep_static=reuse_static;
+                    for(std::size_t n=0;keep_static && n<static_world.keys.size();++n)
+                        keep_static=bound_material(static_world.keys[n])==static_world.bound[n];
+                    if(keep_static)path_tracing::update_dynamic_geometry(*scene,geometry,view->path_tracing_lights);
+                    else {
+                        auto static_count=static_vertices;
+                        if(reuse_static) {
+                            // An alias binding moved: rebuild the static prefix now.
+                            auto dynamic=std::move(geometry);geometry.clear();
+                            append_resident_world();static_count=geometry.size();
+                            for(auto& vertex:geometry)vertex.material=bound_material({path_unowned_material,vertex.material,vertex.lightmap});
+                            geometry.insert(geometry.end(),dynamic.begin(),dynamic.end());
+                        }
+                        path_tracing::update_geometry(*scene,geometry,view->path_tracing_lights,static_count);
+                        static_world.valid=static_key!=0 && static_count>0;static_world.key=static_key;
+                        static_world.bound.clear();
+                        for(const auto& key:static_world.keys)static_world.bound.push_back(bound_material(key));
+                    }
                     if(path_tracing_capture) {
                         auto& captured=path_tracing_capture->at(slot);
                         for(const auto& triangle:scene->triangles)
@@ -8054,11 +8239,16 @@ struct Renderer::Impl {
                 } else {
                     append(debug);
                     path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
-                    path_tracing::update_geometry(*scene,geometry);
+                    path_tracing::update_geometry(*scene,geometry,{},static_vertices);
                 }
                 auto& renderer=path_tracing_state->renderers[slot];
-                if(!renderer)renderer=std::make_unique<path_tracing::Render>(path_tracing::RenderContext{
-                    device,physical,render_pass,texture_layout,shader_directory});
+                if(!renderer) {
+                    path_tracing::RenderContext context{device,physical,render_pass,texture_layout,shader_directory};
+                    context.hardware_rays=path_tracing_hardware_rays;
+                    context.dynamic_cull=source_world_device.instance_api_version>=VK_API_VERSION_1_3 &&
+                        source_world_device.physical_api_version>=VK_API_VERSION_1_3;
+                    renderer=std::make_unique<path_tracing::Render>(context);
+                }
                 renderer->set_quality(display.path_tracing_samples,display.path_tracing_bounces);
                 const auto source_environment=view?view->path_tracing_environment:Vec3{};
                 renderer->upload(*scene,scene->uniform(source_environment));
@@ -8068,12 +8258,21 @@ struct Renderer::Impl {
                 renderer->prepare_visibility(extent);
             };
             const bool global_view=!full_surface_scene || !debug.empty() || !first_person.empty();
+            const auto prepare_start=std::chrono::steady_clock::now();
             if(global_view)prepare(0,nullptr);
             for(std::size_t i=0;i<views.size();++i)if(views[i].full_surface)prepare(i+1,&views[i]);
+            // HALO2_PATH_TRACING_CPU_LOG: mean host cost of the per-frame ray
+            // scene (geometry, materials, upload) every 120 frames.
+            if(static const bool log=std::getenv("HALO2_PATH_TRACING_CPU_LOG")!=nullptr;log) {
+                static double total{};static unsigned frames{};
+                total+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-prepare_start).count();
+                if(++frames==120){std::fprintf(stderr,"PT host prepare %.3f ms/frame\n",total/frames);total=0;frames=0;}
+            }
             for(std::size_t slot=0;slot<path_tracing_state->renderers.size();++slot) {
                 const bool used=slot==0?global_view:
                     slot<=views.size() && views[slot-1].full_surface;
-                if(!used){path_tracing_state->renderers[slot].reset();path_tracing_state->scenes[slot].reset();path_tracing_state->sky_storage[slot].reset();}
+                if(!used){path_tracing_state->renderers[slot].reset();path_tracing_state->scenes[slot].reset();path_tracing_state->sky_storage[slot].reset();
+                    path_tracing_state->static_world[slot]={};}
             }
         }
         check(vkResetCommandBuffer(command, 0), "reset commands");
@@ -8086,6 +8285,10 @@ struct Renderer::Impl {
             view.source_world_depth->validate_source_owners(*view.source_world_depth_targets);
         check(vkBeginCommandBuffer(command, &begin), "begin commands");
         if(gpu_timings)gpu_timings->begin(command);
+        // Build this frame's ray-tracing acceleration structures before any
+        // traced draw. Software traversal records nothing.
+        if(path_tracing_enabled && path_tracing_state)
+            for(auto& rt:path_tracing_state->renderers)if(rt)rt->record_acceleration(command);
         // Every successful alias record is covered by this frame's actual
         // fence. If recording fails before queue submission, reset the never
         // submitted command and restore each alias's previous layout history.
@@ -8232,6 +8435,10 @@ struct Renderer::Impl {
             std::uint64_t serial{};std::vector<RendererObservedTargetTransition> transitions;
         } bsp_capture;
         std::array<std::byte,path_tracing::Render::camera_bytes> path_tracing_camera{};
+        // While a view supplies source camera rows: its ordinary world matrix
+        // and the source-equivalent one Path Tracing rasterizes with instead
+        // (source_view_clip). Matched by value when the camera is pushed.
+        std::optional<std::pair<glm::mat4,glm::mat4>> path_tracing_projection;
         const auto capture_unknown=[&]{if(!capture_bsp_draw_bindings)return;bsp_capture.camera_known=bsp_capture.viewport_known=bsp_capture.scissor_known=bsp_capture.target_known=false;};
         // SourceDecalRenderer::record contains only in-pass state/binding/draw
         // commands, no render-pass transitions or secondary commands. Retain
@@ -8251,6 +8458,8 @@ struct Renderer::Impl {
             if(path_tracing_enabled) {
                 if(size!=path_tracing_camera.size())throw FormatError("Path Tracing camera ABI differs from112 bytes");
                 std::memcpy(path_tracing_camera.data(),data,size);
+                if(path_tracing_projection && std::memcmp(data,&path_tracing_projection->first,sizeof(glm::mat4))==0)
+                    std::memcpy(path_tracing_camera.data(),&path_tracing_projection->second,sizeof(glm::mat4));
             }
             if(!bsp_capture.view || (!bsp_capture.view->completed_bsp_draw_observer &&
                 !bsp_capture.view->completed_geometry_draw_observer))return;
@@ -8328,6 +8537,14 @@ struct Renderer::Impl {
                 path_tracing_source_mesh && material<path_tracing_source_mesh->materials.size() &&
                 path_tracing::traces_material(path_tracing_source_mesh->materials[material]);
         };
+        // Path Tracing rasterizes each surface with its retail cull state, as
+        // the Original forward pipeline does (0x900 back, 0x901 front).
+        const auto path_cull=[&](unsigned material)->VkCullModeFlags {
+            if(material>=material_forward_states.size() || !path_tracing_source_mesh->materials[material].forward_pass)
+                return VK_CULL_MODE_NONE;
+            const auto cull=material_forward_states[material].cull;
+            return cull==0x901?VK_CULL_MODE_FRONT_BIT:cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
+        };
         const auto path_material_index=[&](const Draw& draw,unsigned material) {
             if(active_material_view>=views.size())return material;
             const auto& view=views[active_material_view];
@@ -8366,7 +8583,9 @@ struct Renderer::Impl {
             const auto [descriptor,bank]=material_binding(draw,material);
             if(path_tracing_material) {
                 const auto slot=active_material_view<views.size()?active_material_view+1:0;
-                path_tracing_state->renderers.at(slot)->bind(command,descriptor,bank,path_tracing_camera,path_material_index(draw,material));
+                auto& rt=*path_tracing_state->renderers.at(slot);
+                rt.set_draw_cull_mode(path_cull(material));
+                rt.bind(command,descriptor,bank,path_tracing_camera,path_material_index(draw,material));
             } else vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,
                 is_source_material(material,&draw)?source_world_depth_layout:pipeline_layout,0,1,&descriptor,1,&bank);
             return std::pair{descriptor,bank};
@@ -8517,6 +8736,7 @@ struct Renderer::Impl {
                 if(!draw.count || !draw_visible(draw) || !layer_enabled(material) || !trace_material(material))return;
                 const auto [descriptor,bank]=material_binding(draw,material);
                 const auto selected=path_material_index(draw,material);
+                rt.set_draw_cull_mode(path_cull(material));
                 if(lighting)rt.bind_lighting(command,descriptor,bank,path_tracing_camera,selected);
                 else rt.bind_visibility(command,descriptor,bank,path_tracing_camera,selected);
                 bind_draw_vertices(draw,buffer);
@@ -8705,6 +8925,22 @@ struct Renderer::Impl {
                 // Keep authored self-illumination in the primary view. Its
                 // separately admitted RT payload supplies indirect light.
                 if(trace_material(draw.material) && (vertex==4 || vertex==6 || vertex==9))continue;
+                // An additive self-illumination layer over a path-traced
+                // surface tests depth EQUAL against it: Path Tracing draws it
+                // with the surface's own depth expression (glow_layer.frag).
+                if(!before && trace_material(draw.material) && vertex==2 && material_forward_blends[material]==3) {
+                    const auto slot=active_material_view<views.size()?active_material_view+1:0;
+                    auto& rt=*path_tracing_state->renderers.at(slot);
+                    const auto [descriptor,bank]=material_binding(draw,material);
+                    const auto& layers=world_after[draw.material];
+                    const auto ordinal=unsigned(std::ranges::find(layers,material)-layers.begin());
+                    rt.set_draw_cull_mode(path_cull(draw.material));
+                    if(rt.bind_glow_layer(command,descriptor,bank,path_tracing_camera,path_material_index(draw,draw.material),ordinal)) {
+                        bind_draw_vertices(draw,buffer);
+                        vkCmdDraw(command,draw.count,1,draw.first,0);
+                        continue;
+                    }
+                }
                 if(defer_texture_mapping && texture_mapping_overlay(material))continue;
                 emit_bsp_draw(draw,material,buffer,before?RendererBspDrawPhase::overlay_before:RendererBspDrawPhase::overlay_after);
             }
@@ -9275,6 +9511,10 @@ struct Renderer::Impl {
                 bsp_admission=v.source_bsp_admission;
                 visible_clusters=visibility_bank && v.atmosphere?
                     visibility_bank->potentially_visible_clusters(v.atmosphere->cluster):std::vector<std::uint32_t>{};
+                path_tracing_projection.reset();
+                if(path_tracing_enabled && v.source_view_shader_constants)
+                    if(const auto clip=source_view_clip(v.source_view_shader_constants->world,model_matrix))
+                        path_tracing_projection=std::pair{model_matrix,*clip};
                 const auto view_forward=v.camera.oriented?v.camera.forward:direction(v.camera.yaw,v.camera.pitch);
                 const CameraUniform model_uniform{model_matrix,glm::vec4(view_forward.x,view_forward.y,view_forward.z,v.atmosphere && source_depth_mode==2?1.f:0.f),
                     glm::vec4(v.camera.position.x,v.camera.position.y,v.camera.position.z,1),
@@ -10809,6 +11049,7 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
         impl_->measure_frames=true;
     }
     impl_->bsp_resident_plan=bsp_resident_plan;
+    if(scene_cache)impl_->path_tracing_emissions=path_tracing::load_lightmap_emissions(*scene_cache);
     if(scene_cache && std::ranges::any_of(mesh.materials,[](const auto& material) {
         return pstencil::combined_visor_environment(material)!=nullptr;
     }))impl_->pstencil_visor_cube=pstencil::load_reference_visor_cube(*scene_cache);

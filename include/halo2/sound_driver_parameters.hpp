@@ -60,6 +60,10 @@ std::int32_t source_sound_driver_pitch(std::uint32_t rate_index,
     const SoundDriverFloatingPointContext &);
 std::int32_t source_sound_driver_volume(std::uint32_t source_gain_bits,
     const SoundDriverParameterConstants &, const SoundDriverFloatingPointContext &);
+// 221B90's pitch base for a sample-rate index: the driver pitch (4096ths of
+// an octave relative to 48 kHz) of that rate played unpitched. 22050 Hz is
+// -4597, 44100 Hz -501 and every other index -2396 (32000 Hz).
+std::int32_t source_sound_pitch_base(std::uint32_t rate_index);
 // Complete221760 numerical calculation with its source-selected stored pitch.
 // The memory overload includes original wrapped bank/index addressing.
 std::uint32_t source_sound_relative_rate(std::int32_t stored_driver_pitch,

@@ -11,6 +11,11 @@ class SourceWorldInterpolation;
 // owner identities and seat/perspective changes prevent incompatible history.
 MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
     const MultiplayerState &current,float fraction);
+// The same sample written into shown (which must not alias previous or
+// current), reusing its storage: a per-frame caller keeps one presented state
+// instead of building and freeing a new copy every frame.
+void multiplayer_presentation(MultiplayerState &shown,const MultiplayerState &previous,
+    const MultiplayerState &current,float fraction);
 // Share root/skin lifecycle boundaries for local rendering and LAN snapshots.
 void capture_multiplayer_body_poses(SourceWorldInterpolation &,
     const MultiplayerState &previous,const MultiplayerState &current,bool reset=false);

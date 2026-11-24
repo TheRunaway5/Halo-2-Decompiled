@@ -1,11 +1,15 @@
 #include "halo2/frontend_model_ik.hpp"
 #include "halo2/content.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <cmath>
 
 namespace halo2 {
 FrontendModelWeaponIk Cache::load_frontend_model_weapon_ik(std::uint32_t unit,
                                                           std::uint32_t mode)const {
+  // The menu controller supplies the compiled Xbox UI mode. The unit query
+  // below consumes authored IDs and is also used by gameplay callers.
+  if(mode==0x020001b3u)mode=detail::frontend_model_selector<0x020001b3u>(*this);
   return load_unit_weapon_ik(unit,load_frontend_model_weapon(unit).value_or(null_datum),mode);
 }
 FrontendModelWeaponIk Cache::load_unit_weapon_ik(std::uint32_t unit,
@@ -33,7 +37,8 @@ FrontendModelWeaponIk Cache::load_unit_weapon_ik(std::uint32_t unit,
     for(unsigned i=0;i<aliases;++i)
       if(data.u32(first+i*8)==identifiers[1]) {
         const auto replacement=data.u32(first+i*8+4);
-        if(replacement!=null_datum && replacement!=0x030000d9u && weapon_class!=0x0400054bu)
+        if(replacement!=null_datum && replacement!=0x030000d9u &&
+           weapon_class!=detail::frontend_model_selector<0x0400054bu>(*this))
           weapon_class=replacement;
         break;
       }

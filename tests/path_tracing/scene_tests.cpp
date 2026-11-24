@@ -126,7 +126,7 @@ void same_payload(const pt::Scene& actual,const pt::Scene& expected) {
     const auto emitter_ordinals=[](const pt::Scene& scene) {
         std::vector<std::uint32_t> result;
         for(unsigned n=0;n<scene.emissive_count;++n) {
-            const auto index=scene.pixels.at(scene.texture_texel_count+n);
+            const auto index=scene.pixels.at(scene.texture_texel_count+n)&~pt::emitter_baked_bit;
             result.push_back(std::bit_cast<std::uint32_t>(scene.triangles.at(index).p0[3]));
         }
         std::sort(result.begin(),result.end());return result;
@@ -327,7 +327,8 @@ int main()try {
         "Visor lost its independent roughness/tinted reflection response");
     materials={white(),white()};materials[1].forward_vertex=2;materials[1].forward_diffuse={.5f,.1f,.02f,1};
     scene=pt::build_scene(vertices,materials);
-    const auto emitter_groups=scene.texture_texel_count+scene.emissive_count;
+    // The emitter table holds an index and a running power per emitter.
+    const auto emitter_groups=scene.texture_texel_count+2*scene.emissive_count;
     require(scene.emissive_count==1 && scene.pixels.size()==emitter_groups+pt::emitter_group_header_words+pt::emitter_group_words,
         "Authored emissive geometry was omitted from direct-light sampling");
     require(scene.pixels[emitter_groups]==pt::emitter_group_magic && scene.pixels[emitter_groups+1]==1 &&

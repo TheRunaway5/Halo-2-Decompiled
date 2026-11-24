@@ -122,7 +122,13 @@ template<class State> struct Registers {
 };
 struct Event {
     std::uint32_t kind,pc,address,width,value; // kind 0 read, 1 store
+    std::array<std::uint32_t,3> high{};        // bytes 4 to 15 of an 8- or 16-byte access
 };
+// The event of an access of up to 16 bytes, its bytes in order.
+inline Event wide_event(std::uint32_t kind,std::uint32_t pc,std::uint32_t address,unsigned width,const void *bytes) {
+    std::array<std::uint32_t,4> words{};std::memcpy(words.data(),bytes,width);
+    return {kind,pc,address,width,words[0],{words[1],words[2],words[3]}};
+}
 template<class State> struct Trace {
     struct Call {std::uint32_t target;std::size_t at;Registers<State> entry,exit;};
     std::vector<Event> events;std::vector<Call> calls;
@@ -211,6 +217,36 @@ template<class State> struct Port {
         physics_step_detail::w(s.memory,s.observe,pc,address,width,value);
         if(trace)trace->events.push_back({1,pc,address,width,value&width_mask(width)});
     }
+    // MOVAPS/MOVUPS xmm,[m]: as the unit's v(), a 16-byte read that is four
+    // ordered 4-byte reads (SourcePhysicsContactMemory::read_vector).
+    __m128 read_vector(std::uint32_t pc,std::uint32_t address) {
+        at(pc);
+        const auto value=physics_step_detail::v(s.memory,address);
+        if(trace) {
+            std::array<std::uint32_t,4> lanes;std::memcpy(lanes.data(),&value,16);
+            for(unsigned lane=0;lane<4;++lane)trace->events.push_back({0,pc,address+4u*lane,4,lanes[lane]});
+        }
+        return value;
+    }
+    // MOVLPS/MOVHPS xmm,[m]: an 8-byte read into one half (offset 0 or 8), as the unit's native_load_half.
+    __m128 read_half(std::uint32_t pc,std::uint32_t address,__m128 value,unsigned offset) {
+        at(pc);
+        std::array<std::byte,16> bytes;std::memcpy(bytes.data(),&value,16);
+        s.memory.read(address,std::span(bytes).subspan(offset,8));
+        if(trace)trace->events.push_back(wide_event(0,pc,address,8,bytes.data()+offset));
+        std::memcpy(&value,bytes.data(),16);return value;
+    }
+    // MOVLPS/MOVHPS [m],xmm: one 8-byte store of a half, as the unit's native_store_half.
+    void store_half(std::uint32_t pc,std::uint32_t address,__m128 value,unsigned offset) {
+        at(pc);
+        std::uint64_t bits;std::memcpy(&bits,reinterpret_cast<const std::byte*>(&value)+offset,8);
+        physics_step_detail::w(s.memory,s.observe,pc,address,8,bits);
+        if(trace)trace->events.push_back(wide_event(1,pc,address,8,&bits));
+    }
+    // MOVAPS/MOVUPS [m],xmm: the low then the high half, as the unit's vw().
+    void store_vector(std::uint32_t pc,std::uint32_t address,__m128 value) {
+        store_half(pc,address,value,0);store_half(pc,address+8u,value,8);
+    }
     void push(std::uint32_t pc,std::uint32_t value){gp[esp]-=4u;store(pc,gp[esp],4,value);}
     std::uint32_t pop(std::uint32_t pc){const auto value=read(pc,gp[esp],4);gp[esp]+=4u;return value;}
     // RET n: the return address read, then ESP past it and n argument bytes.
@@ -262,6 +298,24 @@ template<class Boundary> struct Memory {
     template<class A> void store32(A a,std::uint32_t address,std::uint32_t value){store(a,address,4,value);}
     template<class A> void store16(A a,std::uint32_t address,std::uint32_t value){store(a,address,2,value&0xffffu);}
     template<class A> void store8(A a,std::uint32_t address,std::uint32_t value){store(a,address,1,value&0xffu);}
+    // 16-byte rows (MOVAPS/MOVUPS) and 8-byte halves (MOVLPS/MOVHPS); a vector
+    // load's register effect is the boundary's loaded_vector.
+    template<class A> __m128 load128(A a,std::uint32_t address) {
+        const auto value=b.read_vector(b.instruction(a,address),address);
+        b.loaded_vector(a,address,value);
+        return value;
+    }
+    template<class A> __m128 load_half(A a,std::uint32_t address,__m128 into,unsigned offset) {
+        const auto value=b.read_half(b.instruction(a,address),address,into,offset);
+        b.loaded_vector(a,address,value);
+        return value;
+    }
+    template<class A> void store128(A a,std::uint32_t address,__m128 value) {
+        b.store_vector(b.instruction(a,address),address,value);
+    }
+    template<class A> void store_half(A a,std::uint32_t address,__m128 value,unsigned offset) {
+        b.store_half(b.instruction(a,address),address,value,offset);
+    }
 };
 } // namespace boundary
 
@@ -907,10 +961,11 @@ template<class State> struct Replay : SourcePhysicsContactMemory {
     void read(std::uint32_t address,std::span<std::byte> output)const override {
         if(at<trace.events.size()) {
             const auto &e=trace.events[at];
-            if(e.address==address && e.width==output.size()) {
+            if(e.address==address && e.width==output.size() && output.size()<=16) {
                 // A store preimage read (observer present) precedes its write.
-                const auto value=e.kind?0u:e.value;
-                for(std::size_t n=0;n<output.size();++n)output[n]=std::byte(value>>(8*n));
+                std::array<std::uint32_t,4> words{};
+                if(!e.kind)words={e.value,e.high[0],e.high[1],e.high[2]};
+                std::memcpy(output.data(),words.data(),output.size());
                 if(!e.kind)++at;
                 return;
             }
@@ -918,10 +973,11 @@ template<class State> struct Replay : SourcePhysicsContactMemory {
         fail("read",address,output.size());
     }
     void write(std::uint32_t address,std::span<const std::byte> input)override {
-        std::uint32_t value=0;for(std::size_t n=0;n<input.size() && n<4;++n)value|=std::to_integer<std::uint32_t>(input[n])<<(8*n);
-        if(at>=trace.events.size())fail("store",address,input.size());
+        if(at>=trace.events.size() || input.size()>16)fail("store",address,input.size());
+        std::array<std::uint32_t,4> words{};std::memcpy(words.data(),input.data(),input.size());
         const auto &e=trace.events[at];
-        if(!e.kind || e.address!=address || e.width!=input.size() || e.value!=value)fail("store",address,input.size());
+        if(!e.kind || e.address!=address || e.width!=input.size() || e.value!=words[0] ||
+           e.high!=std::array<std::uint32_t,3>{words[1],words[2],words[3]})fail("store",address,input.size());
         expected_pc=e.pc;store_pending=true;++at;
     }
 };

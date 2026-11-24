@@ -3380,6 +3380,26 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     mount_native_tu15_game_language_storage(memory);
     mount_native_tu15_multiplayer_branch_data(memory);
 #include "gameplay/multiplayer/native_tu15_objective_presentation_data.inc"
+    // Retail36AB0/398D0 weather intensity globals at their authored .data
+    // values: current and target intensity 1.0, stopped/transition/rate 0.
+    //18DC70 reads current and stopped for weather-flagged BSP ambience; the
+    // native weather owner publishes them (publish_native_weather).
+    constexpr std::array<std::pair<std::uint32_t,std::uint32_t>,5> weather{{
+        {0x47365cu,0x3f800000u},{0x473660u,0x3f800000u},{0x515f00u,0u},{0x515f04u,0u},{0x515f08u,0u}}};
+    for(const auto &[address,bits]:weather)
+        if(!memory.try_read_view(address,4))
+            memory.mount(address,encode(std::array{bits}),SourceRuntimeMemory::Access::ReadWrite,
+                "native TU1.5 authored weather intensity state");
+    // Authored .rdata operands the 18EE50 object-audio group reads once BSP
+    // background sound and phased loops are live: ln(10) for 18DC70/190A80
+    // dB conversion, -2pi for 18D960's azimuth, and 220C60's seven-phase
+    // tables (next normal phase, next alternate phase, lsnd track offset of
+    // start/loop/end/alternate-in/alternate-loop/alternate-out/alternate-end).
+    share_immutable_word(memory,0x455b14u,0x40135d8eu,"native TU1.5 authored object-audio ln(10) operand");
+    share_immutable_word(memory,0x46a580u,0xc0c90fdbu,"native TU1.5 authored object-audio -2pi operand");
+    share_immutable_words(memory,0x455ba8u,std::array<std::uint32_t,21>{
+        1u,1u,2u,5u,5u,1u,6u,3u,3u,2u,4u,4u,3u,6u,0x14u,0x1cu,0x24u,0x40u,0x2cu,0x48u,0x34u},
+        "native TU1.5 authored looping-sound phase transition tables");
     return memory;
 }
 }

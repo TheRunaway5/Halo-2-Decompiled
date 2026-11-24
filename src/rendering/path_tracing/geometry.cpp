@@ -107,7 +107,7 @@ void append_secondary_geometry(std::vector<Vertex>& output,std::span<const Verte
         if(std::any_of(replaced.begin(),replaced.end(),[&](const auto& range) {
             return material>=range.first && material-range.first<range.count;
         }))return false;
-        return traces_material(materials[material]);
+        return ray_material(materials[material]);
     };
     std::size_t count{};
     for(std::size_t first=0;first<input.size();first+=3) {

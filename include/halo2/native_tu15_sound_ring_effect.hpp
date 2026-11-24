@@ -43,4 +43,9 @@ struct Controls { Word entry_status{}; std::array<Word,8> modifiers{}; };
 // CPU coefficient converter, voice/PCM scale, DSP clock or hardware DMA receipt.
 void validate_controls(const Controls&);
 void process(State&,Workspace&,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,const Controls&,ArithmeticTrace* = nullptr);
+// The same block arithmetic for a record a real-time mixer owns: its State
+// is installed and committed only by sound_i3dl2_tu15.hpp, its histories
+// are 24-bit words and its spans are disjoint, so the per-block admission
+// (which copies the whole state) is skipped. Nothing here allocates.
+void process_admitted(State&,Workspace&,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs);
 }

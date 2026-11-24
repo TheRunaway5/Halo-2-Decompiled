@@ -47,7 +47,9 @@ world.vert.spv world_prt.vert.spv world_emblem.geom.spv
 """.split())
 PATH_TRACING_FILES = frozenset({"path_tracing/world.vert.spv", "path_tracing/world.frag.spv"})
 PATH_TRACING_VISIBILITY_FILES = frozenset({"path_tracing/depth.frag.spv"})
-PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv"})
+PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv", "path_tracing/trace.comp.spv",
+                                         "path_tracing/trace.rt.comp.spv", "path_tracing/world.rt.frag.spv",
+                                         "path_tracing/denoise.comp.spv", "path_tracing/calibrate.comp.spv"})
 PLAYER_FLASH_FILES = frozenset({"player_flash_invert.frag.spv"})
 PLAYER_FLASH_EXECUTABLE_MARKER = b"player_flash_invert.frag.spv\0"
 PSTENCIL_VOLUME_GEOMETRY_FILES = frozenset({"pstencil/volume.geom.spv"})

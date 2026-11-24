@@ -32,7 +32,7 @@ template<std::uint32_t address> void entry(M &m,Abi &a,FP fp,const O &o,const Se
     object_loop_call(c,a,address);
 }
 // Every entry of the lifted group, registered once its routine is native.
-constexpr std::uint32_t entries[]{0x129170u,0x129dd0u,0x18b580u,0x18d390u,0x18d3d0u,0x18d5a0u,0x18d960u,0x18dc70u,
+constexpr std::uint32_t entries[]{0x129170u,0x129dd0u,0x18b580u,0x18d220u,0x18d2c0u,0x18d390u,0x1901c0u,0x18d3d0u,0x18d5a0u,0x18d960u,0x18dc40u,0x18dc70u,
     0x18e970u,0x18ed80u,0x18ee50u,0x18f510u,0x18f900u,0x18f9b0u,0x18ffb0u,0x190460u,0x1904d0u,0x190a80u,
     0x220640u,0x220c60u,0x223da0u,0x226370u,0x22c560u};
 template<std::size_t... n> constexpr auto all(std::index_sequence<n...>) {

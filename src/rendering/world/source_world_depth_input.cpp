@@ -16,6 +16,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <set>
 
 namespace halo2 {
@@ -174,6 +176,29 @@ void state_ranges(const Cache& cache,const MenuWorldSourcePass& source,std::uint
             throw FormatError("ordinary depth original apply/restore cull differs from its completed material");
     }
 }
+// The Cache-selected vertex program of each layer that admits a completed
+// material's authored pass, recorded after the whole layer loop (programs
+// compared, original state ranges checked) succeeded once. It is a pure
+// function of the immutable Cache and the key, so later frames compare the
+// material's live program against the recorded ones instead of reloading
+// and re-decoding the pass. The key names the Cache's published metadata
+// object; an entry is used only while that same object (same control block)
+// is alive, so another Cache or invalidated metadata never matches.
+// HALO2_REFERENCE_AUTHORED_PASS_LOOKUP=1 reloads every frame.
+struct AuthoredPassKey {
+    const Material* authored{};
+    std::uint32_t shader{},lod{},template_pass{},implementation{},cull{};
+    auto operator<=>(const AuthoredPassKey&)const=default;
+};
+struct AuthoredPassRecord {
+    std::weak_ptr<const Material> owner;
+    std::vector<std::vector<std::byte>> vertex_programs;
+};
+std::mutex authored_pass_records_mutex;
+std::map<AuthoredPassKey,AuthoredPassRecord> authored_pass_records;
+bool same_owner(const std::weak_ptr<const Material>& a,const std::shared_ptr<const Material>& b) {
+    return !a.owner_before(b) && !b.owner_before(a);
+}
 void authored_pass(const Cache& cache,const Material& root,const Material& material) {
     if(!material.forward_pass || material.forward_pass_index>=material.passes.size() ||
        !material.vertex_declaration || material.vertex_declaration->class_index!=0 ||
@@ -200,19 +225,38 @@ void authored_pass(const Cache& cache,const Material& root,const Material& mater
     const auto authored_owner=authored_reference?std::shared_ptr<const Material>{}
         :cache.load_material_metadata(root.source_shader_datum);
     const auto& authored=authored_reference?*authored_reference:*authored_owner;
+    static const bool reference_lookup=[]{const auto* e=std::getenv("HALO2_REFERENCE_AUTHORED_PASS_LOOKUP");return e && *e;}();
+    const bool recordable=authored_owner && !reference_lookup;
+    const AuthoredPassKey key{authored_owner.get(),root.source_shader_datum,std::uint32_t(root.selected_shader_lod),
+        pass.template_pass,pass.implementation,std::uint32_t(material.forward_raster.cull)};
+    if(recordable) {
+        std::lock_guard lock(authored_pass_records_mutex);
+        if(const auto at=authored_pass_records.find(key);at!=authored_pass_records.end() && same_owner(at->second.owner,authored_owner)) {
+            for(const auto& program:at->second.vertex_programs)
+                if(program!=material.vertex_program)
+                    throw FormatError("ordinary depth compiled tokens differ from actual Cache-selected pass");
+            return;
+        }
+    }
     if(root.selected_shader_lod>=authored.lods.size())throw FormatError("ordinary depth main LOD is outside original Cache");
-    const auto& lod=authored.lods[root.selected_shader_lod];bool matched=false;
+    const auto& lod=authored.lods[root.selected_shader_lod];
+    std::vector<std::vector<std::byte>> programs;
     for(unsigned layer=0;layer<lod.layers.count();++layer) {
         if(!(lod.available_layers&(1u<<layer)))continue;
         const auto range=authored.layers.at(lod.layers.first()+layer);
         if(pass.template_pass<range.first() || pass.template_pass-range.first()>=range.count())continue;
         const auto source=load_menu_world_source_pass(cache,root.source_shader_datum,
             {root.selected_shader_lod,layer,unsigned(pass.template_pass-range.first()),pass.implementation});
-        if(cache.load_vertex_shader_code(source.vertex_shader(),0)!=material.vertex_program)
+        auto program=cache.load_vertex_shader_code(source.vertex_shader(),0);
+        if(program!=material.vertex_program)
             throw FormatError("ordinary depth compiled tokens differ from actual Cache-selected pass");
-        state_ranges(cache,source,material.forward_raster.cull);matched=true;
+        state_ranges(cache,source,material.forward_raster.cull);programs.push_back(std::move(program));
     }
-    if(!matched)throw FormatError("ordinary depth selected child cannot join original main LOD/pass");
+    if(programs.empty())throw FormatError("ordinary depth selected child cannot join original main LOD/pass");
+    if(recordable) {
+        std::lock_guard lock(authored_pass_records_mutex);
+        authored_pass_records.insert_or_assign(key,AuthoredPassRecord{authored_owner,std::move(programs)});
+    }
 }
 }
 SourceWorldDepthInput source_world_depth_input_tu15(const SourceRuntimeMemory& memory,
@@ -239,24 +283,47 @@ SourceWorldDepthInput source_world_depth_input_completed_main_tu15(
     // Own a weak, checked consumer capability, never a raw pointer to the
     // callback token. Every subsequent validation rechecks actual borrow life.
     SourceWorldDepthInput output{std::move(checked_use)};
-    const auto& data=std::get<SourceMainCameraRasterUseTu15>(output.camera_owner_).operands();
-    output.raster_.camera=completed_camera(data,use);
+    const auto camera=source_world_depth_sealed_camera_tu15(
+        std::get<SourceMainCameraRasterUseTu15>(output.camera_owner_),use);
+    output.raster_=camera.raster_;
+    output.eye_=camera.eye_;output.forward_=camera.forward_;output.up_=camera.up_;
+    return SourceWorldDepthInput::complete_owners(std::move(output),use,cache,mesh,resident,selection);
+}
+SourceWorldDepthSealedCameraTu15 source_world_depth_sealed_camera_tu15(
+    SourceMainCameraRasterUseTu15 checked_use,const RendererTargets::Use& use) {
+    const auto& data=checked_use.operands();
+    SourceWorldDepthSealedCameraTu15 out;
+    out.raster_.camera=completed_camera(data,use);
     for(unsigned n=0;n<3;++n) {
-        output.eye_[n]=std::bit_cast<float>(data.raw_camera_words[n]);
-        output.forward_[n]=std::bit_cast<float>(data.raw_camera_words[n+3]);
-        output.up_[n]=std::bit_cast<float>(data.raw_camera_words[n+6]);
+        out.eye_[n]=std::bit_cast<float>(data.raw_camera_words[n]);
+        out.forward_[n]=std::bit_cast<float>(data.raw_camera_words[n+3]);
+        out.up_[n]=std::bit_cast<float>(data.raw_camera_words[n+6]);
     }
-    std::memcpy(output.raster_.clip_range.data(),data.clip_words.data(),sizeof(data.clip_words));
-    output.raster_.logical_surface_size={float(data.viewport[3]-data.viewport[1]),float(data.viewport[2]-data.viewport[0])};
+    std::memcpy(out.raster_.clip_range.data(),data.clip_words.data(),sizeof(data.clip_words));
+    out.raster_.logical_surface_size={float(data.viewport[3]-data.viewport[1]),float(data.viewport[2]-data.viewport[0])};
+    return out;
+}
+SourceWorldDepthInput source_world_depth_input_sealed_main_tu15(
+    const SourceWorldDepthSealedCameraTu15& camera,const RendererTargets::Use& use,const Cache& cache,
+    const Mesh& mesh,const SourceBspResidentPlan& resident,const SourceBspResidentViewPlan& selection) {
+    SourceWorldDepthInput output{SourceWorldDepthInput::SealedCompletedCamera{camera.raster_.camera}};
+    output.raster_=camera.raster_;
+    output.eye_=camera.eye_;output.forward_=camera.forward_;output.up_=camera.up_;
     return SourceWorldDepthInput::complete_owners(std::move(output),use,cache,mesh,resident,selection);
 }
 std::array<ShaderVector,12> SourceWorldDepthInput::camera(const RendererTargets::Use& use)const {
     return std::visit([&](const auto& owner) {
-        if constexpr(std::is_same_v<std::decay_t<decltype(owner)>,SourceLiveShadowPhaseInputsTu15>)
+        using Owner=std::decay_t<decltype(owner)>;
+        if constexpr(std::is_same_v<Owner,SourceLiveShadowPhaseInputsTu15>)
             return owner.camera(use);
+        else if constexpr(std::is_same_v<Owner,SealedCompletedCamera>) {
+            completed_attachments(use);
+            return owner.camera;
+        }
         else return completed_camera(owner.operands(),use);
     },camera_owner_);
 }
+
 SourceWorldDepthInput SourceWorldDepthInput::complete_owners(SourceWorldDepthInput output,
     const RendererTargets::Use& use,const Cache& cache,const Mesh& mesh,
     const SourceBspResidentPlan& resident,const SourceBspResidentViewPlan& selection) {
@@ -264,7 +331,12 @@ SourceWorldDepthInput SourceWorldDepthInput::complete_owners(SourceWorldDepthInp
     output.mesh_=&mesh;output.generation_=use.bank().generation;output.device_=use.device_address();
     auto parts=std::span(selection.selected_parts);
     output.parts_.assign(parts.begin(),parts.end());output.resident_=&resident;
-    output.resident_atlas_=resident.resident_vertices();
+    // HALO2_REFERENCE_COPY_DEPTH_ATLAS=1 restores the per-frame owned copy.
+    static const bool copy_atlas=[]{const auto* e=std::getenv("HALO2_REFERENCE_COPY_DEPTH_ATLAS");return e && *e;}();
+    if(copy_atlas) {
+        output.owned_atlas_=std::make_shared<const std::vector<Vertex>>(resident.resident_vertices());
+        output.resident_atlas_=*output.owned_atlas_;
+    } else output.resident_atlas_=resident.resident_vertices();
     output.bindings_.assign(selection.bindings.begin(),selection.bindings.end());
     output.expected_bsp_=resident.merge(output.bindings_,{},unsigned(mesh.materials.size()),
         unsigned(mesh.lightmaps.size()+1));
@@ -316,33 +388,63 @@ SourceWorldDepthInput SourceWorldDepthInput::complete_owners(SourceWorldDepthInp
         throw FormatError("ordinary depth duplicate/unowned selected BSP part");
     std::set<SourceBspDrawKey> independent_draws;
     std::set<SourceBspDrawKey> draw_keys;
-    const auto expanded=resident.expand(selection.bindings);
+    const auto* verify_runs_value=std::getenv("HALO2_VERIFY_DEPTH_GEOMETRY_RUNS");
+    const bool verify_runs=verify_runs_value && *verify_runs_value;
+    // HALO2_REFERENCE_FULL_DEPTH_EXPANSION=1 expands the complete BSP and
+    // filters it here, as before; the default expands only the parts whose
+    // bound key is selected (the same vertices in the same order).
+    static const bool full_expansion=[]{const auto* e=std::getenv("HALO2_REFERENCE_FULL_DEPTH_EXPANSION");return e && *e;}();
+    const bool expand_all=reference_depth_geometry() || full_expansion;
+    const auto expanded=expand_all?resident.expand(selection.bindings):std::vector<Vertex>{};
     if(reference_depth_geometry()) {
         for(const auto& v:expanded) {
             if(selected.contains(key(v)) || independent.contains(key(v)))output.selected_geometry_.push_back(v);
             if(independent.contains(key(v)))independent_draws.insert(draw_key(v));
         }
         for(const auto& v:output.selected_geometry_)if(selected.contains(key(v)))draw_keys.insert(draw_key(v));
-    } else for(std::size_t first=0;first<expanded.size();) {
-        const auto& vertex=expanded[first];const auto geometry=key(vertex);const auto draw=draw_key(vertex);
-        auto end=first+1;
-        while(end<expanded.size() && draw_key(expanded[end])==draw)++end;
-        const bool ordinary=selected.contains(geometry),water=independent.contains(geometry);
-        if(ordinary || water)output.selected_geometry_.insert(output.selected_geometry_.end(),
-            expanded.begin()+first,expanded.begin()+end);
-        if(ordinary)draw_keys.insert(draw);
-        if(water)independent_draws.insert(draw);
-        first=end;
+    } else if(expand_all) {
+        for(std::size_t first=0;first<expanded.size();) {
+            const auto& vertex=expanded[first];const auto geometry=key(vertex);const auto draw=draw_key(vertex);
+            auto end=first+1;
+            while(end<expanded.size() && draw_key(expanded[end])==draw)++end;
+            const bool ordinary=selected.contains(geometry),water=independent.contains(geometry);
+            if(ordinary || water)output.selected_geometry_.insert(output.selected_geometry_.end(),
+                expanded.begin()+first,expanded.begin()+end);
+            if(ordinary)draw_keys.insert(draw);
+            if(water)independent_draws.insert(draw);
+            first=end;
+        }
+    } else {
+        const auto& catalogue=resident.parts();
+        if(selection.bindings.size()!=catalogue.size())throw FormatError("BSP view bindings differ from resident catalogue");
+        std::vector<std::uint8_t> accept(catalogue.size());
+        for(std::size_t part=0;part<catalogue.size();++part)if(const auto& material=selection.bindings[part].material) {
+            const auto& original=catalogue[part].original;
+            const GeometryKey geometry{original.geometry,original.section,original.part,*material};
+            accept[part]=selected.contains(geometry) || independent.contains(geometry);
+        }
+        output.selected_geometry_=resident.expand_parts(selection.bindings,accept);
+        const auto& kept=output.selected_geometry_;
+        for(std::size_t first=0;first<kept.size();) {
+            const auto& vertex=kept[first];const auto geometry=key(vertex);const auto draw=draw_key(vertex);
+            auto end=first+1;
+            while(end<kept.size() && draw_key(kept[end])==draw)++end;
+            if(selected.contains(geometry))draw_keys.insert(draw);
+            if(independent.contains(geometry))independent_draws.insert(draw);
+            first=end;
+        }
     }
     output.independent_draws_.assign(independent_draws.begin(),independent_draws.end());
     output.selected_draws_.assign(draw_keys.begin(),draw_keys.end());
-    if(const auto* verify=std::getenv("HALO2_VERIFY_DEPTH_GEOMETRY_RUNS");verify && *verify) {
+    if(verify_runs) {
         // Differential admission on the same source selection, including
         // independent water and noncontiguous raw part runs. No alternate
         // camera, visibility or simulation result is supplied by this oracle.
+        const auto complete=expand_all?std::vector<Vertex>{}:resident.expand(selection.bindings);
+        const auto& reference_vertices=expand_all?expanded:complete;
         std::vector<Vertex> fresh;
         std::set<SourceBspDrawKey> ordinary_keys,water_keys;
-        for(const auto& v:expanded) {
+        for(const auto& v:reference_vertices) {
             if(selected.contains(key(v)) || independent.contains(key(v)))fresh.push_back(v);
             if(independent.contains(key(v)))water_keys.insert(draw_key(v));
         }
@@ -488,6 +590,12 @@ void SourceWorldDepthInput::validate_resident_atlas(const RendererTargets::Use& 
     validate_lifetime(use);
     if(&resident!=resident_ || uploaded.size()!=resident_atlas_.size() ||
        std::memcmp(uploaded.data(),resident_atlas_.data(),uploaded.size_bytes()))
+        throw FormatError("ordinary depth immutable resident atlas/upload provenance changed");
+}
+void SourceWorldDepthInput::validate_resident_atlas_owner(const RendererTargets::Use& use,
+    const SourceBspResidentPlan& resident,std::span<const Vertex> uploaded)const {
+    validate_lifetime(use);
+    if(&resident!=resident_ || uploaded.size()!=resident_atlas_.size())
         throw FormatError("ordinary depth immutable resident atlas/upload provenance changed");
 }
 bool SourceWorldDepthInput::admits_draw(const SourceBspDrawKey& key)const {

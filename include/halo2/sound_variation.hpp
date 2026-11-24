@@ -22,6 +22,12 @@ struct SoundVariationDefinition {
   // the owning gestalt's three-byte codec rows instead. Keep sound intact.
   std::uint32_t sample_rate_index{};
 };
+struct LoopingMusicFade {
+  float seconds = 4.f;
+  std::vector<std::uint16_t> class_curves;
+};
+// Retail 18D6E0 resolves the duration through the map's Sound Mix.
+LoopingMusicFade load_looping_music_fade(const Cache &);
 struct SoundRangeState {
   std::int8_t last{}, forced{};
   std::uint32_t used{};

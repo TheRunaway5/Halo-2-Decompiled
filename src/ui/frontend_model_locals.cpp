@@ -1,5 +1,6 @@
 #include "halo2/native_tu15_packed_rotation_value.hpp"
 #include "halo2/frontend_model_locals.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -144,7 +145,8 @@ std::optional<FrontendModelGrip> Cache::load_frontend_model_grip(std::uint32_t u
   const auto alias=aliases?metadata_offset(data.u32(root+0x58),aliases*8):0;
   for(unsigned i=0;i<aliases;++i)if(data.u32(alias+i*8)==identifiers[1]) {
     const auto replacement=data.u32(alias+i*8+4);
-    if(replacement!=null_datum && replacement!=0x030000d9u && identifiers[0]!=0x0400054bu)
+    if(replacement!=null_datum && replacement!=0x030000d9u &&
+       identifiers[0]!=detail::frontend_model_selector<0x0400054bu>(*this))
       identifiers[0]=replacement;
     break;
   }
@@ -155,7 +157,8 @@ std::optional<FrontendModelGrip> Cache::load_frontend_model_grip(std::uint32_t u
     for(unsigned i=0;i<b.count;++i)if(data.u32(b.offset+i*stride)==name)return b.offset+i*stride;
     return {};
   };
-  constexpr std::uint32_t combat=0x06000086u,any=0x030000d9u,grip=0x0400060bu;
+  constexpr std::uint32_t combat=0x06000086u,any=0x030000d9u;
+  const auto grip=detail::frontend_model_selector<0x0400060bu>(*this);
   const auto modes=metadata_block(root+0x34, 20);
   // 1CBAD0 searches the complete overlay fallback order first; only a NONE
   // result starts the ordinary action search. Invalid metadata still fails.

@@ -1,0 +1,74 @@
+#version 460
+// Fits the gains that match path-traced diffuse lighting to the map's own
+// baked lightmaps, so Path Tracing keeps Halo 2's authored brightness and
+// colour balance while adding traced shadows, bounce and reflections.
+//
+// For sampled static lightmapped cells, the baked irradiance L should equal
+// ks*S + ki*I + ke*E: S is the traced sun irradiance, E the unscaled light
+// of the surfaces that lit the bake (their emissive power), and I the
+// accumulated grid diffuse (sky, bounce, local lights) without that emitter
+// light, which the grid holds at the current scale (control.y). Mode 0 sums
+// the least-squares terms per 8x8 workgroup; mode 1 adds the workgroup
+// partials into one result that the CPU reads after the frame fence and
+// solves (Render::update_calibration).
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=1,binding=6,std430) restrict buffer TraceVisibility {
+    uvec4 extent;
+    uvec4 temporal;
+    uint words[];
+} traceVisibility;
+layout(push_constant) uniform Calibration {uvec4 control;} calibration; // x: mode, y: emitter scale (float bits)
+const uint recordWords=20u,historyWords=24u,filterWords=16u,termCount=12u;
+uvec2 grid() {
+    uint scale=max(traceVisibility.extent.w,1u);
+    return (traceVisibility.extent.xy+scale-1u)/scale;
+}
+uint groupCount() {uvec2 size=grid();return ((size.x+7u)/8u)*((size.y+7u)/8u);}
+uint partialBase() {
+    uvec2 size=grid();
+    return traceVisibility.extent.z+size.x*size.y*(recordWords+2u*historyWords+filterWords);
+}
+shared float terms[termCount][64];
+void reduceAndStore(uint lane,float values[termCount],uint destination) {
+    for(uint term=0u;term<termCount;++term)terms[term][lane]=values[term];
+    barrier();
+    for(uint width=32u;width>0u;width>>=1u) {
+        if(lane<width)for(uint term=0u;term<termCount;++term)terms[term][lane]+=terms[term][lane+width];
+        barrier();
+    }
+    if(lane==0u)for(uint term=0u;term<termCount;++term)
+        traceVisibility.words[destination+term]=floatBitsToUint(terms[term][0]);
+}
+void main() {
+    uint lane=gl_LocalInvocationIndex;
+    float values[termCount];
+    for(uint term=0u;term<termCount;++term)values[term]=0.0;
+    if(calibration.control.x==0u) {
+        uvec2 cell=gl_GlobalInvocationID.xy;uvec2 size=grid();
+        if(all(lessThan(cell,size))) {
+            uint record=traceVisibility.extent.z+(cell.y*size.x+cell.x)*recordWords;
+            vec2 sunBaked=unpackHalf2x16(traceVisibility.words[record+14u]);
+            float sun=sunBaked.x,baked=sunBaked.y;
+            float emitters=uintBitsToFloat(traceVisibility.words[record+15u]);
+            vec3 diffuse=vec3(uintBitsToFloat(traceVisibility.words[record]),uintBitsToFloat(traceVisibility.words[record+1u]),
+                              uintBitsToFloat(traceVisibility.words[record+2u]));
+            float indirect=dot(diffuse,vec3(.2126,.7152,.0722))-uintBitsToFloat(calibration.control.y)*emitters;
+            // Needs a published surface with a settled history and finite terms.
+            if(traceVisibility.words[record+7u]<0x80000000u && traceVisibility.words[record+13u]>=8u &&
+               sun>=0.0 && sun<1.e4 && baked>=0.0 && baked<1.e4 && abs(indirect)<1.e4 && emitters>=0.0 && emitters<1.e4) {
+                values[0]=sun*sun;values[1]=sun*indirect;values[2]=indirect*indirect;
+                values[3]=sun*baked;values[4]=indirect*baked;values[5]=1.0;values[6]=baked*baked;
+                values[7]=sun*emitters;values[8]=indirect*emitters;values[9]=emitters*emitters;values[10]=emitters*baked;
+            }
+        }
+        uint group=gl_WorkGroupID.y*gl_NumWorkGroups.x+gl_WorkGroupID.x;
+        reduceAndStore(lane,values,partialBase()+group*termCount);
+        return;
+    }
+    // Mode 1: a single workgroup folds every partial; the result follows them.
+    uint groups=groupCount();
+    for(uint group=lane;group<groups;group+=64u)
+        for(uint term=0u;term<termCount;++term)
+            values[term]+=uintBitsToFloat(traceVisibility.words[partialBase()+group*termCount+term]);
+    reduceAndStore(lane,values,partialBase()+groups*termCount);
+}

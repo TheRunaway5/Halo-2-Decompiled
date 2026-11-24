@@ -4,15 +4,19 @@
 using namespace halo2::path_tracing;
 int main()try {
     constexpr std::uint64_t mib=1024*1024;
+    // The ray grid is budgeted to ~1.3M cells: 2x2 up to 1440p, 3x3 at 4K.
     constexpr auto native=lighting_storage_plan(3840,2160,512*mib);
-    static_assert(native.scale==2 && native.cells==2073600 && native.current_bytes==497664032 && native.previous_bytes==364953824);
+    static_assert(native.scale==3 && native.cells==921600 && native.current_bytes==342835232 && native.previous_bytes==176948448);
+    static_assert(lighting_storage_plan(2560,1440,512*mib).scale==2 && lighting_storage_plan(1920,1080,512*mib).scale==2);
     constexpr auto minimum=lighting_storage_plan(3840,2160,128*mib);
-    static_assert(minimum.scale==5 && minimum.cells==331776 && minimum.current_bytes==107495456 && minimum.previous_bytes==58392800);
-    static_assert(lighting_storage_plan(7680,4320,128*mib).scale==71);
+    static_assert(minimum.scale==6 && minimum.cells==230400 && minimum.current_bytes==110592032 && minimum.previous_bytes==44238048);
+    static_assert(lighting_storage_plan(7680,4320,128*mib).scale==87);
     static_assert(lighting_storage_plan(8192,8192,128*mib).scale==0);
     static_assert(lighting_storage_plan(0,1080,128*mib).scale==0);
     static_assert(lighting_storage_plan(~0u,~0u,~std::uint64_t{}).scale==0);
-    constexpr auto thin=lighting_storage_plan(~0u,1,32+std::uint64_t(~0u)*4+224);
+    // Lane-padded depth prefix plus one cell (record, two histories, two denoiser banks).
+    constexpr auto thin=lighting_storage_plan(~0u,1,32+(std::uint64_t(~0u)+3)/4*16+
+        (lighting_record_words+2*lighting_history_words+lighting_filter_words)*4);
     static_assert(thin.scale==~0u && thin.cells==1);
     unsigned cases{};
     for(const auto width:{1u,63u,1280u,1920u,2561u,3840u,4095u,7680u})

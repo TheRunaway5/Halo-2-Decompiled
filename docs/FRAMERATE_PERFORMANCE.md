@@ -1,5 +1,164 @@
 # Native frame-rate performance
 
+## Zanzibar 1p, continued, 2026-11-23
+
+After the 2026-11-22 work Zanzibar 1p still ran near 55 FPS. Its single view
+draws fixed shadows, and that disabled the render overlap 2p already uses:
+the whole draw ran on the main thread after the per-view collection.
+
+Changes. All are default; the switch restores the old route.
+
+| Change | Restore switch |
+|---|---|
+| A fixed-shadow frame overlaps its draw with the next tick. Inside the read-only render-memory borrow only each view's completed main camera is checked and sealed (`source_world_depth_sealed_camera_tu15`). The borrow then closes, the presented poses and main-camera observer are released (as the end of the iteration would), and the draw thread builds the depth inputs from the sealed cameras (`source_world_depth_input_sealed_main_tu15`: Cache, Mesh and view selections only) before drawing. A `RendererTargets::Use` is confined to the thread that acquired it, so the draw thread acquires its own use of the same attachments; the depth inputs and the Renderer check generation and device by value. Online play keeps its serial draw (overlap stays off there). | `HALO2_REFERENCE_SERIAL_SHADOW_DRAW` (old route, draw inside the borrow); `HALO2_REFERENCE_MAIN_THREAD_DEPTH_INPUT` (overlap, depth inputs completed on the main thread) |
+| The cached decal and contrail renderers kept nothing between frames: every frame they created and freed two buffers (with `vkAllocateMemory`), a descriptor pool and all its sets, and looked up each draw's fragment kernel by a linear scan of 2256 catalogue entries. They now keep persistently mapped upload buffers and a reset-in-place descriptor pool (`src/rendering/effects/frame_upload_resources.hpp`), grown only when a frame needs more, and remember each (layer, program words) pipeline. A single view's decals/contrails are no longer copied into a joined vector. | `HALO2_REFERENCE_DECAL_FRAME_RESOURCES`, `HALO2_REFERENCE_CONTRAIL_FRAME_RESOURCES` |
+| The depth input's resident atlas is compared with the renderer's upload copy once per buffer pair instead of every frame (both are immutable while the renderer and plan live). | `HALO2_REFERENCE_DEPTH_ATLAS_EVERY_FRAME` |
+| `authored_pass` records the Cache-selected vertex programs of each (shader, LOD, pass, implementation, cull) once, keyed by the Cache's published metadata object (same control block); later frames compare the live program with the record. | `HALO2_REFERENCE_AUTHORED_PASS_LOOKUP` |
+| Per-object material uniforms find fog passes in a slot table instead of a `std::map`. | `HALO2_REFERENCE_FOG_PASS_MAP` |
+| The presented state is rewritten in place each frame (`multiplayer_presentation(shown,...)`), and the WORLD presentation is `shown` itself when there is no native render frame, instead of two fresh copies. | `HALO2_REFERENCE_FRESH_PRESENTED_STATE` (the `world_shown` alias has no switch: nothing changes `shown` after that point) |
+| Scenery views append each LOD's admitted vertices straight into the view stream (`append_shader_vertices`) instead of building a filtered copy first. Zanzibar 4p about 0.4 ms/frame. | `HALO2_REFERENCE_SCENERY_VERTEX_COPY` |
+
+**Where a frame goes now** (main-thread CPU, draw forced onto the main
+thread with `HALO2_REFERENCE_SERIAL_SHADOW_DRAW=1 HALO2_REFERENCE_SYNC_RENDER=1`
+so one sampler sees all of it):
+
+| | Zanzibar 1p | Zanzibar 4p | Coagulation 1p |
+|---|---|---|---|
+| Total | 18.9 ms | 46.0 ms | 8.5 ms |
+| Per-view collection (translated shadow/command/model routines) | 4.6 | 8.7 | 2.2 |
+| Renderer CPU (`Renderer::draw`) | 3.8 | 8.4 | 1.7 |
+| Simulation tick | 2.7 | 9.3 (6.6 per tick) | 1.1 |
+| Depth input | 1.0 | - | 0.5 |
+| Everything else in the frame loop (object vertex streams, skinning, materials, HUD, state) | 6.1 | 17.6 | 2.5 |
+| Under any translated routine, including its memory-access layer | 4.0 | 11.1 | 2.2 |
+| Leaf `memcpy`/`memset`/`memcmp` | 3.2 | 8.0 | 1.2 |
+
+The translated engine and the per-frame CPU vertex streams (every view
+rebuilds world-space vertices for every visible object, and the renderer
+repacks them for upload) are the two largest costs in every configuration.
+Neither has a small fix: the first needs native ports of the hot routines
+(object update B8F40/B9090, per-view shadow and model-render collection
+134C00/136230/41C10/41970/23670, relocation B95D0, weapon targeting 1ADF60),
+the second retained GPU geometry with bit-exact GPU skinning.
+
+**Parity.** One binary, every switch above on vs the default:
+byte-identical 3840x2160 captures on Zanzibar and Coagulation, 1p/2p/4p at
+the tick endpoint and with `--motion --render-fraction 0.5` (12 cases), and
+the serial-vs-overlap shadow draw alone on the four 1p cases.
+
+**Measured.** 4K, 600 frames, three interleaved rounds, same binary, every
+switch above on ("before") vs default:
+
+| Config | FPS | Main-thread CPU/frame | Renderer |
+|---|---|---|---|
+| Zanzibar 1p | 44.0 -> 64.6 (+47%) | 21.8 -> 12.0 ms | 7.0 -> 3.6 ms |
+| Coagulation 1p | 98.9 -> 106.0 (+7%) | 9.3 -> 6.9 ms | 1.9 -> 1.7 ms |
+| Zanzibar 2p | 42.9 -> 45.8 (+7%) | 19.6 -> 19.9 ms | 8.2 -> 5.2 ms |
+| Coagulation 2p | 83.7 -> 86.1 (+3%) | 9.7 -> 9.4 ms | 2.4 -> 2.3 ms |
+
+The "before" column is slower than the 2026-11-22 "after" numbers for the
+same code paths (Zanzibar 1p 44 vs 55 FPS). Between the two sessions the
+NVIDIA driver (620.70 -> 620.73) and kernel were updated and other sessions'
+work was compiled in; the comparison above is within one binary and host.
+After the reboot KDE's baloo file indexer spent a core indexing this repo
+(13.6M files); it was excluded from indexing, which removed large
+cache-eviction noise from these measurements. GPU time is not the limit
+(Zanzibar 1p 3.3 ms, Coagulation 1p 2.3 ms per frame at 4K). glibc malloc
+tuning (no trim, 32 MB mmap threshold) cut page faults from 69 to 2 per frame
+but changed FPS by about 1%, so it was not adopted.
+
+**Remaining, Zanzibar 1p** (main thread about 12 ms busy of a 15.5 ms frame;
+wall-clock sampling with a monotonic timer):
+- The main thread waits about 2.7 ms per frame for the draw thread at the end
+  of the overlap: the draw thread's depth-input build plus draw (about 4.5 ms)
+  is longer than the overlapped tick (about 2.9 ms). It also waits about
+  0.7 ms in the posing lanes, whose vehicle/body jobs outlast the main job.
+- Per-view collection 4.5 ms: shadow root frames, the 40E80 command frame,
+  model draws (translated or native-bridged routines; the native-replacement
+  backlog).
+- Pre-render host work: presented scope 0.5 ms (B95D0 relocation of moving
+  roots), scenery `shader_vertices` copies 0.3 ms, material animation and
+  constants about 0.5 ms.
+- The weather point/line/plate renderers still create their buffers and
+  descriptor pool every frame, like decals did; this affects weather maps.
+
+## Zanzibar and Coagulation, 2026-11-22
+
+Question: why do Zanzibar and Coagulation run far below the other maps? The
+GPU is not the limit (4K Original: Zanzibar 6.4 ms, Lockout 3.4 ms of GPU
+time). Main-thread profiles against Lockout showed several costs that grow
+with these maps' content:
+
+- **Machine LOD publication** (Zanzibar's windmill, gate). Every frame, each
+  machine copied its one shared skin into all six LOD banks with the material
+  remap. Views read only their selected LOD.
+- **Translated BCB70 per material input.** Material animation asked the
+  translated object-function routine for every prop/control shader input.
+- **Presented-pose relocation of resting roots.** The shown root is
+  `node0_shown ∘ inverse(node0_sim) ∘ placement`. For an object at rest that
+  product only adds rounding, so parked vehicles and dropped weapons, which
+  have children or attachments, missed the in-place path and ran the full
+  B95D0 relocation each frame. This was about 3.7 ms/frame on Zanzibar and
+  2.9 ms on Coagulation, measured with `HALO2_RELOCATION_PATH_CENSUS`.
+- **1p ordinary depth input.** Each frame it deep-copied the whole resident
+  BSP atlas, then expanded every BSP vertex only to keep the visible parts.
+- **Translated BC200 in `state()`**: object linear velocity per presented
+  object.
+
+Changes. All are native by default; the switch restores the old route.
+
+| Change | Restore switch |
+|---|---|
+| `SourceObjectGeometry` records a cached publication and copies a LOD bank on its first read (`publish_pending`). | `HALO2_REFERENCE_EAGER_LOD_PUBLICATION` |
+| `object_shader_input` runs the native `object_function_value` (the kernel proven at BCB70's light callers). It uses the same caller frame and value slot. | `HALO2_REFERENCE_OBJECT_SHADER_INPUT`; oracle `HALO2_VERIFY_OBJECT_SHADER_INPUT` |
+| `object_linear_velocity` runs `native_tu15_object_velocities`. | `HALO2_REFERENCE_OBJECT_VELOCITY`; oracle `HALO2_VERIFY_OBJECT_VELOCITY` |
+| A root whose shown node 0 is bit-identical to its simulation node 0 takes the in-place route even with children or attachments. Its root words are unchanged. | `HALO2_REFERENCE_RESTING_ROOT_RELOCATION` |
+| The depth input borrows the plan's immutable atlas, and `SourceBspResidentPlan::expand_parts` expands only the selected parts. Same bytes, same order. | `HALO2_REFERENCE_COPY_DEPTH_ATLAS`, `HALO2_REFERENCE_FULL_DEPTH_EXPANSION`; oracle `HALO2_VERIFY_DEPTH_GEOMETRY_RUNS` (now checks the filtered path) |
+
+`HALO2_RELOCATION_MOVED_DIAGNOSTICS=N` now prints moved roots from frame N.
+
+**Parity.** One binary, every switch above on as the reference vs the
+default. Byte-identical 3840x2160 captures on Zanzibar and Coagulation:
+- 1p/2p/4p at the tick endpoint;
+- 1p/2p/4p with `--motion --render-fraction 0.5`.
+
+The three oracles ran clean on Zanzibar, Coagulation and Waterworks 1p. One
+rejected variant: presenting resting roots exactly at their simulation
+placement changed one pixel by one LSB on Zanzibar 1p, so the root words keep
+the original composition.
+
+**Measured.** Quiet host, 4K internal, 600 frames, three interleaved pairs on
+the same binary:
+
+| Map | FPS | Main-thread CPU/frame |
+|---|---|---|
+| Zanzibar 1p | 38.8 → 55.4 (+43%) | 24.9 → 17.2 ms |
+| Coagulation 1p | 79.9 → 108.4 (+36%) | 11.6 → 8.4 ms |
+| Zanzibar 2p | 41.3 → 51.7 (+25%) | 22.5 → 17.1 ms |
+| Coagulation 2p | 85.8 → 97.8 (+14%) | 9.6 → 8.2 ms |
+
+In free-running play the per-tick `match_step` looks slower: fewer ticks per
+frame leave each tick's working set colder. At one tick per frame
+(`--mp-reference-tick-cadence`) it is unchanged (Coagulation 3.08 → 2.9 ms).
+
+**Remaining**, Zanzibar 1p after the change, in ms per frame:
+- `Renderer::draw`: 4.2. It stays on the main thread in 1p because fixed
+  shadows keep the render overlap off.
+- Per-view model collection: 4.3.
+- Depth input: 1.2. `authored_pass` reloads pass metadata every frame.
+- Translated per-frame work, about 2 ms in total. The largest pieces are the
+  shadow frame (0.7) and 41C10's model render (0.4).
+
+Coagulation 1p after the change: 7.0 ms of main-thread CPU per frame in a
+long steady-state run. In ms per frame:
+- Draw plus depth input: 2.2 (`Renderer::draw` 1.7, depth input 0.5).
+- Per-view collection: 1.9.
+- Tick share: 0.7.
+- Effect frame: 0.4.
+- Translated per-frame work, about 1.2 in total: shadow frame 0.33,
+  contrail geometry 0.19, 41C10 0.17, first-person light pose and particle
+  frame about 0.1 each.
+
 ## Continued Coagulation optimization, 2026-10-22 (qualification interrupted)
 
 The new performance targets are still **unverified**. A fresh visible two-player

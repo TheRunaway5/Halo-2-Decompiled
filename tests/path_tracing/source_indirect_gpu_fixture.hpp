@@ -30,8 +30,9 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
         auto scene=pt::build_scene(geometry,materials,lights);
         for(auto& material:scene.materials)material.response={1,0,0,material.response[3]};
         // Isolate secondary transport from the separately tested primary
-        // interior baseline. This receiver retains only its source hue.
-        scene.materials[0].color_guide={1,sampler,0,0};
+        // interior baseline: a lightmap guide is baked energy wherever it
+        // appears (source_indirect.glsl), so this receiver has none.
+        scene.materials[0].color_guide={0,sampler,0,0};
         scene.materials[1].color_guide={1,sampler,0,qualified?2u:0u};
         Vertex a;a.lightmap=1;a.lightmap_uv={.5f,.5f};
         for(auto& triangle:scene.triangles)if(triangle.metadata[0]==1)
@@ -70,9 +71,12 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
         require(std::abs(mean(albedo_changed,channel)-expected(channel,64))<1.1f,
             "Cached secondary lighting bypassed the hit surface's current albedo");
     const auto allocated=gpu.renderer->allocated_bytes();
-    auto unqualified=make_scene(32,128,false);const auto hue_only=draw(unqualified);
-    require(mean(hue_only,0)<1 && mean(hue_only,1)<1 && mean(hue_only,2)<1,
-        "An unqualified hue-only guide supplied cached lighting energy");
+    // Every baked guide is energy (source_indirect.glsl): an untagged
+    // lightmap supplies the same cached 2*RGB as an authenticated one.
+    auto unqualified=make_scene(32,128,false);const auto untagged=draw(unqualified);
+    for(unsigned channel=0;channel<3;++channel)
+        require(std::abs(mean(untagged,channel)-expected(channel))<1.1f,
+            "An untagged baked guide lost its cached secondary 2*RGB energy");
     require(gpu.renderer->allocated_bytes()==allocated,
         "Source-energy qualification allocated another GPU resource");
     const auto sky_off=draw(scene,false);
@@ -114,7 +118,7 @@ int source_indirect_gpu(const std::filesystem::path& shaders) {
 
     // Qualification affects only the diffuse lobe. A perfect GGX mirror still
     // continues to the actual sky at depth2, with no cached diffuse addition.
-    auto mirror_scene=scene;mirror_scene.materials[1].response={0,1,1,0};
+    auto mirror_scene=scene;make_mirror(mirror_scene.materials[1],0);
     mirror_scene.materials[1].base={1,1,1,mirror_scene.materials[1].base[3]};
     const auto mirror_one=draw(mirror_scene,true,&colored_sky);
     gpu.renderer->set_quality(1,2);const auto mirror_two=draw(mirror_scene,true,&colored_sky);

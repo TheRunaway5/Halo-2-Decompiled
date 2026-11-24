@@ -209,6 +209,22 @@ std::vector<Vertex> SourceBspResidentPlan::expand(std::span<const SourceBspPartB
     }
     return result;
 }
+std::vector<Vertex> SourceBspResidentPlan::expand_parts(std::span<const SourceBspPartBinding> bindings,
+    std::span<const std::uint8_t> accept) const {
+    if(bindings.size()!=resident_parts_.size() || accept.size()!=resident_parts_.size())
+        throw FormatError("BSP view bindings differ from resident catalogue");
+    std::size_t count{};
+    for(unsigned part=0;part<resident_parts_.size();++part)
+        if(accept[part] && bindings[part].material)count+=resident_parts_[part].count;
+    std::vector<Vertex> result;result.reserve(count);
+    for(unsigned i=0;i<raw_vertices_.size();++i) {
+        const auto part=raw_part_[i];if(!accept[part])continue;
+        const auto &binding=bindings[part];if(!binding.material)continue;
+        auto v=raw_vertices_[i];v.material=*binding.material;
+        if(binding.stipple)v.source_stipple_level=*binding.stipple;result.push_back(v);
+    }
+    return result;
+}
 SourceBspMergedDrawPlan SourceBspResidentPlan::merge(std::span<const SourceBspPartBinding> bindings,
     std::span<const Vertex> objects,unsigned material_count,unsigned lightmap_count,
     std::uint32_t dynamic_first,std::uint32_t logical_first) const {

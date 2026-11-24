@@ -7,6 +7,19 @@ enum class SurfaceFamily : std::uint32_t {None=0,TerrainBlend=1,LeafDetail=2,Lea
     BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5,OpaqueDetail=6,TerrainBlendThreeStage=7,
     TextureDetail=8,TextureTwoChangeColor=9,TextureFourChangeColor=10,DynamicDetail=11};
 inline constexpr std::uint32_t surface_flag=64u,surface_magic=0x53525448u,surface_record_words=52u;
+// Primary-surface detail flags (GpuMaterial::texture[3]); see world.frag.
+inline constexpr std::uint32_t surface_detail_stage1_flag=8192u,surface_bump_stage2_flag=16384u,
+    surface_bump_stage1_flag=32768u,surface_forward_combiner_flag=65536u;
+// Light-only emitter (glow_material): emits, never occludes shadow rays.
+inline constexpr std::uint32_t light_only_flag=131072u;
+// The surface emits GpuMaterial::emission evenly over its face: the average
+// colour of its self-illumination layers, or the power it gave the bake.
+inline constexpr std::uint32_t uniform_emission_flag=262144u;
+// That emission is the light the surface gave the map's lightmap bake, so
+// lightmapped receivers already hold it.
+inline constexpr std::uint32_t baked_emission_flag=524288u;
+// The authored environment reflection is masked by the base map's alpha.
+inline constexpr std::uint32_t environment_mask_flag=1048576u;
 struct SurfaceSource {
     SurfaceFamily family=SurfaceFamily::None;
     UnlitUv uv;

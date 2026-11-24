@@ -2181,10 +2181,21 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     PhysicsLiveWorldTu15 *native{};
     std::vector<Request> pending;
     std::vector<SourceLoopSoundRequestTu15> loops;
-    ~SourceWeaponAudio(){if(native){native->observe_sound_requests_with_context({});native->observe_loop_sound_requests({});}}
+    ~SourceWeaponAudio(){if(native){native->observe_sound_requests_with_context({});native->observe_loop_sound_requests({});
+        native->answer_finished_loop_sounds({});}}
   } source_weapon_audio;
   const auto audio_bsp=cache.load_multiplayer_audio_bsp(options.bsp);
   bool ambient_unavailable_reported{};
+  // Loop sounds the native loop lane rejected (a controller it lacks). BSP
+  // background sounds among them keep the main-track ambience lane. HALO2_REFERENCE_MULTIPLAYER_AMBIENT_LANE=1 keeps that lane
+  // for every BSP background sound instead of the original 18E970 owner.
+  std::set<std::uint32_t> rejected_object_loops;
+  // Simulation tick of the last source object-audio step, and the real time
+  // accumulated since it.
+  std::uint32_t object_audio_tick=0xffffffffu;
+  float object_audio_elapsed{};
+  static const bool reference_ambient_lane=[]{
+    const auto *p=std::getenv("HALO2_REFERENCE_MULTIPLAYER_AMBIENT_LANE");return p && *p;}();
   if (!options.mute)
     try {
       const auto seed=platform.desktop->fresh_secondary_random();
@@ -2229,6 +2240,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     source_weapon_audio.native=&source_weapon_audio.world->tu15_world();
     source_weapon_audio.world->tu15_world().observe_loop_sound_requests([&](const auto& request) {
       source_weapon_audio.loops.push_back(request);
+    });
+    // A finished one-shot frees its loop row, as 21A250/18D5A0 do.
+    source_weapon_audio.native->answer_finished_loop_sounds([&](const auto& request) {
+      return audio->object_loop_finished(request);
     });
     source_weapon_audio.native->observe_sound_requests_with_context([&](std::uint32_t sound,
         std::span<const std::byte,160> raw,std::optional<std::uint32_t> zoom_unit) {
@@ -2383,11 +2398,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   const auto update_audio_listeners=[&]{
     if(!audio)return;
     std::vector<Vec3> positions;
+    // Each camera's head frame places that player's 3D voices (HRTF).
+    std::vector<SourceObjectAudioViewTu15::Orientation> frames;
     for(const auto id:ids)if(current.players[id].connected){
       const auto &p=current.players[id];const auto &biped=biped_for(p);
-      positions.push_back(player_camera(p,biped,biped.camera_field_of_view,content.player_screen_offset).position);
+      const auto camera=player_camera(p,biped,biped.camera_field_of_view,content.player_screen_offset);
+      positions.push_back(camera.position);
+      frames.push_back({camera.oriented?camera.forward:direction(camera.yaw,camera.pitch),
+          camera.oriented?camera.up:Vec3{0,0,1}});
     }
-    audio->listeners(positions);
+    audio->listeners(positions,frames);
   };
   update_audio_listeners();
   const auto consume_journal_weapon_effects=[&]{
@@ -4389,6 +4409,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::unique_ptr<MultiplayerRuntimeAuthority::Frame> source_frame;
   bool ticked_ahead=false,skip_next=false,stop_next=false;
   MultiplayerFrameTiming pending_timing;
+  // The presented state is rewritten in place each frame, keeping its storage
+  // (HALO2_REFERENCE_FRESH_PRESENTED_STATE=1 builds a new copy every frame).
+  MultiplayerState presented_state;
   // Overlap only where every borrower is known: no observers, no network
   // session (its frame recording would publish before the draw), and not
   // HALO2_REFERENCE_SYNC_RENDER. The choice is constant for the run.
@@ -5450,7 +5473,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       gameplay_fade.consume(*current.source_gameplay_fade,local_fade_players);
     }
     if(!world_effect_tick || *world_effect_tick!=current.tick)update_world_effects();
-    auto shown=multiplayer_presentation(previous,current,blend);
+    static const bool fresh_presented_state=[]{const auto *p=std::getenv("HALO2_REFERENCE_FRESH_PRESENTED_STATE");return p && *p;}();
+    if(fresh_presented_state)presented_state=multiplayer_presentation(previous,current,blend);
+    else multiplayer_presentation(presented_state,previous,current,blend);
+    auto &shown=presented_state;
     if(live_client() && joined) {
       // Dead-reckoned roots replace the interpolated ones; posed objects
       // carry their newest WORLD nodes rigidly with the same motion.
@@ -5489,8 +5515,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     const double world_pose_tick=native_render_frame?
         double(world_previous.tick)+(double(world_current.tick)-world_previous.tick)*world_blend:pose_tick;
     const auto &world_simulation=native_render_frame?native_render_frame->simulation():live_match().simulation();
-    auto world_shown=native_render_frame?
-        multiplayer_presentation(world_previous,world_current,world_blend):shown;
+    // Without a native render frame the WORLD presentation is shown itself,
+    // which nothing changes after this point; only the native frame needs its
+    // own sample (and its predicted local roots below).
+    std::optional<MultiplayerState> native_world_shown;
+    if(native_render_frame)native_world_shown=multiplayer_presentation(world_previous,world_current,world_blend);
+    auto &world_shown=native_render_frame?*native_world_shown:shown;
     SourceWorldInterpolation native_frame_nodes;
     if(native_render_frame) {
       native_frame_nodes=native_render_frame->world_interpolation();
@@ -6324,9 +6354,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           gameplay_first_person_camera_angle(biped.camera_field_of_view,layout):source_angles.projection_angle;
       camera.field_of_view=source_angles.projection_angle*57.295779513f;
       const auto audio_location=atmosphere.location_at(camera.position);
+      // The host's source World runs 18E970's BSP background sound from this
+      // view; replicated clients and the reference lane use the main-track lane.
+      const bool source_background_sound=audio && !live_client() && source_weapon_audio.world && !reference_ambient_lane;
       object_audio_views[i]=SourceObjectAudioViewTu15{camera.position,std::int16_t(audio_location.cluster),
           SourceObjectAudioViewTu15::Orientation{camera.oriented?camera.forward:direction(camera.yaw,camera.pitch),
-              camera.oriented?camera.up:Vec3{0,0,1}},audio_location.leaf};
+              camera.oriented?camera.up:Vec3{0,0,1}},audio_location.leaf,source_background_sound};
       if(audio && !live_client() && seated_view && source_weapon_audio.world) {
         if(const auto input=source_weapon_audio.world->vehicle_audio_listener_inputs(
             p.source_unit,seated_view->camera_mode,*object_audio_views[i])) {
@@ -6346,9 +6379,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         // seat interpolation and observer-location fallback.
         const auto& listener=*object_audio_views[i];
         const auto &audio_weather=live_match().simulation().weather();
-        const auto targets=multiplayer_ambient_targets(audio_bsp,atmosphere,listener.position,
+        auto targets=multiplayer_ambient_targets(audio_bsp,atmosphere,listener.position,
             listener.cluster,audio_weather.current,
             audio_weather.stopped==0);
+        if(source_background_sound)
+          std::erase_if(targets,[&](const auto &target){return !rejected_object_loops.contains(target.sound);});
         audio->ambient(targets,audio_elapsed);
       }catch(const std::exception&e){if(!ambient_unavailable_reported){ambient_unavailable_reported=true;
         std::cerr<<"Multiplayer ambience: "<<e.what()<<'\n';}}
@@ -9174,14 +9209,52 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       // Every input above is the actual submitted local camera. The original
       //18EE50 owner performs object/PVS/distance decisions; copied requests
       //are consumed only after its read-only observer boundary has closed.
-      audio->object_loop_listeners(options.bsp,object_audio_views);
-      source_weapon_audio.world->tu15_world().step_native_object_audio(object_audio_views,audio_elapsed);
-      for(const auto& request:source_weapon_audio.loops)try{audio->object_loop_request(request);}
-        catch(const std::exception& error){
-          const auto key="Object loop "+std::to_string(request.arguments[0])+": "+error.what();
-          if(reported_world_effect_gaps.insert(key).second)std::cerr<<key<<'\n';
-        }
-      source_weapon_audio.loops.clear();audio->object_loop_frame(audio_elapsed);
+      // The original runs this sound update once per 30 Hz game frame: step
+      // it once per simulation tick with the real time since the last step.
+      object_audio_elapsed+=audio_elapsed;
+      if(current.tick!=object_audio_tick) {
+        object_audio_tick=current.tick;
+        const float elapsed=std::exchange(object_audio_elapsed,0.f);
+        // HALO2_OBJECT_AUDIO_TIMING=1 reports this step's mean cost.
+        static const bool time_object_audio=std::getenv("HALO2_OBJECT_AUDIO_TIMING")!=nullptr;
+        static double object_audio_ms{};static unsigned object_audio_steps{};
+        const auto object_audio_started=std::chrono::steady_clock::now();
+        struct Timed {bool on;std::chrono::steady_clock::time_point start;double &total;unsigned &steps;
+          ~Timed(){if(!on)return;total+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count();
+            if(++steps%600==0){std::cout<<"Object audio step: mean_ms="<<total/600<<" steps="<<steps<<'\n';total=0;}}}
+          timed{time_object_audio,object_audio_started,object_audio_ms,object_audio_steps};
+        audio->object_loop_listeners(options.bsp,object_audio_views);
+        // 18DC70 scales weather-flagged background sound by the actual weather.
+        source_weapon_audio.world->tu15_world().publish_native_weather(live_match().simulation().weather());
+        // 129170 fades the listener's sound environments by the sound frame
+        // time; their reverbs then reach the mixer.
+        source_weapon_audio.world->tu15_world().publish_native_sound_elapsed(elapsed);
+        source_weapon_audio.world->tu15_world().step_native_object_audio(object_audio_views,elapsed);
+        audio->sound_environments(source_weapon_audio.world->tu15_world().native_sound_environments());
+        audio->global_sound_environment(source_weapon_audio.world->tu15_world().native_sound_global_environment());
+        for(const auto& request:source_weapon_audio.loops)try{audio->object_loop_request(request);}
+          catch(const std::exception& error){
+            rejected_object_loops.insert(request.arguments[0]);
+            const auto key="Object loop "+std::to_string(request.arguments[0])+": "+error.what();
+            if(reported_world_effect_gaps.insert(key).second)std::cerr<<key<<'\n';
+          }
+        source_weapon_audio.loops.clear();audio->object_loop_frame(elapsed);
+        // 221A70/221E30: obstruction and occlusion through the structure.
+        auto& native_world=source_weapon_audio.world->tu15_world();
+        const SourceSoundObstructionWorldTu15 structure{
+            [&native_world](std::uint32_t address,std::size_t size){return native_world.memory().view(address,size);},
+            [&](Vec3 from,Vec3 to)->std::optional<float>{
+              const auto delta=to-from;const float distance=length(delta);
+              if(!(distance>0.f))return std::nullopt;
+              if(const auto hit=live_match().simulation().structure_collision().raycast(from,delta*(1.f/distance),distance))
+                return hit->distance/distance;
+              return std::nullopt;
+            }};
+        audio->obstruction_frame(elapsed,structure,[&](Vec3 point){
+          const auto location=atmosphere.location_at(point);
+          return SourceSoundObstructionPointTu15{point,std::int32_t(location.cluster),std::int32_t(location.leaf)};
+        });
+      }
     }
     if(audio && live_client() && current.source_object_loop_emitters) {
       audio->object_loop_listeners(options.bsp,object_audio_views);
@@ -9539,15 +9612,28 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     const bool captured_frame=capture;
     // The presented poses served the per-view render kernels; nothing after
     // this point reads them when the overlap runs (the lens finish commits
-    // query records; the native-shadow inspection keeps the overlap off).
+    // query records; a fixed-shadow frame releases them after its
+    // render-memory borrow, below).
     // Restoring here lets the next tick overlap the draw on simulation state,
     // exactly what the sequential order ticks on after its end-of-iteration
     // restore. HALO2_REFERENCE_SCOPE_THROUGH_DRAW=1 keeps the scope through
     // the draw (and therefore the draw on this thread).
     static const bool scope_through_draw=[]{const auto *p=std::getenv("HALO2_REFERENCE_SCOPE_THROUGH_DRAW");return p && *p;}();
-    if(overlap_allowed && !native_shadow_frame && !scope_through_draw)presented_model_scope.reset();
+    // A fixed-shadow frame (single view) builds its depth inputs inside a
+    // read-only render-memory borrow. They are sealed before the borrow
+    // closes, so the draw no longer needs it and can overlap the next tick
+    // like any other frame. HALO2_REFERENCE_SERIAL_SHADOW_DRAW=1 keeps the
+    // draw inside the borrow on this thread, as before.
+    static const bool serial_shadow_draw=[]{const auto *p=std::getenv("HALO2_REFERENCE_SERIAL_SHADOW_DRAW");return p && *p;}();
+    const bool shadow_receiver_frame=native_shadow_frame && reference_shadow_stats.receiver_draws;
+    const bool overlap_frame=overlap_allowed && (!native_shadow_frame || !serial_shadow_draw);
+    // Only an overlapped fixed-shadow draw is sealed; a serial draw (observers,
+    // network session, reference switches) stays inside its borrow.
+    const bool sealed_shadow_draw=native_shadow_frame && overlap_frame && !scope_through_draw;
+    if(overlap_frame && !native_shadow_frame && !scope_through_draw)presented_model_scope.reset();
     std::function<void()> overlap;
-    if(overlap_allowed && !native_shadow_frame && !presented_model_scope) {
+    const auto arm_overlap=[&] {
+      if(!overlap_frame || presented_model_scope)return;
       source_frame.reset();
       overlap=[&]{
         pending_timing=MultiplayerFrameTiming{};
@@ -9556,8 +9642,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         measured_at=saved;
         ticked_ahead=true;skip_next=step==Advance::skip;stop_next=step==Advance::stop;
       };
-    }
-    const auto submit=[&] {
+    };
+    if(!native_shadow_frame)arm_overlap();
+    // prepare, when given with an armed overlap, runs on the draw thread just
+    // before the draw (see the fixed-shadow branch below).
+    const auto submit=[&](const std::function<void()>* prepare=nullptr) {
       // The May 2003 renderer has the stencil lightmap/sun shadow and no
       // retail projected shadow buffer. With pStencil active a caster keeps
       // exactly one shadow in single view, as it already does in split
@@ -9628,11 +9717,18 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         }
         receipt<<']';shadow_capture_receipt=receipt.str();
       }
-      timing.submitted=renderer.draw(views.front().camera,
+      const auto draw=[&](const std::function<void()>* overlapped) {
+        return renderer.draw(views.front().camera,
                       capture_path,
                       {}, false, {}, {}, hud_vertices, views,{},pause_backdrops,
                       nullptr,nullptr,false,host_preparation?&*host_preparation:nullptr,
-                      overlap?&overlap:nullptr);
+                      overlapped);
+      };
+      if(prepare && overlap)native_overlap_run([&]{(*prepare)();timing.submitted=draw(nullptr);},overlap);
+      else {
+        if(prepare)(*prepare)();
+        timing.submitted=draw(overlap?&overlap:nullptr);
+      }
       if(timing.submitted && !shadow_capture_receipt.empty()) {
         const auto& gpu=renderer.frame_timing();
         std::cout<<shadow_capture_receipt<<",\"draws\":{\"world_native_shadow_generate_prepared_draws\":"
@@ -9643,52 +9739,105 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             <<"},\"completed\":true}\n";
       }
     };
-    if(native_shadow_frame && reference_shadow_stats.receiver_draws) {
+    // Depth-input owners outlive the borrow, so an overlapped draw can use
+    // inputs completed from sealed cameras. RestoreDepthBanks puts the view
+    // vertex banks back after the draw.
+    std::vector<SourceWorldDepthInput> depth_inputs;depth_inputs.reserve(views.size());
+    std::deque<SourceModelDepthInput> model_depth_inputs;
+    struct RestoreBank {std::span<const Vertex>* bank;std::span<const Vertex> previous;const SourceModelDepthInput** owner;};
+    std::vector<RestoreBank> restore_banks;
+    struct RestoreDepthBanks {
+      std::vector<RestoreBank>& banks;
+      ~RestoreDepthBanks(){for(auto& bank:banks){*bank.bank=bank.previous;*bank.owner=nullptr;}}
+    } restore_depth_banks{restore_banks};
+    // Builds each view's ordinary and model depth inputs from world_depth(i)
+    // and binds them to the views, in view order, with the target use of the
+    // thread that draws.
+    const auto complete_depth_inputs=[&](const RendererTargets::Use& targets,const auto& world_depth) {
+      for(unsigned i=0;i<views.size();++i) {
+        depth_inputs.push_back(world_depth(i));
+        views[i].source_world_depth=&depth_inputs.back();
+        views[i].source_world_depth_targets=&targets;
+        std::vector<const SourceShadowRawDraw*> receivers;
+        if(views[i].raw_source_shadows)
+          for(const auto& root:views[i].raw_source_shadows->roots)
+          for(const auto& draw:root.receivers)receivers.push_back(&draw);
+        const SourceShadowRawPlan empty_apply_plan;
+        const auto& apply_plan=views[i].raw_source_shadows?*views[i].raw_source_shadows:empty_apply_plan;
+        const auto selected=source_model_depth_apply_selections_tu15(model_depth_selections[i],apply_plan);
+        const auto bind=[&](std::span<const SourceModelDepthSelection> selections,
+            std::span<const Vertex>& vertices,const SourceModelDepthInput*& owner) {
+          if(selections.empty())return;
+          model_depth_inputs.push_back(source_model_depth_input_tu15(depth_inputs.back(),targets,
+              vertices,selections,receivers,mesh.materials));
+          auto& input=model_depth_inputs.back();
+          if(options.model_depth_vertices_observer)
+            options.model_depth_vertices_observer(i,world_current.tick,selections,vertices,input.vertices());
+          restore_banks.push_back({&vertices,vertices,&owner});vertices=input.vertices();owner=&input;
+        };
+        bind(selected,views[i].vertices,views[i].source_model_depth);
+        for(auto& object:model_object_draws[i])if(object.source_model_selection) {
+          const auto parts=source_model_depth_apply_selections_tu15(std::span(&*object.source_model_selection,1),apply_plan);
+          bind(parts,object.vertices,object.source_model_depth);
+        }
+      }
+    };
+    // Cameras sealed inside the borrow, and the draw thread's target use,
+    // for an overlapped draw.
+    std::vector<SourceWorldDepthSealedCameraTu15> sealed_cameras;
+    std::optional<RendererTargets::Use> draw_targets;
+    if(shadow_receiver_frame) {
       if(!bsp_shaders || !reference_shadow_targets || !reference_shadow_targets->valid())
         throw FormatError("Native shadow receiver lost its actual BSP or Renderer target owner");
       source_render_world->inspect_render_memory([&](const auto& borrow,const auto&) {
-        std::vector<SourceWorldDepthInput> depth_inputs;depth_inputs.reserve(views.size());
-        std::deque<SourceModelDepthInput> model_depth_inputs;
-        struct RestoreBank {std::span<const Vertex>* bank;std::span<const Vertex> previous;const SourceModelDepthInput** owner;};
-        std::vector<RestoreBank> restore_banks;
-        struct RestoreDepthBanks {
-          std::vector<RestoreBank>& banks;
-          ~RestoreDepthBanks(){for(auto& bank:banks){*bank.bank=bank.previous;*bank.owner=nullptr;}}
-        } restore_depth_banks{restore_banks};
-        for(unsigned i=0;i<views.size();++i) {
+        for(unsigned i=0;i<views.size();++i)
           if(!shadow_main_receipts[i])throw FormatError("Native shadow receiver lacks its completed main camera");
-          depth_inputs.push_back(source_world_depth_input_completed_main_tu15(
-              shadow_main_receipts[i]->bind(borrow,i),*reference_shadow_targets,cache,mesh,
-              *bsp_shaders,bsp_vertex_plans[i]));
-          views[i].source_world_depth=&depth_inputs.back();
-          views[i].source_world_depth_targets=&*reference_shadow_targets;
-          std::vector<const SourceShadowRawDraw*> receivers;
-          if(views[i].raw_source_shadows)
-            for(const auto& root:views[i].raw_source_shadows->roots)
-            for(const auto& draw:root.receivers)receivers.push_back(&draw);
-          const SourceShadowRawPlan empty_apply_plan;
-          const auto& apply_plan=views[i].raw_source_shadows?*views[i].raw_source_shadows:empty_apply_plan;
-          const auto selected=source_model_depth_apply_selections_tu15(model_depth_selections[i],apply_plan);
-          const auto bind=[&](std::span<const SourceModelDepthSelection> selections,
-              std::span<const Vertex>& vertices,const SourceModelDepthInput*& owner) {
-            if(selections.empty())return;
-            model_depth_inputs.push_back(source_model_depth_input_tu15(depth_inputs.back(),*reference_shadow_targets,
-                vertices,selections,receivers,mesh.materials));
-            auto& input=model_depth_inputs.back();
-            if(options.model_depth_vertices_observer)
-              options.model_depth_vertices_observer(i,world_current.tick,selections,vertices,input.vertices());
-            restore_banks.push_back({&vertices,vertices,&owner});vertices=input.vertices();owner=&input;
-          };
-          bind(selected,views[i].vertices,views[i].source_model_depth);
-          for(auto& object:model_object_draws[i])if(object.source_model_selection) {
-            const auto parts=source_model_depth_apply_selections_tu15(std::span(&*object.source_model_selection,1),apply_plan);
-            bind(parts,object.vertices,object.source_model_depth);
-          }
+        if(sealed_shadow_draw) {
+          // Only the completed main cameras need the borrow.
+          for(unsigned i=0;i<views.size();++i)
+            sealed_cameras.push_back(source_world_depth_sealed_camera_tu15(
+                shadow_main_receipts[i]->bind(borrow,i),*reference_shadow_targets));
+          return;
         }
+        complete_depth_inputs(*reference_shadow_targets,[&](unsigned i) {
+          return source_world_depth_input_completed_main_tu15(shadow_main_receipts[i]->bind(borrow,i),
+              *reference_shadow_targets,cache,mesh,*bsp_shaders,bsp_vertex_plans[i]);
+        });
         submit();
-        for(auto& view:views){view.source_world_depth=nullptr;view.source_world_depth_targets=nullptr;}
       });
-    } else submit();
+    }
+    if(sealed_shadow_draw) {
+      // The borrow is closed. Release the presented poses and the main-camera
+      // observer now, as the end of the iteration would before the next tick,
+      // then draw on the overlap thread. The draw thread first completes the
+      // depth inputs from the sealed cameras (Cache, Mesh and the view
+      // selections only; no source memory) while this thread ticks.
+      // HALO2_REFERENCE_MAIN_THREAD_DEPTH_INPUT=1 completes them here first.
+      static const bool main_thread_depth_input=[]{const auto *p=std::getenv("HALO2_REFERENCE_MAIN_THREAD_DEPTH_INPUT");return p && *p;}();
+      presented_model_scope.reset();
+      shadow_main_observer.reset();
+      arm_overlap();
+      const auto complete_sealed=[&](const RendererTargets::Use& targets) {
+        if(shadow_receiver_frame)complete_depth_inputs(targets,[&](unsigned i) {
+          return source_world_depth_input_sealed_main_tu15(sealed_cameras.at(i),targets,
+              cache,mesh,*bsp_shaders,bsp_vertex_plans[i]);
+        });
+      };
+      if(main_thread_depth_input)complete_sealed(*reference_shadow_targets);
+      const std::function<void()> prepare=[&] {
+        // A target use is confined to the thread that acquired it, so the
+        // draw thread takes its own use of the same attachments. The depth
+        // inputs and the Renderer check its generation and device by value.
+        draw_targets.emplace(renderer.target_resources().acquire());
+        if(!main_thread_depth_input)complete_sealed(*draw_targets);
+        for(auto& view:views) {
+          if(view.raw_source_shadow_targets)view.raw_source_shadow_targets=&*draw_targets;
+          if(view.source_world_depth_targets)view.source_world_depth_targets=&*draw_targets;
+        }
+      };
+      submit(&prepare);
+    } else if(!shadow_receiver_frame) submit();
+    for(auto& view:views){view.source_world_depth=nullptr;view.source_world_depth_targets=nullptr;}
     if(reference_shadow_frame && options.reference_live_shadow_gpu_observer)
       options.reference_live_shadow_gpu_observer(0,current.tick,timing.submitted,reference_shadow_stats);
     if(source_particle_world && source_lens_queries)

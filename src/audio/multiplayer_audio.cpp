@@ -1,4 +1,5 @@
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/sound_i3dl2_tu15.hpp"
 #include "halo2/menu_music.hpp"
 #include "halo2/sound_driver_parameters.hpp"
 #include "halo2/sound_variation.hpp"
@@ -15,6 +16,8 @@
 #include "halo2/source_loop_detail_control_tu15.hpp"
 #include "halo2/source_loop_phased_output_tu15.hpp"
 #include "halo2/source_loop_combined_listener_tu15.hpp"
+#include "halo2/source_sound_doppler_tu15.hpp"
+#include "halo2/source_sound_hrtf_tu15.hpp"
 #include "halo2/math.hpp"
 #include "halo2/mcc_mono_distortion_definition.hpp"
 #include <algorithm>
@@ -31,6 +34,15 @@
 #include <utility>
 
 namespace halo2 {
+bool plays_in_classic_audio(const Cache &cache,std::uint32_t sound) {
+  if(sound==null_datum)return false;
+  if(!cache.is_mcc())return true;
+  const auto *tag=cache.query_tag({.handle=TagHandle{sound},
+      .group=TagGroup::from_string("snd!"),.require_address=true,.minimum_size=28});
+  if(!tag)throw FormatError("Classic playback lost its resident MCC sound record");
+  // MCC snd! bit 11 is Play Only In Remastered Mode.
+  return !(Bytes(cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u);
+}
 namespace {
 constexpr auto none=0xffffffffu;
 void validate_loop_packet_parameters(const MultiplayerLoopPacketParametersTu15&);
@@ -239,6 +251,9 @@ struct MultiplayerAudio::State {
     std::vector<unsigned> chunk_counts;
     std::vector<std::shared_ptr<const std::vector<std::size_t>>> chunk_ends;
     std::vector<std::uint16_t> chances;
+    // Every permutation decodes to identical channels: a mono sound, which
+    // DirectSound 3D (and so the HRTF stage) can place.
+    bool mono=true;
     unsigned rate_index{},sound_class{};
   };
   struct ScriptVoiceRecord {
@@ -260,12 +275,35 @@ struct MultiplayerAudio::State {
     std::optional<Vec3> position;std::optional<SoundPlaybackFade> fade;float fade_db{};
     std::shared_ptr<ScriptVoiceRecord> script_record;
     std::optional<unsigned> forced_script_permutation;
+    // A combined loop's four source mix-bin amplitudes (front-left,
+    // front-right, back-left, back-right), published by 2216D0.
+    std::optional<std::array<float,4>> combined;
     std::optional<SdlSoundPlatform::VoiceReceipt> playback;
     std::shared_ptr<const unsigned char> record;
     std::optional<CompanionCompletion> companion;bool loop_packet{};
     std::map<std::uint64_t,std::int8_t> packet_gains;
     std::optional<ChunkSequence> chunks;
     std::uint16_t location_flags{};
+    // A 3D voice's source velocity, and whether its pitch takes the Doppler
+    // shift (every located impulse; a loop by its request source flag 2).
+    Vec3 velocity{};bool doppler=true;
+    // 220E00's eased obstruction and occlusion, and 129790's room gain loss
+    // in dB, from the last obstruction frame.
+    float obstruction{},occlusion{},room_gain_db{};bool obstructed{};
+    // The last line-test thickness and the game frames since it was taken.
+    std::optional<float> line_obstruction;unsigned line_age{};
+    // A loop packet's gain before its control gain (track gain plus the
+    // location's dB), so a changed scale can be applied on its own.
+    float loop_gain_db{};
+    // A centered 0x1000 one-shot's location and its gain before its control
+    // gain: 128CA0 takes its gain from the location's scale every frame, after
+    // 129790's losses.
+    std::optional<std::array<std::byte,68>> centered_location;float impulse_gain_db{};
+    // A listener-relative (type 2) sound's position, already in its
+    // listener's head frame in the SDK's axes. 129790 hands such a location
+    // to the driver without 142700's world transform, an obstruction
+    // estimate or Doppler; its distance is the vector's length.
+    std::optional<Vec3> head_relative;
     std::optional<tu15_sound_mono_distortion::Parameters> effect;};
   struct PacketCompletion {
     SdlSoundCompletion value;
@@ -275,7 +313,7 @@ struct MultiplayerAudio::State {
     std::optional<CompanionCompletion> companion;VoiceReceipt voice;};
   struct Ambient {float gain{},linear_db{};MultiplayerAmbientTarget target;std::vector<std::uint64_t> voices;};
   struct ObjectLoopTrack {float control{};std::uint64_t voice{};};
-  struct ObjectLoopDetailVoice {std::uint64_t voice{};Vec3 offset;bool attached=true;};
+  using ObjectLoopDetailVoice=SourceLoopPhasedDetailVoiceTu15;
   struct ObjectLoop {
     LoopingSound definition;std::uint32_t owner=none;
     std::array<std::byte,68> location{};
@@ -283,12 +321,15 @@ struct MultiplayerAudio::State {
     std::vector<std::int32_t> detail_deadlines;
     std::vector<ObjectLoopDetailVoice> detail_voices;
     bool stopping{},seen{},retain{},alternate{},disable_details{};
+    std::uint16_t source_flags{};
   };
   std::shared_ptr<const Cache> cache_owner;
   // Retained MCC effect definitions (built on first effect use) and the
   // record-1 parameters the next created voice installs.
   std::shared_ptr<const MccSoundEffectDefinitions> effect_definitions;
   std::optional<tu15_sound_mono_distortion::Parameters> pending_effect;
+  // The next impulse's source velocity (its request's location+0x1C).
+  std::optional<Vec3> pending_velocity;
   // 18FE80/224740/2290C0: an effect row's first DSP instance; its template
   // must be sfx_mono_distortion (record 1, mixbin 13) to send. Rows without
   // a DSP instance play dry. Parameters convert the instance's selected
@@ -347,6 +388,18 @@ struct MultiplayerAudio::State {
   SoundDriverParameterConstants constants;
   SoundCreateConstants distance_constants;
   std::vector<Vec3> listeners;
+  // Each listener's head frame, when its caller supplied one.
+  std::vector<std::optional<SourceObjectAudioViewTu15::Orientation>> listener_frames;
+  // Each object-audio listener's velocity, from its position on successive
+  // game frames (127400 takes its camera's velocity), and those positions.
+  std::vector<Vec3> listener_velocities,listener_previous;
+  // Whether the listener's reverbs have been published (sound_environments).
+  bool reverb_bound=false;
+  // The global sound environment's gains and filter (2279E0 clamps gains).
+  SourceSoundGlobalEnvironmentTu15 global_environment;
+  // The executable's HRTF kernels, when it supplies them.
+  // HALO2_REFERENCE_CENTERED_3D=1 restores centered 3D voices.
+  std::optional<SourceSoundHrtfTu15> hrtf;
   SourceObjectAudioViewsTu15 loop_views;
   std::shared_ptr<const MultiplayerAudioBsp> loop_bsp;
   std::size_t loop_bsp_index{};
@@ -356,6 +409,49 @@ struct MultiplayerAudio::State {
   std::map<std::uint32_t,Ambient> ambience;
   std::map<std::pair<std::uint32_t,std::uint32_t>,ObjectLoop> object_loops;
   SourceLoopPhasedStateTu15 phased_loops;
+  // 129100's portal estimate for each cluster that a centered loop with
+  // location flag 0x1000 names: the door occlusion between it and the first
+  // local view, from obstruction_frame. 129100 asks only for sounds in the
+  // loaded structure BSP (TU1.5 0x474C24, retail 0x4686C4), read there too.
+  std::map<std::int16_t,float> centered_occlusion;
+  std::optional<std::int16_t> loaded_bsp;
+  // 129790: such a sound's scale (location +4) loses its sound class's share
+  // of that occlusion (transmission +0x50), at most all of it; one left in
+  // another BSP, which has no estimate, falls silent. A loop voice's gain
+  // takes this scale (222E10 hands the sound's own location scale to
+  // 127CF0), while its track's slewed control follows the owner's unreduced
+  // scale and sets only its pitch.
+  float centered_scale(const std::array<std::byte,68>& location,const SoundVariationDefinition& sound)const{
+    const Bytes l(location);const float scale=l.f32(4);
+    if((std::to_integer<unsigned>(location[3])&15u) || !(l.u16(0)&0x1000u) || !loaded_bsp)return scale;
+    if(short_at(l,0x2e)!=*loaded_bsp)return 0.f;
+    const auto found=centered_occlusion.find(short_at(l,0x2c));
+    if(found==centered_occlusion.end())return scale;
+    return scale*(1.f-std::clamp(found->second*Bytes(sound.sound_class).f32(0x50),0.f,1.f));
+  }
+  // 129790 runs after the loop owners each frame and 222E10 then sets the
+  // loop voices' gains, so a centered 0x1000 sound's loss reaches its
+  // voices in the frame it is estimated.
+  void refresh_centered_gains(){
+    const auto centered=[](const std::array<std::byte,68>& l){
+      return !(std::to_integer<unsigned>(l[3])&15u) && (Bytes(l).u16(0)&0x1000u);};
+    const auto refresh=[&](const std::array<std::byte,68>& location,std::uint64_t id){
+      const auto found=voices.find(id);if(found==voices.end() || !found->second.loop_packet)return;
+      auto& voice=found->second;const auto& definition=bank(voice.sound,voice.pitch_range).definition;
+      const float gain=voice.loop_gain_db+source_sound_control_gain(definition,centered_scale(location,definition));
+      if(gain==voice.gain_db)return;
+      voice.gain_db=gain;parameters(voice,parameters(voice));
+    };
+    for(const auto& [key,loop]:object_loops)if(centered(loop.location))
+      for(const auto& track:loop.tracks)if(track.voice)refresh(loop.location,track.voice);
+    for(const auto& [key,owner]:phased_loops.owners)if(centered(owner.location))
+      for(const auto& track:owner.tracks)for(const auto& voice:track.voices)refresh(owner.location,voice.id);
+    for(auto& [id,voice]:voices)if(voice.centered_location){
+      const auto& definition=bank(voice.sound,0).definition;
+      const float gain=voice.impulse_gain_db+source_sound_control_gain(definition,centered_scale(*voice.centered_location,definition));
+      if(gain!=voice.gain_db){voice.gain_db=gain;parameters(voice,parameters(voice));}
+    }
+  }
   std::function<std::uint32_t()> loop_fresh_secondary;
   std::shared_ptr<const unsigned char> loop_random_domain;
   std::vector<RetiredCompletion> retired;
@@ -370,6 +466,13 @@ struct MultiplayerAudio::State {
     constants=*cache.original_data()->sound_driver_parameter_constants;
     if(!cache.original_data()->sound_create_constants)throw FormatError("Authored world audio requires selected original distance constants");
     distance_constants=*cache.original_data()->sound_create_constants;
+    static const bool centered_3d=std::getenv("HALO2_REFERENCE_CENTERED_3D")!=nullptr;
+    // HALO2_REFERENCE_HRTF_UNITY=1: the earlier unity-power kernel scale
+    // rather than the voice processor's.
+    static const auto hrtf_scale=std::getenv("HALO2_REFERENCE_HRTF_UNITY")?SourceSoundHrtfScaleTu15::UnityPower:
+        SourceSoundHrtfScaleTu15::VoiceProcessor;
+    if(!centered_3d && cache.original_data()->sound_sdk_spatial_data)
+      hrtf.emplace(*cache.original_data()->sound_sdk_spatial_data,hrtf_scale);
   }
   static const Cache& retained_cache(const std::shared_ptr<const Cache>&owner){
     if(!owner || !owner.use_count())throw FormatError("Native Audio requires a retaining Cache owner");
@@ -481,14 +584,7 @@ struct MultiplayerAudio::State {
   }
   bool classic_sound(std::uint32_t sound)const {
     metadata_current();
-    if(!cache.is_mcc())return true;
-    const auto *tag=cache.query_tag({.handle=TagHandle{sound},
-        .group=TagGroup::from_string("snd!"),.require_address=true,.minimum_size=28});
-    if(!tag)throw FormatError("Classic playback lost its resident MCC sound record");
-    // Pinned Halo2MCC snd! bit11 is Play Only In Remastered Mode. Apply
-    // this before resource loading, variation and voice creation for every
-    // native caller, including replicated FP clocks and world effects.
-    return !(Bytes(cache.read_tag_bytes(tag->address,28)).u16(0)&0x800u);
+    return plays_in_classic_audio(cache,sound);
   }
   std::uint32_t& common_secondary(){return shared_variation_random?*shared_variation_random:random.seed;}
   Bank &bank(std::uint32_t sound,unsigned pitch=0){
@@ -516,6 +612,7 @@ struct MultiplayerAudio::State {
         if(ends.back()!=pcm.frames())throw FormatError("Native PCM chunk interval lost its final flush");
       }else if(encoded.packet_chunks.size()<=1)ends.push_back(pcm.frames());
       b.chunk_ends.push_back(std::make_shared<const std::vector<std::size_t>>(std::move(ends)));
+      for(std::size_t n=0;b.mono && n+1<pcm.stereo.size();n+=2)b.mono=pcm.stereo[n]==pcm.stereo[n+1];
       b.pcm.push_back(std::make_shared<const std::vector<float>>(std::move(pcm.stereo)));
       b.chunk_counts.push_back(unsigned(encoded.packet_chunks.size()));
       b.chances.push_back(Bytes(b.definition.permutations[p]).u16(2));
@@ -523,10 +620,13 @@ struct MultiplayerAudio::State {
     return banks.emplace(key,std::move(b)).first->second;
   }
   float distance_gain(const Voice &v)const {
-    if(!v.position)return 1.f;
+    if(!v.position && !v.head_relative)return 1.f;
     if(listeners.empty())return 0.f;
     auto nearest=std::bit_cast<float>(distance_constants.maximum_float_bits);
-    for(const auto &listener:listeners){
+    if(v.head_relative){
+      const auto delta=*v.head_relative;
+      nearest=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
+    }else for(const auto &listener:listeners){
       //129570 computes (z*z+y*y)+x*x before129450's square root.
       const auto delta=listener-*v.position;
       const float squared=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
@@ -542,13 +642,53 @@ struct MultiplayerAudio::State {
     return std::bit_cast<float>(source_sound_distance_gain(std::bit_cast<std::uint32_t>(minimum),
         std::bit_cast<std::uint32_t>(maximum),std::bit_cast<std::uint32_t>(std::sqrt(nearest)),constants,{0x027f,0x1f80}));
   }
+  // 129790: a world-located voice's position in its listener's head frame,
+  // for the listener distance_gain hears it from (the nearest).
+  std::optional<Vec3> head_position(Vec3 position)const {
+    std::optional<std::size_t> nearest;float best{};
+    for(std::size_t n=0;n<listeners.size();++n){
+      const auto delta=listeners[n]-position;
+      const float squared=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
+      if(!nearest || squared<best){nearest=n;best=squared;}
+    }
+    if(!nearest || *nearest>=listener_frames.size() || !listener_frames[*nearest])return {};
+    const auto& frame=*listener_frames[*nearest];
+    return source_sound_head_position_tu15(listeners[*nearest],frame.forward,frame.up,position);
+  }
+  static std::array<float,4> combined_bins(const std::array<std::uint32_t,4>& bits){
+    std::array<float,4> bins{};
+    for(unsigned n=0;n<4;++n)bins[n]=std::bit_cast<float>(bits[n]);
+    return bins;
+  }
+  // 1290A0/21C400: a 3D voice's playback rate with its class Doppler factor
+  // (+0x48) times 12A9D0's shift for its listener added to its pitch, through
+  // the same driver pitch conversion as its authored pitch.
+  float doppler_rate(const Voice& v,const SoundVariationDefinition& definition,unsigned rate_index)const {
+    static const bool reference=std::getenv("HALO2_REFERENCE_NO_DOPPLER")!=nullptr;
+    const float factor=Bytes(definition.sound_class).f32(0x48);
+    if(reference || !v.doppler || !v.position || !std::isfinite(factor) || factor==0.f || listeners.empty())return v.relative_rate;
+    std::size_t nearest{};float best{};
+    for(std::size_t n=0;n<listeners.size();++n){
+      const auto delta=listeners[n]-*v.position;
+      const float squared=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
+      if(!n || squared<best){nearest=n;best=squared;}
+    }
+    const auto velocity=nearest<listener_velocities.size()?listener_velocities[nearest]:Vec3{};
+    const float cents=factor*source_sound_doppler_cents_tu15(listeners[nearest],velocity,*v.position,v.velocity);
+    if(cents==0.f)return v.relative_rate;
+    const float pitch=std::bit_cast<float>(v.source_pitch_bits)+cents;
+    const auto driver=source_sound_driver_pitch(rate_index,std::bit_cast<std::uint32_t>(pitch),constants,{0x027f,0x1f80});
+    return std::bit_cast<float>(source_sound_relative_rate(driver,rate_index,constants,{0x027f,0x1f80}));
+  }
   SdlSoundVoiceParameters parameters(const Voice &v,std::optional<std::int8_t> packet_gain={})const {
     metadata_current();
-    const bool direct=(v.location_flags&0x800u)!=0;
+    // A combined loop's bins already carry its distance gain (192D70).
+    const bool direct=(v.location_flags&0x800u)!=0 || v.combined.has_value();
     const float spatial=direct?1.f:distance_gain(v);
     const SoundSpatialConstants gain_constants{distance_constants.one_bits,distance_constants.minimum_gain_bits,distance_constants.linear_db_scale_bits};
     const float spatial_db=std::bit_cast<float>(source_sound_spatial_gain_db(std::bit_cast<std::uint32_t>(spatial),gain_constants,{0x027f,0x1f80}));
-    const auto &definition=banks.at({v.sound,v.loop_packet?v.pitch_range:0}).definition;
+    const auto &voice_bank=banks.at({v.sound,v.loop_packet?v.pitch_range:0});
+    const auto &definition=voice_bank.definition;
     const auto channel_db=source_sound_direct_gain_tu15(v.location_flags,spatial_db,
         Bytes(definition.sound_class).f32(0x14));
     const float source_gain=v.gain_db+sound_linear_to_db(v.ambient_gain)+class_gain.at(v.sound_class)+channel_db+v.fade_db;
@@ -557,11 +697,70 @@ struct MultiplayerAudio::State {
     // including every new ambient packet, rather than using permutation0.
     const float attenuation=source_gain+float(packet_gain.value_or(v.permutation_gain_db));
     const auto volume=source_sound_driver_volume(std::bit_cast<std::uint32_t>(attenuation),constants,{0x027f,0x1f80});
-    // Explicit native stereo output. Xbox mix-bin/DSP routing is a separate
-    // platform contract; neither channel is silently dropped on a stereo host.
+    // Each PCM channel plays into its side's front speaker; the platform
+    // folds or keeps the back pair as the speaker setup has it.
     const auto output_gain=spatial>0.f?master:0.f;
-    SdlSoundVoiceParameters out{std::bit_cast<std::uint32_t>(v.relative_rate),volume,paused,{{0,0,output_gain},{1,1,output_gain}}};
+    const float rate=direct || v.combined?v.relative_rate:doppler_rate(v,definition,voice_bank.rate_index);
+    SdlSoundVoiceParameters out{std::bit_cast<std::uint32_t>(rate),volume,paused,{{0,0,output_gain},{1,1,output_gain}}};
+    // The voice processor steps through the sound's own samples by the
+    // pitch register: the 48 kHz rate in 4096ths of an octave plus the
+    // driver's base for its sample rate (221B90).
+    static constexpr std::array<std::uint32_t,3> native_rates{22050,44100,32000};
+    if(voice_bank.rate_index<native_rates.size())
+      out.native=SdlSoundNativeRate{native_rates[voice_bank.rate_index],std::clamp(
+          std::int32_t(std::lround(4096.0*std::log2(double(rate))))+source_sound_pitch_base(voice_bank.rate_index),-32768,32767)};
+    if(v.combined) {
+      // The four source mix bins (front left, front right, back left, back
+      // right), each at most unity like an Xbox mix-bin volume. A stereo
+      // setup folds the back pair into its sides at -3 dB, as the EP does.
+      const auto& bins=*v.combined;
+      const auto bin=[&](unsigned n){return output_gain*std::clamp(bins[n],0.f,1.f);};
+      out.routes={{0,0,bin(0)},{1,1,bin(1)},{0,2,bin(2)},{1,3,bin(3)}};
+    }
     if(v.effect)out.effect=SdlSoundEffectSend{*v.effect};
+    // A mono world-located voice plays through the HRTF stage, placed in its
+    // listener's head frame; direct and combined voices keep their routes.
+    const bool located=v.position || v.head_relative;
+    if(hrtf && !direct && located && output_gain>0.f) {
+      const auto pitched=banks.find({v.sound,v.pitch_range});
+      if((pitched!=banks.end()?pitched->second:banks.at({v.sound,0})).mono)
+        if(const auto head=v.head_relative?v.head_relative:head_position(*v.position))
+          out.hrtf=hrtf->filter(*head,platform.output_channels()>=4);
+    }
+    // 227BF0: each 3D voice's I3DL2 source. Its levels are millibels of
+    // the global gains (ftol of 2000 log10, -6400 when silent): the direct
+    // level (a), its HF level (b) and the room send's base (c) less the
+    // class reverb gain and room gain loss. Obstruction has no LF loss and
+    // occlusion a quarter. DirectSound's 38368B turns the source into the
+    // voice processor's direct and room levels and their one-pole HF
+    // filters, designed at its own listener's 5000 Hz HF reference.
+    const auto source_mb=[](float gain){
+      if(gain==0.f)return std::int32_t{-6400};
+      return std::clamp(std::int32_t(std::log10(double(gain))*2000.0),std::int32_t{-6400},std::int32_t{0});
+    };
+    const auto linear=[](std::int32_t millibels){return float(std::pow(10.0,double(millibels)/2000.0));};
+    const auto& global=global_environment.gains;
+    SoundI3dl2SourceTu15 source;
+    source.direct=source_mb(global[0]);
+    source.direct_hf=source_mb(global[1]);
+    source.room=std::clamp(source_mb(global[2])+source_sound_room_send_tu15(Bytes(definition.sound_class).f32(0x10)+v.room_gain_db),
+        std::int32_t{-10000},std::int32_t{0});
+    source.room_hf=source.room;
+    source.obstruction=source_mb(1.f-v.obstruction);
+    source.occlusion=source_mb(1.f-v.occlusion);
+    const auto i3dl2=sound_i3dl2_voice_tu15(source);
+    if(located && !v.combined && (i3dl2.direct!=0 || i3dl2.direct_pole!=0))
+      out.direct=SdlSoundI3dl2Path{linear(i3dl2.direct),i3dl2.direct_pole};
+    // Its DLS2 filter (2211E0): the script's cutoff and resonance as the
+    // voice processor's words. The defaults (8 kHz, 0 dB) pass the voice
+    // unchanged; Cairo's vacuum sets 1200 Hz with a 5 dB peak.
+    const SoundDls2FilterTu15 dls2{sound_dls2_cutoff_tu15(float(global_environment.filter_frequency)),
+                                   sound_dls2_resonance_tu15(global_environment.filter_gain)};
+    if(located && !v.combined && dls2!=SoundDls2FilterTu15{})
+      out.dls2=SdlSoundDls2{dls2.cutoff,dls2.resonance};
+    // Its send to mixbin 10 feeds both listener reverbs.
+    if(reverb_bound && located && !v.combined && output_gain>0.f)
+      out.room=SdlSoundI3dl2Path{output_gain*linear(i3dl2.room),i3dl2.room_pole};
     return out;
   }
   void loop_location(Voice& voice,std::optional<Vec3> position){
@@ -700,6 +899,8 @@ struct MultiplayerAudio::State {
     const auto relative=std::bit_cast<float>(source_sound_relative_rate(driver_pitch,b.rate_index,constants,{0x027f,0x1f80}));
     Voice v{0,sound,owner,loop_tag,view,track,kind,gain_db+extra,relative,ambient_gain,b.sound_class,looping,std::move(completion)};
     v.effect=std::exchange(pending_effect,std::nullopt);
+    if(const auto velocity=std::exchange(pending_velocity,std::nullopt))v.velocity=*velocity;
+    if(loop_packet){v.velocity=loop_packet->parameters.velocity;v.doppler=loop_packet->parameters.doppler;v.loop_gain_db=gain_db;}
     v.record=std::make_shared<const unsigned char>(0);v.companion=std::move(companion);
     v.position=position;
     v.location_flags=location_flags.value_or(source_sound_direct_location_flags_tu15(
@@ -708,6 +909,8 @@ struct MultiplayerAudio::State {
     v.script_record=std::move(script_record);
     if(forced)v.forced_script_permutation=script_selection->permutation;
     if(loop_packet)v.forced_script_permutation=loop_packet->permutation;
+    if(loop_packet && loop_packet->parameters.combined_amplitudes)
+      v.combined=combined_bins(*loop_packet->parameters.combined_amplitudes);
     v.pitch_range=unsigned(range);
     v.source_pitch_bits=std::bit_cast<std::uint32_t>(packet_pitch);
     v.permutation_seed=voice_seed;
@@ -744,8 +947,10 @@ struct MultiplayerAudio::State {
       throw FormatError("Native sound callback has no accounted packet");
     // Optional bounded retirement observation. Read the already-accounted
     // native stream before destruction; never install a completion owner or
-    // query the possibly retired World metadata. IDs1..256 bound each Audio.
-    if(std::getenv("HALO2_SCRIPT_AUDIO_RETIRE_TRACE") && voice.id<=256u)try {
+    // query the possibly retired World metadata. Ambient (loop track and
+    // detail) voices are bounded to IDs1..256 of each Audio; impulses are not.
+    if(std::getenv("HALO2_SCRIPT_AUDIO_RETIRE_TRACE") &&
+        (voice.id<=256u || voice.kind!=MultiplayerAudioKind::Ambient))try {
       const auto position=voice.playback?platform.playback_position(*voice.playback):platform.playback_position(voice.id);
       std::cout<<"Script audio retired: sound="<<std::to_string(voice.sound)
           <<" owner="<<std::to_string(voice.owner)<<" voice="<<std::to_string(voice.id)
@@ -798,6 +1003,9 @@ struct MultiplayerAudio::State {
       if(!core.classic_sound(sound))throw FormatError("Native synchronized phase lacks its Classic sound route");
       return core.bank(sound,range).definition;
     }
+    float scale(const std::array<std::byte,68>& location,const SoundVariationDefinition& sound)override{
+      return core.centered_scale(location,sound);
+    }
     bool single_chunk(std::uint32_t sound,unsigned range,unsigned permutation)override{
       return core.bank(sound,range).chunk_counts.at(permutation)==1;
     }
@@ -836,6 +1044,16 @@ struct MultiplayerAudio::State {
       auto& bank=core.bank(sound,range);
       return unsigned(source_looping_sound_permutation(bank.chances,bank.loop,seed));
     }
+    unsigned common_permutation_without_previous(std::uint32_t sound,unsigned range,std::uint32_t& seed)override{
+      // Shared mask, no previous permutation; the selection is still stored.
+      auto& bank=core.bank(sound,range);LoopingSoundSelection selection{bank.loop.used,-1};
+      const auto selected=source_looping_sound_permutation(bank.chances,selection,seed);
+      bank.loop.used=selection.used;bank.loop.previous=selected;return unsigned(selected);
+    }
+    std::int32_t detail_clock()override{
+      return std::bit_cast<std::int32_t>(std::uint32_t(core.platform.elapsed_frames()/48));
+    }
+    void require_combined_output()const override{}
     std::optional<SourceLoopCombinedListenerInputTu15> combined_listener(
         std::span<const std::byte,68> location,std::uint32_t maximum)override{
       return audio.combined_loop_listener(location,maximum);
@@ -913,10 +1131,13 @@ void MultiplayerAudio::bind_native_loop_metadata(const MccSoundMetadataPublicati
 void MultiplayerAudio::prepare(std::uint32_t sound){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();if(sound!=none && state->classic_sound(sound))(void)state->bank(sound);}
 namespace {
 void validate_loop_packet_parameters(const MultiplayerLoopPacketParametersTu15& value) {
-  if(value.combined_amplitudes)
-    throw FormatError("Combined loop requires its native four-bin playback owner");
+  if(value.combined_amplitudes)for(const auto bits:*value.combined_amplitudes) {
+    const auto amplitude=std::bit_cast<float>(bits);
+    if(!std::isfinite(amplitude) || amplitude<0)throw FormatError("Combined loop has invalid mix-bin amplitudes");
+  }
   if(!std::isfinite(value.pitch_cents) || !std::isfinite(value.gain_db) ||
-      !std::isfinite(value.gain_control) || value.gain_control<0)
+      !std::isfinite(value.gain_control) || value.gain_control<0 || !std::isfinite(value.velocity.x) ||
+      !std::isfinite(value.velocity.y) || !std::isfinite(value.velocity.z))
     throw FormatError("Native loop packet requires finite authored pitch/gain and caller control");
 }
 }
@@ -953,7 +1174,10 @@ void MultiplayerAudio::loop_packet_parameters(const VoiceReceipt& receipt,
   voice.relative_rate=std::bit_cast<float>(source_sound_relative_rate(driver,bank.rate_index,
       state->constants,{0x027f,0x1f80}));
   voice.source_pitch_bits=std::bit_cast<std::uint32_t>(pitch);
+  voice.loop_gain_db=input.gain_db;
   voice.gain_db=input.gain_db+source_sound_control_gain(bank.definition,input.gain_control);
+  if(input.combined_amplitudes)voice.combined=State::Core::combined_bins(*input.combined_amplitudes);
+  voice.velocity=input.velocity;voice.doppler=input.doppler;
   state->parameters(voice,state->parameters(voice));
 }
 bool MultiplayerAudio::loop_packet_accepts_input(const VoiceReceipt& receipt)const {
@@ -1016,6 +1240,119 @@ void MultiplayerAudio::loop_packet_fade(const VoiceReceipt& receipt,float second
   voice.fade_db=source_sound_playback_fade(*voice.fade,time);
   state->parameters(voice,state->parameters(voice));
 }
+void MultiplayerAudio::obstruction_frame(float elapsed,const SourceSoundObstructionWorldTu15& world,
+    const std::function<SourceSoundObstructionPointTu15(Vec3)>& locate) {
+  const auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();state->metadata_current();
+  static const bool reference=std::getenv("HALO2_REFERENCE_NO_OBSTRUCTION")!=nullptr;
+  state->centered_occlusion.clear();state->loaded_bsp.reset();
+  if(reference || !state->loop_views_bound || !locate)return;
+  if(!std::isfinite(elapsed) || elapsed<0)throw FormatError("Obstruction frame requires a finite elapsed interval");
+  // 11C1B0's loaded structure BSP, which 129100 and 129790 compare with a
+  // centered sound's own (location +0x2E).
+  if(const auto word=world.memory?world.memory(0x474c24u,2):std::span<const std::byte>{};word.size()==2)
+    state->loaded_bsp=std::int16_t(std::to_integer<unsigned>(word[0])|std::to_integer<unsigned>(word[1])<<8);
+  // 127400's listener records: the object-audio views of this game frame.
+  std::vector<SourceSoundObstructionPointTu15> listeners;
+  for(const auto& view:state->loop_views)if(view)listeners.push_back({view->position,view->cluster,view->leaf});
+  if(listeners.empty()){state->refresh_centered_gains();return;}
+  std::vector<std::optional<std::vector<float>>> doors(listeners.size());
+  // Line tests are the pass's whole cost (two structure raycasts a voice).
+  // Each game frame retests at most 16 voices, stalest first; the rest keep
+  // their last thickness, which the bend-rate easing below smooths anyway.
+  constexpr std::size_t line_budget=16;
+  std::vector<std::pair<unsigned,std::uint64_t>> stale;
+  for(auto& [id,voice]:state->voices)if(voice.position && !voice.combined)
+    stale.emplace_back(voice.line_obstruction?voice.line_age:std::numeric_limits<unsigned>::max(),id);
+  std::ranges::sort(stale,std::greater<>{});
+  std::set<std::uint64_t> retest;
+  for(std::size_t n=0;n<std::min(line_budget,stale.size());++n)retest.insert(stale[n].second);
+  // 129100: a centered sound with location flag 0x1000 in the loaded BSP
+  // asks for the portal estimate (no line test) from its own cluster, at
+  // the origin with no leaf. Its loop voices take the loss at once
+  // (refresh_centered_gains).
+  const auto centered=[&](const std::array<std::byte,68>& location){
+    const Bytes l(location);const auto cluster=short_at(l,0x2c);
+    if((std::to_integer<unsigned>(location[3])&15u) || !(l.u16(0)&0x1000u) || cluster<0 ||
+        short_at(l,0x2e)!=*state->loaded_bsp || state->centered_occlusion.contains(cluster))return;
+    if(!doors[0])doors[0]=source_sound_door_values_tu15(world,listeners[0].cluster);
+    state->centered_occlusion[cluster]=source_sound_obstruction_tu15(world,*doors[0],listeners[0],
+        {Vec3{},cluster,-1},true).occlusion;
+  };
+  if(state->loaded_bsp){
+    for(const auto& [key,loop]:state->object_loops)centered(loop.location);
+    for(const auto& [key,owner]:state->phased_loops.owners)centered(owner.location);
+    for(const auto& [id,voice]:state->voices)if(voice.centered_location)centered(*voice.centered_location);
+  }
+  state->refresh_centered_gains();
+  for(auto& [id,voice]:state->voices) {
+    if(!voice.position || voice.combined)continue;
+    std::size_t nearest{};float best{};
+    for(std::size_t n=0;n<listeners.size();++n){
+      const auto delta=listeners[n].position-*voice.position;
+      const float squared=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
+      if(!n || squared<best){nearest=n;best=squared;}
+    }
+    if(!doors[nearest])doors[nearest]=source_sound_door_values_tu15(world,listeners[nearest].cluster);
+    const auto& definition=state->banks.at({voice.sound,voice.loop_packet?voice.pitch_range:0}).definition;
+    const Bytes cls(definition.sound_class);
+    // 129100's flag47: the class or the sound asks for the portal estimate.
+    const bool skip=(std::to_integer<unsigned>(definition.sound_class[0xa])&0x40u) || (Bytes(definition.sound).u16(0)&0x20u);
+    const auto source=locate(*voice.position);
+    // 221E30 hears a source in the listener's own leaf directly.
+    if(!skip && retest.contains(id) && source.leaf!=listeners[nearest].leaf) {
+      voice.line_obstruction=source_sound_line_obstruction_tu15(world,listeners[nearest].position,*voice.position);
+      voice.line_age=0;
+    }else ++voice.line_age;
+    const auto result=source_sound_obstruction_tu15(world,*doors[nearest],listeners[nearest],source,skip,
+        voice.line_obstruction);
+    // 129790: scale by the class transmission multiplier; 220E00 eases the
+    // voice toward it by the class bends per second.
+    const float scale=cls.f32(0x50);
+    const float obstruction=std::clamp(result.obstruction*scale,0.f,1.f),occlusion=std::clamp(result.occlusion*scale,0.f,1.f);
+    const float gain=1.f-result.gain*scale;
+    const auto ease=[&](float current,float target,float rate){
+      if(!voice.obstructed || !(rate>0.f))return target;
+      return current+std::clamp(target-current,-rate,rate);
+    };
+    voice.obstruction=ease(voice.obstruction,obstruction,cls.f32(0x54)*elapsed);
+    voice.occlusion=ease(voice.occlusion,occlusion,cls.f32(0x58)*elapsed);
+    voice.room_gain_db=gain>0.f?std::max(20.f*std::log10(gain),-64.f):-64.f;
+    voice.obstructed=true;
+    state->parameters(voice,state->parameters(voice));
+  }
+}
+void MultiplayerAudio::global_sound_environment(const SourceSoundGlobalEnvironmentTu15& input) {
+  const auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+  auto value=input;
+  for(auto& gain:value.gains)gain=std::clamp(gain,0.f,1.f);
+  if(state->global_environment==value)return;
+  state->global_environment=value;
+  for(const auto& [id,voice]:state->voices)if(voice.position)state->parameters(voice,state->parameters(voice));
+}
+void MultiplayerAudio::sound_environments(const std::array<SourceSoundListenerEnvironmentTu15,2>& environments) {
+  const auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+  static const bool reference=std::getenv("HALO2_REFERENCE_NO_REVERB")!=nullptr;
+  if(reference)return;
+  std::array<SdlSoundReverb,2> reverbs{};
+  for(unsigned n=0;n<2;++n) {
+    reverbs[n].parameters=source_sound_reverb_i3dl2_tu15(environments[n].reverb);
+    reverbs[n].speaker_gains=source_sound_reverb_speaker_gains_tu15(environments[n]);
+  }
+  state->platform.reverb(reverbs);
+  if(!std::exchange(state->reverb_bound,true))
+    for(const auto& [id,voice]:state->voices)if(voice.position)state->parameters(voice,state->parameters(voice));
+}
+bool MultiplayerAudio::object_loop_finished(const SourceLoopSoundRequestTu15& input)const {
+  const auto state=state_->core;state->script_producer();
+  const auto& owners=state->phased_loops.owners;const auto& args=input.arguments;
+  auto found=owners.find({args[0],args[2]});
+  if(found==owners.end() && (std::to_integer<unsigned>(input.location[3])&15u)!=0)
+    found=owners.find({args[0],args[0]|0x6000u});
+  if(found==owners.end() || !found->second.finished)return false;
+  return std::ranges::all_of(found->second.tracks,[&](const auto& track){
+    return std::ranges::none_of(track.voices,[&](const auto& voice){return state->voices.contains(voice.id);});
+  });
+}
 void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& input) {
   const auto state=state_->core;State::Core::Mutation mutation(*state);state->metadata_current();
   State::Core::Phase phase(state->object_loop_depth);
@@ -1050,11 +1387,12 @@ void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& inp
     });
     const bool track_profile=input.emitter_owner!=none && definition.details.empty() &&
         !(definition.flags&~0x3d8u);
-    if(track_profile || (definition.flags&0x10u) || authored_phase || ((definition.flags&0x80u) && type!=0)){
+    if(track_profile || (definition.flags&0x32u) || authored_phase || ((definition.flags&0x80u) && type!=0)){
       State::Core::PhasedOutput output(*state,*this);source_loop_phased_request_tu15(state->phased_loops,output,input,definition);return;
     }
-    if(definition.flags&0xb2u)
-      throw FormatError("Object loop requires its synchronization, aggregation or one-shot owner");
+    //220CCD combines (0x80) only a located source: a centered 0x80 loop is ordinary.
+    if(definition.flags&0x32u)
+      throw FormatError("Object loop requires its synchronization or one-shot owner");
     if(!definition.details.empty() && type!=1 && !state->loop_views_bound)
       throw FormatError("Nonspatial loop details require their actual local-listener selection owner");
     for(const auto& track:definition.tracks) {
@@ -1075,6 +1413,7 @@ void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& inp
     found=state->object_loops.emplace(key,std::move(loop)).first;
   }
   auto& loop=found->second;
+  loop.source_flags=std::uint16_t(args[1]);
   if((args[6]&1u) && std::ranges::any_of(loop.definition.tracks,[](const auto& track){return track.flags&0x14u;}))
     throw FormatError("Object loop requires its authored alternate controller");
   if(!(std::to_integer<unsigned>(input.location[0])&2u)) {
@@ -1097,7 +1436,69 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
   const auto state=state_->core;State::Core::Mutation mutation(*state);state->metadata_current();
   State::Core::Phase phase(state->object_loop_depth);
   if(!std::isfinite(elapsed) || elapsed<0)throw FormatError("Object loop frame requires a finite elapsed interval");
+  {
+    // 127400 gives each listener its camera's velocity: here, the change in
+    // each object-audio view's position over this game frame. A jump of
+    // more than 10 world units (a camera cut) reads as standing still.
+    std::vector<Vec3> current;
+    for(const auto& view:state->loop_views)if(view)current.push_back(view->position);
+    state->listener_velocities.assign(current.size(),Vec3{});
+    if(elapsed>0 && state->listener_previous.size()==current.size())
+      for(std::size_t n=0;n<current.size();++n) {
+        const auto moved=current[n]-state->listener_previous[n];
+        if(length(moved)<=10.f)state->listener_velocities[n]=moved*(1.f/elapsed);
+      }
+    state->listener_previous=std::move(current);
+  }
+  // 21B0E0's detail pass (223670/2229C0/222166), shared by object loops and
+  // phased owners: it does not depend on how a loop's tracks are scheduled.
+  const auto details=[&](const LoopingSound& definition,const std::array<std::byte,68>& location,std::uint32_t owner,
+      std::vector<std::int32_t>& deadlines,std::vector<State::Core::ObjectLoopDetailVoice>& voices,
+      bool stopping,bool disable_details,bool alternate) {
+    std::optional<Vec3> position;
+    if((std::to_integer<unsigned>(location[3])&15u)==1) {
+      const Bytes point(location);position=Vec3{point.f32(0xc),point.f32(0x10),point.f32(0x14)};
+    }
+    //223670/2229C0 retain each detail's offset relative to its actual
+    //spatial parent. They do not contribute to the group's track count.
+    std::erase_if(voices,[&](const auto& detail){
+      const auto voice=state->voices.find(detail.voice);if(voice==state->voices.end())return true;
+      //223670 gives a callback only to details born from spatial parents.
+      //A centered detail keeps its independently selected listener point.
+      if(detail.attached)emitter(state->receipt(voice->second),position.value_or(Vec3{})+detail.offset);
+      return false;
+    });
+    //223670 follows spatial parents, or selects a genuine local listener
+    //for a centered parent. The latter consumes its selection draw first.
+    if(stopping || disable_details || definition.details.empty())return;
+    if(deadlines.size()!=definition.details.size())throw FormatError("Loop details lost their authored deadlines");
+    const auto clock=std::bit_cast<std::int32_t>(std::uint32_t(state->platform.elapsed_frames()/48));
+    for(unsigned n=0;n<definition.details.size();++n) {
+      const auto& detail=definition.details[n];
+      if(detail.sound==none || deadlines[n]>=clock ||
+          ((detail.flags&1u)&&alternate) || ((detail.flags&2u)&&!alternate))continue;
+      std::optional<SourceLoopDetailSpatialTu15> spatial;
+      const SourceLoopDetailBoundsTu15 bounds{detail.yaw,detail.pitch,detail.distance};
+      if(position)spatial=source_loop_detail_spatial_tu15(location,bounds,state->common_secondary());
+      else {
+        if(!state->loop_views_bound)throw FormatError("Centered loop details lost their actual local-listener owner");
+        std::vector<Vec3> points;for(const auto& view:state->loop_views)if(view)points.push_back(view->position);
+        spatial=source_loop_detail_centered_tu15(location,bounds,points,state->common_secondary());
+      }
+      if(!spatial)continue;
+      const auto voice=state->play(detail.sound,spatial->gain_db,MultiplayerAudioKind::Ambient,
+          owner,0,false,none,0,1,{},spatial->control,spatial->position);
+      if(voice)voices.push_back({voice,spatial->offset,position.has_value()});
+      //222166 reschedules a spatial detail even if native PCM admission
+      //failed. Never invent a successful source submission or voice.
+      if(voice || position)deadlines[n]=source_loop_detail_deadline_tu15(detail.period,detail.flags,
+          clock,state->common_secondary(),false);
+    }
+  };
   State::Core::PhasedOutput phased(*state,*this);source_loop_phased_frame_tu15(state->phased_loops,phased,elapsed);
+  for(auto& [key,owner]:state->phased_loops.owners)
+    details(owner.definition,owner.location,owner.emitter,owner.detail_deadlines,owner.detail_voices,
+        owner.stopping,owner.disable_details,owner.alternate);
   for(auto it=state->object_loops.begin();it!=state->object_loops.end();) {
     auto& loop=it->second;const Bytes location(loop.location);bool live=false;
     //221B5D..221B85 retires an untouched owner unless its explicit retain
@@ -1119,11 +1520,15 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
       if(authored.loop==none || !state->classic_sound(authored.loop))continue;
       const auto& bank=state->bank(authored.loop);auto voice=state->voices.find(track.voice);
       if(voice==state->voices.end())track.voice=0;
-      else track.control=source_loop_track_gain_control_tu15(track.control,location.f32(4),Bytes(bank.definition.playback).f32(0xc),elapsed);
+      else track.control=source_loop_track_gain_control_tu15(track.control,location.f32(4),
+          Bytes(bank.definition.playback).f32(0xc),elapsed);
       if(!track.voice && loop.stopping)continue;
       const auto base_pitch=short_at(Bytes(bank.definition.playback),0x18);
       const auto pitch=source_sound_control_pitch(bank.definition,float(base_pitch),track.control);
-      const MultiplayerLoopPacketParametersTu15 parameters{pitch,authored.gain_db+location.f32(8),track.control};
+      MultiplayerLoopPacketParametersTu15 parameters{pitch,authored.gain_db+location.f32(8),
+          state->centered_scale(loop.location,bank.definition)};
+      parameters.velocity={location.f32(0x1c),location.f32(0x20),location.f32(0x24)};
+      parameters.doppler=(loop.source_flags&2u)!=0;
       const auto choose=[&]{return unsigned(source_looping_sound_permutation(bank.chances,
           state->bank(authored.loop).loop,state->common_secondary()));};
       std::optional<VoiceReceipt> receipt;
@@ -1144,41 +1549,8 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
       if(loop_packet_accepts_input(*receipt) && !queue_loop_packet(*receipt,choose()))
         throw FormatError("Object loop lost its retained native packet slot");
     }
-    //223670/2229C0 retain each detail's offset relative to its actual
-    //spatial parent. They do not contribute to the group's track count.
-    std::erase_if(loop.detail_voices,[&](const auto& detail){
-      const auto voice=state->voices.find(detail.voice);if(voice==state->voices.end())return true;
-      //223670 gives a callback only to details born from spatial parents.
-      //A centered detail keeps its independently selected listener point.
-      if(detail.attached)emitter(state->receipt(voice->second),position.value_or(Vec3{})+detail.offset);
-      return false;
-    });
-    //223670 follows spatial parents, or selects a genuine local listener
-    //for a centered parent. The latter consumes its selection draw first.
-    if(!loop.stopping && !loop.disable_details && !loop.definition.details.empty()) {
-      const auto clock=std::bit_cast<std::int32_t>(std::uint32_t(state->platform.elapsed_frames()/48));
-      for(unsigned n=0;n<loop.definition.details.size();++n) {
-        const auto& detail=loop.definition.details[n];
-        if(detail.sound==none || loop.detail_deadlines[n]>=clock ||
-            ((detail.flags&1u)&&loop.alternate) || ((detail.flags&2u)&&!loop.alternate))continue;
-        std::optional<SourceLoopDetailSpatialTu15> spatial;
-        const SourceLoopDetailBoundsTu15 bounds{detail.yaw,detail.pitch,detail.distance};
-        if(position)spatial=source_loop_detail_spatial_tu15(loop.location,bounds,state->common_secondary());
-        else {
-          if(!state->loop_views_bound)throw FormatError("Centered loop details lost their actual local-listener owner");
-          std::vector<Vec3> points;for(const auto& view:state->loop_views)if(view)points.push_back(view->position);
-          spatial=source_loop_detail_centered_tu15(loop.location,bounds,points,state->common_secondary());
-        }
-        if(!spatial)continue;
-        const auto voice=state->play(detail.sound,spatial->gain_db,MultiplayerAudioKind::Ambient,
-            loop.owner,0,false,none,0,1,{},spatial->control,spatial->position);
-        if(voice)loop.detail_voices.push_back({voice,spatial->offset,position.has_value()});
-        //222166 reschedules a spatial detail even if native PCM admission
-        //failed. Never invent a successful source submission or voice.
-        if(voice || position)loop.detail_deadlines[n]=source_loop_detail_deadline_tu15(detail.period,detail.flags,
-            clock,state->common_secondary(),false);
-      }
-    }
+    details(loop.definition,loop.location,loop.owner,loop.detail_deadlines,loop.detail_voices,
+        loop.stopping,loop.disable_details,loop.alternate);
     loop.seen=false;
     if(loop.stopping && !live) {
       for(const auto& detail:loop.detail_voices)if(auto voice=state->voices.find(detail.voice);voice!=state->voices.end())
@@ -1207,22 +1579,57 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::source_impulse(std::uin
   if(sound==none)return std::nullopt;
   if(!state->classic_sound(sound))return std::nullopt;
   const Bytes raw(request);const auto flags=raw.u32(0);
-  if(flags&(0x10u|0x400u))throw FormatError("Source impulse requires its controller/forced-selection owner");
+  if(flags&0x10u)throw FormatError("Source impulse requires its looping-controller owner");
+  // 223B20 plays a forced-selection request (bit 0x400, e.g. AI dialogue) from
+  // its own pitch range (+9C) and permutation (+9E), not a random choice.
+  std::optional<SourceScriptSoundClockSelectionTu15> forced;
+  if(flags&0x400u) {
+    const auto range=std::uint8_t(raw.u16(0x9c)),permutation=std::uint8_t(raw.u16(0x9e));
+    if(range>=state->bank(sound,0).definition.pitch_ranges.size() ||
+        permutation>=state->bank(sound,range).definition.permutations.size())
+      throw FormatError("Forced source selection escapes its authored pitch range or permutation");
+    forced=SourceScriptSoundClockSelectionTu15{range,permutation};
+  }
   const auto control=raw.f32(0x10);
   const auto extra=flags&0x80u?raw.f32(0x94):std::bit_cast<float>(state->distance_constants.default_extra_gain_bits);
   const auto gain=raw.f32(0x14)+extra;
   if(!std::isfinite(control)||control<0 || !std::isfinite(gain))
     throw FormatError("Source impulse has invalid authored caller gain");
   const auto location=std::to_integer<unsigned>(request[0xf])&15u;
-  std::optional<Vec3> position;
-  if(location==1) {
-    position=Vec3{raw.f32(0x18),raw.f32(0x1c),raw.f32(0x20)};
-    if(!std::isfinite(position->x)||!std::isfinite(position->y)||!std::isfinite(position->z))
-      throw FormatError("Source impulse has invalid world position");
-  }else if(location)throw FormatError("Source impulse requires its relative-location owner");
+  std::optional<Vec3> position,relative;
+  if(location==1 || location==2) {
+    const Vec3 at{raw.f32(0x18),raw.f32(0x1c),raw.f32(0x20)};
+    if(!std::isfinite(at.x)||!std::isfinite(at.y)||!std::isfinite(at.z))
+      throw FormatError("Source impulse has invalid position");
+    // Type 2 is in its listener's frame, Halo's forward/left/up axes; the
+    // SDK's head frame is right/up/forward.
+    if(location==1)position=at;else relative=Vec3{-at.y,at.z,at.x};
+  }else if(location)throw FormatError("Source impulse has an unknown location type");
   const auto owner=flags&8u?raw.u32(0x50):none;
+  // The request's location carries its source velocity (+0x28, location+0x1C).
+  struct PendingVelocity {std::optional<Vec3>& slot;~PendingVelocity(){slot.reset();}} pending_velocity{state->pending_velocity};
+  if(position) {
+    const Vec3 velocity{raw.f32(0x28),raw.f32(0x2c),raw.f32(0x30)};
+    if(!std::isfinite(velocity.x)||!std::isfinite(velocity.y)||!std::isfinite(velocity.z))
+      throw FormatError("Source impulse has invalid source velocity");
+    state->pending_velocity=velocity;
+  }
   const auto voice=state->play(sound,gain,kind,owner,view,false,none,0,1,{},control,position,
-      {},{},{},nullptr,{},nullptr,raw.u16(0xc));
+      {},forced,{},nullptr,{},nullptr,raw.u16(0xc));
+  if(voice && relative){
+    auto& v=state->voices.at(voice);v.head_relative=relative;state->parameters(v,state->parameters(v));
+  }
+  // A centered sound with location flag 0x1000 (the request's location is
+  // +0xC; its scale, +0x10, is the control) takes 129790's door loss and
+  // other-BSP silence every frame, starting with this one's.
+  if(voice && !location && (raw.u16(0xc)&0x1000u)) {
+    auto& v=state->voices.at(voice);const auto& definition=state->bank(sound,0).definition;
+    std::array<std::byte,68> where{};std::copy_n(request.begin()+0xc,where.size(),where.begin());
+    v.impulse_gain_db=v.gain_db-source_sound_control_gain(definition,control);
+    v.centered_location=where;
+    const float lowered=v.impulse_gain_db+source_sound_control_gain(definition,state->centered_scale(where,definition));
+    if(lowered!=v.gain_db){v.gain_db=lowered;state->parameters(v,state->parameters(v));}
+  }
   return voice?std::optional<Voice>(voice):std::nullopt;
 }
 void MultiplayerAudio::impulse(std::uint32_t sound,float gain,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view){
@@ -1290,7 +1697,7 @@ std::optional<MultiplayerPreparedScriptImpulseTu15> MultiplayerAudio::prepare_sc
   auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();const auto clock=input_clock;state->script_thread();
   if(state->closing || !clock || !clock->audio_owner_is(state->script_epoch))
     throw FormatError("Native script preparation requires this actual Audio owner");
-  state->drain_script_cancellations();if(sound==none)return {};
+  state->drain_script_cancellations();if(sound==none || !state->classic_sound(sound))return {};
   // This is typed resident metadata only. PCM decode/backend admission happens
   // after the committed clock/selection phase in play_prepared_script_impulse.
   const auto definition=state->definition(sound);
@@ -1417,12 +1824,20 @@ bool MultiplayerAudio::request_script_stop(const SourceScriptSoundClockVoice64Tu
   source_sound_request_stop_tu15(fade,time);voice.fade=fade;
   return true;
 }
-void MultiplayerAudio::listeners(std::span<const Vec3> positions){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+void MultiplayerAudio::listeners(std::span<const Vec3> positions,
+    std::span<const SourceObjectAudioViewTu15::Orientation> orientations){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
   state->metadata_current();
   if(positions.size()>4)throw FormatError("World audio exceeds original local listener count");
-  for(const auto &p:positions)if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(p.z))
+  if(!orientations.empty() && orientations.size()!=positions.size())
+    throw FormatError("World audio listener frames differ from its positions");
+  const auto finite=[](Vec3 p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z);};
+  for(const auto &p:positions)if(!finite(p))
     throw FormatError("World audio listener has nonfinite position");
+  for(const auto &o:orientations)if(!finite(o.forward) || !finite(o.up))
+    throw FormatError("World audio listener has a nonfinite head frame");
   state->listeners.assign(positions.begin(),positions.end());
+  state->listener_frames.assign(positions.size(),std::nullopt);
+  for(std::size_t n=0;n<orientations.size();++n)state->listener_frames[n]=orientations[n];
   state->loop_views={};state->loop_views_bound=false;
   for(const auto &[id,v]:state->voices)if(v.position)state->parameters(v,state->parameters(v));
 }
@@ -1433,6 +1848,7 @@ void MultiplayerAudio::object_loop_listeners(std::size_t bsp,const SourceObjectA
     geometry=std::make_shared<const MultiplayerAudioBsp>(state->cache.load_multiplayer_audio_bsp(bsp));
   const auto finite=[](Vec3 value){return std::isfinite(value.x)&&std::isfinite(value.y)&&std::isfinite(value.z);};
   std::vector<Vec3> positions;
+  std::vector<std::optional<SourceObjectAudioViewTu15::Orientation>> frames;
   for(const auto& view:views)if(view){
     if(!finite(view->position) || view->cluster< -1 || view->leaf< -1 ||
         (view->cluster>=0 && std::size_t(view->cluster)>=geometry->clusters.size()) ||
@@ -1442,9 +1858,11 @@ void MultiplayerAudio::object_loop_listeners(std::size_t bsp,const SourceObjectA
         (view->orientation && (!finite(view->orientation->forward)||!finite(view->orientation->up))))
       throw FormatError("Object-loop listener differs from its submitted camera/BSP location");
     positions.push_back(view->position);
+    frames.push_back(view->orientation);
   }
   state->loop_views=views;state->loop_bsp=std::move(geometry);state->loop_bsp_index=bsp;state->loop_views_bound=true;
   state->listeners.swap(positions);
+  state->listener_frames.swap(frames);
   for(const auto& [id,voice]:state->voices)if(voice.position)state->parameters(voice,state->parameters(voice));
 }
 std::optional<SourceLoopCombinedListenerInputTu15> MultiplayerAudio::combined_loop_listener(
@@ -1710,6 +2128,8 @@ struct MultiplayerAudio::ContinuationSnapshot {
     SourceLoopPhasedStateTu15 phased_loops;
     decltype(Core::retired) retired;
     decltype(Core::listeners) listeners;
+    decltype(Core::listener_frames) listener_frames;
+    decltype(Core::listener_velocities) listener_velocities,listener_previous;
     decltype(Core::loop_views) loop_views;
     decltype(Core::loop_bsp) loop_bsp;
     std::size_t loop_bsp_index{};bool loop_views_bound{};
@@ -1950,7 +2370,7 @@ MultiplayerAudio::Checkpoint MultiplayerAudio::checkpoint()const{
   }
   for(const auto&p:c->script_preparations)image->preparations.push_back({p,p->status.load(),p->clock,p->admission,p->sound,p->selection});
   auto&v=image->values;v.banks=c->banks;v.voices=c->voices;v.ambience=c->ambience;v.object_loops=c->object_loops;v.phased_loops=c->phased_loops;v.retired=c->retired;
-  v.listeners=c->listeners;v.random=c->random;v.class_gain=c->class_gain;v.master=c->master;v.next_packet=c->next_packet;
+  v.listeners=c->listeners;v.listener_frames=c->listener_frames;v.listener_velocities=c->listener_velocities;v.listener_previous=c->listener_previous;v.random=c->random;v.class_gain=c->class_gain;v.master=c->master;v.next_packet=c->next_packet;
   v.loop_views=c->loop_views;v.loop_bsp=c->loop_bsp;v.loop_bsp_index=c->loop_bsp_index;v.loop_views_bound=c->loop_views_bound;
   v.paused=c->paused;v.script_bound=c->script_bound.load();v.native_metadata=c->native_metadata;v.loop_metadata=c->loop_metadata;v.script_epoch=c->script_epoch;
   v.clocks=c->script_clocks;
@@ -2235,7 +2655,7 @@ bool MultiplayerAudio::commit(PreparedReplacement&p,HeldPublication&h)noexcept{
   for(auto&clock:data->clocks)if(!clock.owner->commit(clock.prepared))std::terminate();
   auto&v=data->values;
   c->banks.swap(v.banks);c->voices.swap(v.voices);c->ambience.swap(v.ambience);c->object_loops.swap(v.object_loops);std::swap(c->phased_loops,v.phased_loops);c->retired.swap(v.retired);
-  c->listeners.swap(v.listeners);std::swap(c->random.seed,v.random.seed);c->random.stores.swap(v.random.stores);
+  c->listeners.swap(v.listeners);c->listener_frames.swap(v.listener_frames);c->listener_velocities.swap(v.listener_velocities);c->listener_previous.swap(v.listener_previous);std::swap(c->random.seed,v.random.seed);c->random.stores.swap(v.random.stores);
   c->loop_views.swap(v.loop_views);c->loop_bsp.swap(v.loop_bsp);std::swap(c->loop_bsp_index,v.loop_bsp_index);std::swap(c->loop_views_bound,v.loop_views_bound);
   std::swap(c->class_gain,v.class_gain);std::swap(c->master,v.master);std::swap(c->next_packet,v.next_packet);
   std::swap(c->paused,v.paused);c->native_metadata.swap(v.native_metadata);c->loop_metadata.swap(v.loop_metadata);c->script_epoch.swap(v.script_epoch);
