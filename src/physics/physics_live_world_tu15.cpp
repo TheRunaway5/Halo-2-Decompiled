@@ -18,6 +18,8 @@
 #include "halo2/source_sound_timing_input_observation_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/native_tu15_command_walk.hpp"
+#include "halo2/native_tu15_data_array_delete.hpp"
+#include "halo2/native_tu15_data_array_iteration.hpp"
 #include "halo2/source_geometry_resource_request.hpp"
 #include "halo2/native_tu15_render_lighting.hpp"
 #include "halo2/native_tu15_draw_units.hpp"
@@ -67,6 +69,8 @@
 #include "halo2/native_campaign_ai_behavior_score_80_tu15.hpp"
 #include "halo2/native_campaign_ai_behavior_score_17_tu15.hpp"
 #include "halo2/native_campaign_ai_behavior_start_42_tu15.hpp"
+#include "halo2/native_campaign_ai_behavior_45_tu15.hpp"
+#include "halo2/native_campaign_ai_damage_stun_tu15.hpp"
 #include "halo2/native_campaign_ai_behavior_score_50_tu15.hpp"
 #include "halo2/native_campaign_animation_distance_tu15.hpp"
 #include "halo2/native_campaign_ai_area_choice_tu15_binding.hpp"
@@ -89,6 +93,7 @@
 #include "halo2/native_campaign_ai_behavior_129_perform_tu15.hpp"
 #include "campaign/ai/native_campaign_ai_behavior_129_active_direction.hpp"
 #include "physics/runtime/physics_contact_runtime_internal.hpp"
+#include "physics/runtime/native_tu15_liquid_widget.hpp"
 #include "campaign/ai/native_campaign_ai_workspace_clear.hpp"
 #include "campaign/ai/native_campaign_ai_path_edge_ring.hpp"
 #include "halo2/native_campaign_ai_goal_scoring_tu15.hpp"
@@ -139,6 +144,7 @@
 #include "halo2/source_campaign_audio_tu15.hpp"
 #include "halo2/source_sound_dsp_image_tu15.hpp"
 #include "halo2/simulation.hpp"
+#include "core/native_tu15_authored_control_point.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_ctf_activation_tu15.hpp"
 #include "halo2/source_ai_actor_contact_selector_tu15.hpp"
@@ -3513,6 +3519,14 @@ struct PhysicsLiveWorldTu15::Impl {
            native_campaign_ai_behavior_update_42_tu15_try_run(m,image,c,a,services(),o))return;
         if(c.target==0x1c0190u &&
            native_campaign_ai_behavior_select_42_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1b1fa0u &&
+           native_campaign_ai_behavior_select_45_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1b1fe0u &&
+           native_campaign_ai_behavior_perform_45_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1b2090u &&
+           native_campaign_ai_behavior_end_45_tu15_try_run(m,image,c,a,services(),o))return;
+        if(c.target==0x1d20c0u &&
+           native_campaign_ai_damage_stun_tu15_try_run(m,image,c,a,fp,services(),o))return;
         if(c.target==0x1bfbf0u &&
            native_campaign_ai_behavior_score_50_tu15_try_run(m,image,c,a,fp,services(),o))return;
         if(c.target==0x1e2f60u &&
@@ -3536,6 +3550,33 @@ struct PhysicsLiveWorldTu15::Impl {
         if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
            ((c.instruction==0x1b372du && c.target==0x1d2190u) ||
             (c.instruction==0x1b373cu && c.target==0x25980u))) {
+            source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && !c.tail &&
+           ((c.instruction==0xe6686u && c.target==0x111fd0u) ||
+            (c.instruction==0x1eab7cu && c.target==0x1eccc0u) ||
+            (c.instruction==0x20c12au && c.target==0x20beb0u) ||
+            (c.instruction==0x215d3fu && c.target==0x116b20u) ||
+            (c.instruction==0x216279u && c.target==0x27c7c0u) ||
+            (c.instruction==0x2163cau && c.target==0x116b80u) ||
+            (c.instruction==0x216b3cu && c.target==0x1eca20u) ||
+            (c.instruction==0x216b43u && c.target==0x1eca80u) ||
+            (c.instruction==0x216cd0u && c.target==0x1eca80u) ||
+            (c.instruction==0x217806u && c.target==0x116b20u) ||
+            (c.instruction==0x217837u && c.target==0x217970u) ||
+            (c.instruction==0x24dceeu && c.target==0x2e9790u) ||
+            (c.instruction==0x26604du && c.target==0x2669e0u) ||
+            (c.instruction==0x26605au && c.target==0x26ddd0u) ||
+            (c.instruction==0x26609au && c.target==0x264b50u) ||
+            (c.instruction==0x266387u && c.target==0x266490u) ||
+            (c.instruction==0x266456u && c.target==0x266150u) ||
+            (c.instruction==0x26e229u && c.target==0x2669e0u) ||
+            (c.instruction==0x26e2f1u && c.target==0x26f940u) ||
+            (c.instruction==0x26e4f5u && c.target==0xcdcc0u) ||
+            (c.instruction==0x26e521u && c.target==0x26df70u) ||
+            (c.instruction==0x26e5d2u && c.target==0x111fd0u) ||
+            (c.instruction==0x26e61fu && c.target==0x26e650u) ||
+            (c.instruction==0x274a7bu && c.target==0x274670u))) {
             source_run_ai_frame_tu15(m,c.target,a,a.floating_point.value_or(fp),services(),o);return;
         }
         if(c.target==0x1bbb50u) {
@@ -4469,6 +4510,9 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_cloth_tu15_owns_entry(c.target)) {
             source_run_cloth_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(c.target==native_tu15_liquid_widget::retirement_entry) {
+            native_tu15_liquid_widget::retire(m,a,fp,services(),o);return;
+        }
         if(source_physics_deactivation_tu15_owns_entry(c.target)) {
             source_run_physics_deactivation_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -4548,6 +4592,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_unit_animation_cancel_tu15_owns_entry(c.target)) {
             source_run_unit_animation_cancel_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(native_authored_control_point::owns_entry(c.target)) {
+            native_authored_control_point::run_entry(m,c.target,a,fp,services(),o);return;
         }
         if(source_physics_live_support_tu15_owns_entry(c.target)) {
             source_run_physics_live_support_tu15(m,c.target,a,fp,services(),o);return;
@@ -6329,6 +6376,56 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x22c480u); // Literal44B574 resets that frame state through its real owner.
         detail::release_native_startup_code_pages();
     }
+    void retire_campaign_bsp_resources() {
+        // 11E9AB -> 1256E0 retires the outgoing BSP's cache records before
+        // 1255C0 loads new bytes. On re-entry the same section addresses can
+        // be reused, so an old 130DA0 callback must never reach a new header.
+        // The native renderer owns its submitted Vulkan allocations. The
+        // 130C60 rows below own CPU geometry cache backing only.
+        constexpr auto none=0xffffffffu;
+        const auto tags=word(bank,0x4f0414u);
+        const auto inflight=word(bank,0x4f2d5cu),registered=word(bank,0x4f2d60u);
+        const auto store=[&](auto pc,auto address,auto bytes,auto value) {
+            last_instruction=pc;
+            physics_step_detail::w(bank,physics_store_observer,pc,address,bytes,value);
+        };
+        const auto retire_tag=[&](std::uint32_t tag,std::uint32_t clear_site) {
+            if(inflight && word(bank,inflight+0x29u,1)) {
+                const auto retire_registrations=[&](const auto& matches) {
+                    for(auto slot=native_tu15_data_array_next(bank,registered,0);slot!=none;
+                        slot=native_tu15_data_array_next(bank,registered,std::int32_t(slot)+1)) {
+                        const auto row=word(bank,registered+0x44u)+slot*word(bank,registered+0x24u);
+                        if(!matches(word(bank,row+4u)))continue;
+                        const auto datum=(word(bank,row,2)<<16u)|slot;
+                        if(physics_store_observer) {
+                            auto a=frame({});a.gp[0]=datum;a.gp[2]=registered;
+                            native_tu15_data_array_delete_abi(bank,a,physics_store_observer);
+                        } else native_tu15_data_array_delete(bank,registered,datum);
+                    }
+                };
+                for(auto slot=native_tu15_data_array_next(bank,inflight,0);slot!=none;
+                    slot=native_tu15_data_array_next(bank,inflight,std::int32_t(slot)+1)) {
+                    const auto row=word(bank,inflight+0x44u)+slot*word(bank,inflight+0x24u);
+                    const auto header=word(bank,row+8u);
+                    if(word(bank,header+0x18u)!=tag)continue;
+                    if(word(bank,header+0x1fu,1)&4u)
+                        retire_registrations([header](auto owner){return owner==header;});
+                    store(0x130949u,header+0x1fu,1,word(bank,header+0x1fu,1)&~4u);
+                    const auto token=word(bank,header+0x20u);
+                    if(token==none)continue;
+                    auto a=frame({});a.gp[3]=token;a.gp[7]=word(bank,0x4f2d6cu);
+                    run_actual(0x140310u,a);
+                    store(0x130960u,header+0x20u,4,none);
+                    store(0x130967u,header+0x1eu,1,0u);
+                }
+                retire_registrations([&](auto owner){return word(bank,owner+0x18u)==tag;});
+            }
+            store(clear_site,tags+(tag&0xffffu)*16u+8u,4,0u);
+        };
+        retire_tag(bsp.bsp,0x1256fbu);
+        if(bsp.lightmap!=none)retire_tag(bsp.lightmap,0x12571au);
+        store(0x12571eu,0x556d94u,4,0u);
+    }
     void switch_campaign_bsp(std::size_t selected) {
         const auto game=word(bank,0x4f3218u);
         if(!session_configured || word(bank,game+8u)!=1u)
@@ -6340,6 +6437,7 @@ struct PhysicsLiveWorldTu15::Impl {
         //world's constructed gameplay systems. Rendering has its own owner.
         for(auto at=campaign_bsp_callbacks_tu15.rbegin();at!=campaign_bsp_callbacks_tu15.rend();++at)
             if(at->unload && at->unload!=0x31d400u)call_actual(at->unload);
+        retire_campaign_bsp_resources();
         bsp=std::move(next);
         auto a=frame({});a.gp[0]=bsp.mapping;run_actual(0x1255c0u,a);
         if(!(a.gp[0]&255u))throw FormatError("Original campaign BSP resource publication failed");

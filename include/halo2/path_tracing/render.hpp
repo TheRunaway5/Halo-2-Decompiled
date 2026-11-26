@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include "halo2/cache.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +12,13 @@
 namespace halo2::path_tracing {
 struct Scene;
 struct GpuSceneUniform;
+struct WaterReflectionView {
+    // XYZ of the reflected target's Vulkan clip X, Y and W rows.
+    ShaderVector clip_x{},clip_y{},clip_w{};
+    ShaderVector eye_plane{}; // Actual submitting eye XYZ, authored plane height.
+    ShaderVector viewport{}; // Target width, height and maximum ray distance.
+};
+static_assert(sizeof(WaterReflectionView)==80);
 struct RenderContext {
     VkDevice device{};
     VkPhysicalDevice physical{};
@@ -26,6 +34,9 @@ struct RenderContext {
     // instead of the portable software BVH; the scene must clear
     // Scene::cpu_hierarchy before update_geometry.
     bool hardware_rays=false;
+    // Borrow the renderer's device-local pipeline cache. A replacement
+    // renderer can import its opaque driver data after a scene transition.
+    VkPipelineCache pipeline_cache{};
 };
 // Owns only the optional path-tracing pipeline and its scene buffers. Set zero
 // retains the renderer's material descriptors; set one contains ray geometry.
@@ -44,6 +55,8 @@ public:
     // direct visibility; presented geometry poses use current GPU guides.
     void upload(const Scene&);
     void upload(const Scene&,const GpuSceneUniform&);
+    // Reset temporal lighting/shadow histories for a new BSP on the same device.
+    void reset_scene_history() noexcept;
     // Hardware rays: build this frame's acceleration structures. Record once
     // per frame after upload, outside any render pass and before any draw that
     // traces. A no-op for software traversal.
@@ -61,6 +74,10 @@ public:
     void prepare_environment(VkFormat color,VkFormat depth,unsigned side=64,bool source_available=true);
     void begin_environment(VkCommandBuffer,unsigned face,std::array<float,4> clear);
     void end_environment(VkCommandBuffer);
+    // Add geometry hits to the native water reflection target after its sky
+    // draw. The caller retains target lifetime and the water material pass.
+    void prepare_water_reflection(VkRenderPass);
+    void draw_water_reflection(VkCommandBuffer,const WaterReflectionView&)const;
     // Optional exact-W visibility producer. prepare_visibility and upload are
     // host operations performed after the preceding frame fence. Record the
     // same opaque draws/camera/material bank/viewport/scissor in this cheap

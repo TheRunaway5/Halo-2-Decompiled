@@ -35,8 +35,10 @@ int material_alias_history_gpu(const std::filesystem::path& shaders,const std::f
         const auto aliases=pt::refresh_material_aliases(scene,materials,inputs);
         for(unsigned n=0;n<walls.size();++n)walls[n].material=aliases[n/6].material;
         pt::update_geometry(scene,walls);
-        scene.materials[1].response={0,diffuse?0.f:1.f,diffuse?0.f:1.f,0};
-        scene.materials[1].base=scene.materials[1].glancing_tint={1,1,1,1};
+        auto& receiver_material=scene.materials[1];
+        if(diffuse)receiver_material.response={0,0,0,0};
+        else make_mirror(receiver_material,0.f);
+        receiver_material.base=receiver_material.glancing_tint={1,1,1,1};
     };
     Camera camera;camera.eye={0,0,-10000,1};
     const auto draw=[&](bool capture=true) {

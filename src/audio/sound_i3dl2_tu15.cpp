@@ -156,6 +156,50 @@ std::uint16_t sound_dls2_resonance_tu15(float db) {
   return std::uint16_t(std::min(low, 0xffffu));
 }
 
+namespace {
+// 220290 interpolates on SSE and then adds the seeded variation and offset
+// on x87. The caller stores each result as a float before conversion.
+float playback_filter_range(std::span<const std::uint32_t, 4> range, float control, std::uint32_t &seed) {
+  const float from = std::bit_cast<float>(range[0]);
+  const float to = std::bit_cast<float>(range[1]);
+  const volatile float delta = to - from;
+  const volatile float scaled = delta * control;
+  const float interpolated = scaled + from;
+  const double offset = std::bit_cast<float>(range[2]);
+  const double variation = std::bit_cast<float>(range[3]);
+  seed = seed * 0x19660du + 0x3c6ef35fu;
+  const double unit = double(seed >> 16) * double(std::bit_cast<float>(0x37800080u));
+  return float((((2 * variation) * unit - variation) + offset) + interpolated);
+}
+
+// 224D40 encodes the signed Q13 parametric gain for SetFilter.
+std::uint16_t playback_filter_parametric_gain(float db) {
+  const float word = float((std::exp2(double(db) * double(std::bit_cast<float>(0x3debc8e3u)) *
+                                     1.4426950408889634) - 1.0) * 8192.0);
+  if (!(word >= -0x1p31f && word < 0x1p31f)) return 0xc000;
+  const auto value = truncate(word);
+  if (value >= 0) return std::uint16_t(std::min(value, 0x7fff));
+  return std::uint16_t(std::min(0xc000 - value, 0xdfff));
+}
+} // namespace
+
+std::optional<SoundPlaybackFilterTu15> source_sound_playback_filter_tu15(
+    std::span<const std::uint32_t, 18> authored, float control, std::uint32_t seed, bool stereo) {
+  const auto type = authored[0];
+  if (type > 2 || (type == 2 && stereo)) return std::nullopt;
+  std::array<float, 4> ranges{};
+  for (std::size_t i = 0; i < ranges.size(); ++i) {
+    ranges[i] = playback_filter_range(authored.subspan(2 + 4 * i, 4).first<4>(), control, seed);
+    if (!std::isfinite(ranges[i])) return std::nullopt;
+  }
+  const auto q = std::uint8_t(std::clamp(std::bit_cast<std::int32_t>(authored[1]), 0, 7));
+  return SoundPlaybackFilterTu15{std::uint8_t(type == 0 ? 2 : type == 1 ? 1 : 3),
+      type == 1 ? std::uint8_t{} : q,
+      {sound_dls2_cutoff_tu15(ranges[0]), type == 0 ? playback_filter_parametric_gain(ranges[1]) :
+          sound_dls2_resonance_tu15(ranges[1]), sound_dls2_cutoff_tu15(ranges[2]),
+          type == 1 ? sound_dls2_resonance_tu15(ranges[3]) : playback_filter_parametric_gain(ranges[3])}};
+}
+
 double sound_dls2_frequency_tu15(std::uint16_t cutoff) {
   const auto step = int(std::floor(std::int16_t(cutoff) / 4.0)), octave = int(std::floor(step / 1024.0));
   const double value = std::ldexp(std::exp2((step - octave * 1024) / 1024.0) * 65536.0, octave);
@@ -181,7 +225,7 @@ std::uint32_t sound_route_gain_tu15(std::uint16_t attenuation) {
   return (256u * low - 4u * (low - high) * (attenuation & 63u)) >> 6;
 }
 
-std::array<double, 8> sound_resampler_weights_tu15(std::uint16_t fraction) {
+const std::array<std::array<double, 8>, 257> &sound_resampler_table_tu15() noexcept {
   static const auto rows = [] {
     std::array<std::array<double, 8>, 257> out{};
     for (int r = 0; r <= 256; ++r)
@@ -193,6 +237,11 @@ std::array<double, 8> sound_resampler_weights_tu15(std::uint16_t fraction) {
       }
     return out;
   }();
+  return rows;
+}
+
+std::array<double, 8> sound_resampler_weights_tu15(std::uint16_t fraction) {
+  const auto &rows = sound_resampler_table_tu15();
   const auto &low = rows[fraction >> 8], &high = rows[(fraction >> 8) + 1];
   const double between = (fraction & 0xffu) / 256.0;
   std::array<double, 8> out{};

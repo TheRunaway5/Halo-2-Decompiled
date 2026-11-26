@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
       view.set_pc_video_modes({{800, 600}, {1024, 768}}, 960, 720, false);
       view.open(vista_menu(menu));
       if(kind=="video" && i>=2)++i; // Native Internal Resolution follows Screen Resolution.
-      if(kind=="video")i=i==8?13:i+1; // Native FOV, CRT, split and graphics controls precede Restore Defaults.
+      if(kind=="video")i=i==8?14:i+1; // Native FOV, CRT, split, motion blur and graphics controls precede Restore Defaults.
       if(menu==274) {
         // The three imported AA string owners remain intact, while the
         // requested native Upscaling submenu has its own choice coverage.
@@ -312,6 +312,19 @@ int main(int argc, char **argv) {
     choose(state,12);
     check(MenuState(content,preferences).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
           "horizontal two-player layout did not persist");
+    check(state.frame().entries.at(13).label=="Per-Object Motion Blur" &&
+          state.pc_value_label(state.frame(),13)=="Off","per-object motion blur default missing");
+    choose(state,13);
+    check(state.frame().screen==vista_menu(256) && state.frame().selected==13 &&
+          state.stack().size()==video_depth && applied_display.object_motion_blur &&
+          state.pc_value_label(state.frame(),13)=="On" && !applied_display.crt_filter &&
+          applied_display.field_of_view==120,
+          "per-object motion blur did not toggle immediately or changed another setting");
+    check(MenuState(content,preferences).pc_display_settings().object_motion_blur,
+          "per-object motion blur On did not persist");
+    choose(state,13);
+    check(!applied_display.object_motion_blur && !MenuState(content,preferences).pc_display_settings().object_motion_blur,
+          "per-object motion blur Off did not apply and persist");
     check(state.frame().entries.at(0).label=="Graphics Mode" &&
           state.pc_value_label(state.frame(),0)=="Original","Original graphics default missing");
     choose(state,0);
@@ -332,9 +345,9 @@ int main(int argc, char **argv) {
           MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,
           "Path Tracing mode did not apply and persist");
     check(applied_display.path_tracing_samples==1 && applied_display.path_tracing_bounces==1 &&
-          state.frame().entries.at(14).label=="Path Tracing Quality",
+          state.frame().entries.at(15).label=="Path Tracing Quality",
           "Path Tracing did not expose conservative ray/bounce defaults in Video Settings");
-    choose(state,14);
+    choose(state,15);
     check(state.frame().context==video_path_tracing_context && state.frame().entries.size()==2,
           "Path Tracing quality submenu missing");
     choose(state,0);
@@ -355,19 +368,20 @@ int main(int argc, char **argv) {
           "Path Tracing quality did not apply independently and persist");
     state.back();
     choose(state,0);choose(state,0);
-    check(applied_display.graphics_mode==pstencil::GraphicsMode::Original && state.frame().entries.size()==14 &&
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::Original && state.frame().entries.size()==15 &&
           applied_display.path_tracing_samples==2 && applied_display.path_tracing_bounces==2,
           "Original mode did not restore or inactive RT quality altered graphics mode");
     choose(state,0);choose(state,2);
     check(applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing,
           "video defaults fixture did not select Path Tracing");
-    choose(state,12);choose(state,11);choose(state,13);choose(state,0);
+    choose(state,12);choose(state,11);choose(state,13);choose(state,14);choose(state,0);
     check(applied_display.field_of_view==78 && applied_display.vehicle_field_of_view==70 && !applied_display.crt_filter &&
+          !applied_display.object_motion_blur &&
           applied_display.two_player_split==TwoPlayerSplit::Horizontal &&
           applied_display.graphics_mode==pstencil::GraphicsMode::Original &&
           applied_display.path_tracing_samples==1 && applied_display.path_tracing_bounces==1 &&
-          state.frame().entries.size()==14,
-          "video defaults did not reset FOV, CRT and split controls");
+          state.frame().entries.size()==15,
+          "video defaults did not reset FOV, CRT, motion blur and split controls");
     {
       MenuState rejected(content);
       rejected.set_pc_display_adapter([](const DisplaySettings &value){return value.crt_filter?"CRT unavailable":std::string{};});

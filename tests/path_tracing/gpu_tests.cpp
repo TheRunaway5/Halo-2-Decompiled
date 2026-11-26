@@ -2,6 +2,7 @@
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/path_tracing/geometry.hpp"
+#include "halo2/path_tracing/source_ambient.hpp"
 #include "halo2/path_tracing/surface.hpp"
 #include "halo2/world_material_uniform.hpp"
 #include <algorithm>
@@ -451,6 +452,59 @@ float mean(const std::vector<std::uint8_t>& frame,unsigned channel,unsigned left
     double total{};for(unsigned y=top;y<bottom;++y)for(unsigned x=left;x<right;++x)total+=frame[(y*width+x)*4+channel];
     return float(total/((right-left)*(bottom-top)));
 }
+void terrain_diffuse_retention(Fixture& gpu) {
+    // Identical colors and output alpha isolate the T0 terrain mask from the
+    // visible albedo, coverage, and ordinary light contributions.
+    auto terrain=native_surface(true);
+    terrain.diffuse=solid_texture({255,255,255,128});
+    terrain.forward_program.words[43]=0xffffffffu;terrain.forward_program.words[44]=0;
+    native_uniform(gpu,terrain);
+    for(unsigned stage=1;stage<4;++stage)gpu.primary_color({1,1,1,1},stage);
+    constexpr auto blend_byte=[](unsigned x) {return x<width/3?0u:x<2*width/3?128u:255u;};
+    std::vector<std::uint8_t> pixels(width*height*4,255);
+    for(unsigned y=0;y<height;++y)for(unsigned x=0;x<width;++x)
+        pixels[(y*width+x)*4+3]=blend_byte(x);
+    gpu.primary_texture(pixels);
+
+    std::vector<Vertex> primary;quad(primary,-1,-1,1,1,.5f,{0,0,-1},0);
+    auto receiver=pt::build_scene(primary,std::span(&terrain,1));
+    // T1 normal/grazing = 255/64, T2 normal/grazing = 128/32.
+    receiver.materials[0].detail[2]=0x208040ffu;
+    constexpr Vec3 sky{.5f,.5f,.5f};
+    for(float eye_x:{0.f,8.f})for(bool filtered:{false,true}) {
+        Camera camera;camera.eye[0]=eye_x;
+        const auto frame=gpu.draw(receiver,primary,sky,camera,~0u,true,filtered);
+        for(unsigned x:{width/6,width/2,width*5/6}) {
+            constexpr unsigned y=height/2;
+            const float dx=2.f*(x+.5f)/width-1.f-eye_x,dy=2.f*(y+.5f)/height-1.f;
+            const float facing=2.5f/std::sqrt(dx*dx+dy*dy+2.5f*2.5f);
+            const float blend=float(blend_byte(x))/255.f;
+            const float normal=std::lerp(255.f,128.f,blend),grazing=std::lerp(64.f,32.f,blend);
+            const float expected=.5f*std::lerp(grazing,normal,facing);
+            const auto sample=(y*width+x)*4;
+            require(std::abs(float(frame[sample])-expected)<1.5f && frame[sample+3]==255,
+                "Primary terrain lost its T0 mask, incidence response, or authored coverage");
+        }
+    }
+
+    // Only a ray can see the terrain behind the camera. A constant mask and
+    // equal endpoint responses per substrate isolate its secondary albedo.
+    gpu.primary_color({1,1,1,1});
+    std::vector<Vertex> secondary;quad(secondary,-64,-64,64,64,-1.5f,{0,0,1},1);
+    const std::array materials{white_material(),terrain};
+    auto baseline=pt::build_scene(secondary,materials);
+    baseline.materials[1].color_guide={pt::source_default_ambient_kind,0u,0x00404040u,0u};
+    auto attenuated=baseline;
+    attenuated.materials[1].detail[2]=0x4040ffffu;
+    constexpr float retention=std::lerp(1.f,64.f/255.f,128.f/255.f);
+    for(bool filtered:{false,true}) {
+        const auto reference=gpu.draw(baseline,primary,{},Camera{},~0u,false,filtered);
+        const auto candidate=gpu.draw(attenuated,primary,{},Camera{},~0u,false,filtered);
+        const float reference_red=mean(reference,0);
+        require(reference_red>110.f && std::abs(mean(candidate,0)-reference_red*retention)<2.f,
+            "A secondary terrain hit ignored its authored T0 blend or applied material attenuation twice");
+    }
+}
 float deviation(const std::vector<std::uint8_t>& frame,unsigned channel) {
     const auto average=mean(frame,channel,8,56,8,56);double squared{};
     for(unsigned y=8;y<56;++y)for(unsigned x=8;x<56;++x) {
@@ -837,6 +891,8 @@ int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D exten
 #include "panel_detail_gpu_fixture.hpp"
 #include "capital_ship_gpu_fixture.hpp"
 #include "source_primary_gpu_fixture.hpp"
+#include "armory_dynamic_gpu_fixture.hpp"
+#include "water_reflection_gpu_fixture.hpp"
 #include "material_alias_gpu_fixture.hpp"
 #include "material_alias_history_gpu_fixture.hpp"
 #include "reflection_history_gpu_fixture.hpp"
@@ -856,6 +912,10 @@ int main(int argc,char** argv)try {
         return panel_detail_gpu(argv[1],argv[3],argv[4]);
     if(argc==5 && std::string_view(argv[2])=="--capital-ship")
         return capital_ship_gpu(argv[1],argv[3],argv[4]);
+    if(argc==5 && std::string_view(argv[2])=="--armory-dynamic")
+        return armory_dynamic_gpu(argv[1],argv[3],argv[4]);
+    if(argc==3 && std::string_view(argv[2])=="--water-reflection")
+        return water_reflection_gpu(argv[1]);
     if(argc==3 && std::string_view(argv[2])=="--material-alias")
         return material_alias_gpu(argv[1]);
     if(argc==3 && std::string_view(argv[2])=="--source-primary")
@@ -1030,6 +1090,139 @@ int main(int argc,char** argv)try {
     progress("source-W and coverage fixtures passed; starting bounded ray transport");
     std::vector<Material> materials(3);for(auto& material:materials)material=white_material();
     std::vector<Vertex> primary;quad(primary,-1,-1,1,1,.5f,{0,0,-1},0);
+    // The camera sees the -Z face reflected by this plane. A quarter-alpha
+    // texture-pass mask must give the same full-resolution result even when
+    // there is no reconstructed lighting grid.
+    auto authored_environment=pt::build_scene(primary,std::span(materials).first(1));
+    auto& reflective=authored_environment.materials[0];
+    reflective.response={.3f,.5f,.5f,0};
+    reflective.base=reflective.glancing_tint={1,1,1,1};
+    reflective.texture[3]|=pt::environment_mask_flag;
+    reflective.detail[1]=static_cast<std::uint32_t>(authored_environment.pixels.size());
+    authored_environment.pixels.push_back(2u);
+    for(unsigned face=0;face<6;++face)
+        authored_environment.pixels.insert(authored_environment.pixels.end(),4,face==5?0xff0000c8u:0xff00c800u);
+    authored_environment.pixels.push_back(1u);
+    authored_environment.pixels.insert(authored_environment.pixels.end(),6,0xff00a000u);
+    authored_environment.texture_texel_count=static_cast<std::uint32_t>(authored_environment.pixels.size());
+    gpu.primary_color({1,1,1,.25f});
+    const auto fallback_environment=gpu.draw(authored_environment,primary);
+    const auto filtered_environment=gpu.draw(authored_environment,primary,{},Camera{},~0u,false,true);
+    require(std::abs(mean(fallback_environment,0)-25.f)<2 && mean(fallback_environment,1)<1,
+        "Unfiltered Path Tracing lost the authored cube face or its destination-alpha mask");
+    require(filtered_environment==fallback_environment,
+        "The denoised resolve changed full-resolution authored cube reflection");
+    reflective.texture[3]|=32u; // No diffuse lobe, even under a bright blue sky.
+    require(gpu.draw(authored_environment,primary,{0,0,1})==fallback_environment,
+        "An authored mirror added the traced environment to its cube reflection");
+    // The independent cube uses base alpha here. A green direct highlight
+    // must follow the same mask as its red cube, including after reconstruction.
+    std::vector<std::uint8_t> reflection_texels(width*height*4,255);
+    for(unsigned y=0;y<height;++y)for(unsigned x=0;x<width/2;++x)
+        reflection_texels[(y*width+x)*4+3]=0;
+    gpu.primary_texture(reflection_texels);
+    pt::Light reflection_sun;
+    reflection_sun.direction=Vec3{0,0,-1};
+    reflection_sun.color={0,1,0};
+    auto masked_environment=authored_environment;
+    pt::update_geometry(masked_environment,primary,std::span(&reflection_sun,1));
+    for(bool filtered:{false,true}) {
+        const auto frame=gpu.draw(masked_environment,primary,{},Camera{},~0u,false,filtered);
+        const auto masked_cube=mean(frame,0,8,24),masked_direct=mean(frame,1,8,24);
+        const auto visible_cube=mean(frame,0,40,56),visible_direct=mean(frame,1,40,56);
+        std::cout<<"Path Tracing reflection mask [cube, direct], filtered="<<filtered<<": ["
+            <<masked_cube<<','<<masked_direct<<"] -> ["<<visible_cube<<','<<visible_direct<<"]\n";
+        require(masked_cube<1.f && masked_direct<1.f && visible_cube>75.f && visible_direct>30.f,
+            "The authored environment mask lost a valid highlight or let traced specular fill a masked area");
+    }
+    gpu.primary_color({1,1,1,.25f});
+    reflective.texture[3]|=pt::chamber_baked_reflection_flag;
+    reflective.glancing_tint[3]=192/255.f;
+    reflective.color_guide[0]=2;
+    auto chamber=primary;
+    for(auto& vertex:chamber)vertex.color={.15f,.25f,.1f};
+    const auto chamber_reflection=gpu.draw(authored_environment,chamber);
+    require(std::abs(mean(chamber_reflection,0)-19.f)<2 && mean(chamber_reflection,1)<1 &&
+        gpu.draw(authored_environment,chamber,{},Camera{},~0u,false,true)==chamber_reflection,
+        "Chamber reflection did not preserve its baked-light weight or its authored alpha mask");
+    for(auto& vertex:chamber)vertex.color={0,0,0};
+    require(mean(gpu.draw(authored_environment,chamber),0)<1,
+        "Chamber reflection lit a surface with no baked light");
+    reflective.texture[3]&=~pt::chamber_baked_reflection_flag;
+    reflective.color_guide[0]=0;
+    reflective.texture[3]|=pt::environment_mip_flag;
+    reflective.response[0]=.6f;
+    require(gpu.draw(authored_environment,primary)==fallback_environment,
+        "An unclassified finish changed its authored sharp reflection");
+    reflective.detail[3]=std::bit_cast<std::uint32_t>(.3f);
+    const auto rough_environment=gpu.draw(authored_environment,primary);
+    require(mean(rough_environment,0)<1 && std::abs(mean(rough_environment,1)-20.f)<2 &&
+        gpu.draw(authored_environment,primary,{},Camera{},~0u,false,true)==rough_environment,
+        "An authored coarse reflection lost its masked color or disagreed between resolve paths");
+    auto reflected_geometry=primary;
+    quad(reflected_geometry,-4,-4,4,4,-.5f,{0,0,1},1);
+    auto carapace=pt::build_scene(reflected_geometry,std::span(materials).first(2));
+    auto& plate=carapace.materials[0];
+    plate.response={.36f,.5f,.5f,0};
+    plate.texture[3]|=32u|pt::environment_mask_flag|pt::nearby_scene_reflection_flag;
+    plate.detail[1]=carapace.texture_texel_count;
+    carapace.pixels.resize(carapace.texture_texel_count);
+    carapace.pixels.insert(carapace.pixels.end(),authored_environment.pixels.begin()+reflective.detail[1],
+        authored_environment.pixels.begin()+authored_environment.texture_texel_count);
+    carapace.texture_texel_count=static_cast<std::uint32_t>(carapace.pixels.size());
+    auto& practical=carapace.materials[1];
+    practical.texture[3]=32u|pt::uniform_emission_flag;
+    practical.emission={0,.8f,0,0};
+    pt::update_geometry(carapace,reflected_geometry);
+    const auto reflected_practical=gpu.draw(carapace,primary,{},Camera{},~0u,false,true);
+    const auto armor_red=mean(reflected_practical,0),armor_green=mean(reflected_practical,1);
+    require(armor_red>16.f && armor_red<22.f && armor_green>4.f && armor_green<10.f,
+        "A nearby practical overwhelmed the carapace cube or failed to add a local accent");
+    practical.emission={0,8.f,0,0};
+    pt::update_geometry(carapace,reflected_geometry);
+    const auto bright_practical=gpu.draw(carapace,primary,{},Camera{},~0u,false,true);
+    const auto bright_green=mean(bright_practical,1);
+    require(std::abs(mean(bright_practical,0)-armor_red)<1.f &&
+        bright_green>armor_green && bright_green<11.f,
+        "A bright nearby practical washed out the carapace finish");
+    std::cout<<"Carapace cube and nearby practical [red, green, bright green]: ["
+        <<armor_red<<','<<armor_green<<','<<bright_green<<"]\n";
+    practical.emission={0,.8f,0,0};
+    pt::update_geometry(carapace,reflected_geometry);
+    require(gpu.draw(carapace,primary)==fallback_environment,
+        "Carapace fallback added a ray to the bounded stochastic path");
+    gpu.primary_color({1,1,1,0});
+    const auto masked_practical=gpu.draw(carapace,primary,{},Camera{},~0u,false,true);
+    require(mean(masked_practical,0)<1 && mean(masked_practical,1)<1 && mean(masked_practical,2)<1,
+        "The local reflection escaped the carapace mask");
+    gpu.primary_color({1,1,1,.25f});
+    pt::update_geometry(carapace,primary);
+    require(gpu.draw(carapace,primary,{},Camera{},~0u,false,true)==fallback_environment,
+        "A carapace ray miss changed the authored cube reflection");
+    plate.texture[3]|=pt::visor_scene_reflection_flag;
+    plate.response[0]=.18f;
+    pt::update_geometry(carapace,reflected_geometry);
+    const auto lens_with_practical=gpu.draw(carapace,primary,{},Camera{},~0u,false,true);
+    const auto lens_red=mean(lens_with_practical,0),lens_green=mean(lens_with_practical,1);
+    require(lens_red>18.f && lens_green>2.f && lens_green<8.f,
+        "A bright nearby hit overrode the visor's authored reflection, or its scene highlight was lost");
+    auto close_geometry=primary;
+    quad(close_geometry,-4,-4,4,4,.495f,{0,0,1},1);
+    pt::update_geometry(carapace,close_geometry);
+    require(gpu.draw(carapace,primary,{},Camera{},~0u,false,true)==fallback_environment,
+        "The visor reflected an adjacent helmet surface across the lens");
+    practical.emission={};
+    pt::update_geometry(carapace,reflected_geometry);
+    require(gpu.draw(carapace,primary,{},Camera{},~0u,false,true)==fallback_environment,
+        "A nearby surface without a resolved lighting field punched a hole in the visor reflection");
+    plate.texture[3]|=pt::environment_mip_flag;
+    plate.detail[3]=std::bit_cast<std::uint32_t>(.3f);
+    const auto filtered_lens=gpu.draw(carapace,primary);
+    require(std::abs(mean(filtered_lens,0)-12.5f)<2.f && std::abs(mean(filtered_lens,1)-10.f)<2.f &&
+        gpu.draw(carapace,primary,{},Camera{},~0u,false,true)==filtered_lens,
+        "The visor lost its source mip filtering or disagreed between resolve paths");
+    std::cout<<"Visor cube and nearby practical [red,green]: ["<<lens_red<<','<<lens_green<<"]\n";
+    gpu.primary_color({1,1,1,1});
     auto geometry=primary;
     const pt::Light light{{0,0,-1},8,{1,1,1},1};
     auto scene=pt::build_scene(geometry,materials,std::span(&light,1));
@@ -1157,6 +1350,7 @@ int main(int argc,char** argv)try {
     geometry=primary;quad(geometry,-.8f,-.8f,.8f,.8f,-3,{0,0,1},1);
     auto diffuse=pt::build_scene(geometry,materials);const auto diffuse_frame=gpu.draw(diffuse,primary);
     materials[0].name="objects\\characters\\masterchief\\shaders\\masterchief_visor";
+    materials[0].source_surface_material=SourceSurfaceMaterial::Lens;
     materials[0].environment_pass=std::make_shared<Material>();
     materials[0].environment_pass->forward_vertex=4;
     materials[0].environment_pass->forward_diffuse={.96f,.86f,.75f,.4f};
@@ -1381,6 +1575,7 @@ int main(int argc,char** argv)try {
         {0,0,terrain_material.forward_program.words[43],terrain_material.forward_program.words[44]},terrain_samples);
     for(unsigned c=0;c<3;++c)require(std::abs(mean(changed_terrain,c)-terrain_expected[c]*63.75f)<2,
         "Primary native terrain read stale atlas color constants instead of its actual draw bank");
+    terrain_diffuse_retention(gpu);
     // Foliage LESS255 compares native mux alpha: raw alpha0 is a hole;
     // raw alpha255 writes output0 and survives. Test all three raster roles.
     auto leaf_material=native_surface(false);leaf_material.detail=solid_texture({128,128,128,255});

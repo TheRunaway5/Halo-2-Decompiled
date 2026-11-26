@@ -8,4 +8,10 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/asset-setup/mcc-native-20261015/mcc-dsp-resource-inventory/asset-inventory.json
         ${CMAKE_CURRENT_BINARY_DIR}/mcc-sound-effect-definitions-report.json)
     set_tests_properties(mcc_sound_effect_definitions PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    set(HALO2_MCC_CLASSIC_RADIO_MAPS "" CACHE PATH "Prepared MCC maps for Classic radio authoring validation")
+    if(HALO2_MCC_CLASSIC_RADIO_MAPS)
+        add_test(NAME mcc_classic_radio_effect_definitions
+            COMMAND mcc_sound_effect_definitions_tests --classic-radio "${HALO2_MCC_CLASSIC_RADIO_MAPS}")
+        set_tests_properties(mcc_classic_radio_effect_definitions PROPERTIES TIMEOUT 180)
+    endif()
 endif()

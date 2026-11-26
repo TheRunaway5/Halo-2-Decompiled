@@ -510,6 +510,109 @@ void voice_processor_stage() {
   std::cout << "voiceProcessor=levels+fadeIn+ramps+lagrange+pitchRamp+nativeRate ";
 }
 
+void native_rate_packet_boundaries() {
+  constexpr std::size_t source_frames = 513, split_frame = 191, start_frame = 11;
+  constexpr std::size_t output_frames = 640;
+  auto setup = configuration(SdlSoundPlatformConfiguration::Delivery::Manual);
+  setup.voice_processor = true;
+  for (const bool mono : {false, true}) {
+    std::vector<float> wave(2 * source_frames);
+    for (std::size_t n = 0; n < source_frames; ++n) {
+      wave[2 * n] = float(0.31 * std::sin(n * 0.71) + 0.19 * std::cos(n * 0.23));
+      wave[2 * n + 1] = mono ? wave[2 * n] : float(0.37 * std::sin(n * 0.13));
+    }
+    const auto data = std::make_shared<const std::vector<float>>(std::move(wave));
+    for (const auto rate : {SdlSoundNativeRate{22050, -4597}, SdlSoundNativeRate{32000, -2396},
+                            SdlSoundNativeRate{44100, -501}}) {
+      const auto play = [&](bool split) {
+        SdlSoundPlatform device(setup);
+        auto input = parameters(1, 0, false);
+        input.native = rate;
+        const auto voice = device.create_voice_at(0xd01, input, start_frame);
+        check(device.submit(voice, {data, 0, split ? split_frame : source_frames, 0xd02}) ==
+              SdlSoundPlatform::Submission::Accepted, "Native-rate first packet was not accepted");
+        if (split)
+          check(device.submit(voice, {data, split_frame, source_frames - split_frame, 0xd03}) ==
+                SdlSoundPlatform::Submission::Accepted, "Native-rate second packet was not accepted");
+        std::vector<float> output;
+        for (std::size_t n = 0; n < output_frames;) {
+          const auto count = split ? std::min<std::size_t>(n % 43 + 1, output_frames - n) : output_frames;
+          const auto block = device.render(count);
+          output.insert(output.end(), block.begin(), block.end());
+          n += count;
+        }
+        const auto position = device.playback_position(voice);
+        check(position.first_device_frame == start_frame && position.first_presentation_frame == start_frame &&
+              std::abs(position.source_frames - source_frames) < 1e-9, "Native-rate playback positions differ");
+        close_packet(device, voice, 0xd01, 0xd02, SdlSoundCompletionStatus::Success);
+        if (split) close_packet(device, voice, 0xd01, 0xd03, SdlSoundCompletionStatus::Success);
+        device.destroy_voice(voice);
+        return std::pair{std::move(output), position.output_frames};
+      };
+      check(play(false) == play(true), "Native-rate playback changed across packet or render boundaries");
+    }
+  }
+}
+
+void original_rate_packets() {
+  constexpr std::size_t frames = 513, split_frame = 191, first_frame = 11, rendered = 960;
+  constexpr std::uint32_t rate = 44100;
+  std::vector<float> wave(2 * frames);
+  for (std::size_t n = 0; n < wave.size(); ++n)
+    wave[n] = (int((n * 17219u) % 65536u) - 32768) / 32768.f;
+  const auto data = std::make_shared<const std::vector<float>>(wave);
+  for (const bool processor : {false, true}) {
+    auto setup = configuration(SdlSoundPlatformConfiguration::Delivery::Manual);
+    setup.voice_processor = processor;
+    for (const int pitch : {0, -501}) {
+      const auto play = [&](bool split) {
+        SdlSoundPlatform device(setup);
+        auto input = parameters(1, 0, false);
+        auto voice = device.create_voice_at(0xd11, input, first_frame);
+        rejects([&] { device.submit(voice, {data, 0, frames, 0xd12, {}, rate}); });
+        input.native = SdlSoundNativeRate{rate, pitch};
+        device.parameters(voice, input);
+        const auto first_count = split ? split_frame : frames;
+        check(device.submit(voice, {data, 0, first_count, 0xd12, {}, rate}) ==
+              SdlSoundPlatform::Submission::Accepted, "Original-rate first packet was not accepted");
+        rejects([&] { device.submit(voice, {data, 0, frames, 0xd13}); });
+        rejects([&] { auto wrong = input; wrong.native->sample_rate = 32000; device.parameters(voice, wrong); });
+        if (split)
+          check(device.submit(voice, {data, split_frame, frames - split_frame, 0xd13, {}, rate}) ==
+                SdlSoundPlatform::Submission::Accepted, "Original-rate second packet was not accepted");
+        std::vector<float> out;
+        for (std::size_t n = 0; n < rendered;) {
+          const auto count = split ? std::min(n % 39 + 1, rendered - n) : rendered;
+          const auto block = device.render(count);
+          out.insert(out.end(), block.begin(), block.end());
+          n += count;
+        }
+        const auto position = device.playback_position(voice);
+        check(position.first_device_frame == first_frame && position.first_presentation_frame == first_frame &&
+              std::abs(position.source_frames - frames * 48000.0 / rate) < 1e-9,
+              "Original-rate packet altered the presentation clock");
+        check(device.completion(voice) && device.completion(voice)->pcm_frames == first_count,
+              "Original-rate completion lost the first packet's native extent");
+        close_packet(device, voice, 0xd11, 0xd12, SdlSoundCompletionStatus::Success);
+        if (split) {
+          check(device.completion(voice) && device.completion(voice)->pcm_frames == frames - split_frame,
+                "Original-rate completion lost the second packet's native extent");
+          close_packet(device, voice, 0xd11, 0xd13, SdlSoundCompletionStatus::Success);
+        }
+        check(!device.completion(voice), "Original-rate packets completed more than once");
+        device.destroy_voice(voice);
+        if (processor && pitch == 0) {
+          check(position.output_frames == frames, "Unity pitch changed the native sample count");
+          check(std::equal(wave.begin() + 64, wave.end(), out.begin() + 2 * first_frame + 64),
+                "Unity pitch did not preserve original samples after voice fade-in");
+        }
+        return std::pair{std::move(out), position.output_frames};
+      };
+      check(play(false) == play(true), "Original-rate PCM changed across packet or callback boundaries");
+    }
+  }
+}
+
 // The back speaker pair: folded into the sides at -3 dB on stereo, as the
 // EP's encoder does, and played on its own speakers by a quad device; an
 // HRTF voice's rear level sends its ears there.
@@ -667,6 +770,97 @@ void dls2_stage() {
   check(through(cairo, 4000) < 0.2, "The DLS2 stage did not filter");
 }
 
+void authored_voice_filter_stage() {
+  using Mode = SdlSoundFilterMode;
+  using Frame = std::array<std::uint32_t, 32>;
+  struct Capture {
+    SdlSoundVoiceFilter filter;
+    Frame samples;
+  };
+  // Retail Xbox APU probe, v9 page 5 (QA, QB) and v6 page 6 (M) in the
+  // hardware reference attachment on xemu PR #3105. These are the mixbin
+  // words of a repeating 0x400000 impulse after the filters have settled.
+  constexpr std::array<Capture, 3> captures{{
+    {{Mode::ParaEq, 1, {0, 0, 0xe000, 0x2000}}, {
+      0x4764d0, 0x05c4a0, 0x03fc30, 0x022d10, 0x007500, 0xfeeca0, 0xfda680, 0xfcaec0,
+      0xfc0b00, 0xfbbb10, 0xfbb970, 0xfbfc60, 0xfc7740, 0xfd1b40, 0xfdd910, 0xfea1a0,
+      0xff66f0, 0x001d30, 0x00bad0, 0x013910, 0x019400, 0x01ca40, 0x01dd20, 0x01cfd0,
+      0x01a730, 0x016930, 0x011c60, 0x00c760, 0x007080, 0x001d80, 0xffd310, 0xff94b0}},
+    {{Mode::ParaEq, 1, {0, 0, 0xe000, 0xe000}}, {
+      0x389b30, 0xfa3b60, 0xfc03d0, 0xfdd300, 0xff8b10, 0x011370, 0x025990, 0x035150,
+      0x03f500, 0x0444f0, 0x0446a0, 0x0403a0, 0x0388d0, 0x02e4c0, 0x0226f0, 0x015e70,
+      0x009910, 0xffe2d0, 0xff4530, 0xfec6f0, 0xfe6c10, 0xfe35c0, 0xfe22e0, 0xfe3030,
+      0xfe58e0, 0xfe96e0, 0xfee3b0, 0xff38b0, 0xff8f80, 0xffe280, 0x002d00, 0x006b50}},
+    {{Mode::Dls2ParaEq, 0, {0, 0x8000, 0xd97e, 0xd97e}}, {
+      0x30d940, 0xf426b0, 0xf73eb0, 0xfa1220, 0xfc92e0, 0xfeba10, 0x0084d0, 0x01f470,
+      0x030d00, 0x03d4d0, 0x045420, 0x049410, 0x049e50, 0x047ca0, 0x043860, 0x03dab0,
+      0x036b80, 0x02f230, 0x027500, 0x01f8f0, 0x018270, 0x011480, 0x00b170, 0x005ab0,
+      0x001120, 0xffd4d0, 0xffa570, 0xff8230, 0xff6a00, 0xff5bd0, 0xff5620, 0xff5770}},
+  }};
+  auto setup = configuration(SdlSoundPlatformConfiguration::Delivery::Manual);
+  setup.voice_processor = true;
+  for (const auto &capture : captures) {
+    SdlSoundPlatform device(setup);
+    auto input = parameters(1, 0, false);
+    input.voice_filter = capture.filter;
+    constexpr std::size_t warmup = 8 * 32, frames = warmup + 32;
+    std::vector<float> samples(2 * frames);
+    for (std::size_t n = 0; n < frames; n += 32) samples[2 * n] = samples[2 * n + 1] = 0.5f;
+    const auto voice = device.create_voice(0xb10, input);
+    check(device.submit(voice, {std::make_shared<const std::vector<float>>(std::move(samples)), 0, frames, 0xb11}) ==
+          SdlSoundPlatform::Submission::Accepted, "Retail filter probe packet was not accepted");
+    (void)device.render(warmup);
+    const auto output = device.render(32);
+    for (std::size_t n = 0; n < capture.samples.size(); ++n) {
+      const auto sample = std::int32_t(capture.samples[n] ^ 0x800000) - 0x800000;
+      const float expected = float(sample) / 8388608.0f;
+      check(output[2 * n] == expected && output[2 * n + 1] == expected,
+            "Authored voice filter differed from the retail Xbox impulse at a PCM frame");
+    }
+    close_voice(device, voice);
+  }
+
+  setup.crosstalk = false;
+  setup.voice_processor = false;
+  const auto impulse = [&setup](const SdlSoundVoiceParameters &input) {
+    SdlSoundPlatform device(setup);
+    const auto voice = device.create_voice(0xb12, input);
+    check(device.submit(voice, {pcm({0.5f, 0.5f, 0.f, 0.f}), 0, 2, 0xb13}) ==
+          SdlSoundPlatform::Submission::Accepted, "Format filter probe packet was not accepted");
+    auto out = device.render(2);
+    close_voice(device, voice);
+    return out;
+  };
+  auto input = parameters(1, 0, false);
+  input.dls2 = SdlSoundDls2{0xe000, 0x8000};
+  input.direct = SdlSoundI3dl2Path{1, 0x8000};
+  input.voice_filter = SdlSoundVoiceFilter{Mode::Dls2ParaEq, 1, {0xe000, 0x8000, 0xe000, 0x2000}, true};
+  check(impulse(input) == std::vector<float>{0.5f, 0.5f, 0.f, 0.f},
+        "Mode 3 processed a stereo voice with no HRTF");
+
+  input.voice_filter->stereo = false;
+  SdlSoundHrtf hrtf;
+  hrtf.left[0] = hrtf.right[0] = 1.f;
+  input.hrtf = hrtf;
+  const std::vector<float> direct_response{0.25f, 0.25f, 0.125f, 0.125f};
+  check(impulse(input) == direct_response, "Mode 3 lost spatial I3DL2 precedence");
+  input.voice_filter->mode = Mode::Bypass;
+  check(impulse(input) == direct_response, "A reset removed retained spatial I3DL2");
+
+  input.hrtf.reset();
+  input.voice_filter = SdlSoundVoiceFilter{Mode::Dls2, 0, {0xe000, 0x8000, 0, 0x8000}, true};
+  const auto dls2_stereo = impulse(input);
+  check(dls2_stereo[0] == 0.03125f && dls2_stereo[1] == 0.4999847412109375f,
+        "Mode 1 did not apply the separate stereo FCA and FCB pairs");
+  input.voice_filter = SdlSoundVoiceFilter{Mode::ParaEq, 0, {0xe000, 0x2000, 0xe000, 0xe000}, true};
+  const auto paraeq_stereo = impulse(input);
+  check(paraeq_stereo[0] == 0.625f && paraeq_stereo[1] == 0.375f,
+        "Mode 2 did not apply the separate signed stereo FCA and FCB pairs");
+  input.voice_filter->parametric_q = 8;
+  rejects([&] { (void)impulse(input); });
+  std::cout << "authoredFilterHardwareWords=96 authoredFilterStereoAndSpatial=passed ";
+}
+
 int main(int argc, char **argv) {
   try {
     if (argc == 2 && std::string(argv[1]) == "--device-failure") {
@@ -692,7 +886,10 @@ int main(int argc, char **argv) {
     crosstalk_stage();
     reverb_bus();
     dls2_stage();
+    authored_voice_filter_stage();
     voice_processor_stage();
+    native_rate_packet_boundaries();
+    original_rate_packets();
     back_pair();
     std::cout << "hrtfStage=passed crosstalk=record10 reverbBus=records8-9 dls2=passed effectBus=record1 nativeDevice=dummy realCallback=passed attachedPackets=2 rateControls=8 uncappedVoices=80 "
                  "retentionOrderedAccounting=passed independentPause=passed explicitRouting=passed "

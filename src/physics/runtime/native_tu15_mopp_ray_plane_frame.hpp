@@ -126,8 +126,7 @@ public:
         else if(kind==Write::high_plane){pc=p.spill_high;offset=0x1cu;}
         else if(kind==Write::end_projection){pc=0x30ade0u;offset=0x18u;}
         else throw std::logic_error("Unknown split-plane spill");
-        at(pc);const auto pending=scope_.stage_single(pop);
-        Base::store(pc,s_.gp[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);return pending.bits;
+        at(pc);return Base::spill_single(pc,s_.gp[4]+offset,pop,scope_);
     }
     std::uint32_t endpoint(unsigned axis,unsigned term,const Progress&d){
         at(sites(d).endpoint[d.endpoint][term]);return word(s_.gp[7]+16u*d.endpoint+4u*axis);

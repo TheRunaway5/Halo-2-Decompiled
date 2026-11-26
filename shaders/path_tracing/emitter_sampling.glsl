@@ -4,7 +4,7 @@
 // the emitter table (triangle indices, then their running power; see
 // Scene::pixels). No additional rays or resources
 // are used, and sampled radiance always comes from the actual closest hit.
-const uint traceEmitterGroupMagic=0x45525447u,traceEmitterGroupWords=12u;
+const uint traceEmitterGroupWords=12u;
 uint traceEmitterGroupCandidate(uint table,uint count,float total,inout uint state) {
     float choice=traceRandom(state)*total;uint low=0u,high=count;
     [[dont_unroll]] for(uint step=0u;step<16u && low<high;++step) {

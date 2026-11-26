@@ -17,8 +17,13 @@ struct ProjectedLightFrame {
 //and complete native constants feed each draw independently.
 class ProjectedLights {
 public:
-    ProjectedLights(const Cache&,Mesh&,unsigned bsp,std::shared_ptr<SharedLightMaterials>);
+    ProjectedLights(const Cache&,Mesh&,unsigned bsp,std::shared_ptr<SharedLightMaterials>,
+        bool preload_raster_materials=true,std::span<const Material> additional_materials={});
     ~ProjectedLights();
+    void switch_bsp(Mesh&,unsigned bsp,std::span<const Material> additional_materials={},
+        bool preload_raster_materials=true);
+    void ensure_raster_materials(Mesh&,std::span<const Material> additional_materials={});
+    bool raster_materials_preloaded()const noexcept;
     const std::vector<std::string>& unavailable()const;
     ProjectedLightFrame draw(PhysicsLiveWorldTu15&,const SourceEffectLightViewRecord&,
         float selected_fade,const NativeLightReceiver&,const NativeLightGeometry&,

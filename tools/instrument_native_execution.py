@@ -28,6 +28,9 @@ SERVICE=re.compile(r'\b(?:s\.)?services\.instruction\s*\(')
 LITERAL_PC=re.compile(rf'(?:{EXPRESSION}|\(s\.image==SourcePhysicsContactImage::MapPack11\?{HEX}:{HEX}\))')
 INCLUDE='#include "halo2/native_execution_accounting.hpp"\n'
 SCOPE='halo2_execution_scope_8ef3'
+# The name only identifies a possible canonical owner. Admission also
+# requires reproducing the complete prepared unit byte for byte.
+SPECIALIZED_REFERENCE=re.compile(r'native_[a-z0-9_]+_reference_([0-9a-f]+)(?:_[a-z][a-z0-9_]*)?')
 
 
 def sha(value):return hashlib.sha256(value.encode() if isinstance(value,str) else value).hexdigest()
@@ -56,9 +59,21 @@ def instrument(text,canonical_text,canonical_name,*,embedded=False):
     scope=callback_image_scope(canonical_text)
     edits=[];rows=[]
     canonical={match[1]:body for match,body in function_bodies(canonical_text)}
+    prepared_references_verified=False
     for match,body in function_bodies(text):
         symbol=match[1]
-        if symbol not in canonical:raise ValueError('Alias function is absent from canonical source: '+symbol)
+        origin=symbol
+        if symbol not in canonical:
+            reference=SPECIALIZED_REFERENCE.fullmatch(symbol)
+            if not reference or reference[1] not in canonical:
+                raise ValueError('Alias function is absent from canonical source: '+symbol)
+            if not prepared_references_verified:
+                from specialize_native_operands import specialize
+                expected,_=specialize(canonical_text)
+                if expected!=text:
+                    raise ValueError('Alias reference failed complete operand specialization check: '+symbol)
+                prepared_references_verified=True
+            origin=reference[1]
         mask=NON_CODE.sub(lambda m:' '*len(m.group()),body)
         covered=[];sites=[];forwarders=[];predicates={}
         for guard in SCOPED_GUARD.finditer(mask):
@@ -108,14 +123,16 @@ def instrument(text,canonical_text,canonical_name,*,embedded=False):
                      f'::halo2::execution_accounting::Scope {SCOPE}'
                      '{halo2_execution_counter_8ef3,'+image+'};\n')
         edits.append((match.end(),match.end(),declaration))
-        semantics=('native_service_observation_sites'if native_service_observation(canonical_name,canonical_sha,symbol)else
+        semantics=('specialized_reference_sites' if origin!=symbol else
+            'native_service_observation_sites'if native_service_observation(canonical_name,canonical_sha,symbol)else
             'retained_generated_body_sites' if canonical_name.endswith('_generated.cpp') else
             'instruction_shape_candidate_requires_review' if len(sites)>=3 and re.search(r'\b\w+\.(?:gp\s*\[|reg\s*\(|set\s*\(|flags\.)|iterator_flags\(',mask) else
             'literal_observer_or_instruction_shape_unclassified')
-        rows.append(dict(symbol=symbol,function_name=match.function_name,state_type=match[2],canonical_body_sha256=sha(canonical[symbol]),
+        rows.append(dict(symbol=symbol,function_name=match.function_name,state_type=match[2],canonical_body_sha256=sha(canonical[origin]),
                          input_body_sha256=sha(body),literal_sites=len(sites),
                          source_body_semantics=semantics,
                          dynamic_instruction_forwarders=forwarders))
+        if origin!=symbol:rows[-1]['canonical_reference_owner']=origin
     if not rows:raise ValueError('No generated function definitions to instrument')
     pieces=[];cursor=0
     for start,end,replacement in sorted(edits):

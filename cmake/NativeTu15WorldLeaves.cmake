@@ -15,6 +15,25 @@ if(BUILD_TESTING)
         "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_world_leaves_tu15.py"
         --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-world-leaves.json" --jobs 2)
     set_tests_properties(native_tu15_world_leaves PROPERTIES TIMEOUT 2400)
+    if(EXISTS "${HALO2_TU15_GAMEPLAY_XBE}")
+        add_test(NAME native_tu15_soa_support_world
+            COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --
+            "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_soa_support_world_tu15.py"
+            --xbe "${HALO2_TU15_GAMEPLAY_XBE}" --compiler "${CMAKE_CXX_COMPILER}"
+            --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-soa-support-world.json")
+        set_tests_properties(native_tu15_soa_support_world PROPERTIES TIMEOUT 2400)
+        add_test(NAME native_tu15_collection_filter_world
+            COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --
+            "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_collection_filter_world_tu15.py"
+            --xbe "${HALO2_TU15_GAMEPLAY_XBE}" --compiler "${CMAKE_CXX_COMPILER}"
+            --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-collection-filter-world.json")
+        set_tests_properties(native_tu15_collection_filter_world PROPERTIES TIMEOUT 2400)
+    endif()
+    add_test(NAME native_tu15_swept_support_world
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --
+        "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_swept_support_world_tu15.py"
+        --compiler "${CMAKE_CXX_COMPILER}" --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-swept-support-world.json")
+    set_tests_properties(native_tu15_swept_support_world PROPERTIES TIMEOUT 2400)
     # 303EE0 contact record append (child boundary: 2E3250; 303BA0 inline).
     add_test(NAME native_tu15_contact_array
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" --

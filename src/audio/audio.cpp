@@ -200,7 +200,8 @@ PcmSound decode_movie_audio(const std::filesystem::path &path) {
   input.name = path.filename().string();
   return decode_audio_container(input, path);
 }
-PcmSound decode_sound(const EncodedSound &input) {
+namespace {
+PcmSound decode_sound_pcm(const EncodedSound &input, bool native_rate) {
   if (!input.channels || input.channels > 4 || !input.sample_rate ||
       input.data.empty())
     throw FormatError("invalid encoded sound");
@@ -251,12 +252,30 @@ PcmSound decode_sound(const EncodedSound &input) {
   PcmSound output;
   output.name = input.name;
   output.sound_class = input.sound_class;
+  if (native_rate) output.rate = input.sample_rate;
   auto receive = [&]() {
     for (;;) {
       const int status = avcodec_receive_frame(r.decoder, r.frame);
       if (status == AVERROR(EAGAIN) || status == AVERROR_EOF)
         break;
       check(status, "decode sound frame");
+      if (native_rate) {
+        const bool planar = r.frame->format == AV_SAMPLE_FMT_S16P;
+        if ((!planar && r.frame->format != AV_SAMPLE_FMT_S16) ||
+            r.frame->ch_layout.nb_channels != int(input.channels) ||
+            r.frame->sample_rate != int(input.sample_rate))
+          throw FormatError("Unexpected Xbox ADPCM decoder output format");
+        const auto *first = reinterpret_cast<const std::int16_t *>(r.frame->extended_data[0]);
+        const auto *second = input.channels == 1 ? first : planar
+            ? reinterpret_cast<const std::int16_t *>(r.frame->extended_data[1]) : first + 1;
+        const unsigned stride = planar ? 1 : input.channels;
+        for (int frame = 0; frame < r.frame->nb_samples; ++frame) {
+          output.stereo.push_back(first[frame * stride] / 32768.f);
+          output.stereo.push_back(second[frame * stride] / 32768.f);
+        }
+        av_frame_unref(r.frame);
+        continue;
+      }
       if (!r.resampler) {
         AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
         check(swr_alloc_set_opts2(&r.resampler, &stereo, AV_SAMPLE_FMT_FLT,
@@ -313,7 +332,7 @@ PcmSound decode_sound(const EncodedSound &input) {
     at += size;
     if (!chunk_ends.empty() && at == end)
       output.chunk_boundaries.push_back({at,output.frames()});
-    if (output.frames() > 48000ull * 600)
+    if (output.frames() > std::uint64_t(output.rate) * 600)
       throw FormatError("decoded sound exceeds ten minute limit");
   }
   check(avcodec_send_packet(r.decoder, nullptr), "flush sound decoder");
@@ -344,6 +363,16 @@ PcmSound decode_sound(const EncodedSound &input) {
   if (!output.frames())
     throw FormatError("sound decoded to no samples");
   return output;
+}
+} // namespace
+PcmSound decode_sound(const EncodedSound &input) {
+  return decode_sound_pcm(input, false);
+}
+PcmSound decode_xbox_adpcm_native(const EncodedSound &input) {
+  if (input.codec != 1 || input.channels > 2 ||
+      (input.sample_rate != 22050 && input.sample_rate != 32000 && input.sample_rate != 44100))
+    throw FormatError("Native Xbox ADPCM requires mono or stereo at an authored Xbox sample rate");
+  return decode_sound_pcm(input, true);
 }
 void write_wav(const PcmSound &sound, const std::filesystem::path &path) {
   if (sound.stereo.size() > UINT32_MAX / 2 - 36)

@@ -36,6 +36,26 @@ OBJECT_UPDATE = 'src/physics/runtime/native_tu15_object_tick_systems.hpp'
 # extra.inc), unreachable branches with reasons, mutants (file, name, anchor,
 # replacement); the file is 'header', 'systems' or a shared source path.
 OWNERS = {
+    'b9460': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/physics/runtime/native_tu15_object_motion_update.hpp',
+        test='tests/native_tu15_object_motion_update_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('header', 'slot-mask', 'gp[ecx] & 0xffffu', 'gp[ecx] & 0x7fffu'),
+            ('header', 'object-stride', 'gp[esi] = 3u * gp[eax];', 'gp[esi] = 4u * gp[eax];'),
+            ('header', 'disconnect-condition', 'this->reached(Branch::disconnect);', 'return; this->reached(Branch::disconnect);'),
+            ('header', 'position-bounds', 'if (!position_in_bounds())', 'if (position_in_bounds())'),
+            ('header', 'position-order', 'gp[edx] + 4u, 4, gp[eax]', 'gp[edx] + 8u, 4, gp[eax]'),
+            ('header', 'forward-store', '0xb9535u, gp[ecx] + 4u', '0xb9535u, gp[ecx] + 8u'),
+            ('header', 'up-order', '0xb9552u, gp[edi] + 8u', '0xb9552u, gp[edi] + 4u'),
+            ('header', 'entity-notice-argument', 'this->push(0xb9567u, 4u);', 'this->push(0xb9567u, 2u);'),
+            ('header', 'physics-argument', 'set_low_byte(gp[eax], this->flags.zf);',
+             'set_low_byte(gp[eax], !this->flags.zf);'),
+            ('header', 'required-site', 's.required(0xb959cu, 0xbf050u, false)',
+             's.required(0xb959bu, 0xbf050u, false)'),
+            ('header', 'return-adjustment', 'this->ret(0xb95c5u, 36u);', 'this->ret(0xb95c5u, 32u);'),
+        ]),
     '1306b0': dict(
         unit='src/rendering/source_geometry_cache_frame_tu15_generated.cpp',
         header='src/physics/runtime/native_tu15_geometry_cache_count.hpp',
@@ -1176,6 +1196,36 @@ OWNERS = {
             ('systems', 'count-value', 'memory.store32(count_store,count,matrix_count(bytes));', 'memory.store32(count_store,count,matrix_count(bytes)+1u);'),
             ('systems', 'offset-sign', 'return object+widen16(memory.load16(offset,at(object,matrices_offset)));', 'return object+memory.load16(offset,at(object,matrices_offset));'),
         ]),
+    '10dfa0': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        variants=('src/gameplay/units/source_combat_action_tu15_generated.cpp',),
+        header='src/physics/runtime/native_tu15_object_type_notification.hpp',
+        systems='src/physics/runtime/native_tu15_object_type_notification_systems.hpp',
+        test='tests/native_tu15_object_type_notification_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'unsigned-type', 'const auto type_index=widen8(memory.load8(type,object+object_type));',
+             'const auto type_index=memory.load8(type,object+object_type);'),
+            ('systems', 'callback-field', 'notify_callback=0x58u;', 'notify_callback=0x5cu;'),
+            ('systems', 'skip-reload', 'const auto type_address=memory.load32(chain_type,slot);',
+             'const auto type_address=entry;'),
+            ('systems', 'unsigned-index', '4u*widen16(current.index&0xffffu);',
+             '4u*(current.index&0xffffu);'),
+            ('systems', 'chain-stride', '4u*widen16(current.index&0xffffu);',
+             '8u*widen16(current.index&0xffffu);'),
+            ('header', 'refresh-receiver', 'current={gp[ebx],gp[ebp],gp[edi],gp[esi]};',
+             'current={current.handle,gp[ebp],gp[edi],gp[esi]};'),
+            ('header', 'refresh-argument', 'current={gp[ebx],gp[ebp],gp[edi],gp[esi]};',
+             'current={gp[ebx],current.argument,gp[edi],gp[esi]};'),
+            ('header', 'refresh-definition', 'current={gp[ebx],gp[ebp],gp[edi],gp[esi]};',
+             'current={gp[ebx],gp[ebp],current.definition,gp[esi]};'),
+            ('header', 'refresh-index', 'current={gp[ebx],gp[ebp],gp[edi],gp[esi]};',
+             'current={gp[ebx],gp[ebp],gp[edi],current.index};'),
+            ('header', 'argument-order',
+             '        this->push(0x10dfe9u,current.argument);\n        this->push(0x10dfeau,current.handle);',
+             '        this->push(0x10dfe9u,current.handle);\n        this->push(0x10dfeau,current.argument);'),
+            ('header', 'ret-frame', '        this->ret(0x10e006u,4u);', '        this->ret(0x10e006u,0u);'),
+        ]),
     '10e340': dict(
         unit='src/physics/physics_live_support_tu15_generated.cpp',
         variants=('src/gameplay/units/death_cycle_runtime_tu15_generated.cpp',),
@@ -1258,9 +1308,25 @@ OWNERS = {
             ('header', 'held-or', 'set_low_byte(gp[ecx],reaches?this->flags.logic((gp[ecx]|logic::state::reaches_end)&0xffu,1):', 'set_low_byte(gp[ecx],reaches?this->flags.logic(gp[ecx]&0xffu,1):'),
             ('header', 'eax-xor', 'gp[esi]=gp[eax];gp[eax]=this->flags.logic(0u,4);', 'gp[esi]=gp[eax];'),
         ]),
+    '145b70': dict(
+        unit='src/gameplay/units/death_cycle_runtime_tu15_generated.cpp',
+        header='src/gameplay/units/native_tu15_rotate_vector.hpp',
+        test='tests/native_tu15_rotate_vector_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('header', 'aliased-input', 'if(flags.zf)copy_aliased_input();', ''),
+            ('header', 'input-component', '{0x0cu,4u,0x145b9bu,0x145ba0u}', '{0x0cu,0u,0x145b9bu,0x145ba0u}'),
+            ('header', 'coefficient', '{0x20u,8u,0x145be3u,0x145be8u}', '{0x18u,8u,0x145be3u,0x145be8u}'),
+            ('header', 'nan-destination', 'ordered_add_ss(xmm[0],xmm[1])', 'ordered_add_ss(xmm[1],xmm[0])'),
+            ('header', 'in-place-spill', 'this->store(0x145b84u,gp[esp]+8u,4,gp[esi]);',
+             'this->store(0x145b84u,gp[esp]+8u,4,gp[ecx]);'),
+            ('header', 'cleanup', 'gp[esp]+=4u;\n    }\n};', 'gp[esp]+=8u;\n    }\n};'),
+            ('header', 'instruction-order', 'step(axis.sum_pcs[i-1]);', ''),
+        ]),
     '130d20': dict(
         unit='src/physics/physics_live_support_tu15_generated.cpp',
-        variants=('src/rendering/models/source_model_render_tu15_generated.cpp',),
+        variants=('src/rendering/models/source_model_render_tu15_generated.cpp',
+                  'src/rendering/shadows/source_shadow_frame_tu15_generated.cpp'),
         header='src/rendering/native_tu15_cache_entry.hpp',
         systems='src/rendering/native_tu15_cache_entry_systems.hpp',
         test='tests/native_tu15_cache_entry_tests.cpp',
@@ -4257,6 +4323,52 @@ OWNERS = {
             ('header', 'test-up', 'this->test32(up_pointer);', 'this->test32(gp[edx]);'),
             ('header', 'push-one', 'put(0xb9647u,1u);', 'put(0xb9647u,0u);'),
         ]),
+    '116280': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/gameplay/units/native_tu15_keyed_marker_pose.hpp',
+        systems='src/gameplay/units/native_tu15_keyed_marker_pose_systems.hpp',
+        test='tests/native_tu15_keyed_marker_pose_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'object-index', 'header_of(memory, handle, object_table, object_rows)',
+             'header_of(memory, handle & 0xffu, object_table, object_rows)'),
+            ('systems', 'signed-channel-offset',
+             'widen16(memory.load16(channels_offset, at(object, animation::unit::channels)))',
+             'memory.load16(channels_offset, at(object, animation::unit::channels))'),
+            ('systems', 'signed-state-offset',
+             'widen16(memory.load16(state_offset, at(object, animation::unit::state)))',
+             'memory.load16(state_offset, at(object, animation::unit::state))'),
+            ('systems', 'animation-gate',
+             'memory.load32(animation_tag, at(state, animation::state::animation)) == animation::none',
+             'memory.load32(animation_tag, at(state, animation::state::animation)) != animation::none'),
+            ('systems', 'graph-gate',
+             'memory.load32(graph, at(state, animation::state::graph)) == animation::none',
+             'memory.load32(graph, at(state, animation::state::graph)) != animation::none'),
+            ('systems', 'channel-gate',
+             'memory.load16(channel, at(state, animation::state::mode)) == 0xffffu',
+             'memory.load16(channel, at(state, animation::state::mode)) == 0u'),
+            ('systems', 'transition-duration', 'native_transition_fraction::transition::duration)) == 0)',
+             'native_transition_fraction::transition::duration + 1u)) == 0)'),
+            ('systems', 'stack-weight', 'weight_store, frame.local(Local::weight), weight);',
+             'weight_store, frame.local(Local::poses), weight);'),
+            ('systems', 'pose-weight-reread',
+             'memory.load32(weight_argument, frame.local(Local::weight_after_matrices_push));',
+             'weight;'),
+            ('systems', 'iterator-stage', 'at(iterator, offsetof(Iterator, stage)), 0u);',
+             'at(iterator, offsetof(Iterator, stage)), 1u);'),
+            ('header', 'transition-return-pc', 'this->call(0x1162dbu, 0x1162e0u, 0x1e1620u, transition);',
+             'this->call(0x1162dbu, 0x1162e6u, 0x1e1620u, transition);'),
+            ('header', 'absolute-weight', 'fp.st(0) = std::fabs(fp.st(0));',
+             'fp.st(0) = -std::fabs(fp.st(0));'),
+            ('header', 'margin-operand', 'state.compare_and_pop(state.fp.st(1));',
+             'state.compare_and_pop(state.fp.st(0));'),
+            ('header', 'keyed-mode', 'this->push(0x11630du, 1u);', 'this->push(0x11630du, 0u);'),
+            ('header', 'live-iterator-sentinel', 'iterator_sentinel() const { return this->gp[edi]; }',
+             'iterator_sentinel() const { return logic::animation::none; }'),
+            ('header', 'marker-return-pc', 'this->call(0x11632du, 0x116332u, 0x116060u, markers);',
+             'this->call(0x11632du, 0x116333u, 0x116060u, markers);'),
+            ('header', 'parent-cleanup', 'this->ret(0x116338u, 12u);', 'this->ret(0x116338u, 8u);'),
+        ]),
     '1157d0': dict(
         unit='src/physics/physics_live_support_tu15_generated.cpp',
         header='src/gameplay/units/native_tu15_unit_animation_update.hpp',
@@ -4787,6 +4899,94 @@ OWNERS = {
             ('systems', 'slot-order', 'if(slot<3u)event_frame_value=', 'if(slot<2u)event_frame_value='),
             ('header', 'lahf', 'gp[eax]=(gp[eax]&0xffff00ffu)|(((fl.bits()|2u)&0xffu)<<8);', ''),
             ('header', 'bit-register', '(current>=3u && !start_side)?edx:eax;', 'eax;'),
+        ]),
+    '2e4350': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/physics/runtime/native_tu15_rotation_quaternion.hpp',
+        systems='src/physics/runtime/native_tu15_rotation_quaternion_systems.hpp',
+        test='tests/native_tu15_rotation_quaternion_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'matrix-stride', 'inline constexpr unsigned stride=4u,w=3u;',
+             'inline constexpr unsigned stride=3u,w=3u;'),
+            ('systems', 'wrong-half', 'half=0x46a0ccu;',
+             'half=0x46a0d0u;'),
+            ('systems', 'wrong-cycle', '    memory.store32(cycle_second,cycle+4u,2u);',
+             '    memory.store32(cycle_second,cycle+4u,0u);'),
+            ('systems', 'cross-subtraction', '    else frame.subtract(other);',
+             '    else frame.reverse_subtract(other);'),
+            ('systems', 'off-diagonal-order',
+             '    cross_term<true>(memory,frame,element(matrix,major,next),element(matrix,next,major),restored_output+4u*next,',
+             '    cross_term<true>(memory,frame,element(matrix,next,major),element(matrix,major,next),restored_output+4u*next,'),
+            ('header', 'trace-tie', '        this->test8((this->gp[eax]>>8u)&0x41u);',
+             '        this->test8((this->gp[eax]>>8u)&0x01u);'),
+            ('header', 'major-axis', '        const unsigned major=comparison_is_greater()?2u:leader;',
+             '        const unsigned major=leader;'),
+            ('header', 'reciprocal-order', '        fp.st(0)=physics_solver_detail::divide(fp.st(0),fp.st(1));',
+             '        fp.st(0)=physics_solver_detail::divide(fp.st(1),fp.st(0));'),
+            ('header', 'ret-frame', '        this->ret(exit,4u);',
+             '        this->ret(exit,0u);'),
+        ]),
+    '1ee3d0': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/physics/runtime/native_tu15_unit_motion_parameters.hpp',
+        systems='src/physics/runtime/native_tu15_unit_motion_parameters_systems.hpp',
+        test='tests/native_tu15_unit_motion_parameters_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'matrix-count', 'motion_table=0x134u,matrix_words=13u;',
+             'motion_table=0x134u,matrix_words=12u;'),
+            ('systems', 'wrong-vector-field', 'selector=0x2cu,matrix=0x34u,vector=0x74u;',
+             'selector=0x2cu,matrix=0x34u,vector=0x70u;'),
+            ('systems', 'wrong-motion-table', 'motion_table=0x134u,matrix_words=13u;',
+             'motion_table=0x138u,matrix_words=13u;'),
+            ('systems', 'wrong-reverse-speed', 'positive_speed=0x2cu,negative_speed=0x30u,',
+             'positive_speed=0x2cu,negative_speed=0x2cu,'),
+            ('systems', 'position-z-order',
+             '    frame.restore_before_position_z();\n    memory.store32(position_z_store,position+8u,position_z_word);',
+             '    memory.store32(position_z_store,position+8u,position_z_word);\n    frame.restore_before_position_z();'),
+            ('header', 'copy-direction', '        return reverse?0u-4u:4u;',
+             '        return 4u;'),
+            ('header', 'descriptor-bit', 'const auto bits=this->gp[ebx]=this->flags.right(descriptor,2u,4,false);',
+             'const auto bits=this->gp[ebx]=this->flags.right(descriptor,3u,4,false);'),
+            ('header', 'normalize-reciprocal', 'fp.st(0)=physics_solver_detail::divide(fp_math::ext(fp_math::f(unit)),fp.st(0));',
+             'fp.st(0)=physics_solver_detail::divide(fp.st(0),fp_math::ext(fp_math::f(unit)));'),
+            ('header', 'nan-destination', 'const auto first_weighted=ordered_mul_ss(scalar(first),x[1]);',
+             'const auto first_weighted=ordered_mul_ss(x[1],scalar(first));'),
+            ('header', 'fixed-blend', 'options&logic::option::fixed_blend,4);',
+             'options&logic::option::preserve_limit,4);'),
+            ('header', 'ret-frame', '        this->ret(exit,16u);',
+             '        this->ret(exit,12u);'),
+        ]),
+    'e05d0': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/gameplay/units/native_tu15_camera_basis.hpp',
+        systems='src/gameplay/units/native_tu15_camera_basis_systems.hpp',
+        test='tests/native_tu15_camera_basis_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'skip-fallback', '    if(normalize<false>(memory,frame,basis.forward)) {',
+             '    if(!normalize<false>(memory,frame,basis.forward)) {'),
+            ('systems', 'flip-z-field', 'memory.load32(direction_z,basis.direction+z)',
+             'memory.load32(direction_z,basis.direction+y)'),
+            ('systems', 'default-y-field', 'memory.load32(default_y,address+y)',
+             'memory.load32(default_y,address+x)'),
+            ('systems', 'perpendicular-alias-order',
+             '    memory.store32(perpendicular_store_x,basis.perpendicular+x,perpendicular_x);\n    const auto perpendicular_y=memory.load32(perpendicular_read_x,basis.forward+x);',
+             '    const auto perpendicular_y=memory.load32(perpendicular_read_x,basis.forward+x);\n    memory.store32(perpendicular_store_x,basis.perpendicular+x,perpendicular_x);'),
+            ('header', 'threshold-order', '        return !this->flags.cf&&!this->flags.zf;',
+             '        return this->flags.cf&&!this->flags.zf;'),
+            ('header', 'multiply-payload-order',
+             '        lanes[component]=native_tu15_leaves::ordered_mul_ss(lanes[component],lanes[scale]);\n'
+             '        this->flags.scalar_compare(lanes[size],lanes[2],true);',
+             '        lanes[component]=_mm_move_ss(lanes[component],native_tu15_leaves::ordered_mul_ss(lanes[scale],lanes[component]));\n'
+             '        this->flags.scalar_compare(lanes[size],lanes[2],true);'),
+            ('header', 'length-depth', '        fp.st(2)=length;',
+             '        fp.st(1)=length;'),
+            ('header', 'perpendicular-sign', 'return word(lane=_mm_sub_ss(lane,scalar(value)));',
+             'return word(lane=_mm_sub_ss(scalar(value),lane));'),
+            ('header', 'exit-ecx', '        gp[ecx]=this->pop(0xe06dau);',
+             '        (void)this->pop(0xe06dau);'),
         ]),
     'e06e0': dict(
         unit='src/physics/physics_live_support_tu15_generated.cpp',
@@ -5634,6 +5834,22 @@ OWNERS = {
             ('header', 'component-register', 'inline constexpr unsigned component_registers[]{0,1,2,1,2,3,1,2,3,1,1,1};', 'inline constexpr unsigned component_registers[]{0,1,2,1,2,3,1,3,3,1,1,1};'),
             ('header', 'exit', 'const std::uint32_t exit=exit_marked?0x1de157u:0x1de162u;', 'const std::uint32_t exit=0x1de162u;'),
         ]),
+    '168ded': dict(
+        unit='src/gameplay/objects/source_sandbox_special_tu15_generated.cpp',
+        header='src/gameplay/objects/native_tu15_first_person_model_preparation.hpp',
+        test='tests/native_tu15_first_person_model_preparation_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('header', 'view-mask', 'reg[eax]&word(0x168e08u,view_mask)', 'reg[eax]|word(0x168e08u,view_mask)'),
+            ('header', 'slot-step', 'pc(0x168fb4u);reg[esi]=flags.plus(reg[esi],slot_stride,4);',
+             'pc(0x168fb4u);reg[esi]=flags.plus(reg[esi],slot_stride+4u,4);'),
+            ('header', 'weapon-mode', 'push(0x169044u,1u);', 'push(0x169044u,0u);'),
+            ('header', 'caller-record-size', 'record_stride=0xd0cu;', 'record_stride=0xd10u;'),
+            ('header', 'matrix-direction', '(state.other_flags&0x400u)?0xfffffffcu:4u', '4u'),
+            ('header', 'body-threshold', 'word(0x1690c8u,camera_forward+8u)', 'word(0x1690c8u,camera_forward+4u)'),
+            ('header', 'body-mode', 'push(0x1690e7u,reg[esi]);', 'push(0x1690e7u,1u);'),
+            ('header', 'trace-order', 'pc(0x1690c2u);state.set', 'state.set'),
+        ]),
     '168ca1': dict(
         unit='src/gameplay/objects/source_sandbox_special_tu15_generated.cpp',
         header='src/gameplay/players/native_tu15_player_weapon_sync.hpp',
@@ -6335,6 +6551,304 @@ OWNERS = {
             ('header', 'unit-refresh', '    void refresh(Kept &kept){auto &gp=this->gp;kept.unit_address=gp[ebx];kept.objects=gp[ebp];kept.player_address=gp[esi];kept.controls_address=gp[edi];}', '    void refresh(Kept &kept){auto &gp=this->gp;kept.objects=gp[ebp];kept.player_address=gp[esi];kept.controls_address=gp[edi];}'),
             ('header', 'agreement-push', '        put(pc,0u);put(pc+2u,mode);', '        put(pc,0u);put(pc+2u,mode+1u);'),
         ]),
+    '1ddbf0': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/physics/runtime/native_tu15_physics_groups.hpp',
+        systems='src/physics/runtime/native_tu15_physics_groups_systems.hpp',
+        test='tests/native_tu15_physics_groups_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'objects-global', 'objects=0x4ecbd0u,jump_table=0x1dde84u;', 'objects=0x4ecbd4u,jump_table=0x1dde84u;'),
+            ('systems', 'datum-data', 'datum_data=0x44u,handle_mask=0xffffu,header_size=12u,frame_size=0x4e84u,', 'datum_data=0x48u,handle_mask=0xffffu,header_size=12u,frame_size=0x4e84u,'),
+            ('systems', 'handle-mask', 'datum_data=0x44u,handle_mask=0xffffu,header_size=12u,frame_size=0x4e84u,', 'datum_data=0x44u,handle_mask=0x7fffu,header_size=12u,frame_size=0x4e84u,'),
+            ('systems', 'body-size', 'body_size=0x90u,node_size=12u,group_size=0x4cu,array_element_size=0x60u,capacity_mask=0x7fffffffu,', 'body_size=0x8cu,node_size=12u,group_size=0x4cu,array_element_size=0x60u,capacity_mask=0x7fffffffu,'),
+            ('systems', 'group-size', 'body_size=0x90u,node_size=12u,group_size=0x4cu,array_element_size=0x60u,capacity_mask=0x7fffffffu,', 'body_size=0x90u,node_size=12u,group_size=0x48u,array_element_size=0x60u,capacity_mask=0x7fffffffu,'),
+            ('systems', 'capacity-mask', 'body_size=0x90u,node_size=12u,group_size=0x4cu,array_element_size=0x60u,capacity_mask=0x7fffffffu,', 'body_size=0x90u,node_size=12u,group_size=0x4cu,array_element_size=0x60u,capacity_mask=0xffffffffu,'),
+            ('systems', 'built-flag', 'none=0xffffffffu,no_node=0xffffu,built_flag=0x800u,bitset_words=8u;', 'none=0xffffffffu,no_node=0xffffu,built_flag=0x400u,bitset_words=8u;'),
+            ('systems', 'header-kind-field', 'namespace header {inline constexpr std::uint32_t flags=2u,kind=3u;}', 'namespace header {inline constexpr std::uint32_t flags=2u,kind=2u;}'),
+            ('systems', 'motion-type-field', 'namespace rigid_body {inline constexpr std::uint32_t node_index=0u,motion_type=0x1au;}', 'namespace rigid_body {inline constexpr std::uint32_t node_index=0u,motion_type=0x18u;}'),
+            ('systems', 'keyframed-force-val', '        if(frame.kind_forces_keyframed(kind_byte))\n            memory.store8(keyframed_force,frame.local(local::arg_keyframed),1u);', '        if(frame.kind_forces_keyframed(kind_byte))\n            memory.store8(keyframed_force,frame.local(local::arg_keyframed),0u);'),
+            ('systems', 'fixed-skip-seven', '                if(!frame.equals_seven(mode)) {', '                if(true) {'),
+            ('systems', 'fixed-node-invert', '                        if(!frame.node_fixed(memory.load8(node_flags,at(node_address,model_node::flags))))', '                        if(frame.node_fixed(memory.load8(node_flags,at(node_address,model_node::flags))))'),
+            ('systems', 'root-max-skip', '    if(frame.at_least(root_result,kept.index))\n        memory.store32(root_max_store,frame.local(local::max_result),root_result);', '    if(frame.at_least(root_result,kept.index))\n        (void)root_result;'),
+            ('systems', 'node-max-invert', '                if(!frame.max_exceeds(current_max,step_value))', '                if(frame.max_exceeds(current_max,step_value))'),
+            ('systems', 'second-positive-check', '        if(frame.positive(kept.count)) {', '        if(true) {'),
+            ('header', 'kind-shift-sign', '        if(this->flags.sf){this->reached(Branch::keep_keyframed);return false;}', '        if(this->flags.zf){this->reached(Branch::keep_keyframed);return false;}'),
+            ('header', 'node-sign-extend', '        gp[ecx]=sx16(word);', '        gp[ecx]=word&0xffffu;'),
+            ('header', 'visited-shift', '        return this->gp[eax]=this->flags.right(idx,5u,4,true);', '        return this->gp[eax]=this->flags.right(idx,4u,4,true);'),
+            ('header', 'refresh-ebx', '    void refresh(Kept &kept){auto &gp=this->gp;kept.state_address=gp[ebx];kept.cursor=gp[ebp];kept.index=gp[esi];kept.count=gp[edi];}', '    void refresh(Kept &kept){auto &gp=this->gp;kept.cursor=gp[ebp];kept.index=gp[esi];kept.count=gp[edi];}'),
+            ('header', 'exit-ret', '        this->ret(0x1dde81u,16u);', '        this->ret(0x1dde81u,12u);'),
+        ]),
+    '106160': dict(
+        unit='src/gameplay/vehicles/source_vehicle_director_tu15_generated.cpp',
+        header='src/gameplay/vehicles/native_tu15_weapon_magnification.hpp',
+        systems='src/gameplay/vehicles/native_tu15_weapon_magnification_systems.hpp',
+        test='tests/native_tu15_weapon_magnification_tests.cpp',
+        variants=('src/gameplay/units/source_combat_action_tu15_generated.cpp',),
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'object-index', '(handle & layout::handle_mask)', '(handle & 0xffu)'),
+            ('systems', 'tag-index', '(weapon_tag & layout::handle_mask)', '(weapon_tag & 0xffu)'),
+            ('systems', 'level-count-offset', 'level_count_offset = 0x1feu;', 'level_count_offset = 0x200u;'),
+            ('systems', 'minimum-value', 'frame.minimum_is_positive() ? min_scale : default_scale;',
+             'frame.minimum_is_positive() ? default_scale : min_scale;'),
+            ('systems', 'maximum-value', 'frame.maximum_or_default(max_scale, default_scale)',
+             'frame.maximum_or_default(default_scale, max_scale)'),
+            ('systems', 'power-base', 'frame.push_float(memory.load32(ratio_maximum, frame.local(Local::maximum)));',
+             'frame.push_float(memory.load32(ratio_maximum, frame.local(Local::minimum)));'),
+            ('systems', 'power-exponent', 'frame.push_float(memory.load32(ratio_fraction, frame.local(Local::fraction)));',
+             'frame.push_float(memory.load32(ratio_fraction, frame.local(Local::maximum)));'),
+            ('systems', 'rescale-value', 'frame.multiply_by(memory.load32(result_minimum, frame.local(Local::minimum)));',
+             'frame.multiply_by(memory.load32(result_minimum, frame.local(Local::maximum)));'),
+            ('header', 'level-range-width', 'this->flags.minus(level, count, 2);', 'this->flags.minus(level, count, 4);'),
+            ('header', 'denominator-count', 'this->flags.increment(std::uint32_t(signed_word(count)), 4, true);',
+             'this->flags.increment(std::uint32_t(signed_word(count)), 4, false);'),
+            ('header', 'preserve-xmm-lanes', '_mm_cvtsi32_ss(x[3], fp_math::si(gp[edx]));',
+             '_mm_cvtsi32_ss(_mm_setzero_ps(), fp_math::si(gp[edx]));'),
+            ('header', 'power-return-pc', 'this->call(0x10620du, 0x106212u, 0x37cde8u, power);',
+             'this->call(0x10620du, 0x106209u, 0x37cde8u, power);'),
+            ('header', 'rounding-condition', 'rounded.rounded_up ? 0x200u : 0u',
+             'rounded.rounded_up ? 0u : 0x200u'),
+            ('header', 'pop-result', 'void pop_result() { this->s.fp.pop(); }', 'void pop_result() {}'),
+            ('header', 'frame-restore', 'this->flags.plus(this->gp[esp], 12u, 4);',
+             'this->flags.plus(this->gp[esp], 8u, 4);'),
+        ]),
+    'cad60': dict(
+        unit='src/gameplay/vehicles/source_vehicle_director_tu15_generated.cpp',
+        header='src/gameplay/vehicles/native_tu15_zoom_factor.hpp',
+        systems='src/gameplay/vehicles/native_tu15_zoom_factor_systems.hpp',
+        test='tests/native_tu15_zoom_factor_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'one-global', 'one=0x46a0d0u,objects=0x4ecbd0u,', 'one=0x46a0d4u,objects=0x4ecbd0u,'),
+            ('systems', 'handle-mask', 'datum_data=0x44u,handle_mask=0xffffu,', 'datum_data=0x44u,handle_mask=0x7fffu,'),
+            ('systems', 'weapon-slot-field', 'namespace unit_field {inline constexpr std::uint32_t weapon_slot=0x212u,weapons=0x218u;}', 'namespace unit_field {inline constexpr std::uint32_t weapon_slot=0x213u,weapons=0x218u;}'),
+            ('systems', 'weapon-flags-field', 'namespace weapon_field {inline constexpr std::uint32_t tag=0u,flags=0x12eu;}', 'namespace weapon_field {inline constexpr std::uint32_t tag=0u,flags=0x12fu;}'),
+            ('systems', 'camera-levels', 'namespace camera_field {inline constexpr std::uint32_t table=0x134u,levels=0xb8u,minimum=0xbcu,maximum=0xc0u;}', 'namespace camera_field {inline constexpr std::uint32_t table=0x134u,levels=0xbcu,minimum=0xbcu,maximum=0xc0u;}'),
+            ('systems', 'camera-max', 'namespace camera_field {inline constexpr std::uint32_t table=0x134u,levels=0xb8u,minimum=0xbcu,maximum=0xc0u;}', 'namespace camera_field {inline constexpr std::uint32_t table=0x134u,levels=0xb8u,minimum=0xbcu,maximum=0xc4u;}'),
+            ('systems', 'flag-stops-invert', '            if(frame.flag_stops_zoom(bit))return Exit::returned;', '            if(!frame.flag_stops_zoom(bit))return Exit::returned;'),
+            ('systems', 'single-level-skip', '    if(!frame.single_level(levels))frame.compute_fraction(kept.zoom_reg,levels);', '    if(frame.single_level(levels))frame.compute_fraction(kept.zoom_reg,levels);'),
+            ('header', 'slot-sign-extend', '        case weapon_slot:gp[ecx]=(gp[ecx]&0xffff0000u)|(sx8(v)&0xffffu);break;', '        case weapon_slot:gp[ecx]=(gp[ecx]&0xffff0000u)|(v&0xffu);break;'),
+            ('header', 'zoom-sign-extend', '        gp[edx]=sx16(zoom_reg);', '        gp[edx]=zoom_reg&0xffffu;'),
+            ('header', 'levels-dec', '        gp[eax]=this->flags.increment(levels,4,true);', '        gp[eax]=levels;'),
+            ('header', 'refresh-zoom', '    void refresh(Kept &kept){auto &gp=this->gp;kept.zoom_reg=gp[ebx];kept.weapon=gp[esi];kept.objects=gp[edi];}', '    void refresh(Kept &kept){auto &gp=this->gp;kept.weapon=gp[esi];kept.objects=gp[edi];}'),
+            ('header', 'tail-pop-order', '            gp[edi]=this->pop(0xcadabu);\n            gp[eax]=kept.weapon;\n            gp[ecx]=kept.zoom_reg;\n            gp[esi]=this->pop(0xcadb0u);', '            gp[esi]=this->pop(0xcadabu);\n            gp[eax]=kept.weapon;\n            gp[ecx]=kept.zoom_reg;\n            gp[edi]=this->pop(0xcadb0u);'),
+            ('header', 'exit-ret', '        this->ret(0xcae37u,0u);', '        this->ret(0xcae37u,4u);'),
+        ]),
+    '145560': dict(
+        unit='src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp',
+        variants=('src/physics/physics_live_support_tu15_generated.cpp',
+                  'src/campaign/ai/source_ai_frame_tu15_generated.cpp',
+                  'src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp'),
+        header='src/rendering/renderer/native_tu15_transform_product.hpp',
+        systems='src/rendering/renderer/native_tu15_transform_product_systems.hpp',
+        test='tests/native_tu15_transform_product_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'fwd-field', 'fwd_x=0x04u,fwd_y=0x08u,fwd_z=0x0cu,', 'fwd_x=0x08u,fwd_y=0x08u,fwd_z=0x0cu,'),
+            ('systems', 'left-field', 'left_x=0x10u,left_y=0x14u,left_z=0x18u,', 'left_x=0x14u,left_y=0x14u,left_z=0x18u,'),
+            ('systems', 'up-field', 'up_x=0x1cu,up_y=0x20u,up_z=0x24u,', 'up_x=0x20u,up_y=0x20u,up_z=0x24u,'),
+            ('systems', 'pos-field', 'pos_x=0x28u,pos_y=0x2cu,pos_z=0x30u;', 'pos_x=0x2cu,pos_y=0x2cu,pos_z=0x30u;'),
+            ('systems', 'pos-add-order', 'frame.add_packed(0u,frame.add_packed(0u,t0,t1),t2)', 'frame.add_packed(0u,t0,frame.add_packed(1u,t1,t2))'),
+            ('systems', 'col-add-order', '        const auto cyz=frame.add_packed(1u,cy,cz);\n        return frame.add_packed(0u,cx,cyz);', '        const auto cxy=frame.add_packed(0u,cx,cy);\n        return frame.add_packed(0u,cxy,cz);'),
+            ('systems', 'scale-order', 'const auto composed_scale=frame.mul_scalar(3u,right_s,left_s);', 'const auto composed_scale=frame.mul_scalar(3u,left_s,right_s);'),
+            ('systems', 'pos-scale-skip', 'const auto pos_scaled=frame.mul_packed(0u,frame.add_packed(0u,frame.add_packed(0u,t0,t1),t2),left_s);', 'const auto pos_scaled=frame.add_packed(0u,frame.add_packed(0u,t0,t1),t2);'),
+            ('systems', 'alias-interleave', '    auto next_z=frame.scalar(2u,memory.load32(right_up_z,at(right,field::up_z)));\n    memory.store32(out_pos_x,at(out,field::pos_x),frame.lane0(out_pos));', '    memory.store32(out_pos_x,at(out,field::pos_x),frame.lane0(out_pos));\n    auto next_z=frame.scalar(2u,memory.load32(right_up_z,at(right,field::up_z)));'),
+            ('header', 'out-reg', 'if(a==Access::out_argument)this->gp[eax]=v;', 'if(a==Access::out_argument)this->gp[ebx]=v;'),
+            ('header', 'exit-ret', '        this->ret(0x14566eu,4u);', '        this->ret(0x14566eu,0u);'),
+        ]),
+    '1e1010': dict(
+        unit='src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp',
+        variants=('src/runtime/source_map_world_support_tu15_generated.cpp',),
+        header='src/rendering/renderer/native_tu15_vector_normalize.hpp',
+        systems='src/rendering/renderer/native_tu15_vector_normalize_systems.hpp',
+        test='tests/native_tu15_vector_normalize_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'three-global', 'three=0x46a0e4u,half=0x46a0ccu;', 'three=0x46a0e0u,half=0x46a0ccu;'),
+            ('systems', 'half-global', 'three=0x46a0e4u,half=0x46a0ccu;', 'three=0x46a0e4u,half=0x46a0c8u;'),
+            ('systems', 'align-mask', 'stack_align_mask=0xfffffff0u,frame_size=0x10u;', 'stack_align_mask=0xfffffff8u,frame_size=0x10u;'),
+            ('systems', 'frame-size', 'stack_align_mask=0xfffffff0u,frame_size=0x10u;', 'stack_align_mask=0xfffffff0u,frame_size=0x20u;'),
+            ('systems', 'fold-mask1', 'frame.shuffle(0u,sq,sq,78)', 'frame.shuffle(0u,sq,sq,177)'),
+            ('systems', 'fold-mask2', 'frame.shuffle(1u,fold1,fold1,177)', 'frame.shuffle(1u,fold1,fold1,78)'),
+            ('systems', 'newton-sub', 'const auto rem=frame.sub_scalar(3u,three,dot_est2);', 'const auto rem=frame.sub_scalar(3u,dot_est2,three);'),
+            ('systems', 'newton-half', 'const auto refined=frame.mul_scalar(0u,half_est,rem);', 'const auto refined=frame.mul_scalar(0u,est,rem);'),
+            ('header', 'rsqrt-pc', '        this->at(0x1e1042u);', '        this->at(0x1e103eu);'),
+            ('header', 'exit-ret', '        this->ret(0x1e107bu,0u);', '        this->ret(0x1e107bu,4u);'),
+        ]),
+    '13de70': dict(
+        unit='src/physics/physics_live_support_tu15_generated.cpp',
+        header='src/core/native_tu15_authored_function_bridge.hpp',
+        systems='src/core/native_tu15_authored_function_systems.hpp',
+        test='tests/native_tu15_authored_function_bridge_tests.cpp',
+        variants=('src/rendering/effects/source_lens_draw_tu15_generated.cpp',),
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'blob-offset', 'memory.load32(blob, reference + 4u);',
+             'memory.load32(blob, reference);'),
+            ('systems', 'jump-table-index', 'jump_table + 4u * function_kind',
+             'jump_table + 2u * function_kind'),
+            ('systems', 'kind-bound', 'function_kind >= kind_count', 'function_kind > kind_count'),
+            ('systems', 'first-stack-slot', 'memory.load32(first_parameter, frame.local(Local::first))',
+             'memory.load32(first_parameter, frame.local(Local::second))'),
+            ('systems', 'second-enable', 'function + 1u) & 1u)', 'function + 1u) & 2u)'),
+            ('systems', 'disabled-store', 'memory.store32(disabled_result, frame.local(Local::result_after_restoring), 0u);',
+             'memory.store32(disabled_result, frame.local(Local::result_after_restoring), 1u);'),
+            ('systems', 'retained-case', '        return target;\n    default:',
+             '        return std::uint32_t(Target::linear);\n    default:'),
+            ('header', 'zero-lanes', 'this->s.xmm[5] = _mm_setzero_ps();',
+             'this->s.xmm[4] = _mm_setzero_ps();'),
+            ('header', 'kind-partial-register', 'set_low_byte(gp[eax], value);', 'gp[eax] = value;'),
+            ('header', 'signed-empty', '!this->flags.zf && this->flags.sf == this->flags.of',
+             '!this->flags.zf'),
+            ('header', 'floor-operand', 'this->flags.scalar_compare(x[5], x[1], false);',
+             'this->flags.scalar_compare(x[1], x[5], false);'),
+            ('header', 'ceiling-operand', 'this->flags.scalar_compare(x[1], x[0], false);',
+             'this->flags.scalar_compare(x[0], x[1], false);'),
+            ('header', 'fault-publication', 'this->s.gp = this->gp;', 'this->s.gp = {};'),
+            ('header', 'cleanup-bytes', 'this->ret(pc, 8u);', 'this->ret(pc, 4u);'),
+        ]),
+    '24ffe0': dict(
+        unit='src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp',
+        variants=('src/gameplay/units/death_cycle_runtime_tu15_generated.cpp',
+                  'src/gameplay/units/source_combat_action_tu15_generated.cpp'),
+        header='src/rendering/effects/native_tu15_particle_property.hpp',
+        systems='src/rendering/effects/native_tu15_particle_property_systems.hpp',
+        test='tests/native_tu15_particle_property_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'upper-input-offset', 'upper_input = 2u;', 'upper_input = 4u;'),
+            ('systems', 'modifier-mode-offset', 'modifier_mode = 4u;', 'modifier_mode = 6u;'),
+            ('systems', 'curve-definition-offset', 'curve_definition = 4u;', 'curve_definition = 8u;'),
+            ('systems', 'curve-type-mask', 'curve_type_mask = 0xf0u;', 'curve_type_mask = 0x0fu;'),
+            ('systems', 'lower-range-end', 'minimum = 4u;', 'minimum = 8u;'),
+            ('header', 'upper-input-index', 'input_address(upper), 4', 'input_address(lower), 4'),
+            ('header', 'lower-spill-slot', 'spill(0x24fff8u, gp[esp] + 0xcu);', 'spill(0x24fff8u, gp[esp] + 8u);'),
+            ('header', 'curve-return-address', '0x250004u, 0x250009u, 0x13de70u', '0x250004u, 0x25000au, 0x13de70u'),
+            ('header', 'x87-c1', '(word.rounded_up ? 0x200u : 0u)', '0x200u'),
+            ('header', 'coefficient-floor', 'return !this->flags.cf && !this->flags.zf;',
+             'return this->flags.cf || this->flags.zf;'),
+            ('header', 'affine-add-order', 'x[0] = x[1] = ordered_add_ss(x[1], x[2]);',
+             'x[0] = x[1] = ordered_add_ss(x[2], x[1]);'),
+            ('header', 'default-modifier', 'return Modifier::none;', 'return Modifier::multiply;'),
+            ('header', 'modifier-add', 'x[1] = ordered_add_ss(x[1], x[0]);',
+             'x[1] = ordered_mul_ss(x[1], x[0]);'),
+            ('header', 'return-stack', 'this->ret(exit_pc, 0u);', 'this->ret(exit_pc, 4u);'),
+        ]),
+    '2e56a0': dict(
+        unit='src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp',
+        header='src/rendering/renderer/native_tu15_quaternion_relative_product.hpp',
+        systems='src/rendering/renderer/native_tu15_quaternion_relative_product_systems.hpp',
+        test='tests/native_tu15_quaternion_relative_product_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'first-argument', 'memory.load32(first_argument, arguments)', 'memory.load32(first_argument, arguments + 4u)'),
+            ('systems', 'cross-shuffle', 'frame.xmm(2, _mm_shuffle_ps(a, a, 210))', 'frame.xmm(2, _mm_shuffle_ps(a, a, 201))'),
+            ('systems', 'reload-second', 'frame.xmm(2, memory.load128(second_reload, second))', 'frame.xmm(2, b)'),
+            ('systems', 'reload-first', 'frame.xmm(2, memory.load128(first_reload, first))', 'frame.xmm(2, a)'),
+            ('systems', 'second-scalar', 'memory.load32(second_scalar, second + 12u)', 'memory.load32(second_scalar, second + 8u)'),
+            ('systems', 'reload-dot-first', 'const auto dot_a = memory.load128(dot_first, first);', 'const auto dot_a = a;'),
+            ('systems', 'dot-fold', '_mm_shuffle_ps(products, products, 78)', '_mm_shuffle_ps(products, products, 177)'),
+            ('systems', 'result-scalar', 'memory.store32(scalar_result, output + 12u,', 'memory.store32(scalar_result, output + 8u,'),
+            ('header', 'x87-negate', '        fp.st(0) = -fp.st(0);', ''),
+            ('header', 'spill-slot', 'return this->gp[esp] + 12u;', 'return this->gp[esp] + 8u;'),
+            ('header', 'cross-store-pc', '0x2e56b3u, 0x2e56dbu,', '0x2e56b3u, 0x2e56d8u,'),
+            ('header', 'exit-ret', '        this->ret(0x2e5750u, 8u);', '        this->ret(0x2e5750u, 4u);'),
+        ]),
+    '1e14f0': dict(
+        unit='src/campaign/ai/source_ai_actor_tu15_generated.cpp',
+        variants=('src/campaign/ai/source_ai_frame_tu15_generated.cpp',
+                  'src/physics/physics_live_support_tu15_generated.cpp'),
+        header='src/gameplay/units/native_tu15_animation_fade_start.hpp',
+        systems='src/gameplay/units/native_tu15_animation_fade_start_systems.hpp',
+        test='tests/native_tu15_animation_fade_start_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'clock-pointer', 'clock = 0x51df54u;', 'clock = 0x51df58u;'),
+            ('systems', 'tick-rate-offset', 'tick_rate = 2u;', 'tick_rate = 4u;'),
+            ('systems', 'maximum-ticks', 'max_ticks = 127u;', 'max_ticks = 126u;'),
+            ('systems', 'state-length-offset', 'length = 1u;', 'length = 2u;'),
+            ('systems', 'clear-direction', 'memory.store8(clear_direction, fade + direction, 0u);',
+             'memory.store8(clear_direction, fade + direction, 1u);'),
+            ('header', 'direction-match', 'this->flags.minus(active, this->gp[eax], 1);',
+             'this->flags.minus(active, this->gp[eax] ^ 1u, 1);'),
+            ('header', 'length-match', 'this->compare32(duration, sx8(previous));',
+             'this->compare32(duration + 1u, sx8(previous));'),
+            ('header', 'divisor-floor', 'if (this->flags.cf || this->flags.zf) x[0] = x[1];',
+             'if (!this->flags.cf && !this->flags.zf) x[0] = x[1];'),
+            ('header', 'rescale-last-frame', 'gp[eax] = duration - 1u;', 'gp[eax] = duration;'),
+            ('header', 'initial-direction', 'return this->gp[eax] = active ? 1u : duration - 1u;',
+             'return this->gp[eax] = active ? duration - 1u : 1u;'),
+            ('header', 'return-stack', 'this->ret(exit_pc, 4u);', 'this->ret(exit_pc, 0u);'),
+            ('header', 'restore-caller-ecx', 'this->gp[ecx] = this->pop(exit_pc - 1u);',
+             'this->pop(exit_pc - 1u);'),
+        ]),
+    '19ae70': dict(
+        unit='src/gameplay/units/source_player_departure_tu15_generated.cpp',
+        header='src/gameplay/units/native_tu15_departure_remap.hpp',
+        systems='src/gameplay/units/native_tu15_departure_remap_systems.hpp',
+        test='tests/native_tu15_departure_remap_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'active-global', 'active=0x51dfa0u,state_root=0x51dfb0u,locked=0x51dfb1u,', 'active=0x51dfa1u,state_root=0x51dfb0u,locked=0x51dfb1u,'),
+            ('systems', 'locked-global', 'active=0x51dfa0u,state_root=0x51dfb0u,locked=0x51dfb1u,', 'active=0x51dfa0u,state_root=0x51dfb0u,locked=0x51dfb2u,'),
+            ('systems', 'roster-stride', 'roster_stride=0xa4u,roster_words=0x290u,roster_entry_words=0x29u,', 'roster_stride=0xa0u,roster_words=0x290u,roster_entry_words=0x29u,'),
+            ('systems', 'stats-stride', 'stats_stride=0x36au,stats_words=0xda8u,stats_entry_words=0xdau,', 'stats_stride=0x368u,stats_words=0xda8u,stats_entry_words=0xdau,'),
+            ('systems', 'event-count', 'matrix_words=0x100u,event_count=0x3e8u,event_stride=0x24u;', 'matrix_words=0x100u,event_count=0x3e7u,event_stride=0x24u;'),
+            ('systems', 'event-stride', 'matrix_words=0x100u,event_count=0x3e8u,event_stride=0x24u;', 'matrix_words=0x100u,event_count=0x3e8u,event_stride=0x20u;'),
+            ('systems', 'active-invert', '    if(!is_active)return;', '    if(is_active)return;'),
+            ('systems', 'locked-invert', '    if(frame.test_locked(memory.load8(locked_load,globals::locked)))return;', '    if(!frame.test_locked(memory.load8(locked_load,globals::locked)))return;'),
+            ('systems', 'identity-read-order',
+             '                                const auto a=memory.load32(cmp_player,p);\n'
+             '                                const auto b=memory.load32(cmp_roster,q);',
+             '                                const auto b=memory.load32(cmp_roster,q);\n'
+             '                                const auto a=memory.load32(cmp_player,p);'),
+            ('systems', 'unclaimed-invert', '                        if(frame.slot_unclaimed(existing)) {', '                        if(!frame.slot_unclaimed(existing)) {'),
+            ('systems', 'roster-tail-byte', '                        memory.store8(roster_tail_1,at(body_ptr,0x90u),0xffu);', '                        memory.store8(roster_tail_1,at(body_ptr,0x90u),0x00u);'),
+            ('systems', 'matrix-valid-invert', '            if(frame.matrix_cell_valid(row_old,col_old)) {', '            if(!frame.matrix_cell_valid(row_old,col_old)) {'),
+            ('header', 'align-mask', '        gp[esp]=this->flags.logic(gp[esp]&logic::stack_align_mask,4);', '        gp[esp]=this->flags.logic(gp[esp]&0xfffffff0u,4);'),
+            ('header', 'event-sign-extend', '        case event_index_load:gp[eax]=sx8(v);break;', '        case event_index_load:gp[eax]=v&0xffu;break;'),
+            ('header', 'df-direction', '    std::uint32_t step4()const{return (this->s.other_flags&0x400u)?0u-4u:4u;}', '    std::uint32_t step4()const{return 4u;}'),
+            ('header', 'finalize-arg', '        this->push(0x19b166u,logic::globals::state_root);', '        this->push(0x19b166u,logic::globals::active);'),
+            ('header', 'exit-ret', '        this->ret(0x19b177u,0u);', '        this->ret(0x19b177u,4u);'),
+        ]),
+    '1ce8d0': dict(
+        unit='src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp',
+        header='src/gameplay/units/native_tu15_animation_fraction.hpp',
+        systems='src/gameplay/units/native_tu15_animation_fraction_systems.hpp',
+        test='tests/native_tu15_animation_fraction_tests.cpp',
+        extra=(), unreachable={},
+        mutants=[
+            ('systems', 'animation-index', '!= 0xffffu) {', '== 0xffffu) {'),
+            ('systems', 'tag-index', '(graph & 0xffffu)', '(graph & 0xffu)'),
+            ('systems', 'frame-count-width', 'memory.load16(frame_count,', 'memory.load32(frame_count,'),
+            ('systems', 'negative-frame', 'memory.store32(store_zero, argument, 0u);',
+             'memory.store32(store_zero, argument, scaled);'),
+            ('systems', 'clamp-branch', 'if (fits_or_unordered)', 'if (!fits_or_unordered)'),
+            ('systems', 'limit-store-value', 'memory.store32(store_limit, argument, limit);',
+             'memory.store32(store_limit, argument, scaled);'),
+            ('systems', 'reload-missing', 'const auto result = memory.load32(reload_argument, argument);',
+             'const auto result = scaled;'),
+            ('header', 'argument-address', 'this->gp[esp] + 4u;', 'this->gp[esp] + 8u;'),
+            ('header', 'lookup-return-site', 'this->call(0x1ce8f1u, 0x1ce8f6u, 0x1e3150u,',
+             'this->call(0x1ce8f1u, 0x1ce8fau, 0x1e3150u,'),
+            ('header', 'lookup-not-tail', 'dispatch(v, 0x1e3150u, 0x1ce8f1u, false);',
+             'dispatch(v, 0x1e3150u, 0x1ce8f1u, true);'),
+            ('header', 'count-decrement', 'this->flags.increment(count, 4, true);',
+             'this->flags.increment(count, 4, false);'),
+            ('header', 'compare-order', 'this->flags.scalar_compare(x[2], x[1], false);',
+             'this->flags.scalar_compare(x[1], x[2], false);'),
+            ('header', 'compare-unordered', 'const bool fits = this->flags.cf || this->flags.zf;',
+             'const bool fits = !this->flags.pf && (this->flags.cf || this->flags.zf);'),
+            ('header', 'preserve-upper-lanes', '_mm_cvtsi32_ss(x[0], std::bit_cast',
+             '_mm_cvtsi32_ss(_mm_setzero_ps(), std::bit_cast'),
+            ('header', 'multiply-payload-order',
+             'native_tu15_leaves::ordered_mul_ss(x[1], logic::layout::sse::scalar(fraction));',
+             '_mm_move_ss(x[1], native_tu15_leaves::ordered_mul_ss(logic::layout::sse::scalar(fraction), x[1]));'),
+            ('header', 'tail-site', '0x1ce928u : 0x1ce948u;', '0x1ce948u : 0x1ce928u;'),
+            ('header', 'tail-dispatch', 'dispatch(v, 0x1ce810u, site, true);',
+             'dispatch(v, 0x1ce810u, site, false);'),
+        ]),
     '1d30f0': dict(
         unit='src/physics/physics_live_support_tu15_generated.cpp',
         header='src/physics/runtime/native_tu15_partition_removal.hpp',
@@ -6940,12 +7454,12 @@ def check_binding(module, name, text):
     if changed == text or name in module.install(changed, changed, [name])[1]:
         raise ValueError(f'{name} binding accepted a changed body')
     owner = module.OWNERS[name]
-    for child in owner['direct']:
+    for child in module.children(name, found, 'direct'):
         child_body = module.body(text, child)
         missing = text.replace(child_body[0], '', 1)
         if name in module.install(missing, missing, [name])[1]:
             raise ValueError(f'{name} binding accepted a missing {child} body')
-    for child in owner['dispatched']:
+    for child in module.children(name, found, 'dispatched'):
         direct = text.replace(found[0], found[0] + f'\nstatic void run_{child}(WorldState &s) {{\n}}', 1)
         if name in module.install(direct, direct, [name])[1]:
             raise ValueError(f'{name} binding accepted a direct {child} route')
@@ -6955,6 +7469,26 @@ def check_binding(module, name, text):
     if name in module.install(other, other, [name])[1]:
         raise ValueError(f'{name} binding accepted another unit')
     return output
+
+
+def write_fixtures(module, scratch, name, found):
+    body = module.pinned(found[0], name)
+    (scratch / 'body.inc').write_text(body + '\n')
+    (scratch / 'reference.inc').write_text(module.reference(name, found))
+    continuations = module.OWNERS[name].get('continuations', ())
+    if not continuations:
+        return
+    prefix = module.prefix(name, found)
+    prefix = prefix.replace('case 0u:return;', 'case 0u:record_native_completion();return true;', 1)
+    prefix = prefix.replace('case 0xffffffffu:break;',
+                            f'case 0xffffffffu:begin_retained_case(s,0x{name}u);break;', 1)
+    for pc in continuations:
+        prefix = prefix.replace(f'case 0x{pc}u:goto L{pc};',
+                                f'case 0x{pc}u:begin_retained_case(s,0x{pc}u);goto L{pc};', 1)
+    body = body.replace('return;', 'return true;')
+    candidate = body.replace(f'static void run_{name}({found[1]} &s) {{',
+                             f'bool run_candidate_{name}({found[1]} &s) {{{prefix}', 1)
+    (scratch / 'candidate.inc').write_text(candidate + '\n')
 
 
 def main():
@@ -6984,8 +7518,7 @@ def main():
     # The translated body with its commutative packed SSE pinned to the
     # original's destination (the binder's PACKED): unpinned, the compiler may
     # swap MULPS/ADDPS operands and so a dual-NaN payload.
-    (scratch / 'body.inc').write_text(module.pinned(found[0]) + '\n')
-    (scratch / 'reference.inc').write_text(module.reference(args.owner, found))
+    write_fixtures(module, scratch, args.owner, found)
     extra = ''.join(module.body(text, name)[0] + '\n' for name in proof['extra'])
     (scratch / 'extra.inc').write_text(extra)
     check_binding(module, args.owner, text)
@@ -6994,6 +7527,8 @@ def main():
     result = run(release, args.cases)
     census = run(release, max(args.cases // 4, 1000), 'census')
     verify = run(release, max(args.cases // 4, 1000), 'verify')
+    if module.OWNERS[args.owner].get('continuations'):
+        report['forced_reference'] = run(release, 1000, 'reference')
     block = re.search(r'enum Branch : unsigned \{(.*?)\};', header.read_text(), re.S)[1]
     names = [name for name in re.sub(r'\s', '', block).split(',') if name and name != 'branch_count']
     coverage = result['coverage'] | verify['coverage']
@@ -7006,17 +7541,14 @@ def main():
     variants = []
     for index, variant in enumerate(proof.get('variants', ())):
         variant_text = (ROOT / variant).read_text()
-        if not module.admitted(variant_text, args.owner):
-            raise ValueError(f'{args.owner} copy in {variant} is not bound by its pins')
+        check_binding(module, args.owner, variant_text)
         variant_found = module.body(variant_text, args.owner)
-        (scratch / 'body.inc').write_text(module.pinned(variant_found[0]) + '\n')
-        (scratch / 'reference.inc').write_text(module.reference(args.owner, variant_found))
+        write_fixtures(module, scratch, args.owner, variant_found)
         variant_binary = compile_harness(scratch, test, f'release-variant-{index}', [])
         variants.append(dict(unit=variant, release=run(variant_binary, max(args.cases // 2, 1000)),
                              verify=run(variant_binary, max(args.cases // 4, 1000), 'verify')))
     if variants:
-        (scratch / 'body.inc').write_text(module.pinned(found[0]) + '\n')
-        (scratch / 'reference.inc').write_text(module.reference(args.owner, found))
+        write_fixtures(module, scratch, args.owner, found)
     report.update(release=result, census=census, verify=verify, branches=names, covered=sorted(hit),
                   unreachable=unreachable, missing=missing, variants=variants)
     if missing:

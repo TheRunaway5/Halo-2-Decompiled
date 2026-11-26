@@ -17,6 +17,7 @@ public:
                 const std::filesystem::path &menu_assets = {},
                 const std::filesystem::path &gameplay_map = {});
   ~GamePauseMenu();
+  void prepare_renderer_materials(Mesh &);
   void bind(SDL_Window *, DesktopSession &, Renderer &);
   void audio(AudioEngine *);
   void teams(std::function<std::optional<GamePauseTeams>(std::int32_t)> query,
@@ -46,6 +47,8 @@ private:
   void refresh();
   std::optional<FrontendPointerTarget> pointer(int,int) const;
   FrontendContent content_;
+  std::filesystem::path font_directory_,sampled_fonts_;
+  FrontendUiAssetPack ui_assets_;
   std::unique_ptr<MenuState> state_;
   std::unique_ptr<FrontendPainter> painter_;
   SDL_Window *window_{};

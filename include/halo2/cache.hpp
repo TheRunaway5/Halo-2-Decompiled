@@ -181,6 +181,12 @@ struct VistaLoadingMaterial {
     // The original DXVK vertex program retains unadjusted clip coordinates.
     Vec2 raster_offset_pixels{};
 };
+// Visual categories carried from the shader's authored material name and
+// its bound bitmap identities. They are independent of collision parameters.
+enum class SourceSurfaceMaterial : std::uint8_t {
+    Unknown, Sand, Soil, Grass, Concrete, Stone, Rubber, Metal, Polished, Water,
+    CoatedMetal, Polymer, Fabric, Skin, Lens
+};
 struct Material {
     std::string name; Texture diffuse;
     std::string template_name;
@@ -207,6 +213,10 @@ struct Material {
     std::optional<SourceVertexDeclaration> vertex_declaration;
     SourceWorldVertexInputTransform world_vertex_input_transform=SourceWorldVertexInputTransform::Preserve;
     std::array<ShaderTextureState,4> texture_states{};
+    SourceSurfaceMaterial source_surface_material{};
+    // Selected authored texture stages 1 and 2, in the terrain combiner's
+    // order. Values stay unknown for externs and unresolved bindings.
+    std::array<SourceSurfaceMaterial,2> source_terrain_materials{};
     bool static_lightmap_pass{};
     // Frontend forward passes retain the original combiner and authored
     // texture/color bindings and authored animated constants. Remaining

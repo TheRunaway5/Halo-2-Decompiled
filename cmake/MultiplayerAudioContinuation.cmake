@@ -97,7 +97,7 @@ if(BUILD_TESTING)
             "LINKER:--gc-sections")
         target_link_libraries(halo2_audio_continuation_owners PUBLIC
             halo2_cache halo2_sound_platform halo2_script_sound_clock_tu15
-            Threads::Threads PkgConfig::AVCODEC)
+            halo2_mcc_mono_distortion_definition Threads::Threads PkgConfig::AVCODEC)
         if(HALO2_SANITIZERS)
             target_compile_options(halo2_audio_continuation_owners PUBLIC
                 -fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -191,6 +191,10 @@ if(BUILD_TESTING)
     halo2_link_audio_continuation(multiplayer_audio_loop_phase_tests)
     add_executable(multiplayer_audio_chunk_queue_tests tests/multiplayer_audio_chunk_queue_tests.cpp)
     halo2_link_audio_continuation(multiplayer_audio_chunk_queue_tests)
+    add_test(NAME original_native_rate_chunk_reference COMMAND multiplayer_audio_chunk_queue_tests
+        --xbox "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/coagulation.map" "${CMAKE_CURRENT_BINARY_DIR}/original-native-rate-chunks.json")
+    set_tests_properties(original_native_rate_chunk_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy")
     set(HALO2_ORIGINAL_SOUND_CHUNK_PLAYBACK_MAP "" CACHE FILEPATH "Original-catalog Coagulation map for actual chunk output")
     add_test(NAME native_original_sound_chunk_playback COMMAND multiplayer_audio_chunk_queue_tests
         "${HALO2_ORIGINAL_SOUND_CHUNK_PLAYBACK_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/original-sound-chunk-playback.json")
@@ -226,6 +230,9 @@ if(BUILD_TESTING)
         add_test(NAME native_mcc_audio_core_enrollment
             COMMAND multiplayer_audio_continuation_tests --mcc
                 "${HALO2_MCC_CORE_AUDIO_TEST_MAP}")
+        add_test(NAME native_mcc_lockout_radio_companions
+            COMMAND multiplayer_audio_continuation_tests --radio-lockout
+                "${HALO2_MCC_CORE_AUDIO_TEST_MAP}")
         add_test(NAME native_mcc_announcer_continuation
             COMMAND native_mcc_announcer_continuation_tests --mcc
                 "${HALO2_MCC_CORE_AUDIO_TEST_MAP}")
@@ -233,11 +240,20 @@ if(BUILD_TESTING)
             COMMAND native_mcc_damage_audio_continuation_tests --mcc
                 "${HALO2_MCC_CORE_AUDIO_TEST_MAP}")
         set_tests_properties(native_mcc_audio_core_enrollment
-            native_mcc_announcer_continuation PROPERTIES
+            native_mcc_lockout_radio_companions native_mcc_announcer_continuation PROPERTIES
             TIMEOUT 180 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy"
             LABELS "audio-continuation;mcc;component")
         set_tests_properties(native_mcc_damage_audio_continuation PROPERTIES
             TIMEOUT 300 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy"
             LABELS "audio-continuation;mcc;native-component")
+    endif()
+    set(HALO2_MCC_RADIO_DELTA_MAP "" CACHE FILEPATH
+        "Explicit imported MCC Delta Approach map for scheduled radio playback")
+    if(HALO2_MCC_RADIO_DELTA_MAP)
+        add_test(NAME native_mcc_delta_radio_schedule
+            COMMAND multiplayer_audio_continuation_tests --radio-delta "${HALO2_MCC_RADIO_DELTA_MAP}")
+        set_tests_properties(native_mcc_delta_radio_schedule PROPERTIES
+            TIMEOUT 90 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy"
+            LABELS "audio-continuation;mcc;component")
     endif()
 endif()

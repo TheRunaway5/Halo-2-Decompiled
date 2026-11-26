@@ -1,4 +1,5 @@
 #include "halo2/pstencil/native_light_shape_tu15.hpp"
+#include "pstencil/native_tu15_light_shape_written.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include <cstring>
@@ -21,11 +22,8 @@ NativeLightShape native_light_shape_tu15(PhysicsLiveWorldTu15& world,std::uint32
     if(word(tag+4u)!=definition)throw FormatError("Native light shape lost its full tag generation");
     NativeLightShape out;auto parameters=world.prepare_source_call();
     const auto output=parameters.gp[4]-256u;
-    const auto observe=[&](const SourcePhysicsContactRecordStore& store) {
-        for(unsigned n=0;n<store.written.size();++n)
-            if(store.address+n>=output && store.address+n<output+out.written.size())
-                out.written[store.address+n-output]=1;
-    };
+    const LightShapeWrittenObserver written(output,out.written);
+    const auto observe=written.observer();
     // Literal C3820: EAX full light, EDI caller shape; C3A20 owns tag/runtime
     // animation parameter selection. No output or source light field is set.
     parameters.gp[0]=light;parameters.gp[7]=output;

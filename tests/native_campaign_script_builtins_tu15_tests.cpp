@@ -370,6 +370,91 @@ void self_test() {
     k::physics_set_gravity(bank,std::bit_cast<std::uint32_t>(1.f));
     require(f.get(0x1100000)==0x40857af5u,"gravity scale constant");
   }
+  if(const auto it=native_object_factory_tests::kernels().find("nodebuild_codec_frames");
+      it!=native_object_factory_tests::kernels().end()) {
+    // 284360 (kind 2, mode 2): 28CC70/28D310 (masked) and 28D6E0/28DD20 (unmasked).
+    // Verify root-only translation/scale clamping, entry +18 z scaling, second-frame
+    // blending/restore, and exact SSE operand order (NaN payload selection).
+    constexpr std::uint32_t state=0x510f30u,entry=0x1100000u,remap=0x1100100u,entry_mask=0x1100120u,
+        node_mask=0x1100140u,rot_flags=0x1100160u,trans_flags=0x1100164u,scale_flags=0x1100168u,
+        data=0x1100200u,orientations=0x1100800u;
+    const auto fbits=[](float v){return std::bit_cast<std::uint32_t>(v);};
+    const auto run_kind2_mode2=[&](bool masked,bool second,bool nan_check) {
+      Fixture f;
+      NativeCampaignScriptBank bank(f.memory);
+      f.put(entry+0x0cu,remap);f.put(entry+0x14u,entry_mask);f.put(entry+0x18u,fbits(2.f));
+      f.put16(remap+0u,1u);f.put16(remap+2u,2u);
+      f.put(entry_mask,0x3u);
+      f.put(node_mask,0x6u);
+      f.memory.view(rot_flags,1)[0]=std::byte(0x3);
+      f.memory.view(trans_flags,1)[0]=std::byte(0x3);
+      f.memory.view(scale_flags,1)[0]=std::byte(0x3);
+      // Track data for 2963D0 (float rotation), 296410 (float translation), 2CEC60 (float scale).
+      f.put(data+0x0cu,0x100u);f.put(data+0x10u,0x200u);
+      f.put(data+0x14u,0x20u);f.put(data+0x18u,0x18u);f.put(data+0x1cu,0x08u);
+      // Track 0 rotation (frames 0,1): identity; Track 1 rotation (frames 0,1): 180 deg around Z.
+      for(std::uint32_t frame=0;frame<2;++frame) {
+        f.put(data+0x20u+frame*16u+12u,fbits(1.f));
+        f.put(data+0x40u+frame*16u+8u,fbits(1.f));
+      }
+      // Track 0 translation: frame 0 = (1, 2, 3), frame 1 = (3, 6, 7); Track 1: (100, 100, 100).
+      f.put(data+0x100u,nan_check?0x7fc00011u:fbits(1.f));
+      f.put(data+0x104u,fbits(2.f));f.put(data+0x108u,fbits(3.f));
+      f.put(data+0x10cu,nan_check?0x7fc00011u:fbits(3.f));
+      f.put(data+0x110u,fbits(6.f));f.put(data+0x114u,fbits(7.f));
+      f.put(data+0x118u,fbits(100.f));f.put(data+0x11cu,fbits(100.f));f.put(data+0x120u,fbits(100.f));
+      // Track 0 scale: frame 0 = 2.0, frame 1 = 4.0; Track 1 = 99.0.
+      f.put(data+0x200u,nan_check?0x7fc00033u:fbits(2.f));
+      f.put(data+0x204u,nan_check?0x7fc00033u:fbits(4.f));
+      f.put(data+0x208u,fbits(99.f));f.put(data+0x20cu,fbits(99.f));
+      // Orientations rows 1 (remapped node 0) and 2 (remapped node 1).
+      const auto row1=orientations+0x20u,row2=orientations+0x40u;
+      f.put(row1+0x0cu,fbits(1.f));
+      f.put(row1+0x10u,nan_check?0x7fc00022u:fbits(10.f));
+      f.put(row1+0x14u,fbits(20.f));f.put(row1+0x18u,fbits(30.f));
+      f.put(row1+0x1cu,nan_check?0x7fc00044u:fbits(5.f));
+      f.put(row2+0x0cu,fbits(1.f));
+      f.put(row2+0x10u,fbits(7.f));f.put(row2+0x14u,fbits(8.f));f.put(row2+0x18u,fbits(9.f));
+      f.put(row2+0x1cu,fbits(1.5f));
+      // Codec state block at 0x510F30.
+      f.put(state+0x00u,2u);f.put(state+0x04u,2u);
+      f.put(state+0x0cu,2u);f.put(state+0x10u,4u);
+      f.put(state+0x14u,0u);f.put(state+0x18u,1u);f.put(state+0x1cu,fbits(0.25f));
+      f.put(state+0x20u,fbits(1.f));f.put(state+0x28u,entry);
+      f.put(state+0x2cu,masked?node_mask:0u);f.put(state+0x30u,data);
+      f.put(state+0x34u,0x2963d0u);f.put(state+0x38u,0x296410u);f.put(state+0x3cu,0x2cec60u);
+      f.put(state+0x40u,rot_flags);f.put(state+0x44u,trans_flags);f.put(state+0x48u,scale_flags);
+      f.put(state+0x4cu,orientations);
+      f.memory.view(state+0x50u,1)[0]=std::byte(second?1:0);
+      f.put(state+0x54u,1u);f.put(state+0x58u,1u);f.put(state+0x5cu,fbits(0.f));f.put(state+0x60u,fbits(0.5f));
+      it->second(f.memory,bank,{});
+      // Pass 0 rotates node 1 (row 2) even though mode 2 clamps pass 1/2 to node 0.
+      // Second-frame nlerp renormalizes with RSQRTSS (~1e-3 accuracy on 1.0f).
+      const float r2z=std::bit_cast<float>(f.get(row2+0x08u));
+      require((second?std::fabs(r2z-1.f)<1e-3f:f.get(row2+0x08u)==fbits(1.f)) &&
+          f.get(row2+0x0cu)==fbits(0.f),"284360 pass 0 rotates node 1");
+      // Pass 1/2 clamp to node 0: row 2 translation/scale stay untouched.
+      require(f.get(row2+0x10u)==fbits(7.f) && f.get(row2+0x14u)==fbits(8.f) &&
+          f.get(row2+0x18u)==fbits(9.f) && f.get(row2+0x1cu)==fbits(1.5f),
+          "284360 clamps translation and scale to root node");
+      // Frame/next/fraction/output restored after second-frame passes.
+      require(f.get(state+0x14u)==0u && f.get(state+0x18u)==1u && f.get(state+0x1cu)==fbits(0.25f) &&
+          f.get(state+0x70u)==0x510f10u,"284360 restores codec state");
+      if(nan_check) {
+        // Translation is decoded-first in all four loops; scale is output-first when masked, decoded-first unmasked.
+        require(f.get(row1+0x10u)==0x7fc00011u,"284360 translation operand order is decoded-first");
+        require(f.get(row1+0x1cu)==(masked?0x7fc00044u:0x7fc00033u),"284360 scale operand order matches masked flag");
+      } else {
+        require(f.get(row1+0x10u)==fbits(second?12.f:11.f) && f.get(row1+0x14u)==fbits(second?24.f:22.f) &&
+            f.get(row1+0x18u)==fbits(second?40.f:36.f),"284360 layers node 0 translation with entry+18 z scale");
+        require(f.get(row1+0x1cu)==fbits(second?15.f:10.f),"284360 layers node 0 scale");
+      }
+    };
+    for(const bool masked:{false,true})
+      for(const bool second:{false,true})
+        for(const bool nan_check:{false,true})
+          run_kind2_mode2(masked,second,nan_check);
+  }
   std::cout<<"native campaign script builtin self-test passed\n";
 }
 }

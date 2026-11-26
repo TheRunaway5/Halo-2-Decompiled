@@ -1912,6 +1912,7 @@ target_link_libraries(halo2_menu_world_storage PUBLIC halo2_cache Vulkan::Vulkan
 add_library(halo2_renderer_device_lease src/rendering/renderer/renderer_device_lease.cpp)
 target_include_directories(halo2_renderer_device_lease PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(halo2_renderer src/rendering/renderer/renderer.cpp src/rendering/world/bsp_postprocess.cpp src/rendering/scope_render.cpp src/campaign/cinematic_crossfade_render.cpp src/campaign/cinematic_camera_interpolation.cpp)
+target_link_libraries(halo2_renderer PRIVATE halo2_object_motion_blur)
 target_sources(halo2_renderer PRIVATE src/rendering/world/source_model_depth_input.cpp)
 target_sources(halo2_renderer PRIVATE src/rendering/world/source_hologram_depth_input.cpp)
 target_sources(halo2_renderer PRIVATE src/rendering/source_scene_copy_gpu.cpp)
@@ -12153,6 +12154,7 @@ include(cmake/SourceWaterReflectionTu15.cmake)
 include(cmake/AnimationInterpolation.cmake)
 include(cmake/PStencil.cmake)
 include(cmake/PathTracing.cmake)
+include(cmake/ObjectMotionBlur.cmake)
 
 include(cmake/CampaignEnvironmentTu15.cmake)
 include(cmake/NativeTu15ObserverData.cmake)
@@ -12180,6 +12182,7 @@ include(cmake/OriginalPcrIntro.cmake)
 include(cmake/OriginalLoading.cmake)
 include(cmake/VistaPcrRounds.cmake)
 foreach(native_target halo2_systems halo2_physics_world_runtime halo2_shadow_array_swap_tu15
+        halo2_source_damage_delivery
         halo2_physics_vehicle_runtime halo2_physics_vehicle_update halo2_physics_vehicle_motion
         halo2_physics_vehicle_motion_math halo2_physics_vehicle_environment_state
         halo2_physics_vehicle_contact_state halo2_physics_vehicle_constraint_cleanup)
@@ -12380,6 +12383,8 @@ include(cmake/CampaignNativeAiBehaviorScore43.cmake)
 include(cmake/CampaignNativeAiBehaviorScore80.cmake)
 include(cmake/CampaignNativeAiBehaviorScore17.cmake)
 include(cmake/CampaignNativeAiBehaviorStart42.cmake)
+include(cmake/CampaignNativeAiBehavior45.cmake)
+include(cmake/CampaignNativeAiDamageStun.cmake)
 include(cmake/CampaignNativeAiBehaviorScore50.cmake)
 include(cmake/CampaignNativeAnimationDistance.cmake)
 include(cmake/CampaignNativeAiAreaChoiceBinding.cmake)

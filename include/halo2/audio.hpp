@@ -16,7 +16,7 @@ struct PcmSound {
   unsigned sound_class = sound_class_count;
   struct ClassSpan { std::size_t end_frame; unsigned sound_class; };
   std::vector<ClassSpan> class_spans;
-  // Cumulative owned input bytes and actual emitted 48-kHz frames at each
+  // Cumulative owned input bytes and actual emitted frames at rate for each
   // resource boundary. Decoder/resampler state spans chunks; final flush
   // belongs to the last chunk. Empty means no mapping is available.
   struct ChunkBoundary {
@@ -28,6 +28,7 @@ struct PcmSound {
   unsigned class_at(std::size_t) const;
 };
 PcmSound decode_sound(const EncodedSound &);
+PcmSound decode_xbox_adpcm_native(const EncodedSound &);
 void write_wav(const PcmSound &, const std::filesystem::path &);
 class AudioEngine {
 public:

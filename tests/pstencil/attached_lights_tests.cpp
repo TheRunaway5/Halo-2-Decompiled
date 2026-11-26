@@ -179,6 +179,22 @@ int main(int argc,char** argv){try {
             shown.front().intensity==rt->intensity && shown.front().planes==rt->planes,
             "Path Tracing attached emitter did not follow the primary interpolation fraction");
     }
+    // Cairo's cinematic marker can collapse at the completed tick while
+    // fractional presentation still samples a nonzero scale.
+    auto collapsed_node=current_node;
+    collapsed_node.scale=0.f;
+    auto sampled_node=previous_node;
+    sampled_node.scale=.000211167135f;
+    const auto require_native_shape=[&](const Transform& source,const Transform& shown) {
+        auto light=*rt;
+        path_tracing::present_light_frame(light,source,shown);
+        require(same(light.position,rt->position) && light.radius==rt->radius &&
+            same(light.color,rt->color) && light.intensity==rt->intensity &&
+            light.planes==rt->planes && light.source_identity==rt->source_identity,
+            "A collapsed attachment frame changed the completed native light");
+    };
+    require_native_shape(collapsed_node,sampled_node);
+    require_native_shape(current_node,collapsed_node);
     const auto unobserved=path_tracing::source_lights(world,std::span(&*attached_record,1),
         [](auto,auto)->std::optional<Transform>{return {};});
     require(unobserved.size()==1 && same(unobserved.front().position,rt->position),

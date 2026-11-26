@@ -9,6 +9,7 @@
 #include "halo2/source_scene_device_constructor_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
 #include "halo2/source_lens_flare_tu15.hpp"
+#include "core/native_tu15_authored_control_point.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/physics_vehicle_motion_math.hpp"
 #include "halo2/cache.hpp"
@@ -34,6 +35,8 @@ bool execute(SourcePhysicsContactMemory &memory,std::uint32_t entry,
         source_run_model_render_tu15(memory,entry,abi,fp,services,observe);
     else if(source_effect_particle_frame_tu15_owns_entry(entry))
         source_run_effect_particle_frame_tu15(memory,entry,abi,fp,services,observe);
+    else if(native_authored_control_point::owns_entry(entry))
+        native_authored_control_point::run_entry(memory,entry,abi,fp,services,observe);
     else if(source_physics_live_support_tu15_owns_entry(entry))
         source_run_physics_live_support_tu15(memory,entry,abi,fp,services,observe);
     else if(entry==0x144910u && source_scene_device_constructor_tu15_owns_entry(entry))
@@ -58,6 +61,7 @@ bool source_particle_world_execution_tu15_owns_entry(std::uint32_t entry) {
         source_transparent_collection_tu15_owns_entry(entry) ||
         source_model_render_tu15_owns_entry(entry) ||
         source_effect_particle_frame_tu15_owns_entry(entry) ||
+        native_authored_control_point::owns_entry(entry) ||
         source_physics_live_support_tu15_owns_entry(entry) ||
         (entry==0x144910u && source_scene_device_constructor_tu15_owns_entry(entry)) ||
         source_map_world_support_tu15_owns_entry(entry) ||

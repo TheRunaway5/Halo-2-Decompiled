@@ -3,6 +3,7 @@
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_lens_query_gpu.hpp"
 #include "halo2/source_lens_draw_tu15.hpp"
+#include "core/native_tu15_authored_control_point.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/physics_vehicle_motion_math.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
@@ -175,7 +176,8 @@ void source_finish_lens_query(SourceRuntimeMemory &source,bool submitted,std::sp
 }
 bool source_lens_draw_execution_entry(std::uint32_t entry) {
     return source_lens_draw_tu15_owns_entry(entry)||source_lens_query_tu15_owns_entry(entry)||
-        source_physics_live_support_tu15_owns_entry(entry)||entry==0x37dc0au||entry==0x37cde8u;
+        native_authored_control_point::owns_entry(entry)||source_physics_live_support_tu15_owns_entry(entry)||
+        entry==0x37dc0au||entry==0x37cde8u;
 }
 namespace {
 struct WorldPassBoundary {std::array<std::uint32_t,6> arguments;};
@@ -199,6 +201,7 @@ SourceLensWorldPass draw(SourceRuntimeMemory &source,std::uint32_t entry,SourceP
         const auto fp=state.floating_point.value_or(SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80});
         if(source_lens_draw_tu15_owns_entry(target))source_run_lens_draw_tu15(memory,target,state,fp,services);
         else if(source_lens_query_tu15_owns_entry(target))source_run_lens_query_tu15(memory,target,state,fp,services);
+        else if(native_authored_control_point::owns_entry(target))native_authored_control_point::run_entry(memory,target,state,fp,services);
         else if(source_physics_live_support_tu15_owns_entry(target))source_run_physics_live_support_tu15(memory,target,state,fp,services);
         else if(target==0x37dc0au||target==0x37cde8u){auto f=fp;
             source_run_physics_vehicle_motion_math_runtime(memory,target==0x37dc0au?0x37a15au:0x379338u,

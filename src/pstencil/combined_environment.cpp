@@ -13,6 +13,33 @@ constexpr std::string_view multiplayer_visor_name=
 constexpr std::array<std::uint32_t,60> controls[]{
 #include "visor_combined_controls.inc"
 };
+// The weapon pass changes a separate highlight input. Its cube contribution
+// still uses the same facing/glancing coefficients as the standard pass.
+constexpr auto alternate_highlight_controls=[] {
+    auto words=controls[0];
+    words[5]=0x1d1dfb20u;
+    words[31]=0x00020d00u;
+    return words;
+}();
+enum class CombinedEnvironmentProgram {Unsupported,Standard,AlternateHighlight};
+CombinedEnvironmentProgram combined_environment_program(const Material& m) {
+    using Program=CombinedEnvironmentProgram;
+    if(!m.forward_pass || m.forward_vertex!=6 || m.forward_blend!=0 ||
+       m.forward_pass_index>=m.passes.size())return Program::Unsupported;
+    const auto& pass=m.passes[m.forward_pass_index];
+    if(pass.implementation!=2)return Program::Unsupported;
+    const bool plain=pass.name.ends_with("\\lightmap_env") && pass.vertex_shader.ends_with("\\lightmap_dynamic_env");
+    const bool textured=pass.name.ends_with("\\lightmap_tex_env") && pass.vertex_shader.ends_with("\\lightmap_dynamic_tex_env");
+    if(!plain && !textured)return Program::Unsupported;
+    const auto& words=m.forward_program.words;
+    const bool alternate=plain && words[5]==alternate_highlight_controls[5];
+    const auto& expected=alternate?alternate_highlight_controls:controls[textured?1:0];
+    for(unsigned n=0;n<expected.size();++n) {
+        if((n>=10 && n<=25) || n==43 || n==44)continue;
+        if(words[n]!=expected[n])return Program::Unsupported;
+    }
+    return alternate?Program::AlternateHighlight:Program::Standard;
+}
 using Digest=std::array<unsigned char,SHA256_DIGEST_LENGTH>;
 constexpr Digest five_mips{
     0x9d,0x4f,0xe6,0x87,0x7f,0x24,0x1b,0xbc,0xc6,0x68,0xce,0x92,0x4a,0xc4,0x6a,0x87,
@@ -64,21 +91,12 @@ std::optional<Texture> load_reference_visor_cube(const Cache& cache) {
     }
     return result;
 }
+bool supports_combined_environment_program(const Material& m) {
+    return combined_environment_program(m)!=CombinedEnvironmentProgram::Unsupported;
+}
 bool supports_combined_visor_environment(const Material& m) {
-    if((m.name!=visor_name && m.name!=multiplayer_visor_name) ||
-       !m.forward_pass || m.forward_vertex!=6 || m.forward_blend!=0 ||
-       m.forward_pass_index>=m.passes.size())return false;
-    const auto& p=m.passes[m.forward_pass_index];
-    if(p.implementation!=2)return false;
-    const bool plain=p.name.ends_with("\\lightmap_env") && p.vertex_shader.ends_with("\\lightmap_dynamic_env");
-    const bool textured=p.name.ends_with("\\lightmap_tex_env") && p.vertex_shader.ends_with("\\lightmap_dynamic_tex_env");
-    if(!plain && !textured)return false;
-    const auto& expected=controls[textured?1:0];
-    for(unsigned n=0;n<expected.size();++n) {
-        if((n>=10 && n<=25) || n==43 || n==44)continue;
-        if(m.forward_program.words[n]!=expected[n])return false;
-    }
-    return true;
+    return (m.name==visor_name || m.name==multiplayer_visor_name) &&
+        combined_environment_program(m)==CombinedEnvironmentProgram::Standard;
 }
 const Material* combined_visor_environment(const Material& m) {
     if(supports_combined_visor_environment(m))return &m;

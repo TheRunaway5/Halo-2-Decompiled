@@ -71,7 +71,9 @@ int main(int argc,char **argv)try {
         *b.first_presentation_frame-*a.first_presentation_frame!=337600 ||
         *b.first_device_frame-*a.first_device_frame!=342400)
         throw FormatError("Consumed authored Prophet gap differs from the original 211 ticks plus explicit pause");
-    if(!a.source_frames || b.source_frames!=32)
+    // Native pitch quantization can make PCM source progress differ from
+    // device frames even when the voice plays at its authored base pitch.
+    if(a.source_frames<=0 || b.source_frames<=0 || b.output_frames!=32)
         throw FormatError("Actual decoded dialogue did not expose consumed source progress");
     audio.stop();
     if(audio.voices())throw FormatError("Stopped timeline retained a dialogue voice");
@@ -93,9 +95,33 @@ int main(int argc,char **argv)try {
     const auto current=audio.presentation_frames();
     const auto overdue=audio.schedule_impulse(council,timeline.frame(40));
     audio.render(1);
-    if(!overdue || audio.playback_position(*overdue).first_presentation_frame!=current ||
-        audio.playback_position(*overdue).source_frames!=1 || timeline.frame(40)!=restored_frame)
+    if(!overdue)throw FormatError("Overdue cue lost its dialogue");
+    const auto overdue_position=audio.playback_position(*overdue);
+    if(overdue_position.first_presentation_frame!=current || overdue_position.source_frames<=0 ||
+        overdue_position.output_frames!=1 || timeline.frame(40)!=restored_frame)
         throw FormatError("Late dialogue trimmed PCM or rebased the source/device epoch");
+    audio.stop();
+    const auto lagged_frame=audio.presentation_frames();
+    const auto live_deadline=timeline.live_frame(190,lagged_frame);
+    if(live_deadline!=lagged_frame+1600 || timeline.frame(190)!=restored_frame+240000 ||
+        timeline.live_frame(40,lagged_frame)!=restored_frame ||
+        timeline.live_frame(42,lagged_frame)!=timeline.frame(42))
+        throw FormatError("Live campaign cue did not bound callback drift or keep existing deadlines");
+    const auto live=audio.schedule_impulse(council,live_deadline);
+    if(!live)throw FormatError("Lagged device lost the live campaign cue");
+    audio.paused(true);
+    audio.render(2048);
+    if(audio.presentation_frames()!=lagged_frame || audio.playback_position(*live).first_presentation_frame)
+        throw FormatError("Paused output advanced a live campaign cue");
+    audio.paused(false);
+    audio.render(1600);
+    if(audio.playback_position(*live).first_presentation_frame)
+        throw FormatError("Live campaign cue played before its bounded deadline");
+    audio.render(1);
+    const auto live_position=audio.playback_position(*live);
+    if(live_position.first_presentation_frame!=live_deadline || live_position.output_frames!=1 ||
+        live_position.source_frames<=0)
+        throw FormatError("Live campaign cue lost its first frame while catching up to the device");
     rejected=false;
     try {timeline.frame(39);}catch(const std::invalid_argument &){rejected=true;}
     if(!rejected)throw FormatError("Previous source epoch accepted a cue");
@@ -109,6 +135,6 @@ int main(int argc,char **argv)try {
     try {timeline.frame(1);}catch(const std::overflow_error &){rejected=true;}
     if(!rejected)throw FormatError("Campaign output deadline wrapped");
     std::cout<<"PASS actual Prophet PCM: 49 original cue ticks mapped from a nonzero epoch, exact "
-                 "337600-sample gap, pause, restored epoch, late PCM, cancellation and overflow\n";
+                 "337600-sample gap, pause, restored epoch, late PCM, live drift, cancellation and overflow\n";
     std::cout<<"LIMIT adapter deadlines do not establish live request lead or final Xbox mix\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

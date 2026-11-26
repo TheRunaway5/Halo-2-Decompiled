@@ -164,7 +164,7 @@ struct ProjectedLights::Impl {
     const Cache& cache;unsigned bsp;
     SourceBspAdmissionBsp geometry;
     std::shared_ptr<SharedLightMaterials> shared;
-    PointCasterBank casters;
+    std::unique_ptr<PointCasterBank> casters;
     MenuWorldSourceBindingCache bindings;
     std::map<std::uint32_t,EffectLightDefinition> lights;
     const Tag* cairo_master_guns_light{};
@@ -186,6 +186,8 @@ struct ProjectedLights::Impl {
     // Layer 14 rebuilds the texture target before the native light response.
     // Its authored texture mapping is independent of the particular light.
     std::map<Key,std::vector<Entry>> texture_materials;
+    std::set<std::uint32_t> preloaded_shaders;
+    bool raster_materials_loaded{};
     struct Section {
         std::shared_ptr<const MenuWorldSourceSection> raw;
         SourceBspRangeGeometry ranges;
@@ -194,30 +196,14 @@ struct ProjectedLights::Impl {
     std::map<SectionKey,Section> sections;
     std::vector<std::string> gaps;
     std::optional<std::array<ShaderVector,9>> previous;
-    Impl(const Cache& c,Mesh& mesh,unsigned index,std::shared_ptr<SharedLightMaterials> bank)
-      :cache(c),bsp(index),geometry(c.load_source_bsp_admission(index)),
-       shared(bank?std::move(bank):std::make_shared<SharedLightMaterials>(c,mesh)),casters(c,index),bindings(c) {
-        if(cache.scenario()=="scenarios\\solo\\00a_introduction\\00a_introduction") {
-            cairo_master_guns_light=cache.query_tag({.group=TagGroup::from_string("ligh"),
-                .name="scenarios\\objects\\lights\\cinematics\\x01_light_master_guns",.require_address=true});
-            cairo_master_guns_face=cache.query_tag({.group=TagGroup::from_string("shad"),
-                .name="objects\\characters\\marine\\shaders\\head_morgan",.require_address=true});
-            cairo_helmet_prop=cache.query_tag({.group=TagGroup::from_string("mode"),
-                .name="objects\\characters\\masterchief\\helmet\\helmet",.require_address=true});
-        }
-        for(const auto& tag:cache.tags())if(tag.group=="ligh") {
-            const auto raw=cache.load_source_tag_metadata(tag.datum);
-            const auto bytes=raw.bytes_at(raw.source_address(),228);const Bytes d(bytes);
-            if(d.u16(4)!=2 || (d.u32(0)&(0x20u|0x80000u)) || d.u32(0xe0)!=0xffffffffu ||
-               d.u32(0xc4) || d.u32(0xcc) || d.u32(0xd4))continue;
-            EffectLightDefinition value;std::copy(bytes.begin(),bytes.end(),value.bytes.begin());
-            value.flags=d.u32(0);value.radius=d.f32(0x18);value.specular_radius=d.f32(0x1c);
-            value.duration=d.f32(0xb0);value.lens=d.u32(0x94);lights.emplace(tag.datum,std::move(value));
-        }
+    void preload_shaders(Mesh& mesh,std::span<const Material> source_materials) {
         std::set<std::uint32_t> shaders;
-        for(const auto& m:mesh.materials)if(m.source_shader_datum!=0xffffffffu)shaders.insert(m.source_shader_datum);
+        for(const auto& m:source_materials)
+            if(m.source_shader_datum!=0xffffffffu && !preloaded_shaders.contains(m.source_shader_datum))
+                shaders.insert(m.source_shader_datum);
         EffectLightUniforms residency{}; // Residency seed only, never a live draw result.
         for(const auto shader:shaders) {
+            preloaded_shaders.insert(shader);
             try {
                 const auto count=shared->authored(shader).lods.size();
                 for(unsigned lod=0;lod<count;++lod) {
@@ -322,6 +308,34 @@ struct ProjectedLights::Impl {
             }catch(const FormatError& e){gaps.push_back(std::to_string(shader)+": "+e.what());}
         }
     }
+    Impl(const Cache& c,Mesh& mesh,unsigned index,std::shared_ptr<SharedLightMaterials> bank,
+         bool preload_raster,std::span<const Material> additional_materials)
+      :cache(c),bsp(index),geometry(c.load_source_bsp_admission(index)),
+       shared(bank?std::move(bank):std::make_shared<SharedLightMaterials>(c,mesh)),
+       casters(std::make_unique<PointCasterBank>(c,index)),bindings(c) {
+        if(cache.scenario()=="scenarios\\solo\\00a_introduction\\00a_introduction") {
+            cairo_master_guns_light=cache.query_tag({.group=TagGroup::from_string("ligh"),
+                .name="scenarios\\objects\\lights\\cinematics\\x01_light_master_guns",.require_address=true});
+            cairo_master_guns_face=cache.query_tag({.group=TagGroup::from_string("shad"),
+                .name="objects\\characters\\marine\\shaders\\head_morgan",.require_address=true});
+            cairo_helmet_prop=cache.query_tag({.group=TagGroup::from_string("mode"),
+                .name="objects\\characters\\masterchief\\helmet\\helmet",.require_address=true});
+        }
+        for(const auto& tag:cache.tags())if(tag.group=="ligh") {
+            const auto raw=cache.load_source_tag_metadata(tag.datum);
+            const auto bytes=raw.bytes_at(raw.source_address(),228);const Bytes d(bytes);
+            if(d.u16(4)!=2 || (d.u32(0)&(0x20u|0x80000u)) || d.u32(0xe0)!=0xffffffffu ||
+               d.u32(0xc4) || d.u32(0xcc) || d.u32(0xd4))continue;
+            EffectLightDefinition value;std::copy(bytes.begin(),bytes.end(),value.bytes.begin());
+            value.flags=d.u32(0);value.radius=d.f32(0x18);value.specular_radius=d.f32(0x1c);
+            value.duration=d.f32(0xb0);value.lens=d.u32(0x94);lights.emplace(tag.datum,std::move(value));
+        }
+        if(preload_raster) {
+            preload_shaders(mesh,mesh.materials);
+            if(!additional_materials.empty())preload_shaders(mesh,additional_materials);
+            raster_materials_loaded=true;
+        }
+    }
     static Key key(std::uint32_t shader,unsigned lod,unsigned implementation,const EffectLightDefinition& definition) {
         const auto gel=(implementation==2 || implementation==3)?Bytes(definition.bytes).u32(0x7c):0u;
         return {shader,lod,implementation,gel};
@@ -345,9 +359,35 @@ struct ProjectedLights::Impl {
         return found->second;
     }
 };
-ProjectedLights::ProjectedLights(const Cache& cache,Mesh& mesh,unsigned bsp,std::shared_ptr<SharedLightMaterials> bank)
-    :impl_(std::make_unique<Impl>(cache,mesh,bsp,std::move(bank))){}
+ProjectedLights::ProjectedLights(const Cache& cache,Mesh& mesh,unsigned bsp,std::shared_ptr<SharedLightMaterials> bank,
+    bool preload_raster_materials,std::span<const Material> additional_materials)
+    :impl_(std::make_unique<Impl>(cache,mesh,bsp,std::move(bank),preload_raster_materials,additional_materials)){}
 ProjectedLights::~ProjectedLights()=default;
+void ProjectedLights::switch_bsp(Mesh& mesh,unsigned bsp,std::span<const Material> additional_materials,
+    bool preload_raster_materials) {
+    auto& i=*impl_;
+    i.bsp=bsp;
+    i.geometry=i.cache.load_source_bsp_admission(bsp);
+    i.casters=std::make_unique<PointCasterBank>(i.cache,bsp);
+    i.previous.reset();
+    std::erase_if(i.sections,[](const auto& entry) {
+        return std::get<0>(entry.first)!=MenuWorldSourceSectionKind::render_model;
+    });
+    if(preload_raster_materials) {
+        if(!i.raster_materials_loaded)i.preload_shaders(mesh,mesh.materials);
+        if(!additional_materials.empty())i.preload_shaders(mesh,additional_materials);
+        i.raster_materials_loaded=true;
+    } else {
+        i.raster_materials_loaded=false;
+    }
+}
+void ProjectedLights::ensure_raster_materials(Mesh& mesh,std::span<const Material> additional_materials) {
+    auto& i=*impl_;
+    i.preload_shaders(mesh,mesh.materials);
+    if(!additional_materials.empty())i.preload_shaders(mesh,additional_materials);
+    i.raster_materials_loaded=true;
+}
+bool ProjectedLights::raster_materials_preloaded()const noexcept {return impl_->raster_materials_loaded;}
 const std::vector<std::string>& ProjectedLights::unavailable()const{return impl_->gaps;}
 ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const SourceEffectLightViewRecord& light,
     float selected_fade,const NativeLightReceiver& receiver,const NativeLightGeometry& geometry,
@@ -401,10 +441,12 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
         {float(viewport[1]),float(viewport[0]),float(viewport[3]-viewport[1]),float(viewport[2]-viewport[0])},false);
     std::copy(bank.begin(),bank.end(),constants.begin());
     setup_time.finish();
+    if(materialize_draws && !i.raster_materials_loaded)
+        throw FormatError("Projected lights require preloaded raster materials");
     if(materialize_draws && materialize_point_casters) {
         const CampaignLightPhaseTimer casters_time(timing,Phase::projected_casters);
         auto stencil_light=light.runtime;stencil_light.position=origin;
-        i.casters.collect(geometry.retained.state,&world,stencil_light,constants,domain,{},point_casters,presented_palette);
+        i.casters->collect(geometry.retained.state,&world,stencil_light,constants,domain,{},point_casters,presented_palette);
     }
     // 31150: a light whose 31650 caller byte survives and whose caster bank
     // submitted layer 10 owns a shadow buffer (feature bit 2). The ordinary

@@ -6,6 +6,7 @@ struct SourceDeathWorldSchedulerServices {
   SourceUnitAnimationRuntimeServices runtime;
   // Original reached RDTSC profiling instructions require a real clock owner.
   std::function<std::uint64_t()> timestamp_counter;
+  SourcePhysicsContactRuntimeServices::InstructionCursor physics_instruction_cursor;
 };
 // Complete compiled function identities, including the linked solver/contact
 // owners. This checks ownership only; it does not test world readiness.

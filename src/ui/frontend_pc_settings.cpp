@@ -33,6 +33,7 @@ bridge::VideoPanelFacts video_facts(const DisplaySettings &display, unsigned wid
       .vehicle_field_of_view = display.vehicle_field_of_view,
       .crt_filter = display.crt_filter,
       .vertical_split = display.two_player_split != TwoPlayerSplit::Horizontal,
+      .object_motion_blur = display.object_motion_blur,
       .ray_samples = display.path_tracing_samples,
       .bounce_depth = display.path_tracing_bounces,
   };
@@ -396,6 +397,7 @@ void MenuState::accept_pc() {
     if(e.value==0)value.crt_filter=!value.crt_filter;
     else if(e.value==1)value.two_player_split=value.two_player_split==TwoPlayerSplit::Horizontal?
         TwoPlayerSplit::Vertical:TwoPlayerSplit::Horizontal;
+    else if(e.value==2)value.object_motion_blur=!value.object_motion_blur;
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
     if(const auto error=pc_display_adapter_(value);!error.empty()) {
       unavailable(error);return;
@@ -427,7 +429,7 @@ void MenuState::accept_pc() {
     if(id==263)v.volume=e.value;
     if(id==242)v.subtitles=e.value;
     if(id==267)v.speakers=e.value;
-    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.upscaler=defaults.upscaler;v.upscaling_quality=defaults.upscaling_quality;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.two_player_split=defaults.two_player_split;v.graphics_mode=defaults.graphics_mode;v.path_tracing_samples=defaults.path_tracing_samples;v.path_tracing_bounces=defaults.path_tracing_bounces;}
+    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.upscaler=defaults.upscaler;v.upscaling_quality=defaults.upscaling_quality;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.object_motion_blur=defaults.object_motion_blur;v.two_player_split=defaults.two_player_split;v.graphics_mode=defaults.graphics_mode;v.path_tracing_samples=defaults.path_tracing_samples;v.path_tracing_bounces=defaults.path_tracing_bounces;}
     if(id==268){v.volume=10;v.subtitles=0;v.speakers=4;}
     if(id==269) {
       const auto m=e.value<0?std::pair<unsigned,unsigned>{0,0}:pc_video_modes_.at(e.value);

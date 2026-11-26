@@ -3,6 +3,7 @@
 #include "halo2/native_tu15_contact_pressure.hpp"
 #include "halo2/native_tu15_object_delete_protection.hpp"
 #include "halo2/native_tu15_retained_counter_update.hpp"
+#include "runtime/native_tu15_pool_pressure_metric.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstdio>
@@ -45,11 +46,18 @@ __m128 multiply(__m128 a,__m128 b){asm volatile("mulss %1,%0":"+x"(a):"x"(b):"me
 bool greater(__m128 a,__m128 b){unsigned char result;asm volatile("comiss %2,%1; seta %0":"=qm"(result):"x"(a),"x"(b):"cc","memory");return result;}
 bool positive(std::uint32_t n){return std::bit_cast<std::int32_t>(n)>0;}
 __m128 pool_free(Memory&m,std::uint32_t pool,NativeTu15MemoryPressureStats*stats){
-    if(stats)++stats->pool_queries;std::uint32_t sum{},cursor=pool+0xf0384u;
-    for(unsigned n=0;n<16;++n){const auto total=m.word(cursor);const auto occupied=m.word(cursor+0x44u);const auto stride=m.word(cursor-0xf02dcu);sum+=(total-occupied)*stride;cursor-=4u;}
-    const auto converted=integer(sum);
-    const auto scale=scalar(m.word(0x46a134u));
-    return multiply(converted,scale);
+    namespace metric=native_pool_pressure_metric;
+    if(stats)++stats->pool_queries;
+    std::uint32_t sum{},cursor=pool+metric::totals_offset;
+    for(unsigned n=0;n<metric::slot_count;++n){
+        const auto total=m.word(cursor);
+        const auto occupied=m.word(cursor+metric::occupied_offset);
+        const auto stride=m.word(cursor+metric::stride_offset);
+        sum+=metric::product(total,occupied,stride);
+        cursor-=metric::slot_size;
+    }
+    const auto converted=metric::convert(_mm_setzero_ps(),sum);
+    return metric::scale(converted,m.word(metric::scale_address));
 }
 [[noreturn]] void missing(NativeTu15MemoryPressureStats*stats,const char*message){if(stats)++stats->unbound_services;throw std::runtime_error(message);}
 void begin(const NativeTu15MemoryPressureServices&s,NativeTu15PhysicsFrameFp&fp,NativeTu15MemoryPressureStats*stats){if(!s.begin_cleanup)missing(stats,"Native memory pressure requires actual1CB330 cleanup owner");s.begin_cleanup(fp);}

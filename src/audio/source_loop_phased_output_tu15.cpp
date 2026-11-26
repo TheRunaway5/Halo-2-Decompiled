@@ -63,6 +63,8 @@ MultiplayerLoopPacketParametersTu15 parameters(SourceLoopPhasedOutputTu15& outpu
     const Bytes location(owner.location);
     result.velocity={location.f32(0x1c),location.f32(0x20),location.f32(0x24)};
     result.doppler=!owner.combined && (owner.source_flags&2u)!=0;
+    if(location.u16(0)&4u)result.minimum_distance=location.f32(0x34);
+    if(location.u16(0)&8u)result.maximum_distance=location.f32(0x38);
     return result;
 }
 unsigned select(SourceLoopPhasedOutputTu15& output,std::uint32_t& used,
@@ -161,7 +163,8 @@ std::pair<std::uint32_t,std::uint32_t> source_loop_phased_key_tu15(
     return {request.arguments[0],combined?request.arguments[0]|0x6000u:request.arguments[2]};
 }
 void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPhasedOutputTu15& output,
-    const SourceLoopSoundRequestTu15& request,const LoopingSound& definition){
+    const SourceLoopSoundRequestTu15& request,const LoopingSound& definition,
+    std::optional<std::uint64_t> playback_parent){
     const auto& args=request.arguments;const Bytes location(request.location);
     const auto duration=std::bit_cast<float>(args[7]);
     if(args[5]>2 || !std::isfinite(location.f32(4)) || location.f32(4)<0 ||
@@ -184,7 +187,10 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
     // starts them together (21F430) once every channel is primed. The native
     // lane submits a frame's new voices in one mixer pass, so they start
     // together already; 21BF00's position hold while waiting has no effect.
-    const auto key=source_loop_phased_key_tu15(request,definition);auto found=state.owners.find(key);const bool created=found==state.owners.end();
+    const auto [sound,source_key]=source_loop_phased_key_tu15(request,definition);
+    const auto attached=combined?std::nullopt:playback_parent;
+    const SourceLoopPhasedOwnerKeyTu15 key{sound,attached.value_or(source_key),bool(attached)};
+    auto found=state.owners.find(key);const bool created=found==state.owners.end();
     if(created && args[5]==2)return;
     if(combined)output.require_combined_output();
     if(created){if(args[5]==2)return;
@@ -262,6 +268,14 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
             false,owner.stopping,definition.flags&~0x300u,duration,track.control},track.phase,playback);
     }
     owner.stopping=command==2;owner.seen=true;owner.retain=(args[6]&2u)!=0;
+}
+void source_loop_phased_remove_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPhasedOutputTu15& output,
+    SourceLoopPhasedOwnerKeyTu15 key){
+    const auto owner=state.owners.find(key);
+    if(owner==state.owners.end())return;
+    retire(owner->second,output);
+    if(controlled(owner->second))release(state,owner->second.synchronization);
+    state.owners.erase(owner);
 }
 void source_loop_phased_frame_tu15(SourceLoopPhasedStateTu15& state,SourceLoopPhasedOutputTu15& output,float elapsed){
     for(auto& [key,group]:state.synchronization)advance(group.seed); //128733 before128744

@@ -701,7 +701,7 @@ int main(int argc, char **argv) try {
   settings.select(2);
   draw(settings, true);
   choose(settings, 2, vista_menu(256));
-  require(settings.frame().entries.size() == 14, "Video settings lost existing native controls");
+  require(settings.frame().entries.size() == 15, "Video settings lost existing native controls");
   draw(settings, true);
   DisplaySettings applied;
   settings.set_pc_display_adapter([&](const DisplaySettings &value) { applied = value; return std::string{}; });
@@ -873,7 +873,7 @@ int main(int argc, char **argv) try {
           "Display Mode cancel did not restore prior confirmed mode");
   // Exercise each existing choice factory without account/session/network owners.
   constexpr std::array<std::pair<unsigned, unsigned>, 23> choices{{
-      {42, 10}, {44, 2}, {242, 3}, {243, 4}, {245, 2}, {253, 43}, {256, 14}, {257, 4},
+      {42, 10}, {44, 2}, {242, 3}, {243, 4}, {245, 2}, {253, 43}, {256, 15}, {257, 4},
       {258, 6}, {263, 11}, {267, 5}, {268, 2}, {269, 3}, {271, 3}, {272, 10}, {273, 11},
       {274, 2}, {276, 2}, {285, 2}, {290, 3}, {294, 2}, {295, 2}, {296, 1}}};
   for (const auto [id, count] : choices) {

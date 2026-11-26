@@ -74,6 +74,9 @@ public:
   void begin_multiplayer_loading(FrontendNetworkTransitionStatus = FrontendNetworkTransitionStatus::SettingUpGame);
   // Status shown from the next presented frame; no effect when inactive.
   void network_transition_status(FrontendNetworkTransitionStatus);
+  // Append loading-presentation materials into Mesh ahead of make_renderer so
+  // they occupy a stable prefix across in-place BSP hot-swaps.
+  void prepare_loading_materials(Mesh&);
   std::shared_ptr<Renderer> make_renderer(Mesh&,bool validation,
       std::span<const SourceShadowPlanMaterial> shadow_materials={},
       const SourceBspResidentPlan *bsp_resident_plan=nullptr,

@@ -1,9 +1,12 @@
 #include "halo2/path_tracing/scene.hpp"
+#include "material_atlas.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/path_tracing/material_emission.hpp"
 #include "halo2/path_tracing/emission.hpp"
 #include "halo2/path_tracing/emitter_sampling.hpp"
 #include "halo2/path_tracing/surface.hpp"
+#include "halo2/path_tracing/surface_material.hpp"
+#include "halo2/path_tracing/chamber_reflection.hpp"
 #include "halo2/path_tracing/material_surface.hpp"
 #include "halo2/path_tracing/color_guide.hpp"
 #include "halo2/path_tracing/glow.hpp"
@@ -15,9 +18,11 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace halo2::path_tracing {
 namespace {
@@ -25,7 +30,7 @@ namespace {
 // as radiosity emitters well above that display value. Four times the layer's
 // drawn colour reads as a lit fixture without overexposing nearby walls.
 constexpr float glow_gain=4.f;
-constexpr std::size_t maximum_triangles=2'000'000,maximum_texels=16'777'216;
+constexpr std::size_t maximum_triangles=2'000'000,maximum_texels=material_atlas::maximum_words;
 // Source vertex IDs and GPU triangle material slots are uint32. Preserve that
 // identity namespace, including preloaded slots activated by later geometry.
 // VkPhysicalDeviceLimits::maxStorageBufferRange is a uint32 byte limit; the
@@ -278,36 +283,61 @@ std::uint32_t append_normal_map(Scene& image,const Texture& source) {
     }
     return record;
 }
-// An authored reflection cube map for primary pixels: one level of its six
-// faces no wider than 64 texels (Halo 2's environment maps are soft), as
-// RGBA8. Record: the face size, then the faces +X -X +Y -Y +Z -Z. Returns the
-// record's offset in `image`, or none when it cannot be decoded.
+// The authored reflection cube has a bounded base mip and, when present,
+// the next coarser source mip. Each starts with the face size followed by
+// RGBA8 faces +X -X +Y -Y +Z -Z.
 constexpr std::uint32_t no_environment_map=~0u;
-std::uint32_t append_environment_map(Scene& image,const Texture& source) {
-    if(source.layers!=6 || source.depth || source.width!=source.height || source.mips.empty() || source.mips.size()%6)
-        return no_environment_map;
-    Texture decoded=source;
-    try {
-        if(decoded.format>=14 && decoded.format<=16)decoded=prepare_xemu_bc_texture(decoded);
-    } catch(const FormatError&) {return no_environment_map;}
-    if(decoded.format!=11 || decoded.mips.size()!=source.mips.size())return no_environment_map;
-    const std::size_t levels=decoded.mips.size()/6;
+constexpr unsigned environment_face_limit=64;
+std::optional<std::array<TextureMip,6>> environment_map_faces(const Texture& source,unsigned coarser=0) {
+    if(source.layers!=6 || source.depth || !source.width || source.width!=source.height ||
+       source.mips.empty() || source.mips.size()%6 ||
+       (source.format!=11 && (source.format<14 || source.format>16)))return {};
+    const std::size_t levels=source.mips.size()/6;
+    if(levels>std::size_t(std::bit_width(source.width)))return {};
     std::size_t level=0;
-    while(level+1<levels && decoded.mips[level].width>64)++level;
-    const auto size=decoded.mips[level].width;
-    if(size<1 || decoded.mips[level].height!=size)return no_environment_map;
-    const auto record=std::uint32_t(image.pixels.size());
+    while(level+1<levels && (source.width>>level)>environment_face_limit)++level;
+    level+=coarser;
+    if(level>=levels)return {};
+    const auto size=source.width>>level;
+    if(size>environment_face_limit)return {};
+    const auto blocks=(size+3)/4;
+    const std::size_t bytes=source.format==11?size*size*4:blocks*blocks*(source.format==14?8:16);
+    std::array<TextureMip,6> faces;
+    for(std::size_t face=0;face<faces.size();++face) {
+        const auto& mip=source.mips[face*levels+level];
+        if(mip.width!=size || mip.height!=size || mip.depth!=1 || mip.size!=bytes ||
+           mip.offset>source.pixels.size() || bytes>source.pixels.size()-mip.offset)return {};
+        faces[face]=mip;
+    }
+    return faces;
+}
+bool append_environment_level(Scene& image,const Texture& source,const std::array<TextureMip,6>& faces) {
+    const auto size=faces.front().width;
+    const auto count=std::size_t(size)*size;
+    Texture decoded{size,size,source.format,source.pixels,{faces.begin(),faces.end()},6};
+    try {
+        if(source.format!=11)decoded=prepare_xemu_bc_texture(decoded);
+    } catch(const FormatError&) {return false;}
     image.pixels.push_back(size);
     const Bytes bytes(decoded.pixels);
-    for(unsigned face=0;face<6;++face) {
-        const auto& mip=decoded.mips[face*levels+level];
-        const auto count=std::size_t(size)*size;
-        if(mip.width!=size || mip.height!=size || mip.offset>decoded.pixels.size() || count*4>decoded.pixels.size()-mip.offset) {
-            image.pixels.resize(record);return no_environment_map;
-        }
+    for(const auto& mip:decoded.mips)
         for(std::size_t texel=0;texel<count;++texel)image.pixels.push_back(bytes.u32(mip.offset+texel*4));
-    }
+    return true;
+}
+std::uint32_t append_environment_map(Scene& image,const Texture& source,GpuMaterial& target) {
+    const auto faces=environment_map_faces(source);
+    const auto record=std::uint32_t(image.pixels.size());
+    if(!faces || !append_environment_level(image,source,*faces))return no_environment_map;
+    if(const auto coarse=environment_map_faces(source,1);coarse && append_environment_level(image,source,*coarse))
+        target.texture[3]|=environment_mip_flag;
     return record;
+}
+material_atlas::ImageKey environment_image_key(const Texture& image) {
+    std::uint64_t hash=14695981039346656037ull;
+    const auto add=[&](std::uint64_t word){hash^=word;hash*=1099511628211ull;};
+    add(image.width);add(image.height);add(image.format);add(image.layers);add(image.depth);
+    for(const auto& mip:image.mips) {add(mip.width);add(mip.height);add(mip.depth);add(mip.offset);add(mip.size);}
+    return {image.pixels.fingerprint(),hash};
 }
 const Texture &current_base_texture(const Material &material) {
     if(material.animated_textures[0].empty())return material.diffuse;
@@ -396,7 +426,12 @@ void append_surface(Scene& image,GpuMaterial& target,const Material& material) {
     for(unsigned stage=0;stage<4;++stage) {
         if(!(source->stages&(1u<<stage)))continue;
         const auto& sampler=material.texture_states[stage];
-        GpuMaterial temporary;append_texture(image,temporary,emission_texture(material,stage),sampler.max_mip);
+        GpuMaterial temporary;
+        if(stage==0 && sampler.max_mip==0)
+            // The standard ray material samples this same source mip. Keep
+            // the sampler and UVs independent, and share the decoded texels.
+            temporary.texture=target.texture;
+        else append_texture(image,temporary,emission_texture(material,stage),sampler.max_mip);
         const auto at=record+12+stage*10;
         image.pixels[at]=temporary.texture[0]-record;
         image.pixels[at+1]=temporary.texture[1];image.pixels[at+2]=temporary.texture[2];
@@ -490,7 +525,8 @@ std::vector<const Material*> self_illumination_layers(const Material& material) 
 }
 void refresh_emitters(Scene &scene) {
     scene.pixels.resize(scene.texture_texel_count);scene.emissive_count=0;
-    std::vector<float> power;
+    struct Emitter {std::uint32_t entry;float power;};
+    std::array<std::vector<Emitter>,2> emitters;
     for(std::uint32_t n=0;n<scene.triangles.size();++n) {
         const auto& triangle=scene.triangles[n];
         const auto& material=scene.materials[triangle.metadata[0]];
@@ -499,18 +535,24 @@ void refresh_emitters(Scene &scene) {
         // A surface that carries baked light (a lightmap or static vertex
         // radiance) was part of the bake its own emission lit.
         const bool baked=(material.texture[3]&baked_emission_flag) && std::bit_cast<std::uint32_t>(triangle.color_guide[3])!=0;
-        scene.pixels.push_back(n|(baked?emitter_baked_bit:0u));++scene.emissive_count;
         const Vec2 centre{(triangle.uv01[0]+triangle.uv01[2]+triangle.uv2[0])/3.f,
                           (triangle.uv01[1]+triangle.uv01[3]+triangle.uv2[1])/3.f};
         const auto colour=material_emission(scene,triangle.metadata[0],centre);
         const float luminance=.2126f*colour.x+.7152f*colour.y+.0722f*colour.z;
         const float area=triangle_area(triangle);
         const float value=area*std::max(std::isfinite(luminance)?luminance:0.f,1.e-3f);
-        power.push_back(std::isfinite(value) && value>0?value:1.e-12f);
+        emitters[baked].push_back({n|(baked?emitter_baked_bit:0u),std::isfinite(value) && value>0?value:1.e-12f});
     }
+    // A receiver with baked lighting can sample the unbaked prefix of the
+    // same cumulative distribution without spending rays on baked emitters.
+    const auto unbaked=std::uint32_t(emitters[0].size());
+    scene.emissive_count=unbaked+std::uint32_t(emitters[1].size());
+    for(const auto& bank:emitters)for(const auto& emitter:bank)scene.pixels.push_back(emitter.entry);
     float running=0;
-    for(const auto value:power) {running+=value;scene.pixels.push_back(std::bit_cast<std::uint32_t>(running));}
-    append_emitter_groups(scene);
+    for(const auto& bank:emitters)for(const auto& emitter:bank) {
+        running+=emitter.power;scene.pixels.push_back(std::bit_cast<std::uint32_t>(running));
+    }
+    append_emitter_groups(scene,unbaked);
 }
 bool alpha_pass(const Scene &scene,const GpuTriangle &triangle,float u,float v) {
     const auto &m=scene.materials[triangle.metadata[0]];
@@ -563,19 +605,33 @@ const Material* reflection_pass(const Material &material) {
     };
     find_environment(material.world_overlays_before);find_environment(material.world_overlays_after);
     if(!environment)environment=pstencil::combined_visor_environment(material);
-    if(!environment && pstencil::supports_combined_environment_strength(material))environment=&material;
+    const auto find_combined=[&](const Material* pass) {
+        if(!environment && pass && pstencil::supports_combined_environment_program(*pass))environment=pass;
+    };
+    find_combined(&material);find_combined(material.environment_pass.get());
+    for(const auto& pass:material.world_overlays_before)find_combined(pass.get());
+    for(const auto& pass:material.world_overlays_after)find_combined(pass.get());
+    if(!environment)environment=chamber_reflection_pass(material);
     return environment;
 }
 GpuMaterial material_response(const Material &material) {
     GpuMaterial result;
     const Material *environment=reflection_pass(material);
+    const bool chamber=environment && chamber_reflection_pass(material)==environment;
     // Halo's legacy response has no physical roughness. This optional policy
     // deliberately broadens weak reflections instead of making every surface
     // metallic. Authored facing/glancing strengths remain independently bounded.
     float facing=0,glancing=0;
     // Path Tracing follows the current Original material. The May2003 lookup
     // belongs to pStencil presentation and must not override retail colors.
-    if(environment && environment->forward_vertex==6) {
+    if(chamber) {
+        const auto parameters=chamber_reflection_parameters(environment->forward_program.words);
+        facing=parameters.facing[3];glancing=parameters.glancing[3];
+        for(unsigned n=0;n<3;++n) {
+            result.base[n]=parameters.facing[n];result.glancing_tint[n]=parameters.glancing[n];
+        }
+        result.glancing_tint[3]=parameters.baked_weight;
+    }else if(environment && environment->forward_vertex==6) {
         const auto& words=environment->forward_program.words;
         facing=float(words[17]>>24)/255.f;glancing=float(words[25]>>24)/255.f;
         const auto facing_color=surface_detail::argb(words[15]),glancing_color=surface_detail::argb(words[23]);
@@ -603,20 +659,40 @@ GpuMaterial material_response(const Material &material) {
     } else if(!traces_material(material))flags|=16u;
     if(material.forward_vertex==2)flags|=32u; // Primary root emits; child passes retain their source draw.
     if(qualified_unlit_white_tint(material) || (material.forward_vertex==2 && supports_emission(material)))flags|=128u;
-    if(source_ambient_owner(material))flags|=source_ambient_flag;
-    if(environment && environment->forward_vertex==4 && environment->forward_blend==8)
-        if(const auto source=qualified_surface(material);source &&
-           ((unsigned(source->family)>=8u && unsigned(source->family)<=10u) ||
-            source->family==SurfaceFamily::DynamicDetail))
-            // These complete native programs preserve the destination alpha
-            // consumed by the separate environment pass, including animated
-            // C24.a for dynamic detail. Other families do not claim that mask.
-            flags|=2048u;
+    if(const auto* ambient=source_ambient_owner(material)) {
+        flags|=source_ambient_flag;
+        if(source_ambient_color_word(*ambient)==16u)flags|=source_flat_ambient_flag;
+    }
+    if(chamber)flags|=chamber_baked_reflection_flag;
+    const auto surface=qualified_surface(material);
+    if(!(flags&(16u|32u)))
+        apply_surface_material_response(material,surface?surface->family:SurfaceFamily{},result.detail,result.response);
+    if(chamber || (environment && environment->forward_vertex==4 && environment->forward_blend==8 && surface &&
+       ((unsigned(surface->family)>=8u && unsigned(surface->family)<=10u) ||
+        surface->family==SurfaceFamily::DynamicDetail || surface->family==SurfaceFamily::TextureHonorGuard)))
+        // These complete native programs preserve the destination alpha
+        // consumed by the environment pass, including C24.a for dynamic
+        // detail and T0.a in the chamber's combined environment program.
+        flags|=2048u;
     // The environment pass blends its cube map in proportion to the
     // destination alpha the texture pass left: the base map's alpha, its
     // specular mask, unless alpha is the surface's coverage.
     if(environment && environment->forward_blend==8 && !(flags&2048u) && !material.forward_raster.alpha_test)
         flags|=environment_mask_flag;
+    if(!(flags&(16u|32u)) && environment && heretic_nearby_reflector(material)) {
+        const bool tangent=(flags&(2048u|environment_mask_flag)) && environment->forward_vertex==4 &&
+            environment->forward_pass_index<environment->passes.size() &&
+            environment->passes[environment->forward_pass_index].name==
+                "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space";
+        const bool combined=material.source_surface_material==SourceSurfaceMaterial::Polished?
+            pstencil::supports_combined_environment_program(*environment):
+            pstencil::supports_combined_visor_environment(*environment);
+        if(tangent || combined) {
+            flags|=nearby_scene_reflection_flag;
+            if(combined && material.source_surface_material==SourceSurfaceMaterial::Lens)
+                flags|=visor_scene_reflection_flag;
+        }
+    }
     flags|=(material.forward_raster.alpha_function&7u)<<8;
     // Authored surface detail for the full-resolution resolve (world.frag):
     // the static lightmap pass binds diffuse/detail/bump at stages 0/1/2
@@ -631,7 +707,7 @@ GpuMaterial material_response(const Material &material) {
             if(real(material.bump))flags|=surface_bump_stage2_flag;
         } else if(leaf=="lightmap_tex" && real(material.detail))flags|=surface_bump_stage1_flag;
     }
-    if(material.forward_pass && material.forward_vertex==3 && !qualified_surface(material))flags|=surface_forward_combiner_flag;
+    if(material.forward_pass && material.forward_vertex==3 && !surface)flags|=surface_forward_combiner_flag;
     result.texture[3]=flags;
     result.transform=material.texture_transforms[0];
     // These complete native vertex identities use c18 for base UVs even
@@ -642,7 +718,14 @@ GpuMaterial material_response(const Material &material) {
         for(unsigned n=0;n<3;++n)result.emission[n]+=positive(pass.forward_diffuse[n]);
     };
     emission(material);for(const auto &pass:material.world_overlays_after)if(pass)emission(*pass);
-    result.color_guide=color_guide_material(material);
+    if(surface && surface->default_object_ambient)
+        result.color_guide={source_default_ambient_kind,0u,
+            source_default_ambient_rgb(material.forward_program.words,surface->family),0u};
+    else if(const auto fixed=surface?source_fixed_accumulated_ambient(material,surface->family):std::nullopt) {
+        result.color_guide={source_default_ambient_kind,0u,*fixed,0u};
+        result.texture[3]|=source_flat_ambient_flag;
+    }else if(chamber && environment->per_vertex_lighting)result.color_guide={2,0,0,0};
+    else result.color_guide=color_guide_material(material);
     if(glow_material(material)) {
         // Until its images are read (refresh_materials_impl replaces this
         // with the layer's average drawn colour), a glow emits its tint.
@@ -652,40 +735,31 @@ GpuMaterial material_response(const Material &material) {
     }
     return result;
 }
-// Halo 2's lighting passes also bind normalization cube maps: each texel
-// encodes its own direction (dir * .5 + .5), for per-pixel vector math. They
-// are not pictures of an environment. Each face of one averages to its axis.
-static bool normalization_cube(const Texture& cube) {
-    Scene image;
-    const auto record=append_environment_map(image,cube);
-    if(record==no_environment_map)return false;
-    const auto size=image.pixels[record];
-    const std::array<std::array<float,3>,6> axes{{{1,.5f,.5f},{0,.5f,.5f},{.5f,1,.5f},{.5f,0,.5f},{.5f,.5f,1},{.5f,.5f,0}}};
-    for(unsigned face=0;face<6;++face) {
-        double sum[3]{};
-        for(std::size_t texel=0;texel<std::size_t(size)*size;++texel) {
-            const auto word=image.pixels[record+1+face*size*size+texel];
-            for(unsigned c=0;c<3;++c)sum[c]+=double((word>>(8*c))&255u)/255.0;
-        }
-        const double count=double(size)*size;
-        for(unsigned c=0;c<3;++c)if(std::abs(sum[c]/count-axes[face][c])>.2)return false;
-    }
-    return true;
-}
 std::vector<const Texture*> find_environment_maps(std::span<const Material> materials) {
     std::vector<const Texture*> result(materials.size());
-    std::unordered_map<const Texture*,bool> pictures;
     for(std::size_t n=0;n<materials.size();++n) {
         if(!traces_material(materials[n]))continue;
         const auto* pass=reflection_pass(materials[n]);
-        if(!pass)continue;
-        for(unsigned stage=0;stage<4 && !result[n];++stage) {
-            const auto& image=emission_texture(*pass,stage);
-            if(image.layers!=6 || image.depth || image.width<4 || image.width!=image.height || image.pixels.empty())continue;
-            auto found=pictures.find(&image);
-            if(found==pictures.end())found=pictures.emplace(&image,!normalization_cube(image)).first;
-            if(found->second)result[n]=&image;
+        if(!pass || pass->forward_pass_index>=pass->passes.size())continue;
+        const auto& bindings=pass->passes[pass->forward_pass_index].textures;
+        const Texture* reflection=nullptr;
+        for(const auto& binding:bindings) {
+            if(binding.stage>=4 || binding.external || binding.parameter==255)continue;
+            // NV2A mode 12 samples the reflected direction at stage 3.
+            // Fast and combined passes supply their direction in mode 3.
+            // The normalization cube is an external binding, including
+            // stage 3 of the combined visor pass, and never supplies shine.
+            const auto mode=(pass->forward_program.words[54]>>(5u*binding.stage))&31u;
+            if(mode!=3u && (mode!=12u || binding.stage!=3u))continue;
+            const auto& image=emission_texture(*pass,binding.stage);
+            if(!environment_map_faces(image))continue;
+            if(reflection && reflection!=&image) {
+                reflection=nullptr;
+                break;
+            }
+            reflection=&image;
         }
+        result[n]=reflection;
     }
     return result;
 }
@@ -711,8 +785,14 @@ std::vector<const Texture*> find_normal_maps(std::span<const Material> materials
     std::vector<const Texture*> result(materials.size());
     for(std::size_t n=0;n<materials.size();++n) {
         const auto& material=materials[n];
+        if(!traces_material(material))continue;
+        if(const auto* chamber=chamber_reflection_pass(material)) {
+            const auto& bump=emission_texture(*chamber,2);
+            if(normal_map(bump))result[n]=&bump;
+            continue;
+        }
         // Static lightmap passes already bind their own bump (source_detail.glsl).
-        if(material.static_lightmap_pass || !traces_material(material))continue;
+        if(material.static_lightmap_pass)continue;
         if(const auto found=by_shader.find(material.source_shader_datum);found!=by_shader.end())result[n]=found->second;
     }
     return result;
@@ -724,11 +804,16 @@ GpuSceneUniform Scene::uniform(Vec3 environment) const {
         {environment.x,environment.y,environment.z,std::bit_cast<float>(texture_texel_count)},{1,1,0,1}};
 }
 bool glow_material(const Material &material) {
-    // Additive blending (ONE/ONE or SRC_ALPHA/ONE) only adds light to the
-    // frame: the surface is a pure emitter. Premultiplied self-illuminated
-    // transparents (one_alpha_env_illum: Coagulation's light bands, floor
-    // arrows) are glowing panels too. UI, HUD, water and the other special
-    // passes are never scene emitters.
+    // This stand-alone additive layer draws the volume of the Council's
+    // light beams. The triangles represent scattered light along the beam.
+    // Treating their entire area as an emitter lights the chamber twice.
+    if(material.name=="scenarios\\shaders\\solo\\highcharity\\long_volume" && material.forward_blend==3 &&
+       material.template_name=="shaders\\shader_templates\\transparent\\one_add_illum_detail" &&
+       material.forward_pass_index<material.passes.size() &&
+       material.passes[material.forward_pass_index].name=="shaders\\shader_passes\\transparent\\one_add_illum_detail")
+        return false;
+    // Additive and self-illuminated panels can be sources beyond the light
+    // mapped field. UI, water and the other presentation passes stay raster.
     const bool additive=material.forward_blend==3 || material.forward_blend==18;
     const bool illuminated=material.forward_blend==2 && material.template_name.find("illum")!=std::string::npos;
     return material.forward_pass && (additive || illuminated) &&
@@ -747,6 +832,103 @@ bool traces_material(const Material &material) {
         material.forward_blend==0 && material.forward_vertex!=4 && material.forward_vertex!=5 &&
         material.forward_vertex!=7 && material.forward_vertex!=8 && material.forward_vertex!=10 &&
         material.forward_vertex!=11;
+}
+namespace material_atlas {
+void relocate(GpuMaterial& material,std::uint32_t destination) {
+    const auto previous=material.texture[0];
+    material.texture[0]=destination;
+    const auto rebase=[&](std::uint32_t offset){return destination+(offset-previous);};
+    if(const auto pointer=std::bit_cast<std::uint32_t>(material.emission[3]))
+        material.emission[3]=std::bit_cast<float>(rebase(pointer));
+    if(material.texture[3]&surface_flag)
+        material.base[3]=std::bit_cast<float>(rebase(std::bit_cast<std::uint32_t>(material.base[3])));
+    if(material.detail[0])material.detail[0]=rebase(material.detail[0]);
+}
+bool compact(Scene& scene,std::size_t required_words,std::uint32_t replaced,
+             std::span<const ImageKey> live_images,const ImageKey* pending_cube) {
+    enum class Kind {Root,Image,Cube};
+    struct Allocation {std::uint32_t start,size;std::size_t slot;Kind kind;};
+    std::vector<Allocation> keep;
+    std::unordered_set<std::uint32_t> live_cubes;
+    const auto placeholder=scene.material_alias_prefix_words;
+    const auto live_root=[&](std::size_t slot) {
+        return slot!=replaced && (scene.live_material_roots.empty() || scene.live_material_roots[slot]);
+    };
+    for(std::size_t slot=0;slot<scene.materials.size();++slot) {
+        const auto size=scene.material_texel_capacities[slot];
+        if(!size || !live_root(slot))continue;
+        const auto& material=scene.materials[slot];
+        keep.push_back({material.texture[0],size,slot,Kind::Root});
+        if(material.detail[1])live_cubes.insert(material.detail[1]);
+    }
+    for(std::size_t slot=0;slot<scene.material_alias_images.size();++slot) {
+        const auto& image=scene.material_alias_images[slot];
+        if(std::ranges::binary_search(live_images,image.key))
+            keep.push_back({image.image[0],image.image[1]*image.image[2],slot,Kind::Image});
+    }
+    for(std::size_t slot=0;slot<scene.material_environment_images.size();++slot) {
+        const auto& cube=scene.material_environment_images[slot];
+        if((pending_cube && cube.key==*pending_cube) || live_cubes.contains(cube.offset))
+            keep.push_back({cube.offset,cube.words,slot,Kind::Cube});
+    }
+    std::ranges::sort(keep,{},&Allocation::start);
+    auto previous_end=placeholder+1u;
+    std::size_t words=previous_end;
+    // A genuinely over-budget live set leaves the old allocation bank intact
+    // so a caller can retry another frame without stale or displaced records.
+    for(const auto& allocation:keep) {
+        if(allocation.start<previous_end || allocation.start>scene.texture_texel_count ||
+           allocation.size>scene.texture_texel_count-allocation.start)
+            throw FormatError("Path Tracing atlas compaction lost a live allocation");
+        previous_end=allocation.start+allocation.size;
+        words+=allocation.size;
+    }
+    if(required_words>maximum_words || words>maximum_words-required_words)return false;
+
+    using Relocation=std::pair<std::uint32_t,std::uint32_t>;
+    std::vector<Relocation> cube_moves;
+    std::vector<MaterialAliasImage> images;
+    std::vector<MaterialEnvironmentImage> cubes;
+    cube_moves.reserve(scene.material_environment_images.size());
+    images.reserve(scene.material_alias_images.size());
+    cubes.reserve(scene.material_environment_images.size());
+    auto destination=placeholder+1u;
+    for(const auto& allocation:keep) {
+        if(allocation.start!=destination)
+            std::memmove(scene.pixels.data()+destination,scene.pixels.data()+allocation.start,
+                std::size_t(allocation.size)*sizeof(std::uint32_t));
+        switch(allocation.kind) {
+        case Kind::Root:
+            relocate(scene.materials[allocation.slot],destination);
+            break;
+        case Kind::Image:
+            images.push_back(scene.material_alias_images[allocation.slot]);images.back().image[0]=destination;
+            break;
+        case Kind::Cube:
+            cubes.push_back(scene.material_environment_images[allocation.slot]);cubes.back().offset=destination;
+            if(allocation.start!=destination)cube_moves.emplace_back(allocation.start,destination);
+            break;
+        }
+        destination+=allocation.size;
+    }
+    for(std::size_t slot=0;slot<scene.materials.size();++slot) {
+        auto& material=scene.materials[slot];
+        if(!live_root(slot) && scene.material_texel_capacities[slot]) {
+            const auto flags=material.texture[3]&16u;
+            scene.material_texel_capacities[slot]=0;scene.material_image_keys[slot]={};scene.material_glow[slot]={};
+            scene.material_layer_programs[slot]=no_layer_programs;
+            material={};material.texture={placeholder,1u,1u,flags};
+        } else if(material.detail[1]) {
+            const auto move=std::ranges::lower_bound(cube_moves,material.detail[1],{},&Relocation::first);
+            if(move!=cube_moves.end() && move->first==material.detail[1])material.detail[1]=move->second;
+        }
+    }
+    scene.material_alias_images=std::move(images);
+    scene.material_environment_images=std::move(cubes);
+    scene.texture_texel_count=destination;
+    scene.pixels.resize(destination);
+    return true;
+}
 }
 Scene build_scene(std::span<const Vertex> vertices,std::span<const Material> materials,std::span<const Light> lights) {
     if(vertices.size()%3 || vertices.size()/3>maximum_triangles || materials.size()>maximum_materials || lights.size()>65536)
@@ -770,54 +952,73 @@ void refresh_materials_impl(Scene &scene,std::span<const Material> materials,std
        materials.size()!=scene.material_texel_capacities.size() || (!active.empty() && active.size()!=materials.size()))
         throw FormatError("Path Tracing material refresh changed its resident slot owner");
     scene.pixels.resize(scene.texture_texel_count);
-    scene.material_records_ready.resize(materials.size());
     scene.material_glow.resize(materials.size());
     scene.material_layer_programs.resize(materials.size(),no_layer_programs);
     for(std::size_t n=0;n<materials.size();++n) {
-        // An unreferenced, non-resident record is only read once it becomes
-        // active, when it is refreshed again. Skip the per-frame qualification.
-        if(!active.empty() && !active[n] && scene.material_texel_capacities[n]==0 && scene.material_records_ready[n])continue;
-        scene.material_records_ready[n]=1;
+        // Refresh unreferenced materials when they return to the ray scene.
+        if(!active.empty() && !active[n])continue;
         auto response=material_response(materials[n]);
         const auto authored_flags=response.texture[3];
+        response.texture[3]|=scene.materials[n].texture[3]&environment_mip_flag;
         if(scene.materials[n].texture[3]&surface_flag) {
             response.texture[3]=(response.texture[3]&~8u)|surface_flag|(scene.materials[n].texture[3]&8u);
             response.base[3]=scene.materials[n].base[3];
         }
         const bool glow=glow_material(materials[n]);
         const auto previous=scene.materials[n].texture;
-        response.emission[3]=scene.materials[n].emission[3];response.detail=scene.materials[n].detail;
+        response.emission[3]=scene.materials[n].emission[3];
+        response.detail[0]=scene.materials[n].detail[0];response.detail[1]=scene.materials[n].detail[1];
         response.texture[0]=previous[0];response.texture[1]=previous[1];response.texture[2]=previous[2];
         const bool resident=scene.material_texel_capacities[n]!=0;
         const bool requested=!active.empty() && active[n] && ray_material(materials[n]);
         if(!resident && !requested) {scene.materials[n]=response;continue;}
         const auto key=material_image_key(materials[n]);
         if(!resident || key!=scene.material_image_keys[n]) {
-            Scene image;response.emission[3]=0;response.base[3]=1.f;response.texture[3]=authored_flags;response.detail={};
+            Scene image;response.emission[3]=0;response.base[3]=1.f;response.texture[3]=authored_flags;
+            response.detail[0]=response.detail[1]=0;
             append_texture(image,response,ray_material(materials[n])?current_base_texture(materials[n]):Texture{});
             append_emission(image,response,materials[n]);
             append_surface(image,response,materials[n]);
-            scene.material_layer_programs[n]=append_layer_programs(image,materials[n]);
+            const auto layer_programs=append_layer_programs(image,materials[n]);
             const auto* normal_map=n<scene.material_normal_maps.size()?scene.material_normal_maps[n]:nullptr;
             const auto normal_record=normal_map?append_normal_map(image,*normal_map):no_normal_map;
             const auto* environment_map=n<scene.material_environment_maps.size()?scene.material_environment_maps[n]:nullptr;
-            const auto environment_record=environment_map?append_environment_map(image,*environment_map):no_environment_map;
+            const auto cube_key=environment_map?environment_image_key(*environment_map):material_atlas::ImageKey{};
+            const auto find_cube=[&] {return std::ranges::find(scene.material_environment_images,cube_key,&MaterialEnvironmentImage::key);};
+            Scene cube_image;
+            if(environment_map && find_cube()==scene.material_environment_images.end())
+                append_environment_map(cube_image,*environment_map,response);
+            const bool grow=image.pixels.size()>scene.material_texel_capacities[n];
+            const auto required=(grow?image.pixels.size():0)+cube_image.pixels.size();
+            if(required>maximum_texels)throw FormatError("Path Tracing material exceeds finite atlas storage");
+            if(scene.texture_texel_count>maximum_texels-required &&
+               !material_atlas::compact(scene,required,grow?std::uint32_t(n):~0u,{},environment_map?&cube_key:nullptr))
+                throw FormatError("Path Tracing live materials exceed finite atlas storage");
             const auto count=std::uint32_t(image.pixels.size());
-            std::uint32_t offset=previous[0];
-            if(count>scene.material_texel_capacities[n]) {
-                if(count>maximum_texels || scene.texture_texel_count>maximum_texels-count)
-                    throw FormatError("Path Tracing animated material exceeds finite atlas storage");
+            std::uint32_t offset=scene.materials[n].texture[0];
+            if(grow) {
                 offset=scene.texture_texel_count;scene.texture_texel_count+=count;
                 scene.pixels.resize(scene.texture_texel_count);scene.material_texel_capacities[n]=count;
             }
             std::copy(image.pixels.begin(),image.pixels.end(),scene.pixels.begin()+offset);
+            scene.material_layer_programs[n]=layer_programs;
             if(const auto pointer=std::bit_cast<std::uint32_t>(response.emission[3]))
                 response.emission[3]=std::bit_cast<float>(offset+pointer);
             if(response.texture[3]&surface_flag)
                 response.base[3]=std::bit_cast<float>(offset+std::bit_cast<std::uint32_t>(response.base[3]));
             response.texture[0]=offset;scene.material_image_keys[n]=key;
             if(normal_record!=no_normal_map)response.detail[0]=offset+normal_record;
-            if(environment_record!=no_environment_map)response.detail[1]=offset+environment_record;
+            if(!cube_image.pixels.empty()) {
+                const auto start=scene.texture_texel_count;
+                const auto size=std::uint32_t(cube_image.pixels.size());
+                scene.pixels.insert(scene.pixels.end(),cube_image.pixels.begin(),cube_image.pixels.end());
+                scene.material_environment_images.push_back({cube_key,start,size,response.texture[3]&environment_mip_flag});
+                scene.texture_texel_count+=size;
+            }
+            if(environment_map)if(const auto cube=find_cube();cube!=scene.material_environment_images.end()) {
+                response.detail[1]=cube->offset;
+                response.texture[3]|=cube->flags;
+            }
             if(glow) {
                 const auto color=average_glow_color(materials[n]);
                 scene.material_glow[n]=color?ShaderVector{color->x,color->y,color->z,1.f}:ShaderVector{};
@@ -853,11 +1054,13 @@ void refresh_materials_impl(Scene &scene,std::span<const Material> materials,std
 }
 }
 void refresh_materials(Scene &scene,std::span<const Material> materials) {
+    scene.live_material_roots.clear();
     refresh_materials_impl(scene,materials,{});
 }
 void refresh_materials_for_geometry(Scene &scene,std::span<const Material> materials,std::span<const Vertex> vertices) {
     if(vertices.size()%3)throw FormatError("Path Tracing material residency requires complete source triangles");
-    std::vector<std::uint8_t> active(materials.size());
+    auto& active=scene.live_material_roots;
+    active.assign(materials.size(),0);
     for(std::size_t first=0;first<vertices.size();first+=3) {
         for(unsigned n=0;n<3;++n)if(vertices[first+n].material>=materials.size())
             throw FormatError("Path Tracing material residency escaped its source slot bank");
@@ -1027,7 +1230,9 @@ std::optional<ShaderVector> material_surface(const Scene& scene,std::uint32_t ma
         const auto fetch=[&](int x,int y) {
             x=address(x,width,sampler&15u);y=address(y,height,(sampler>>4)&15u);
             if(x<0 || y<0)return surface_detail::argb(word(at+8));
-            return rgba(word(std::size_t(record)+word(at)+unsigned(y)*std::size_t(width)+unsigned(x)));
+            // Relative offsets can address the base image before this header.
+            const std::uint32_t image=record+word(at);
+            return rgba(word(std::size_t(image)+unsigned(y)*std::size_t(width)+unsigned(x)));
         };
         if(((sampler>>8)&255u)==1)samples[stage]=fetch(int(std::floor(u*width)),int(std::floor(v*height)));
         else {

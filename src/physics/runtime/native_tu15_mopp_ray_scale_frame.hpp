@@ -95,8 +95,7 @@ public:
             g[1]=d.opcode;g[2]=native_mopp_aabb_abi_detail::shifted(s_,g[2],g[1]);
         }
         const auto[pc,offset]=destination(kind);at(pc);
-        const auto pending=scope_.stage_single(pop);
-        Base::store(pc,g[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);
+        Base::spill_single(pc,g[4]+offset,pop,scope_);
     }
     void store_vector(Write kind,Vec value,const Progress&){
         auto&g=s_.gp;std::uint32_t pc{},address{};

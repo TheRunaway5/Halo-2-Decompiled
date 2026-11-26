@@ -27,27 +27,40 @@ protected:
     }
     Vector vector(std::uint32_t pc,std::uint32_t address){
         at(pc);
-        // These authenticated source loads are MOVAPS, not unaligned loads.
-        // Preserve their fault boundary before asking the DATA provider.
-        if(address&15u){
-            const auto flags=s_.other_flags|s_.flags.bits();
-            // Intel SDM vol.3B, RF flag: a fault-class saved EFLAGS image has
-            // RF set. Keep that exception image distinct from execution state.
-            throw AlignedLoadFault{pc,address,flags,flags|0x10000u};
+        std::array<std::byte,16>bytes{};
+        if constexpr (hosted_memory<Before>) {
+            if (!native_raw_x87_detail::direct_read(s_.memory, address, bytes))
+                io([&]{ s_.memory.read_vector(address, bytes); });
+        } else {
+            // Physical MOVAPS faults before asking the provider and sets RF in
+            // the exception image without changing the execution flags.
+            if(address&15u){
+                const auto flags=s_.other_flags|s_.flags.bits();
+                throw AlignedLoadFault{pc,address,flags,flags|0x10000u};
+            }
+            io([&]{s_.memory.read_vector(address,bytes);});
         }
-        std::array<std::byte,16>bytes{};io([&]{s_.memory.read_vector(address,bytes);});
         Vector value;std::memcpy(&value,bytes.data(),16);return value;
     }
     void vector_store(std::uint32_t pc,std::uint32_t address,Vector value){
         at(pc);
-        if(address&15u){
-            const auto flags=s_.other_flags|s_.flags.bits();
-            throw AlignedLoadFault{pc,address,flags,flags|0x10000u};
+        std::array<std::byte,16>bytes{};std::memcpy(bytes.data(),&value,16);
+        if constexpr (hosted_memory<Before>) {
+            // Each half retires independently. A failed first half prevents
+            // any access to the second, including its observer preimage.
+            const std::span<const std::byte, 16> words{bytes};
+            Base::hosted_store(pc, address, words.first<8>(), []{});
+            Base::hosted_store(pc, address + 8u, words.last<8>(), []{});
+        } else {
+            if(address&15u){
+                const auto flags=s_.other_flags|s_.flags.bits();
+                throw AlignedLoadFault{pc,address,flags,flags|0x10000u};
+            }
+            SourcePhysicsContactRecordStore event{pc,address,{},{}};
+            if(s_.observe){event.before.resize(16);io([&]{s_.memory.read(address,event.before);});}
+            io([&]{s_.memory.write(address,bytes);});
+            if(s_.observe){event.written.assign(bytes.begin(),bytes.end());io([&]{s_.observe(event);});}
         }
-        SourcePhysicsContactRecordStore event{pc,address,{},{}};
-        if(s_.observe){event.before.resize(16);io([&]{s_.memory.read(address,event.before);});}
-        std::array<std::byte,16>bytes{};std::memcpy(bytes.data(),&value,16);io([&]{s_.memory.write(address,bytes);});
-        if(s_.observe){event.written.assign(bytes.begin(),bytes.end());io([&]{s_.observe(event);});}
     }
     void copy_variables(std::uint32_t vector_read,std::uint32_t vector_write,
                         std::span<const std::uint32_t>reads,std::span<const std::uint32_t>writes,
@@ -106,8 +119,15 @@ public:
     void store_key_base(const Progress&d,std::uint32_t value){
         const auto pc=d.count==1u?0x30b46bu:d.count==2u?0x30b4b4u:0x30b50fu;
         if(d.count==4u){store(pc,s_.gp[4]+0x58u,value,[]{});return;}
-        auto committed_flags=s_.flags;committed_flags.plus(d.base,d.encoded,4);
-        store(pc,s_.gp[4]+0x58u,value,[&]{s_.flags=committed_flags;},true);
+        if constexpr (hosted_memory<Before>) {
+            // Retained ADD computes flags after the operand read and before
+            // invoking the store, including its observer preimage read.
+            s_.flags.plus(d.base,d.encoded,4);
+            store(pc,s_.gp[4]+0x58u,value,[]{},true);
+        } else {
+            auto committed_flags=s_.flags;committed_flags.plus(d.base,d.encoded,4);
+            store(pc,s_.gp[4]+0x58u,value,[&]{s_.flags=committed_flags;},true);
+        }
     }
     void store_property(const Progress&d,unsigned slot,std::uint32_t value){
         const auto pc=d.count==1u?0x30b522u:d.count==2u?0x30b538u:0x30b563u;

@@ -67,8 +67,8 @@ public:
         Base::store(pc,s_.gp[4]+offset,value,[]{});
     }
     void spill(Store,const Progress&d){
-        const auto pc=d.increasing?0x30af59u:0x30b0aeu;at(pc);const auto pending=scope_.stage_single(true);
-        Base::store(pc,s_.gp[4]+(d.increasing?0x14u:0x30u),pending.bits,[&]{scope_.commit(pending);},true);
+        const auto pc=d.increasing?0x30af59u:0x30b0aeu;at(pc);
+        Base::spill_single(pc,s_.gp[4]+(d.increasing?0x14u:0x30u),true,scope_);
     }
     void store_vector(Store kind,Vec value,const Progress&d){
         const bool inc=d.increasing;std::uint32_t pc{};

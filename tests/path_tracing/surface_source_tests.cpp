@@ -221,9 +221,24 @@ int main(int argc,char** argv)try {
     std::array<std::optional<Material>,2> bump;
     for(unsigned n=1;n<3;++n) {
         Cache cache(argv[n]);auto mesh=cache.load_bsp(0);nlohmann::json rows=nlohmann::json::array();
+        unsigned terrain_profiles{};
         const auto add=[&](Material material,const std::string& owner,unsigned slot) {
             const auto source=pt::qualified_surface(material);
             const auto* pass=material.forward_pass && material.forward_pass_index<material.passes.size()?&material.passes[material.forward_pass_index]:nullptr;
+            if(owner=="bsp") {
+                using Class=SourceSurfaceMaterial;
+                const auto leaf=std::string_view(material.name).substr(material.name.find_last_of('\\')+1);
+                if(leaf=="coag_ground" || leaf=="coag_ground_water") {
+                    const bool wet=leaf=="coag_ground_water";
+                    const auto response=pt::material_response(material);
+                    require(source && source->family==pt::SurfaceFamily::TerrainBlend &&
+                        material.source_surface_material==(wet?Class::Water:Class::Soil) &&
+                        material.source_terrain_materials==std::array{Class::Grass,wet?Class::Sand:Class::Soil} &&
+                        response.detail[2]==(wet?0xc9c9ffedu:0xdedeffedu) && response.response[0]==(wet?.89f:.84f),
+                        "Actual Coagulation terrain lost its authored T1/T2 responses: "+material.name);
+                    terrain_profiles|=wet?2u:1u;
+                }
+            }
             rows.push_back({{"owner",owner},{"slot",slot},{"name",material.name},{"family",source?unsigned(source->family):0},
                 {"pass",pass?pass->name:""},{"vertex",pass?pass->vertex_shader:""},{"per_vertex",material.per_vertex_lighting},
                 {"shader_lod",material.selected_shader_lod},
@@ -234,6 +249,7 @@ int main(int argc,char** argv)try {
             verify(std::move(material),random);
         };
         for(unsigned slot=0;slot<mesh.materials.size();++slot)add(mesh.materials[slot],"bsp",slot);
+        require(terrain_profiles==3u,"Actual Coagulation source missed a terrain response fixture");
         for(const auto& tag:cache.tags())if(tag.group=="shad" &&
             (tag.name.find("tree")!=std::string::npos || tag.name.find("pine")!=std::string::npos))
             {

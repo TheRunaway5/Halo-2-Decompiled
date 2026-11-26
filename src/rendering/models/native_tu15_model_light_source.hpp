@@ -130,20 +130,23 @@ struct ColorChannel {
     std::uint32_t value,next_component,first_component,saved_bx,count,index;
     bool accepted,negative;
 };
+
+inline std::uint32_t color_channel_half_count(std::uint32_t byte_extent) {
+    return static_cast<std::uint32_t>((std::uint64_t(0xaaaaaaabu) * byte_extent) >> 35u);
+}
+
 // CompleteBCD80 secondary RGB-row selection. The authored signed16 byte count
 // retains the original unsigned reciprocal quotient, including negative raw
 // header words. Successful copies interleave reads/stores for overlapping views.
 inline ColorChannel color_channel(SourcePhysicsContactMemory& memory,std::uint32_t handle,
     std::uint32_t output,std::uint32_t index,std::uint32_t stack,std::uint32_t saved_bx,
     const SourcePhysicsContactRecordObserver& observe) {
-    const auto signed_half=[](std::uint32_t word){return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(word))));};
     const auto pool=read(memory,0x4ecbd0u);const auto rows=read(memory,pool+0x44u);
     const auto object=read(memory,rows+(handle&65535u)*12u+8u);
-    const auto displacement=signed_half(read(memory,object+0x126u,2));
-    const auto bytes=signed_half(read(memory,object+0x124u,2));
+    const auto displacement=signed_word(memory,object+0x126u);
+    const auto bytes=signed_word(memory,object+0x124u);
     const auto source=object+displacement;
-    const auto high=std::uint32_t((std::uint64_t(0xaaaaaaabu)*bytes)>>32u);
-    const auto count=(high>>3u)>>1u;
+    const auto count=color_channel_half_count(bytes)>>1u;
     store(memory,stack-4u,saved_bx,4,0xbcdb4u,observe);
     const bool negative=std::bit_cast<std::int32_t>(index)<0;
     const bool accepted=!negative&&std::bit_cast<std::int32_t>(index)<std::bit_cast<std::int32_t>(count);
@@ -157,14 +160,54 @@ inline ColorChannel color_channel(SourcePhysicsContactMemory& memory,std::uint32
     }
     result.saved_bx=read(memory,stack-4u);return result;
 }
+
+// The draw provider can stop at any load or store. Update the live ABI before
+// each access and keep the real saved EBX slot available to aliased RGB rows.
+template<class State> void color_channel_with_live_frame(State& state) {
+    auto& gp=state.gp;
+    auto& flags=state.flags;
+    auto& memory=state.memory;
+    gp[1]=read(memory,0x4ecbd0u);
+    gp[2]=read(memory,gp[1]+0x44u);
+    gp[0]=flags.logic(gp[0]&65535u,4)*3u;
+    gp[0]=read(memory,gp[2]+gp[0]*4u+8u);
+    gp[1]=signed_word(memory,gp[0]+0x126u);
+    gp[2]=signed_word(memory,gp[0]+0x124u);
+    gp[1]=flags.plus(gp[1],gp[0],4);
+    // The high product shifted by three is nonnegative. CDQ supplies zero
+    // and SUB publishes the flags that are visible at the saved-register push.
+    const auto half_count=color_channel_half_count(gp[2]);
+    gp[2]=0;
+    gp[0]=flags.minus(half_count,gp[2],4);
+    state.push(0xbcdb4u,gp[3]);
+    gp[3]&=0xffffff00u;
+    gp[0]=flags.right(gp[0],1u,4,true);
+
+    flags.logic(gp[7],4);
+    bool found=flags.sf==flags.of;
+    if(found) {
+        flags.minus(gp[7],gp[0],4);
+        found=flags.sf!=flags.of;
+    }
+    if(found) {
+        gp[0]=flags.plus(gp[0],gp[7],4)*3u;
+        gp[1]+=gp[0]*4u;
+        gp[2]=read(memory,gp[1]);
+        store(memory,gp[6],gp[2],4,0xbcdcbu,state.observe);
+        gp[0]=read(memory,gp[1]+4u);
+        store(memory,gp[6]+4u,gp[0],4,0xbcdd0u,state.observe);
+        gp[1]=read(memory,gp[1]+8u);
+        store(memory,gp[6]+8u,gp[1],4,0xbcdd6u,state.observe);
+    }
+    state.set(0,unsigned(found),1,0);
+    gp[3]=state.pop();
+    state.pop();
+}
+
 template<class State>void bridge(State& state,std::uint32_t entry) {
     if(entry==0xbcd80u) {
-        const auto result=color_channel(state.memory,state.gp[0],state.gp[6],state.gp[7],state.gp[4],state.gp[3],state.observe);
-        state.gp[0]=result.value;state.gp[1]=result.next_component;state.gp[2]=result.first_component;state.gp[3]=result.saved_bx;
-        if(result.accepted)state.flags.plus(result.count,result.index,4);
-        else if(result.negative)state.flags.logic(result.index,4);
-        else state.flags.minus(result.index,result.count,4);
-        (void)read(state.memory,state.gp[4]);state.gp[4]+=4u;return;
+        color_channel_with_live_frame(state);
+        return;
     }
     if(entry!=0xbc200u) {
         const auto result=channel(state.memory,state.gp[2],state.gp[0],state.gp[1],entry==0x1d8d80u,state.observe);

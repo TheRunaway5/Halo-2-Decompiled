@@ -55,7 +55,7 @@ def replace_object_parent_mode(source):
 def effect_body(source):return function(source,'marker_parent_mode')
 def replace_effect(source,dispatcher):
     body=effect_body(source);original=canonical_body(body)
-    if digest(original)!=EFFECT_PIN:raise ValueError('Complete Effect FC510 body drift')
+    if not shared.matches_effect_body(original,EFFECT_PIN):raise ValueError('Complete Effect FC510 body drift')
     aliases='using Memory=SourcePhysicsContactMemory;\nusing Abi=SourcePhysicsWorldRuntimeAbi;\nusing Observer=SourcePhysicsContactRecordObserver;\nusing Services=SourcePhysicsWorldRuntimeServices;'
     if dispatcher.count(aliases)!=1 or dispatcher.count('constexpr auto none=0xffffffffu;')!=1:
         raise ValueError('Actual Effect FC510 API aliases/sentinel drift')

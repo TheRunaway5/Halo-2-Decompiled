@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/cache.hpp"
+#include <array>
 
 namespace halo2 {
 // Imported parameters are definitions, not an Xbox DSP program or a working
@@ -65,12 +66,20 @@ public:
         std::vector<ComponentOverride> components;
         std::vector<Function> low_frequency_inputs;
     };
+    // The instance's authored looping-sound components, in source order.
+    // Gain and flags retain the exact words read by TU1.5 224040.
+    struct LoopComponent {
+        Extent raw;
+        TagHandle loop;
+        std::uint32_t gain_bits{},flags{};
+    };
     struct Instance {
         Extent raw;
         TagReference effect_template;
         std::vector<Extent> components,overrides;
         DataReference data;
         std::vector<Override> override_records;
+        std::vector<LoopComponent> loop_components;
     };
     struct Effect {
         Extent raw;
@@ -83,12 +92,38 @@ public:
     struct Collection {TagHandle handle;std::string name;Extent raw;std::vector<Effect> effects;};
     struct Parameters {TagHandle handle;std::string group,name;Extent raw;};
 
+    struct ClassicRadioCompanion {TagHandle loop;std::uint32_t gain_bits{},flags{};};
+    struct ClassicRadioFunction {
+        std::int16_t input{},range_input{};
+        std::uint32_t time_period_bits{};
+        std::array<std::uint32_t,29> curve_words;
+    };
+    struct ClassicRadioMonoOverride {
+        std::uint32_t component_mask{},parameter_mask{};
+        std::array<std::uint32_t,3> constants;
+        std::array<std::uint8_t,4> sources;
+        ClassicRadioFunction function;
+    };
+    struct ClassicRadioEffect {
+        std::uint32_t flags{};
+        std::array<std::uint32_t,18> filter;
+        ClassicRadioCompanion companion;
+        TagHandle mono_template;
+        // A static profile selects an exact compatible instance owned by this
+        // bank. A dynamic profile requires the original function's inputs.
+        const Instance* mono_instance{};
+        const ClassicRadioMonoOverride* mono_override{};
+    };
+
     explicit MccSoundEffectDefinitions(std::shared_ptr<const Cache>);
     std::span<const Collection> collections() const {return collections_;}
     std::span<const EffectTemplate> templates() const {return templates_;}
     std::span<const Parameters> parameters() const {return parameters_;}
     const EffectTemplate& effect_template(TagHandle) const;
     const Collection& collection(TagHandle) const;
+    // Original TU1.5 radio definitions for authenticated resident stock rows.
+    // The returned Instance borrows this bank. Raw views retain MCC data.
+    std::optional<ClassicRadioEffect> classic_radio_effect(TagHandle,std::uint32_t row) const;
     const std::filesystem::path& cache_path() const {return cache_->path();}
 private:
     std::shared_ptr<const Cache> cache_;

@@ -51,13 +51,13 @@ def negative_controls(scratch, output, rows, io):
     assert len(selected)>1,'Negative controls need a scale return and physical retained prefixes'
     fixture=project/'fixture.json'
     fixture.write_text(json.dumps(dict(image_sha256=PIN,io_sites=io,cases=selected,scale_programs=True)))
-    header='physics/runtime/native_tu15_mopp_ray_scale_frame.hpp'
-    original=(ROOT/'src'/header).read_text()
     mutations={
-        'unprotected_provider':('scope->io(std::forward<Callback>(callback));',
+        'unprotected_provider':('physics/runtime/native_tu15_mopp_ray_scale_frame.hpp',
+                                'scope->io(std::forward<Callback>(callback));',
                                 'std::forward<Callback>(callback)();'),
-        'premature_spill_commit':('Base::store(pc,g[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);',
-                                  'scope_.commit(pending);Base::store(pc,g[4]+offset,pending.bits,[]{},true);'),
+        'premature_spill_commit':('physics/runtime/native_tu15_mopp_ray_caller_frame.hpp',
+                                  'store(pc,address,pending.bits,[&]{scope.commit(pending);},true);',
+                                  'scope.commit(pending);store(pc,address,pending.bits,[]{},true);'),
     }
     # A signal is an expected result for the deliberately unprotected callback;
     # CTest WILL_FAIL alone cannot represent expected signal termination.
@@ -68,7 +68,8 @@ print(json.dumps(dict(rejected=r.returncode!=0,exit_code=r.returncode,diagnostic
 sys.exit(0 if r.returncode!=0 else 1)
 ''')
     cmake='cmake_minimum_required(VERSION 3.20)\nproject(ray_negative LANGUAGES CXX)\ninclude(CTest)\n'
-    for name,(before,after) in mutations.items():
+    for name,(header,before,after) in mutations.items():
+        original=(ROOT/'src'/header).read_text()
         assert original.count(before)==1,(name,'Adapter mutation boundary drift')
         overlay=project/name
         target=overlay/header

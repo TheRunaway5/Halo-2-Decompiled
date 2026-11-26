@@ -21,6 +21,7 @@ constexpr std::array sizes{16384u,8192u};
 struct Memory:SourcePhysicsContactMemory {
     std::array<std::vector<std::byte>,2>banks{std::vector<std::byte>(sizes[0]),std::vector<std::byte>(sizes[1])};
     mutable std::vector<std::pair<std::uint32_t,std::size_t>>reads;
+    std::function<void(bool,std::uint32_t)>before_access;
     std::function<void(Memory&,std::uint32_t,std::size_t)>after_read;
     std::function<void(Memory&,const SourcePhysicsContactRecordStore&)>after_store;
     std::uint32_t*write_pc{};
@@ -30,10 +31,12 @@ struct Memory:SourcePhysicsContactMemory {
         throw std::runtime_error("Record search escaped declared source bank");
     }
     void read(std::uint32_t at,std::span<std::byte>out)const override{
+        if(before_access)before_access(false,at);
         auto&self=*const_cast<Memory*>(this);reads.emplace_back(at,out.size());std::ranges::copy(self.view(at,out.size()),out.begin());
         if(after_read)self.after_read(self,at,out.size());
     }
     void write(std::uint32_t at,std::span<const std::byte>in)override{
+        if(before_access)before_access(true,at);
         if(write_pc){auto before=view(at,in.size());writes.push_back({*write_pc,at,{before.begin(),before.end()},{in.begin(),in.end()}});}
         std::ranges::copy(in,view(at,in.size()).begin());
     }
@@ -95,8 +98,97 @@ void birth_collectors() {
     if(!NativeWeaponEffectBirthColorCollector::qualified(first.observer())||!NativeWeaponEffectBirthColorCollector::qualified(second.observer()))
         throw std::runtime_error("Live empty outer did not regain valid scoped admission");
 }
+
+void restart_frontiers() {
+    constexpr std::uint32_t stack=0x62001000,pool=0x61000100,bitmap=0x61002000;
+    constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
+    enum Action { Quiet, Fault, FirstTrace, SecondTrace };
+    enum AccessKind { Read, Write, StoreObserver };
+    struct RejectedAccess {};
+    struct Access {
+        AccessKind kind;
+        std::uint32_t pc,address,flags;
+        std::array<std::uint32_t,8>gp;
+        bool operator==(const Access&)const=default;
+    };
+    struct Outcome {
+        std::array<std::uint32_t,8>gp{};
+        std::uint32_t flags=0xad7,pc{};
+        bool fault{};
+        decltype(Memory::banks) banks;
+        std::vector<Access> accesses;
+        std::vector<std::size_t> trace_offsets;
+        std::vector<std::uint32_t> trace;
+        std::vector<SourcePhysicsContactRecordStore> stores;
+    };
+    constexpr std::array paths{
+        std::array{0xffffffffu,2u,0u}, // Negative start, direct return.
+        std::array{4u,3u,0u},         // Above the signed limit.
+        std::array{31u,34u,1u},       // Found after crossing a bitmap word.
+        std::array{31u,34u,0u},       // Exhausted after crossing the word.
+    };
+    unsigned faults{},reopens{};
+    for(const auto &[start,limit,second_word]:paths) {
+        const auto run=[&](bool retained,Action action,std::size_t frontier=0) {
+            Outcome result;
+            result.gp={0x12345678,pool,start,0x456789ab,stack,0x56789abc,0x6789abcd,0x789abcde};
+            Memory memory;
+            memory.put(pool+0x38,limit);memory.put(pool+0x48,bitmap);
+            memory.put(bitmap+4,second_word);memory.put(stack,0x63000000);
+            bool first=retained,second=false;
+            SourcePhysicsWorldRuntimeServices services;
+            services.instruction=[&](auto pc){result.pc=pc;result.trace.push_back(pc);};
+            services.instruction_cursor={&result.pc,&first,&second,sites,std::this_thread::get_id(),
+                &services.instruction.target_type(),true,true};
+            const auto boundary=[&](AccessKind kind,std::uint32_t address) {
+                result.accesses.push_back({kind,result.pc,address,result.flags,result.gp});
+                result.trace_offsets.push_back(result.trace.size());
+                if(result.accesses.size()!=frontier)return;
+                if(action==Fault)throw RejectedAccess{};
+                if(action==FirstTrace)first=true;
+                if(action==SecondTrace)second=true;
+            };
+            memory.before_access=[&](bool write,auto address){boundary(write?Write:Read,address);};
+            SourcePhysicsContactRecordObserver observe=[&](const auto &store){
+                result.stores.push_back(store);
+                boundary(StoreObserver,store.address);
+            };
+            try{native_weapon_effect_integer_tu15_run(memory,0x16ea60,result.gp,result.flags,services,observe);}
+            catch(const RejectedAccess&){result.fault=true;}
+            result.banks=std::move(memory.banks);
+            return result;
+        };
+        const auto match=[&](const Outcome &expected,const Outcome &actual,std::size_t frontier) {
+            if(expected.gp!=actual.gp || expected.flags!=actual.flags || expected.pc!=actual.pc ||
+               expected.accesses!=actual.accesses || expected.stores!=actual.stores ||
+               expected.banks!=actual.banks || expected.fault!=actual.fault)
+                throw std::runtime_error("Slot scan frontier ABI or access mismatch at "+std::to_string(start)+"/"+std::to_string(frontier));
+        };
+        const auto expected=run(true,Quiet);
+        const auto quiet=run(false,Quiet);
+        match(expected,quiet,0);
+        if(!quiet.trace.empty())throw std::runtime_error("Quiet slot frontier entered the retained body");
+        for(std::size_t n=1;n<=expected.accesses.size();++n) {
+            const auto fault=run(false,Fault,n);
+            match(run(true,Fault,n),fault,n);
+            if(!fault.fault||!fault.trace.empty())throw std::runtime_error("Slot scan fault escaped its native frontier");
+            ++faults;
+            const auto successor=expected.trace.begin()+expected.trace_offsets[n-1];
+            for(auto trace:{FirstTrace,SecondTrace}) {
+                const auto reopened=run(false,trace,n);
+                match(expected,reopened,n);
+                if(!std::equal(successor,expected.trace.end(),reopened.trace.begin(),reopened.trace.end()))
+                    throw std::runtime_error("Slot scan trace resumed at a different instruction");
+                ++reopens;
+            }
+        }
+    }
+    std::cerr<<"Slot scan frontiers "<<faults<<" faults, "<<reopens<<" trace activations\n";
+}
+
 void supplemental() {
     birth_collectors();
+    restart_frontiers();
     constexpr std::uint32_t stack=0x62001000,pool=0x61000100,bitmap=0x61002000;
     for(unsigned mode=0;mode<12;++mode) {
         Memory seed;seed.put(pool+0x38,36);seed.put(pool+0x48,bitmap);seed.put(bitmap,0);seed.put(bitmap+4,2);seed.put(stack,0x63000000);

@@ -11,6 +11,9 @@ const uint traceLightingWords=20u,traceLightingInvalid=0xffffffffu;
 // Diffuse and direct histories accumulate up to 31 frames (5-bit counts);
 // reflections, which change with the view, at most 12.
 const uint traceHistoryWords=24u,traceHistoryLimit=31u,traceSpecularHistoryLimit=12u;
+// The high bit of the packed geometric-normal/direct-count word identifies
+// a direct estimator that includes live area lights.
+const uint traceDirectAreaBit=0x80000000u;
 // An immutable snapshot makes reprojection independent of fragment execution
 // order. The current frame writes binding6; every history lookup reads9.
 layout(set=1,binding=9,std430) readonly restrict buffer TracePreviousHistory {
@@ -37,16 +40,45 @@ bool traceSegmentHitsBox(vec3 origin,vec3 direction,float maximum,vec3 minimum,v
     }
     return farDistance>=nearDistance;
 }
-bool traceChangedShadow(vec3 position,vec3 normal) {
-    if(traceVisibility.temporal.w!=0u)return true;
+bool traceChangedAreaShadow(vec3 position,vec3 normal,uint boxes) {
+    uint count=min(traceUnbakedEmitterCount(),8u);
+    if(count==0u)return false;
+    uint header=floatBitsToUint(traceScene.environment.w)+2u*traceScene.counts.w;
+    uint first=header+4u+tracePixels[header+1u]*traceEmitterGroupWords;
+    if(first>uint(tracePixels.length()) || uint(tracePixels.length())-first<6u*count)return true;
+    const vec3 padding=vec3(traceEpsilon*8.0);
+    for(uint box=0u;box<boxes;++box) {
+        vec4 changedMinimum=tracePrevious.changedBoxes[2u*box];
+        if((uint(changedMinimum.w)&1u)==0u)continue;
+        vec3 changedMaximum=tracePrevious.changedBoxes[2u*box+1u].xyz;
+        vec3 center=changedMinimum.xyz*.5+changedMaximum*.5,halfExtent=changedMaximum*.5-changedMinimum.xyz*.5;
+        if(dot(center-position,normal)+dot(halfExtent,abs(normal))<-traceEpsilon*8.0)continue;
+        for(uint bound=0u;bound<count;++bound) {
+            uint record=first+6u*bound;
+            vec3 minimum=uintBitsToFloat(uvec3(tracePixels[record],tracePixels[record+1u],tracePixels[record+2u]));
+            vec3 maximum=uintBitsToFloat(uvec3(tracePixels[record+3u],tracePixels[record+4u],tracePixels[record+5u]));
+            vec3 lightCenter=minimum*.5+maximum*.5,lightExtent=maximum*.5-minimum*.5;
+            vec3 direction=lightCenter-position;
+            if(dot(direction,normal)+dot(lightExtent,abs(normal))<=0.0)continue;
+            // Every segment to the emitter box stays within its half-extents
+            // of the segment to its center. Include the offset at ray origin.
+            if(traceSegmentHitsBox(position,direction,1.0,
+                changedMinimum.xyz-lightExtent-padding,changedMaximum+lightExtent+padding))return true;
+        }
+    }
+    return false;
+}
+bool traceChangedShadow(vec3 position,vec3 normal,bool areaDirect) {
+    if((traceVisibility.temporal.w&(areaDirect?3u:1u))!=0u)return true;
     if(tracePrevious.changedLightMin.w!=0.0 &&
        all(greaterThanEqual(position,tracePrevious.changedLightMin.xyz)) &&
        all(lessThanEqual(position,tracePrevious.changedLightMax.xyz)))return true;
-    if((uint(tracePrevious.changedOccluderMin.w)&1u)==0u)return false;
+    uint changes=uint(tracePrevious.changedOccluderMin.w),boxes=traceChangeBoxCount();
+    if((changes&1u)==0u)return false;
+    if(areaDirect && traceChangedAreaShadow(position,normal,boxes))return true;
     // Bound validation cost independently of unusually large source banks.
     // These are conservative slab tests only, never additional BVH queries.
     if(traceScene.counts.z>64u)return true;
-    uint boxes=traceChangeBoxCount();
     for(uint lightIndex=0u;lightIndex<traceScene.counts.z;++lightIndex) {
         TraceLight light=traceLights[lightIndex];bool distant=light.position_radius.w<0.0;
         vec3 delta=distant?light.position_radius.xyz:light.position_radius.xyz-position;
@@ -192,15 +224,15 @@ mat3 traceHistoryViewBasis() {
 struct TraceHistory {
     vec3 diffuse,specular,direct,directSpecular,incident;
     float count,specularCount,directCount,directSpecularCount;
-    float weight,specularWeight;
+    float weight,specularWeight,directWeight,directSpecularWeight;
 };
 bool tracePreviousHistory(vec3 worldPosition,vec3 position,vec3 normal,vec3 geometric,
                           vec3 reflected,uint material,float roughness,float pixelFootprint,
-                          bool viewDependent,out TraceHistory result) {
+                          bool viewDependent,bool areaDirect,out TraceHistory result) {
     uint role=camera.eyePosition.w==2.0?1u:0u;
     result.diffuse=result.specular=result.direct=result.directSpecular=result.incident=vec3(0);
     result.count=result.specularCount=result.directCount=result.directSpecularCount=0.0;
-    result.weight=result.specularWeight=0.0;
+    result.weight=result.specularWeight=result.directWeight=result.directSpecularWeight=0.0;
     if((traceVisibility.temporal.z&(1u<<role))==0u)return false;
     // A weapon follows the camera. Its history is in camera space, whereas
     // the world uses its previous projection and world-space surface guides.
@@ -247,8 +279,13 @@ bool tracePreviousHistory(vec3 worldPosition,vec3 position,vec3 normal,vec3 geom
         result.diffuse+=tracePreviousLoad3(candidate)*weight;
         result.incident+=traceLoadIncident(candidate+traceHistoryIncident,true)*weight;
         result.count+=float(previousCount)*weight;
-        result.direct+=tracePreviousLoad3(candidate+16u)*weight;
-        result.directCount+=float(tracePrevious.words[candidate+15u]>>24u)*weight;
+        uint directHistory=tracePrevious.words[candidate+15u];
+        bool directCompatible=((directHistory&traceDirectAreaBit)!=0u)==areaDirect;
+        if(directCompatible) {
+            result.direct+=tracePreviousLoad3(candidate+16u)*weight;
+            result.directCount+=float((directHistory>>24u)&traceHistoryLimit)*weight;
+            result.directWeight+=weight;
+        }
         vec3 previousReflected=traceNormalize(unpackSnorm4x8(tracePrevious.words[candidate+14u]).xyz,reflected);
         bool specularCompatible=(!viewDependent || traceReflectionCompatible(previousReflected,reflected,roughness)) &&
             (tracePrevious.words[candidate+12u]>>5u)==fingerprint;
@@ -256,18 +293,26 @@ bool tracePreviousHistory(vec3 worldPosition,vec3 position,vec3 normal,vec3 geom
             result.specularWeight+=weight;
             result.specular+=tracePreviousLoad3(candidate+4u)*weight;
             result.specularCount+=float(tracePrevious.words[candidate+3u]>>24u)*weight;
-            result.directSpecular+=tracePreviousLoad3(candidate+19u)*weight;
-            result.directSpecularCount+=float(tracePrevious.words[candidate+14u]>>24u)*weight;
+            if(directCompatible) {
+                result.directSpecular+=tracePreviousLoad3(candidate+19u)*weight;
+                result.directSpecularCount+=float(tracePrevious.words[candidate+14u]>>24u)*weight;
+                result.directSpecularWeight+=weight;
+            }
         }
     }
     if(result.weight<=0.0)return false;
     float inverse=1.0/result.weight;
-    result.diffuse*=inverse;result.count*=inverse;result.direct*=inverse;result.directCount*=inverse;
+    result.diffuse*=inverse;result.count*=inverse;
     result.incident*=inverse;
     if(result.specularWeight>0.0) {
         float specular=1.0/result.specularWeight;
         result.specular*=specular;result.specularCount*=specular;
-        result.directSpecular*=specular;result.directSpecularCount*=specular;
+    }
+    if(result.directWeight>0.0) {
+        result.direct/=result.directWeight;result.directCount/=result.directWeight;
+    }
+    if(result.directSpecularWeight>0.0) {
+        result.directSpecular/=result.directSpecularWeight;result.directSpecularCount/=result.directSpecularWeight;
     }
     return true;
 }
@@ -293,7 +338,7 @@ void traceLightingRequest(uint record,uvec2 pixel,vec3 position,vec3 normal,vec3
 }
 void traceLightingStore(uvec2 cell,uint record,vec3 diffuseLight,vec3 specularLight,vec3 currentDirect,vec3 currentDirectSpecular,
                         vec3 incident,vec3 position,vec3 normal,vec3 geometric,vec3 incoming,uint material,float roughness,
-                        float pixelFootprint,bool viewDependent) {
+                        float pixelFootprint,bool viewDependent,bool areaDirect) {
     if(any(isnan(incident)) || any(isinf(incident)))incident=vec3(0);
     diffuseLight=traceFiniteLighting(diffuseLight);specularLight=traceFiniteLighting(specularLight);
     currentDirect=traceFiniteLighting(currentDirect);
@@ -312,7 +357,7 @@ void traceLightingStore(uvec2 cell,uint record,vec3 diffuseLight,vec3 specularLi
     uint serial=traceVisibility.temporal.x;
     TraceHistory previous;
     bool reuse=tracePreviousHistory(position,historyPosition,historyNormal,historyGeometric,reflected,
-        material,roughness,pixelFootprint,viewDependent,previous);
+        material,roughness,pixelFootprint,viewDependent,areaDirect,previous);
     bool diffuseReuse=reuse && !traceChangedDiffuse(position,normal,incoming,material,pixelFootprint);
     uint count=diffuseReuse?min(uint(previous.count+.5)+1u,traceHistoryLimit):1u;
     uint specularCount=1u,directCount=1u,directSpecularCount=1u;
@@ -333,12 +378,13 @@ void traceLightingStore(uvec2 cell,uint record,vec3 diffuseLight,vec3 specularLi
             specularCount=min(uint(previous.specularCount+.5)+1u,traceSpecularHistoryLimit);
             specularLight+=(previous.specular-specularLight)*(1.0-1.0/float(specularCount));
         }
-        // One light is already deterministic. Keeping it current also avoids
-        // reprojecting a nearby representative across a sharp shadow edge.
-        if(traceScene.counts.z>1u && !traceChangedShadow(position,normal)) {
+        // One punctual light alone is deterministic. Area samples and
+        // competing light sources benefit from separate direct histories.
+        if((traceScene.counts.z>1u || areaDirect) && previous.directWeight>0.0 &&
+           !traceChangedShadow(position,normal,areaDirect)) {
             directCount=min(uint(previous.directCount+.5)+1u,traceHistoryLimit);
             currentDirect+=(previous.direct-currentDirect)*(1.0-1.0/float(directCount));
-            if(reflectionCompatible) {
+            if(previous.directSpecularWeight>0.0) {
                 directSpecularCount=min(uint(previous.directSpecularCount+.5)+1u,traceSpecularHistoryLimit);
                 currentDirectSpecular+=(previous.directSpecular-currentDirectSpecular)*(1.0-1.0/float(directSpecularCount));
             }
@@ -366,7 +412,8 @@ void traceLightingStore(uvec2 cell,uint record,vec3 diffuseLight,vec3 specularLi
     traceVisibility.words[history+12u]=count|(traceReflectionFingerprint(material)<<5u);
     traceVisibility.words[history+13u]=serial;
     traceVisibility.words[history+14u]=(packSnorm4x8(vec4(reflected,0))&0x00ffffffu)|(directSpecularCount<<24u);
-    traceVisibility.words[history+15u]=(packSnorm4x8(vec4(historyGeometric,0))&0x00ffffffu)|(directCount<<24u);
+    traceVisibility.words[history+15u]=(packSnorm4x8(vec4(historyGeometric,0))&0x00ffffffu)|(directCount<<24u)|
+        (areaDirect?traceDirectAreaBit:0u);
     traceVisibility.words[record+traceRecordFootprint]=floatBitsToUint(pixelFootprint);
     traceVisibility.words[record+traceRecordCount]=count;
     // The history keeps the luminance-weighted sum; the record (what the

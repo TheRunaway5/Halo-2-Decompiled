@@ -1,5 +1,8 @@
 #include "halo2/path_tracing/material_alias.hpp"
+#include "material_atlas.hpp"
+#include "halo2/path_tracing/chamber_reflection.hpp"
 #include "halo2/path_tracing/source_ambient.hpp"
+#include "halo2/path_tracing/surface_material.hpp"
 #include "halo2/source_texture_filtering.hpp"
 #include <algorithm>
 #include <bit>
@@ -13,7 +16,7 @@ namespace alias_detail {
 std::array<std::uint32_t,3> append_image(Scene&,const Texture&,unsigned minimum_level);
 }
 namespace {
-constexpr std::uint32_t maximum_texels=16'777'216;
+constexpr auto maximum_texels=material_atlas::maximum_words;
 void add(std::uint64_t& hash,std::uint64_t value) {hash^=value;hash*=1099511628211ull;}
 void controls(const WorldMaterialUniform& uniform,const Material& material) {
     PixelProgram program;program.words=uniform.program;
@@ -35,46 +38,86 @@ std::array<std::uint64_t,2> image_key(const Texture& image,unsigned level) {
     }
     return {image.pixels.fingerprint(),hash};
 }
-std::array<std::uint32_t,3> resident_image(Scene& scene,const Texture& image,unsigned level) {
+using ImageRequests=std::map<material_atlas::ImageKey,std::pair<const Texture*,unsigned>>;
+void request_image(ImageRequests& images,const Texture& image,unsigned level) {
     if(!image.width || !image.height || image.pixels.empty() || image.layers!=1 || image.depth ||
        (image.format!=11 && (image.format<14 || image.format>16)))
         throw FormatError("Path Tracing owner selected an unqualified native image");
-    const auto key=image_key(image,level);
-    for(const auto& item:scene.material_alias_images)if(item.key==key)return item.image;
-    const auto result=alias_detail::append_image(scene,image,level);
-    scene.material_alias_images.push_back({key,result});return result;
+    images.try_emplace(image_key(image,level),&image,level);
 }
-void reserve_headers(Scene& scene,std::size_t slots) {
-    if(slots>maximum_texels/material_alias_record_words)
-        throw FormatError("Path Tracing owner headers exceed bounded atlas storage");
-    const auto needed=std::uint32_t(slots*material_alias_record_words);
-    if(needed<=scene.material_alias_prefix_words)return;
-    std::uint32_t capacity=scene.material_alias_prefix_words?scene.material_alias_prefix_words:material_alias_record_words;
-    while(capacity<needed)capacity=std::min(maximum_texels,capacity*2);
+auto find_image(const Scene& scene,const material_atlas::ImageKey& key) {
+    return std::ranges::find(scene.material_alias_images,key,&MaterialAliasImage::key);
+}
+std::array<std::uint32_t,3> resident_image(const Scene& scene,const Texture& image,unsigned level) {
+    const auto found=find_image(scene,image_key(image,level));
+    if(found==scene.material_alias_images.end())throw FormatError("Path Tracing owner image lost its atlas allocation");
+    return found->image;
+}
+void reserve_headers(Scene& scene,std::uint32_t capacity) {
+    if(capacity<=scene.material_alias_prefix_words)return;
     const auto delta=capacity-scene.material_alias_prefix_words;
-    if(scene.texture_texel_count>maximum_texels-delta)
-        throw FormatError("Path Tracing owner headers exceed bounded atlas storage");
     scene.pixels.insert(scene.pixels.begin(),delta,0);
     scene.texture_texel_count+=delta;scene.material_alias_prefix_words=capacity;
     for(auto& material:scene.materials) {
-        material.texture[0]+=delta;
-        if(const auto p=std::bit_cast<std::uint32_t>(material.emission[3]))
-            material.emission[3]=std::bit_cast<float>(p+delta);
-        if(material.texture[3]&surface_flag)
-            material.base[3]=std::bit_cast<float>(std::bit_cast<std::uint32_t>(material.base[3])+delta);
-        for(unsigned record=0;record<2;++record)if(material.detail[record])material.detail[record]+=delta;
+        material_atlas::relocate(material,material.texture[0]+delta);
+        if(material.detail[1])material.detail[1]+=delta;
     }
     for(auto& image:scene.material_alias_images)image.image[0]+=delta;
+    for(auto& cube:scene.material_environment_images)cube.offset+=delta;
+}
+void admit_images(Scene& scene,const ImageRequests& requests,std::size_t slots) {
+    if(slots>maximum_texels/material_alias_record_words)
+        throw FormatError("Path Tracing owner headers exceed bounded atlas storage");
+    // Before borrowing pointers from the atlas, know the exact current image
+    // and header cost. Pressure can then move root and shared image blocks
+    // without invalidating already-published owner records.
+    Scene pending;
+    for(const auto& [key,source]:requests)if(find_image(scene,key)==scene.material_alias_images.end()) {
+        const auto [image,level]=source;
+        pending.material_alias_images.push_back({key,alias_detail::append_image(pending,*image,level)});
+    }
+    const auto prefix=scene.material_alias_prefix_words;
+    const auto needed=std::max(prefix,std::uint32_t(slots*material_alias_record_words));
+    auto capacity=prefix?prefix:material_alias_record_words;
+    while(capacity<needed)capacity=std::min(maximum_texels,capacity*2);
+    if(!needed)capacity=0;
+    const auto fits=[&](std::uint32_t words) {
+        return scene.texture_texel_count+pending.pixels.size()+words-prefix<=maximum_texels;
+    };
+    if(!fits(capacity)) {
+        std::vector<material_atlas::ImageKey> live;
+        live.reserve(requests.size());
+        for(const auto& [key,source]:requests)live.push_back(key);
+        if(!material_atlas::compact(scene,pending.pixels.size()+needed-prefix,~0u,live))
+            throw FormatError("Path Tracing live owner images exceed finite atlas storage");
+        if(!fits(capacity))capacity=needed;
+    }
+    reserve_headers(scene,capacity);
+    const auto start=scene.texture_texel_count;
+    scene.pixels.insert(scene.pixels.end(),pending.pixels.begin(),pending.pixels.end());
+    scene.texture_texel_count+=std::uint32_t(pending.pixels.size());
+    for(auto& image:pending.material_alias_images) {
+        image.image[0]+=start;
+        scene.material_alias_images.push_back(image);
+    }
 }
 void response(GpuMaterial& target,const WorldMaterialUniform* environment,const Material* source) {
     if(!environment)return;
     if(!source)throw FormatError("Path Tracing environment alias lost its source pass identity");
     controls(*environment,*source);
     const auto unit=[](float x) {return std::isfinite(x)?std::clamp(x,0.f,1.f):0.f;};
-    const auto facing_color=source->forward_vertex==6?surface_detail::argb(environment->program[15]):environment->diffuse;
-    const auto glancing_color=source->forward_vertex==6?surface_detail::argb(environment->program[23]):environment->specular;
-    const float facing=source->forward_vertex==6?float(environment->program[17]>>24)/255.f:unit(environment->diffuse[3]);
-    const float glancing=source->forward_vertex==6?float(environment->program[25]>>24)/255.f:unit(environment->specular[3]);
+    auto facing_color=environment->diffuse,glancing_color=environment->specular;
+    if(target.texture[3]&chamber_baked_reflection_flag) {
+        const auto parameters=chamber_reflection_parameters(environment->program);
+        facing_color=parameters.facing;glancing_color=parameters.glancing;
+        target.glancing_tint[3]=parameters.baked_weight;
+    } else if(source->forward_vertex==6) {
+        facing_color=surface_detail::argb(environment->program[15]);
+        glancing_color=surface_detail::argb(environment->program[23]);
+        facing_color[3]=float(environment->program[17]>>24)/255.f;
+        glancing_color[3]=float(environment->program[25]>>24)/255.f;
+    }
+    const float facing=unit(facing_color[3]),glancing=unit(glancing_color[3]);
     target.response[0]=std::clamp(.85f-.75f*std::sqrt(std::max(facing,glancing)),.12f,.85f);
     target.response[1]=facing;target.response[2]=glancing;
     for(unsigned c=0;c<3;++c) {
@@ -89,7 +132,9 @@ std::uint32_t source_material(const Scene& scene,std::uint32_t material) {
 std::size_t material_alias_cpu_bytes(const Scene& scene) {
     return scene.material_alias_keys.capacity()*sizeof(MaterialAliasKey)+
         scene.material_source_roots.capacity()*sizeof(std::uint32_t)+
-        scene.material_alias_images.capacity()*sizeof(MaterialAliasImage);
+        scene.material_alias_images.capacity()*sizeof(MaterialAliasImage)+
+        scene.material_environment_images.capacity()*sizeof(MaterialEnvironmentImage)+
+        scene.live_material_roots.capacity()*sizeof(std::uint8_t);
 }
 void clear_material_aliases(Scene& scene,std::size_t root_count) {
     if(root_count>scene.materials.size())throw FormatError("Path Tracing alias root bank changed ownership");
@@ -109,6 +154,7 @@ std::vector<MaterialAliasBinding> refresh_material_aliases(Scene& scene,std::spa
     for(const auto& input:inputs) {
         if(input.key.material>=roots.size() || !input.primary || !current.emplace(input.key,&input).second)
             throw FormatError("Path Tracing alias lost its unique completed owner/root binding");
+        if(!scene.live_material_roots.empty())scene.live_material_roots.at(input.key.material)=1;
     }
     std::map<MaterialAliasKey,std::size_t> slots;
     for(std::size_t i=0;i<scene.material_alias_keys.size();++i) {
@@ -125,7 +171,24 @@ std::vector<MaterialAliasBinding> refresh_material_aliases(Scene& scene,std::spa
     while(!scene.material_alias_keys.empty() && scene.material_alias_keys.back().material==~0u)
         scene.material_alias_keys.pop_back();
     scene.pixels.resize(scene.texture_texel_count);
-    reserve_headers(scene,scene.material_alias_keys.size());
+    ImageRequests images;
+    for(const auto& [key,input]:current) {
+        const auto& root=roots[key.material];
+        if(std::ranges::any_of(input->surface_images,[](const Texture* image){return image!=nullptr;})) {
+            const auto source=qualified_surface(root);
+            if(!source)throw FormatError("Path Tracing owner has no qualified source images");
+            for(unsigned stage=0;stage<4;++stage)if(source->stages&(1u<<stage))
+                if(const auto* image=input->surface_images[stage])
+                    request_image(images,*image,root.texture_states[stage].max_mip);
+        }
+        if(input->ambient && !(scene.materials[key.material].texture[3]&source_flat_ambient_flag)) {
+            const auto* owner=source_ambient_owner(root);
+            if(!owner)throw FormatError("Path Tracing owner ambient has no qualified independent lighting child");
+            const auto& image=input->ambient_image?*input->ambient_image:selected_image(*owner,2);
+            request_image(images,image,owner->texture_states[2].max_mip);
+        }
+    }
+    admit_images(scene,images,scene.material_alias_keys.size());
     const auto count=roots.size()+scene.material_alias_keys.size();
     if(count>std::numeric_limits<std::uint32_t>::max()/sizeof(GpuMaterial))
         throw FormatError("Path Tracing alias material bank exceeds GPU storage domain");
@@ -166,7 +229,8 @@ std::vector<MaterialAliasBinding> refresh_material_aliases(Scene& scene,std::spa
         case SurfaceFamily::LeafDetail:case SurfaceFamily::LeafDetailPerVertex:
         case SurfaceFamily::BumpLeafCoverage:case SurfaceFamily::BumpLeafCoveragePerVertex:
             colors[0]&=0xff000000u;colors[1]&=0xff000000u;colors[2]=colors[3]=0;break;
-        case SurfaceFamily::DynamicDetail:colors[0]&=0xff000000u;break;
+        case SurfaceFamily::DynamicDetail:case SurfaceFamily::TextureHonorGuard:
+            colors[0]&=0xff000000u;break;
         default:for(auto& color:colors)color&=0xffffffu;break;
         }
         std::copy(colors.begin(),colors.end(),header.begin()+3);
@@ -183,23 +247,33 @@ std::vector<MaterialAliasBinding> refresh_material_aliases(Scene& scene,std::spa
         }
         target.base[3]=std::bit_cast<float>(record+1);target.transform=uv->base;
         response(target,input->environment,input->environment_source);
+        if(input->environment && !(target.texture[3]&(16u|32u)))
+            apply_surface_material_response(root,source->family,target.detail,target.response);
+        if(source->default_object_ambient)
+            target.color_guide[2]=source_default_ambient_rgb(program,source->family);
         if(input->ambient) {
             const auto* owner=source_ambient_owner(root);
             if(!owner || target.color_guide[0])throw FormatError("Path Tracing owner ambient has no qualified independent lighting child");
             controls(*input->ambient,*owner);
-            const auto& sampler=owner->texture_states[2];
-            const auto& image=input->ambient_image?*input->ambient_image:selected_image(*owner,2);
-            const auto pixels=resident_image(scene,image,sampler.max_mip);
-            std::copy(pixels.begin(),pixels.end(),header.begin()+52);
-            header[55]=sampler.address_u|(sampler.address_v<<4)|(source_texture_filtering(sampler).mag_filter<<8);
-            header[56]=sampler.border_color;
-            for(unsigned c=0;c<4;++c) {
-                const float base=input->ambient->forward_transforms[0][c],bump=input->ambient->forward_transforms[2][c];
-                if(!std::isfinite(base) || !std::isfinite(bump))throw FormatError("Path Tracing owner ambient has nonfinite completed UVs");
-                header[57+c]=std::bit_cast<std::uint32_t>(base);header[61+c]=std::bit_cast<std::uint32_t>(bump);
+            const auto rgb=input->ambient->program[source_ambient_color_word(*owner)]&0xffffffu;
+            target.color_guide={3u,0u,rgb,0u};
+            // The full-resolution draw already binds the correct normal map.
+            // Only slope-dependent ambient needs another copy for ray hits.
+            if(!(target.texture[3]&source_flat_ambient_flag)) {
+                const auto& sampler=owner->texture_states[2];
+                const auto& image=input->ambient_image?*input->ambient_image:selected_image(*owner,2);
+                const auto pixels=resident_image(scene,image,sampler.max_mip);
+                std::copy(pixels.begin(),pixels.end(),header.begin()+52);
+                header[55]=sampler.address_u|(sampler.address_v<<4)|(source_texture_filtering(sampler).mag_filter<<8);
+                header[56]=sampler.border_color;
+                for(unsigned c=0;c<4;++c) {
+                    const float base=input->ambient->forward_transforms[0][c],bump=input->ambient->forward_transforms[2][c];
+                    if(!std::isfinite(base) || !std::isfinite(bump))throw FormatError("Path Tracing owner ambient has nonfinite completed UVs");
+                    header[57+c]=std::bit_cast<std::uint32_t>(base);header[61+c]=std::bit_cast<std::uint32_t>(bump);
+                }
+                target.color_guide[1]=record+52;
+                for(auto word:image_key(image,sampler.max_mip))add(hash,word);
             }
-            target.color_guide={3u,record+52,input->ambient->program[15]&0xffffffu,0u};
-            for(auto word:image_key(image,sampler.max_mip))add(hash,word);
         }
         // Addresses move when the prefix grows; only consumed shader state
         // contributes to temporal material identity.
@@ -208,7 +282,9 @@ std::vector<MaterialAliasBinding> refresh_material_aliases(Scene& scene,std::spa
             add(hash,header[i]);
         }
         for(unsigned c=0;c<3;++c){add(hash,std::bit_cast<std::uint32_t>(target.base[c]));add(hash,std::bit_cast<std::uint32_t>(target.glancing_tint[c]));}
+        add(hash,std::bit_cast<std::uint32_t>(target.glancing_tint[3]));
         for(float value:target.response)add(hash,std::bit_cast<std::uint32_t>(value));
+        add(hash,target.detail[2]);add(hash,target.detail[3]);
         add(hash,target.texture[3]);
         add(hash,target.color_guide[0]);add(hash,target.color_guide[2]);
         if(target.color_guide[0]!=3u){add(hash,target.color_guide[1]);add(hash,target.color_guide[3]);}

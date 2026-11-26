@@ -11,6 +11,7 @@
 #include "halo2/source_hologram_material.hpp"
 #include "halo2/source_camouflage_material.hpp"
 #include "halo2/effect_light.hpp"
+#include "halo2/path_tracing/surface_material.hpp"
 #include "halo2/pstencil/material.hpp"
 #include "halo2/pstencil/projected_light_material.hpp"
 #include "halo2/pstencil/reference_light_materials.hpp"
@@ -114,6 +115,7 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
   auto pass = std::make_shared<Material>();
   pass->name = m.name;
   pass->source_shader_datum=m.source_shader_datum;
+  pass->source_surface_material=m.source_surface_material;
   pass->selected_shader_lod=m.selected_shader_lod;
   if(projected_packet) {
     // Only the raw draw's selected lineage, attribute remaps and the remaps
@@ -174,6 +176,10 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     pass->diffuse = pass->detail = pass->bump = pass->auxiliary = zero;
   }
   Texture *stages[]{&pass->diffuse, &pass->detail, &pass->bump, &pass->auxiliary};
+  const bool terrain_blend=p.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite" ||
+      p.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture" ||
+      p.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_detail_texture_zwrite" ||
+      p.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_detail_texture";
   if(load_images)for (const auto &binding : p.textures) {
     if (binding.stage >= 4) throw FormatError("world texture stage outside NV2A slots");
     if (binding.external == 3 && binding.stage == 0) {
@@ -261,6 +267,10 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     // Other missing identities remain errors from the ordinary typed loader.
     *stages[binding.stage] = bitmap.datum==0xffffffffu?
         cache.load_scope_default_bitmap():cache.load_bitmap(bitmap.datum, bitmap.index);
+    if(terrain_blend && (binding.stage==1 || binding.stage==2)) {
+      if(const auto* tag=cache.find_tag({bitmap.datum},tag_groups::bitmap))
+        pass->source_terrain_materials[binding.stage-1]=path_tracing::terrain_bitmap_class(tag->name);
+    }
     if(stages[binding.stage]->depth) {
       if(!volume_textures)throw FormatError("unsupported bitmap dimensionality");
       if(!volume_addressing_supported(program,binding.stage))

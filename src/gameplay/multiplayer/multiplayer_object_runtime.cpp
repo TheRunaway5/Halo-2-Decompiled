@@ -241,6 +241,14 @@ struct MultiplayerObjectRuntime::Impl {
       if(std::this_thread::get_id()==main_thread)last_instruction=p;
       if(p==0x337a45u)put(bank,native_tick_count,std::uint32_t(clock.interrupt_time()/10000u));
     };
+    // This callback has a single service site. The other invocations
+    // only publish the current PC on the original main executor.
+    static constexpr std::array physics_service_sites{0x337a45u};
+    auto &physics_cursor = s.physics_instruction_cursor;
+    physics_cursor.position = &last_instruction;
+    physics_cursor.service_sites = physics_service_sites;
+    physics_cursor.executor = main_thread;
+    physics_cursor.callback_type = &s.runtime.instruction.target_type();
 #if defined(__i386__) || defined(__x86_64__)
     s.timestamp_counter=[] {return __rdtsc();};
     s.runtime.estimate=[](auto kind,std::uint32_t bits) {

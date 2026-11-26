@@ -1,5 +1,6 @@
 #include "halo2/cache.hpp"
 #include "halo2/appearance.hpp"
+#include "halo2/path_tracing/surface_material.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
 #include <cmath>
@@ -281,6 +282,18 @@ Material Cache::load_material(std::uint32_t datum, bool hud, bool load_images) c
   if (shader_extent < 84)
     throw FormatError("truncated shader definition");
   const auto base = metadata_offset(shad.address, shader_extent);
+  // A known model finish is more precise than a shared part-wide physics
+  // category, such as the identical global ID on painted and bare gunmetal.
+  result.source_surface_material=path_tracing::model_surface_material(result.name);
+  if (result.source_surface_material==SourceSurfaceMaterial::Unknown) {
+    if (const auto id=data.u32(base+8);id) {
+      try {
+        result.source_surface_material=path_tracing::surface_material_class(string_id(id));
+      } catch (const FormatError &) {}
+    }
+  }
+  if (result.source_surface_material==SourceSurfaceMaterial::Unknown)
+    result.source_surface_material=path_tracing::surface_material_tag_class(result.name);
   // Retail 0001BBF0 -> 00034060 binds these per shader, before assembly.
   result.shader_switches[4] = data.u16(base + 0x3e);
   result.shader_switches[5] = data.u16(base + 0x40);

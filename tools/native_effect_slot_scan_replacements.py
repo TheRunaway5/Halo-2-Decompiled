@@ -4,7 +4,17 @@ import re
 from native_selected_operand_binding import require_selected_identity
 
 OWNER_PIN='010012091284d7b1647dcd5a76f9552ecfa7659a4935dd9c348e6494ed545fde'
-OWNER_PREFIX='\n    if(halo2::native_effect_slot_scan_detail::try_native(m,a.gp,a.eflags,s,o))return;'
+OWNER_RESUMES=('16ea68','16ea6b','16ea70','16ea73','16ea74','16ea88',
+               '16ea90','16ea91','16ea92','16ea94','16ea97','16ea98')
+OWNER_START='    instruction(0x16ea60);a.gp[0]=none;iterator_logic_flags(a,none,4);'
+OWNER_PREFIX='''    try {
+        if(halo2::native_effect_slot_scan_detail::try_native(m,a.gp,a.eflags,s,o))return;
+    } catch (halo2::native_effect_slot_scan_detail::Resume next) {
+        switch (next.pc) {
+'''+''.join(f'        case 0x{pc}u: goto resume_{pc};\n'for pc in OWNER_RESUMES)+'''        }
+        throw;
+    }
+'''
 OWNER_INCLUDE='#include "native_tu15_effect_slot_scan.hpp"\n'
 ROUTE_PINS={
     'native_weapon_effect_integer_tu15_run':'b475db943c84c623592dd313ccd3446057db50ea46a49019b501f1b6e173eee2',
@@ -46,15 +56,22 @@ def canonical_body(value,prefix=PREFIX):
     return value[:start]+value[start+len(prefix):]if value[start:].startswith(prefix)else value
 
 
+def canonical_owner(value):
+    return re.sub(r'^resume_16ea[0-9a-f]{2}:\n','',value.replace(OWNER_PREFIX,'',1),flags=re.M)
+
+
 def install_owner(header,dispatch):
     for name,pin in ROUTE_PINS.items():
         if hashlib.sha256(body(dispatch,name).encode()).hexdigest()!=pin:
             raise ValueError('Complete native effect entry route drift '+name)
-    current=body(header,'find_effect_slot');original=canonical_body(current,OWNER_PREFIX)
+    current=body(header,'find_effect_slot');original=canonical_owner(current)
     if hashlib.sha256(original.encode()).hexdigest()!=OWNER_PIN:raise ValueError('Complete16EA60 Effect helper body drift')
-    if original==current:
-        start=current.index('{')+1;header=header.replace(current,current[:start]+OWNER_PREFIX+current[start:],1)
-    return header
+    bound=original.replace(OWNER_START,OWNER_PREFIX+OWNER_START,1)
+    for pc in OWNER_RESUMES:
+        bound=re.sub(rf'^( +instruction\(0x{pc}\))',rf'resume_{pc}:\n\1',bound,count=1,flags=re.M)
+    if current==bound:return header
+    if current!=original:raise ValueError('Effect slot resume binding drift')
+    return header.replace(current,bound,1)
 
 
 def install_native_effect_slot_scan(source):

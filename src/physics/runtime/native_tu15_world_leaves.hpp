@@ -4307,7 +4307,8 @@ inline bool remap_maps(const PhysicsInstructionRemapTu15 &mapped,std::span<const
 // unmasked MXCSR exceptions, active traces, arbitrary store observers, full
 // callbacks without a literal cursor (except the census diagnostic) and
 // service sites in the leaf. functions[0] is the owner.
-template<class State> bool admitted(const State &s,std::span<const Function> functions,Publication &out) {
+template<class State> bool admitted(const State &s,std::span<const Function> functions,Publication &out,
+    bool (*qualified_store_observer)(const SourcePhysicsContactRecordObserver &)=nullptr) {
     if(reference_mode() || bypass() || s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
     // The physics world unit publishes canonical PCs unless it selected
     // TU1.5 observation PCs; the vehicle update unit always does.
@@ -4322,7 +4323,8 @@ template<class State> bool admitted(const State &s,std::span<const Function> fun
         if(s.literal_service_sites && s.instruction_cursor && s.instruction_cursor->position) {
             const auto *policy=s.instruction_cursor;
             if((policy->first_trace && *policy->first_trace) || (policy->second_trace && *policy->second_trace) ||
-                (s.observe && !policy->observation_only_stores))return false;
+                (s.observe && !policy->observation_only_stores &&
+                    (!qualified_store_observer || !qualified_store_observer(s.observe))))return false;
             for(const auto site:policy->service_sites)if(site>=owner.first && site<=owner.last)return false;
             out.cursor=policy->position;
             return true;

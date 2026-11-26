@@ -49,8 +49,13 @@ struct CampaignLightingFrame {
 // environment, particles and owned base draws before secondary light queries.
 class CampaignRenderer {
 public:
-    CampaignRenderer(const Cache&,Mesh&,unsigned bsp);
+    CampaignRenderer(const Cache&,Mesh&,unsigned bsp,bool preload_raster_materials=true,
+        std::span<const Material> additional_materials={});
     ~CampaignRenderer();
+    void switch_bsp(Mesh&,unsigned bsp,std::span<const Material> bsp_materials={},
+        bool preload_raster_materials=true);
+    void ensure_raster_materials(Mesh&,std::span<const Material> bsp_materials={});
+    bool raster_materials_preloaded()const noexcept;
     CampaignLightingFrame draw(PhysicsLiveWorldTu15&,
         const SourceCampaignViewFrameTu15&,const CampaignLightingInput&);
 private:

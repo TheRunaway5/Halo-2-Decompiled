@@ -1,6 +1,9 @@
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
+#include "halo2/path_tracing/material_surface.hpp"
 #include "halo2/path_tracing/emitter_sampling.hpp"
+#include "halo2/path_tracing/surface.hpp"
+#include "halo2/path_tracing/surface_material.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -19,6 +22,228 @@ void triangle(std::vector<Vertex> &vertices,float x,float z,unsigned material=0)
     for(Vec3 p:std::array<Vec3,3>{{{x,0,z},{x+1,0,z},{x,1,z}}}) {
         Vertex v;v.position=p;v.normal={0,0,1};v.color={1,1,1};v.uv={.25f,.25f};v.material=material;vertices.push_back(v);
     }
+}
+Texture environment_cube(unsigned side,unsigned levels,unsigned red) {
+    Texture cube{side,side,11,{},{},6};
+    std::vector<std::byte> pixels;
+    for(unsigned face=0;face<6;++face)for(unsigned mip=0;mip<levels;++mip) {
+        const auto size=side>>mip;
+        const auto offset=pixels.size(),bytes=std::size_t(size)*size*4;
+        cube.mips.push_back({size,size,offset,bytes});
+        pixels.resize(offset+bytes);
+        for(std::size_t i=offset;i<pixels.size();i+=4) {
+            pixels[i]=std::byte(red+face+mip*8);
+            pixels[i+3]=std::byte{255};
+        }
+    }
+    cube.pixels=std::move(pixels);
+    return cube;
+}
+void authored_surface_response() {
+    using Class=SourceSurfaceMaterial;
+    require(pt::surface_material_class("tough_terrain_sand")==Class::Sand &&
+        pt::surface_material_class("hard_metal_thick_for")==Class::Metal &&
+        pt::surface_material_class("painted_metal_plate")==Class::CoatedMetal &&
+        pt::surface_material_class("visor_gold")==Class::Lens &&
+        pt::surface_material_class("cloth_uniform")==Class::Fabric &&
+        pt::surface_material_class("skin_elite")==Class::Skin &&
+        pt::surface_material_tag_class("scenarios\\bitmaps\\nature\\ground\\sand_grey")==Class::Sand &&
+        pt::terrain_bitmap_class("scenarios\\bitmaps\\detail_maps\\nature\\grass\\lush")==Class::Grass &&
+        pt::terrain_bitmap_class("scenarios\\bitmaps\\detail_maps\\concrete\\poured")==Class::Concrete &&
+        pt::surface_material_tag_class("scenarios\\bitmaps\\garden\\weeds")==Class::Grass &&
+        pt::surface_material_tag_class("metal\\sandblasted_paint")==Class::Unknown,
+        "Physical categories used a directory or partial token as a source identity");
+    auto material=white(64);
+    material.specular_brightness=.64f;
+    const auto legacy=pt::material_response(material);
+    require(legacy.detail[2]==0 && legacy.detail[3]==0,"Unknown material changed its legacy response");
+    material.source_surface_material=Class::Sand;
+    const auto sand=pt::material_response(material);
+    require(sand.detail[2]==0xc9c9c9c9u && sand.response[0]==.89f &&
+        std::bit_cast<float>(sand.detail[3])==sand.response[0] &&
+        sand.response[1]==legacy.response[1] && sand.response[2]==legacy.response[2] &&
+        sand.response[3]==legacy.response[3] && sand.base==legacy.base && sand.emission==legacy.emission,
+        "Authored sand absorption modified strength, appearance, or coverage");
+    material.source_surface_material=Class::Polished;
+    const auto polished=pt::material_response(material);
+    require(polished.detail[2]==0 && polished.response[0]==.26f &&
+        polished.response[1]==legacy.response[1] && polished.response[2]==legacy.response[2],
+        "Polished material introduced diffuse absorption or new reflective strength");
+    material.water_pass=true;material.source_surface_material=Class::Sand;
+    const auto water=pt::material_response(material);
+    require(water.detail[2]==0 && water.detail[3]==0,"Water was assigned a solid surface response");
+
+    auto strong=white();
+    strong.environment_pass=std::make_shared<Material>();
+    strong.environment_pass->forward_vertex=4;
+    strong.environment_pass->forward_diffuse={.5f,.3f,.2f,.8f};
+    strong.environment_pass->forward_specular={.7f,.5f,.1f,.4f};
+    const auto unclassified=pt::material_response(strong);
+    require(unclassified.response[0]>=.60f && unclassified.response[1]==.8f && unclassified.response[2]==.4f,
+        "Strong authored gain inferred an unqualified mirror finish");
+    strong.source_surface_material=Class::CoatedMetal;
+    const auto painted=pt::material_response(strong);
+    require(painted.response[0]>.48f && std::abs(painted.response[1]-.28f)<1.e-6f &&
+        std::abs(painted.response[2]-.14f)<1.e-6f && painted.base==unclassified.base &&
+        painted.glancing_tint==unclassified.glancing_tint,
+        "Paint lost its broad reflection, authored facing balance or tint");
+    strong.source_surface_material=Class::Lens;
+    const auto lens=pt::material_response(strong);
+    require(lens.response[0]<painted.response[0] && lens.response[1]==.8f && lens.response[2]==.4f,
+        "Gold lens lost its intentionally strong reflection");
+
+    material.water_pass=false;
+    material.forward_pass=true;material.forward_vertex=3;material.forward_pass_index=0;
+    auto& pass=material.passes.emplace_back();
+    pass.name="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite";
+    pass.vertex_shader="rasterizer\\vertex_shaders_xbox\\stencil_texture";
+    for(const auto word:pt::unlit_uv_detail::texture_words)
+        for(unsigned byte=0;byte<4;++byte)material.vertex_program.push_back(std::byte((word>>(byte*8))&255));
+    pass.vertex_code=material.vertex_program;
+    material.forward_program.words=pt::surface_detail::terrain_three_stage;
+    material.detail=material.bump=material.diffuse;
+    for(auto& sampler:material.texture_states) {
+        sampler.address_u=sampler.address_v=1;
+        sampler.mag_filter=sampler.min_filter=1;
+    }
+    const auto surface=pt::qualified_surface(material);
+    require(surface && surface->family==pt::SurfaceFamily::TerrainBlendThreeStage,"Invalid terrain response fixture");
+    material.source_terrain_materials={Class::Grass,Class::Sand};
+    auto materials=std::span(&material,1);std::vector<Vertex> vertices;triangle(vertices,0,0);
+    auto scene=pt::build_scene(vertices,materials);
+    require(scene.materials[0].detail[2]==0xc9c9ffedu && scene.materials[0].response[0]==.89f,
+        "Terrain atlas creation lost T1 grass/T2 sand packed in authored order");
+    material.source_terrain_materials={Class::Soil,Class::Unknown};
+    pt::refresh_materials_for_geometry(scene,materials,vertices);
+    require(scene.materials[0].detail[2]==0xffffdedeu && scene.materials[0].response[0]==.84f,
+        "Terrain refresh overwrote a current response or classified an unresolved bitmap");
+    material.source_terrain_materials={};
+    pt::refresh_materials_for_geometry(scene,materials,vertices);
+    require(scene.materials[0].detail[2]==0 && scene.materials[0].response[0]==.89f,
+        "When terrain layers are unknown the authored root should only supply the broad lobe");
+}
+void authored_environment() {
+    auto material=white(64);
+    auto& pass=*(material.environment_pass=std::make_shared<Material>());
+    pass.forward_pass=true;pass.forward_vertex=4;pass.forward_blend=8;
+    pass.forward_pass_index=0;
+    auto& selected=pass.passes.emplace_back();
+    // The independent tangent-space program puts the auxiliary vector cube
+    // in stage 2 and the bump-dependent reflected environment in stage 3.
+    pass.forward_program.words[54]=0x62e21u;
+    selected.textures={{0,1,2,0},{1,0,3,0}};
+    pass.bump=environment_cube(4,1,8);
+    pass.auxiliary=environment_cube(128,2,24);
+    auto materials=std::span(&material,1);
+    const auto maps=pt::find_environment_maps(materials);
+    require(maps[0]==&pass.auxiliary,"Authored reflection selected a normalization cube instead of stage 3");
+    auto scene=pt::build_scene({},materials);
+    scene.material_environment_maps=maps;
+    std::vector<Vertex> vertices;triangle(vertices,0,0);
+    pt::refresh_materials_for_geometry(scene,materials,vertices);
+    const auto& gpu=scene.materials[0];
+    const auto record=gpu.detail[1];
+    require((gpu.texture[3]&pt::environment_mask_flag)!=0,
+        "Independent environment lost the texture pass's destination-alpha mask");
+    require(record && scene.pixels.at(record)==64,"Environment atlas did not select the bounded mip");
+    for(unsigned face=0;face<6;++face) {
+        const auto begin=scene.pixels.begin()+record+1+face*64*64;
+        require(std::all_of(begin,begin+64*64,[face](auto pixel){return pixel==(0xff000020u+face);}),
+            "Environment atlas did not preserve face-major mip order and RGBA");
+    }
+    require(!(gpu.texture[3]&pt::environment_mip_flag),"One resident cube mip gained a coarse level");
+    pass.auxiliary.mips[3].size-=4;
+    require(!pt::find_environment_maps(materials)[0],"Environment admission read past the selected mip");
+    pass.auxiliary=environment_cube(128,1,24);
+    require(!pt::find_environment_maps(materials)[0],"Environment admission exceeded the bounded face size");
+    pass.auxiliary=environment_cube(128,3,24);
+    auto pyramid=pt::build_scene({},materials);
+    pyramid.material_environment_maps=pt::find_environment_maps(materials);
+    pt::refresh_materials_for_geometry(pyramid,materials,vertices);
+    const auto mip=pyramid.materials[0].detail[1]+1+6*64*64;
+    require((pyramid.materials[0].texture[3]&pt::environment_mip_flag) &&
+        pyramid.pixels.at(mip)==32 && pyramid.pixels.at(mip+1+5*32*32)==0xff00002du,
+        "Environment atlas lost the next authored mip or its face order");
+    pt::refresh_materials_for_geometry(pyramid,materials,vertices);
+    require(pyramid.materials[0].texture[3]&pt::environment_mip_flag,
+        "Material refresh dropped the resident environment mip");
+    pass.auxiliary=environment_cube(4,1,24);
+    material.forward_raster.alpha_test=1;
+    require(!(pt::material_response(material).texture[3]&pt::environment_mask_flag),
+        "An opaque-material destination alpha fallback was applied to alpha coverage");
+
+    // A native direct cube lookup can put the authored cube in stage 1
+    // while stage 3 independently holds the externally bound vector cube.
+    pass.forward_program.words[54]=0x18461u;
+    selected.textures={{0,1,3,0},{1,0,1,0}};
+    pass.detail=environment_cube(4,1,32);
+    require(pt::find_environment_maps(materials)[0]==&pass.detail,
+        "Direct environment selection ignored authored and external texture bindings");
+    selected.textures.erase(selected.textures.begin()+1);
+    require(!pt::find_environment_maps(materials)[0],"An inactive bound texture supplied authored shine");
+}
+void atlas_pressure_compacts() {
+    const auto retired_cube=environment_cube(4,1,7);
+    const auto cube=environment_cube(8,2,23);
+    const auto duplicate=cube;
+    auto normal=white().diffuse;
+    normal.width=normal.height=4;
+    normal.pixels=std::vector<std::byte>(64,std::byte{128});
+    auto surface=white();
+    surface.forward_pass=true;surface.forward_vertex=3;surface.forward_pass_index=0;
+    auto& pass=surface.passes.emplace_back();
+    pass.name="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite";
+    pass.vertex_shader="rasterizer\\vertex_shaders_xbox\\stencil_texture";
+    for(const auto word:pt::unlit_uv_detail::texture_words)
+        for(unsigned byte=0;byte<4;++byte)surface.vertex_program.push_back(std::byte((word>>(byte*8))&255));
+    pass.vertex_code=surface.vertex_program;
+    surface.forward_program.words=pt::surface_detail::terrain_three_stage;
+    surface.detail=surface.bump=surface.diffuse;
+    for(auto& sampler:surface.texture_states) {
+        sampler.address_u=sampler.address_v=1;
+        sampler.mag_filter=sampler.min_filter=1;
+    }
+    std::array materials{white(),surface,white(),white()};
+    auto scene=pt::build_scene({},materials);
+    scene.material_environment_maps={&retired_cube,&cube,&duplicate,nullptr};
+    scene.material_normal_maps={nullptr,&normal,nullptr,nullptr};
+    std::vector<Vertex> before;triangle(before,0,0,0);triangle(before,2,0,1);triangle(before,4,0,2);
+    pt::refresh_materials_for_geometry(scene,materials,before);pt::update_geometry(scene,before);
+    const auto cube_before=scene.materials[1].detail[1];
+    require(scene.material_environment_images.size()==2 && cube_before && scene.materials[2].detail[1]==cube_before,
+        "Identical authored cubes consumed duplicate atlas allocations");
+    const auto root_color=pt::material_surface(scene,1,{.25f,.25f});
+    const auto normal_before=scene.materials[1].detail[0];
+
+    // Simulate the gaps left by earlier growing animation frames without
+    // constructing or decompressing artificial high resolution textures.
+    scene.pixels.resize(16'777'216);scene.texture_texel_count=std::uint32_t(scene.pixels.size());
+    const auto third_capacity=scene.material_texel_capacities[2];
+    scene.material_texel_capacities[2]=scene.texture_texel_count-scene.materials[2].texture[0];
+    auto over_budget=before;triangle(over_budget,6,0,3);
+    rejects([&]{pt::refresh_materials_for_geometry(scene,materials,over_budget);},
+        "Genuinely over-budget live atlas was accepted");
+    require(scene.materials[1].detail[1]==cube_before && scene.material_texel_capacities[0]!=0 &&
+        scene.texture_texel_count==16'777'216 && pt::material_surface(scene,1,{.25f,.25f})==root_color,
+        "Over-budget admission damaged the prior valid root or shared cube");
+    scene.material_texel_capacities[2]=third_capacity;
+    std::vector<Vertex> after;triangle(after,2,0,1);triangle(after,4,0,2);triangle(after,6,0,3);
+    pt::refresh_materials_for_geometry(scene,materials,after);pt::update_geometry(scene,after);
+    require(scene.texture_texel_count<1024 && scene.material_texel_capacities[0]==0 &&
+        scene.material_environment_images.size()==1 && scene.triangles.size()==3,
+        "A cut freed neither retired textures nor preceding shot gaps");
+    const auto cube_after=scene.materials[1].detail[1];
+    require(cube_after!=cube_before && cube_after==scene.materials[2].detail[1] &&
+        scene.pixels.at(cube_after)==8 && scene.pixels.at(cube_after+1)==0xff000017u &&
+        scene.pixels.at(cube_after+1+6*8*8)==4 && (scene.materials[2].texture[3]&pt::environment_mip_flag),
+        "Compaction did not preserve both shared cube levels and referenced offsets");
+    require(scene.materials[1].detail[0]!=normal_before && scene.pixels.at(scene.materials[1].detail[0])==1 &&
+        pt::material_surface(scene,1,{.25f,.25f})==root_color,
+        "Compaction left a stale normal map or a relative material texture address");
+    pt::refresh_materials_for_geometry(scene,materials,before);pt::update_geometry(scene,before);
+    require(scene.material_texel_capacities[0]!=0 && scene.material_environment_images.size()==2 &&
+        scene.pixels.at(scene.materials[0].detail[1]+1)==0xff000007u,
+        "A material reappearing after a cut did not recover its original texture");
 }
 void large_source_material_bank() {
     // Actual four-view Coagulation preload size from ECR-006. IDs remain the
@@ -312,6 +537,7 @@ int main()try {
     require(rough.response[1]==0 && rough.response[2]==0 && rough.response[0]>=.8f,
         "Ordinary diffuse material acquired an unsolicited shiny coat");
     Material visor=white();visor.name="objects\\characters\\masterchief\\shaders\\masterchief_visor";
+    visor.source_surface_material=SourceSurfaceMaterial::Lens;
     visor.environment_pass=std::make_shared<Material>();visor.environment_pass->forward_vertex=4;
     visor.environment_pass->forward_diffuse={.9f,.65f,.2f,.7f};
     visor.environment_pass->forward_specular={.7f,.3f,.1f,.9f};
@@ -329,15 +555,22 @@ int main()try {
     scene=pt::build_scene(vertices,materials);
     // The emitter table holds an index and a running power per emitter.
     const auto emitter_groups=scene.texture_texel_count+2*scene.emissive_count;
-    require(scene.emissive_count==1 && scene.pixels.size()==emitter_groups+pt::emitter_group_header_words+pt::emitter_group_words,
+    const auto group=emitter_groups+pt::emitter_group_header_words;
+    const auto bounds=group+pt::emitter_group_words;
+    require(scene.emissive_count==1 && scene.pixels.size()==bounds+pt::emitter_bounds_words,
         "Authored emissive geometry was omitted from direct-light sampling");
     require(scene.pixels[emitter_groups]==pt::emitter_group_magic && scene.pixels[emitter_groups+1]==1 &&
         std::bit_cast<float>(scene.pixels[emitter_groups+2])>0,
         "Emissive continuation lost its bounded source-group proposal metadata");
-    const auto group=emitter_groups+pt::emitter_group_header_words;
     require(scene.pixels[group]==1 && scene.pixels[group+1]==1 &&
         std::bit_cast<float>(scene.pixels[group+3])>0 && std::bit_cast<float>(scene.pixels[group+7])>0,
         "Emitter proposal changed its source material, triangle count or finite geometric bounds");
+    const auto& emitter=scene.triangles[scene.pixels[scene.texture_texel_count]];
+    for(unsigned axis=0;axis<3;++axis) {
+        require(std::bit_cast<float>(scene.pixels[bounds+axis])==std::min({emitter.p0[axis],emitter.p1[axis],emitter.p2[axis]}) &&
+            std::bit_cast<float>(scene.pixels[bounds+3+axis])==std::max({emitter.p0[axis],emitter.p1[axis],emitter.p2[axis]}),
+            "Live emitter bounds do not enclose the complete shadow target");
+    }
     auto uniform=scene.uniform();require(uniform.environment[0]==0 && uniform.environment[1]==0 && uniform.environment[2]==0,
         "Scene added an invented sky light");
     require(std::bit_cast<std::uint32_t>(uniform.environment[3])==scene.texture_texel_count,
@@ -441,6 +674,9 @@ int main()try {
             "Partially stippled source primitive lost its documented solid secondary-ray coverage");
     }
     refit_regressions();
+    authored_surface_response();
+    authored_environment();
+    atlas_pressure_compacts();
     std::cout<<"PASS Path Tracing BVH/refit, finite shadows, alpha any-hit, posed refresh, authored matte/visor response and emitters\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

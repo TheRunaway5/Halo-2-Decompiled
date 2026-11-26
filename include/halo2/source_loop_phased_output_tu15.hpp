@@ -2,6 +2,7 @@
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/source_loop_track_update_tu15.hpp"
 #include "halo2/source_loop_combined_mix_tu15.hpp"
+#include <compare>
 #include <map>
 namespace halo2 {
 // Real native output operations. No operation returns an Xbox voice datum,
@@ -93,8 +94,14 @@ struct SourceLoopPhasedOwnerTu15 {
     bool seen{},retain{},stopping{};
 };
 struct SourceLoopPhasedSynchronizationTu15 {std::uint32_t seed{},references{};};
+struct SourceLoopPhasedOwnerKeyTu15 {
+    std::uint32_t sound;
+    std::uint64_t identity;
+    bool playback_parent{};
+    auto operator<=>(const SourceLoopPhasedOwnerKeyTu15&) const=default;
+};
 struct SourceLoopPhasedStateTu15 {
-    std::map<std::pair<std::uint32_t,std::uint32_t>,SourceLoopPhasedOwnerTu15> owners;
+    std::map<SourceLoopPhasedOwnerKeyTu15,SourceLoopPhasedOwnerTu15> owners;
     std::map<std::uint32_t,SourceLoopPhasedSynchronizationTu15> synchronization;
     //21AEB0's default controller (no controller definition): each new track
     // of a synchronized loop advances it and takes the result as its seed.
@@ -111,6 +118,8 @@ std::pair<std::uint32_t,std::uint32_t> source_loop_phased_key_tu15(
 // and pitch layers. Unsynchronized selection retains the common RNG/range bank.
 // Other profiles remain explicit requirements, not guessed fallbacks.
 void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15&,SourceLoopPhasedOutputTu15&,
-    const SourceLoopSoundRequestTu15&,const LoopingSound&);
+    const SourceLoopSoundRequestTu15&,const LoopingSound&,std::optional<std::uint64_t> playback_parent={});
+void source_loop_phased_remove_tu15(SourceLoopPhasedStateTu15&,SourceLoopPhasedOutputTu15&,
+    SourceLoopPhasedOwnerKeyTu15);
 void source_loop_phased_frame_tu15(SourceLoopPhasedStateTu15&,SourceLoopPhasedOutputTu15&,float elapsed);
 }

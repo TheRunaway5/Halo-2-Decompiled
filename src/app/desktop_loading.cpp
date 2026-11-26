@@ -52,6 +52,28 @@ public:
     if(transition_active_ && snapshot_.active)snapshot_.network_transition=status;
   }
 
+  void prepare_materials(Mesh& mesh) {
+    auto lock=control_lock();rethrow();
+    prepared_mesh_=&mesh;
+    prepared_base_=unsigned(mesh.materials.size());
+    if(presentation_) {
+      const auto bank=presentation_->materials();
+      mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+    }
+    prepared_source_base_=unsigned(mesh.materials.size());
+    if(source_wait_presentation_) {
+      const auto bank=source_wait_presentation_->materials();
+      mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+    }
+    prepared_transition_base_=unsigned(mesh.materials.size());
+    if(transition_presentation_) {
+      const auto bank=transition_presentation_->materials();
+      mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+    }
+    prepared_end_=mesh.materials.size();
+    prepared_ready_=true;
+  }
+
   std::shared_ptr<Renderer> make_renderer(SDL_Window *window,Mesh& mesh,bool validation,
       std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,
       const std::filesystem::path &shader_directory,
@@ -64,20 +86,26 @@ public:
       window_=window;
       if(pending_)throw FormatError("a loading renderer handoff is already pending");
       previous=current_;
-      base=unsigned(mesh.materials.size());
-      if(presentation_) {
-        const auto bank=presentation_->materials();
-        mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
-      }
-      source_base=unsigned(mesh.materials.size());
-      if(source_wait_presentation_) {
-        const auto bank=source_wait_presentation_->materials();
-        mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
-      }
-      transition_base=unsigned(mesh.materials.size());
-      if(transition_presentation_) {
-        const auto bank=transition_presentation_->materials();
-        mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+      if(prepared_ready_ && prepared_mesh_==&mesh && prepared_end_<=mesh.materials.size()) {
+        base=prepared_base_;source_base=prepared_source_base_;transition_base=prepared_transition_base_;
+        prepared_ready_=false;prepared_mesh_=nullptr;prepared_end_=0;
+      } else {
+        prepared_ready_=false;prepared_mesh_=nullptr;prepared_end_=0;
+        base=unsigned(mesh.materials.size());
+        if(presentation_) {
+          const auto bank=presentation_->materials();
+          mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+        }
+        source_base=unsigned(mesh.materials.size());
+        if(source_wait_presentation_) {
+          const auto bank=source_wait_presentation_->materials();
+          mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+        }
+        transition_base=unsigned(mesh.materials.size());
+        if(transition_presentation_) {
+          const auto bank=transition_presentation_->materials();
+          mesh.materials.insert(mesh.materials.end(),bank.begin(),bank.end());
+        }
       }
       // CPU scene/resource preparation is complete at this boundary. The old
       // device can present the original fade while the new device uploads and
@@ -405,6 +433,10 @@ private:
   unsigned current_base_{},pending_base_{};
   unsigned current_source_base_{},pending_source_base_{};
   unsigned current_transition_base_{},pending_transition_base_{};
+  const Mesh *prepared_mesh_{};
+  unsigned prepared_base_{},prepared_source_base_{},prepared_transition_base_{};
+  std::size_t prepared_end_{};
+  bool prepared_ready_{};
   DesktopLoadingSnapshot snapshot_;
   VistaLoadingFadeState fade_{0,0,0x3f800000};
   std::uint32_t sweep_progress_bits_{};
@@ -457,6 +489,9 @@ void DesktopSession::begin_multiplayer_loading(FrontendNetworkTransitionStatus s
 }
 void DesktopSession::network_transition_status(FrontendNetworkTransitionStatus status) {
   if(loading_)loading_->network_transition_status(status);
+}
+void DesktopSession::prepare_loading_materials(Mesh& mesh) {
+  if(loading_)loading_->prepare_materials(mesh);
 }
 std::shared_ptr<Renderer> DesktopSession::make_renderer(Mesh& mesh,bool validation,
     std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,

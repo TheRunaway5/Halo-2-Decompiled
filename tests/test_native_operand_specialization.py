@@ -595,6 +595,36 @@ assert not {'native_codec_translation_replacements','native_packed_rotation_repl
             self.assertGreater(output.stat().st_mtime_ns,before)
             self.assertEqual(output.read_bytes(),before_bytes)
 
+    def test_reconfigure_keeps_the_explicit_specialized_source(self):
+        with tempfile.TemporaryDirectory(prefix='halo2-operand-reconfigure-') as directory:
+            root=Path(directory)
+            (root/'src').mkdir()
+            source=root/'src/probe_generated.cpp'
+            source.write_text('std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){return p;}\n')
+            module=ROOT/'cmake/NativeOperandSpecialization.cmake'
+            (root/'CMakeLists.txt').write_text(f"""cmake_minimum_required(VERSION 3.22)
+project(OperandReconfigure LANGUAGES CXX)
+set(Python3_EXECUTABLE "{sys.executable}")
+include("{module}")
+halo2_native_operand_source(prepared src/probe_generated.cpp)
+add_library(probe STATIC "${{prepared}}")
+halo2_specialize_native_target(probe)
+file(GENERATE OUTPUT "${{CMAKE_CURRENT_BINARY_DIR}}/sources.txt" CONTENT "$<TARGET_PROPERTY:probe,SOURCES>")
+""")
+            build=root/'build'
+            configure=['cmake','-G','Ninja','-S',str(root),'-B',str(build)]
+            subprocess.run(configure,check=True,capture_output=True,text=True)
+            prepared=build/'native-operands/probe_generated.cpp'
+            before=(build/'sources.txt').read_text()
+            self.assertIn(str(prepared),before.split(';'))
+            prepared.parent.mkdir(parents=True,exist_ok=True)
+            # Model the existing generated file with its retained dispatch
+            # signature. A second configure must leave it on its first rule.
+            prepared.write_bytes(source.read_bytes())
+            reconfigured=subprocess.run(configure,capture_output=True,text=True)
+            self.assertEqual(reconfigured.returncode,0,reconfigured.stderr)
+            self.assertEqual((build/'sources.txt').read_text(),before)
+
     def test_scale_binder_loads_only_its_copied_pure_siblings(self):
         script=r'''
 import importlib.util

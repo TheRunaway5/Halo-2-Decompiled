@@ -1,10 +1,20 @@
 // Included inside the native weapon dispatcher's private namespace.
 // Marker owners retain real lower calls and exact original memory ordering.
+#include "native_weapon_marker_matrix_kernel_tu15_internal.hpp"
+
 void marker_matrix_locations(Memory &m,Abi &a,const Observer &o,const Services &s) {
     bool sse_active{};std::optional<SseEnvironment> environment;
     const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
     const auto right=[&](std::uint32_t value,unsigned count){const auto result=value>>count;iterator_logic_flags(r,result,4);a.eflags=(a.eflags&~1u)|((value>>(count-1u))&1u);return result;};
     const auto signed_word=[](std::uint32_t value){return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(value))));};
+    using authored_marker_matrix::Resume;
+    switch (authored_marker_matrix::MatrixLocations(m,a,o,s).run()) {
+    case Resume::retained: break;
+    case Resume::completed: return;
+    case Resume::parent_return: goto parent_ready;
+    case Resume::lookup_return: goto lookup_ready;
+    case Resume::emission_return: goto emission_ready;
+    }
     instruction(0xbad60);a.gp[4]=iterator_flags(r,a.gp[4],8,4,true);
     instruction(0xbad63);push(m,a,o,0xbad63,a.gp[5]);
     instruction(0xbad64);push(m,a,o,0xbad64,a.gp[6]);
@@ -52,6 +62,7 @@ parent_ready:
     instruction(0xbadf7);store(m,o,0xbadf7,a.gp[4]+0x10,a.gp[2]);
     instruction(0xbadfb);store(m,o,0xbadfb,a.gp[4]+0x10,a.gp[1]);
     call(m,a,o,s,0xbadff,0x1e11b0);
+lookup_ready:
     instruction(0xbae04);a.gp[2]=signed_word(read(m,a.gp[4]+0x20,2));
     instruction(0xbae09);a.gp[1]=read(m,a.gp[4]+0xc);
     instruction(0xbae0d);push(m,a,o,0xbae0d,a.gp[2]);
@@ -62,6 +73,7 @@ parent_ready:
     instruction(0xbae15);push(m,a,o,0xbae15,0);
     instruction(0xbae17);push(m,a,o,0xbae17,a.gp[6]);
     call(m,a,o,s,0xbae18,0x1e1200);
+emission_ready:
     instruction(0xbae1d);a.gp[5]=a.gp[0];
     instruction(0xbae1f);iterator_logic_flags(r,a.gp[5]&65535u,2);
     instruction(0xbae22);if(!(a.eflags&64u))goto result_ready;

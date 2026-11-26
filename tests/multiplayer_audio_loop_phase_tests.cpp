@@ -56,14 +56,20 @@ int main(int argc,char** argv)try{
   (void)audio.render(2048);
   check(audio.playback_position(*voice).output_frames>0,"Phase prefix consumed no actual PCM");
   const auto checkpoint=audio.checkpoint();
-  const auto rate=std::bit_cast<float>(parameters.relative_rate_bits);
+  check(parameters.native.has_value(),"Converted phase fixture lacks its authored pitch register");
+  const auto pitch=parameters.native->pitch;
+  const auto native_step=std::floor(std::exp2(pitch/4096.0)*65536.0)/65536.0;
+  const auto storage_step=native_step*48000.0/parameters.native->sample_rate;
   const auto frames=first.frames()+next.frames();
-  const auto remaining=std::size_t(std::ceil(double(frames)/rate))+2048;
+  const auto expected_output_frames=std::uint64_t(std::ceil(double(frames)/storage_step));
+  const auto remaining=std::size_t(expected_output_frames)+2048;
   const auto expected=audio.render(remaining);
   const auto position=audio.playback_position(*voice);
-  check(position.output_frames==std::uint64_t(std::ceil(double(frames)/rate)) &&
-      std::abs(position.source_frames-double(frames))<.00001,
-      "Phase queue inserted an underrun or lost authored decoded frames");
+  if(position.output_frames!=expected_output_frames ||
+      std::abs(position.source_frames-double(frames))>=.00001)
+    throw std::runtime_error("Phase queue frame count differs: output "+std::to_string(position.output_frames)+
+        "/"+std::to_string(expected_output_frames)+", source "+std::to_string(position.source_frames)+
+        "/"+std::to_string(frames)+", pitch register "+std::to_string(pitch));
   check(std::ranges::any_of(expected,[](float v){return v!=0;}),"Phase suffix contains only silence");
   audio.update();check(!audio.voice_active(*voice),"Completed phase stream did not retire");
   auto replacement=audio.prepare_restore(checkpoint);const auto target=replacement.voice(*voice);

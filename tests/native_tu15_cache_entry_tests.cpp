@@ -1,5 +1,5 @@
 // Native TU1.5 geometry cache entry check (130D20) against the unmodified
-// translated body of the physics live support unit, extracted by
+// translated bodies of the physics, model, and shadow frame units, extracted by
 // tools/validate_native_frame_misc_tu15.py into body.inc, plus the
 // verification reference the production binder generates (reference.inc).
 // The child 22A790 is a genuine stand-in whose effects are a hash of its
@@ -35,12 +35,18 @@ void stub(WorldState &s) {
     std::uint32_t cleanup=0u;
     if(policy&2u && rng()%37==0)cleanup=4u*std::uint32_t(rng()%3);
     s.gp[4]+=8u+cleanup;
+    if(policy&4u)throw std::runtime_error("Interrupted 22A790");
 }
 }
 namespace original {
 using namespace halo2::physics_world_runtime_detail;
 std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage){return p;}
-static void run_22a790(WorldState &s){stub(s);}
+[[maybe_unused]] static void run_22a790(WorldState &s){stub(s);}
+[[maybe_unused]] static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail) {
+    if(target!=0x22a790u || site!=0x130d92u || tail)
+        throw std::logic_error("Unexpected geometry cache child");
+    stub(s);
+}
 #include "body.inc"
 #include "reference.inc"
 }
@@ -72,8 +78,16 @@ Case author(std::mt19937 &rng,unsigned n) {
     }
     for(std::uint32_t at=scratch;at<scratch+0x100u;at+=4)m.put(at,std::uint32_t(rng()));
     for(std::uint32_t at=stack-0x80u;at<stack+0x40u;at+=4)m.put(at,std::uint32_t(rng()));
-    m.put(stack,0x130000u+pick(0x100));m.put(stack+4u,(std::uint32_t(rng())<<16)|pick(16));
+    m.put(stack,0x130000u+pick(0x100));
+    const auto index=pick(16);
+    m.put(stack+4u,(std::uint32_t(rng())<<16)|index);
     random_abi(rng,c,stack);
+    if(shape==14) {
+        m.put(entry_data+12u*index+2u,1u,1);
+        m.put(owners+0x40u*index+0x1eu,1u,1);
+        m.put(record_data+24u*index+0x14u,now-1u);
+        c.policy|=4u;
+    }
     if(shape==15) {
         static constexpr std::uint32_t regions[]{entries_array,entry_data,cache_block,records_array,record_data,owners};
         m.drop(regions[pick(6)]);
@@ -81,7 +95,8 @@ Case author(std::mt19937 &rng,unsigned n) {
     return c;
 }
 bool native(WorldState &s) {
-    return cache::bridge(s,[](auto &v){original::native_frame_misc_reference_130d20(v);},[](auto &v){original::run_22a790(v);});
+    return cache::bridge(s,[](auto &v){original::native_frame_misc_reference_130d20(v);},
+        [](auto &v){original::dispatch(v,0x22a790u,0x130d92u,false);});
 }
 void reference(WorldState &s){original::run_130d20(s);}
 }
@@ -92,7 +107,7 @@ int main(int argc,char **argv)try {
     std::mt19937 rng(0x130d20u+(census_mode?1u:0u)+(mode=="verify"?2u:0u));
     Totals t;
     for(unsigned n=0;n<cases;++n)
-        if(!compare(n,author(rng,n),native,reference,t))return 1;
+        if(!compare(n,author(rng,n),native,reference,t,false,{},true))return 1;
     if(!census_mode)check_refusals(author(rng,1),native);
     report(cases,t,cache::coverage().load(),unsigned(cache::branch_count),mode);
     return 0;

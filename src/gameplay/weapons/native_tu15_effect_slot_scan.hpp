@@ -1,8 +1,8 @@
 #pragma once
-#include "halo2/native_tu15_bitmap_scan_kernel.hpp"
 #include "halo2/native_weapon_effect_birth_color_observer.hpp"
 #include "halo2/physics_world_runtime.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
+#include <bit>
 #include <cstdlib>
 
 namespace halo2::native_effect_slot_scan_detail {
@@ -44,48 +44,113 @@ inline void compare(std::uint32_t&flags,std::uint32_t left,std::uint32_t right) 
     flags|=unsigned(left<right)|(((left^right^result)&16u)?16u:0u)|
         (((left^right)&(left^result)&0x80000000u)?2048u:0u);
 }
-// Integer ABI transport only. The typed bitmap loop owns no virtual register
-// or flag bookkeeping. Arbitrary memory-exception partial ABI remains separate.
-inline std::uint32_t run(SourcePhysicsContactMemory&memory,std::array<std::uint32_t,8>&gp,
-    std::uint32_t&flags,const SourcePhysicsContactRecordObserver&observe,std::uint32_t*position=nullptr) {
+struct Resume {
+    std::uint32_t pc;
+};
+
+inline void run(SourcePhysicsContactMemory&memory,std::array<std::uint32_t,8>&gp,
+    std::uint32_t&flags,const SourcePhysicsContactRecordObserver&observe,
+    const SourcePhysicsWorldRuntimeServices*services=nullptr) {
+    const auto*cursor=services?&services->instruction_cursor:nullptr;
+    auto*position=services&&services->instruction?cursor->position:nullptr;
+    const bool sealed=position&&services->immutable_instruction_cursor.identifies(*services);
+    const auto*census_type=!position&&services&&services->instruction&&census_callbacks(*services)
+        ?&services->instruction.target_type():nullptr;
     const auto at=[&](std::uint32_t pc){if(position)*position=pc;};
-    const auto push=[&](std::uint32_t site,std::uint32_t value) {
-        at(site);
-        const auto at=gp[4]-4u;SourcePhysicsContactRecordStore event{site,at,{},std::vector<std::byte>(4)};
-        if(observe){event.before.resize(4);memory.read(at,event.before);}
-        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8u*n));
-        memory.write(at,event.written);gp[4]=at;if(observe)observe(event);
-    };
-    const auto pop=[&](std::uint32_t site){at(site);const auto value=word(memory,gp[4]);gp[4]+=4u;return value;};
-    const auto first=gp[2];gp[0]=0xffffffffu;
-    logic(flags,first);
-    if(std::bit_cast<std::int32_t>(first)<0){pop(0x16ea98u);return 0x16ea98u;}
-    push(0x16ea67u,gp[7]);at(0x16ea68u);const auto limit=word(memory,gp[1]+0x38u);
-    if(std::bit_cast<std::int32_t>(first)>=std::bit_cast<std::int32_t>(limit)) {
-        compare(flags,first,limit);gp[7]=pop(0x16ea97u);pop(0x16ea98u);return 0x16ea98u;
-    }
-    push(0x16ea6fu,gp[6]);at(0x16ea70u);const auto bitmap=word(memory,gp[1]+0x48u);
-    push(0x16ea73u,gp[3]);
-    struct BitmapView {
-        const SourcePhysicsContactMemory&memory;std::uint32_t*position;
-        void read(std::uint32_t address,std::span<std::byte>out)const {
-            if(position)*position=0x16ea85u;memory.read(address,out);
+    const auto recheck=[&](std::uint32_t next) {
+        if(!services)return;
+        if(sealed) {
+            if((cursor->first_trace&&*cursor->first_trace)||(cursor->second_trace&&*cursor->second_trace))
+                throw Resume{next};
+        } else if(position) {
+            if(!services->instruction||cursor->position!=position||!admitted_protocol(*services,observe))
+                throw Resume{next};
+        } else if(services->instruction) {
+            if(!census_type||services->instruction.target_type()!=*census_type||cursor->position)
+                throw Resume{next};
+        } else if(observe&&!NativeWeaponEffectBirthColorCollector::qualified(observe)) {
+            throw Resume{next};
         }
     };
-    const auto result=native_tu15_scan_bitmap_slots(BitmapView{memory,position},bitmap,first,limit);
-    gp[1]=result.word_index;gp[2]=result.index;
-    if(result.found){gp[0]=result.index;logic(flags,result.selected_bit);}
-    else compare(flags,result.index,limit);
-    gp[3]=pop(result.found?0x16ea93u:0x16ea8fu);
-    gp[6]=pop(result.found?0x16ea96u:0x16ea90u);
-    gp[7]=pop(result.found?0x16ea97u:0x16ea91u);pop(result.found?0x16ea98u:0x16ea92u);
-    return result.found?0x16ea98u:0x16ea92u;
+    const auto push=[&](std::uint32_t site,std::uint32_t next,std::uint32_t value) {
+        at(site);
+        const auto address=gp[4]-4u;
+        SourcePhysicsContactRecordStore event{site,address,{},std::vector<std::byte>(4)};
+        if(observe){event.before.resize(4);memory.read(address,event.before);}
+        for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8u*n));
+        memory.write(address,event.written);
+        gp[4]=address;
+        if(observe)observe(event);
+        recheck(next);
+    };
+    const auto load=[&](std::uint32_t site,std::uint32_t address) {
+        at(site);
+        return word(memory,address);
+    };
+    const auto pop=[&](std::uint32_t site) {
+        const auto value=load(site,gp[4]);
+        gp[4]+=4u;
+        return value;
+    };
+    const auto below_limit=[&] {
+        return std::bit_cast<std::int32_t>(gp[2])<std::bit_cast<std::int32_t>(gp[7]);
+    };
+
+    gp[0]=0xffffffffu;
+    logic(flags,gp[2]);
+    if(std::bit_cast<std::int32_t>(gp[2])<0) {
+        pop(0x16ea98u);
+        return;
+    }
+    push(0x16ea67u,0x16ea68u,gp[7]);
+    gp[7]=load(0x16ea68u,gp[1]+0x38u);
+    recheck(0x16ea6bu);
+    compare(flags,gp[2],gp[7]);
+    if(below_limit()) {
+        push(0x16ea6fu,0x16ea70u,gp[6]);
+        gp[6]=load(0x16ea70u,gp[1]+0x48u);
+        recheck(0x16ea73u);
+        push(0x16ea73u,0x16ea74u,gp[3]);
+        do {
+            // Every candidate reads its word with the committed index, mask
+            // and SAR flags in place. TEST commits only after the read returns.
+            gp[3]=1u<<(gp[2]&31u);
+            gp[1]=std::uint32_t(std::bit_cast<std::int32_t>(gp[2])>>5);
+            logic(flags,gp[1]);
+            flags|=(gp[2]>>4u)&1u;
+            const auto selected=load(0x16ea85u,gp[6]+gp[1]*4u)&gp[3];
+            logic(flags,selected);
+            recheck(0x16ea88u);
+            if(selected) {
+                gp[3]=pop(0x16ea93u);
+                recheck(0x16ea94u);
+                gp[0]=gp[2];
+                gp[6]=pop(0x16ea96u);
+                recheck(0x16ea97u);
+                break;
+            }
+            ++gp[2];
+            compare(flags,gp[2],gp[7]);
+            if(!below_limit()) {
+                gp[3]=pop(0x16ea8fu);
+                recheck(0x16ea90u);
+                gp[6]=pop(0x16ea90u);
+                recheck(0x16ea91u);
+                gp[7]=pop(0x16ea91u);
+                recheck(0x16ea92u);
+                pop(0x16ea92u);
+                return;
+            }
+        } while(true);
+    }
+    gp[7]=pop(0x16ea97u);
+    recheck(0x16ea98u);
+    pop(0x16ea98u);
 }
 inline bool try_native(SourcePhysicsContactMemory&memory,std::array<std::uint32_t,8>&gp,
     std::uint32_t&flags,const SourcePhysicsWorldRuntimeServices&services,const SourcePhysicsContactRecordObserver&observe) {
     if(!admitted(services,observe))return false;
-    const auto final_pc=run(memory,gp,flags,observe,services.instruction?services.instruction_cursor.position:nullptr);
-    if(services.instruction&&services.instruction_cursor.position)*services.instruction_cursor.position=final_pc;
+    run(memory,gp,flags,observe,&services);
     return true;
 }
 } // namespace halo2::native_effect_slot_scan_detail

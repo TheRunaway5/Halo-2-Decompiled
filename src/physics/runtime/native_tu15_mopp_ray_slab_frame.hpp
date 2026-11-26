@@ -83,8 +83,7 @@ public:
         case Write::ratio:pc=d.clipping?0x30b2fbu:0x30b2a6u;offset=0x14u;break;
         default:throw std::logic_error("Unknown slab spill");
         }
-        at(pc);const auto pending=scope_.stage_single(pop);
-        Base::store(pc,s_.gp[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);
+        at(pc);Base::spill_single(pc,s_.gp[4]+offset,pop,scope_);
     }
     Vec vector(VectorRead kind,const Data&d){
         const auto pc=kind==VectorRead::start?0x30b268u:kind==VectorRead::end?0x30b26bu:d.clipping?0x30b30fu:0x30b290u;

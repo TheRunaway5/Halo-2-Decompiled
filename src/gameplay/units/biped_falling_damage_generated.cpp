@@ -42,7 +42,13 @@ static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool 
 static void run_bacc0(WorldState &s) {
     // BEGIN native paired weapon owner
     if(s.image==SourcePhysicsContactImage::TitleUpdate15) {
-        auto abi=s.save();auto services=s.services;auto observe=s.observe;
+        auto abi=s.save();
+        try {
+            if(native_weapon_effect_origin_tu15_bridge(s.memory,abi,s.services,s.observe,true)) {
+                s.load(abi);return;
+            }
+        } catch(...) {s.load(abi);throw;}
+        auto services=s.services;auto observe=s.observe;
         // Only this owner's PCs change domains. Lower owners keep their
         // existing observation contracts and actual TU1.5 targets/RET words.
         if(true) {

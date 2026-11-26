@@ -53,6 +53,10 @@ of the sky cube), local and emissive lights, and the baked lightmap as the energ
 bounce light at secondary hits (any lightmap or static-radiance guide counts; with a
 static/dynamic split, sun light that a dynamic object blocks at the hit is removed).
 Maps without a distant light use the baked field as the primary diffuse baseline.
+In campaign, the camera's BSP cluster selects the directional lighting sky.
+The visible sky can supply the backdrop and environment colors independently.
+For example, the Council Chamber sees High Charity through portals and keeps
+its baked diffuse lighting because that sky is marked as backdrop only there.
 Light sources are derived from the map's own data; none are placed by hand:
 
 - **Glow layers.** Additive and premultiplied self-illuminated transparents
@@ -73,10 +77,11 @@ Light sources are derived from the map's own data; none are placed by hand:
   A receiver that reads its baked field already holds that light: light sampling skips
   these emitters there (`baked_emission_flag`, bit 31 of the emitter table entry).
 
-Light sampling picks an emitter triangle in proportion to its power: the emitter table
+Light sampling picks an emitter triangle in proportion to its power. The emitter table
 in `Scene::pixels` holds the triangle indices followed by their running power sum, which
-`traceSampleEmitter` searches. A primary surface that keeps its baked field (maps without a
-distant light) also samples the emitters the bake does not hold.
+`traceSampleEmitter` searches. A surface that keeps its baked field samples the prefix
+of that distribution containing emitters outside the bake. This leaves more samples for
+lights that add to the baked field.
 
 A self-illumination layer over a path-traced surface is drawn by Path Tracing itself
 (`glow_layer.frag`, `Render::bind_glow_layer`): the retail layer tests depth EQUAL against
@@ -88,13 +93,14 @@ its live colour constants and the control words of the path tracer's copy of its
 
 Surface relief at the resolve (`source_detail.glsl`):
 
-- **Normal maps.** Static lightmap shaders bind their bump map themselves. A model's
-  primary pass does not: its lighting pass does. `find_normal_maps` takes, for each drawn
-  material, the stage-2 image of a lighting pass (`\lightmap\`) of the same shader, if it
-  averages to an outward tangent-space normal. `append_normal_map` stores its mip chain
-  (largest level at most 256 texels) in the material's atlas record (`GpuMaterial::detail.x`),
-  and `traceAtlasNormalMap` samples it in the base texture's coordinates at the level the
-  pixel footprint selects.
+- **Normal maps.** Static lightmap shaders bind their own bump map. Qualified
+  model draws sample stage 2 from the completed lighting pass using its ordered
+  c18/c20 UV transforms. The same pixel drives both the traced relief and the
+  live object's signed-Z ambient term. Fixed default lighting uses the same
+  bump coordinates for relief and keeps its own ambient RGB. This applies to
+  both world models and first-person weapon draws. Other model draws can use
+  `find_normal_maps`'s same-shader atlas fallback. Its mip chain has a maximum
+  side of 256 texels and uses the base UV and pixel footprint.
 - **Light direction.** Lightmapped world geometry shades its bump against the bake's
   dominant incident direction, as Halo 2 does. Elsewhere it uses the direction the traced
   diffuse light came from: `traceLighting` returns the luminance-weighted sum of its sample
@@ -102,10 +108,22 @@ Surface relief at the resolve (`source_detail.glsl`):
   the record stores it over the cell's own luminance (length = how directional the light
   is, faded in over the first eight frames), and `traceFilteredIncident` averages it over
   the 5x5 cells of the same surface.
-- **Mirror reflections.** With hardware rays, polished surfaces (`traceMirrorSharpness`)
-  reflect along their own bump-mapped direction at every pixel (`traceMirrorReflection`:
-  one ray; the hit is lit by its emission and baked field or owner ambient, a miss by the
-  sky), blended with the grid's blurred reflection by roughness.
+- **Authored reflections.** The selected reflection pass's texture bindings and
+  NV2A texture modes identify its environment cube. The material atlas stores
+  up to 64 texels per face. Both resolve paths sample it along the per-pixel
+  bump-mapped reflection direction. Independent passes retain their supported
+  alpha masks. Combined model passes retain the authored facing and glancing
+  reflection response, including the Ghost shell, SMG metal and Battle Rifle lens.
+- **Mirror reflections.** With hardware rays, polished surfaces without an authored
+  cube reflect along their per-pixel bump-mapped direction
+  (`traceMirrorReflection`). The hit uses its emission and baked field or owner
+  ambient. A miss sees the sky. Roughness blends the result with the grid.
+- **Water reflections.** Path Tracing adds geometry hits to the existing
+  512×256 water reflection target after the native sky draw. Each ray starts
+  at the authored water plane along the reflected view. Misses preserve the
+  sky and horizon. The native water material still applies its wave distortion,
+  color, blend, and refraction. Both ray traversal paths use the same target
+  shader and reflected-hit lighting.
 
 Lighting records are 20 words and histories 24: every size is a multiple of four words,
 because the denoiser and the resolve read them as 16-byte lanes.
@@ -138,7 +156,11 @@ guide and history-invalidation policies they describe still apply.
 - `scene.cpp`: binned surface-area BVH, source RGBA8/BC image atlas, authored reflection
   strengths, per-frame geometry/light refresh and finite input bounds.
 - `include/halo2/path_tracing/material_residency.hpp`: lazy image admission from
-  the complete ray geometry while retaining the source bank's root slot IDs.
+  the complete ray geometry while retaining the source bank's root slot IDs. When
+  the atlas runs low on space, its active textures are compacted and inactive
+  materials can reload on demand. A qualified surface shares its base image with
+  the ordinary ray record when both select the same mip. Materials that use the
+  same authored reflection cube share its atlas allocation.
 - `include/halo2/path_tracing/emission.hpp`, `material_emission.hpp` and
   `shaders/path_tracing/emission.glsl`: exact admitted self-illumination
   expressions, independent authored mask images, UV transforms and samplers.
@@ -265,6 +287,11 @@ histories. Conservative bounds of actual previous/current occluder positions
 invalidate only receivers whose light segments cross those bounds; a moving
 light invalidates receivers within its old/new influence. These checks add no
 BVH rays. Unrelated animation retains stationary direct and indirect samples.
+For live area lights, the same check tests conservative bounds enclosing
+the sampled emitter triangles. The light bank fingerprint includes geometry,
+UVs and emission, independent of triangle order in the BVH. When a cached
+diffuse field already supplies that lobe, the remaining sampled segment can
+evaluate GGX directly at its physical weight.
 Alpha comparison/cutoff, alpha-kill images, source transforms and alpha-caster
 vertex UV changes also invalidate affected direct visibility. Banks above64
 lights conservatively restart direct visibility when geometry changes.
@@ -405,6 +432,12 @@ BSP provenance (`lightmap` or `bsp_cluster`) distinguishes radiance from actual
 object vertex tint. Transparent/effect/water passes keep their existing renderer
 owners and do not become opaque BVH blockers. Authored alpha comparison and
 texture alpha-kill are applied to shadow and reflection intersections.
+For visible water that samples the native planar reflection target, Path Tracing
+adds geometry to the sky already drawn into that target. Each ray starts at the
+authored reflection plane, follows the reflected view, and shades its hit from
+source lightmaps, owner ambient, and emission. Misses keep the drawn sky. The
+original water pass samples the result with its own animated wave distortion,
+reflection and refraction mix, and alpha.
 Fully faded source primitives (stipple level0) leave the ray scene. Partial
 levels1..15 retain the original primary screen pattern; secondary rays treat
 their surviving triangle as solid. Fractional secondary-ray coverage is a
@@ -422,15 +455,64 @@ reflection strength/tint, source light color, incidence and destination-alpha
 mask. Native light colors are artistic inputs, not calibrated delta-emitter
 radiance; an area-normalized sharp highlight otherwise blows the opening ship's
 hull white. This is a conservative legacy art policy, not a retail GGX formula.
-Indirect reflection sampling, roughness and transport weights are unchanged.
 For banks of at most64 lights, the receiver chooses a source using its unoccluded
 power, influence/frustum, falloff and diffuse/GGX response. The inverse selection
 probability preserves energy, and only the chosen source issues a shadow ray.
 Larger banks retain bounded uniform selection.
-Legacy source materials do not retain physical roughness: the
-optional adapter maps reflection strength to a bounded roughness, making weak
-reflections broader. This is explicit presentation policy, not an original
-material parameter or a claim of original-pixel equivalence.
+
+Path Tracing assigns roughness and diffuse reflectance from the authored shader
+material type. Sand and soil retain less diffuse light, grass has a soft grazing
+response, and concrete, stone and rubber have broad highlights. Known matte and
+satin finishes also bound the strength of specular reflections by scaling both
+authored endpoints together. The reflection balance, tints and masks survive
+this scale, and weaker values pass through. Unclassified materials keep their
+authored reflection strengths and have a broad minimum roughness. The selected
+roughness controls both the GGX lobe and the hardware per-pixel mirror blend.
+
+Known model shader tags refine the shared global material category. The SMG's
+painted metal, bare gunmetal, and rubber grip use separate finishes. The Battle
+Rifle's receiver, polymer, scope housing, and lens do too. Covenant armor and
+skin, Marine uniforms and helmets, and vehicle paint, metal, rubber and vinyl
+follow their own finish values. Original texture stages, change colors, and
+reflection strengths supply the inputs to the finish profiles. When a classified
+surface has an authored environment cube with a coarser mip, its roughness
+blends between the two resident mips.
+
+The Heretic uses separate finishes for Prophet skin, robes, eyes and regalia,
+Honor Guard and Arbiter armor, the Chief's visor, throne panels, ship hulls,
+and Cairo Station's painted panels, exposed metal and rubber flooring. The
+Elite head shader binds the same carapace environment cube as the armor. The
+skin finish gives it a broad dielectric highlight while preserving the original
+color, bump and reflection mask. The finish applies to live owner aliases as
+well as the shared material. Lenses and polished regalia keep their authored
+strength, and water uses its dedicated reflection pass.
+The Honor Guard and pike texture pass retains its four-stage detail and alpha
+expression. The Council Chamber's qualified static and per-vertex lightmap
+programs retain their reflection cube, different facing and grazing strengths,
+and the texture-pass alpha mask. The resolve weights the reflection with the
+baked RGB guide as an approximation of the original light-angle attenuation.
+The authored Council beam volumes draw through their original additive pass.
+The physical lighting bank excludes those volumes because they depict light
+scattering through the room.
+
+Selected armor, regalia, throne and visor surfaces can reflect nearby scene
+geometry when their authored environment pass qualifies. The filtered resolve
+uses one bounded ray along the bump-mapped direction. A nearby hit replaces
+part of the cube radiance according to roughness and distance. Broad finishes
+keep the filtered cube dominant, and the nearby accent bounds the peak of the
+hit radiance while preserving its hue. The source tint and mask apply to the
+result. The Chief's visor uses the smooth lens
+direction for its local ray and keeps the softened gold cube dominant. Close
+helmet intersections and hits without resolved lighting fade to the cube.
+Misses use the authored cube. Thin
+surfaces without a compatible filtered sample use the ordinary fallback trace.
+
+Qualified three- and four-stage terrains select the diffuse response alongside
+the authored detail textures. The same T0 alpha blends T1 and T2 for color and
+diffuse reflectance. The primary resolve applies the response after filtering
+lighting. Secondary and reflected hits evaluate it against their own ray angle
+and sampled material. The additional response fits in the existing material
+record and leaves the albedo, alpha coverage, and emitter power intact.
 
 The exact `stencil_texture` vertex body and complete `default_texture`,
 `default_texture_two_change_color` and `default_texture_four_change_color`
@@ -478,17 +560,25 @@ prove that normal-map alpha determines coverage independently of removed
 lighting. Qualified model vertex radiance is excluded from albedo, while
 procedural vertex tint and per-draw native color constants remain separate.
 
-Qualified dynamic detail and `old_lightmap_tangentspace` model lighting also
-retain their exact ambient term: twice current quantized source extern24 RGB,
+Qualified dynamic detail, including the opaque vertex-alpha and shiny variants,
+and `old_lightmap_tangentspace` model lighting retain their exact ambient term.
+It uses twice the current quantized source extern24 RGB,
 multiplied by signed bump-map Z and current unlit albedo. The ordered native
 c18/c20 bump UVs, source texture and sampler remain intact. Dedicated PT-only
 descriptor copies carry each completed object's/view's ambient and bump
 binding; native sky, environment, child and other pass descriptors are unchanged.
 This baseline is evaluated at full resolution outside temporal history.
 Native directional/specular terms are not added through this conduit.
+The qualified default object-lighting pass has its own fixed ambient term.
+It multiplies the same authored albedo by twice the pass's packed word14 RGB,
+without the live pass's bump-Z factor. This transfer applies to both primary
+and secondary hits on opaque surfaces whose later passes do not read their alpha.
 Qualified secondary model hits read the same completed owner's quantized
 ambient and ordered bump UVs from a compact shared-texture record. The native
 baseline remains additive to the authored environment response on both paths.
+Opaque one-change-color materials use their authored RGB mask and the current
+owner's paint color. The live and default lighting programs supply those
+colors and their ambient values from their own native constant slots.
 Per-view material aliases also retain the current owner's source color
 constants, reflection mask, texture transforms and selected animated images;
 their stable identities are shared by primary draws and secondary geometry.

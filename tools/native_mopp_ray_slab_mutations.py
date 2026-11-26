@@ -15,14 +15,14 @@ def qualify(scratch,output,rows,io):
     assert any(row['phase']=='before_write' for row in selected)
     assert any('dual_nan' in row['name'] for row in selected)
     fixture=project/'fixture.json';fixture.write_text(json.dumps(dict(image_sha256=PIN,io_sites=io,cases=selected)))
-    frame='src/physics/runtime/native_tu15_mopp_ray_slab_frame.hpp'
+    caller='src/physics/runtime/native_tu15_mopp_ray_caller_frame.hpp'
     core='include/halo2/native_tu15_mopp_ray_slab_kernel.hpp'
     scale='src/physics/runtime/native_tu15_mopp_ray_scale_frame.hpp'
-    sources={name:(ROOT/name).read_text() for name in (frame,core,scale)}
+    sources={name:(ROOT/name).read_text() for name in (caller,core,scale)}
     mutations={
-        'premature_spill_commit':(frame,((
-            'Base::store(pc,s_.gp[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);',
-            'scope_.commit(pending);Base::store(pc,s_.gp[4]+offset,pending.bits,[]{},true);'),)),
+        'premature_spill_commit':(caller,((
+            'store(pc,address,pending.bits,[&]{scope.commit(pending);},true);',
+            'scope.commit(pending);store(pc,address,pending.bits,[]{},true);'),)),
         'unprotected_provider':(scale,((
             'scope->io(std::forward<Callback>(callback));','std::forward<Callback>(callback)();'),)),
         'hoisted_high_byte':(core,((

@@ -211,6 +211,8 @@ MenuState::MenuState(const FrontendContent &content,
           unsigned layout{};if(file>>layout && layout<2)pc_display_.two_player_split=TwoPlayerSplit(layout);
         } else if(kind=="pc_crt_filter") {
           unsigned enabled{};if(file>>enabled && enabled<2)pc_display_.crt_filter=enabled!=0;
+        } else if(kind=="pc_object_motion_blur") {
+          unsigned enabled{};if(file>>enabled && enabled<2)pc_display_.object_motion_blur=enabled!=0;
         } else if(kind=="pc_graphics_mode") {
           unsigned mode{};if(file>>mode && mode<=unsigned(pstencil::GraphicsMode::PathTracing))
             pc_display_.graphics_mode=pstencil::GraphicsMode(mode);
@@ -2176,6 +2178,7 @@ void MenuState::save() const {
   file << "pc_speakers " << pc_display_.speakers << '\n';
   file << "pc_fov " << pc_display_.field_of_view << ' ' << pc_display_.vehicle_field_of_view << '\n';
   file << "pc_crt_filter " << pc_display_.crt_filter << '\n';
+  file << "pc_object_motion_blur " << pc_display_.object_motion_blur << '\n';
   file << "pc_graphics_mode " << unsigned(pc_display_.graphics_mode) << '\n';
   file << "pc_path_tracing " << pc_display_.path_tracing_samples << ' ' << pc_display_.path_tracing_bounces << '\n';
   file << "pc_two_player_split " << unsigned(pc_display_.two_player_split) << '\n';

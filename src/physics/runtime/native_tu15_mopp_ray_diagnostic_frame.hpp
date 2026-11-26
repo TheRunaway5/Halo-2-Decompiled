@@ -10,7 +10,7 @@ template<class State,class Before,class Dispatch>class DiagnosticFrame:public In
     using Base::s_;using Base::at;using Base::word;using Base::push;using Base::pop;
     native_raw_x87_detail::Scope<State>&scope_;Dispatch&dispatch_;
     void call(std::uint32_t pc,std::uint32_t target,std::uint32_t returned){
-        const auto address=s_.gp[4]-4u;Base::store(pc,address,returned,[&]{s_.gp[4]=address;},true);
+        push(pc,returned,true);
         scope_.child([&]{dispatch_(s_,target,pc);});
     }
 public:

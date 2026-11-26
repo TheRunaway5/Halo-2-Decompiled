@@ -1,4 +1,5 @@
 #include "halo2/path_tracing/render.hpp"
+#include "halo2/path_tracing/emitter_sampling.hpp"
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/path_tracing/lighting_storage.hpp"
 #include "halo2/path_tracing/surface.hpp"
@@ -150,6 +151,41 @@ std::uint64_t direct_lighting_key(const Scene& scene) {
     }
     return key;
 }
+std::uint64_t area_lighting_key(const Scene& scene) {
+    // Compare the unbaked radiance sources independently of punctual-light
+    // and bounce histories. A stationary emitter can animate its bitmap,
+    // combiner or constant radiance without changing any shadow bounds.
+    const auto first=std::size_t(scene.texture_texel_count);
+    const auto header=first+2u*scene.emissive_count;
+    if(!scene.emissive_count || header>scene.pixels.size() ||
+       scene.pixels.size()-header<emitter_group_header_words || scene.pixels[header]!=emitter_group_magic)return 0;
+    const auto count=std::min(scene.pixels[header+3],scene.emissive_count);
+    std::uint64_t key=count;
+    for(std::uint32_t n=0;n<count;++n) {
+        const auto& triangle=scene.triangles.at(scene.pixels[first+n]);
+        const auto slot=triangle.metadata[0];
+        const auto& material=scene.materials.at(slot);
+        const auto root=slot<scene.material_source_roots.size()?scene.material_source_roots[slot]:slot;
+        std::uint64_t emitter=14695981039346656037ull;
+        const auto add=[&](std::uint64_t value){emitter^=value;emitter*=1099511628211ull;};
+        add(root);
+        if(root<scene.material_image_keys.size())for(auto value:scene.material_image_keys[root])add(value);
+        if(slot!=root && slot<scene.material_image_keys.size())for(auto value:scene.material_image_keys[slot])add(value);
+        add(material.texture[3]);
+        for(float value:material.transform)add(std::bit_cast<std::uint32_t>(value));
+        for(unsigned channel=0;channel<3;++channel)add(std::bit_cast<std::uint32_t>(material.emission[channel]));
+        add(std::bit_cast<std::uint32_t>(material.emission[3])!=0u);
+        for(const auto* vertex:{&triangle.p0,&triangle.p1,&triangle.p2})
+            for(unsigned axis=0;axis<3;++axis)add(std::bit_cast<std::uint32_t>((*vertex)[axis]));
+        for(float value:triangle.uv01)add(std::bit_cast<std::uint32_t>(value));
+        for(unsigned axis=0;axis<2;++axis)add(std::bit_cast<std::uint32_t>(triangle.uv2[axis]));
+        for(unsigned vertex=1;vertex<4;++vertex)add(triangle.metadata[vertex]);
+        // Animation of an unrelated caster can reorder the BVH without
+        // changing the light sources or their emitted radiance.
+        key+=emitter;
+    }
+    return key;
+}
 }
 struct Render::Impl {
     RenderContext context;
@@ -161,6 +197,7 @@ struct Render::Impl {
     VkPipelineLayout pipeline_layout{};
     VkPipeline graphics_pipeline{};
     VkPipeline glow_layer_pipeline{}; // Created on first use (bind_glow_layer).
+    VkPipeline water_reflection_pipeline{};
     std::map<std::pair<std::string,unsigned>,VkPipeline> source_depth_pipelines;
     bool source_depth_prepared{};
     VkImage environment_image{},environment_depth{};
@@ -279,8 +316,8 @@ struct Render::Impl {
     bool uploaded{},visibility_ready{},visibility_recording{},lighting_ready{},lighting_recording{};
     bool history_reset_pending=true,lighting_key_valid{};
     std::uint32_t frame_serial{};
-    std::uint64_t lighting_key{},direct_key{};
-    bool direct_history_reset=true;
+    std::uint64_t lighting_key{},direct_key{},area_key{};
+    bool direct_history_reset=true,area_history_reset=true;
     static constexpr unsigned history_words=lighting_history_words;
     const Scene* uploaded_source{};
     unsigned lighting_scale=2;
@@ -491,6 +528,7 @@ struct Render::Impl {
         if(lighting_pass)vkDestroyRenderPass(context.device,lighting_pass,nullptr);
         if(graphics_pipeline)vkDestroyPipeline(context.device,graphics_pipeline,nullptr);
         if(glow_layer_pipeline)vkDestroyPipeline(context.device,glow_layer_pipeline,nullptr);
+        if(water_reflection_pipeline)vkDestroyPipeline(context.device,water_reflection_pipeline,nullptr);
         if(pipeline_layout)vkDestroyPipelineLayout(context.device,pipeline_layout,nullptr);
         if(pool)vkDestroyDescriptorPool(context.device,pool,nullptr);
         if(scene_layout)vkDestroyDescriptorSetLayout(context.device,scene_layout,nullptr);
@@ -621,18 +659,20 @@ struct Render::Impl {
             modules.modules[0],"main",nullptr};
         pipeline.layout=compute_layout;
         VkPipeline result{};
-        check(vkCreateComputePipelines(context.device,VK_NULL_HANDLE,1,&pipeline,nullptr,&result),"create compute pipeline");
+        check(vkCreateComputePipelines(context.device,context.pipeline_cache,1,&pipeline,nullptr,&result),"create compute pipeline");
         return result;
     }
-    // glow_layer: an additive self-illumination layer over a resolved surface
-    // (glow_layer.frag), depth EQUAL to that surface, adding RGB only.
+    enum class PipelineRole { surface,glow_layer,water_reflection };
     VkPipeline make_pipeline(VkRenderPass pass,bool visibility,bool lighting=false,const NativeWorldKernelEntry* native=nullptr,
-                             bool glow_layer=false) {
+                             PipelineRole role=PipelineRole::surface) {
+        const bool glow_layer=role==PipelineRole::glow_layer;
+        const bool water_reflection=role==PipelineRole::water_reflection;
         ShaderModules modules;modules.device=context.device;
         const auto path=native?std::string(native->path_tracing_source_depth_vertex_path):std::string{};
         if(native && path.empty())throw FormatError("Path Tracing native depth lost its compiled authored vertex kernel");
-        modules.modules[0]=native?shader(path.c_str(),true):shader("world.vert.spv");
+        modules.modules[0]=native?shader(path.c_str(),true):water_reflection?shader("fog.vert.spv",true):shader("world.vert.spv");
         modules.modules[1]=shader(native?(visibility?"source_depth_visibility.frag.spv":lighting?"source_depth_lighting.frag.spv":"source_depth.frag.spv"):
+            water_reflection?(context.hardware_rays?"water_reflection.rt.frag.spv":"water_reflection.frag.spv"):
             glow_layer?"glow_layer.frag.spv":
             visibility?"depth.frag.spv":lighting?"lighting.frag.spv":context.hardware_rays?"world.rt.frag.spv":"world.frag.spv");
         if(native)modules.modules[2]=shader("source_depth.geom.spv");
@@ -674,18 +714,21 @@ struct Render::Impl {
         input.vertexBindingDescriptionCount=1;input.pVertexBindingDescriptions=&binding;
         input.vertexAttributeDescriptionCount=std::size(attributes);input.pVertexAttributeDescriptions=attributes;
         if(native) {input.vertexAttributeDescriptionCount=native->extended_vertex_bank?15:13;input.pVertexAttributeDescriptions=native_attributes;}
+        if(water_reflection) {input.vertexBindingDescriptionCount=0;input.vertexAttributeDescriptionCount=0;}
         VkPipelineInputAssemblyStateCreateInfo assembly{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
         assembly.topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkPipelineViewportStateCreateInfo viewport{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
         viewport.viewportCount=viewport.scissorCount=1;
         VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-        raster.polygonMode=VK_POLYGON_MODE_FILL;raster.cullMode=context.cull_mode;
+        raster.polygonMode=VK_POLYGON_MODE_FILL;
+        raster.cullMode=water_reflection?VkCullModeFlags{VK_CULL_MODE_NONE}:context.cull_mode;
         raster.frontFace=VK_FRONT_FACE_COUNTER_CLOCKWISE;raster.lineWidth=1;
         raster.depthClampEnable=native?VK_TRUE:VK_FALSE;
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         samples.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-        depth.depthTestEnable=VK_TRUE;depth.depthWriteEnable=lighting || glow_layer?VK_FALSE:VK_TRUE;
+        depth.depthTestEnable=water_reflection?VK_FALSE:VK_TRUE;
+        depth.depthWriteEnable=lighting || glow_layer || water_reflection?VK_FALSE:VK_TRUE;
         depth.depthCompareOp=glow_layer?VK_COMPARE_OP_EQUAL:VK_COMPARE_OP_LESS_OR_EQUAL;
         VkPipelineColorBlendAttachmentState attachment{};
         attachment.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT|VK_COLOR_COMPONENT_A_BIT;
@@ -695,19 +738,20 @@ struct Render::Impl {
             attachment.colorBlendOp=VK_BLEND_OP_ADD;
             attachment.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT;
         }
+        if(water_reflection)attachment.colorWriteMask&=~VK_COLOR_COMPONENT_A_BIT;
         VkPipelineColorBlendStateCreateInfo blend{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
         blend.attachmentCount=visibility || lighting?0u:1u;
         blend.pAttachments=visibility || lighting?nullptr:&attachment;
         const VkDynamicState states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR,VK_DYNAMIC_STATE_CULL_MODE};
         VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-        dynamic.dynamicStateCount=set_cull_mode?3u:2u;dynamic.pDynamicStates=states;
+        dynamic.dynamicStateCount=set_cull_mode && !water_reflection?3u:2u;dynamic.pDynamicStates=states;
         VkGraphicsPipelineCreateInfo pipeline{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
         pipeline.stageCount=native?3:2;pipeline.pStages=stages;pipeline.pVertexInputState=&input;
         pipeline.pInputAssemblyState=&assembly;pipeline.pViewportState=&viewport;pipeline.pRasterizationState=&raster;
         pipeline.pMultisampleState=&samples;pipeline.pDepthStencilState=&depth;pipeline.pColorBlendState=&blend;
         pipeline.pDynamicState=&dynamic;pipeline.layout=pipeline_layout;pipeline.renderPass=pass;
         VkPipeline result{};
-        check(vkCreateGraphicsPipelines(context.device,VK_NULL_HANDLE,1,&pipeline,nullptr,&result),"create graphics pipeline");
+        check(vkCreateGraphicsPipelines(context.device,context.pipeline_cache,1,&pipeline,nullptr,&result),"create graphics pipeline");
         return result;
     }
     void prepare_environment(VkFormat color,VkFormat depth,unsigned side) {
@@ -941,7 +985,7 @@ struct Render::Impl {
         const std::array<std::uint32_t,8> dimensions{visibility_extent.width,visibility_extent.height,
             std::uint32_t(depth_words()),lighting_scale,frame_serial,
             environment_nee_available()?1u:0u,history_reset_pending?0u:previous_history_camera_mask,
-            direct_history_reset?1u:0u};
+            (direct_history_reset?1u:0u)|(area_history_reset?2u:0u)};
         std::memcpy(buffer.mapped,dimensions.data(),sizeof(dimensions));buffer.populated=sizeof(dimensions);
         const auto previous_size=sizeof(HistoryCamera)+history_bytes();
         if(previous_size>properties.limits.maxStorageBufferRange)
@@ -1330,7 +1374,8 @@ struct Render::Impl {
         // offset instead of the visibility guard.
         if(glow_layer)std::memcpy(push.data()+camera_bytes-2*sizeof(float),&*glow_layer_program,sizeof(std::uint32_t));
         if(lighting){lighting_push=push;lighting_push_valid=true;}
-        if(glow_layer && !glow_layer_pipeline)glow_layer_pipeline=make_pipeline(context.render_pass,false,false,nullptr,true);
+        if(glow_layer && !glow_layer_pipeline)
+            glow_layer_pipeline=make_pipeline(context.render_pass,false,false,nullptr,PipelineRole::glow_layer);
         auto pipeline=glow_layer?glow_layer_pipeline:visibility?visibility_pipeline:lighting?lighting_pipeline:graphics_pipeline;
         if(native) {
             if(!source_depth_prepared || material_index==~0u)throw FormatError("Path Tracing source depth requires its current raster and material owner");
@@ -1523,10 +1568,12 @@ void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
     p.environment_fallback_available=uniform.environment[0]>0 || uniform.environment[1]>0 || uniform.environment[2]>0;
     const auto key=temporal_lighting_key(scene,uniform);
     const auto direct_key=direct_lighting_key(scene);
+    const auto area_key=area_lighting_key(scene);
     if(p.context.hardware_rays)p.prepare_acceleration(scene);
     p.direct_history_reset=p.uploaded_source!=&scene || !p.lighting_key_valid || p.direct_key!=direct_key || distant_changed;
+    p.area_history_reset=p.area_key!=area_key;
     if(p.uploaded_source!=&scene || !p.lighting_key_valid || p.lighting_key!=key)p.history_reset_pending=true;
-    p.uploaded_source=&scene;p.lighting_key=key;p.direct_key=direct_key;p.lighting_key_valid=true;
+    p.uploaded_source=&scene;p.lighting_key=key;p.direct_key=direct_key;p.area_key=area_key;p.lighting_key_valid=true;
     if(++p.frame_serial==0)p.history_reset_pending=true;
     p.update_visibility_binding();p.uploaded=true;
 }
@@ -1696,6 +1743,40 @@ bool Render::bind_glow_layer(VkCommandBuffer command,VkDescriptorSet layer,std::
     if(std::size_t(program)+layer_program_words>scene->pixels.size())return false;
     impl_->bind(command,layer,dynamic_bank_offset,camera,material_index,false,false,nullptr,program);
     return true;
+}
+void Render::reset_scene_history() noexcept {
+    auto& p=*impl_;
+    p.uploaded_source=nullptr;
+    p.uploaded_color_guide_source=nullptr;
+    p.uploaded_color_guide_keys.clear();
+    p.uploaded=false;
+    p.previous_static_triangles=~0u;
+    p.static_acceleration_dirty=true;
+    p.static_geometry_changed=true;
+    p.static_payload_changed=true;
+    p.static_indices_written=false;
+    p.previous_shadow_geometry.clear();
+    p.previous_shadow_lights.clear();
+    p.history_reset_pending=true;
+    p.direct_history_reset=p.area_history_reset=true;
+    p.current_history_camera_mask=p.previous_history_camera_mask=0;
+    p.previous_history_prepared=false;
+    p.lighting_key_valid=false;
+    p.visibility_ready=p.lighting_ready=false;
+}
+void Render::prepare_water_reflection(VkRenderPass pass) {
+    auto& p=*impl_;
+    if(!p.water_reflection_pipeline)
+        p.water_reflection_pipeline=p.make_pipeline(pass,false,false,nullptr,Impl::PipelineRole::water_reflection);
+}
+void Render::draw_water_reflection(VkCommandBuffer command,const WaterReflectionView& view)const {
+    const auto& p=*impl_;
+    if(!p.uploaded_source || p.uploaded_source->triangles.empty())return;
+    if(!p.water_reflection_pipeline)throw FormatError("Path Tracing water reflection target was not prepared");
+    vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,p.water_reflection_pipeline);
+    vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,p.pipeline_layout,1,1,&p.descriptor,0,nullptr);
+    vkCmdPushConstants(command,p.pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(view),&view);
+    vkCmdDraw(command,3,1,0,0);
 }
 void Render::bind(VkCommandBuffer command,VkDescriptorSet material,std::uint32_t dynamic_bank_offset,
                   std::span<const std::byte> camera)const {

@@ -25,12 +25,17 @@ struct alignas(16) GpuMaterial {
     // offset,width,height,flags: alpha test/clamp U/clamp V/alpha kill/excluded.
     std::array<std::uint32_t,4> texture{};
     ShaderVector transform{1,1,0,0};
-    std::array<std::uint32_t,4> color_guide{}; // Source kind, sampler, border, qualified diffuse-energy decode.
-    ShaderVector glancing_tint{1,1,1,1}; // Current authored glancing reflection RGB, independent of facing.
+    // Source kind, sampler or bump record, border or ambient RGB, and
+    // qualified diffuse-energy decode. Fixed default ambient has no texels.
+    std::array<std::uint32_t,4> color_guide{};
+    ShaderVector glancing_tint{1,1,1,1}; // Glancing reflection RGB and optional chamber baked-light weight.
     // x: atlas offset of the surface's normal map record (append_normal_map),
     // zero without one; the shader's own bump map for surfaces whose primary
     // pass does not bind it (models). y: atlas offset of its authored
     // reflection cube map (append_environment_map), zero without one.
+    // z: UNORM8 diffuse retention (T1 normal/grazing, then T2 normal/grazing),
+    // zero for identity. w: finish roughness bits for an authored surface
+    // category, or zero when its reflection finish is unclassified.
     std::array<std::uint32_t,4> detail{};
 };
 struct alignas(16) GpuLight {
@@ -68,6 +73,10 @@ struct MaterialAliasImage {
     std::array<std::uint64_t,2> key{};
     std::array<std::uint32_t,3> image{}; // Absolute atlas offset, width, height.
 };
+struct MaterialEnvironmentImage {
+    std::array<std::uint64_t,2> key{};
+    std::uint32_t offset{},words{},flags{};
+};
 inline constexpr std::uint32_t no_layer_programs=~0u,layer_program_words=60;
 // Emitter table entry flag: the triangle's light is already in the lightmap
 // bake (a triangle with baked_emission_flag and a baked colour guide).
@@ -87,6 +96,9 @@ struct Scene {
     // only with the optional active scene and never own source asset bytes.
     std::vector<std::array<std::uint64_t,2>> material_image_keys;
     std::vector<std::uint32_t> material_texel_capacities;
+    // Roots referenced by the complete current frame, including retained
+    // static geometry and raster-only draws. Atlas pressure may evict others.
+    std::vector<std::uint8_t> live_material_roots;
     // Average drawn colour of each glow layer (average_glow_color), or of a
     // surface's self-illumination layers, refreshed with its images; w is 1
     // when known.
@@ -104,6 +116,9 @@ struct Scene {
     // The authored reflection cube map of each root material (Halo 2's
     // environment pass), or null; images stay owned by the material bank.
     std::vector<const Texture*> material_environment_maps;
+    // Multiple source passes can bind the same immutable cube. Root and
+    // owner material rows point to this shared atlas allocation.
+    std::vector<MaterialEnvironmentImage> material_environment_images;
     // Radiance of each root material whose shader lit the map's lightmap
     // bake (lightmap_emission.hpp); zero for the others. The renderer fills
     // it once for its material bank; aliases inherit their root's record.
@@ -129,10 +144,6 @@ struct Scene {
     std::uint32_t static_triangles{};
     // The last update kept the previous static prefix unchanged.
     bool static_reused{};
-    // Material records computed at least once. Records of materials that no
-    // triangle or draw references this frame are not refreshed (see
-    // refresh_materials_for_geometry); nothing reads them until they are.
-    std::vector<std::uint8_t> material_records_ready;
     GpuSceneUniform uniform(Vec3 source_environment={}) const;
 };
 // Frame-local source geometry must already be posed into WORLD coordinates.

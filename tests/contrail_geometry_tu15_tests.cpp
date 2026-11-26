@@ -3,17 +3,22 @@
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "rendering/effects/native_tu15_contrail_vertex_emission.hpp"
 #include <fstream>
 #include <algorithm>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <optional>
+#include <string_view>
 using namespace halo2;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
 std::vector<std::byte> bytes(const std::string &hex){std::vector<std::byte>b;for(unsigned n=0;n<hex.size();n+=2)b.push_back(std::byte(std::stoul(hex.substr(n,2),nullptr,16)));return b;}
 }
 int main(int argc,char **argv)try {
-  check(argc==2,"Supply original contrail geometry fixture");std::ifstream file(argv[1]);if(!file)return 77;
+  const bool unobserved=argc==3 && std::string_view(argv[2])=="--unobserved";
+  check(argc==2 || unobserved,"Supply original contrail geometry fixture and optional --unobserved");
+  std::ifstream file(argv[1]);if(!file)return 77;
   const auto fixture=nlohmann::json::parse(file);unsigned cases{};
   for(const auto &c:fixture.at("cases")) {
     SourceRuntimeMemory m;
@@ -27,7 +32,10 @@ int main(int argc,char **argv)try {
       m.mount(b.at("address"),std::move(data),SourceRuntimeMemory::Access::ReadWrite,"declared original contrail ABI bank");
     }
     SourcePhysicsWorldRuntimeAbi abi{};abi.gp=c.at("entry_gp").get<decltype(abi.gp)>();abi.eflags=0x202;
-    std::vector<std::uint32_t> trace;SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto p){trace.push_back(p);};
+    std::vector<std::uint32_t> trace;SourcePhysicsWorldRuntimeServices services;
+    if(!unobserved)services.instruction=[&](auto p){trace.push_back(p);};
+    std::optional<native_contrail_vertex_emission_detail::ScopedDrawServices> draw_services;
+    if(unobserved)draw_services.emplace(services);
     services.required_owner=[&](auto &memory,const auto &call,auto &state,const auto &observe){
       if(source_contrail_geometry_tu15_owns_entry(call.target))
         source_run_contrail_geometry_tu15(memory,call.target,state,{0x27f,0x1f80},services,observe);
@@ -42,10 +50,11 @@ int main(int argc,char **argv)try {
     source_run_contrail_geometry_tu15(m,c.value("entry",fixture.at("entry").get<unsigned>()),abi,{0x27f,0x1f80},services);
     check(abi.gp==c.at("exit_gp").get<decltype(abi.gp)>(),"Original contrail geometry GP output differs");
     check((abi.eflags&0xcd5u)==(c.at("eflags").get<unsigned>()&0xcd5u),"Original contrail geometry flags differ");
-    check(trace==c.at("instructions").get<decltype(trace)>(),"Original contrail geometry instruction path differs");
+    if(!unobserved)check(trace==c.at("instructions").get<decltype(trace)>(),"Original contrail geometry instruction path differs");
     for(unsigned n=0;n<8;++n){const auto hex=c.at("exit_xmm")[n].get<std::string>();for(unsigned k=0;k<4;++k)check(abi.xmm[n][k]==std::stoul(hex.substr(24-k*8,8),nullptr,16),"Original contrail geometry SSE output differs");}
     for(const auto &b:c.at("final_banks")){const auto expected=bytes(b.at("hex"));const auto actual=m.view(b.at("address"),expected.size());if(!std::ranges::equal(actual,expected)){const auto mismatch=std::ranges::mismatch(actual,expected);std::cerr<<"case="<<cases<<" address="<<std::hex<<b.at("address").get<unsigned>()+std::distance(actual.begin(),mismatch.in1)<<" got="<<unsigned(*mismatch.in1)<<" expected="<<unsigned(*mismatch.in2)<<std::dec<<"\n";throw std::runtime_error("Original contrail geometry retained memory differs");}}
     ++cases;
   }
-  std::cout<<"PASS original TU1.5 contrail geometry: "<<cases<<" instruction/GP/SSE/flag/observed-memory cases\n";return 0;
+  std::cout<<"PASS original TU1.5 contrail geometry: "<<cases
+    <<(unobserved?" GP/SSE/flag/observed-memory cases\n":" instruction/GP/SSE/flag/observed-memory cases\n");return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

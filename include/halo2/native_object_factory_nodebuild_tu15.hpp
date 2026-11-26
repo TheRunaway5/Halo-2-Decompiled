@@ -92,12 +92,11 @@ void object_sample_animation(SourcePhysicsContactMemory&,std::uint32_t object,st
 // orientation (+70). Other decoders are refused by address.
 void animation_codec_track(SourcePhysicsContactMemory&,std::uint32_t decoder,std::uint32_t mxcsr);
 // 283570: the frame decoder the state block selects (kind +00, mode +04,
-// node mask +2C, second-frame flag +50): 2847D0/284D30, 285A70,
-// 2861A0/2868A0 (kind 0), 28ADA0/28B5F0 (kind 2), 28E730/28F110, 290710,
-// 2912A0/291E30 (kind 3), and the unmasked second-frame loops 28B080
-// (kind 2) and 28EAF0 (kind 3), which blend each track toward the second
-// frame (+54..+60) before layering. Each runs the rotation, translation and
-// scale flag streams through the track decoders (+34/+38/+3C).
+// node mask +2C, second-frame flag +50): all single-frame loops for kinds
+// 0..4, and all second-frame loops for kinds 1..3 (including kind 2 mode 2:
+// 284360 -> 28CC70/28D310/28D6E0/28DD20). Second-frame loops for kinds 0 and
+// 4 remain refused by address. Each runs the rotation, translation and scale
+// flag streams through the track decoders (+34/+38/+3C).
 void animation_codec_frames(SourcePhysicsContactMemory&,std::uint32_t mxcsr);
 // 2835B0 inputs: `block` is 1E5DF0's record (+0 data, +4 header, +8 node
 // count); frame, weight and second frame/weight are float bits.

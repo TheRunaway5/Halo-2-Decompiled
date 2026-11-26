@@ -40,5 +40,28 @@ int main(int argc,char**argv)try {
   check(rejected,"Inconsistent capture budget was silently admitted");
   check(std::signbit(CampaignCaptureCarry{}.admit({0,-0.f,.125f},false).elapsed),
       "An empty carry changed the original signed-zero elapsed value");
-  std::cout<<"PASS 1..150 tick capture boundaries, outgoing scene, exact tick conservation, fractional clock, pause/resume and timeline discard\n";
+  CampaignCaptureCarry paced;
+  auto frame=paced.admit({9,.325f,.75f},false);
+  int ticks=0;
+  double elapsed=0;
+  const auto present=[&](int deadline) {
+    int remaining=frame.ticks,completed=0;
+    const bool yielded=campaign_frame_ticks(remaining,[]{return true;},[&]{++completed;++ticks;},
+        [&]{return completed==deadline;});
+    elapsed+=accepted_campaign_frame_elapsed(frame.elapsed,frame.ticks,completed);
+    if(yielded)paced.defer(frame,completed,remaining);
+    return yielded;
+  };
+  check(present(2) && ticks==2 && paced.pending_ticks()==7,"A presentation deadline let the whole tick batch run");
+  frame=paced.admit({0,0,.75f},true);
+  check(!present(1) && paced.pending_ticks()==7,"Pause consumed paced simulation work");
+  frame=paced.admit({3,.1f,.75f},false);
+  check(present(4) && ticks==6 && paced.pending_ticks()==6,"New clock work failed to join paced carry");
+  frame=paced.admit({0,0,.75f},false);
+  check(!present(10) && ticks==12 && !paced.pending_ticks() && frame.fraction==.75f &&
+        std::abs(elapsed-.425f)<1e-6,"Paced presentation lost admitted elapsed time, ticks or fraction");
+  int discarded=4;
+  check(!campaign_frame_ticks(discarded,[]{return true;},[&]{discarded=0;},[]{return true;}),
+      "A source timeline restore reported discarded work as a presentation yield");
+  std::cout<<"PASS 1..150 tick capture boundaries, outgoing scene, paced presentation, exact tick conservation, fractional clock, pause/resume and timeline discard\n";
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

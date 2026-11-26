@@ -1,11 +1,20 @@
 // Included inside the native weapon dispatcher's private namespace.
 // Complete TU1.5 1E1200 owner. Math remains with its actual native callees.
+#include "native_weapon_marker_emit_kernel_tu15_internal.hpp"
+
 void marker_emission(Memory &m,Abi &a,const Observer &o,const Services &s) {
     bool sse_active{};std::optional<SseEnvironment> environment;
     const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);};
     IteratorRegisters r{a.gp,a.eflags};
     const auto signed_less=[&]{return bool(a.eflags&128u)!=bool(a.eflags&2048u);};
     const auto increment=[&](std::uint32_t value){const auto carry=a.eflags&1u;const auto result=iterator_flags(r,value,1,4,false);a.eflags=(a.eflags&~1u)|carry;return result;};
+    using authored_marker_emission::Resume;
+    switch (authored_marker_emission::Emission(m,a,o,s).run()) {
+    case Resume::retained: break;
+    case Resume::completed: return;
+    case Resume::quaternion_return: goto quaternion_return;
+    case Resume::product_return: goto product_return;
+    }
     instruction(0x1e1200);a.gp[4]=iterator_flags(r,a.gp[4],12,4,true);
     instruction(0x1e1203);push(m,a,o,0x1e1203,a.gp[3]);
     instruction(0x1e1204);a.gp[3]=0;iterator_logic_flags(r,0,4);
@@ -61,6 +70,7 @@ node_ready:
     instruction(0x1e12a0);a.gp[1]=a.gp[7]+16;
     instruction(0x1e12a3);a.gp[0]=a.gp[2]+4;
     call(m,a,o,s,0x1e12a6,0x144910);
+quaternion_return:
     instruction(0x1e12ab);a.xmm[0]={};
     instruction(0x1e12ae);store(m,o,0x1e12ae,a.gp[2]+0x28,a.xmm[0][0]);
     instruction(0x1e12b3);store(m,o,0x1e12b3,a.gp[2]+0x2c,a.xmm[0][0]);
@@ -80,6 +90,7 @@ node_ready:
     instruction(0x1e12e6);push(m,a,o,0x1e12e6,a.gp[0]);
     instruction(0x1e12e7);a.gp[1]=iterator_flags(r,a.gp[1],read(m,a.gp[4]+0x2c),4,false);
     call(m,a,o,s,0x1e12eb,0x145560);
+product_return:
     instruction(0x1e12f0);a.gp[1]=read(m,a.gp[7]+0x20);
     instruction(0x1e12f3);a.gp[0]=(a.gp[0]&0xffffff00u)|read(m,a.gp[4]+0x2c,1);
     instruction(0x1e12f7);iterator_logic_flags(r,a.gp[0]&255u,1);

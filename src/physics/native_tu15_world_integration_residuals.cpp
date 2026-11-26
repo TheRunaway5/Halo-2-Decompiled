@@ -327,7 +327,9 @@ public:
 void native_tu15_cleanup_object_factory_contact(SourcePhysicsContactMemory& memory,
   std::uint32_t receiver,std::uint32_t owner,std::uint32_t scratch_end,NativeTu15PhysicsFrameFp& fp,
   const NativeTu15ArrayGrowthServices& allocation,const SourcePhysicsContactRecordObserver& observe) {
-  if(owner!=0x2f3100u && owner!=0x323220u)
+  if(owner!=0x31d400u && owner!=0x2f3100u && owner!=0x2f7a20u && owner!=0x323220u &&
+     owner!=0x2f82d0u && owner!=0x2f6c80u && owner!=0x2f0da0u && owner!=0x2fbb10u &&
+     owner!=0x2f9960u && owner!=0x2f7790u)
     throw std::runtime_error("Native object factory requires a qualified pair cleanup owner");
   constexpr unsigned x87_depth=0;
   NativeTu15PairDeletionNativeScope scope;

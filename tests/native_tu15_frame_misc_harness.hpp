@@ -52,6 +52,8 @@ inline void log_call(std::uint64_t h) {
 
 struct Memory : SourcePhysicsContactMemory {
     std::map<std::uint32_t,std::shared_ptr<std::array<std::byte,4096>>> pages;
+    std::optional<std::uint32_t> denied_write;
+    unsigned writes_before_denial{};
     std::array<std::byte,4096> &page(std::uint32_t at,bool create) {
         auto found=pages.find(at>>12);
         if(found==pages.end()) {
@@ -64,6 +66,10 @@ struct Memory : SourcePhysicsContactMemory {
         for(std::size_t n=0;n<out.size();++n)out[n]=const_cast<Memory*>(this)->page(at+std::uint32_t(n),false)[(at+n)&4095u];
     }
     void write(std::uint32_t at,std::span<const std::byte> in)override {
+        if(denied_write==at) {
+            if(writes_before_denial==0)throw std::runtime_error("Authored write rejected");
+            --writes_before_denial;
+        }
         for(std::size_t n=0;n<in.size();++n)page(at+std::uint32_t(n),false)[(at+n)&4095u]=in[n];
     }
     void put(std::uint32_t at,std::uint32_t value,unsigned width=4) {
@@ -73,7 +79,9 @@ struct Memory : SourcePhysicsContactMemory {
         std::uint32_t v=0;for(unsigned n=0;n<width;++n)v|=std::to_integer<std::uint32_t>(page(at+n,true)[(at+n)&4095u])<<(8*n);return v;
     }
     Memory clone()const {
-        Memory copy;for(const auto &[k,v]:pages)copy.pages.emplace(k,std::make_shared<std::array<std::byte,4096>>(*v));return copy;
+        Memory copy;for(const auto &[k,v]:pages)copy.pages.emplace(k,std::make_shared<std::array<std::byte,4096>>(*v));
+        copy.denied_write=denied_write;copy.writes_before_denial=writes_before_denial;
+        return copy;
     }
     bool same(const Memory &other)const {
         if(pages.size()!=other.pages.size())return false;
@@ -83,9 +91,17 @@ struct Memory : SourcePhysicsContactMemory {
     // Fault injection: remove the page holding one authored address.
     void drop(std::uint32_t at){pages.erase(at>>12);}
 };
-struct Case {Memory memory;SourcePhysicsWorldRuntimeAbi abi{};std::uint32_t mxcsr{0x1f80u};std::uint32_t policy{};};
+struct Case {Memory memory;SourcePhysicsWorldRuntimeAbi abi{};std::uint32_t mxcsr{0x1f80u};std::uint32_t policy{};
+    std::function<std::uint32_t(std::uint32_t)> reciprocal_sqrt{};
+    bool full_observation{};
+    std::uint32_t reject_instruction{};
+    std::uint32_t activate_trace_at_store{};
+    std::uint32_t reject_after_store_pc{};
+    std::array<std::uint32_t,2> census_child_range{};
+};
 struct Result {
     std::vector<SourcePhysicsContactRecordStore> stores;std::vector<std::uint64_t> calls;
+    std::vector<std::uint32_t> instructions;
     SourcePhysicsWorldRuntimeAbi abi{};std::uint32_t cursor{},mxcsr{};bool admitted{};std::string fault;
 };
 inline void random_abi(std::mt19937 &rng,Case &c,std::uint32_t stack) {
@@ -105,6 +121,9 @@ inline void random_abi(std::mt19937 &rng,Case &c,std::uint32_t stack) {
 }
 inline bool same_abi(const SourcePhysicsWorldRuntimeAbi &a,const SourcePhysicsWorldRuntimeAbi &b) {
     bool same=a.gp==b.gp && a.eflags==b.eflags && a.xmm==b.xmm && a.x87_status==b.x87_status && a.x87_depth==b.x87_depth;
+    if(a.active_mmx.has_value()!=b.active_mmx.has_value())return false;
+    if(a.active_mmx && (a.active_mmx->known_mask!=b.active_mmx->known_mask || a.active_mmx->physical!=b.active_mmx->physical))
+        return false;
     for(unsigned i=0;i<a.x87_depth && i<8;++i)same=same && !std::memcmp(&a.x87[i],&b.x87[i],10);
     if(a.floating_point && b.floating_point)same=same && a.floating_point->x87_control_word==b.floating_point->x87_control_word;
     return same;
@@ -115,23 +134,44 @@ template<class Native,class Original>
 Result execute(Memory &memory,const Case &c,bool is_native,Native native,Original original,
                const SourcePhysicsContactRuntimeServices::RequiredOwner &required={}) {
     Result result;
+    bool trace_active=false;
     // A loop index read from a shifted (unbalanced child) frame slot can run
     // away; both routes then stop at the same store with the same fault.
     SourcePhysicsContactRecordObserver observe=[&](const SourcePhysicsContactRecordStore &e) {
         if(result.stores.size()>=(1u<<18))throw std::runtime_error("Store budget exceeded");
         result.stores.push_back(e);
+        if(c.activate_trace_at_store && e.instruction==c.activate_trace_at_store)trace_active=true;
+        if(c.reject_after_store_pc && e.instruction==c.reject_after_store_pc)
+            throw std::runtime_error("Observer rejected committed store");
     };
     SourcePhysicsWorldRuntimeServices services;
     if(required)services.required_owner=required;
+    if(c.reciprocal_sqrt)services.reciprocal_sqrt=c.reciprocal_sqrt;
     constexpr std::array sites{0x38846eu,0x21f590u,0x33b595u};
-    if(is_native) {
-        services.instruction=[](auto){throw std::runtime_error("Native closure delivered a translated instruction");};
+    if(c.full_observation) {
+        services.instruction=[&](std::uint32_t pc) {
+            result.cursor=pc;
+            result.instructions.push_back(pc);
+            if(pc==c.reject_instruction)throw std::runtime_error("Instruction rejected by observer");
+        };
+    } else if(is_native) {
+        services.instruction=[&](std::uint32_t pc) {
+            if(census_mode && c.census_child_range[0] && pc>=c.census_child_range[0] && pc<=c.census_child_range[1])
+                return;
+            if(!trace_active)throw std::runtime_error("Native closure delivered a translated instruction");
+            result.cursor=pc;
+            result.instructions.push_back(pc);
+        };
         if(!census_mode) {
             auto &cursor=services.instruction_cursor;cursor.position=&result.cursor;cursor.service_sites=sites;
             cursor.callback_type=&services.instruction.target_type();cursor.executor=std::this_thread::get_id();
             cursor.literal_service_sites=true;cursor.observation_only_stores=true;
+            if(c.activate_trace_at_store)cursor.first_trace=&trace_active;
         }
-    } else services.instruction=[&](std::uint32_t pc){result.cursor=pc;};
+    } else services.instruction=[&](std::uint32_t pc) {
+        result.cursor=pc;
+        if(trace_active)result.instructions.push_back(pc);
+    };
     const auto saved=_mm_getcsr();std::uint16_t control;asm volatile("fnstcw %0":"=m"(control));
     WorldState s{memory,observe,services,SourcePhysicsContactImage::TitleUpdate15};s.load(c.abi);
     _mm_setcsr(c.mxcsr);
@@ -149,7 +189,7 @@ struct Totals {std::uint64_t compared{},stores{},children{},faults{},refused{};}
 // Compare one authored case; returns false (with a diagnostic) on any difference.
 template<class Native,class Original>
 bool compare(unsigned n,const Case &c,Native native,Original original,Totals &t,bool allow_refusal=false,
-             const SourcePhysicsContactRuntimeServices::RequiredOwner &required={}) {
+             const SourcePhysicsContactRuntimeServices::RequiredOwner &required={},bool compare_fault_abi=false) {
     auto left=c.memory.clone(),right=c.memory.clone();
     const auto mine=execute(right,c,true,native,original,required);
     if(!mine.admitted && mine.fault.empty()) {
@@ -172,9 +212,10 @@ bool compare(unsigned n,const Case &c,Native native,Original original,Totals &t,
         std::fprintf(stderr,"\n");return false;
     }
     if(mine.calls!=theirs.calls){std::fprintf(stderr,"case %u child log mismatch (%zu/%zu)\n",n,mine.calls.size(),theirs.calls.size());return false;}
+    if(mine.instructions!=theirs.instructions){std::fprintf(stderr,"case %u instruction log mismatch\n",n);return false;}
     if(!census_mode && mine.cursor!=theirs.cursor){std::fprintf(stderr,"case %u cursor %x vs %x\n",n,mine.cursor,theirs.cursor);return false;}
     if(mine.mxcsr!=theirs.mxcsr){std::fprintf(stderr,"case %u MXCSR %x vs %x\n",n,mine.mxcsr,theirs.mxcsr);return false;}
-    if(theirs.fault.empty() && !same_abi(mine.abi,theirs.abi)) {
+    if((theirs.fault.empty() || compare_fault_abi) && !same_abi(mine.abi,theirs.abi)) {
         std::fprintf(stderr,"case %u register/flag/XMM/x87 mismatch:",n);
         for(unsigned i=0;i<8;++i)if(mine.abi.gp[i]!=theirs.abi.gp[i])std::fprintf(stderr," r%u %x/%x",i,mine.abi.gp[i],theirs.abi.gp[i]);
         if(mine.abi.eflags!=theirs.abi.eflags)std::fprintf(stderr," flags %x/%x",mine.abi.eflags,theirs.abi.eflags);

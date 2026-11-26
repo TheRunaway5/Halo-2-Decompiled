@@ -3,6 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
+#include <string_view>
 #include <nlohmann/json.hpp>
 using namespace halo2;
 namespace {
@@ -10,9 +11,12 @@ void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
 std::vector<std::byte> bytes(const std::string &hex){std::vector<std::byte>b;for(unsigned n=0;n<hex.size();n+=2)b.push_back(std::byte(std::stoul(hex.substr(n,2),nullptr,16)));return b;}
 }
 int main(int argc,char **argv)try {
-  check(argc==2,"Supply original lens query fixture");std::ifstream file(argv[1]);if(!file)return 77;
+  const bool walk_only=argc==3 && std::string_view(argv[2])=="--native-walk";
+  check(argc==2 || walk_only,"Supply original lens query fixture");std::ifstream file(argv[1]);if(!file)return 77;
   const auto fixture=nlohmann::json::parse(file);unsigned cases{};
   for(const auto &c:fixture.at("cases")) {
+    const auto entry=c.value("entry",fixture.at("entry").get<unsigned>());
+    if(walk_only && entry!=0x20b90u)continue;
     SourceRuntimeMemory m;
     for(const auto &reference:c.at("initial_banks")) {
       const auto &b=fixture.at("banks").at(reference.get<unsigned>());
@@ -25,18 +29,21 @@ int main(int argc,char **argv)try {
       m.mount(b.at("address"),std::move(data),SourceRuntimeMemory::Access::ReadWrite,"declared original lens request ABI bank");
     }
     SourcePhysicsWorldRuntimeAbi abi{};abi.gp=c.at("entry_gp").get<decltype(abi.gp)>();abi.eflags=0x202;
-    std::vector<std::uint32_t> trace;SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto p){trace.push_back(p);};
+    std::vector<std::uint32_t> trace;SourcePhysicsWorldRuntimeServices services;
+    if(!walk_only)services.instruction=[&](auto p){trace.push_back(p);};
     services.required_owner=[&](auto &memory,const auto &call,auto &state,const auto &observe){
       if(source_lens_query_tu15_owns_entry(call.target))
         source_run_lens_query_tu15(memory,call.target,state,{0x27f,0x1f80},services,observe);
       else throw std::runtime_error("Lens request reached an unowned original callee");
     };
-    source_run_lens_query_tu15(m,c.value("entry",fixture.at("entry").get<unsigned>()),abi,{0x27f,0x1f80},services);
+    source_run_lens_query_tu15(m,entry,abi,{0x27f,0x1f80},services);
     check(abi.gp==c.at("exit_gp").get<decltype(abi.gp)>(),"Original lens request GP output differs");
     check((abi.eflags&c.value("eflags_mask",0xcd5u))==(c.at("eflags").get<unsigned>()&c.value("eflags_mask",0xcd5u)),"Original lens request flags differ");
-    auto expected_trace=c.at("instructions").get<decltype(trace)>();
-    std::erase_if(expected_trace,[](auto pc){return pc>=0x20e30u && pc<0x20e90u;});
-    check(trace==expected_trace,"Lens request changed translated work outside native slot retirement");
+    if(!walk_only){
+      auto expected_trace=c.at("instructions").get<decltype(trace)>();
+      std::erase_if(expected_trace,[](auto pc){return pc>=0x20e30u && pc<0x20e90u;});
+      check(trace==expected_trace,"Lens request changed translated work outside native slot retirement");
+    }
     for(unsigned n=0;n<8;++n){const auto hex=c.at("exit_xmm")[n].get<std::string>();for(unsigned k=0;k<4;++k)check(abi.xmm[n][k]==std::stoul(hex.substr(24-k*8,8),nullptr,16),"Original lens request SSE output differs");}
     for(const auto &reference:c.at("final_banks")){const auto &b=fixture.at("banks").at(reference.get<unsigned>());const auto expected=bytes(b.at("hex"));const auto actual=m.view(b.at("address"),expected.size());if(!std::ranges::equal(actual,expected)){const auto mismatch=std::ranges::mismatch(actual,expected);std::cerr<<"case="<<cases<<" address="<<std::hex<<b.at("address").get<unsigned>()+std::distance(actual.begin(),mismatch.in1)<<" got="<<unsigned(*mismatch.in1)<<" expected="<<unsigned(*mismatch.in2)<<std::dec<<"\n";throw std::runtime_error("Original lens request retained memory differs");}}
     check(abi.x87_depth==0,"Lens request retained an unconsumed x87 value");
@@ -44,5 +51,7 @@ int main(int argc,char **argv)try {
     check(abi.floating_point && abi.floating_point->mxcsr==c.at("mxcsr").get<unsigned>(),"Lens request changed original MXCSR");
     ++cases;
   }
-  std::cout<<"PASS original TU1.5 lens query: "<<cases<<" instruction/GP/SSE/flag/observed-memory cases\n";return 0;
+  check(cases!=0,"Original lens query fixture did not exercise its selected owner");
+  std::cout<<"PASS original TU1.5 lens query: "<<cases<<(walk_only?" quiet walk ABI/memory cases\n":
+      " instruction/GP/SSE/flag/observed-memory cases\n");return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

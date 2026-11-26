@@ -3,6 +3,7 @@
 set(native_renderer_fixed_shaders
     bloom.vert.spv crt_oled.frag.spv display.frag.spv fog.vert.spv
     light_volume.vert.spv menu_world.geom.spv model_skin.comp.spv
+    object_motion_blur.frag.spv object_motion_blur.vert.spv
     overlay.frag.spv overlay.vert.spv particle.geom.spv particle.vert.spv
     player_flash_invert.frag.spv
     particle_directional.vert.spv particle_distortion.vert.spv
@@ -10,6 +11,7 @@ set(native_renderer_fixed_shaders
     patchy_noise.vert.spv pstencil/lightmap.frag.spv pstencil/lightmap.vert.spv
     path_tracing/world.vert.spv path_tracing/world.frag.spv path_tracing/depth.frag.spv
     path_tracing/lighting.frag.spv path_tracing/world.rt.frag.spv path_tracing/glow_layer.frag.spv
+    path_tracing/water_reflection.frag.spv path_tracing/water_reflection.rt.frag.spv
     path_tracing/trace.comp.spv path_tracing/trace.rt.comp.spv path_tracing/denoise.comp.spv path_tracing/calibrate.comp.spv
     pstencil/volume.frag.spv pstencil/volume.geom.spv pstencil/volume.vert.spv
     source_contrail.geom.spv source_contrail.vert.spv

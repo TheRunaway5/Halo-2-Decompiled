@@ -2902,8 +2902,11 @@ ScriptValue Simulation::host(const std::string &name,
       auto &world=source_campaign_->objects().tu15_world();
       if(object!=null_datum)(void)world.source_object_body(object);
       source_campaign_cinematic_lod_tu15(world,object,args[1].truth());
-      // Actors returned by ai_actors belong to the retained object world.
-      // Its real bit19 consumer owns LOD; SceneObjects only owns placements.
+      // Preserve the authored request on placed objects for campaign
+      // presentation. AI-only actors still have only their live source owner.
+      if(object!=null_datum && std::ranges::find(scene_.objects(),object,
+          &SceneObjects::Object::handle)!=scene_.objects().end())
+        scene_.get(object).cinematic_lod=args[1].truth();
       return {};
     }
     if (args[0].bits != null_datum && args[0].bits != 0)

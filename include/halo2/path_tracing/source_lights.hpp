@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/bsp_atmosphere.hpp"
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/effect_light_view.hpp"
 #include "halo2/transform.hpp"
@@ -29,5 +30,19 @@ std::vector<Light> source_lights(std::span<const WorldEffectLight>);
 // Exact source D1A30 incident/radiosity frame. An ambient-only sky contributes
 // no invented directional emitter; its outdoor ambient remains independent.
 std::optional<Light> source_sky_light(const ObjectSkyLightingDefinition&);
+// A sky visible through portals can be a backdrop only. Prefer the cluster's
+// authored lighting sky, and admit a visible-only fallback only when its sky
+// flags allow it. The BSP default sky is used for atmosphere, not direct light.
+inline std::optional<unsigned> source_bsp_lighting_sky(const BspAtmosphere& atmosphere,int cluster) {
+    if(cluster<0 || std::size_t(cluster)>=atmosphere.clusters.size())return {};
+    const auto& source=atmosphere.clusters[cluster];
+    const auto present=[&](int index) {
+        return index>=0 && std::size_t(index)<atmosphere.skies.size() && atmosphere.skies[index].present;
+    };
+    if(source.sky!=-1)return present(source.sky)?std::optional(unsigned(source.sky)):std::nullopt;
+    if(present(source.visible_sky) && !(atmosphere.skies[source.visible_sky].flags&16u))
+        return unsigned(source.visible_sky);
+    return {};
+}
 }
 }

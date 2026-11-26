@@ -22,6 +22,11 @@ filenames lack `_generated`. Local Effect headers are embedded at their
 original inclusion boundary in the disposable CPP and retain separate canonical
 source/hash identities. Global identity declarations precede the original
 namespaces. Canonical files and lambda captures remain unchanged.
+Prepared verification references have separate counter identities and record
+the canonical routine they replay. The instrumenter accepts these derived
+functions only after reproducing the entire prepared unit from the canonical
+source and matching it byte for byte. Calls to a replay body therefore stay
+visible without attributing its observations to the owner's normal route.
 Runtime State image metadata does not authenticate a callback-PC remapper.
 The 302 animation-selection/pickup/routing routines retain canonical-only
 callback identities; their actual TU1.5 function addresses remain unresolved
@@ -94,6 +99,24 @@ Typed native child calls do not enter their retained generated wrappers, so
 their absence from wrapper counts must not be read as absence of native work.
 Accounting changes timing, so performance acceptance uses a separate build
 with the option off.
+
+In a 360-tick four-player Zanzibar run, three instrumented production aliases
+used the normal engine service policy. The default and forced-reference runs
+matched the final frame. In the particle-frame unit, all 21,131 `178070`
+entries and 33,286 `13A6B0` entries returned without a translated statement.
+The forced routes reached 464,882 and 599,148 statements respectively. The
+legacy full-callback census can place those owners in the migration queue
+because that diagnostic changes their admission. The default result here
+applies to the exercised particle-frame copy.
+
+In physics live support, `13DE70` had 67,840 activations in each run. In the
+default run, 4,804 reached translated statements, totaling 226,679. The
+full-reference run reached 2,005,324 translated statements. The separately
+generated verification function has its own accounting identity in both
+authored-function variants. The live lens copy had no entry in this run.
+Evidence is under
+`build/test-results/native-kernel-goal-20261124/current-source-route-accounting/`
+and `build/test-results/native-kernel-goal-20261124/authored-function-runtime/source-accounting.json`.
 
 The broadened Linux Release pilot at
 `build/test-results/native-accounting-broadened-cmake-20261109` passed all four

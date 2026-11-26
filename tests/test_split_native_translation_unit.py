@@ -12,8 +12,9 @@ import split_native_translation_unit as splitter
 
 
 def fixture(declarations=('run_a', 'run_b'), definitions=('run_b', 'run_a')):
-    text = '#include <stdexcept>\nnamespace halo2 {\nnamespace {\nstruct WorldState {int value=0;};\n'
-    text += 'int bump() {static int count=0;return ++count;}\n'
+    text = '#include <stdexcept>\nnamespace halo2 {\nnamespace replay {using Count=int;}\n'
+    text += 'namespace {\nstruct WorldState {int value=0;};\n'
+    text += 'replay::Count bump() {static int count=0;return ++count;}\n'
     text += ''.join('static void '+name+'(WorldState &);\n' for name in declarations)
     for name in definitions:
         text += 'static void '+name+'(WorldState &s) {\n'

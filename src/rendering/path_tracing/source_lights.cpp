@@ -62,8 +62,11 @@ void present(PhysicsLiveWorldTu15& world,Light& light,const SourceEffectLightRun
 }
 void present_light_frame(Light& light,const Transform& source,const Transform& shown) {
     if(std::memcmp(&source,&shown,sizeof(Transform))==0)return;
-    if(!std::isfinite(source.scale) || !std::isfinite(shown.scale) || source.scale==0 || shown.scale==0)
-        throw FormatError("Path Tracing attachment presentation has a degenerate frame");
+    if(!std::isfinite(source.scale) || !std::isfinite(shown.scale))
+        throw FormatError("Path Tracing attachment presentation has a nonfinite frame");
+    // Authored animation can collapse a node while the native light still
+    // has a valid world shape. With no invertible reframe, keep that shape.
+    if(source.scale==0 || shown.scale==0)return;
     // Native shape construction stays authoritative. Only its frame changes,
     // by the same source-node to presented-node motion as its attached model.
     const auto motion=compose_transform(shown,inverse_transform(source));

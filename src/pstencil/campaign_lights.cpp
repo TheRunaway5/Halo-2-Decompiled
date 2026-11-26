@@ -41,6 +41,15 @@ struct CampaignLights::Impl {
 };
 CampaignLights::CampaignLights(const Cache& cache,unsigned bsp):impl_(std::make_unique<Impl>(cache,bsp)){}
 CampaignLights::~CampaignLights()=default;
+void CampaignLights::switch_bsp(const Cache& cache,unsigned bsp) {
+    auto& i=*impl_;
+    i.bsp=bsp;
+    i.locations=cache.load_bsp_atmosphere(bsp);
+    i.memberships=cache.load_object_light_spatial_bsp(bsp);
+    i.portals=cache.load_source_portal_bsp(bsp);
+    i.queries={};
+    i.selection={};
+}
 std::vector<std::uint32_t> CampaignLights::definitions()const {
     return {impl_->supported.begin(),impl_->supported.end()};
 }

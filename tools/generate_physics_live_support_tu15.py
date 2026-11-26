@@ -27,7 +27,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
              code_override=None,preserve_selected_addresses=False,retained_selected_addresses=(),
              install_flight_property_query=False,install_codec_copy_rows=False,install_contact_predicate=False,
              install_object_record_ratio=False,install_node_function_progress=False,install_object_function_query=False,install_object_ratio_caller=False,install_object_function_scalar=False,install_indexed_datum_gate=False,
-             install_object_component_tick=False):
+             install_object_component_tick=False,route_sound_duration=False):
     assert paired['image']=='English TU1.5' and paired['original_sha256']==NEW_PIN
     assert sha(NEW_DEFAULT)==NEW_PIN
     complete_listings=True
@@ -676,6 +676,17 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 value=get(i,i.operands[0]);assert translated.count(value)==1
                 translated=translated.replace(value,
                     'source_weapon_animation_scoped_overlay_symbol_tu15(s.memory,'+value+')')
+            if route_sound_duration and entry==0x21f6b0 and i.address==0x21f6f3:
+                # Original 21F6B0 pushes SampleSize and pitch row, then calls
+                # its duration leaf. Live MCC needs its World-owned original
+                # timing operands through required_owner.
+                assert i.mnemonic=='call' and i.operands[0].type==2 and i.operands[0].imm==0x21f590
+                expected=f's.push(0x21f6f3u,{imm(0x21f6f8)});run_21f590(s);'
+                assert translated==expected
+                translated=(f's.push(0x21f6f3u,{imm(0x21f6f8)});'
+                            f'if(s.image==SourcePhysicsContactImage::TitleUpdate15 && s.services.required_owner)'
+                            f'{{s.required(0x21f6f3u,{imm(0x21f590)},false);}}'
+                            f'else run_21f590(s);')
             if entry==0xbaf10 and i.address==0xbaf5f:
                 translated='attachment_scope.inputs(s.gp[2],s.gp[1],s.gp[5],s.gp[7]);'+translated
             if entry==0xbaf10 and i.address==0xbb1ef:
@@ -1727,5 +1738,5 @@ def main():
     a.correspondence.write_text(json.dumps(paired,sort_keys=True,indent=2)+'\n')
     generate(a,paired,complete_listings=True,install_flight_property_query=True,install_codec_copy_rows=True,
              install_contact_predicate=True,install_object_record_ratio=True,install_node_function_progress=True,install_object_function_query=True,install_object_ratio_caller=True,install_object_function_scalar=True,install_indexed_datum_gate=True,
-             install_object_component_tick=True)
+             install_object_component_tick=True,route_sound_duration=True)
 if __name__=='__main__':main()

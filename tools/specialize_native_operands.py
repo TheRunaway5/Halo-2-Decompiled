@@ -210,6 +210,18 @@ def spatial_owner_bindings(canonical,output):
                         ('static void run_b8f40(','native_object_tick_replacements'),
                         ('static void run_be850(','native_object_subtree_replacements'),
                         ('static void run_131470(','native_cluster_distance_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_accumulation_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_resolution_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_cluster_finish_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_projected_merge_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_cluster_sky_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_remaining_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_plane_classifier_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_plane_projection_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_plane_output_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_plane_transform_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_fog_plane_call_replacements'),
+                        ('void source_run_campaign_environment_tu15(','native_patchy_fog_replacements'),
                         ('static void run_16c620(','native_collision_ray_replacements'),
                         # Device update callbacks 1179C0/10B840 (scene device unit).
                         ('static void run_1179c0(','native_device_update_replacements'),
@@ -217,16 +229,85 @@ def spatial_owner_bindings(canonical,output):
                         # Group L live-support leaves: the helper matches each pinned body
                         # in any unit (C9550, 1EC970, 1F7F60, 171010, C1E90, 110350).
                         ('static void run_','native_live_support_leaves_replacements'),
+                        ('static void run_305560(State','native_collision_cache_305560_contact_replacements'),
                         ('void source_run_physics_live_support_tu15(','native_object_hierarchy_root_replacements'),
+                        ('void source_run_physics_live_support_tu15(','native_collision_pair_2f88d0_replacements'),
                         # Group F frame/gameplay owners: the helper matches each pinned
                         # owner and its unit itself (1306B0, D7230, 1EEE80, ...).
                         ('static void run_','native_frame_misc_replacements'),
                         # Group E effect owners: the helper matches each pinned closure
                         # in its unit itself (20680, C35D0, 176A40).
                         ('static void run_','native_effect_owner_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_entry_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_return_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_sections_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_descriptor_refresh_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_due_response_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_response_amount_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_response_secondary_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_notification_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_vitality_gate_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_flag_route_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_amounts_replacements'),
+                        ('static void run_d73e0(ObservedDamageState','native_damage_update_shield_recovery_replacements'),
+                        ('static void run_1778d0(WorldState','native_particle_system_update_replacements'),
+                        ('static void run_1778d0(WorldState','native_particle_system_attachment_replacements'),
+                        ('static void run_1778d0(WorldState','native_particle_system_selection_replacements'),
+                        ('static void run_1778d0(WorldState','native_particle_system_contact_basis_replacements'),
+                        ('static void run_1778d0(WorldState','native_particle_system_velocity_basis_replacements'),
+                        ('static void run_178240(WorldState','native_particle_drain_counts_replacements'),
+                        ('static void run_2c40d0(WorldState','native_particle_physics_shapes_replacements'),
+                        ('static void run_250ac0(WorldState','native_particle_transform_basis_replacements'),
+                        ('static void run_250ac0(WorldState','native_particle_transform_projection_replacements'),
+                        ('static void run_250ac0(WorldState','native_particle_transform_matrix_calls_replacements'),
+                        ('static void run_22ad60(WorldState','native_particle_emitter_bound_replacements'),
+                        ('static void run_251f70(WorldState','native_particle_update_location_transforms_replacements'),
+                        ('static void run_251650(WorldState','native_particle_cleanup_251650_replacements'),
+                        ('static void run_20b90(WorldState','native_lens_query_walk_replacements'),
+                        ('static void run_2c2d90(WorldState','native_particle_contact_walk_replacements'),
+                        ('static void run_2c2d90(WorldState','native_particle_contact_flags_replacements'),
+                        ('static void run_2c2d90(WorldState','native_particle_contact_query_replacements'),
+                        ('static void run_2c2d90(WorldState','native_particle_contact_response_replacements'),
+                        ('static void run_2c2d90(WorldState','native_particle_contact_actions_replacements'),
+                        ('static void run_17bb10(WorldState','native_particle_location_update_replacements'),
+                        ('static void run_1772c0(WorldState','native_particle_draw_entry_replacements'),
+                        ('static void run_174bf0(WorldState','native_particle_observer_lens_replacements'),
+                        ('static void run_178110(WorldState','native_particle_location_prepare_replacements'),
+                        ('static void run_252480(WorldState','native_particle_velocity_properties_replacements'),
+                        ('static void run_252480(WorldState','native_particle_velocity_direction_replacements'),
+                        ('static void run_252480(WorldState','native_particle_velocity_angles_replacements'),
+                        ('static void run_252480(WorldState','native_particle_velocity_remaining_replacements'),
+                        ('static void run_251c80(WorldState','native_particle_observer_lod_replacements'),
+                        ('static void run_251c80(WorldState','native_particle_location_emitters_replacements'),
+                        ('static void run_251c80(WorldState','native_particle_location_entry_replacements'),
+                        ('static void run_250c60(WorldState','native_particle_birth_prefix_replacements'),
+                        ('static void run_250c60(WorldState','native_particle_birth_placement_replacements'),
+                        ('static void run_250c60(WorldState','native_particle_birth_interface_replacements'),
+                        ('static void run_250780(WorldState','native_emitter_transform_replacements'),
+                        ('static void run_250780(WorldState','native_emitter_emission_replacements'),
+                        ('static void run_250780(WorldState','native_emitter_orientation_replacements'),
                         # Group H physics world leaves (1F5FE0, 2E4550, 303BA0, 2E47B0),
                         # physics world unit only.
                         ('static void run_1f16f0(ObservedWorldState','native_world_leaves_replacements'),
+                        ('static void run_2e0ba0(ObservedWorldState','native_world_position_transform_2e4690_replacements'),
+                        ('static void run_22ecb0(ObservedWorldState','native_world_pressure_2335b0_replacements'),
+                        ('static void run_32e35b(MathState','native_vehicle_x87_dispatch_331ecb_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_offset_20e414_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_cross_product_20e481_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_force_20e4f4_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_response_20e6c3_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_output_20e91f_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_scratch_reset_20ea32_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_wheel_curve_20e84a_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_contact_output_20f6e0_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_contact_projection_20ee92_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_contact_query_20f3a8_replacements'),
+                        ('static void run_209a50(MotionState','native_vehicle_contact_collection_20ea64_replacements'),
+                        ('static void run_1dc940(MotionState','native_vehicle_marker_emission_1e1200_replacements'),
+                        ('static void run_b9c20(MotionState','native_vehicle_marker_matrix_bad60_replacements'),
+                        ('static void run_3037f0(ObservedWorldState','native_soa_support_world_replacements'),
+                        ('static void run_1c6c30(ObservedWorldState','native_collection_filter_world_replacements'),
+                        ('static void run_2e22b0(ObservedWorldState','native_swept_support_world_replacements'),
                         # Group H 303EE0 contact record append (child 2E3250).
                         ('static void run_300400(ObservedWorldState','native_contact_array_replacements'),
                         # Group H 303C70/303D00 local shape buffers, then the 304350
@@ -235,15 +316,18 @@ def spatial_owner_bindings(canonical,output):
                         ('static void run_300870(ObservedWorldState','native_collection_agent_replacements'),
                         # Group H 30CF40 manifold report and 304130 contact weld (304350's children).
                         ('static void run_309450(ObservedWorldState','native_manifold_replacements'),
+                        ('static void run_309210(ObservedWorldState','native_contact_cache_update_30cd00_replacements'),
                         # Group H 2F33B0 key sort (2F36F0's child; recursion inline).
                         ('static void run_2ef8f0(ObservedWorldState','native_key_sort_replacements'),
                         # Group H 1F76A0 shape key filter (its jump table and 185AA0 call).
                         ('static void run_1f2db0(ObservedWorldState','native_shape_key_filter_replacements'),
                         # Group H 2F8630 closest point and 2E4FE0 swept pair (2E4550/2E4760 inline).
                         ('static void run_2f4bd0(ObservedWorldState','native_convex_pair_replacements'),
+                        ('static void run_305560(ObservedWorldState','native_collision_cache_309060_replacements'),
                         # Havok active-island byte query in World and scene devices.
                         ('static void run_3121a0(ObservedWorldState','native_phantom_island_replacements'),
                         ('static void run_315c90(WorldState','native_phantom_island_replacements'),
+                        ('static void run_3066e0(ObservedWorldState','native_mopp_quantized_aabb_30a1e0_replacements'),
                         # Group H 1F7C10 BSP child shape (1F76A0 and 1F5FE0 through their bound bodies).
                         ('static void run_1f3320(ObservedWorldState','native_bsp_child_shape_replacements'),
                         # Group H 1F6D10 structure AABB query (1F76A0 through its bound body; 2E4550 inline).
@@ -257,7 +341,11 @@ def spatial_owner_bindings(canonical,output):
         if marker not in canonical:continue
         spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(name+'.py'))
         helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
-        output,entries=helper.install(canonical,output);installed+=entries
+        if name == 'native_frame_misc_replacements':
+            output, entries = helper.install(canonical, output, authored_residuals=True, authored_powered=True)
+        else:
+            output, entries = helper.install(canonical, output)
+        installed += entries
     return output,installed
 
 
@@ -724,6 +812,202 @@ def specialize(text):
         native_simplex_triangle_entries=simplex_triangle_entries,
         native_simplex_triangle_scene_entries=simplex_triangle_scene_entries,
         bindings=[dict(canonical=a, tu15=b, uses=n) for (a, b), n in sorted(counts.items())])
+    if '13de70' in spatial_entries:
+        receipt['native_partial_frame_owners'] = {
+            '13de70': 'Native authored entry, common cases, kind-10 preprocessing and shared clamp; kinds 2/3/9 and required children retain their own dispatch.'}
+        spatial_entries = [entry for entry in spatial_entries if entry != '13de70']
+    if 'd8330' in spatial_entries:
+        damage_stages = {
+            ('d8b58',): 'Return epilogues and notification',
+            ('d84dc', 'd8a56'): 'pending-response advance and section depletion',
+            ('d8a08', 'd8ae2'): 'depletion gate and notification handoff',
+            ('d85cb', 'd85d9'): 'vitality gate and scale handoff',
+            ('d84f4',): 'descriptor refresh',
+            ('d8571',): 'response flag classification',
+            ('d8650',): 'shield refill and armor input preparation',
+            ('d86f2',): 'shield recovery and countdown gate',
+            ('d842c',): 'due response',
+            ('d87ce', 'd87da'): 'secondary response',
+            ('d88f9', 'd892e', 'd8945'): 'response amount and notification handoffs',
+        }
+        installed = set(spatial_entries)
+        damage_labels = {label for labels in damage_stages for label in labels}
+        has_countdown = 'const auto status=pending_response_step_native_tu15(s,' in text
+        if damage_labels <= installed and has_countdown:
+            spatial_entries = [entry for entry in spatial_entries if entry not in damage_labels]
+        else:
+            paths = ['selected damage update entry, descriptor call setup, immunity timer and section selection']
+            paths.extend(description for labels, description in damage_stages.items() if installed.issuperset(labels))
+            receipt.setdefault('native_partial_frame_owners', {})['d8330'] = 'Native ' + ', '.join(paths) + '.'
+            spatial_entries = [entry for entry in spatial_entries if entry != 'd8330' and entry not in damage_labels]
+    if '251c80' in spatial_entries:
+        parts = ['Native entry and forced LOD publication']
+        if '251d00' in spatial_entries:
+            parts.append('native observer LOD scan at 251D00')
+        if '251e30' in spatial_entries:
+            parts.append('native emitter tail at 251E30')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('251d00', '251e30')]
+        if len(parts) != 3:
+            receipt.setdefault('native_partial_frame_owners', {})['251c80'] = '; '.join(parts) + '.'
+            spatial_entries = [entry for entry in spatial_entries if entry != '251c80']
+    if '251d00' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['251c80'] = (
+            'Native observer LOD scan at 251D00; translated owner resumes at 251E30.')
+        spatial_entries = [entry for entry in spatial_entries if entry != '251d00']
+    if '251e30' in spatial_entries:
+        partial = receipt.setdefault('native_partial_frame_owners', {})
+        partial['251c80'] = (
+            'Native observer LOD at 251D00 and emitter tail at 251E30; entry and forced LOD publication remain translated.'
+            if '251c80' in partial else
+            'Native emitter tail at 251E30; entry and observer LOD remain translated.')
+        spatial_entries = [entry for entry in spatial_entries if entry != '251e30']
+    if '2508a5' in spatial_entries:
+        parts = ['Native orientation and position offsets at 2508A5']
+        if '2508a2' in spatial_entries:
+            parts.append('native entry and transform publication through 2508A2')
+        if '25097b' in spatial_entries:
+            parts.append('native emission tail at 25097B')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('2508a2', '2508a5', '25097b')]
+        if len(parts) == 3:
+            spatial_entries.append('250780')
+        else:
+            receipt.setdefault('native_partial_frame_owners', {})['250780'] = '; '.join(parts) + '.'
+    if '25097b' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['250780'] = (
+            'Native transform publication through 2508A2 and emission tail at 25097B.'
+            if '2508a2' in spatial_entries else 'Native emission tail at 25097B.')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('2508a2', '25097b')]
+    if '2508a2' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['250780'] = (
+            'Native entry and transform publication through 2508A2. Emitter update resumes at 2508A5 or 25097B.')
+        spatial_entries = [entry for entry in spatial_entries if entry != '2508a2']
+    if '25113a' in spatial_entries:
+        parts = ['native interface selection and return from 25113A']
+        if '250e67' in spatial_entries:
+            parts.insert(0, 'native particle properties and placement through 251136')
+        if '250e64' in spatial_entries:
+            parts.insert(0, 'native allocation, linkage and RNG through 250E64')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('250e64', '250e67', '25113a')]
+        if len(parts) == 3:
+            spatial_entries.append('250c60')
+        else:
+            receipt.setdefault('native_partial_frame_owners', {})['250c60'] = '; '.join(parts) + '.'
+    if '250e67' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['250c60'] = (
+            'Native allocation, linkage and RNG through 250E64, followed by particle properties and placement through '
+            '251136. Interface selection and exit remain translated.'
+            if '250e64' in spatial_entries else
+            'Native particle properties and placement through 251136. Allocation and exit retain their own routes.')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('250e64', '250e67')]
+    if '250e64' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['250c60'] = (
+            'Native allocation, linkage and RNG through 250E64. Property evaluation and the exit retain their own routes.')
+        spatial_entries = [entry for entry in spatial_entries if entry != '250e64']
+    if '131ac0' in spatial_entries:
+        fog_stages = ('131c31', '131d38', '131fc7', '1320e5', '132188', '13262b')
+        if not all(pc in spatial_entries for pc in fog_stages):
+            raise ValueError('Complete 131AC0 requires all authenticated native fog stages')
+        spatial_entries = [entry for entry in spatial_entries if entry not in fog_stages]
+    elif any(pc in spatial_entries for pc in ('131c31', '131d38', '131fc7', '1320e5', '132188', '13262b')):
+        parts = []
+        fog_cluster_sky_stages = ('131c31', '1320e5')
+        if any(pc in spatial_entries for pc in fog_cluster_sky_stages):
+            if not all(pc in spatial_entries for pc in fog_cluster_sky_stages):
+                raise ValueError('131AC0 fog cluster sky requires both exact stages')
+            parts.append('cluster initialization and sky gate at 131C31 and 1320E5')
+        if '131d38' in spatial_entries:
+            parts.append('weighted fog accumulation at 131D38')
+        if '131fc7' in spatial_entries:
+            parts.append('cluster completion at 131FC7, 132084 and 13208C')
+        if '132188' in spatial_entries:
+            parts.append('projected fog merge at 132188')
+        if '13262b' in spatial_entries:
+            parts.append('fog resolution and return at 13262B')
+        receipt.setdefault('native_partial_frame_owners', {})['131ac0'] = (
+            'Native ' + ' and '.join(parts) + '. The earlier prologue and child calls retain their existing routes.')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('131c31', '131d38', '131fc7', '1320e5', '132188', '13262b')]
+    if '133b40' in spatial_entries:
+        fog_plane_stages = ('133bd4', '133d8f', '134042', '133c2f')
+        if not all(stage in spatial_entries for stage in fog_plane_stages):
+            raise ValueError('Complete 133B40 requires all authenticated native fog plane stages')
+        spatial_entries = [entry for entry in spatial_entries if entry not in fog_plane_stages]
+    elif '133bd4' in spatial_entries:
+        projection = ', repeated member projection' if '133d8f' in spatial_entries else ''
+        output_tail = ', final output merge' if '134042' in spatial_entries else ''
+        transform = ', x87 plane transform and plane advance' if '133c2f' in spatial_entries else ''
+        receipt.setdefault('native_partial_frame_owners', {})['133b40'] = (
+            'Native output initialization, plane classification, geometry arguments' + projection + output_tail + transform +
+            '. The original 11F7E0 dispatch stays at 133D8A.')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('133bd4', '133d8f', '134042', '133c2f')]
+    if '177b7c' in spatial_entries:
+        system_stages = {
+            '177983': 'native setup, location walk and drain',
+            '177985': 'native attachment selection and fixed contact bases',
+            '177a2f': 'native computed contact basis',
+            '177b7c': 'native computed velocity basis and final lane',
+            '177cd9': 'native attachment preparation and recursive update',
+        }
+        installed_system_stages = [description for stage, description in system_stages.items()
+                                   if stage in spatial_entries]
+        spatial_entries = [entry for entry in spatial_entries if entry not in system_stages]
+        if len(installed_system_stages) == len(system_stages):
+            spatial_entries.append('1778d0')
+        else:
+            receipt.setdefault('native_partial_frame_owners', {})['1778d0'] = ', '.join(installed_system_stages) + '.'
+    if '177a2f' in spatial_entries:
+        parts = ['native attachment selection, fixed contact bases and computed contact basis']
+        if '177983' in spatial_entries:
+            parts.insert(0, 'native setup, location walk and drain')
+        if '177cd9' in spatial_entries:
+            parts.append('native attachment preparation and recursive update')
+        receipt.setdefault('native_partial_frame_owners', {})['1778d0'] = ', '.join(parts) + '.'
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('177a2f', '177985', '177cd9', '177983')]
+    if '177985' in spatial_entries:
+        parts = ['native attachment selection and fixed contact bases']
+        if '177983' in spatial_entries:
+            parts.insert(0, 'native setup, location walk and drain')
+        if '177cd9' in spatial_entries:
+            parts.append('native attachment preparation and recursive update')
+        receipt.setdefault('native_partial_frame_owners', {})['1778d0'] = ', '.join(parts) + '.'
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('177985', '177cd9', '177983')]
+    if '177cd9' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['1778d0'] = (
+            'Native setup, location walk, attachment preparation, recursive update and drain. Attachment geometry remains translated.'
+            if '177983' in spatial_entries else
+            'Native attachment preparation and recursive update from 177CD9. Setup, geometry and drain retain their own routes.')
+        spatial_entries = [entry for entry in spatial_entries if entry not in ('177cd9', '177983')]
+    if '177983' in spatial_entries:
+        receipt.setdefault('native_partial_frame_owners', {})['1778d0'] = (
+            'Native system setup, location walk and 177DD7 drain. Attachment placement and recursion remain translated.')
+        spatial_entries = [entry for entry in spatial_entries if entry != '177983']
+    if '2c2e92' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2c2e92']
+        receipt.setdefault('native_partial_frame_owners', {})['2c2d90'] = (
+            'Native contact input setup, live particle walk, eligibility and countdown, continuation and return.')
+    if '2c2ee0' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2c2ee0']
+        receipt['native_partial_frame_owners']['2c2d90'] += ' Active particles also use the native input cache and collision flags.'
+    if '2c2fd4' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2c2fd4']
+        receipt['native_partial_frame_owners']['2c2d90'] += ' Native sweep inputs, real collision query and result gates.'
+    if '2c30b8' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2c30b8']
+        receipt['native_partial_frame_owners']['2c2d90'] += ' Native contact response and impulse.'
+    if '2c3248' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2c3248'] + ['2c2d90']
+        receipt['native_partial_frame_owners'].pop('2c2d90', None)
+    if '2524cd' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2524cd']
+        receipt.setdefault('native_partial_frame_owners', {})['252480'] = (
+            'Native common particle lifetime and rotation setup, velocity normalization and return.')
+    if '252628' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '252628']
+        receipt['native_partial_frame_owners']['252480'] += ' Native random-vector modes.'
+    if '2524d4' in spatial_entries:
+        spatial_entries = [entry for entry in spatial_entries if entry != '2524d4']
+        receipt['native_partial_frame_owners']['252480'] += ' Native spatial and planar random-bearing modes.'
+    if '252480' in spatial_entries:
+        receipt['native_partial_frame_owners'].pop('252480', None)
     if spatial_entries:receipt['native_spatial_owners']=spatial_entries
     # Preserve the older owner-specific authenticated rejection order. New
     # object-node receipts follow the existing Page/Stack/Busy validations.
@@ -1165,6 +1449,282 @@ def specialize(text):
         ring_helper=importlib.util.module_from_spec(ring_spec);ring_spec.loader.exec_module(ring_helper)
         output,path_ring_entries=ring_helper.install_path_ring(text,output)
         if path_ring_entries:receipt.setdefault('native_spatial_owners',[]).extend(path_ring_entries)
+    if 'void source_run_death_cycle_runtime_tu15(' in text:
+        from native_death_cycle_opening_replacements import install as install_death_cycle_opening
+        output, death_cycle_opening = install_death_cycle_opening(text, output)
+        if death_cycle_opening:
+            receipt.setdefault('native_partial_frame_owners', {})['1030f0'] = (
+                'Native opening resolves the object and tag datums, sets up the original scale and '
+                'override queries, and rejoins the retained owner at 1031CB.')
+            from native_death_cycle_activity_replacements import install as install_death_cycle_activity
+            output, death_cycle_activity = install_death_cycle_activity(text, output)
+            if death_cycle_activity:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native activity flags, tag-entry iteration, and motion dispatch retain the original '
+                    '102D50 call and both authored branch tables.')
+            from native_death_cycle_transition_replacements import install as install_death_cycle_transition
+            output, death_cycle_transition = install_death_cycle_transition(text, output)
+            if death_cycle_transition:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native descriptor and activity transitions retain all six original child calls and rejoin at 1032A7.')
+            from native_death_cycle_expiration_replacements import install as install_death_cycle_expiration
+            output, death_cycle_expiration = install_death_cycle_expiration(text, output)
+            if death_cycle_expiration:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native motion completion and per-record timer expiration use the original record table.')
+            from native_death_cycle_motion_replacements import install as install_death_cycle_motion
+            output, death_cycle_motion = install_death_cycle_motion(text, output)
+            if death_cycle_motion:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native motion-result handling retains the original 107610 and 108040 calls.')
+            from native_death_cycle_timer_tail_replacements import install as install_death_cycle_timer_tail
+            output, death_cycle_timer_tail = install_death_cycle_timer_tail(text, output)
+            if death_cycle_timer_tail:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native timer updates and record advancement retain the original conversion and notification '
+                    'calls, loop back-edge, and return.')
+            from native_death_cycle_object_timer_replacements import install as install_death_cycle_object_timer
+            output, death_cycle_object_timer = install_death_cycle_object_timer(text, output)
+            if death_cycle_object_timer:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native object timer updates retain the original FC8D0, 10A910, and 108A70 calls.')
+            from native_death_cycle_timer_notification_replacements import install as install_death_cycle_timer_notification
+            output, death_cycle_timer_notification = install_death_cycle_timer_notification(text, output)
+            if death_cycle_timer_notification:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native timer notifications preserve the original threshold and effect calls before 103657.')
+            from native_death_cycle_record_route_replacements import install as install_death_cycle_record_route
+            output, death_cycle_record_route = install_death_cycle_record_route(text, output)
+            if death_cycle_record_route:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native record handlers preserve four jump-table entries, nine original calls, '
+                    'and the shared 104371 continuation.')
+            from native_death_cycle_record_blend_replacements import install as install_death_cycle_record_blend
+            output, death_cycle_record_blend = install_death_cycle_record_blend(text, output)
+            if death_cycle_record_blend:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native record blend and its two original BC820 calls rejoin at 1044F4.')
+            from native_death_cycle_motion_finalize_replacements import install as install_death_cycle_motion_finalize
+            output, death_cycle_motion_finalize = install_death_cycle_motion_finalize(text, output)
+            if death_cycle_motion_finalize:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native motion finalization retains five original calls and rejoins at 1040F0.')
+            from native_death_cycle_motion_cleanup_replacements import install as install_death_cycle_motion_cleanup
+            output, death_cycle_motion_cleanup = install_death_cycle_motion_cleanup(text, output)
+            if death_cycle_motion_cleanup:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native active and pending record cleanup retains both table entries and five original calls.')
+            from native_death_cycle_motion_link_replacements import install as install_death_cycle_motion_link
+            output, death_cycle_motion_link = install_death_cycle_motion_link(text, output)
+            if death_cycle_motion_link:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native motion linking preserves three table entries, ten original calls, and the shared timer join.')
+            from native_death_cycle_record_effects_replacements import install as install_death_cycle_record_effects
+            output, death_cycle_record_effects = install_death_cycle_record_effects(text, output)
+            if death_cycle_record_effects:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native record effects retain both authored jump tables, fourteen original calls, and four joins.')
+            # Authenticate the shared finalization labels before adding their native predecessors.
+            from native_death_cycle_motion_records_10387c_replacements import install as install_death_cycle_motion_records
+            output, death_cycle_motion_records = install_death_cycle_motion_records(text, output)
+            if death_cycle_motion_records:
+                receipt['native_partial_frame_owners']['1030f0'] += (
+                    ' Native indexed motion records retain eight original calls and their 103CD3 and 1040F0 joins.')
+            if all((death_cycle_transition, death_cycle_object_timer, death_cycle_timer_notification,
+                    death_cycle_activity, death_cycle_motion, death_cycle_motion_records,
+                    death_cycle_record_effects, death_cycle_motion_finalize, death_cycle_motion_cleanup,
+                    death_cycle_motion_link, death_cycle_expiration, death_cycle_record_route,
+                    death_cycle_record_blend, death_cycle_timer_tail)):
+                receipt['native_partial_frame_owners'].pop('1030f0')
+                receipt.setdefault('native_spatial_owners', []).append('1030f0')
+    if 'static void run_1f0670(WorldState &);' in text:
+        from native_player_finished_1f0670_replacements import install as install_player_finished
+        output, player_finished = install_player_finished(text, output)
+        if player_finished:
+            receipt.setdefault('native_partial_frame_owners', {})['1f0670'] = (
+                'Native common frame, authored slot table load, and shared return paths.')
+            from native_player_finished_angle_slot_replacements import install as install_angle_slot
+            output, angle_slot = install_angle_slot(output)
+            if angle_slot:
+                receipt['native_partial_frame_owners']['1f0670'] += (
+                    ' Native wrapped angle-delta slot and its two result exits.')
+            from native_player_finished_weapon_slot_replacements import install as install_weapon_slot
+            output, weapon_slot = install_weapon_slot(output)
+            if weapon_slot:
+                receipt['native_partial_frame_owners']['1f0670'] += (
+                    ' Native weapon-status slot with original weapon and HUD calls.')
+            from native_player_finished_hot_slots_replacements import install as install_hot_slots
+            output, hot_slots = install_hot_slots(output)
+            if hot_slots:
+                receipt['native_partial_frame_owners']['1f0670'] += (
+                    ' Native completion latches and multiplayer player-state predicates with the shared positive exit.')
+            from native_player_finished_cold_slots_replacements import install as install_cold_slots
+            output, cold_slots = install_cold_slots(output)
+            if cold_slots:
+                receipt['native_partial_frame_owners'].pop('1f0670')
+                receipt.setdefault('native_spatial_owners', []).append('1f0670')
+    if 'static void run_30aa70(WorldState &);' in text:
+        from native_mopp_ray_traversal_replacements import install_prepared_entry
+        output,mopp_ray_entry_owner=install_prepared_entry(text,output)
+        if mopp_ray_entry_owner:
+            receipt.setdefault('native_partial_frame_owners',{})['30aa70']=(
+                'Native prologue, resident empty/jump cases, narrow and wide plane setup and comparison, '
+                'axial endpoint order, slab bounds, intervals and delta comparisons, byte scale translations, '
+                'packed scale setup, scalar scale completion, decreasing-child resumption, opcode resumption, '
+                'axis byte-node setup, shared returns, collector inputs and results, and recursive arguments.')
+    if 'static void run_30b890(WorldState &);' in text:
+        from native_mopp_ray_traversal_replacements import install_setup_call
+        output, mopp_ray_setup_owner = install_setup_call(text, output)
+        receipt.setdefault('native_partial_frame_owners', {})['30b890'] = (
+            'Native ray setup and return in the ' + mopp_ray_setup_owner +
+            ' layout, with the original 30AA70 child and exact provider continuations.')
+    if 'static void run_30caa0(WorldState &);' in text:
+        from native_contact_cache_update_30cd00_replacements import install_reduction_scan
+        output = install_reduction_scan(text, output)
+        receipt.setdefault('native_partial_frame_owners', {})['30caa0'] = (
+            'Native contact-reduction selection scans, frame setup, and record removal with the original '
+            'metric spills, indirect removal call, and provider continuations.')
+    if 'static void run_2e8d70(WorldState &);' in text:
+        from native_sphere_center_bounds_replacements import install as install_sphere_center_bounds
+        output, sphere_leaf_entries = install_sphere_center_bounds(text, output)
+        receipt.setdefault('native_sphere_leaf_entries', []).extend(sphere_leaf_entries)
+    if 'void source_run_contrail_geometry_tu15(' in text:
+        from native_contrail_adjacent_sample_replacements import install as install_adjacent_sample
+        from native_contrail_bitmap_selector_replacements import install as install_bitmap_selector
+        from native_contrail_effect_launch_replacements import install as install_effect_launch
+        from native_contrail_effect_projection_replacements import install as install_effect_projection
+        from native_contrail_effect_tagged_lookup_replacements import install as install_effect_tagged_lookup
+        from native_contrail_effect_default_vector_replacements import install as install_effect_default_vector
+        from native_contrail_effect_authored_vector_replacements import install as install_effect_authored_vector
+        from native_contrail_effect_authored_offset_replacements import install as install_effect_authored_offset
+        from native_contrail_camera_facing_replacements import install as install_camera_facing
+        from native_contrail_object_color_replacements import install as install_object_color
+        from native_contrail_object_tint_replacements import install as install_object_tint
+        from native_contrail_orientation_setup_replacements import install as install_orientation_setup
+        from native_contrail_draw_frame_replacements import install as install_draw_frame
+        from native_contrail_planar_facing_replacements import install as install_planar_facing
+        from native_contrail_point_sample_replacements import install as install_point_sample
+        from native_contrail_point_update_replacements import install as install_point_update
+        from native_contrail_transition_curve_replacements import install as install_transition_curve
+        from native_contrail_vertex_emission_replacements import install as install_vertex_emission
+        from native_contrail_view_fade_replacements import install as install_view_fade
+        output=install_vertex_emission(text,output)
+        output=install_point_sample(text,output)
+        output=install_view_fade(text,output)
+        output=install_transition_curve(text,output)
+        output=install_point_update(text,output)
+        output=install_camera_facing(text,output)
+        output=install_adjacent_sample(text,output)
+        output=install_object_tint(text,output)
+        output=install_orientation_setup(text,output)
+        output=install_draw_frame(text,output)
+        output=install_planar_facing(text,output)
+        output=install_object_color(text,output)
+        output=install_bitmap_selector(text,output)
+        output=install_effect_launch(text,output)
+        output=install_effect_projection(text,output)
+        output=install_effect_tagged_lookup(text,output)
+        output=install_effect_default_vector(text,output)
+        output=install_effect_authored_vector(text,output)
+        output=install_effect_authored_offset(text,output)
+        receipt.setdefault('native_partial_frame_owners',{})['219e40']=(
+            'Native signed admission, authored lookups, vector blending, and all RET8 paths. The genuine 21A2A0 call stays at its original boundary.')
+        receipt.setdefault('native_partial_frame_owners',{})['219e00']=(
+            'Native tagged lookup, child arguments and RET8. The real 219E40 call stays at its source boundary.')
+        receipt.setdefault('native_partial_frame_owners',{})['219330']=(
+            'Native effect frame, authored lookup arguments, launch coefficients, weighting, and origin projection. '
+            'The projection tail and status return are native. The real lookup and 11E600 calls and allocation continuation retain their source boundaries.')
+        receipt.setdefault('native_spatial_owners',[]).extend(('42c40','17f8a0','17f3d0','bcd80','13a070','21a2a0'))
+        receipt.setdefault('native_partial_frame_owners',{})['42ce0']=(
+            'Native point sampling and adjacent blending, object tint, orientation inputs and all supported strip orientations, '
+            'point-pair output, clamped view fade, packed color, chain advance, and draw frame. '
+            'The real BCD80 and 42C40 calls and the orientation dispatch stay at their original boundaries.')
+    if 'void source_run_physics_live_support_tu15(' in text:
+        from native_convex_process_prefix_2f8b60_replacements import install
+        output, convex_process_prefix = install(text, output)
+        if convex_process_prefix:
+            receipt.setdefault('native_partial_frame_owners', {})['2f8b60'] = (
+                'Native frame, cached distance projection and inverse transform arguments. '
+                'The authored transform and cache removal call edges retain their original dispatch.')
+        from native_two_bone_solve_replacements import install as install_two_bone_solve
+        output, two_bone_entries = install_two_bone_solve(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(two_bone_entries)
+        from native_polygon_intersection_replacements import install as install_polygon_intersection
+        output, polygon_entries = install_polygon_intersection(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(polygon_entries)
+        from native_havok_plane_314a30_replacements import install as install_havok_plane
+        output, havok_plane_entries = install_havok_plane(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(havok_plane_entries)
+        from native_weapon_animation_selection_replacements import install as install_weapon_animation_selection
+        output, weapon_animation_entries = install_weapon_animation_selection(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(weapon_animation_entries)
+        from native_bitmap_residency_replacements import install as install_bitmap_residency
+        output, bitmap_entries = install_bitmap_residency(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(bitmap_entries)
+        from native_physical_result_activity_replacements import install as install_physical_result_activity
+        output, activity_entries = install_physical_result_activity(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(activity_entries)
+        from native_pose_setup_c85a0_replacements import install as install_pose_setup
+        output, pose_setup_entries = install_pose_setup(text, output)
+        for entry in pose_setup_entries:
+            receipt.setdefault('native_partial_frame_owners', {})[entry] = (
+                'Native datum gates, pose spills, first-axis reset and default vector, including the early RET4. '
+                'Genuine C6E50 and CDF30 calls remain at their original boundaries.')
+        from native_pose_angle_c8930_replacements import install as install_pose_angle
+        output, pose_angle_entries = install_pose_angle(text, output)
+        for entry in pose_angle_entries:
+            receipt.setdefault('native_partial_frame_owners', {})[entry] += (
+                ' Native angle conversion and second-axis reset retain the original 32CC0C and CDF30 calls.')
+        from native_pose_completion_c8b65_replacements import install as install_pose_completion
+        output, pose_completion_entries = install_pose_completion(text, output)
+        for entry in pose_completion_entries:
+            receipt.setdefault('native_partial_frame_owners', {})[entry] += (
+                ' Native output comparison and frame return retain the original BDA50 dispatch.')
+        from native_pose_normalization_c8827_replacements import install as install_pose_normalization
+        output, pose_normalization_entries = install_pose_normalization(text, output)
+        for entry in pose_normalization_entries:
+            receipt.setdefault('native_partial_frame_owners', {})[entry] += (
+                ' Native pose normalization and angle clamps retain the original 11F7E0 and 122B60 calls.')
+        from native_pose_first_axis_c8704_replacements import install as install_pose_first_axis
+        from native_pose_second_axis_c89e3_replacements import install as install_pose_second_axis
+        output, first_axis_entries = install_pose_first_axis(text, output)
+        output, second_axis_entries = install_pose_second_axis(text, output)
+        for entry in first_axis_entries:
+            if entry in second_axis_entries:
+                receipt['native_partial_frame_owners'].pop(entry)
+                receipt.setdefault('native_spatial_owners', []).append(entry)
+        from native_animation_request_replacements import install as install_animation_request
+        output, animation_request_entries = install_animation_request(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(animation_request_entries)
+        from native_physical_result_contact_e4dc0_replacements import install as install_contact_transition
+        output, contact_entries = install_contact_transition(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(contact_entries)
+        from native_physical_result_decay_e51d6_replacements import install as install_physical_result_decay
+        output, decay_entries = install_physical_result_decay(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(decay_entries)
+        from native_physical_result_classification_e4b81_replacements import install as install_physical_result_classification
+        output, classification_entries = install_physical_result_classification(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(classification_entries)
+        from native_physical_result_final_branches_replacements import install as install_physical_result_final_branches
+        output, final_result_entries = install_physical_result_final_branches(text, output)
+        receipt.setdefault('native_spatial_owners', []).extend(final_result_entries)
+    if 'void source_run_weapon_hud_tu15(' in text:
+        from native_weapon_hud_status_1055f0_replacements import install as install_weapon_hud_status
+        from native_weapon_hud_status_reload_1055f0_replacements import install as install_weapon_hud_reload
+        output, weapon_status = install_weapon_hud_status(text, output)
+        if weapon_status:
+            output, weapon_reload = install_weapon_hud_reload(output)
+            if weapon_reload:
+                receipt.setdefault('native_spatial_owners', []).append('1055f0')
+            else:
+                receipt.setdefault('native_partial_frame_owners', {})['1055f0'] = (
+                    'Native HUD status frame, ordered packet clear, authored magazine queries, and return.')
+    # The exact live-support owner pin includes the grouped retained POPs.
+    if 'static void run_17e250(WorldState' in text:
+        from native_effect_observer_retire_17e250_replacements import install as install_observer_retirement
+        output, retirement_entries = install_observer_retirement(text, output)
+        if retirement_entries:
+            receipt.setdefault('native_spatial_owners', []).extend(retirement_entries)
     receipt['specialized_sha256']=digest(output)
     return output, receipt
 

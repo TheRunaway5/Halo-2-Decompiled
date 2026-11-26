@@ -51,14 +51,17 @@ void main() {
     gl_FragDepth=traceSourceDepth();
 #endif
     TraceMaterial material=traceMaterials[traceMaterialIndex];
-    vec4 sourceColor;if(!tracePrimarySurface(material,traceTexcoord,sourceColor))discard;
-    vec3 ownerAmbient=tracePrimarySourceAmbient(material,traceTexcoord);
+    vec4 sourceColor;float terrainBlend;
+    if(!tracePrimarySurface(material,traceTexcoord,sourceColor,terrainBlend))discard;
+#ifndef H2_PATH_TRACING_LIGHTING_WRITE
+    TraceObjectSurface objectSurface=tracePrimaryObjectSurface(material,traceTexcoord);
+#endif
     if(!traceAlphaPass(material,sourceColor.a))discard;
 #ifndef H2_PATH_TRACING_LIGHTING_WRITE
     // Authored detail map / texture-pass combiner and bump map, sampled
     // before the divergent visibility discard below.
     sourceColor.rgb=traceSourceAlbedo(material,traceTexcoord,sourceColor.rgb);
-    vec3 bumpLocal;bool bumped=traceSampleBump(material,traceTexcoord,bumpLocal);
+    vec3 bumpLocal;bool bumped=traceSampleBump(material,traceTexcoord,objectSurface,bumpLocal);
 #endif
     vec3 dx=dFdx(traceWorld),dy=dFdy(traceWorld);
     vec3 geometric=traceNormalize(cross(dx,dy),vec3(0,0,1));
@@ -78,31 +81,34 @@ void main() {
     if(dot(geometric,incoming)>0.0)geometric=-geometric;
     if(dot(normal,geometric)<0.0)normal=-normal;
     vec3 sourceTint=(material.texture.w&128u)!=0u?vec3(1):traceTint;
-    vec3 albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(sourceColor.rgb*sourceTint,0.0,1.0);
+    vec3 albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(sourceColor.rgb*sourceTint,0.0,1.0)*
+        traceDiffuseRetention(material,terrainBlend,normal,incoming);
     // The retail independent environment pass is masked by the preceding
     // texture pass's destination alpha. Apply it after reconstruction so its
     // full-resolution authored texture detail is never spatially blurred.
     // Halo 2 adds that reflection on top of the whole lit surface (the pass
     // blends additively); it never darkens the surface's colour to make room,
     // so neither does this: shiny painted metal keeps its paint.
-    float reflectionMask=(material.texture.w&2048u)!=0u?clamp(sourceColor.a,0.0,1.0):1.0;
+    float reflectionMask=traceSurfaceReflectionMask(material,sourceColor.a);
     vec4 colorGuide=tracePrimaryColorGuide(material,traceLightmapIndex,traceLightmapUV,traceVertexRadiance);
-    bool primaryCachedStatic=tracePrimarySourceAvailable(material,colorGuide);
-    vec3 sourceBaseline=primaryCachedStatic?traceSourceIndirect(colorGuide):vec3(0);
-    sourceBaseline+=ownerAmbient;
     uvec2 at=uvec2(gl_FragCoord.xy);uint phase=uint(camera.viewport.z);
     vec3 diffuseLight,specularLight;
 #ifndef H2_PATH_TRACING_LIGHTING_WRITE
+    bool primaryCachedStatic=tracePrimarySourceAvailable(material,colorGuide);
+    vec3 sourceBaseline=(primaryCachedStatic?traceSourceIndirect(colorGuide):vec3(0))+objectSurface.ambient;
+    vec3 shading=bumped?traceBumpedNormal(bumpLocal,normal,traceTangent,traceBinormal):normal;
     // Resolve: upsample the denoised grid. Only a pixel with no surface cell
     // anywhere in its 5x5 neighbourhood (an isolated sliver) traces its own
     // path below instead.
     vec3 tracedIncident;
     if(phase==3u && traceLightingFilter(at,traceWorld,normal,traceMaterialIndex,material.response.x,
                                       max(length(dx),length(dy)),diffuseLight,specularLight,tracedIncident)) {
-        // Sun light is deterministic: evaluate it per pixel, with its own
-        // shadow ray and the bump-mapped normal, instead of reading it from
-        // the denoised grid. Indirect light keeps Halo 2's baked relief.
-        vec3 shading=bumped?traceBumpedNormal(bumpLocal,normal,traceTangent,traceBinormal):normal;
+        // The grid already supplied indirect lighting here. A qualified
+        // surface can spend one bounded ray on its local reflection.
+        vec3 authoredEnvironment=traceAuthoredEnvironment(material,traceWorld,shading,normal,geometric,incoming,
+            sourceColor.a,colorGuide.rgb,true);
+        // Sun light is deterministic: evaluate it per pixel with its own
+        // shadow ray and the bump-mapped normal.
         // Bumps answer to the bake's dominant light direction where Halo 2
         // stored one (lightmapped world geometry; a model's vertex stream may
         // hold other data in that slot), otherwise to the direction the
@@ -110,34 +116,21 @@ void main() {
         vec3 lightIncident=traceLightmapIndex!=0u && dot(traceIncident,traceIncident)>1.e-8?traceIncident:
             bumped?traceFilteredIncident(at,traceWorld,normal,max(length(dx),length(dy))):vec3(0);
         float relief=bumped?traceIndirectRelief(normal,shading,lightIncident):1.0;
-        // The legacy reflection response is a smooth-surface adapter: keep its
-        // highlight on the interpolated normal (a per-texel normal at grazing
-        // view angles turns it into a saturated rim).
         vec3 sunDiffuse,sunSpecular;
         traceResolveDistantLights(traceWorld,shading,normal,geometric,incoming,material,colorGuide,primaryCachedStatic,
                                   sunDiffuse,sunSpecular);
-        // Calibrated against the baked lightmaps (calibrate.comp): x scales
-        // the sun, y the denoised grid diffuse.
+        // Calibration x scales sun and y scales denoised grid diffuse.
         diffuseLight=diffuseLight*(traceScene.calibration.y*relief)+sunDiffuse*traceScene.calibration.x;
-        float sharpness=material.detail.y!=0u?0.0:traceMirrorSharpness(material);
-        if(material.detail.y!=0u) {
-            // Halo 2's environment pass: its authored cube map along the
-            // bump-mapped reflection, tinted and weighted as that pass is.
-            // The grid then holds only this surface's direct highlights
-            // (traceLighting does not trace its reflection lobe).
-            float mask=(material.texture.w&1048576u)!=0u?clamp(sourceColor.a,0.0,1.0):1.0;
-            specularLight+=traceAtlasEnvironment(material.detail.y,reflect(incoming,shading))*
-                traceReflectionTint(material,shading,incoming)*traceReflection(material,shading,incoming)*mask;
-        }
 #ifdef H2_PATH_TRACING_HARDWARE_RAYS
         // Polished surfaces without an authored environment reflect along
         // their own bump-mapped direction at every pixel instead of the
         // grid's half-resolution average.
-        else if(sharpness>0.0)
+        float sharpness=material.detail.y==0u?traceMirrorSharpness(material):0.0;
+        if(sharpness>0.0)
             specularLight=mix(specularLight,traceMirrorReflection(traceWorld,shading,geometric,incoming,material),sharpness);
 #endif
         specularLight+=sunSpecular*traceScene.calibration.x;
-        vec3 radiance=albedo*(sourceBaseline+diffuseLight)+specularLight*reflectionMask;
+        vec3 radiance=albedo*(sourceBaseline+diffuseLight)+specularLight*reflectionMask+authoredEnvironment;
         if((material.texture.w&32u)!=0u)radiance+=traceEmission(material,traceTexcoord,sourceTint);
         pixel=vec4(clamp(traceFiniteLighting(radiance),vec3(0),vec3(1)),sourceColor.a);return;
     }
@@ -164,10 +157,11 @@ void main() {
     }
     diffuseLight/=float(samples);specularLight/=float(samples);currentDirect/=float(samples);
     currentDirectSpecular/=float(samples);
-    // Thin silhouettes with no compatible grid sample retain a single normal
-    // bounded trace. The ordinary resolve path performs no ray queries.
+    // Thin silhouettes with no compatible grid sample retain a bounded trace.
+    vec3 authoredEnvironment=traceAuthoredEnvironment(material,traceWorld,shading,normal,geometric,incoming,
+        sourceColor.a,colorGuide.rgb,false);
     vec3 radiance=albedo*(sourceBaseline+diffuseLight*traceScene.calibration.y+currentDirect*traceScene.calibration.x)+
-        (specularLight+currentDirectSpecular*traceScene.calibration.x)*reflectionMask;
+        (specularLight+currentDirectSpecular*traceScene.calibration.x)*reflectionMask+authoredEnvironment;
     if((material.texture.w&32u)!=0u)radiance+=traceEmission(material,traceTexcoord,sourceTint);
     if(any(isnan(radiance)) || any(isinf(radiance)))radiance=vec3(0);
     // Same scene transfer as Original: no automatic white clear-coat or global

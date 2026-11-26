@@ -195,7 +195,7 @@ def main():
     project=scratch/'physics-frame-project';project.mkdir()
     frozen=project/'source';shutil.copytree(ROOT/'include',frozen/'include')
     sources=('src/physics/native_tu15_physics_frame.cpp','src/physics/native_tu15_physics_frame_residuals.cpp',
-             'tests/native_tu15_physics_frame_tests.cpp','src/physics/native_tu15_object_publication.cpp','src/physics/native_tu15_activation_services.cpp','src/physics/native_tu15_memory_pressure.cpp','src/physics/native_tu15_contact_pressure.cpp')
+             'tests/native_tu15_physics_frame_tests.cpp','src/physics/native_tu15_object_publication.cpp','src/physics/native_tu15_activation_services.cpp','src/physics/native_tu15_memory_pressure.cpp','src/physics/runtime/native_tu15_pool_pressure_metric.hpp','src/physics/native_tu15_contact_pressure.cpp')
     for name in sources:
         target=frozen/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,target)
     tested=('include/halo2/native_tu15_physics_frame.hpp','include/halo2/native_tu15_physics_frame_residuals.hpp','include/halo2/native_tu15_object_publication.hpp','include/halo2/native_tu15_activation_services.hpp','include/halo2/native_tu15_memory_pressure.hpp','include/halo2/native_tu15_contact_pressure.hpp','include/halo2/native_tu15_contact_pressure_binding.hpp',*sources)

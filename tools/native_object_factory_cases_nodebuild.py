@@ -1097,7 +1097,7 @@ NATIVE_TRACK_DECODERS = [0x296180, 0x296680, 0x296450, 0x296240, 0x2963d0, 0x296
 UNPORTED_TRACK_DECODERS = {0x2cebe0, 0x2cec20, 0x296e90, 0x297030, 0x297180}
 FRAME_DECODERS = [0x2847d0, 0x284d30, 0x285370, 0x285a70, 0x2861a0, 0x2868a0, 0x28ada0, 0x28b5f0, 0x28e730, 0x28f110, 0x28fba0, 0x290710,
                   0x2912a0, 0x291e30, 0x28b080, 0x28eaf0, 0x28a7d0, 0x28e0b0, 0x28b870, 0x28c2c0, 0x28f460, 0x290030, 0x290b50, 0x291740,
-                  0x28c8f0, 0x28bf00,
+                  0x28c8f0, 0x28bf00, 0x28cc70, 0x28d310, 0x28d6e0, 0x28dd20,
                   # kind 4 (283E10's event orientations): modes 0/1/2, unmasked and masked
                   0x293290, 0x2928e0, 0x2947b0, 0x293cb0, 0x295da0, 0x295280,
                   # kind 1 (284140/284330, 2026-11-15): mode 0/1/2, masked and unmasked, with second-frame loops
@@ -1106,7 +1106,6 @@ FRAME_DECODERS = [0x2847d0, 0x284d30, 0x285370, 0x285a70, 0x2861a0, 0x2868a0, 0x
 # census executes; each is refused under its own address. Kind 4's
 # second-frame loops are 292C90/292280, 2940F0/2935C0 and 2956D0/294B80.
 FRAME_REFUSALS = {0x2843f0, 0x2849f0, 0x284ee0, 0x285630, 0x285cf0, 0x286460,
-                  0x284360,
                   0x292c90, 0x292280, 0x2940f0, 0x2935c0, 0x2956d0, 0x294b80}
 # Resource cache miss (125FB0), pending request release (1262F0's call of
 # 16E8A0 at 0x126307: placement's datum deletes run 16E8A0 natively), load
@@ -1318,18 +1317,20 @@ def inherited_entry(world, rng, entry, remap, mask, nodes=12, total=12):
         world.put(mask + 4 * k, rng.choice([NONE, NONE, 0, rng.getrandbits(32)]))
 
 
-def codec_frames_case(v, world, rng, second_masked=False, events=False, partial=False):
+def codec_frames_case(v, world, rng, second_masked=False, events=False, partial=False, kind2_mode2=False):
     """283570 over a direct state block: any kind/mode/mask/flag, a codec
     block of a random format and its flag streams. `second_masked` forces
     the masked second-frame loops (28A7D0/28E0B0) with NaN-rich tracks, so
-    their layering operand order is observable."""
+    their layering operand order is observable. `kind2_mode2` forces 284360's
+    four kind-2 mode-2 loops (28CC70/28D310/28D6E0/28DD20) with NaN-rich
+    translations and scales on both sides."""
     T = v.TRACK
     world.track = bytearray(rng.randbytes(v.TRACK_SIZE))
     codec_banks(v, world, rng)
     blob = T + 0x1000
     # NaN-rich translations on both sides make the layering operand order
     # (NaN payload selection) observable.
-    nan = .4 if second_masked or events or partial else rng.choice([.01, .01, .4])
+    nan = .4 if second_masked or events or partial or kind2_mode2 else rng.choice([.01, .01, .4])
     static, animated = codec_blob(world, rng, blob, nan=nan)
     fmt, block = rng.choice([(static, blob), (animated, blob + 0x800)])
     table = original_bytes(v, FORMAT_TABLE, FORMATS * 40)
@@ -1395,6 +1396,20 @@ def codec_frames_case(v, world, rng, second_masked=False, events=False, partial=
         for k in range(8):
             world.put(mask + 4 * k, rng.choice([NONE, 0, rng.getrandbits(32)]))
         state(0x2c, mask)
+    if kind2_mode2:
+        state(0x00, 2)
+        state(0x04, 2)
+        world.extra[CODEC_BANK][0x40 + 0x50] = rng.choice([0, 1])
+        mask = T + 0x80 if rng.choice([False, True]) else 0
+        if mask:
+            for k in range(8):
+                world.put(mask + 4 * k, rng.choice([NONE, NONE, 0, rng.getrandbits(32)]))
+        state(0x2c, mask)
+        # Ensure scale decoders carry NaN payloads alongside output scales.
+        if fmt == 1:
+            codec_floats(world, rng, block + 0x300, 12, span=2, nan=.4)
+        elif fmt in (4, 5, 6, 7):
+            codec_floats(world, rng, block + 0x400, 18, span=2, nan=.4)
     # 2835B0 supplies both frame pairs before enabling the second-frame
     # loops. Keep this direct-state fixture equally valid now that 28B080
     # and 28EAF0 reach the second pair; random bank bytes here index outside
@@ -1414,6 +1429,10 @@ def codec_frames_case(v, world, rng, second_masked=False, events=False, partial=
             for k in range(3):
                 if rng.random() < .4:
                     world.put(T + 0x3000 + 0x20 * n + 0x10 + 4 * k, rng.choice(NANS))
+    if kind2_mode2:
+        for n in range(16):
+            if rng.random() < .4:
+                world.put(T + 0x3000 + 0x20 * n + 0x1c, rng.choice(NANS))
     if partial:
         # NaN rotation lanes of both signs: kind 1's sign-alignment dot
         # ((p0+p2)+(p1+p3)) then keeps an observable NaN sign.
@@ -1632,6 +1651,8 @@ composite('nodebuild_codec_events', 0x283570, 'void', CODEC_STOPS, 400, cut=CODE
 composite('nodebuild_codec_second_masked', 0x283570, 'void', CODEC_STOPS, 300, cut=CODEC_CUT,
           native='nodebuild_codec_frames')
 composite('nodebuild_codec_partial', 0x283570, 'void', CODEC_STOPS, 600, cut=CODEC_CUT,
+          native='nodebuild_codec_frames')
+composite('nodebuild_codec_kind2_mode2', 0x283570, 'void', CODEC_STOPS, 600, cut=CODEC_CUT,
           native='nodebuild_codec_frames')
 composite('nodebuild_codec_setup', 0x2835b0, 'void', CODEC_STOPS, 800, cut=CODEC_CUT, regs={'esi': 0}, xmm={1: 1, 4: 2},
           stack=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
@@ -2536,6 +2557,7 @@ GENERATORS = {'nodebuild_sample': sample_case, 'nodebuild_device_hook': device_h
               'nodebuild_codec_second_masked': lambda v, world, rng: codec_frames_case(v, world, rng, True),
               'nodebuild_codec_events': lambda v, world, rng: codec_frames_case(v, world, rng, events=True),
               'nodebuild_codec_partial': lambda v, world, rng: codec_frames_case(v, world, rng, partial=True),
+              'nodebuild_codec_kind2_mode2': lambda v, world, rng: codec_frames_case(v, world, rng, kind2_mode2=True),
               'nodebuild_codec_setup': codec_setup_case, 'nodebuild_resource_data': resource_data_case,
               'nodebuild_codec_event_setup': event_setup_case,
               'nodebuild_codec': codec_case, 'nodebuild_vehicle_aim_limit': vehicle_aim_limit_case,

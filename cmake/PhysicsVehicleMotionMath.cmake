@@ -23,4 +23,9 @@ if(BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/vehicle-motion-math-20261011/hardware-verified/${image}-native.json)
         set_tests_properties(original_physics_vehicle_motion_math_${image} PROPERTIES SKIP_RETURN_CODE 77)
     endforeach()
+    if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i.86)$")
+        add_test(NAME native_tu15_vehicle_x87_dispatch_331ecb
+            COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_vehicle_x87_dispatch_331ecb.py"
+                --compiler "${CMAKE_CXX_COMPILER}")
+    endif()
 endif()

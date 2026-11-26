@@ -160,10 +160,10 @@ int main(int argc,char **argv) try {
       menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing &&
       menu.pc_value_label(menu.frame(),0)=="Path Tracing",
       "pause Graphics Mode did not apply Path Tracing and return");
-  check(menu.frame().entries.at(14).label=="Path Tracing Quality" &&
+  check(menu.frame().entries.at(15).label=="Path Tracing Quality" &&
       menu.pc_display_settings().path_tracing_samples==1 && menu.pc_display_settings().path_tracing_bounces==1,
       "pause Path Tracing quality defaults missing");
-  choose(menu,14);choose(menu,0);
+  choose(menu,15);choose(menu,0);
   check(menu.frame().context==video_path_tracing_samples_context && menu.frame().entries.size()==2,
       "pause ray choices did not cap samples at two");
   choose(menu,1);choose(menu,1);
@@ -175,7 +175,7 @@ int main(int argc,char **argv) try {
       !painter.draw(menu,2,-1,2000).vertices.empty(),"pause RT quality did not apply or render");
   menu.back();
   choose(menu,0);choose(menu,0);
-  check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original && menu.frame().entries.size()==14 &&
+  check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original && menu.frame().entries.size()==15 &&
       menu.pc_display_settings().path_tracing_samples==2 && menu.pc_display_settings().path_tracing_bounces==2,
       "pause Graphics Mode did not select Original directly");
   menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,9);choose(menu,50);
@@ -199,6 +199,13 @@ int main(int argc,char **argv) try {
       "pause split toggle did not apply in place or changed other preferences");
   choose(menu,12);check(menu.pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
       "pause split toggle could not restore horizontal layout");
+  check(menu.pc_value_label(menu.frame(),13)=="Off","pause per-object motion blur default is not Off");
+  choose(menu,13);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().object_motion_blur &&
+      menu.pc_value_label(menu.frame(),13)=="On","pause per-object motion blur did not enable in place");
+  choose(menu,13);
+  check(!menu.pc_display_settings().object_motion_blur && menu.pc_value_label(menu.frame(),13)=="Off",
+      "pause per-object motion blur did not disable in place");
   menu.select(11);
   for(const auto size:{std::array<unsigned,2>{640,480},{1280,720},{2560,720}}) {
     painter.draw(menu,2,-1,2000,size);bool hit_crt=false;

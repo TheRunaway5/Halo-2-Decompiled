@@ -5,16 +5,19 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
 namespace halo2 {
 
 // Native platform services, not an Xbox voice/sound datum or scheduler.
-// The decoder supplies stereo float PCM at 48 kHz. Its source-byte/frame
-// mapping, selected permutation and cache pin remain owned by the caller.
+// The decoder supplies stereo float PCM. Frame offsets and completion extents
+// are in the packet's sample rate. The caller owns the source-byte/frame map,
+// selected permutation and cache pin.
 struct SdlSoundPacket {
   std::shared_ptr<const std::vector<float>> stereo;
   std::size_t first_frame;
@@ -23,6 +26,9 @@ struct SdlSoundPacket {
   // Optional native packet attenuation. A queued permutation keeps its own
   // volume while sharing its stream's current rate, pause and output routes.
   std::optional<std::int32_t> volume_hundredths_db;
+  // The first packet fixes the storage rate of the voice. Original-rate data
+  // must match the sample rate in the voice's SdlSoundNativeRate parameters.
+  std::uint32_t pcm_sample_rate = 48000;
 };
 
 // Supported host routing is an explicitly supplied stereo matrix. There is
@@ -82,6 +88,19 @@ struct SdlSoundDls2 {
   friend bool operator==(const SdlSoundDls2 &, const SdlSoundDls2 &) = default;
 };
 
+enum class SdlSoundFilterMode : std::uint8_t { Bypass, Dls2, ParaEq, Dls2ParaEq };
+
+// A stream's DirectSound SetFilter words (3858F3). The mode is interpreted
+// with the voice's active HRTF and its original mono/stereo format. FC0/FC1
+// form FCA and FC2/FC3 form FCB. I3DL2 supplies its own FCB poles on a
+// spatial voice. Stereo PCM storage alone does not indicate a stereo voice.
+struct SdlSoundVoiceFilter {
+  SdlSoundFilterMode mode{};
+  std::uint8_t parametric_q{};
+  std::array<std::uint16_t, 4> coefficients{};
+  bool stereo{};
+};
+
 // One of the two listener reverbs (the DSP's I3DL2 records 9 and 8, run
 // natively by tu15_sound_ring_effect with DirectSound's parameter words)
 // and the volumes of its four return voices: front left, front right, back
@@ -95,11 +114,10 @@ struct SdlSoundReverb {
 
 // The voice processor's own view of a voice's rate: its sound's sample rate
 // and the pitch register DirectSound writes (4096ths of an octave relative
-// to 48 kHz; 221B90's driver pitch). The PCM arrives at 48 kHz. With this set
-// and the voice processor on, the mixer rebuilds the sound's native-rate
-// samples from it (a band-limited windowed sinc at the native Nyquist) and
-// steps through them as the voice processor does: 2^(pitch/4096) native
-// samples per output sample in 1/65536, through its 8-point Lagrange filter.
+// to 48 kHz; 221B90's driver pitch). With the voice processor on, the mixer
+// steps through the native samples at 2^(pitch/4096) per output sample in
+// 1/65536, through its 8-point Lagrange filter. For 48 kHz packets it first
+// rebuilds the native samples with a band-limited windowed sinc.
 // relative_rate_bits stays the 48 kHz rate for every other path.
 struct SdlSoundNativeRate {
   std::uint32_t sample_rate{};
@@ -118,6 +136,7 @@ struct SdlSoundVoiceParameters {
   std::optional<SdlSoundI3dl2Path> direct{};
   std::optional<SdlSoundDls2> dls2{};
   std::optional<SdlSoundNativeRate> native{};
+  std::optional<SdlSoundVoiceFilter> voice_filter{};
 };
 
 struct SdlSoundPlatformConfiguration {
@@ -168,8 +187,8 @@ struct SdlSoundVoiceStatus {
 struct SdlSoundPlaybackPosition {
   std::optional<std::uint64_t> first_device_frame;
   std::optional<std::uint64_t> first_presentation_frame;
-  // Cumulative decoded 48 kHz input frames traversed, including relative
-  // rate, bounded by supplied PCM. Underruns and canceled PCM add nothing.
+  // Cumulative input time traversed in equivalent 48 kHz frames, including
+  // relative rate, bounded by supplied PCM. Underruns and canceled PCM add nothing.
   double source_frames{};
   std::uint64_t output_frames{};
   // A restored prefix is historical observed consumption in this publication
@@ -185,6 +204,7 @@ class SdlSoundPlatform {
   struct PreparedData;
 public:
   using Voice = std::uint64_t;
+  static constexpr std::uint64_t staged_start_frame = std::numeric_limits<std::uint64_t>::max();
   enum class Submission { Accepted, Backpressure };
 
   class PreparedReplacement;
@@ -273,6 +293,14 @@ public:
   Voice create_voice_at(std::uint64_t channel_context,
                        const SdlSoundVoiceParameters &,
                        std::uint64_t presentation_frame);
+  // Use staged_start_frame at creation to retain PCM without exposing it to
+  // the mixer. Publish all staged voices together at their common deadline,
+  // or the current presentation frame if the deadline has passed or is absent.
+  // An invalid member or a member without pending PCM leaves the batch staged.
+  [[nodiscard]] bool publish_voice_starts(std::span<const Voice>,
+                                         std::optional<std::uint64_t> deadline = {});
+  [[nodiscard]] bool publish_voice_starts(std::span<const VoiceReceipt>,
+                                         std::optional<std::uint64_t> deadline = {});
   void parameters(Voice, const SdlSoundVoiceParameters &);
   void packet_volume(Voice,std::uint64_t packet_context,std::int32_t hundredths_db);
   Submission submit(Voice, SdlSoundPacket);

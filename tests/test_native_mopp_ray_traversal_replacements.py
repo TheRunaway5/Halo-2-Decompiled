@@ -36,6 +36,35 @@ class MoppRayBindings(unittest.TestCase):
         for source in self.sources:
             body=binder.function(source,'run_30aa70')
             self.rejected(source.replace(body,body.replace('0x6bu','0x6cu',1),1))
+    def test_final_routes_bind_both_owner_layouts(self):
+        from specialize_native_operands import specialize
+        for source in self.sources:
+            bound,_=specialize(source)
+            body=binder.function(bound,'run_30aa70')
+            for entry,target in (
+                    ('30acc6','30adc9'),('30ad0c','30ade0'),('30b5a3','30b5f5'),('30b5a9','30b5f5'),
+                    ('30b5b8','30b5f5'),('30b5d0','30b5f5'),('30b5f2','30b5f5'),
+                    ('30aede','30af16'),('30af42','30af7c'),('30af94','30ae02')):
+                line=next(row for row in body.splitlines() if f's.instruction_literal(0x{entry}u);' in row)
+                self.assertIn(f'case 0x{target}u: goto L{target};',line)
+                self.assertIn('Invalid MOPP final route continuation',line)
+            for frontier in ('30ad10','30ad2c','30b5e1','30aeee','30af55','30afd7','30b004'):
+                self.assertEqual(body.count(f'L_native_final_{frontier}:'),1)
+    def test_call_site_setup_preserves_each_actual_child(self):
+        from specialize_native_operands import specialize
+        support=(ROOT/'src/physics/physics_live_support_tu15_generated.cpp').read_text()
+        for source in (*self.sources,support):
+            bound,receipt=specialize(source)
+            body=binder.function(bound,'run_30b890')
+            self.assertEqual(bound.count(binder.SETUP_INCLUDE),1)
+            self.assertIn('30b890',receipt['native_partial_frame_owners'])
+            self.assertIn('case setup_complete: return;',body)
+            child='dispatch(s,0x30aa70u,0x30b952u,false);' if source is support else 'run_30aa70(s);'
+            self.assertIn(f'[&]{{{child}}}',body)
+            for pc,dst,src in (('30b909',4,1),('30b944',1,2)):
+                self.assertIn(f's.instruction_literal(0x{pc}u); s.xmm[{dst}]=halo2::native_tu15_leaves::ordered_mul_ps(s.xmm[{dst}],s.xmm[{src}])',body)
+            for frontier in binder.SETUP_FRONTIERS:
+                self.assertEqual(body.count(f'L_native_setup_{frontier}:'),1)
     def test_full_resolver_and_dispatcher_mutations(self):
         for source in self.sources:
             for name in('selected','dispatch'):

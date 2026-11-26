@@ -1,5 +1,6 @@
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "native_tu15_sound_test_support.hpp"
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <set>
@@ -58,6 +59,7 @@ struct Memory final:SourcePhysicsContactMemory {
     std::set<std::uint32_t> write_only_sites,read_modify_write_sites;
     std::uint32_t pc{};
     bool capture{};
+    std::function<void()> after_write;
     mutable std::vector<std::array<std::uint32_t,3>> reads;
     void read(std::uint32_t at,std::span<std::byte> bytes)const override {
         // Store observers read preimages at write-only source instructions.
@@ -65,7 +67,10 @@ struct Memory final:SourcePhysicsContactMemory {
         if(capture && !write_only_sites.contains(pc))reads.push_back({pc,at,std::uint32_t(bytes.size())});
         backing.read(at,bytes);
     }
-    void write(std::uint32_t at,std::span<const std::byte> bytes)override {backing.write(at,bytes);}
+    void write(std::uint32_t at,std::span<const std::byte> bytes)override {
+        backing.write(at,bytes);
+        if(after_write)after_write();
+    }
 };
 }
 
@@ -93,6 +98,9 @@ int main(int argc,char **argv)try {
     };
     const auto returned=[](auto &abi,const Json &state){abi.gp=state.at("gp").template get<decltype(abi.gp)>();abi.eflags=state.at("eflags");load_fp(abi,state.at("fp"));};
     unsigned cases{},read_stops{},write_stops{},mmx{},aliases{},backward{},lower_calls{},native_calls{},missing_stops{};
+#ifndef HALO2_NATIVE_LOCATION_COPY_COMPILED_CALLERS
+    bool reopened_rep{};
+#endif
     for(const auto &row:reference.at("rows"))try {
         const auto entry=row.at("entry").get<std::uint32_t>();
 #ifdef HALO2_NATIVE_LOCATION_COPY_COMPILED_CALLERS
@@ -149,6 +157,65 @@ int main(int argc,char **argv)try {
         if(Json(m.reads)!=row.at("reads"))std::cerr<<"actual reads="<<Json(m.reads)<<" expected="<<row.at("reads")<<'\n';need(Json(m.reads)==row.at("reads"),"Different original location-copy operand read order");
         check_abi(a,row.at("expected"),row.at("flags_mask"));check_stack(m.backing,row.at("expected").at("stack"));need(a.fs_base==before.fs_base,"Location copy changed FS");
         for(const auto &[page,bytes]:m.backing.pages)need(*bytes==*expected_memory.pages.at(page),"Different location-copy final memory");need(_mm_getcsr()==host_mxcsr,"Location copy leaked host SSE environment");
+#ifndef HALO2_NATIVE_LOCATION_COPY_COMPILED_CALLERS
+        Memory silent;silent.backing=initial.clone();silent.capture=true;
+        auto silent_abi=before;unsigned silent_calls{};
+        SourcePhysicsWorldRuntimeServices silent_services;
+        silent_services.required_owner=[&](auto &memory,const auto &call,auto &abi,const auto &observer) {
+            const auto &expected=boundary(silent_calls++);
+            need(!call.tail && call.target==expected.at("target") &&
+                call.instruction==silent.backing.get32(abi.gp[4])-5u,"Different unobserved matrix child");
+            check_abi(abi,expected.at("before"),expected.at("flags_mask"));
+            check_stack(silent.backing,expected.at("before").at("stack"));
+            if(call.target==0x17dd50u) {
+                native_weapon_effect_dispatch_tu15_run(memory,call.target,abi,silent_services,observer);
+                check_abi(abi,expected.at("returned"),expected.at("returned_flags_mask"));
+                check_stack(silent.backing,expected.at("returned").at("stack"));
+            } else {
+                for(const auto &write:expected.at("writes"))
+                    silent.backing.write(write[0].template get<std::uint32_t>(),unhex(write[1]));
+                returned(abi,expected.at("returned"));
+            }
+        };
+        const auto &expected_writes=row.at("stores");
+        const auto rep=std::find_if(expected_writes.begin(),expected_writes.end(),[](const auto &event) {
+            return event[0]==0x17ddb4u;
+        });
+        const bool reopen=!reopened_rep && entry==0x17dd50u && !stopped && called==0 &&
+            rep!=expected_writes.end() && rep+1!=expected_writes.end() && (*(rep+1))[0]==0x17ddb4u;
+        unsigned until_trace=reopen ? unsigned(rep-expected_writes.begin()+2) : 0u;
+        std::vector<std::uint32_t> resumed;
+        if(reopen) {
+            silent.after_write=[&] {
+                if(until_trace && --until_trace==0)
+                    silent_services.instruction=[&](auto pc){resumed.push_back(pc);};
+            };
+        }
+        std::string silent_error;
+        try {run(silent,entry,silent_abi,silent_services,SourcePhysicsContactRecordObserver{});}
+        catch(const std::out_of_range &e){silent_error=e.what();}
+        silent.capture=false;
+        need(silent_error==error && silent_calls==called,"Different unobserved matrix fault or child count");
+        check_abi(silent_abi,row.at("expected"),row.at("flags_mask"));
+        check_stack(silent.backing,row.at("expected").at("stack"));
+        need(silent_abi.fs_base==before.fs_base && _mm_getcsr()==host_mxcsr,"Unobserved matrix leaked FS/FP state");
+        need(silent.reads.size()==row.at("reads").size(),"Different unobserved matrix read count");
+        for(unsigned n=0;n<silent.reads.size();++n) {
+            const auto &expected=row.at("reads").at(n);
+            need(silent.reads[n][1]==expected[1] && silent.reads[n][2]==expected[2],"Different unobserved matrix read order");
+        }
+        need(silent.backing.pages.size()==m.backing.pages.size(),"Different unobserved matrix memory extent");
+        for(const auto &[page,bytes]:m.backing.pages)
+            need(*bytes==*silent.backing.pages.at(page),"Different unobserved matrix memory");
+        if(reopen) {
+            const auto trace=row.at("trace").get<std::vector<std::uint32_t>>();
+            const auto first=std::find(trace.begin(),trace.end(),0x17ddb4u);
+            need(first!=trace.end() && first+1!=trace.end() && *(first+1)==0x17ddb4u,
+                 "Missing original repeated copy");
+            need(resumed==std::vector<std::uint32_t>(first+2,trace.end()),"Different active REP trace suffix");
+            reopened_rep=true;
+        }
+#endif
         struct MissingOwner{};
         for(unsigned unavailable=0;unavailable<row.at("call_order").size();++unavailable){
             auto memory=initial.clone();auto partial_abi=before;unsigned entered{};SourcePhysicsWorldRuntimeServices partial;
@@ -166,5 +233,8 @@ int main(int argc,char **argv)try {
     if(module=="support")need(cases==69,"Incomplete support location-copy cases");else
 #endif
     need(cases==138 && read_stops==24 && write_stops==22 && mmx==4 && aliases==24 && backward==60 && lower_calls==18 && native_calls==56 && missing_stops==lower_calls+native_calls,"Incomplete strict location-copy scope");
+#ifndef HALO2_NATIVE_LOCATION_COPY_COMPILED_CALLERS
+    need(reopened_rep,"Missing late trace in a repeated matrix copy");
+#endif
     std::cout<<"PASS "<<cases<<" physical location-copy cases; "<<lower_calls<<" actual original lower calls; "<<native_calls<<" native fallback boundaries; "<<missing_stops<<" unavailable owners\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

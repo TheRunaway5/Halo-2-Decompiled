@@ -13,6 +13,9 @@ ALIASES={name+'.vert.spv':'particle.vert' for name in
          ('particle_directional','particle_distortion','particle_model','particle_perpendicular')}
 ALIASES['particle_model.geom.spv']='particle.geom'
 ALIASES['path_tracing/lighting.frag.spv']='path_tracing/world.frag'
+ALIASES['path_tracing/world.rt.frag.spv']='path_tracing/world.frag'
+ALIASES['path_tracing/trace.rt.comp.spv']='path_tracing/trace.comp'
+ALIASES['path_tracing/water_reflection.rt.frag.spv']='path_tracing/water_reflection.frag'
 
 def relative_shader(name):
     if not isinstance(name,str):raise ValueError('Production shader name is not a string')

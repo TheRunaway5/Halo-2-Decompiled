@@ -20,7 +20,8 @@ BODY = re.compile(
     r'^throw std::runtime_error\("Original solver fell outside authenticated CFG"\);\n}\n',
     re.M | re.S)
 HELPER = re.compile(
-    r'^(?=(?:long double|__m128|std::uint\d+_t|void|float|double|bool|unsigned|int)\s+\w+\([^;\n]*\)\s*\{)',
+    r'^(?=(?:long double|__m128|void|float|double|bool|unsigned|int|(?:\w+::)+\w+)'
+    r'\s+\w+\([^;\n]*\)\s*\{)',
     re.M)
 NON_CODE = re.compile(
     r'//[^\n]*|/\*.*?\*/|(?:u8|u|U|L)?R"(?P<delimiter>[^\s()\\]{0,16})\('

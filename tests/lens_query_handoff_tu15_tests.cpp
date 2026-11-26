@@ -27,6 +27,41 @@ std::string hash(std::span<const std::byte> input){std::array<unsigned char,SHA2
     check(SHA256(reinterpret_cast<const unsigned char*>(input.data()),input.size(),digest.data()),"Cannot hash native query bank");
     constexpr char hex[]="0123456789abcdef";std::string out;for(auto n:digest){out+=hex[n>>4];out+=hex[n&15];}return out;}
 void put(std::span<std::byte> pool,unsigned offset,std::uint32_t value){for(unsigned n=0;n<4;++n)pool[offset+n]=std::byte(value>>(n*8));}
+void replace_bsp_with_pending_query(PhysicsLiveWorldTu15 &world) {
+    constexpr std::uint32_t driver=0xf7100000u,metadata=0xf7140000u,stamp=0x4922c0u;
+    auto &source=world.memory();
+    const auto previous_stamp=source.view(stamp,4);
+    std::array<std::byte,4> saved_stamp;
+    std::ranges::copy(previous_stamp,saved_stamp.begin());
+    std::array<std::byte,4> frame{};
+    put(frame,0,2);source.write(stamp,frame);
+    std::vector<std::byte> pending(bytes);
+    pending[0]=pending[1]=std::byte{1}; // Query processing enabled.
+    pending[0x52dfe0u-base]=std::byte{2}; // Slot zero has an issued query for view zero.
+    put(pending,0x531fbcu-base,1);
+    put(pending,0x531fc0u-base,1); // (presentation stamp + 1) % 3 is ring zero.
+    source.write(base,pending);
+
+    // A fresh device has fence zero and no result in the prior world's slot.
+    SourceRuntimeMemory device;
+    put(frame,0,driver);device.mount(0x411568u,frame,SourceRuntimeMemory::Access::ReadOnly,"new lens driver pointer");
+    std::vector<std::byte> state(4096),queries(4096);
+    put(state,0x7d4,metadata);put(queries,12,0xffffffffu);
+    device.mount(driver,state,SourceRuntimeMemory::Access::ReadOnly,"new lens driver");
+    device.mount(metadata,queries,SourceRuntimeMemory::Access::ReadOnly,"new pending query metadata");
+    const auto poll=[&] {
+        auto abi=world.prepare_source_call();source_execute_lens_query(world,0x20750u,abi,&device);
+    };
+    bool reached_kick{};
+    try {poll();}catch(const FormatError &e) {
+        reached_kick=std::string_view(e.what())=="Original lens query reached unowned graphics service 4212576";
+    }
+    check(reached_kick,"Keeping old query slots did not reproduce the fresh-device fence collision");
+    check(source_retire_lens_queries(world)==1u,"BSP transition did not retire the previous device's query");
+    poll();
+    source_require_retired_lens_queries(source);
+    source.write(stamp,saved_stamp);
+}
 std::string outside(const SourceRuntimeMemory &memory,std::uint32_t stack,std::size_t stack_bytes){
     std::unique_ptr<EVP_MD_CTX,decltype(&EVP_MD_CTX_free)> context(EVP_MD_CTX_new(),EVP_MD_CTX_free);
     check(context&&EVP_DigestInit_ex(context.get(),EVP_sha256(),nullptr)==1,"Cannot start native conservation digest");
@@ -53,7 +88,8 @@ int main(int argc,char **argv)try{
     const auto original=OriginalData::load_xbe(argv[1]);check(original->image==OriginalData::Image::TitleUpdate15,"Lens handoff requires TU1.5");
     const auto *scratch=std::getenv("HALO2_TEST_SCRATCH");check(scratch,"Lens handoff requires owned scratch");
     MultiplayerOptions options;options.map=argv[2];options.shared_maps=std::filesystem::path(argv[2]).parent_path();
-    options.gameplay_xbe=argv[1];options.local_players=1;options.variant={"Slayer",0,{{0x59,5},{10,0},{2,0}}};
+    options.gameplay_xbe=argv[1];options.local_players=0;options.dedicated=true;
+    options.variant={"Slayer",0,{{0x59,5},{10,0},{2,0}}};
     MultiplayerPreparedWorld prepared(options,std::nullopt,std::make_shared<Clock>());
     check(prepared.source_objects&&prepared.source_objects->owns_physics(),"Lens handoff lacks its native match owner");
     unsigned cases{};
@@ -80,10 +116,12 @@ int main(int argc,char **argv)try{
     auto invalid=retained;put(invalid,0x531fbcu-base,512);memory.write(base,invalid);
     const auto before=hash(memory.view(base,bytes));rejects([&]{source_retire_lens_queries(world);});
     check(hash(memory.view(base,bytes))==before,"Malformed native retirement partially changed its ring");
+    replace_bsp_with_pending_query(world);
     memory.write(base,retained);
     bool foreign_rejected{};std::thread foreign([&]{try{source_retire_lens_queries(world);}catch(const FormatError &){foreign_rejected=true;}});foreign.join();
     check(foreign_rejected,"Native retirement admitted a foreign executor");
     });
     std::cout<<"PASS "<<cases<<" complete unchanged-original retirement differentials, all three rings, 32-bit boundaries, full capacity, unused-bit preservation, idempotence and non-presentation/native-state conservation\n";
+    std::cout<<"PASS stale CPU ring reproduces the new-device kick and the normal retirement removes it\n";
     std::cout<<"LIMIT declared CPU query banks and actual TU1.5 executor; GPU and live migration acceptance are separate\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

@@ -93,12 +93,18 @@ def main():
     owner=owner_path.read_text();dispatch=dispatch_path.read_text();native_owner=binding.install_owner(owner,dispatch)
     if args.require_binding and(native_owner!=owner or binding.OWNER_INCLUDE not in dispatch):raise ValueError('Native Effect slot owner prefix/include absent')
     if binding.install_owner(native_owner,dispatch)!=native_owner:raise ValueError('Effect slot owner binding not idempotent')
-    for shape in (binding.canonical_body(binding.body(owner,'find_effect_slot'),binding.OWNER_PREFIX),binding.body(native_owner,'find_effect_slot')):
+    for shape in (binding.canonical_owner(binding.body(owner,'find_effect_slot')),binding.body(native_owner,'find_effect_slot')):
         changed=shape.replace('a.gp[1]+0x38','a.gp[1]+0x34',1)
         if changed==shape:raise ValueError('Missing Effect helper mutation witness')
         try:binding.install_owner(owner.replace(binding.body(owner,'find_effect_slot'),changed,1),dispatch)
         except ValueError:rejected+=1
         else:raise ValueError('Accepted semantic Effect helper drift')
+    for a,b in (('goto resume_16ea6b','goto resume_16ea73'),('resume_16ea94:\n','resume_16ea98:\n')):
+        changed=native_owner.replace(a,b,1)
+        if changed==native_owner:raise ValueError('Missing slot resume mutation witness')
+        try:binding.install_owner(changed,dispatch)
+        except ValueError:rejected+=1
+        else:raise ValueError('Accepted changed Effect slot resume binding')
     for name in binding.ROUTE_PINS:
         route=binding.body(dispatch,name);changed=route.replace('0x16ea60u','0x16ea61u',1)
         if changed==route:raise ValueError('Missing actual Effect entry route witness')
@@ -194,7 +200,12 @@ def main():
                 for event in case['writes']:
                     outputs.write(struct.pack('<III',event['instruction'],event['address'],len(bytes.fromhex(event['written']))))
                     outputs.write(bytes.fromhex(event['before']).ljust(4,b'\0'));outputs.write(bytes.fromhex(event['written']).ljust(4,b'\0'))
-    with inp.open('rb')as inputs,actual.open('wb')as outputs:subprocess.run([str(binary)],stdin=inputs,stdout=outputs,check=True)
+    with inp.open('rb')as inputs,actual.open('wb')as outputs:
+        checked=subprocess.run([str(binary)],stdin=inputs,stdout=outputs,stderr=subprocess.PIPE,text=True)
+    if checked.returncode:raise ValueError('Effect slot test execution failed: '+checked.stderr[-4000:])
+    frontiers=re.search(r'^Slot scan frontiers (\d+) faults, (\d+) trace activations$',checked.stderr,re.M)
+    if not frontiers or tuple(map(int,frontiers.groups()))!=(42,84):
+        raise ValueError('Incomplete supplemental slot scan fault/trace frontier evidence')
     if digest(actual)!=digest(expected):
         a,b=actual.read_bytes(),expected.read_bytes();first=next((n for n,(x,y)in enumerate(zip(a,b))if x!=y),min(len(a),len(b)))
         raise ValueError(f'Effect slot scan mismatch byte{first}: {a[first:first+16].hex()} vs {b[first:first+16].hex()}')
@@ -225,6 +236,7 @@ def main():
         rejected_mutations=rejected,reference_admission_refused=reference_result['reference_admission_refused'],
         forced_reference_result=reference_result,source_sha256={path:digest(ROOT/path)for path in paths},
         supplemental_canonical_read_store_alias_cases=12,admission_refusal_cases=6,
+        supplemental_retained_fault_differentials=int(frontiers[1]),supplemental_trace_restarts=int(frontiers[2]),
         canonical_ordered_read_store_cases=len(rows)*7,canonical_final_instruction_cursor_verified=True,
         original_sites_executed=len(executed),
         default_observer_empty_service_cases=len(rows)*7,birth_color_collector_cases=90,birth_color_native_cases=len(rows),
@@ -233,8 +245,8 @@ def main():
         rebound_outer_retains_instruction_callbacks_and_backing_mutation=True,
         actual_producer_translation_syntax=producer_syntax,
         opaque_active_mmx_transport_verified=True,physical_mmx_execution_verified=False,
-        normal_return_abi_verified=True,ordered_stores_verified=True,memory_fault_prefix_abi_verified=False,
-        ordered_read_fault_semantics_verified=False,visual_parity_verified=False,native_production_closure_verified=False,
+        normal_return_abi_verified=True,ordered_stores_verified=True,memory_fault_prefix_abi_verified=True,
+        ordered_read_fault_semantics_verified=True,visual_parity_verified=False,native_production_closure_verified=False,
         retained_large_artifacts=[]),indent=2,sort_keys=True)+'\n')
     print(f'PASS {len(rows)*7} native effect-slot-scan comparisons against{len(rows)} unchanged i386 cases')
     return 0

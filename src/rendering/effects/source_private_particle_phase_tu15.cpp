@@ -2,6 +2,7 @@
 #include "gameplay/animation/source_first_person_context_memory.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
+#include "core/native_tu15_authored_control_point.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
@@ -244,6 +245,8 @@ void SourcePrivateParticlePhaseTu15::advance(
     else if (source_death_cycle_runtime_tu15_owns_entry(call.target))
       source_run_death_cycle_runtime_tu15(memory, call.target, a, fp, services,
                                           o);
+    else if (native_authored_control_point::owns_entry(call.target))
+      native_authored_control_point::run_entry(memory, call.target, a, fp, services, o);
     else if (source_physics_live_support_tu15_owns_entry(call.target))
       source_run_physics_live_support_tu15(memory, call.target, a, fp, services,
                                            o);

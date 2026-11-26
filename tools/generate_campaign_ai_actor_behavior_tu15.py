@@ -137,6 +137,9 @@ void source_run_campaign_ai_actor_behavior_tu15(SourcePhysicsContactMemory &memo
         if(source_campaign_ai_actor_behavior_tu15_owns_entry(call.target)) {
             source_run_campaign_ai_actor_behavior_body_tu15(bank,call.target,state,control,nested,stores);return;
         }
+        if(call.target==0x21f590u && services.required_owner) {
+            services.required_owner(bank,call,state,stores);return;
+        }
         if('''+' || '.join(f'call.target==0x{p:x}u' for p in sorted(reused))+''') {
             source_run_ai_frame_tu15(bank,call.target,state,control,nested,stores);return;
         }

@@ -11,7 +11,9 @@ from pathlib import Path
 import hashlib
 
 NON_CODE=re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',re.S)
-FUNCTION=re.compile(r'^[ \t]*(?:\[\[[^\]]+\]\][ \t]*)?(?:(?:inline|static|constexpr)\s+)*(?:[\w:<>]+(?:\s*[&*])?\s+)+(?P<name>[\w:]+)\s*\((?P<parameters>[^;{}]*?)\)\s*\{',re.M)
+# An empty braced default argument belongs to the signature. Other braces
+# remain excluded so an unrecognized function body cannot absorb the next one.
+FUNCTION=re.compile(r'^[ \t]*(?:\[\[[^\]]+\]\][ \t]*)?(?:(?:inline|static|constexpr)\s+)*(?:[\w:<>]+(?:\s*[&*])?\s+)+(?P<name>[\w:]+)\s*\((?P<parameters>(?:[^;{}]|=\s*\{\s*\})*?)\)\s*\{',re.M)
 CALLBACK=re.compile(r'\b(?:[A-Za-z_]\w*(?:\(\))?\.)*instruction(?:_literal)?\s*\(')
 BRACES=re.compile(r'[{}]')
 LITERAL_START=re.compile(r'(?:0x[0-9a-fA-F]+[uU]?\b|selected\s*\(|(?:world|damage)_observation_pc\s*\(|\(s\.image==SourcePhysicsContactImage::MapPack11\?)')

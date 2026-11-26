@@ -98,9 +98,15 @@ GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
       SDL_SetRelativeMouseMode(SDL_TRUE);
     return std::string{};
   });
-  painter_=std::make_unique<FrontendPainter>(content_,gameplay_font_directory(menu),mesh,
-      std::filesystem::path{},load_frontend_ui_assets(content_,menu_assets),
-      menu_assets.empty()?std::filesystem::path{}:menu_assets/"fonts");
+  font_directory_=gameplay_font_directory(menu);
+  sampled_fonts_=menu_assets.empty()?std::filesystem::path{}:menu_assets/"fonts";
+  ui_assets_=load_frontend_ui_assets(content_,menu_assets);
+  prepare_renderer_materials(mesh);
+}
+void GamePauseMenu::prepare_renderer_materials(Mesh &mesh) {
+  renderer_=nullptr;
+  painter_=std::make_unique<FrontendPainter>(content_,font_directory_,mesh,
+      std::filesystem::path{},ui_assets_,sampled_fonts_);
 }
 bool GamePauseMenu::captures_game_input() {
   if(visible_)return true;

@@ -31,8 +31,27 @@ layout(location=0) out vec4 pixel;
 #include "source_stipple.glsl"
 #include "world_depth_fragment.glsl"
 uint layerWord(uint index) {
-    bool colour=(index>=10u && index<26u) || index==43u || index==44u;
-    return colour?layer.program[index/4u][index%4u]:tracePixels[floatBitsToUint(camera.viewport.z)+index];
+    switch(index) {
+        case 10u: return layer.program[2].z;
+        case 11u: return layer.program[2].w;
+        case 12u: return layer.program[3].x;
+        case 13u: return layer.program[3].y;
+        case 14u: return layer.program[3].z;
+        case 15u: return layer.program[3].w;
+        case 16u: return layer.program[4].x;
+        case 17u: return layer.program[4].y;
+        case 18u: return layer.program[4].z;
+        case 19u: return layer.program[4].w;
+        case 20u: return layer.program[5].x;
+        case 21u: return layer.program[5].y;
+        case 22u: return layer.program[5].z;
+        case 23u: return layer.program[5].w;
+        case 24u: return layer.program[6].x;
+        case 25u: return layer.program[6].y;
+        case 43u: return layer.program[10].w;
+        case 44u: return layer.program[11].x;
+        default: return tracePixels[floatBitsToUint(camera.viewport.z)+index];
+    }
 }
 #define H2_COMBINER_WORD(index) layerWord(index)
 #include "combiner.glsl"

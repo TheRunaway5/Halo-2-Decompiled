@@ -9,15 +9,14 @@ namespace halo2::native_geometry_leaf_detail {
 enum class Kind{direction,position};
 struct Noop{template<class State>void operator()(State&,std::uint32_t)const{}};
 template<class Scope>struct Io{Scope*scope;template<class Call>void operator()(Call&&call)const{scope->io(std::forward<Call>(call));}};
-template<class State,class Before>class Frame:
-    public native_mopp_ray_caller_detail::IntegerFrame<State,Before,Io<native_integer_fp_detail::Scope<State>>>{
-    using Scope=native_integer_fp_detail::Scope<State>;
-    using Base=native_mopp_ray_caller_detail::IntegerFrame<State,Before,Io<Scope>>;
+template<class Base>class Frame:public Base{
     using Base::s_;using Base::at;using Base::word;using Base::vector;using Base::vector_store;using Base::push;using Base::pop;
     Kind kind_;bool canonical_;
     std::uint32_t site(std::uint32_t value)const{return canonical_?value:value+0x3af0u;}
 public:
-    Frame(State&s,Before&before,Scope&scope,Kind kind,bool canonical):Base{s,before,{&scope}},kind_(kind),canonical_(canonical){}
+    template<class... Transport>
+    Frame(Kind kind,bool canonical,Transport&&... transport)
+        :Base{std::forward<Transport>(transport)...},kind_(kind),canonical_(canonical){}
     void begin(){
         auto&g=s_.gp;push(site(kind_==Kind::direction?0x2e0cc0u:0x2e0ba0u),g[5]);g[5]=g[4];
         if(kind_==Kind::direction){
@@ -62,7 +61,11 @@ public:
 // Private architectural transport; no source-owner admission/default. Before
 // is an I/O boundary observer here, not a pure-CPU instruction-stop protocol.
 template<class State,class Before=Noop>void run_private(State&s,Kind kind,Before before={},bool canonical=false){
-    native_integer_fp_detail::Scope scope{s};Frame view{s,before,scope,kind,canonical};view.begin();
+    using Scope=native_integer_fp_detail::Scope<State>;
+    using Transport=native_mopp_ray_caller_detail::IntegerFrame<State,Before,Io<Scope>>;
+    Scope scope{s};
+    Frame<Transport> view{kind,canonical,s,before,Io<Scope>{&scope}};
+    view.begin();
     if(kind==Kind::direction)transposed_direction(view);else transformed_position(view);
     view.finish();
 }

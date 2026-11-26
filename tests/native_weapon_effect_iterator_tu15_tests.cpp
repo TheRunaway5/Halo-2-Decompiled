@@ -1,5 +1,6 @@
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "native_tu15_sound_test_support.hpp"
+#include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #ifdef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
@@ -23,6 +24,28 @@ void compare_stack(const SourcePhysicsContactMemory &m,const Json &raw) {
     const auto expected=unhex(raw);std::vector<std::byte> actual(expected.size());m.read(stack-512,actual);
     need(actual==expected,"Different original live/dead recursive stack bytes");
 }
+#ifndef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
+class LateTraceMemory final : public SourcePhysicsContactMemory {
+    sound_test::Memory &backing;
+    SourcePhysicsWorldRuntimeServices &services;
+    std::vector<std::uint32_t> &trace;
+    unsigned writes_until_trace;
+
+public:
+    LateTraceMemory(sound_test::Memory &backing, SourcePhysicsWorldRuntimeServices &services,
+                    std::vector<std::uint32_t> &trace, unsigned writes_until_trace)
+        : backing(backing), services(services), trace(trace), writes_until_trace(writes_until_trace) {}
+
+    void read(std::uint32_t address, std::span<std::byte> bytes) const override {
+        backing.read(address, bytes);
+    }
+    void write(std::uint32_t address, std::span<const std::byte> bytes) override {
+        backing.write(address, bytes);
+        if (writes_until_trace && --writes_until_trace == 0)
+            services.instruction = [this](std::uint32_t pc) { trace.push_back(pc); };
+    }
+};
+#endif
 }
 int main(int argc,char **argv)try {
 #ifdef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
@@ -45,6 +68,9 @@ int main(int argc,char **argv)try {
 #endif
     };
     unsigned cases{},recursive{},stops{},aliases{};
+#ifndef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
+    bool late_trace_checked{};
+#endif
     for(const auto &row:reference.at("rows"))try {
         sound_test::Memory m;m.map(stack-4096,8192);m.write(stack-512,unhex(row.at("initial_stack")));
         for(const auto &v:row.at("memory")) {
@@ -59,6 +85,9 @@ int main(int argc,char **argv)try {
             for(unsigned n=0;n<8;++n)for(unsigned j=0;j<10;++j)a.active_mmx->physical[n][j]=std::byte(n*19+j);
         }else {a.x87_depth=2;a.x87[0]=1.25L;a.x87[1]=-3.5L;a.x87_status=0x4311;}
         const auto before=a;auto expected_memory=m.clone();unsigned stored{},called{},traced{};
+#ifndef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
+        auto unobserved_memory=m.clone();
+#endif
         const auto trace=unhex(row.at("trace_offsets"));
         SourcePhysicsContactRecordObserver observe=[&](const auto &event) {
             need(stored<row.at("stores").size(),"Different original iterator store count");const auto &expected=row.at("stores").at(stored++);
@@ -105,9 +134,46 @@ int main(int argc,char **argv)try {
             bool(a.active_mmx)==bool(before.active_mmx),"Unrelated iterator FS/FP/MMX state changed");
         if(a.active_mmx)need(a.active_mmx->known_mask==before.active_mmx->known_mask && a.active_mmx->physical==before.active_mmx->physical,
             "Unrelated iterator physical MMX bytes changed");
+#ifndef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
+        auto unobserved=before;
+        if(!late_trace_checked && !stopped && !row.at("recursive_calls").empty()) {
+            constexpr auto publish_cursor=0x17dd06u;
+            const auto &stores=row.at("stores");
+            const auto first_publish=std::find_if(stores.begin(),stores.end(),[](const auto &event){
+                return event[0]==publish_cursor;
+            });
+            need(first_publish!=stores.end(),"Missing original cursor store");
+            auto backing=unobserved_memory.clone();
+            auto late_abi=before;
+            SourcePhysicsWorldRuntimeServices late_services;
+            std::vector<std::uint32_t> late_trace;
+            LateTraceMemory late_memory(backing,late_services,late_trace,unsigned(first_publish-stores.begin()+1));
+            run(late_memory,late_abi,late_services,SourcePhysicsContactRecordObserver{});
+            const auto cut=std::find(trace.begin(),trace.end(),std::byte(publish_cursor-0x17dce0u));
+            need(cut!=trace.end() && late_trace.size()==std::size_t(trace.end()-cut-1),"Different late iterator trace extent");
+            need(std::equal(cut+1,trace.end(),late_trace.begin(),[](auto offset,auto pc){
+                return pc==0x17dce0u+std::to_integer<unsigned>(offset);
+            }),"Different late iterator trace PCs");
+            need(late_abi.gp==a.gp && late_abi.eflags==a.eflags,"Different late iterator register state");
+            for(const auto &[page,bytes]:m.pages)
+                need(*bytes==*backing.pages.at(page),"Different late iterator memory page");
+            late_trace_checked=true;
+        }
+        std::string unobserved_error;
+        try { run(unobserved_memory,unobserved,SourcePhysicsWorldRuntimeServices{},SourcePhysicsContactRecordObserver{}); }
+        catch(const std::out_of_range &e) { unobserved_error=e.what(); }
+        need(unobserved_error==error && unobserved.gp==a.gp && unobserved.eflags==a.eflags,
+             "Different unobserved iterator fault or register state");
+        need(unobserved_memory.pages.size()==m.pages.size(),"Different unobserved iterator memory extent");
+        for(const auto &[page,bytes]:m.pages)
+            need(*bytes==*unobserved_memory.pages.at(page),"Different unobserved iterator memory page");
+#endif
         aliases+=row.at("recipe").at("kind").get<std::string>().find("alias")!=std::string::npos;++cases;
     }catch(const std::exception &e){throw std::runtime_error("case "+std::to_string(cases)+": "+e.what());}
     need(cases==156 && recursive==62 && stops==8 && aliases==20,"Incomplete original iterator scope");
+#ifndef HALO2_NATIVE_ITERATOR_COMPILED_CALLERS
+    need(late_trace_checked,"Incomplete late iterator trace coverage");
+#endif
     unsigned exhaustive{};sound_test::Memory m;m.map(stack-4096,8192);
     constexpr std::uint32_t pool=0x1000000,rows=0x1004000,cursor=0x1002000;
     m.put32(0x4f7208,pool);m.put32(pool+0x44,rows);m.put32(rows+4,0xffffffffu);

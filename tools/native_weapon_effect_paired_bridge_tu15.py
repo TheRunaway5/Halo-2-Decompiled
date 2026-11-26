@@ -27,6 +27,16 @@ def _bridge(entry,target,last,mode):
         // existing observation contracts and actual TU1.5 targets/RET words.
 '''
     condition='!s.selected_observation_pcs' if mode=='damage-observed' else 'true'
+    if target==0xbbe00:
+        # Admission needs the original sealed services before the paired wrapper
+        # copies the table or remaps the instruction and store callbacks.
+        text=text.replace('auto abi=s.save();auto services=',f'''auto abi=s.save();
+        try {{
+            if(native_weapon_effect_origin_tu15_bridge(s.memory,abi,s.services,s.observe,{condition})) {{
+                s.load(abi);return;
+            }}
+        }} catch(...) {{s.load(abi);throw;}}
+        auto services=''',1)
     text+='''        if(CONDITION) {
             if(s.services.instruction)services.instruction=[&](auto pc){s.services.instruction(pc>=TARGETu && pc<=LASTu?pc-DELTAu:pc);};
             if(s.observe)observe=[&](const auto &event){auto canonical=event;if(canonical.instruction>=TARGETu && canonical.instruction<=LASTu)canonical.instruction-=DELTAu;s.observe(canonical);};

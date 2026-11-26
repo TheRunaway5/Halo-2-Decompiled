@@ -97,6 +97,7 @@
 #include "halo2/source_decal_draw.hpp"
 #include "halo2/source_decal_frame_tu15.hpp"
 #include "halo2/source_water_reflection_tu15.hpp"
+#include "halo2/source_execution_lens.hpp"
 #include "halo2/source_lens_query_frame_tu15.hpp"
 #include "halo2/source_lens_draw_frame_tu15.hpp"
 #include "halo2/pstencil/campaign.hpp"
@@ -1362,7 +1363,19 @@ int main(int argc, char **argv) {
       }
       play = true;
     }
-    auto mesh = cache.load_bsp(bsp, !diagnostic);
+    struct CachedBspMesh {
+      halo2::Mesh bsp_mesh;
+      std::size_t applied_material_base{};
+    };
+    std::unordered_map<std::size_t,CachedBspMesh> cached_bsp_meshes;
+    const auto load_cached_bsp_mesh=[&](std::size_t target)->CachedBspMesh& {
+      auto found=cached_bsp_meshes.find(target);
+      if(found==cached_bsp_meshes.end())
+        found=cached_bsp_meshes.emplace(target,CachedBspMesh{cache.load_bsp(target,!diagnostic),0}).first;
+      return found->second;
+    };
+    (void)load_cached_bsp_mesh(bsp);
+    halo2::Mesh mesh;
     std::uint64_t mesh_generation=0; // Advances whenever mesh is replaced.
     std::optional<halo2::SourceCampaignViewTu15> source_view;
     if(simulation && simulation->campaign_source() && !diagnostic)source_view.emplace(cache,bsp);
@@ -1370,11 +1383,9 @@ int main(int argc, char **argv) {
     std::optional<halo2::SourceDecalScene> campaign_cached_decals;
     if(source_view)campaign_cached_decals.emplace(cache);
 #endif
-    if(source_view) {
-      if(!campaign_family)throw halo2::FormatError("Campaign scene has no initialized rendering BSP owner");
-      campaign_water_materials=campaign_family->append_water_materials(mesh);
-    }
-    std::size_t geometry_materials = mesh.materials.size();
+    std::size_t mounted_bsp_base{};
+    std::size_t mounted_bsp_geometry_count{};
+    std::optional<std::size_t> mounted_bsp_index;
     struct Visual {
       halo2::RenderModel model;
       std::optional<halo2::AnimationClip> idle;
@@ -1510,14 +1521,27 @@ int main(int argc, char **argv) {
       };
       sample(record+0x1cu,light.current);sample(record+0x30u,light.target);
     };
+    std::unordered_map<std::size_t,halo2::BspSurfaceLighting> cached_surface_lighting;
+    std::unordered_map<std::size_t,halo2::BspAtmosphere> cached_atmospheres;
+    std::unordered_map<unsigned,std::optional<halo2::ObjectSkyLightingDefinition>> cached_sky_lighting;
     const auto reload_character_lighting=[&](std::size_t selected_bsp) {
       if(!simulation || diagnostic)return;
-      character_lighting_definition=cache.load_object_lighting_definition();
-      character_surface_lighting=cache.load_bsp_surface_lighting(selected_bsp);
-      character_atmosphere=cache.load_bsp_atmosphere(selected_bsp);
+      if(!character_lighting_definition)character_lighting_definition=cache.load_object_lighting_definition();
+      auto surface_it=cached_surface_lighting.find(selected_bsp);
+      if(surface_it==cached_surface_lighting.end())
+        surface_it=cached_surface_lighting.emplace(selected_bsp,cache.load_bsp_surface_lighting(selected_bsp)).first;
+      character_surface_lighting=surface_it->second;
+      auto atmo_it=cached_atmospheres.find(selected_bsp);
+      if(atmo_it==cached_atmospheres.end())
+        atmo_it=cached_atmospheres.emplace(selected_bsp,cache.load_bsp_atmosphere(selected_bsp)).first;
+      character_atmosphere=atmo_it->second;
       character_sky_lighting.clear();
-      for(unsigned i=0;i<character_atmosphere->skies.size();++i)
-        character_sky_lighting.push_back(cache.load_object_sky_lighting(i));
+      for(unsigned i=0;i<character_atmosphere->skies.size();++i) {
+        auto sky_it=cached_sky_lighting.find(i);
+        if(sky_it==cached_sky_lighting.end())
+          sky_it=cached_sky_lighting.emplace(i,cache.load_object_sky_lighting(i)).first;
+        character_sky_lighting.push_back(sky_it->second);
+      }
       character_light_cache.clear();source_model_light_cache.clear();source_model_light_stamps.clear();
     };
     reload_character_lighting(bsp);
@@ -1871,65 +1895,9 @@ int main(int argc, char **argv) {
               std::make_unique<halo2::SourceCharacterShaderInputs>(cache,character.biped.datum));
       campaign_holograms=std::make_unique<halo2::SourceHologramGroupBindings>(cache,mesh,definitions);
     }
-    const std::size_t common_material_count=mesh.materials.size()-geometry_materials;
-    std::unique_ptr<halo2::pstencil::CampaignRenderer> pstencil_campaign_renderer;
-    halo2::pstencil::CampaignMaterialUpdates pstencil_campaign_materials;
-    const auto load_pstencil_campaign_renderer=[&] {
-      pstencil_campaign_renderer.reset();
-      if(source_view)pstencil_campaign_renderer=std::make_unique<halo2::pstencil::CampaignRenderer>(cache,mesh,unsigned(bsp));
-    };
-    auto load_sky = [&]() {
-      sky_visual.reset(); sky_definition.reset();cluster_sky_models.reset();
-      if(!diagnostic && character_atmosphere) {
-        cluster_sky_models.emplace(cache,*character_atmosphere,mesh);
-        return;
-      }
-    if (!diagnostic) {
-      try {
-        sky_definition=cache.load_visible_sky(bsp);
-        if(sky_definition) {
-          auto model=cache.load_model(sky_definition->model);
-          halo2::prepare_forward_materials(cache,model.mesh);
-          sky_visual=add_model(std::move(model));
-          std::cout << "Visible retail sky: " << sky_definition->name << '\n';
-        }
-      } catch(const halo2::FormatError &e) {
-        sky_definition.reset();
-        std::cerr << "Sky unavailable: " << e.what() << '\n';
-      }
-    }
-    };
-    load_sky();
-    if(campaign_family)campaign_family->bind_water_pools(mesh.materials);
-    if(source_view) {
-      // Original191E03..191E0B follows ordinary scenario births. Keep this
-      // once-per-map producer outside view collection and mode switching.
-      auto& world=simulation->campaign_source()->objects().tu15_world();
-      const auto& memory=world.memory();
-      const auto game=halo2::Bytes(memory.view(0x4f3218u,4)).u32(0);
-      auto call=world.prepare_source_call();call.gp[0]=halo2::Bytes(memory.view(game+8u,4)).u32(0);
-      world.run_actual(0xc29f0u,call);
-    }
-    load_pstencil_campaign_renderer();
     auto debug_material =
         static_cast<std::uint32_t>(mesh.materials.size());
     mesh.materials.push_back({});
-    if (mesh.vertices.empty())
-      throw halo2::FormatError("selected BSP contains no geometry");
-    std::cout << cache.describe() << '\n'
-              << "BSP " << bsp << ": " << mesh.vertices.size() / 3
-              << " triangles\n";
-    std::cout << "Diffuse textures: "
-              << std::count_if(
-                     mesh.materials.begin(), mesh.materials.end(),
-                     [](const auto &m) { return !m.diffuse.pixels.empty(); })
-              << "/" << mesh.materials.size() - 1 << '\n';
-    std::cout << "Static retail lightmap passes: "
-              << std::count_if(mesh.materials.begin(),mesh.materials.end(),
-                               [](const auto& m){return m.static_lightmap_pass;})
-              << "; baked lightmap images: " << mesh.lightmaps.size() << '\n';
-    for (const auto &warning : mesh.material_warnings)
-      std::cerr << "Rendering gap: " << warning << '\n';
     auto *window = desktop->window(viewport_width, viewport_height, hidden);
     if(mcc_preview)SDL_SetWindowTitle(window,"Halo 2 — MCC content preview");
     halo2::MultiplayerKbm gameplay_keyboard(SDL_GetWindowID(window),desktop->keyboard_settings);
@@ -1939,7 +1907,12 @@ int main(int argc, char **argv) {
     std::unique_ptr<halo2::GamePauseMenu> pause_menu;
     const auto objective_strings=play && simulation?halo2::load_campaign_pause_objectives(cache,map):halo2::UiStrings{};
     const auto prepare_pause=[&] {
-      if(!play || !simulation || (!cache.is_mcc() && multiplayer_options.ui_assets.empty()))return;
+      if(!play || !simulation || (!cache.is_mcc() && multiplayer_options.ui_assets.empty())) {
+        pause_menu.reset();return;
+      }
+      if(pause_menu) {
+        pause_menu->prepare_renderer_materials(mesh);return;
+      }
       std::unique_ptr<char,decltype(&SDL_free)> pref(SDL_GetPrefPath("Halo2Native","Halo2"),SDL_free);
       pause_menu=std::make_unique<halo2::GamePauseMenu>(cache.shared_directory(),multiplayer_options.ui_assets,
           mesh,true,pref?std::filesystem::path(pref.get())/"menu.cfg":std::filesystem::path{},multiplayer_options.menu_ui_assets,map);
@@ -1971,6 +1944,122 @@ int main(int argc, char **argv) {
     std::unique_ptr<halo2::CampaignTextRenderer> campaign_text;
     if(play && simulation && campaign_text_content)campaign_text=std::make_unique<halo2::CampaignTextRenderer>(
         *campaign_text_content,halo2::gameplay_font_directory(cache),multiplayer_options.menu_ui_assets.empty()?multiplayer_options.ui_assets:multiplayer_options.menu_ui_assets,mesh);
+    // Source bitmap metadata/material identities must precede Renderer upload.
+    std::unique_ptr<halo2::SourceLensDrawFrameTu15> campaign_lens_draws;
+    if(source_view && !cache.is_vista())
+      campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
+    desktop->prepare_loading_materials(mesh);
+    if(source_view) {
+      // Original191E03..191E0B follows ordinary scenario births. Keep this
+      // once-per-map producer outside view collection and mode switching.
+      auto& world=simulation->campaign_source()->objects().tu15_world();
+      const auto& memory=world.memory();
+      const auto game=halo2::Bytes(memory.view(0x4f3218u,4)).u32(0);
+      auto call=world.prepare_source_call();call.gp[0]=halo2::Bytes(memory.view(game+8u,4)).u32(0);
+      world.run_actual(0xc29f0u,call);
+    }
+    const auto want_campaign_raster_lights=[&](halo2::pstencil::GraphicsMode mode) {
+      static const bool no_lights=[]{const auto* value=std::getenv("HALO2_REFERENCE_NO_CAMPAIGN_LIGHTS");return value && *value;}();
+      return mode==halo2::pstencil::GraphicsMode::pStencil ||
+          (mode!=halo2::pstencil::GraphicsMode::PathTracing && !no_lights);
+    };
+    std::unique_ptr<halo2::pstencil::CampaignRenderer> pstencil_campaign_renderer;
+    halo2::pstencil::CampaignMaterialUpdates pstencil_campaign_materials;
+    if(source_view)pstencil_campaign_renderer=std::make_unique<halo2::pstencil::CampaignRenderer>(
+        cache,mesh,unsigned(bsp),want_campaign_raster_lights(desktop->display_settings.graphics_mode),
+        cached_bsp_meshes.at(bsp).bsp_mesh.materials);
+    std::size_t persistent_material_count=mesh.materials.size();
+    auto load_sky = [&]() {
+      sky_visual.reset(); sky_definition.reset();cluster_sky_models.reset();
+      if(!diagnostic && character_atmosphere) {
+        cluster_sky_models.emplace(cache,*character_atmosphere,mesh);
+        return;
+      }
+      if (!diagnostic) {
+        try {
+          sky_definition=cache.load_visible_sky(bsp);
+          if(sky_definition) {
+            auto model=cache.load_model(sky_definition->model);
+            halo2::prepare_forward_materials(cache,model.mesh);
+            sky_visual=add_model(std::move(model));
+            std::cout << "Visible retail sky: " << sky_definition->name << '\n';
+          }
+        } catch(const halo2::FormatError &e) {
+          sky_definition.reset();
+          std::cerr << "Sky unavailable: " << e.what() << '\n';
+        }
+      }
+    };
+    const auto unmount_bsp_tail=[&] {
+      if(!mounted_bsp_index)return;
+      auto &slot=cached_bsp_meshes.at(*mounted_bsp_index);
+      slot.bsp_mesh.vertices=std::move(mesh.vertices);
+      slot.bsp_mesh.lightmaps=std::move(mesh.lightmaps);
+      slot.bsp_mesh.resident_material_lightmaps=std::move(mesh.resident_material_lightmaps);
+      slot.bsp_mesh.material_warnings=std::move(mesh.material_warnings);
+      slot.bsp_mesh.clusters=mesh.clusters;
+      slot.bsp_mesh.instances=mesh.instances;
+      slot.bsp_mesh.materials.clear();
+      slot.bsp_mesh.materials.reserve(mounted_bsp_geometry_count);
+      const auto begin=mesh.materials.begin()+std::ptrdiff_t(mounted_bsp_base);
+      const auto end=begin+std::ptrdiff_t(mounted_bsp_geometry_count);
+      slot.bsp_mesh.materials.insert(slot.bsp_mesh.materials.end(),
+          std::make_move_iterator(begin),std::make_move_iterator(end));
+      slot.applied_material_base=mounted_bsp_base;
+      mesh.materials.resize(persistent_material_count);
+      mounted_bsp_index.reset();
+      mounted_bsp_base=0;mounted_bsp_geometry_count=0;
+    };
+    const auto mount_bsp_tail=[&](std::size_t target_bsp) {
+      auto &slot=load_cached_bsp_mesh(target_bsp);
+      auto &bsp_mesh=slot.bsp_mesh;
+      if(bsp_mesh.vertices.empty())
+        throw halo2::FormatError("campaign BSP contains no render geometry");
+      const std::size_t base=persistent_material_count;
+      if(slot.applied_material_base!=base) {
+        const std::ptrdiff_t delta=std::ptrdiff_t(base)-std::ptrdiff_t(slot.applied_material_base);
+        for(auto &v:bsp_mesh.vertices)v.material=std::uint32_t(std::ptrdiff_t(v.material)+delta);
+        for(auto &lm:bsp_mesh.resident_material_lightmaps)lm[0]=std::uint32_t(std::ptrdiff_t(lm[0])+delta);
+        slot.applied_material_base=base;
+      }
+      mesh.vertices=std::move(bsp_mesh.vertices);
+      mesh.lightmaps=std::move(bsp_mesh.lightmaps);
+      mesh.resident_material_lightmaps=std::move(bsp_mesh.resident_material_lightmaps);
+      mesh.material_warnings=std::move(bsp_mesh.material_warnings);
+      mesh.clusters=bsp_mesh.clusters;
+      mesh.instances=bsp_mesh.instances;
+      mounted_bsp_base=base;
+      mounted_bsp_geometry_count=bsp_mesh.materials.size();
+      mesh.materials.insert(mesh.materials.end(),
+          std::make_move_iterator(bsp_mesh.materials.begin()),
+          std::make_move_iterator(bsp_mesh.materials.end()));
+      bsp_mesh.materials.clear();
+      mounted_bsp_index=target_bsp;
+      if(source_view) {
+        if(!campaign_family)throw halo2::FormatError("Campaign BSP scene lost its rendering lifetime owner");
+        campaign_water_materials=campaign_family->append_water_materials(mesh);
+      }
+      load_sky();
+      if(campaign_family)
+        campaign_family->bind_water_pools(std::span<halo2::Material>(mesh.materials).subspan(mounted_bsp_base));
+    };
+    mount_bsp_tail(bsp);
+    if (mesh.vertices.empty())
+      throw halo2::FormatError("selected BSP contains no geometry");
+    std::cout << cache.describe() << '\n'
+              << "BSP " << bsp << ": " << mesh.vertices.size() / 3
+              << " triangles\n";
+    std::cout << "Diffuse textures: "
+              << std::count_if(
+                     mesh.materials.begin(), mesh.materials.end(),
+                     [](const auto &m) { return !m.diffuse.pixels.empty(); })
+              << "/" << mesh.materials.size() - 1 << '\n';
+    std::cout << "Static retail lightmap passes: "
+              << std::count_if(mesh.materials.begin(),mesh.materials.end(),
+                               [](const auto& m){return m.static_lightmap_pass;})
+              << "; baked lightmap images: " << mesh.lightmaps.size() << '\n';
+    for (const auto &warning : mesh.material_warnings)
+      std::cerr << "Rendering gap: " << warning << '\n';
     halo2::RumblePlayer rumble;halo2::RumbleOutput rumble_output;
     halo2::PlayerScreenFlashPlayer screen_flash;
     std::map<std::uint32_t,std::vector<halo2::PlayerScreenResponse>> screen_responses;
@@ -1992,10 +2081,6 @@ int main(int argc, char **argv) {
         campaign_vehicle_camera.emplace(simulation->campaign_source()->objects(),*content->original_data);
     };
     reset_campaign_camera();
-    // Source bitmap metadata/material identities must precede Renderer upload.
-    std::unique_ptr<halo2::SourceLensDrawFrameTu15> campaign_lens_draws;
-    if(source_view && !cache.is_vista())
-      campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
     const bool reference_bsp=[]{const auto *p=std::getenv("HALO2_REFERENCE_CAMPAIGN_BSP_RESIDENCY");return p && *p;}();
     const bool copy_campaign_world=[]{const auto *p=std::getenv("HALO2_REFERENCE_COPY_CAMPAIGN_WORLD");return p && *p;}();
     const auto make_campaign_bsp=[&]()->std::unique_ptr<halo2::SourceBspResidentPlan> {
@@ -2034,6 +2119,13 @@ int main(int argc, char **argv) {
       if(!campaign_lens_draws)return;
       campaign_lens_queries=std::make_unique<halo2::SourceLensQueryFrameTu15>(*renderer);
       campaign_lens_draws->bind(*renderer);
+      if(!simulation || !simulation->campaign_source())
+        throw halo2::FormatError("Campaign lens consumer has no original source owner");
+      campaign_lens_registration.bind(*simulation->campaign_source());
+    };
+    const auto rebind_campaign_lens_queries=[&] {
+      if(!campaign_lens_draws)return;
+      campaign_lens_queries=std::make_unique<halo2::SourceLensQueryFrameTu15>(*renderer);
       if(!simulation || !simulation->campaign_source())
         throw halo2::FormatError("Campaign lens consumer has no original source owner");
       campaign_lens_registration.bind(*simulation->campaign_source());
@@ -2533,7 +2625,7 @@ int main(int argc, char **argv) {
         std::optional<halo2::MultiplayerAudio::Voice> voice;
         try {
           if(simulation->campaign_source()) {
-            const auto due=scripted_audio_timeline.frame(simulation->ticks());
+            const auto due=scripted_audio_timeline.live_frame(simulation->ticks(),scripted_audio->presentation_frames());
             // sound_impulse_start_effect carries its 1903A0 collection row.
             const auto effect=sound.effect_collection!=0xffffffffu?
                 std::optional<halo2::MultiplayerAudioEffect>(halo2::MultiplayerAudioEffect{sound.effect_collection,sound.effect_row}):
@@ -2617,83 +2709,86 @@ int main(int argc, char **argv) {
     // lens owners or the BSP mesh calls join_campaign_draw first.
     std::function<void()> campaign_draw_join;
     const auto join_campaign_draw=[&]{if(const auto join=std::exchange(campaign_draw_join,{}))join();};
+    Clock::time_point last;
     std::uint64_t observed_bsp_revision = simulation ? simulation->bsp_revision() : 0;
-    auto update_bsp = [&]() {
-      if (!simulation || observed_bsp_revision == simulation->bsp_revision())
-        return;
+    const auto ensure_campaign_raster_lights=[&] {
+      if(!pstencil_campaign_renderer || pstencil_campaign_renderer->raster_materials_preloaded())return;
       join_campaign_draw();
-      const auto target = simulation->bsp();
-      // Previous submissions and query generations belong to the old target
-      // owner. Recreate bitmap material identities with the new BSP mesh.
+      if(campaign_lens_queries)
+        halo2::source_retire_lens_queries(simulation->campaign_source()->objects().tu15_world());
       campaign_lens_registration.clear();
-      campaign_lens_queries.reset();campaign_lens_draws.reset();
-      reset_campaign_camera();
-      auto next_mesh = cache.load_bsp(target, !diagnostic);
-      if (next_mesh.vertices.empty())
-        throw halo2::FormatError("campaign BSP contains no render geometry");
-      if(source_view) {
-        if(!campaign_family)throw halo2::FormatError("Campaign BSP scene lost its rendering lifetime owner");
-        campaign_water_materials=campaign_family->append_water_materials(next_mesh);
-      }
-      const auto next_geometry_materials = next_mesh.materials.size();
-      // The current mesh already owns these resident model images. Transfer
-      // them across a BSP switch instead of retaining a second full image bank
-      // for the entire campaign. Sky/UI/debug materials are rebuilt below.
-      next_mesh.materials.insert(next_mesh.materials.end(),
-          std::make_move_iterator(mesh.materials.begin()+geometry_materials),
-          std::make_move_iterator(mesh.materials.begin()+geometry_materials+common_material_count));
-      auto rebase = [&](Visual &v) {
-        if(v.source_actor_model)v.source_actor_model->rebase_materials(unsigned(geometry_materials),unsigned(next_geometry_materials));
-        if(v.cinematic_shaders)v.cinematic_material_base=std::uint32_t(v.cinematic_material_base-geometry_materials+next_geometry_materials);
-        if(v.source_cinematic_model)v.source_cinematic_model->rebase_materials(unsigned(geometry_materials),unsigned(next_geometry_materials));
-        v.material_base = std::uint32_t(v.material_base - geometry_materials +
-                                        next_geometry_materials);
-      };
-      for (auto &[id,v] : actor_visuals) rebase(v);
-      for (auto &[id,v] : object_visuals) rebase(v);
-      if(source_weapon_models)source_weapon_models->rebase_materials(unsigned(geometry_materials),unsigned(next_geometry_materials));
-      if(campaign_holograms)campaign_holograms->rebase_materials(unsigned(geometry_materials),unsigned(next_geometry_materials));
-      for(auto &[definition,model]:secondary_models)
-        model->rebase_materials(unsigned(geometry_materials),unsigned(next_geometry_materials));
-      if (arms) rebase(*arms);
-      if (gun) rebase(*gun);
-      for(auto &[id,view]:campaign_first_person)if(view.gun)rebase(*view.gun);
-      const auto previous_geometry_materials=geometry_materials;
-      geometry_materials = next_geometry_materials;
-      mesh = std::move(next_mesh);++mesh_generation;
-      if(source_machine_models)source_machine_models->rebase_campaign_materials(
-          unsigned(previous_geometry_materials),unsigned(next_geometry_materials));
-      bsp = target;
-      if(source_view)source_view.emplace(cache,bsp);
-      reload_character_lighting(bsp);
-      load_sky();
-      if(campaign_family)campaign_family->bind_water_pools(mesh.materials);
-      load_pstencil_campaign_renderer();
-      debug_material = std::uint32_t(mesh.materials.size());
-      mesh.materials.push_back({});
-      // Release old Vulkan resources after waiting for their submissions.
-      // Static geometry, lightmap descriptors and draw ranges change together.
-      renderer.reset();
-      pause_menu.reset();prepare_pause();prepare_action_hud();
-      campaign_text.reset();
-      if(play && simulation && campaign_text_content)campaign_text=std::make_unique<halo2::CampaignTextRenderer>(
-          *campaign_text_content,halo2::gameplay_font_directory(cache),multiplayer_options.menu_ui_assets.empty()?multiplayer_options.ui_assets:multiplayer_options.menu_ui_assets,mesh);
-      if(source_view && !cache.is_vista())
-      campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
+      campaign_lens_queries.reset();
+      const std::size_t previous_persistent=persistent_material_count;
+      unmount_bsp_tail();
+      pstencil_campaign_renderer->ensure_raster_materials(mesh,load_cached_bsp_mesh(bsp).bsp_mesh.materials);
+      persistent_material_count=mesh.materials.size();
+      mount_bsp_tail(bsp);
+      ++mesh_generation;
       pending_campaign_bsp=make_campaign_bsp();
-      renderer = desktop->make_renderer(mesh,validation,{},pending_campaign_bsp.get(),{},{},&cache);
+      renderer->reload_bsp_scene(mesh,pending_campaign_bsp.get(),previous_persistent,&cache);
       renderer->path_tracing_source(mesh);
-      bind_campaign_lenses();
+      rebind_campaign_lens_queries();
       if(simulation) {
         renderer->campaign_cinematic_crossfade({});
         simulation->cinematic_screen_consumer(true);
       }
       if(character_atmosphere)renderer->scene_bsp_atmosphere(*character_atmosphere);
-      if(pause_menu)pause_menu->bind(window,*desktop,*renderer);
-      renderer->share_display_settings(desktop->display_settings);
+      if(sky_definition && sky_definition->clear)
+        renderer->scene_clear_color(*sky_definition->clear);
+      campaign_bsp=std::move(pending_campaign_bsp);
+      campaign_bsp_bindings=campaign_bsp?campaign_bsp->unchanged_bindings():
+          std::vector<halo2::SourceBspPartBinding>{};
+    };
+    auto update_bsp = [&]() {
+      if (!simulation || observed_bsp_revision == simulation->bsp_revision())
+        return;
+      join_campaign_draw();
+      const auto rebuild_begin=Clock::now();
+      const auto target = simulation->bsp();
+      // The native World survives BSP changes. Retire its pending query
+      // slots before replacing the renderer's active BSP resources.
+      if(campaign_lens_queries)
+        halo2::source_retire_lens_queries(simulation->campaign_source()->objects().tu15_world());
+      campaign_lens_registration.clear();
+      campaign_lens_queries.reset();
+      reset_campaign_camera();
+      const std::size_t previous_persistent=persistent_material_count;
+      unmount_bsp_tail();
+      auto &target_slot=load_cached_bsp_mesh(target);
+      if(target_slot.bsp_mesh.vertices.empty())
+        throw halo2::FormatError("campaign BSP contains no render geometry");
+      bsp = target;
+      if(source_view)source_view.emplace(cache,bsp);
+      reload_character_lighting(bsp);
+      const bool needs_new_lens_draw=!campaign_lens_draws && source_view && !cache.is_vista();
+      if(needs_new_lens_draw) {
+        campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
+        persistent_material_count=mesh.materials.size();
+      }
+      if(pstencil_campaign_renderer) {
+        pstencil_campaign_renderer->switch_bsp(mesh,unsigned(bsp),target_slot.bsp_mesh.materials,
+            want_campaign_raster_lights(renderer->display_settings().graphics_mode));
+        persistent_material_count=mesh.materials.size();
+      } else if(source_view) {
+        pstencil_campaign_renderer=std::make_unique<halo2::pstencil::CampaignRenderer>(
+            cache,mesh,unsigned(bsp),want_campaign_raster_lights(renderer->display_settings().graphics_mode),
+            target_slot.bsp_mesh.materials);
+        persistent_material_count=mesh.materials.size();
+      }
+      mount_bsp_tail(bsp);
+      ++mesh_generation;
+      pending_campaign_bsp=make_campaign_bsp();
+      renderer->reload_bsp_scene(mesh,pending_campaign_bsp.get(),previous_persistent,&cache);
+      renderer->path_tracing_source(mesh);
+      if(needs_new_lens_draw)bind_campaign_lenses();
+      else rebind_campaign_lens_queries();
+      if(simulation) {
+        renderer->campaign_cinematic_crossfade({});
+        simulation->cinematic_screen_consumer(true);
+      }
+      if(character_atmosphere)renderer->scene_bsp_atmosphere(*character_atmosphere);
       if (sky_definition && sky_definition->clear)
         renderer->scene_clear_color(*sky_definition->clear);
-      desktop->renderer_ready(renderer);
       campaign_bsp=std::move(pending_campaign_bsp);
       campaign_bsp_bindings=campaign_bsp?campaign_bsp->unchanged_bindings():
           std::vector<halo2::SourceBspPartBinding>{};
@@ -2702,6 +2797,10 @@ int main(int argc, char **argv) {
         if (spawn.bsp == bsp) spawns.push_back(spawn);
       spawn_index = 0;
       observed_bsp_revision = simulation->bsp_revision();
+      // Presentation is blocked until the new BSP assets are ready.
+      // Keep that work out of the next live cinematic tick budget.
+      if(campaign && !reference_capture && !bsp_replay && !campaign_live_input_limit)
+        last+=Clock::now()-rebuild_begin;
       std::cout << "Campaign BSP committed: " << bsp << " triangles="
                 << mesh.vertices.size()/3 << '\n';
     };
@@ -2710,7 +2809,7 @@ int main(int argc, char **argv) {
     // Submission retries still have distinct outer render frames. Source
     // resource age must never reuse a frame token when presentation declines.
     std::uint64_t campaign_render_epoch{};
-    auto last = Clock::now();
+    last = Clock::now();
     // Frame clock reading for the next block, taken when an overlapped draw
     // starts (overlap_campaign_draw); a serial block reads its own.
     std::optional<Clock::time_point> advance_clock;
@@ -3057,7 +3156,16 @@ int main(int argc, char **argv) {
         if(!campaign_live_input_limit && skip_frame>=0 && long(frames)>=skip_frame && simulation && simulation->cinematic_skippable())skip_requested=true;
         input.switch_grenade=pad_input.switch_grenade||host_input.switch_grenade;input.look_stick=pad_input.look_pitch;
         bool scope_pressed=host_snapshot.actions.scope_pressed || pad_pending.zoom;
-        halo2::campaign_frame_ticks(steps_due,
+        std::optional<Clock::time_point> presentation_deadline;
+        if(campaign && simulation->campaign_source() && simulation->presentation().cinematic &&
+           !reference_capture && !bsp_replay && !campaign_live_input_limit && !frame_limit && steps_due>1) {
+          // A slow frame can admit up to 150 cinematic ticks. Present after
+          // a nominal source tick's worth of host work, then resume the
+          // already admitted work in source order on the next iteration.
+          presentation_deadline=Clock::now()+std::chrono::duration_cast<Clock::duration>(
+              std::chrono::duration<float>(halo2::tick_seconds));
+        }
+        const bool yielded_for_presentation=halo2::campaign_frame_ticks(steps_due,
             [&]{return running && !restart_level && !game_paused;},[&] {
           const bool recorded_input=campaign_live_input_limit &&
               campaign_input_schedule->apply(campaign_input_ticks,campaign_live_controls);
@@ -3171,9 +3279,12 @@ int main(int argc, char **argv) {
           if(presentation_paired)scene_interpolation.capture(simulation->ticks(),simulation->scene().objects());
           else {scene_interpolation.reset(simulation->ticks(),simulation->scene().objects());cinematic_render_interpolation.clear();previous_actors.clear();previous_projectiles.clear();if(source_weapon_models)source_weapon_models->reset();}
           skip_requested = false;
-        },capture_pending);
+        },[&] {
+          return capture_pending() || (presentation_deadline &&
+              (simulation->bsp_revision()!=observed_bsp_revision || Clock::now()>=*presentation_deadline));
+        });
         if(!game_paused) {
-          if(running && !restart_level && steps_due>0 && capture_pending())
+          if(running && !restart_level && yielded_for_presentation)
             capture_carry.defer(frame_time,completed_ticks,steps_due);
           else capture_carry.clear();
         }
@@ -3591,6 +3702,11 @@ int main(int argc, char **argv) {
       std::vector<std::vector<halo2::ModelSkinSubmission>> character_skin_submissions;
       std::vector<std::vector<halo2::SourcePrtMaterialBank>> character_prt_banks;
       std::vector<halo2::ModelObjectDraw> character_draws;
+      const bool object_motion=renderer->display_settings().object_motion_blur ||
+          halo2::Renderer::object_motion_blur_requested();
+      struct MotionRange {std::uint32_t owner;std::size_t first,count;};
+      std::vector<MotionRange> motion_ranges;
+      std::vector<halo2::ModelObjectDraw> motion_owners;
       std::shared_ptr<const halo2::SourceCampaignMachineViewPacket> campaign_machine_packet;
       std::map<std::size_t,std::array<std::uint32_t,3>> campaign_weapon_draw_owners;
       std::map<std::size_t,std::array<std::uint32_t,3>> campaign_machine_draw_owners;
@@ -3632,6 +3748,8 @@ int main(int argc, char **argv) {
       // its stencil volumes to the same native light owners.
       static const bool no_campaign_lights=[]{const auto* value=std::getenv("HALO2_REFERENCE_NO_CAMPAIGN_LIGHTS");return value && *value;}();
       const bool campaign_dynamic_lights=pstencil_campaign || (!path_tracing_campaign && !no_campaign_lights);
+      if(campaign_dynamic_lights && pstencil_campaign_renderer && !pstencil_campaign_renderer->raster_materials_preloaded())
+        ensure_campaign_raster_lights();
       halo2::pstencil::CampaignShadows pstencil_campaign_shadows;
       std::optional<halo2::SourceViewProjectionBank> pstencil_campaign_camera;
       std::array<std::int16_t,4> pstencil_campaign_viewport{};
@@ -4056,12 +4174,22 @@ int main(int argc, char **argv) {
         const double render_tick=presentation_paired?double(simulation->ticks()-1)+fraction:double(simulation->ticks());
         character_time=float(render_tick)*halo2::tick_seconds;
         auto *source=simulation->campaign_source()?&simulation->campaign_source()->objects():nullptr;
+        const auto scene_object_visible=[&](const halo2::SceneObjects::Object &object) {
+          if(object.visible)return true;
+          if(!source || diagnostic || !simulation->presentation().cinematic ||
+             !object.bsp_hidden || object.script_hidden || !object.cinematic_lod)return false;
+          // Scripts can stage bipeds in the previous BSP before their shot.
+          // Use the live source draw admission for these actors on their
+          // authored set, even when the host's placement mask hid them.
+          const auto &placement=content->objects.at(object.placement);
+          return placement.type==0 && placement.origin_bsp==int(simulation->bsp());
+        };
         if(source && !diagnostic) {
           if(!source_frame)throw halo2::FormatError("Campaign source objects have no actual view admission");
           std::erase_if(cinematic_render_interpolation,[&](const auto &entry) {
             if(!source_frame->drawn.contains(entry.first))return true;
             return std::ranges::none_of(simulation->scene().objects(),[&](const auto &object){
-                return object.handle==entry.first && object.visible && !object.bsp_hidden;
+                return object.handle==entry.first && scene_object_visible(object);
               }) && std::ranges::none_of(simulation->actors(),[&](const auto &actor){
                 return actor.source_datum==entry.first && actor.exists && !actor.vitality.dead &&
                     actor.visible && !actor.bsp_hidden;
@@ -4113,7 +4241,7 @@ int main(int argc, char **argv) {
           for(const auto &[owner,vertices]:shadow_geometry)add_pstencil_campaign_shadow(owner,vertices);
         }
         for (const auto &object : simulation->scene().objects()) {
-          if (object.handle == halo2::null_datum || !object.visible)
+          if (object.handle == halo2::null_datum || !scene_object_visible(object))
             continue;
           if(std::any_of(simulation->weapon_pickups().begin(),simulation->weapon_pickups().end(),
               [&](const auto &p){return p.handle==object.handle;}))continue;
@@ -4297,6 +4425,7 @@ int main(int argc, char **argv) {
             vertex.material += visual->second.material_base;
           }
           add_pstencil_campaign_shadow(object.handle,vertices);
+          if(object_motion && !vertices.empty())motion_ranges.push_back({object.handle,debug.size(),vertices.size()});
           debug.insert(debug.end(), vertices.begin(), vertices.end());
         }
         if(!source || diagnostic)for(const auto &item:simulation->weapon_pickups()) {
@@ -4306,6 +4435,7 @@ int main(int argc, char **argv) {
           root.basis={item.forward,halo2::cross(item.up,item.forward),item.up};
           auto vertices=halo2::pose_model_world(v->second.model,root);
           for(auto &vertex:vertices)vertex.material+=v->second.material_base;
+          if(object_motion && !vertices.empty())motion_ranges.push_back({item.handle,debug.size(),vertices.size()});
           debug.insert(debug.end(),vertices.begin(),vertices.end());
         }
         if(active_fp_definition!=simulation->player().weapon.definition) {
@@ -4489,7 +4619,11 @@ int main(int argc, char **argv) {
                   {"query_status",due?nlohmann::json(int(query.query.status)):nlohmann::json(nullptr)},
                   {"sample_valid",light.sample_valid},{"lighting_valid",light.lighting_valid}};
             });
-          } else append_pose(debug,v->second,clip,time,position,body_yaw,0);
+          } else {
+            const auto first=debug.size();
+            append_pose(debug,v->second,clip,time,position,body_yaw,0);
+            if(object_motion && debug.size()>first)motion_ranges.push_back({actor.source_datum,first,debug.size()-first});
+          }
         }
         if(campaign_host_preparation)
           campaign_host_preparation->view[0].body_ms=host_elapsed_ms(Clock::now()-bodies_start);
@@ -4513,6 +4647,10 @@ int main(int argc, char **argv) {
             }
             character_poses.push_back(std::move(draw.vertices));
             character_draws.push_back({character_poses.back(),draw.lighting,draw.colors,std::move(draw.input)});
+            if(object_motion) {
+              auto& motion=motion_owners.emplace_back();
+              motion.vertices=character_poses.back();motion.source_object=draw.object;
+            }
           }
         }
         if (play && gun && arms && !simulation->player().vitality.dead &&
@@ -4722,8 +4860,13 @@ int main(int argc, char **argv) {
       if(character_atmosphere) {
         campaign_view.emplace();auto& view=*campaign_view;
         view.camera=character_camera;view.width=640;view.height=480;view.full_surface=true;
+        if(simulation) view.object_motion_camera_epochs={simulation->cinematic_camera_discontinuity(),
+            simulation->checkpoint_restores(),simulation->bsp_revision()};
+        // Path Tracing also consumes this immutable BSP bank. Keeping it
+        // separate from moving objects lets the ray scene retain its static BVH.
         const bool resident=campaign_bsp && source_frame &&
-            renderer->display_settings().graphics_mode==halo2::pstencil::GraphicsMode::Original;
+            (renderer->display_settings().graphics_mode==halo2::pstencil::GraphicsMode::Original ||
+             path_tracing_campaign);
         if(resident) {
           view.source_bsp_resident_plan=campaign_bsp.get();
           view.source_bsp_bindings=campaign_bsp_bindings;
@@ -4760,6 +4903,12 @@ int main(int argc, char **argv) {
           }
         }
         view.objects=character_draws;
+        for(const auto& range:motion_ranges) {
+          auto& motion=motion_owners.emplace_back();
+          motion.vertices=std::span<const halo2::Vertex>(debug).subspan(range.first,range.count);
+          motion.source_object=range.owner;
+        }
+        view.object_motion_owners=motion_owners;
         view.hologram_groups=campaign_hologram_groups;
         if((reference_trace || campaign_hologram_trace) && !campaign_hologram_groups.empty())trace_hologram([&] {
           auto groups=nlohmann::json::array();
@@ -4893,16 +5042,22 @@ int main(int argc, char **argv) {
             !simulation->presentation().scripted && !simulation->presentation().cinematic)
           view.foreground_projection_vertical_angle=halo2::gameplay_first_person_projection_angle;
         view.atmosphere=character_fog;
-        if(path_tracing_campaign && pstencil_campaign_lighting)
-          campaign_path_tracing_lights=std::move(pstencil_campaign_lighting->path_tracing_lights);
-        if(path_tracing_campaign && character_fog && character_fog->visible_sky>=0 &&
-           std::size_t(character_fog->visible_sky)<character_sky_lighting.size() &&
-           character_sky_lighting[character_fog->visible_sky]) {
-          const auto& sky=*character_sky_lighting[character_fog->visible_sky];
-          view.path_tracing_environment=sky.outdoor_ambient;
-          if(const auto light=halo2::path_tracing::source_sky_light(sky))campaign_path_tracing_lights.push_back(*light);
+        if(path_tracing_campaign) {
+          if(pstencil_campaign_lighting)
+            campaign_path_tracing_lights=std::move(pstencil_campaign_lighting->path_tracing_lights);
+          if(character_fog) {
+            const int visible=character_fog->visible_sky;
+            if(visible>=0 && std::size_t(visible)<character_sky_lighting.size() && character_sky_lighting[visible])
+              view.path_tracing_environment=character_sky_lighting[visible]->outdoor_ambient;
+            // The directional bank controls whether Path Tracing uses the
+            // baked diffuse field. A visible backdrop alone cannot replace it.
+            const auto lighting=halo2::path_tracing::source_bsp_lighting_sky(*character_atmosphere,character_fog->cluster);
+            if(lighting && *lighting<character_sky_lighting.size() && character_sky_lighting[*lighting])
+              if(const auto light=halo2::path_tracing::source_sky_light(*character_sky_lighting[*lighting]))
+                campaign_path_tracing_lights.push_back(*light);
+          }
+          view.path_tracing_lights=campaign_path_tracing_lights;
         }
-        if(path_tracing_campaign)view.path_tracing_lights=campaign_path_tracing_lights;
         view.atmosphere_source=&*character_atmosphere;
       }
       pstencil_campaign_materials.flush(*renderer,mesh.materials,

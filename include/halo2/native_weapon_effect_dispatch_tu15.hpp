@@ -12,6 +12,11 @@ namespace halo2 {
 // CABC0 scope reset,18BE00 local-sound decision,18BE50 direct sound,18C4B0 forced zoom-out request.
 // Lower allocation and sound owners retain their complete ABI and actual results.
 bool native_weapon_effect_dispatch_tu15_owns_entry(std::uint32_t);
+// Paired callers offer their original services before adapting callbacks to
+// the canonical address domain. A refusal leaves the caller ABI untouched.
+bool native_weapon_effect_origin_tu15_bridge(SourcePhysicsContactMemory &,
+    SourcePhysicsWorldRuntimeAbi &,const SourcePhysicsWorldRuntimeServices &,
+    const SourcePhysicsContactRecordObserver &,bool canonical_observation);
 // Complete integer register/flag boundary of17DCE0. Compiled callers keep
 // their live XMM/x87/MMX file in place; this owner never consumes or changes it.
 void native_weapon_effect_iterator_tu15_run(SourcePhysicsContactMemory &,

@@ -64,6 +64,8 @@ void source_run_death_world_scheduler_1_1(
     if (world || contact || update || motion || vehicle || math) {
       SourcePhysicsContactRuntimeServices physical;
       physical.instruction = native.instruction;
+      if (world || contact)
+        physical.instruction_cursor = services.physics_instruction_cursor;
       physical.timestamp_counter = services.timestamp_counter;
       if (native.estimate)
         physical.reciprocal_sqrt = [&](auto x) {

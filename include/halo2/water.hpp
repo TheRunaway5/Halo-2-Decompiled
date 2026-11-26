@@ -18,6 +18,7 @@ struct WaterFrame {
   Vec3 horizon_color;
   std::uint32_t horizon_argb{}; // 131ED0 packed RGB; alpha remains zero.
   bool infinite{};
+  float reflection_height{}; // Authored horizontal plane, record +0x84.
 };
 // 3C650, 3D000 and 3CA90. viewport_aspect is width / height of the source
 // outer camera rectangle; vertical_fov is the raw source camera+0x28 angle,

@@ -20,17 +20,18 @@ layout(set=0,binding=4,std140) uniform TraceSurfaceSource {
     // lane. Native/sky/environment descriptors retain their source values.
     layout(offset=448) vec4 primaryAmbient;
 } traceSurfaceSource;
-#ifndef H2_PATH_TRACING_COMPUTE
-vec3 tracePrimarySourceAmbient(TraceMaterial material,vec2 rawUV) {
-    if((material.texture.w&4096u)==0u || traceSurfaceSource.primaryAmbient.w<=0.0)return vec3(0);
-    vec2 base=rawUV*traceSurfaceSource.ambientBumpBase.xy+traceSurfaceSource.ambientBumpBase.zw;
-    vec2 uv=base*traceSurfaceSource.ambientBumpDetail.xy+traceSurfaceSource.ambientBumpDetail.zw;
-    float bumpZ=max(2.0*texture(traceSurfaceTexture2,uv).b-1.0,0.0);
-    return max(traceSurfaceSource.primaryAmbient.rgb,vec3(0))*bumpZ;
-}
-#endif
 const uint traceSurfaceFlag=64u,traceSurfaceMagic=0x53525448u,traceSurfaceWords=52u;
+const uint traceSurfaceDynamicOneChangeColor=12u,traceSurfaceTextureHonorGuard=13u;
 bool traceSurfaceBumpCoverage(uint family) {return family==4u || family==5u;}
+bool traceSurfaceTerrain(uint family) {return family==1u || family==7u;}
+float traceDiffuseRetention(TraceMaterial material,float terrainBlend,vec3 normal,vec3 incoming) {
+    if(material.detail.z==0u)return 1.0;
+    // The source terrain mask selects which substrate transports the light.
+    // Each substrate retains its own normal-incidence and grazing response.
+    vec4 endpoints=unpackUnorm4x8(material.detail.z);
+    vec2 response=mix(endpoints.xy,endpoints.zw,clamp(terrainBlend,0.0,1.0));
+    return mix(response.y,response.x,clamp(dot(normal,-incoming),0.0,1.0));
+}
 vec4 traceSurfaceColor(uint argb) {
     return vec4(float((argb>>16u)&255u),float((argb>>8u)&255u),float(argb&255u),float(argb>>24u))/255.0;
 }
@@ -41,8 +42,15 @@ bool traceSurfaceRecord(TraceMaterial material,out uint record) {
 }
 vec4 traceSurfaceEvaluate(uint family,vec4 first,vec4 second,vec4 third,vec4 fourth,
                            vec4 color13,vec4 color21,vec4 color43,vec4 color44) {
+    if(family==traceSurfaceDynamicOneChangeColor)
+        return vec4(clamp(first.rgb*mix(vec3(1),color13.rgb,clamp(second.rgb,0.0,1.0)),0.0,1.0),first.a);
     if(family==11u)return vec4(clamp(2.0*max(first.rgb,vec3(0))*max(second.rgb,vec3(0)),0.0,1.0),
         clamp(2.0*color13.a*max(first.a,0.0)*max(second.a,0.0),0.0,1.0));
+    if(family==traceSurfaceTextureHonorGuard) {
+        vec3 base=clamp(2.0*max(first.rgb,vec3(0))*max(second.rgb,vec3(0)),0.0,1.0);
+        vec3 darkening=clamp(max(third.rgb,vec3(0))*clamp(max(fourth.rgb,vec3(0))*color13.a,0.0,1.0),0.0,1.0);
+        return vec4(base*(1.0-darkening),clamp(max(first.a,0.0)*max(second.a,0.0),0.0,1.0));
+    }
     if(family>=8u && family<=10u) {
         vec3 base=clamp(2.0*max(first.rgb,vec3(0))*max(second.rgb,vec3(0)),0.0,1.0);
         vec3 tint=color13.rgb;
@@ -53,7 +61,7 @@ vec4 traceSurfaceEvaluate(uint family,vec4 first,vec4 second,vec4 third,vec4 fou
         }
         return vec4(clamp(base*tint,0.0,1.0),clamp(max(first.a,0.0)*max(second.a,0.0),0.0,1.0));
     }
-    if(family==1u || family==7u) {
+    if(traceSurfaceTerrain(family)) {
         float mask=clamp(first.a,0.0,1.0);
         vec3 blend=(1.0-mask)*max(second.rgb,vec3(0))+mask*max(third.rgb,vec3(0));
         vec3 base=clamp(2.0*max(first.rgb,vec3(0))*blend,0.0,1.0);
@@ -73,25 +81,27 @@ bool traceSurfaceKill(uint record,uint stage,float alpha) {
     return (tracePixels[record+12u+stage*10u+9u]&4u)!=0u && alpha==0.0;
 }
 #ifndef H2_PATH_TRACING_COMPUTE
-bool tracePrimarySurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor) {
+bool tracePrimarySurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor,out float terrainBlend) {
+    terrainBlend=0.0;
     if((material.texture.w&traceSurfaceFlag)==0u) {
         sourceColor=texture(traceSurfaceTexture0,rawUV*material.transform.xy+material.transform.zw);return true;
     }
     uint record;if(!traceSurfaceRecord(material,record))return false;
-    uint family=tracePixels[record+1u];if(family<1u || family>11u)return false;
+    uint family=tracePixels[record+1u];if(family<1u || family>traceSurfaceTextureHonorGuard)return false;
     vec2 base=rawUV*traceSurfaceSource.forwardTransforms[0].xy+traceSurfaceSource.forwardTransforms[0].zw;
     vec4 first=texture(traceSurfaceTexture0,base);
+    if(traceSurfaceTerrain(family))terrainBlend=first.a;
     vec4 second=texture(traceSurfaceTexture1,base*traceSurfaceSource.forwardTransforms[1].xy+
                         traceSurfaceSource.forwardTransforms[1].zw);
     if(traceSurfaceKill(record,0u,first.a) || traceSurfaceKill(record,1u,second.a))return false;
     vec4 third=vec4(0),fourth=vec4(0);
-    if(family==1u || family==7u || traceSurfaceBumpCoverage(family)) {
+    if(family==1u || family==7u || traceSurfaceBumpCoverage(family) || family==traceSurfaceTextureHonorGuard) {
         vec2 coordinates=base*traceSurfaceSource.forwardTransforms[2].xy;
         if(traceSurfaceBumpCoverage(family))coordinates+=traceSurfaceSource.forwardTransforms[2].zw;
         third=texture(traceSurfaceTexture2,coordinates);
         if(traceSurfaceKill(record,2u,third.a))return false;
     }
-    if(family==1u || family==9u || family==10u) {
+    if(family==1u || family==9u || family==10u || family==traceSurfaceTextureHonorGuard) {
         fourth=texture(traceSurfaceTexture3,base*traceSurfaceSource.forwardTransforms[2].zw);
         if(traceSurfaceKill(record,3u,fourth.a))return false;
     }
@@ -107,6 +117,10 @@ bool tracePrimarySurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor)
     if(family>=8u) {
         color0=traceSurfaceColor(family==11u?traceSurfaceSource.program[6].x:
             family==8u?traceSurfaceSource.program[10].w:traceSurfaceSource.program[2].w);
+        // The completed material record has selected the live or default
+        // tint word. Native descriptor copies omit the control words.
+        if(family==traceSurfaceDynamicOneChangeColor || family==traceSurfaceTextureHonorGuard)
+            color0=traceSurfaceColor(tracePixels[record+3u]);
         color1=traceSurfaceColor(traceSurfaceSource.program[3].x);
         sourceColor=traceSurfaceEvaluate(family,first,second,third,fourth,color0,color1,
             traceSurfaceColor(traceSurfaceSource.program[3].y),traceSurfaceColor(traceSurfaceSource.program[3].z));
@@ -190,8 +204,10 @@ bool traceSurfaceStageKill(uint record,uint stage) {
     return (tracePixels[record+12u+stage*10u+9u]&4u)!=0u;
 }
 float traceSurfaceOutputAlpha(uint family,float first,float second,float third,float color0,float color1) {
+    if(family==traceSurfaceDynamicOneChangeColor)return first;
     if(family==11u)return clamp(2.0*color0*max(first,0.0)*max(second,0.0),0.0,1.0);
-    if(family>=8u && family<=10u)return clamp(max(first,0.0)*max(second,0.0),0.0,1.0);
+    if((family>=8u && family<=10u) || family==traceSurfaceTextureHonorGuard)
+        return clamp(max(first,0.0)*max(second,0.0),0.0,1.0);
     if(family==1u || family==7u)return clamp((1.0-clamp(first,0.0,1.0))*max(second,0.0)+clamp(first,0.0,1.0)*max(third,0.0),0.0,1.0);
     if(family==6u)return first;
     float opaque=family==3u?color1:color0,transparent=family==3u?color0:color1;
@@ -203,20 +219,23 @@ bool tracePrimaryCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
         alpha=texture(traceSurfaceTexture0,rawUV*material.transform.xy+material.transform.zw).a;return true;
     }
     uint record;if(!traceSurfaceRecord(material,record))return false;
-    uint family=tracePixels[record+1u];if(family<1u || family>11u)return false;
+    uint family=tracePixels[record+1u];if(family<1u || family>traceSurfaceTextureHonorGuard)return false;
     vec2 base=rawUV*traceSurfaceSource.forwardTransforms[0].xy+traceSurfaceSource.forwardTransforms[0].zw;
     float first=1.0,second=1.0,third=1.0;
     if(family<4u || family>=6u || traceSurfaceStageKill(record,0u))first=texture(traceSurfaceTexture0,base).a;
-    if(family==1u || family>=7u || traceSurfaceStageKill(record,1u))second=texture(traceSurfaceTexture1,
+    if(family==1u || (family>=7u && family!=traceSurfaceDynamicOneChangeColor) || traceSurfaceStageKill(record,1u))second=texture(traceSurfaceTexture1,
         base*traceSurfaceSource.forwardTransforms[1].xy+traceSurfaceSource.forwardTransforms[1].zw).a;
-    if(family==1u || family==7u || traceSurfaceBumpCoverage(family)) {
+    bool needsThird=family==1u || family==7u || traceSurfaceBumpCoverage(family) ||
+        (family==traceSurfaceTextureHonorGuard && traceSurfaceStageKill(record,2u));
+    if(needsThird) {
         vec2 coordinates=base*traceSurfaceSource.forwardTransforms[2].xy;
         if(traceSurfaceBumpCoverage(family))coordinates+=traceSurfaceSource.forwardTransforms[2].zw;
         third=texture(traceSurfaceTexture2,coordinates).a;
     }
     if(traceSurfaceKill(record,0u,first) || traceSurfaceKill(record,1u,second) ||
-       ((family==1u || family==7u || traceSurfaceBumpCoverage(family)) && traceSurfaceKill(record,2u,third)))return false;
-    if((family==1u || family==9u || family==10u) && traceSurfaceStageKill(record,3u) && texture(traceSurfaceTexture3,
+       (needsThird && traceSurfaceKill(record,2u,third)))return false;
+    if((family==1u || family==9u || family==10u || family==traceSurfaceTextureHonorGuard) &&
+       traceSurfaceStageKill(record,3u) && texture(traceSurfaceTexture3,
         base*traceSurfaceSource.forwardTransforms[2].zw).a==0.0)return false;
     float color0=float(traceSurfaceSource.program[3].y>>24u)/255.0;
     float color1=float(traceSurfaceSource.program[5].y>>24u)/255.0;
@@ -238,11 +257,14 @@ bool traceAtlasCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
         alpha=float(tracePixels[material.texture.x+at.y*extent.x+at.x]>>24u)/255.0;return true;
     }
     uint record;if(!traceSurfaceRecord(material,record))return false;
-    uint family=tracePixels[record+1u];if(family<1u || family>11u)return false;
+    uint family=tracePixels[record+1u];if(family<1u || family>traceSurfaceTextureHonorGuard)return false;
     float first=1.0,second=1.0,third=1.0;
     [[dont_unroll]] for(uint stage=0u;stage<4u;++stage) {
         bool kill=traceSurfaceStageKill(record,stage);
-        bool needed=kill || ((family==1u || family==7u) && stage<3u) || (family>=8u && stage<2u) || ((family<4u || family==6u) && stage==0u) ||
+        bool sourceAlpha=(((family>=8u && family<traceSurfaceDynamicOneChangeColor) ||
+            family==traceSurfaceTextureHonorGuard) && stage<2u) ||
+            ((family<4u || family==6u || family==traceSurfaceDynamicOneChangeColor) && stage==0u);
+        bool needed=kill || ((family==1u || family==7u) && stage<3u) || sourceAlpha ||
             (traceSurfaceBumpCoverage(family) && stage==2u);
         if(!needed)continue;
         float value=traceSurfaceAlphaSample(record,stage,rawUV);
@@ -252,7 +274,8 @@ bool traceAtlasCoverage(TraceMaterial material,vec2 rawUV,out float alpha) {
     alpha=traceSurfaceOutputAlpha(family,first,second,third,float(tracePixels[record+3u]>>24u)/255.0,
         float(tracePixels[record+4u]>>24u)/255.0);return true;
 }
-bool traceAtlasSurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor) {
+bool traceAtlasSurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor,out float terrainBlend) {
+    terrainBlend=0.0;
     if((material.texture.w&traceSurfaceFlag)==0u) {
         vec2 uv=rawUV*material.transform.xy+material.transform.zw;
         uv.x=(material.texture.w&2u)!=0u?clamp(uv.x,0.0,1.0):fract(uv.x);
@@ -261,7 +284,7 @@ bool traceAtlasSurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor) {
         sourceColor=unpackUnorm4x8(tracePixels[material.texture.x+at.y*extent.x+at.x]);return true;
     }
     uint record;if(!traceSurfaceRecord(material,record))return false;
-    uint family=tracePixels[record+1u];if(family<1u || family>11u)return false;
+    uint family=tracePixels[record+1u];if(family<1u || family>traceSurfaceTextureHonorGuard)return false;
     vec4 first=vec4(0),second=vec4(0),third=vec4(0),fourth=vec4(0);
     uint stages=tracePixels[record+7u];
     [[dont_unroll]] for(uint stage=0u;stage<4u;++stage) {
@@ -270,6 +293,7 @@ bool traceAtlasSurface(TraceMaterial material,vec2 rawUV,out vec4 sourceColor) {
         if(traceSurfaceKill(record,stage,value.a))return false;
         if(stage==0u)first=value;else if(stage==1u)second=value;else if(stage==2u)third=value;else fourth=value;
     }
+    if(traceSurfaceTerrain(family))terrainBlend=first.a;
     sourceColor=traceSurfaceEvaluate(family,first,second,third,fourth,
         traceSurfaceColor(tracePixels[record+3u]),traceSurfaceColor(tracePixels[record+4u]),
         traceSurfaceColor(tracePixels[record+5u]),traceSurfaceColor(tracePixels[record+6u]));return true;

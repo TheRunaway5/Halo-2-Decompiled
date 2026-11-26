@@ -82,6 +82,7 @@ WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
   }
   out.constants[4]={s[13],s[14],s[15],1};
   out.horizon_color={s[22],s[23],s[24]};out.infinite=s[31]!=0;
+  out.reflection_height=s[33];
   for(unsigned i=0;i<3;++i)out.horizon_argb|=(std::uint32_t(std::lrint(double(s[22+i])*255.))&255u)<<(16-8*i);
   if(!out.infinite)return out;
   const float distance=std::max(std::abs(eye.z-s[33]),.0001f);

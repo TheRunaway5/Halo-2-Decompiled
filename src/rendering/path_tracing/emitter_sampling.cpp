@@ -7,7 +7,7 @@
 #include <map>
 
 namespace halo2::path_tracing {
-void append_emitter_groups(Scene& scene) {
+void append_emitter_groups(Scene& scene,std::uint32_t unbaked_emitter_count) {
     if(!scene.emissive_count)return;
     struct Group {
         std::uint32_t triangles{};
@@ -35,7 +35,9 @@ void append_emitter_groups(Scene& scene) {
         }
     }
     const auto header=scene.pixels.size();scene.pixels.resize(header+emitter_group_header_words);
-    scene.pixels[header]=emitter_group_magic;float cumulative{};std::uint32_t count{};
+    scene.pixels[header]=emitter_group_magic;
+    scene.pixels[header+3]=unbaked_emitter_count;
+    float cumulative{};std::uint32_t count{};
     for(const auto& [material,group]:groups) {
         // This is a proposal estimate, independent of transport radiance.
         // A missed small mask remains reachable through the BSDF half of the
@@ -62,5 +64,24 @@ void append_emitter_groups(Scene& scene) {
         scene.pixels.insert(scene.pixels.end(),record.begin(),record.end());
     }
     scene.pixels[header+1]=count;scene.pixels[header+2]=std::bit_cast<std::uint32_t>(cumulative);
+
+    // Consecutive entries follow BVH order. Bound local runs so unrelated
+    // motion between distant fixtures does not reset all receiver histories.
+    const auto bounds_count=std::min(unbaked_emitter_count,emitter_bounds_limit);
+    for(std::uint32_t bound=0;bound<bounds_count;++bound) {
+        const auto first=std::uint64_t(bound)*unbaked_emitter_count/bounds_count;
+        const auto end=std::uint64_t(bound+1)*unbaked_emitter_count/bounds_count;
+        const float limit=std::numeric_limits<float>::max();
+        std::array<float,3> minimum{limit,limit,limit},maximum{-limit,-limit,-limit};
+        for(auto emitter=first;emitter<end;++emitter) {
+            const auto& triangle=scene.triangles.at(scene.pixels.at(scene.texture_texel_count+emitter));
+            for(const auto* vertex:{&triangle.p0,&triangle.p1,&triangle.p2})for(unsigned axis=0;axis<3;++axis) {
+                minimum[axis]=std::min(minimum[axis],(*vertex)[axis]);
+                maximum[axis]=std::max(maximum[axis],(*vertex)[axis]);
+            }
+        }
+        for(float coordinate:minimum)scene.pixels.push_back(std::bit_cast<std::uint32_t>(coordinate));
+        for(float coordinate:maximum)scene.pixels.push_back(std::bit_cast<std::uint32_t>(coordinate));
+    }
 }
 }

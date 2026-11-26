@@ -76,7 +76,7 @@ def replace_marker_owner(source):
 def effect_body(source):return function(source,'marker_parent_unit')
 def replace_effect(source,dispatcher):
     body=effect_body(source);original=canonical_body(body)
-    if digest(original)!=EFFECT_PIN:raise ValueError('Complete Effect BACD0 body drift')
+    if not shared.matches_effect_body(original,EFFECT_PIN):raise ValueError('Complete Effect BACD0 body drift')
     if digest(function(dispatcher,'call'))!=CALL_PIN:raise ValueError('Complete actual Effect required-owner transport drift')
     # Reuse the exact real aliases, owns/run routes and matrix-include proof;
     # FC510 must already be installed and reconstruct its unchanged body.

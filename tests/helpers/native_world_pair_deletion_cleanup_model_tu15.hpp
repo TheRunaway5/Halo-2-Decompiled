@@ -19,10 +19,9 @@ static inline void native_world_pair_deletion_cleanup_model() {
     constexpr auto pool_table=data+0x980u,shape=data+0xa00u,shape_table=data+0xa40u;
     constexpr auto self_root=data+0xb00u,other_root=data+0xb40u;
     constexpr std::uint32_t cleanup_data=0x2900000u;
-    for(const auto owner:{0x2f0da0u,0x2f9960u,0x2fbb10u,0x2f7790u,0x2f3100u})
+    for(const auto owner:{0x2f0da0u,0x2f9960u,0x2fbb10u,0x2f7790u,0x2f3100u,0x2f7a20u})
     for(bool object_factory:{false,true})
     for(unsigned failure=0;failure<4;++failure) {
-        if(object_factory&&owner!=0x2f3100u)continue;
         Memory m;m.banks[data].resize(0x10000u);m.banks[pool].resize(0x100000u);
         m.banks[0x400000u].resize(0x160000u);m.banks[formal].assign(64u,std::byte{0xa5});
         if(object_factory)m.banks[cleanup_data].resize(0x1a0u);
@@ -42,7 +41,7 @@ static inline void native_world_pair_deletion_cleanup_model() {
             m.put(result,table);m.put(result+4u,64u,2);m.put(result+8u,manager);return result;
         };
         m.put(agent_table,failure==2u&&owner!=0x2f0da0u?0xdead0000u:
-            owner==0x2f3100u?0x2f35f0u:0x2fc540u);
+            owner==0x2f3100u?0x2f35f0u:owner==0x2f7a20u?0x2f8090u:0x2fc540u);
         m.put(agent_table+20u,failure==1u?0xdead0010u:owner);
         m.put(sphere_table,0x2fc540u);m.put(sphere_table+20u,failure==2u?0xdead0014u:0x2f9960u);
         m.put(point_table,0x2fc540u);m.put(point_table+20u,0x2fbb10u);
@@ -52,16 +51,17 @@ static inline void native_world_pair_deletion_cleanup_model() {
             primary=make(sphere_table);secondary=make(point_table);
             m.put(primary+12u,0xffffu,2);m.put(secondary+12u,0xffffu,2);
             m.put(agent+12u,primary);m.put(agent+16u,secondary);
-        }else if(owner==0x2f3100u) {
+        }else if(owner==0x2f3100u||owner==0x2f7a20u) {
             primary=make(sphere_table);m.put(primary+12u,0xffffu,2);
             m.put(agent+12u,data+0xc00u);m.put(agent+16u,1u);
-            m.put(agent+20u,0x80000000u);m.put(data+0xc08u,primary);
+            m.put(agent+20u,0x80000000u);
+            m.put(owner==0x2f3100u?data+0xc08u:data+0xc00u,primary);
         }else if(owner==0x2f7790u) {
             m.put(agent+12u,self_root);m.put(agent+16u,other_root);
             m.put(agent+20u,shape);m.put(agent+28u,22u);m.put(agent+32u,23u);
             m.put(shape,shape_table);m.put(shape_table+44u,0x1f3550u);
         }else m.put(agent+12u,0xffffu,2);
-        const auto allocated=owner==0x2f0da0u?3u:owner==0x2f3100u?2u:1u;
+        const auto allocated=owner==0x2f0da0u?3u:(owner==0x2f3100u||owner==0x2f7a20u)?2u:1u;
         const auto in_use=m.get(pool+0x2e8u),free_blocks=m.get(pool+0xf0388u);
         m.put(manager,manager_table);m.put(manager_table,0x2e4d60u);
         m.put(manager_table+16u,failure==3u?0xdead0020u:0x323220u);
@@ -89,9 +89,10 @@ static inline void native_world_pair_deletion_cleanup_model() {
         };
         children.agents.dispose=[&](auto object,auto target,auto flags,auto&fp) {
             if(target.identity==0x2e4d60u){++manager_disposals;return;} // Actual RET4.
-            if(target.identity==0x2f35f0u){
-                (void)native_tu15_destroy_contact_agent(m,NativeTu15AgentDestructor::owner_2f35f0,
-                    {object},flags,fp,children,observe);return;
+            if(target.identity==0x2f35f0u||target.identity==0x2f8090u){
+                const auto kind=target.identity==0x2f35f0u?
+                    NativeTu15AgentDestructor::owner_2f35f0:NativeTu15AgentDestructor::owner_2f8090;
+                (void)native_tu15_destroy_contact_agent(m,kind,{object},flags,fp,children,observe);return;
             }
             if(target.identity!=0x2fc540u)unknown(target.identity);
             (void)native_tu15_destroy_contact_agent(m,NativeTu15AgentDestructor::owner_2fc540,
@@ -109,8 +110,9 @@ static inline void native_world_pair_deletion_cleanup_model() {
             else if(target.identity==0x2f9960u)native_tu15_cleanup_sphere_contact_agent(m,selected,fp,children,observe);
             else if(target.identity==0x2fbb10u)native_tu15_cleanup_single_point_contact_agent(m,selected,fp,children);
             else if(target.identity==0x2f7790u)native_tu15_cleanup_phantom_callback_agent(m,selected,fp,phantom);
-            else if(target.identity==0x2f3100u)native_tu15_cleanup_contact_agent(m,
-                NativeTu15AgentCleanupKind::records_2f3100,selected,fp,children.agents);
+            else if(target.identity==0x2f3100u||target.identity==0x2f7a20u)native_tu15_cleanup_contact_agent(m,
+                target.identity==0x2f3100u?NativeTu15AgentCleanupKind::records_2f3100:
+                NativeTu15AgentCleanupKind::pointers_2f7a20,selected,fp,children.agents);
             else unknown(target.identity);
         };
         const NativeTu15PairDeletionBindingServices services{
@@ -139,7 +141,7 @@ static inline void native_world_pair_deletion_cleanup_model() {
             check(refusal.empty()&&activity.completed==1u&&activity.refusals==0u&&
                 activity.agent_cleanups==1u&&activity.manager_releases==1u&&activity.unqualified_owners==0u&&
                 m.get(handler+0x80u)==records+16u&&manager_disposals==1u&&scope_activity.refused==0u&&
-                leaves==unsigned(owner==0x2f7790u),"Pair deletion skipped its real cleanup/release cursor phases");
+                leaves==unsigned(owner==0x2f7790u&&!object_factory),"Pair deletion skipped its real cleanup/release cursor phases");
         }else{
             check(!refusal.empty()&&activity.completed==0u&&activity.refusals==1u&&
                 m.get(handler+0x80u)==records&&manager_disposals==0u&&

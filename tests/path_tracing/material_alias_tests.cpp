@@ -37,6 +37,12 @@ int main(int argc,char** argv)try {
         if(!family || (family->family!=pt::SurfaceFamily::DynamicDetail && family->family!=pt::SurfaceFamily::TextureFourChangeColor))continue;
         if(tested>=8)break;
         auto base=triangle();auto scene=pt::build_scene(base,std::span(&root,1));
+        if(root.texture_states[0].max_mip==0) {
+            const auto& material=scene.materials[0];
+            const auto record=std::bit_cast<std::uint32_t>(material.base[3])-1;
+            require(record+scene.pixels.at(record+12)==material.texture[0],
+                "Qualified native surface duplicated its base image in the ray atlas");
+        }
         const auto root_key=scene.material_image_keys[0];const auto source_words=root.forward_program.words;
         auto a=uniform(root),b=a;
         a.program[24]=0x20000000;b.program[24]=0xb0000000;
@@ -152,6 +158,26 @@ int main(int argc,char** argv)try {
         require(replaced.size()==2 && std::none_of(scene.material_alias_keys.begin(),scene.material_alias_keys.end(),
             [](const auto& key){return key.owner==0xe2000001u;}),
             "A retired native object generation retained an active material alias");
+        if(!tested) {
+            pt::clear_material_aliases(scene,1);pt::refresh_materials(scene,std::span(&root,1));
+            scene.pixels.resize(16'777'216);scene.texture_texel_count=std::uint32_t(scene.pixels.size());
+            const Texture next{1,1,11,{std::byte{9},std::byte{27},std::byte{63},std::byte{255}}};
+            auto animated=inputs;
+            for(auto& input:animated)input.surface_images[1]=&next;
+            const auto compacted=pt::refresh_material_aliases(scene,std::span(&root,1),animated);
+            require(scene.texture_texel_count<16'777'216 && scene.material_alias_images.size()==2 &&
+                compacted[0].material==replaced[0].material && compacted[1].material==replaced[1].material,
+                "Alias image pressure left a retired animation frame or changed live owner IDs");
+            for(const auto& binding:compacted) {
+                const auto& material=scene.materials[binding.material];
+                const auto record=std::bit_cast<std::uint32_t>(material.base[3])-1;
+                require(scene.pixels.at(record+scene.pixels.at(record+22))==0xff3f1b09u &&
+                    scene.pixels.at(material.color_guide[1])<scene.texture_texel_count,
+                    "Compaction broke the new frame or surviving owner lighting map pointer");
+            }
+            pt::clear_material_aliases(scene,1);pt::refresh_materials(scene,std::span(&root,1));
+            (void)pt::refresh_material_aliases(scene,std::span(&root,1),inputs);
+        }
         const auto unchanged_policy=scene.material_image_keys[replaced[0].material];
         auto policy=root;policy.forward_raster.alpha_test=!root.forward_raster.alpha_test;
         pt::clear_material_aliases(scene,1);pt::refresh_materials(scene,std::span(&policy,1));

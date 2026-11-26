@@ -41,6 +41,7 @@ template<class State,class Ask> struct Entry : Port<State> {
     using Local=logic::cache_entry::Local;
     Ask &ask_child;
     std::uint32_t depth{};
+    bool in_child{};
     Entry(State &s,std::uint32_t *c,Trace<State> *t,Ask &a):Port<State>(s,c,t,{}),ask_child(a){}
     std::uint32_t local(Local)const{return this->gp[esp]+depth+4u;}
     void save(std::uint32_t pc,std::uint32_t value){this->push(pc,value);depth+=4u;}
@@ -96,9 +97,12 @@ template<class State,class Ask> struct Entry : Port<State> {
         auto &gp=this->gp;
         (void)this->flags.plus(this->flags.shift(gp[eax],gp[ecx]&0xffu,4),gp[edx],4);
         gp[eax]=block_address;save(0x130d91u,block_address);
-        this->call(0x130d92u,0x130d97u,0x22a790u,ask_child);depth-=4u;
+        this->push(0x130d92u,0x130d97u);
+        in_child=true;
+        this->enter(0x22a790u,ask_child);
+        in_child=false;
     }
-    void run() {
+    void run() try {
         auto &gp=this->gp;
         using logic::cache_entry::Exit;
         Memory<Entry> memory{*this};
@@ -117,6 +121,14 @@ template<class State,class Ask> struct Entry : Port<State> {
             gp[ebx]=this->pop(0x130d97u);gp[edi]=this->pop(0x130d98u);gp[esi]=this->pop(0x130d99u);
             this->ret(0x130d9au,4u);this->publish(0x130d9au);return;
         }
+    } catch(...) {
+        // A failing bank access leaves the registers at that access. A child
+        // already runs on the shared state and owns its own interrupted ABI.
+        if(!in_child) {
+            this->s.gp=this->gp;
+            this->s.flags=this->flags;
+        }
+        throw;
     }
 };
 template<class State,class Reference,class Ask> bool bridge(State &s,Reference reference,Ask ask) {

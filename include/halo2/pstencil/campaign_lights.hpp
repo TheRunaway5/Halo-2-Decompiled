@@ -9,6 +9,7 @@ class CampaignLights {
 public:
     CampaignLights(const Cache&,unsigned bsp);
     ~CampaignLights();
+    void switch_bsp(const Cache&,unsigned bsp);
     std::vector<std::uint32_t> definitions()const;
     const std::vector<std::string>& unavailable()const;
     SourceEffectLightView view(PhysicsLiveWorldTu15&,Vec3 eye,

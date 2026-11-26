@@ -61,8 +61,7 @@ public:
         case Store::fraction:pc=d.increasing?0x30aeeau:0x30b043u;offset=d.increasing?0x14u:0x2cu;break;
         default:throw std::logic_error("Unknown crossing scalar destination");
         }
-        at(pc);const auto pending=scope_.stage_single(true);
-        Base::store(pc,s_.gp[4]+offset,pending.bits,[&]{scope_.commit(pending);},true);
+        at(pc);Base::spill_single(pc,s_.gp[4]+offset,true,scope_);
     }
     void publish_comparison(native_mopp_ray_crossing_detail::Comparison,native_mopp_ray_detail::Comparison value){
         s_.gp[0]=(s_.gp[0]&0xffff0000u)|value.status;s_.flags.logic((value.status>>8u)&5u,1);

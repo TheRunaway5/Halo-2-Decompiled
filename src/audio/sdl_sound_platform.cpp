@@ -14,6 +14,7 @@
 #include <map>
 #include <numeric>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace halo2 {
@@ -33,6 +34,15 @@ constexpr unsigned vp_frame = 32;
 constexpr unsigned hrtf_history = 128, hrtf_max_delay = 63;
 static_assert(SdlSoundHrtf::taps < 32 && 32 + hrtf_max_delay + 1 <= hrtf_history);
 
+struct SvfCoefficients {
+  double frequency{}, damping{}, band_gain{};
+};
+using SvfTargets = std::array<SvfCoefficients, pcm_channels>;
+
+SvfCoefficients lowpass_coefficients(std::uint16_t cutoff, std::uint16_t resonance) {
+  return {sound_dls2_frequency_tu15(cutoff), resonance / 32768.0, 0};
+}
+
 struct NativeParameters {
   double relative_rate;
   bool paused;
@@ -45,8 +55,7 @@ struct NativeParameters {
   std::optional<SdlSoundHrtf> hrtf;
   std::optional<SdlSoundI3dl2Path> room;
   std::optional<SdlSoundI3dl2Path> direct;
-  // The DLS2 state-variable filter's frequency and damping (f, q).
-  std::optional<std::array<double, 2>> dls2;
+  std::optional<SvfTargets> dls2, paraeq;
   std::optional<SdlSoundNativeRate> native;
 };
 
@@ -81,26 +90,28 @@ double route_units(std::int32_t millibels) noexcept {
 // for 22050 and 44100 Hz, 2 for 32000 Hz), so each rate keeps one table.
 constexpr unsigned rebuild_taps = 32, rebuild_half = 15;
 struct RebuildFilter {
-  std::uint32_t rate{}, step{}, phases{};
+  std::uint32_t step{}, phases{}, step_whole{}, step_rem{};
   std::array<std::array<double, rebuild_taps>, 147> weights{};
 };
 const RebuildFilter *rebuild_filter(std::uint32_t rate) noexcept {
   const auto make = [](std::uint32_t r) {
     RebuildFilter f;
     const auto g = std::gcd(48000u, r);
-    f.rate = r;
     f.step = 48000u / g;
     f.phases = r / g;
+    f.step_whole = f.step / f.phases;
+    f.step_rem = f.step % f.phases;
     const double ratio = r / 48000.0, pi = std::acos(-1.0);
     for (unsigned phase = 0; phase < f.phases; ++phase) {
+      auto &weights = f.weights[phase];
       double sum = 0;
       for (unsigned k = 0; k < rebuild_taps; ++k) {
         const double t = double(phase) / f.phases + double(rebuild_half) - k, x = ratio * t;
         const double sinc = x == 0 ? 1.0 : std::sin(pi * x) / (pi * x);
         const double window = 0.42 + 0.5 * std::cos(pi * t / 16.0) + 0.08 * std::cos(2 * pi * t / 16.0);
-        sum += f.weights[phase][k] = sinc * window;
+        sum += weights[k] = sinc * window;
       }
-      for (auto &w : f.weights[phase]) w /= sum;
+      for (auto &weight : weights) weight /= sum;
     }
     return f;
   };
@@ -145,7 +156,9 @@ NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
     throw std::invalid_argument("SDL sound volume is outside the driver attenuation range");
   if (input.routes.empty())
     throw std::invalid_argument("SDL sound requires supported explicit output routes");
-  NativeParameters output{double(rate), input.paused};
+  NativeParameters output{};
+  output.relative_rate = double(rate);
+  output.paused = input.paused;
   output.millibels = input.volume_hundredths_db;
   output.amplitude = std::pow(10.0, double(input.volume_hundredths_db) / 2000.0);
   if (input.effect) output.effect = input.effect->parameters;
@@ -164,8 +177,40 @@ NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
       throw std::invalid_argument("SDL sound I3DL2 path levels must be finite and non-negative");
   output.room = input.room;
   output.direct = input.direct;
-  if (input.dls2)
-    output.dls2 = std::array<double, 2>{sound_dls2_frequency_tu15(input.dls2->cutoff), input.dls2->resonance / 32768.0};
+  if (const auto &filter = input.voice_filter) {
+    const auto mode = filter->mode;
+    if (mode > SdlSoundFilterMode::Dls2ParaEq || filter->parametric_q > 7)
+      throw std::invalid_argument("SDL sound filter requires a valid SDK mode and Q field");
+    // Mode 3 uses I3DL2 on an HRTF voice. Without an HRTF, it cascades
+    // DLS2 and ParaEQ on mono voices and bypasses on stereo voices.
+    // SetFilter's mode-0 reset still permits the retained spatial I3DL2
+    // paths, as the SDK promotes it for an I3DL2 voice.
+    const bool spatial = input.hrtf.has_value();
+    const bool cascade = !spatial && !filter->stereo && mode == SdlSoundFilterMode::Dls2ParaEq;
+    if (!spatial || filter->stereo) {
+      output.room.reset();
+      output.direct.reset();
+    }
+    if (mode == SdlSoundFilterMode::Dls2 || cascade) {
+      auto &dls2 = output.dls2.emplace();
+      for (unsigned ch = 0; ch < pcm_channels; ++ch) {
+        const unsigned fc = filter->stereo ? ch * 2 : 0;
+        dls2[ch] = lowpass_coefficients(filter->coefficients[fc], filter->coefficients[fc + 1]);
+      }
+    }
+    if (mode == SdlSoundFilterMode::ParaEq || cascade) {
+      auto &paraeq = output.paraeq.emplace();
+      const double q = std::ldexp(1.0, -int(filter->parametric_q));
+      for (unsigned ch = 0; ch < pcm_channels; ++ch) {
+        const unsigned fc = spatial ? 0 : (filter->stereo ? ch * 2 : 2);
+        const auto gain = std::bit_cast<std::int16_t>(filter->coefficients[fc + 1]);
+        paraeq[ch] = {sound_dls2_frequency_tu15(filter->coefficients[fc]), q, (gain / 8192.0) * q};
+      }
+    }
+  } else if (input.dls2) {
+    const auto words = lowpass_coefficients(input.dls2->cutoff, input.dls2->resonance);
+    output.dls2 = SvfTargets{words, words};
+  }
   if (input.native) {
     if (!rebuild_filter(input.native->sample_rate) || input.native->pitch < -32768 || input.native->pitch > 32767)
       throw std::invalid_argument("SDL sound native rate must be 22050, 32000 or 44100 Hz with a 16-bit pitch");
@@ -180,7 +225,9 @@ NativeParameters native_parameters(const SdlSoundVoiceParameters &input) {
   return output;
 }
 
-void validate_packet(const SdlSoundPacket &packet) {
+bool validate_packet(const SdlSoundPacket &packet) {
+  if (packet.pcm_sample_rate != pcm_rate && !rebuild_filter(packet.pcm_sample_rate))
+    throw std::invalid_argument("Unsupported SDL PCM packet sample rate");
   if(packet.volume_hundredths_db && (*packet.volume_hundredths_db< -10000 || *packet.volume_hundredths_db>0))
     throw std::invalid_argument("SDL packet volume is outside the driver attenuation range");
   if (!packet.stereo || packet.stereo->size() % pcm_channels ||
@@ -191,9 +238,15 @@ void validate_packet(const SdlSoundPacket &packet) {
     throw std::out_of_range("SDL sound PCM packet exceeds its retained extent");
   const auto first = packet.first_frame * pcm_channels;
   const auto end = first + packet.frame_count * pcm_channels;
-  for (auto i = first; i != end; ++i)
-    if (!std::isfinite((*packet.stereo)[i]))
+  const float *samples = packet.stereo->data();
+  bool mono = true;
+  for (auto i = first; i != end; i += pcm_channels) {
+    const float l = samples[i], r = samples[i + 1];
+    if (!std::isfinite(l) || !std::isfinite(r))
       throw std::invalid_argument("SDL sound PCM packet contains a non-finite sample");
+    if (l != r) mono = false;
+  }
+  return mono;
 }
 
 class DeviceLock {
@@ -216,6 +269,7 @@ struct SdlSoundPlatform::State {
     std::shared_ptr<const unsigned char> record;
     // Its own attenuation as a linear amplitude, when it carries one.
     std::optional<double> amplitude;
+    bool mono = false;
     void latch_volume() {
       amplitude.reset();
       if (pcm.volume_hundredths_db) amplitude = std::pow(10.0, double(*pcm.volume_hundredths_db) / 2000.0);
@@ -224,14 +278,55 @@ struct SdlSoundPlatform::State {
   // A voice processor level in 1/16384 moving from the last frame's value
   // to this frame's across one frame, each sample's rounded down.
   struct Ramp {
-    double from{}, to{};
-    double at(unsigned n) const noexcept { return std::floor(from + (to - from) * n / double(vp_frame)) / 16384.0; }
+    double from{}, to{}, steady{};
+    bool constant{true};
+    void set(double a, double b) noexcept {
+      from = a;
+      to = b;
+      constant = (a == b);
+      steady = constant ? std::floor(a) / 16384.0 : 0.0;
+    }
+    double at(unsigned n) const noexcept {
+      return constant ? steady : std::floor(from + (to - from) * n / double(vp_frame)) / 16384.0;
+    }
   };
   // A voice's levels: each route's (an HRTF voice's left ear on routes 0
   // and 4, its right on 3 and 7), its room send's and its effect send's.
   struct Levels {
     std::array<double, route_count> route{};
     double room{}, effect{};
+  };
+  struct SvfStage {
+    struct Channel {
+      SvfCoefficients target{};
+      double from{}, band{}, low{};
+    };
+    std::array<Channel, pcm_channels> channels{};
+    bool enabled{};
+
+    void latch(const std::optional<SvfTargets> &targets) noexcept {
+      if (targets) for (unsigned ch = 0; ch < pcm_channels; ++ch) {
+        auto &lane = channels[ch];
+        lane.from = enabled ? lane.target.frequency : (*targets)[ch].frequency;
+        lane.target = (*targets)[ch];
+      }
+      enabled = targets.has_value();
+    }
+
+    void apply(std::array<double, pcm_channels> &samples, unsigned n, bool peaking) noexcept {
+      if (!enabled) return;
+      for (unsigned ch = 0; ch < pcm_channels; ++ch) {
+        auto &lane = channels[ch];
+        const auto &target = lane.target;
+        const double f = lane.from + (target.frequency - lane.from) * n / double(vp_frame);
+        const double high = sound_filter_round_tu15(samples[ch] - lane.low - target.damping * lane.band);
+        // Retain the mixer bound on unstable inputs, outside the measured
+        // coefficient responses. Each ordinary state update rounds to 2^-19.
+        lane.band = std::clamp(sound_filter_round_tu15(lane.band + f * high), -32.0, 32.0);
+        lane.low = std::clamp(sound_filter_round_tu15(lane.low + f * lane.band), -32.0, 32.0);
+        samples[ch] = peaking ? sound_filter_round_tu15(samples[ch] + target.band_gain * lane.band) : lane.low;
+      }
+    }
   };
   struct Stream {
     std::uint64_t channel_context{};
@@ -243,29 +338,38 @@ struct SdlSoundPlatform::State {
     std::uint64_t next_submission = 1;
     SdlSoundPlaybackPosition playback;
     std::optional<std::uint64_t> start_frame;
+    std::uint32_t pcm_sample_rate = 0;
+    double native_frames_played = 0;
     // The PCM frames before the current packet's first (zero before the
     // voice's first packet), for the resampler and native rebuilding.
     static constexpr unsigned tail_frames = 24;
     std::array<std::array<double, pcm_channels>, tail_frames> tail{};
-    // 48 kHz frames of the packets already played.
+    // Stored frames of the packets already played.
     std::uint64_t consumed = 0;
     // Native-rate playback: the voice processor's cursor in the sound's own
     // samples, and its interpolation window, the eight native samples
-    // around it (native_next - 8 .. native_next - 1).
+    // around it (native_next - 8 .. native_next - 1), mirrored for contiguous
+    // 8-sample reads without shifting.
     std::uint32_t native_rate = 0;
     double native_cursor = 0;
     std::int64_t native_next = 0;
-    std::array<std::array<double, pcm_channels>, 8> native_window{};
+    std::int64_t native_whole = 0;
+    std::uint32_t native_phase = 0;
+    bool native_pos_valid = false;
+    unsigned native_head = 0;
+    std::array<std::array<double, pcm_channels>, 16> native_window{};
     // The voice processor runs each voice in 32-sample frames: the position
     // in the current one and what moves across it. A frame takes the
     // parameters current at its start.
     unsigned frame_position = 0;
     bool started = false;
     std::array<Ramp, route_count + 2> ramps{}; // routes, room, effect
+    std::array<std::uint8_t, route_count> active_routes{};
+    unsigned active_route_count = 0;
     std::array<double, 2> pitch{};             // 4096 log2 of the rate: from, to
-    double frame_rate = 1;
-    // The DLS2 filter's frequency (from, to) and damping, while it runs.
-    std::optional<std::array<double, 3>> dls2;
+    double frame_step = 1;
+    // The two filters have independent histories and coefficient ramps.
+    SvfStage dls2, paraeq;
     // HRTF stage: the voice's recent mono input and its filter. When the
     // filter changes, the voice processor moves each tap and the signed
     // delay linearly across one frame, from the old value at its first
@@ -291,8 +395,6 @@ struct SdlSoundPlatform::State {
     // The I3DL2 filter's room and direct one-pole histories.
     double room_lowpass = 0;
     std::array<double, pcm_channels> direct_lowpass{};
-    // The DLS2 filter's band-pass and low-pass histories.
-    std::array<std::array<double, 2>, pcm_channels> dls2_state{};
     std::optional<PreparedHrtf> hrtf, hrtf_from;
     bool hrtf_moving = false;
 
@@ -384,23 +486,33 @@ struct SdlSoundPlatform::State {
           hrtf->source = target;
         }
       }
-      if (const auto &d = parameters.dls2) dls2 = std::array<double, 3>{dls2 ? (*dls2)[1] : (*d)[0], (*d)[0], (*d)[1]};
-      else dls2.reset();
+      dls2.latch(parameters.dls2);
+      paraeq.latch(parameters.paraeq);
       if (voice_processor) {
         const auto target = levels(true);
-        for (unsigned n = 0; n < route_count; ++n) ramps[n] = {started ? ramps[n].to : 0.0, target.route[n]};
-        ramps[route_count] = {started ? ramps[route_count].to : 0.0, target.room};
-        ramps[route_count + 1] = {started ? ramps[route_count + 1].to : 0.0, target.effect};
+        active_route_count = 0;
+        for (unsigned n = 0; n < route_count; ++n) {
+          ramps[n].set(started ? ramps[n].to : 0.0, target.route[n]);
+          if (ramps[n].from != 0.0 || ramps[n].to != 0.0) active_routes[active_route_count++] = std::uint8_t(n);
+        }
+        ramps[route_count].set(started ? ramps[route_count].to : 0.0, target.room);
+        ramps[route_count + 1].set(started ? ramps[route_count + 1].to : 0.0, target.effect);
         // Native playback steps by the pitch register itself; otherwise by
         // the 48 kHz rate in the same units.
         const auto &native = parameters.native;
         const double log_rate = native ? double(native->pitch) : 4096.0 * std::log2(parameters.relative_rate);
         pitch = {started && native_rate == (native ? native->sample_rate : 0) ? pitch[1] : log_rate, log_rate};
-        frame_rate = native ? std::exp2(native->pitch / 4096.0) : parameters.relative_rate;
+        const double frame_rate = native ? std::exp2(native->pitch / 4096.0) : parameters.relative_rate;
+        frame_step = std::floor(frame_rate * 65536.0) / 65536.0;
         if (native && native_rate != native->sample_rate) {
           native_rate = native->sample_rate;
-          native_cursor = std::floor((double(consumed) + cursor) * native_rate / 48000.0 * 65536.0) / 65536.0;
-          native_next = std::int64_t(std::floor(native_cursor)) - 3;
+          if (pcm_sample_rate == pcm_rate) {
+            native_cursor = std::floor((double(consumed) + cursor) * native_rate / 48000.0 * 65536.0) / 65536.0;
+            native_next = std::int64_t(std::floor(native_cursor)) - 3;
+            native_pos_valid = false;
+            native_head = 0;
+            native_window = {};
+          }
         } else if (!native) {
           native_rate = 0;
         }
@@ -409,8 +521,8 @@ struct SdlSoundPlatform::State {
     }
     // The voice processor's cursor step for sample n of the frame, in 1/65536.
     double step(unsigned n) const noexcept {
-      const double rate = pitch[0] == pitch[1] ? frame_rate
-                                               : std::exp2((pitch[0] + (pitch[1] - pitch[0]) * n / double(vp_frame)) / 4096.0);
+      if (pitch[0] == pitch[1]) return frame_step;
+      const double rate = std::exp2((pitch[0] + (pitch[1] - pitch[0]) * n / double(vp_frame)) / 4096.0);
       return std::floor(rate * 65536.0) / 65536.0;
     }
 
@@ -437,6 +549,10 @@ struct SdlSoundPlatform::State {
       consumed = 0;
       native_cursor = 0;
       native_next = -3;
+      native_whole = 0;
+      native_phase = 0;
+      native_pos_valid = false;
+      native_head = 0;
       native_window = {};
     }
     void advance() noexcept {
@@ -507,66 +623,97 @@ struct SdlSoundPlatform::State {
       }
       return held;
     }
-    // Native sample m rebuilt from the PCM (zero before the voice's first).
-    std::array<double, pcm_channels> rebuild(const RebuildFilter &filter, std::int64_t m) const noexcept {
-      if (m < 0) return {};
-      const auto numerator = std::uint64_t(m) * 48000u;
-      const auto whole = std::int64_t(numerator / filter.rate);
-      const auto phase = std::size_t((numerator % filter.rate) * filter.phases / filter.rate);
+    // Native sample at 48 kHz position (whole, phase) rebuilt from the PCM.
+    std::array<double, pcm_channels> rebuild_at(const RebuildFilter &filter, std::int64_t whole, std::uint32_t phase,
+                                                std::size_t index) const noexcept {
       const auto first = whole - std::int64_t(rebuild_half) - std::int64_t(consumed);
       const auto &weights = filter.weights[phase];
-      std::array<double, pcm_channels> out{};
-      // Usually every tap lies in the current packet.
-      const auto index = pending_index();
+      // Keep the same tap order and precision across packet boundaries.
       if (index < retained && first >= 0 && std::size_t(first) + rebuild_taps <= packets[index]->pcm.frame_count) {
-        const auto &pcm = packets[index]->pcm;
+        const auto &packet = *packets[index];
+        const auto &pcm = packet.pcm;
         const float *x = pcm.stereo->data() + (pcm.first_frame + std::size_t(first)) * pcm_channels;
+        if (packet.mono) {
+          double sum = 0;
+          for (unsigned k = 0; k < rebuild_taps; ++k) sum += weights[k] * x[2 * k];
+          return {sum, sum};
+        }
+        std::array<double, pcm_channels> out{};
         for (unsigned k = 0; k < rebuild_taps; ++k) {
           out[0] += weights[k] * x[2 * k];
           out[1] += weights[k] * x[2 * k + 1];
         }
         return out;
       }
+      std::array<double, pcm_channels> out{};
       for (unsigned k = 0; k < rebuild_taps; ++k) {
         const auto x = frame(std::ptrdiff_t(first) + k);
-        out[0] += weights[k] * x[0];
-        out[1] += weights[k] * x[1];
+        const double w = weights[k];
+        out[0] += w * x[0];
+        out[1] += w * x[1];
       }
       return out;
     }
     // The voice processor at its native cursor: the window brought up to
     // the cursor, then the 8-point filter (an exact sample at a whole one).
-    std::array<double, pcm_channels> native_resampled() noexcept {
-      if (pending_index() == retained) return {};
-      const auto &filter = *rebuild_filter(native_rate);
+    std::array<double, pcm_channels> native_resampled(const RebuildFilter &filter,
+                                                      const std::array<std::array<double, 8>, 257> &rows,
+                                                      std::size_t index) noexcept {
+      if (index == retained) return {};
       const auto whole = std::int64_t(std::floor(native_cursor));
-      if (native_next < whole - 3) native_next = whole - 3;
-      while (native_next <= whole + 4) {
-        std::copy(native_window.begin() + 1, native_window.end(), native_window.begin());
-        native_window.back() = rebuild(filter, native_next++);
+      if (native_next < whole - 3) {
+        native_next = whole - 3;
+        native_pos_valid = false;
       }
+      while (native_next <= whole + 4) {
+        const auto m = native_next++;
+        std::array<double, pcm_channels> rebuilt{};
+        if (m >= 0) {
+          if (!native_pos_valid) {
+            const auto numerator = std::uint64_t(m) * filter.step;
+            native_whole = std::int64_t(numerator / filter.phases);
+            native_phase = std::uint32_t(numerator % filter.phases);
+            native_pos_valid = true;
+          }
+          rebuilt = rebuild_at(filter, native_whole, native_phase, index);
+          native_whole += filter.step_whole;
+          native_phase += filter.step_rem;
+          if (native_phase >= filter.phases) {
+            native_phase -= filter.phases;
+            ++native_whole;
+          }
+        }
+        native_window[native_head] = native_window[native_head + 8] = rebuilt;
+        native_head = (native_head + 1) & 7u;
+      }
+      const auto *window = native_window.data() + native_head;
       const auto fraction = std::uint16_t((native_cursor - double(whole)) * 65536.0);
-      if (!fraction) return native_window[3];
-      const auto weights = sound_resampler_weights_tu15(fraction);
+      if (!fraction) return window[3];
+      const auto &low = rows[fraction >> 8], &high = rows[(fraction >> 8) + 1];
+      const double between = (fraction & 0xffu) / 256.0;
       std::array<double, pcm_channels> out{};
       for (unsigned k = 0; k < 8; ++k) {
-        out[0] += weights[k] * native_window[k][0];
-        out[1] += weights[k] * native_window[k][1];
+        const double w = low[k] + (high[k] - low[k]) * between;
+        out[0] += w * window[k][0];
+        out[1] += w * window[k][1];
       }
       return out;
     }
     // The voice processor's resampler at the cursor (an exact frame when
     // the cursor's fraction is zero).
-    std::array<double, pcm_channels> resampled() const noexcept {
-      if (pending_index() == retained) return {};
+    std::array<double, pcm_channels> resampled(const std::array<std::array<double, 8>, 257> &rows,
+                                               std::size_t index) const noexcept {
+      if (index == retained) return {};
       const auto fraction = std::uint16_t((cursor - std::floor(cursor)) * 65536.0);
       if (!fraction) return frame_at(0);
-      const auto weights = sound_resampler_weights_tu15(fraction);
+      const auto &low = rows[fraction >> 8], &high = rows[(fraction >> 8) + 1];
+      const double between = (fraction & 0xffu) / 256.0;
       std::array<double, pcm_channels> out{};
       for (int k = 0; k < 8; ++k) {
+        const double w = low[std::size_t(k)] + (high[std::size_t(k)] - low[std::size_t(k)]) * between;
         const auto x = frame_at(k - 3);
-        out[0] += weights[std::size_t(k)] * x[0];
-        out[1] += weights[std::size_t(k)] * x[1];
+        out[0] += w * x[0];
+        out[1] += w * x[1];
       }
       return out;
     }
@@ -780,6 +927,41 @@ struct SdlSoundPlatform::State {
     if (found == streams.end()) throw std::out_of_range("Unknown native SDL sound voice");
     return found->second;
   }
+  void install_effect(const Stream &stream) {
+    if (stream.parameters.effect) {
+      effect_bus.parameters = *stream.parameters.effect;
+      effect_bus.active = true;
+    }
+  }
+  template<class Handle>
+  bool publish_starts(std::span<const Handle> voices,
+                      std::optional<std::uint64_t> deadline) {
+    constexpr bool raw = std::is_same_v<Handle, Voice>;
+    require(raw);
+    DeviceLock lock(device);
+    require(raw);
+    if (removed || voices.empty() || deadline == staged_start_frame) return false;
+    const auto id_of = [](const Handle &voice) {
+      if constexpr (raw) return voice;
+      else return voice.id_;
+    };
+    for (const auto &voice : voices) {
+      if constexpr (!raw) {
+        if (!accepts(voice)) return false;
+      }
+      const auto found = streams.find(id_of(voice));
+      if (found == streams.end() || found->second.start_frame != staged_start_frame ||
+          !found->second.pending()) return false;
+    }
+    const auto frame = std::max(deadline.value_or(presentation_frames), presentation_frames);
+    change();
+    for (const auto &voice : voices) {
+      auto &staged = stream(id_of(voice));
+      staged.start_frame = frame;
+      install_effect(staged);
+    }
+    return true;
+  }
   void fail() noexcept {
     removed = true;
     if(device_generation!=std::numeric_limits<std::uint64_t>::max())++device_generation;
@@ -791,139 +973,159 @@ struct SdlSoundPlatform::State {
   void mix(float *output, std::size_t count) noexcept {
     // The SDL callback already holds the device lock. No allocation, release
     // of retained PCM or source callbacks are allowed on this thread.
-    std::fill(output,output+count*channels,0.f);
+    std::fill(output, output + count * channels, 0.f);
     const auto back = back_channels(channels);
-    for (std::size_t frame = 0; frame < count; ++frame) {
-      // Mixbins 0, 1, 4 and 5: the speakers.
-      std::array<double, speakers> speaker{};
-      // Mixbins 6..9: the 3D voices' and reverb returns' front left, front
-      // right, back left and back right, which reach the speakers through
-      // DSP record 10.
-      std::array<double, speakers> spatial{};
-      double effect_send=0,room_bus=0;
+    const auto &resampler_rows = sound_resampler_table_tu15();
+    for (std::size_t base = 0; base < count; base += vp_frame) {
+      const std::size_t chunk = std::min<std::size_t>(vp_frame, count - base);
+      // Mixbins 0, 1, 4 and 5 (speakers), mixbins 6..9 (3D/reverb spatial
+      // through DSP record 10), mixbin 10 (room) and mixbin 13 (effect).
+      std::array<std::array<double, speakers>, vp_frame> speaker{};
+      std::array<std::array<double, speakers>, vp_frame> spatial{};
+      std::array<double, vp_frame> room_bus{};
+      std::array<double, vp_frame> effect_send{};
       if (!removed && !paused) for (auto &[id, stream] : streams) {
         (void)id;
-        if (stream.parameters.paused) continue;
-        if (stream.start_frame && presentation_frames < *stream.start_frame) continue;
+        if (stream.parameters.paused || stream.start_frame == staged_start_frame) continue;
+        if (stream.start_frame && presentation_frames + chunk <= *stream.start_frame) continue;
         stream.advance();
-        if (!stream.pending()) continue;
-        if (stream.frame_position == 0) stream.begin_frame(voice_processor);
-        const unsigned n = stream.frame_position;
-        const bool native = voice_processor && stream.native_rate;
-        auto sample = native ? stream.native_resampled() : voice_processor ? stream.resampled() : stream.sample();
-        if (const auto &dls2 = stream.dls2) {
-          // The DLS2 filter on the whole voice, ahead of its I3DL2 paths,
-          // rounding each step as the voice processor does; a changed
-          // frequency moves across the frame. The bound only keeps an
-          // unstable pair (negative resonance near 8 kHz, which no script
-          // sets) finite; stable ones stay below it.
-          const double f = (*dls2)[0] + ((*dls2)[1] - (*dls2)[0]) * n / double(vp_frame), q = (*dls2)[2];
-          for (unsigned channel = 0; channel < pcm_channels; ++channel) {
-            auto &[band, low] = stream.dls2_state[channel];
-            const double high = sound_filter_round_tu15(sample[channel] - low - q * band);
-            band = std::clamp(sound_filter_round_tu15(band + f * high), -32.0, 32.0);
-            low = std::clamp(sound_filter_round_tu15(low + f * band), -32.0, 32.0);
-            sample[channel] = low;
+        std::size_t index = stream.pending_index();
+        if (index == stream.retained) continue;
+        const bool native_pcm = stream.pcm_sample_rate != pcm_rate;
+        const bool can_rebuild = voice_processor && !native_pcm;
+        const RebuildFilter *rfilter = can_rebuild && stream.native_rate ? rebuild_filter(stream.native_rate) : nullptr;
+        for (std::size_t f = 0; f < chunk; ++f) {
+          if (stream.start_frame && presentation_frames + f < *stream.start_frame) continue;
+          if (stream.frame_position == 0) {
+            stream.begin_frame(voice_processor);
+            rfilter = can_rebuild && stream.native_rate ? rebuild_filter(stream.native_rate) : nullptr;
+          }
+          const unsigned n = stream.frame_position;
+          auto sample = rfilter ? stream.native_resampled(*rfilter, resampler_rows, index)
+                               : voice_processor ? stream.resampled(resampler_rows, index) : stream.sample();
+          stream.dls2.apply(sample, n, false);
+          stream.paraeq.apply(sample, n, true);
+          const auto dry = sample;
+          if (const auto &direct = stream.parameters.direct) {
+            const double pole = direct->pole / 65536.0;
+            for (unsigned channel = 0; channel < pcm_channels; ++channel) {
+              auto &low = stream.direct_lowpass[channel];
+              low = sound_filter_round_tu15(dry[channel] + (low - dry[channel]) * pole);
+              sample[channel] = low;
+            }
+          }
+          if (!stream.playback.first_device_frame) {
+            stream.playback.first_device_frame = frames + base + f;
+            stream.playback.first_presentation_frame = presentation_frames + f;
+          }
+          if (epoch != 1 && !stream.playback.first_resumed_device_frame)
+            stream.playback.first_resumed_device_frame = frames + base + f;
+          auto input = sample;
+          auto *bus = &speaker[f];
+          if (stream.hrtf) {
+            input = stream.hrtf_sample(sample, n);
+            bus = &spatial[f];
+          }
+          if (voice_processor) {
+            for (unsigned r = 0; r < stream.active_route_count; ++r) {
+              const unsigned route = stream.active_routes[r];
+              const double gain = stream.ramps[route].at(n);
+              if (gain != 0) (*bus)[route >> 1] += input[route & 1u] * gain;
+            }
+            if (stream.parameters.room) {
+              const double mono = 0.5 * (dry[0] + dry[1]), pole = stream.parameters.room->pole / 65536.0;
+              stream.room_lowpass = sound_filter_round_tu15(mono + (stream.room_lowpass - mono) * pole);
+              room_bus[f] += stream.room_lowpass * stream.ramps[route_count].at(n);
+            }
+            if (stream.parameters.effect)
+              effect_send[f] += 0.5 * (sample[0] + sample[1]) * stream.ramps[route_count + 1].at(n);
+          } else {
+            const auto exact = stream.levels(false);
+            for (unsigned target = 0; target < speakers; ++target)
+              for (unsigned channel = 0; channel < pcm_channels; ++channel)
+                if (const double gain = exact.route[target * pcm_channels + channel]; gain != 0)
+                  (*bus)[target] += input[channel] * gain;
+            if (stream.parameters.room) {
+              const double mono = 0.5 * (dry[0] + dry[1]), pole = stream.parameters.room->pole / 65536.0;
+              stream.room_lowpass = sound_filter_round_tu15(mono + (stream.room_lowpass - mono) * pole);
+              room_bus[f] += stream.room_lowpass * exact.room;
+            }
+            if (stream.parameters.effect)
+              effect_send[f] += 0.5 * (sample[0] + sample[1]) * exact.effect;
+          }
+          // The packet cursor uses its storage rate. Reconstruction from
+          // 48 kHz has another cursor in the sound's authored sample rate.
+          double step = voice_processor ? stream.step(n) : stream.parameters.relative_rate;
+          if (rfilter) {
+            stream.native_cursor += step;
+            step = stream.native_cursor * 48000.0 / stream.native_rate - double(stream.consumed) - stream.cursor;
+          } else if (!voice_processor && native_pcm) {
+            step *= double(stream.pcm_sample_rate) / pcm_rate;
+          }
+          ++stream.playback.output_frames;
+          const double packet_end = double(stream.packets[index]->pcm.frame_count);
+          const double next_cursor = stream.cursor + step;
+          const double advanced = next_cursor < packet_end ? step : std::min(stream.remaining_frames(), step);
+          if (native_pcm) stream.native_frames_played += advanced;
+          else stream.playback.source_frames += advanced;
+          stream.cursor = next_cursor;
+          stream.frame_position = (n + 1) & (vp_frame - 1u);
+          if (next_cursor >= packet_end) {
+            stream.advance();
+            index = stream.pending_index();
+            if (index == stream.retained) break;
           }
         }
-        const auto dry = sample;
-        if (const auto &direct = stream.parameters.direct) {
-          const double pole = direct->pole / 65536.0;
-          for (unsigned channel = 0; channel < pcm_channels; ++channel) {
-            auto &low = stream.direct_lowpass[channel];
-            low = sound_filter_round_tu15(dry[channel] + (low - dry[channel]) * pole);
-            sample[channel] = low;
-          }
-        }
-        if (!stream.playback.first_device_frame) {
-          stream.playback.first_device_frame = frames + frame;
-          stream.playback.first_presentation_frame = presentation_frames;
-        }
-        if(epoch!=1 && !stream.playback.first_resumed_device_frame)
-          stream.playback.first_resumed_device_frame=frames+frame;
-        // This sample's levels: moving across the frame, or exact.
-        const auto exact = voice_processor ? Levels{} : stream.levels(false);
-        const auto level = [&](unsigned route) {
-          if (voice_processor) return stream.ramps[route].at(n);
-          return route < route_count ? exact.route[route] : route == route_count ? exact.room : exact.effect;
-        };
-        // Each PCM channel (or HRTF ear) into its speakers.
-        auto input = sample;
-        auto *bus = &speaker;
-        if (stream.hrtf) {
-          input = stream.hrtf_sample(sample, n);
-          bus = &spatial;
-        }
-        for (unsigned target = 0; target < speakers; ++target)
-          for (unsigned channel = 0; channel < pcm_channels; ++channel)
-            if (const double gain = level(target * pcm_channels + channel); gain != 0)
-              (*bus)[target] += input[channel] * gain;
-        if (stream.parameters.room) {
-          // The voice's send to mixbin 10 through its I3DL2 room filter.
-          const double mono = 0.5 * (dry[0] + dry[1]), pole = stream.parameters.room->pole / 65536.0;
-          stream.room_lowpass = sound_filter_round_tu15(mono + (stream.room_lowpass - mono) * pole);
-          room_bus += stream.room_lowpass * level(route_count);
-        }
-        if (stream.parameters.effect) effect_send += 0.5 * (sample[0] + sample[1]) * level(route_count + 1);
-        // The cursor in 48 kHz frames; native playback derives it from the
-        // voice processor's own cursor.
-        double step = voice_processor ? stream.step(n) : stream.parameters.relative_rate;
-        if (native) {
-          stream.native_cursor += step;
-          step = stream.native_cursor * 48000.0 / stream.native_rate - double(stream.consumed) - stream.cursor;
-        }
-        ++stream.playback.output_frames;
-        stream.playback.source_frames += std::min(stream.remaining_frames(), step);
-        stream.cursor += step;
-        stream.frame_position = (n + 1) % vp_frame;
-        stream.advance();
+        if (native_pcm) stream.playback.source_frames = stream.native_frames_played * pcm_rate / stream.pcm_sample_rate;
       }
-      if (reverb_active && !removed && !paused) {
-        // Mixbin 10 collects this block's room sends; each return voice
-        // plays its reverb's previous block into mixbins 6..9.
-        reverb_send[reverb_position] = room_bus;
-        for (auto &reverb : reverbs)
-          for (unsigned n = 0; n < 4; ++n) {
-            auto &ramp = reverb.ramps[n];
-            if (voice_processor && reverb_position == 0) ramp = {ramp.to, return_units(reverb.targets[n])};
-            const double gain = voice_processor ? ramp.at(reverb_position) : reverb.targets[n];
-            spatial[n] += reverb.output[n][reverb_position] * gain;
-          }
-        if (++reverb_position == 32) reverb_block();
+      for (std::size_t f = 0; f < chunk; ++f) {
+        if (reverb_active && !removed && !paused) {
+          // Mixbin 10 collects this block's room sends; each return voice
+          // plays its reverb's previous block into mixbins 6..9.
+          reverb_send[reverb_position] = room_bus[f];
+          for (auto &reverb : reverbs)
+            for (unsigned n = 0; n < 4; ++n) {
+              auto &ramp = reverb.ramps[n];
+              if (voice_processor && reverb_position == 0) ramp.set(ramp.to, return_units(reverb.targets[n]));
+              const double gain = voice_processor ? ramp.at(reverb_position) : reverb.targets[n];
+              spatial[f][n] += reverb.output[n][reverb_position] * gain;
+            }
+          if (++reverb_position == 32) reverb_block();
+        }
+        if (!removed && !paused) {
+          // Record 10 writes the front pair to mixbins 0/1 and the back pair to
+          // 4/5.
+          const auto front = crosstalk(crosstalks[0], spatial[f][0], spatial[f][1]);
+          const auto rear = crosstalk(crosstalks[1], spatial[f][2], spatial[f][3]);
+          speaker[f][0] += front[0];
+          speaker[f][1] += front[1];
+          speaker[f][2] += rear[0];
+          speaker[f][3] += rear[1];
+        }
+        if (effect_bus.active && !removed && !paused) {
+          // Mixbin 13 accumulates this frame's sends; the mix-in return plays
+          // the previous processed block to both front speakers at 0 dB.
+          effect_bus.input[effect_bus.position] += effect_send[f];
+          const double wet = effect_bus.output[effect_bus.position];
+          speaker[f][0] += wet;
+          speaker[f][1] += wet;
+          if (++effect_bus.position == 32) effect_block();
+        }
+        // A device with a back pair plays it; on stereo the EP's encoder adds
+        // each back channel to its side (0x5A8279, -3 dB).
+        auto *out = output + (base + f) * channels;
+        const auto clamp = [](double value) { return float(std::clamp(value, -1.0, 1.0)); };
+        if (back) {
+          out[0] = clamp(speaker[f][0]);
+          out[1] = clamp(speaker[f][1]);
+          out[(*back)[0]] = clamp(speaker[f][2]);
+          out[(*back)[1]] = clamp(speaker[f][3]);
+        } else {
+          out[0] = clamp(speaker[f][0] + back_fold * speaker[f][2]);
+          out[1] = clamp(speaker[f][1] + back_fold * speaker[f][3]);
+        }
+        if (!paused) ++presentation_frames;
       }
-      if (!removed && !paused) {
-        // Record 10 writes the front pair to mixbins 0/1 and the back pair to
-        // 4/5.
-        const auto front = crosstalk(crosstalks[0], spatial[0], spatial[1]);
-        const auto rear = crosstalk(crosstalks[1], spatial[2], spatial[3]);
-        speaker[0] += front[0];
-        speaker[1] += front[1];
-        speaker[2] += rear[0];
-        speaker[3] += rear[1];
-      }
-      if (effect_bus.active && !removed && !paused) {
-        // Mixbin 13 accumulates this frame's sends; the mix-in return plays
-        // the previous processed block to both front speakers at 0 dB.
-        effect_bus.input[effect_bus.position] += effect_send;
-        const double wet = effect_bus.output[effect_bus.position];
-        speaker[0] += wet;
-        speaker[1] += wet;
-        if (++effect_bus.position == 32) effect_block();
-      }
-      // A device with a back pair plays it; on stereo the EP's encoder adds
-      // each back channel to its side (0x5A8279, -3 dB).
-      auto *out = output + frame * channels;
-      const auto clamp = [](double value) { return float(std::clamp(value, -1.0, 1.0)); };
-      if (back) {
-        out[0] = clamp(speaker[0]);
-        out[1] = clamp(speaker[1]);
-        out[(*back)[0]] = clamp(speaker[2]);
-        out[(*back)[1]] = clamp(speaker[3]);
-      } else {
-        out[0] = clamp(speaker[0] + back_fold * speaker[2]);
-        out[1] = clamp(speaker[1] + back_fold * speaker[3]);
-      }
-      if (!paused) ++presentation_frames;
     }
     frames += count;
     elapsed_frames += count;
@@ -1002,13 +1204,20 @@ SdlSoundPlatform::Voice SdlSoundPlatform::create_voice_impl(
   State::Stream stream{};stream.channel_context=context;stream.record=record;stream.parameters=std::move(native);
   stream.start_frame=frame;stream.playback.publication_epoch=state_->epoch.load();
   state_->change();
-  if (stream.parameters.effect) {
-    state_->effect_bus.parameters=*stream.parameters.effect;
-    state_->effect_bus.active=true;
-  }
+  if (frame != staged_start_frame) state_->install_effect(stream);
   state_->streams.emplace(voice,std::move(stream));
   ++state_->next_voice;
   return voice;
+}
+
+bool SdlSoundPlatform::publish_voice_starts(std::span<const Voice> voices,
+                                           std::optional<std::uint64_t> deadline) {
+  return state_->publish_starts(voices, deadline);
+}
+
+bool SdlSoundPlatform::publish_voice_starts(std::span<const VoiceReceipt> voices,
+                                           std::optional<std::uint64_t> deadline) {
+  return state_->publish_starts(voices, deadline);
 }
 
 void SdlSoundPlatform::parameters(Voice voice,const SdlSoundVoiceParameters& parameters) {
@@ -1019,7 +1228,11 @@ void SdlSoundPlatform::parameters_impl(Voice voice, const SdlSoundVoiceParameter
   auto native = native_parameters(parameters);
   DeviceLock lock(state_->device);state_->require();
   if (state_->removed) throw std::runtime_error("SDL sound device is unavailable");
-  auto& stream=state_->stream(voice);state_->change();
+  auto& stream=state_->stream(voice);
+  if (stream.pcm_sample_rate && stream.pcm_sample_rate != pcm_rate &&
+      (!native.native || native.native->sample_rate != stream.pcm_sample_rate))
+    throw std::invalid_argument("SDL voice parameters do not match its native PCM storage rate");
+  state_->change();
   stream.parameters = std::move(native);
 }
 
@@ -1047,19 +1260,25 @@ SdlSoundPlatform::Submission SdlSoundPlatform::submit(Voice voice,SdlSoundPacket
 SdlSoundPlatform::Submission SdlSoundPlatform::submit_impl(Voice voice, SdlSoundPacket packet) {
   state_->require();
   const auto record=std::make_shared<const unsigned char>(0);
-  validate_packet(packet); // Potentially large validation is outside the device lock.
+  const bool mono = validate_packet(packet); // Potentially large validation is outside the device lock.
   if(state_->continuable.load() && !packet.stereo.use_count())
     throw std::invalid_argument("SDL continuation PCM requires retained ownership");
   DeviceLock lock(state_->device);state_->require();
   if (state_->removed) throw std::runtime_error("SDL sound device is unavailable");
   auto &stream = state_->stream(voice);
+  if (stream.pcm_sample_rate && stream.pcm_sample_rate != packet.pcm_sample_rate)
+    throw std::invalid_argument("SDL voice cannot change its PCM storage rate");
+  if (packet.pcm_sample_rate != pcm_rate &&
+      (!stream.parameters.native || stream.parameters.native->sample_rate != packet.pcm_sample_rate))
+    throw std::invalid_argument("SDL native PCM sample rate does not match its voice parameters");
   if (stream.retained == attached_packets) return Submission::Backpressure;
   if (stream.next_submission == std::numeric_limits<std::uint64_t>::max())
     throw std::overflow_error("Native SDL sound packet identity exhausted");
   state_->change();
   stream.packets[stream.retained].emplace(State::Packet{
-    std::move(packet), stream.next_submission, std::nullopt,record});
+    std::move(packet), stream.next_submission, std::nullopt,record, std::nullopt, mono});
   stream.packets[stream.retained]->latch_volume();
+  stream.pcm_sample_rate = stream.packets[stream.retained]->pcm.pcm_sample_rate;
   ++stream.retained;
   ++stream.next_submission;
   return Submission::Accepted;

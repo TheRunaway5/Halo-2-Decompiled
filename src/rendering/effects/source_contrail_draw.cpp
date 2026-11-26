@@ -8,6 +8,7 @@
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include "halo2/source_transparent_queue.hpp"
+#include "native_tu15_contrail_vertex_emission.hpp"
 #include "source_contrail_program.hpp"
 #include <cstring>
 #include <map>
@@ -124,7 +125,10 @@ std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourcePhysicsCon
         SourcePhysicsWorldRuntimeAbi bitmap{};bitmap.gp[1]=bank->second.bitmap;
         bitmap.gp[7]=word(row+0x1a,2);bitmap.gp[4]=DrawMemory::base+0xf0000;bitmap.eflags=0x202;
         call.word(bitmap.gp[4],0);call.word(bitmap.gp[4]+4,word(row+0x18,2));
-        source_run_contrail_geometry_tu15(call,0x13a070u,bitmap,fp,services);
+        {
+            const native_contrail_vertex_emission_detail::ScopedDrawServices draw_services(services);
+            source_run_contrail_geometry_tu15(call,0x13a070u,bitmap,fp,services);
+        }
         if(bitmap.gp[0]>=bank->second.images.size())throw FormatError("Original contrail image selector exceeds actual bitmap");
         for(unsigned chain=0;chain<4;++chain) {
             const auto count=word(row+0x30+chain*2,2);if(count<2)continue;
@@ -143,7 +147,10 @@ std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourcePhysicsCon
             call.word(context+20,count*2);call.word(context+24,bank->second.bitmap);call.word(context+28,bitmap.gp[0]);
             SourcePhysicsWorldRuntimeAbi a{};a.gp[4]=DrawMemory::base+0xf0000;a.eflags=0x202;
             call.word(a.gp[4],0);call.word(a.gp[4]+4,output);call.word(a.gp[4]+8,0);call.word(a.gp[4]+12,context);
-            source_run_contrail_geometry_tu15(call,0x42ce0u,a,fp,services);
+            {
+                const native_contrail_vertex_emission_detail::ScopedDrawServices draw_services(services);
+                source_run_contrail_geometry_tu15(call,0x42ce0u,a,fp,services);
+            }
             if(a.gp[4]!=DrawMemory::base+0xf0010)throw FormatError("Contrail callback lost RET12 ABI");
             if(!(a.gp[0]&255u))continue;
             SourceContrailDraw draw;draw.datum=handle;draw.definition=definition;draw.chain=chain;draw.blend=bank->second.blend;

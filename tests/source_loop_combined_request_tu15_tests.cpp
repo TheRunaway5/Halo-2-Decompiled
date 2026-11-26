@@ -61,7 +61,7 @@ int main(int argc,char** argv)try{
         SourceLoopPhasedOwnerTu15 owner;owner.definition=definition;owner.emitter=0x77880001u;
         owner.synchronization=0xabc10002u;owner.combined=true;owner.location=decode(row.at("old_location"));
         owner.last_frame=row.at("previous_frame");owner.combined_amplitudes=row.at("prior").get<std::array<std::uint32_t,4>>();
-        const auto key=std::pair{request.arguments[0],request.arguments[0]|0x6000u};state.owners.emplace(key,owner);
+        const SourceLoopPhasedOwnerKeyTu15 key{request.arguments[0],request.arguments[0]|0x6000u};state.owners.emplace(key,owner);
         ParentInputs inputs;inputs.location=decode(row.at("expected_location"));inputs.maximum=row.at("selected_maximum");
         if(!row.at("listener_input").is_null())inputs.listener=SourceLoopCombinedListenerInputTu15{
             row.at("listener_input").at("point").get<std::array<std::uint32_t,3>>(),row.at("listener_input").at("distance")};

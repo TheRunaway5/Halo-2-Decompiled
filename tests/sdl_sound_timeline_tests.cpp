@@ -23,7 +23,8 @@ SdlSoundVoiceParameters parameters(float rate=1, bool paused=false) {
 }
 SdlSoundPlatformConfiguration configuration(
     SdlSoundPlatformConfiguration::Delivery delivery=SdlSoundPlatformConfiguration::Delivery::Manual) {
-  return {delivery,256,std::nullopt};
+  // These timing controls compare the unchanged PCM and exact rate steps.
+  return {delivery,256,std::nullopt,true,false};
 }
 auto pcm(std::initializer_list<float> samples) {
   return std::make_shared<const std::vector<float>>(samples);

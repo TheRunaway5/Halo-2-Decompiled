@@ -67,9 +67,9 @@ public:
     }
     void spill(Store kind,bool pop,const Progress&){
         const auto pc=kind==Store::inverse_scale?0x30b8d2u:kind==Store::variable_scale?0x30b8eeu:0x30b8f8u;
-        at(pc);const auto pending=scope_.stage_single(pop);
+        at(pc);
         const auto address=kind==Store::inverse_scale?s_.gp[1]+0x14u:s_.gp[4]+(pop?12u:0x24u);
-        Base::store(pc,address,pending.bits,[&]{scope_.commit(pending);},true);
+        Base::spill_single(pc,address,pop,scope_);
     }
     Vector vector(Vectors kind,const Progress&d){
         auto&g=s_.gp;unsigned reg{};std::uint32_t pc{},address{};

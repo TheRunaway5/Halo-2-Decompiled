@@ -1,5 +1,85 @@
 # Original Xbox sound playback goal
 
+**Active goal.** Make Halo 2 Classic audio match the original Xbox TU1.5
+from the game's sound requests through the final digital mix. Qualify the
+launcher-selected native build in campaign, cinematics, local multiplayer,
+split-screen and LAN. Use the owned TU1.5 executable and matching Xbox
+assets as the reference, and the prepared MCC maps as runtime inputs.
+
+## Completion gates
+
+| Gate | Pass criteria | Current evidence |
+|---|---|---|
+| Authored events and scheduling | Paired original and native runs agree on event identity and order, source tick, admission and priority, selected pitch range and permutation, RNG progression, gain, pitch, loop transitions, interruption and retirement. Compare campaign dialogue, score, effects, ambience, menus and multiplayer events. For audible cues also compare first and last sample positions relative to the run's audio epoch. | [Campaign parity work](CAMPAIGN_AUDIO_PARITY_20261123.md) covers the Armory-to-Cairo route and multiple map starts on earlier builds. The private Cairo Path Tracing build reached tick 3,750 on the RTX 5080. With SDL PipeWire, the four opening Johnson lines and `x02_0200_jon` reached the callback within two simulation ticks of submission and retired after consuming their full packets. [Cairo hardware receipt](../build/test-results/cairo-hardware-continuation/summary.json) |
+| Playback controllers | Compare the original controller's phase 0, 1 and 2 requests and callback reasons. The native parent must carry the admitted location, distance bounds and identity into its companions. Cover natural completion, authored stop, interruption, rejected parents and checkpoint restore. | The production request builder matches six original Lockout calls, including all 68 location bytes. The native mixer binds authored radio loops after parent admission and preserves each parent's current position, distance bounds and identity. Lockout tests cover rejection, simultaneous parents, movement, natural and explicit exit, reset, and bit-identical checkpoint replay. A scheduled Delta parent and both opening companion clips share a presentation frame. Original descriptor-failure and promotion-expiry paths still need live coverage. [Request comparison](../build/test-results/xbox-audio-parity-goal/lockout-radio-native-controller-request.json) · [Retirement reasons](../build/test-results/xbox-audio-parity-goal/controller-retirement-reasons-tu15.json) · [Host tests](../build/test-results/xbox-audio-parity-goal/radio-host-core-final/report.json) |
+| Original samples and voice processing | Match the original ADPCM sample values and native chunk extents. Feed those samples to the 48 kHz voice processor at the authored pitch. Verify fractional resampling, phase continuity across chunks, looping, consumption and exactly-once retirement. Record the provenance of every selected variation. | The Coagulation `cov_damage_med10` fixture matches 117,568 independently decoded samples at 44.1 kHz across two original resource chunks. `MultiplayerAudio` plays the original chunks at native rate for impulses and fixed-sound loops. Tests verify bit-identical split and contiguous output, checkpoint replay, and one-shot retirement after the final chunk. A private prepared MCC Coagulation catalog authenticates 26 original banks and passes all 54 multi-chunk permutations through the production metadata provider. Playback position uses the 48 kHz presentation clock. Voices that switch authored sounds use 48 kHz packet storage. [Decoder and mixer](../build/test-results/xbox-audio-parity-goal/native-rate-authenticated-components/report.json) · [Game audio receipt](../build/test-results/xbox-audio-parity-goal/original-native-rate-core/evidence/original-native-rate-chunks.json) · [Prepared catalog qualification](../build/test-results/xbox-audio-parity-goal/production-coagulation-catalog/qualification.json) |
+| Spatial routing and digital output | Compare listener choice, coordinates, Doppler, obstruction, wet/dry levels, filter and feedback state, mixbin order, stereo fold-down and surround output with original references. Require exact words at deterministic digital boundaries. Declare bounds and comparison methods ahead of time for measurements from captured hardware output. Qualify Dolby Digital separately where the reference output mode uses it. | Native HRTF, obstruction, I3DL2, crosstalk and four-speaker routing have bounded checks. Whole mixed-stream comparisons, fractional hardware resampler measurements and physical output still need reference coverage. |
+| Live integration and release | Replay the campaign, including cinematics, mission/BSP transitions, pause and checkpoints. Replay multiplayer on local and LAN hosts/clients with one and four listeners, including slow-client controls. Match the reference traces on one pinned launcher candidate, verify campaign sound and speech ownership, and census reached audio routines for lifted or emulated fallback. | [Campaign native completion](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md) and the [native sound engine checklist](NATIVE_SOUND_ENGINE.md#done-when) retain incomplete ownership gates. Earlier smoke runs and isolated component tests qualify their recorded cases. |
+
+## Work order
+
+1. **Radio controller lifecycle.** Use the original Lockout
+   `radio_default_in` companion reference to compare the `224040` and
+   `224590` inputs and the resulting `220C60` requests. Bind the native
+   parent and its retirement reasons first. Then route the companion into
+   the existing phased-loop owner and qualify start, update, stop, cleanup
+   and restore. The [reference replay](../build/test-results/xbox-audio-parity-goal/controller-reference.json)
+   reaches the original `220C60` call in all three phases with the same
+   companion, parent, priority and gain. Phase 2 sets loop flag `0x2`.
+   This fixture observes the call boundary with a declared admitted parent.
+   The host uses its admitted playback receipt to run the attached loop
+   phases. The World keeps its `223CD0` effect-only route and `224342`
+   loop request observer. The Xbox device flags remain owned by the Xbox
+   runtime. Delta Approach's
+   authored `x05_0060_mir` script supplies a centered `radio_default_in`
+   parent through the campaign script admission path. Natural mission startup
+   submits Miranda at tick 554 and retires the voice after 77,760 frames.
+   [Delta Approach parent trace](../build/test-results/xbox-audio-parity-goal/delta-radio-parent-natural-baseline.log)
+   The private rendered follow-up verified phases 0, 1 and 2 on the RTX 5080,
+   and the World-backed Lockout control verified one authored exit before
+   parent retirement. The two SDL dummy runs exposed a 1,024-frame delay
+   between Miranda and her companions. The PipeWire run began all three
+   clips at the same frame. The staged start now makes the three voices
+   visible inside one mixer lock. The Delta regression passed while forcing
+   a render between submissions. A separate SDL callback probe held the
+   staged parent for two callbacks and played all three voices at frame 2,048.
+   The rendered cohort still needs to be repeated with the staged start.
+   [Rendered and World qualification](../build/test-results/xbox-audio-parity-goal/delta-radio-candidate-final/qualification.json)
+   · [Callback timing](../build/test-results/xbox-audio-parity-goal/delta-radio-candidate-final/miranda-callback-cue-association.json)
+   · [Staged-start tests](../build/test-results/xbox-audio-parity-goal/radio-atomic-start/report.json)
+   The prepared MCC maps omit the original instances for `radio_default`,
+   `radio_covy`, and `radio_covy_3d`. Two of those rows still receive 52
+   authored campaign calls. MCC also adds 12 dB to the `radio_3d` companion.
+   Restore the original metadata and exercise the full spatial descriptor
+   on Old Mombasa's `c03_1080_mrs`, including direction, velocity and structure
+   location. [Effect corpus](../build/test-results/xbox-audio-parity-goal/companion-corpus-tu15.json)
+   · [Original spatial request](../build/test-results/xbox-audio-parity-goal/old-mombasa-spatial-radio-request-tu15.json)
+   The original radio playback filter uses SDK mode 3 and two coefficient
+   pairs. Twelve original executions pin its selection, coefficient words,
+   and device writes. The transfer function still needs sample-level
+   qualification. [Radio filter receipt](../build/test-results/xbox-audio-parity-goal/radio-playback-filter-tu15.json)
+2. **Native-rate ADPCM.** Both the Xbox Coagulation cache and the prepared
+   MCC catalog now exercise the native packet and mix path. Expand the
+   original catalog by map, language and sound family, and qualify native
+   storage where an authored voice switches sounds. Retain the device's
+   48 kHz presentation clock and compare PCM, cursor and ordered completions
+   at different callback sizes. Track missing mappings as coverage gaps.
+3. **Paired output and live coverage.** Capture original and native
+   request, voice and mix evidence with the same scripted inputs and
+   speaker configuration. Start with
+   [Armory to Cairo](../tools/test_campaign_armory_audio.py),
+   [all campaign starts](../tools/test_campaign_loop_audio_levels.py)
+   and the [multiplayer delivery matrix](../tools/verify_audio_playback_baseline.py).
+   Add longer mission and multiplayer routes for uncovered owners. Use
+   the measured digital output and a live production startup to qualify
+   the launcher candidate.
+
+Keep the executable, asset, build and test input hashes with each receipt.
+Record skipped cases, startup faults and comparison mismatches against the
+gate they prevent from passing. Use the [test storage workflow](TEST_STORAGE.md).
+
+## Prior checkpoints
+
 October30 campaign clarification: cutscene audio, sound effects and dialogue
 must be 1:1 native semantic TU1.5 kernels as part of the active campaign-engine
 goal. The [campaign completion contract](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md)
@@ -10,9 +90,9 @@ November23 campaign status: [campaign audio parity](CAMPAIGN_AUDIO_PARITY_202611
 records the Classic-only cue routing, score fades and native dialogue waits;
 BSP background sound and object loops through the original 18EE50 owner
 (campaign and multiplayer host); and campaign delivery of the World's own
-sound requests (footsteps, foley, devices, weapons, AI dialogue). It also
-lists what is still missing: synchronized loop profiles, four-bin combined
-loops, scripted loops through the original pool, and reverb/HRTF.
+sound requests (footsteps, foley, devices, weapons, AI dialogue). Later passes
+added synchronized and four-bin loop profiles, scripted loop ownership, HRTF
+and reverb. Their bounded validation is recorded in the same document.
 
 User request,2026-10-11: ensure all sounds play exactly where they belong.
 The goal is active. It covers sound events, event time, emitter placement,

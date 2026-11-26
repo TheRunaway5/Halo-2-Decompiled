@@ -71,27 +71,50 @@ void write_campaign_lighting_trace(std::ofstream& trace,const CampaignLightingIn
 }
 }
 struct CampaignRenderer::Impl {
+    const Cache& cache;
     CampaignLights lights;
     SourceBspAdmissionBsp geometry;
     BspAtmosphere atmosphere;
     unsigned bsp;
+    std::shared_ptr<SharedLightMaterials> shared;
     std::unique_ptr<SourceBspEffectLights> spheres;
     std::unique_ptr<ProjectedLights> projected;
     std::map<std::uint32_t,SourceModelPaletteDefinition> palette_definitions;
-    Impl(const Cache& cache,Mesh& mesh,unsigned bsp)
-      :lights(cache,bsp),geometry(cache.load_source_bsp_admission(bsp)),
-       atmosphere(cache.load_bsp_atmosphere(bsp)),bsp(bsp) {
+    Impl(const Cache& c,Mesh& mesh,unsigned index,bool preload_raster_materials,
+         std::span<const Material> additional_materials)
+      :cache(c),lights(c,index),geometry(c.load_source_bsp_admission(index)),
+       atmosphere(c.load_bsp_atmosphere(index)),bsp(index),
+       shared(std::make_shared<SharedLightMaterials>(c,mesh)) {
         std::vector<std::uint32_t> models;
         for(const auto& tag:cache.tags())if(tag.group=="mode")models.push_back(tag.datum);
         const auto definitions=lights.definitions();
-        auto shared=std::make_shared<SharedLightMaterials>(cache,mesh);
-        spheres=std::make_unique<SourceBspEffectLights>(cache,mesh,bsp,definitions,models,shared);
-        projected=std::make_unique<ProjectedLights>(cache,mesh,bsp,std::move(shared));
+        spheres=std::make_unique<SourceBspEffectLights>(cache,mesh,bsp,definitions,models,shared,preload_raster_materials);
+        projected=std::make_unique<ProjectedLights>(cache,mesh,bsp,shared,preload_raster_materials,additional_materials);
     }
 };
-CampaignRenderer::CampaignRenderer(const Cache& cache,Mesh& mesh,unsigned bsp)
-    :impl_(std::make_unique<Impl>(cache,mesh,bsp)){}
+CampaignRenderer::CampaignRenderer(const Cache& cache,Mesh& mesh,unsigned bsp,
+    bool preload_raster_materials,std::span<const Material> additional_materials)
+    :impl_(std::make_unique<Impl>(cache,mesh,bsp,preload_raster_materials,additional_materials)){}
 CampaignRenderer::~CampaignRenderer()=default;
+void CampaignRenderer::switch_bsp(Mesh& mesh,unsigned bsp,std::span<const Material> bsp_materials,
+    bool preload_raster_materials) {
+    auto& i=*impl_;
+    i.lights.switch_bsp(i.cache,bsp);
+    i.geometry=i.cache.load_source_bsp_admission(bsp);
+    i.atmosphere=i.cache.load_bsp_atmosphere(bsp);
+    i.bsp=bsp;
+    const auto definitions=i.lights.definitions();
+    i.spheres->switch_bsp(mesh,bsp,definitions,preload_raster_materials);
+    i.projected->switch_bsp(mesh,bsp,bsp_materials,preload_raster_materials);
+}
+void CampaignRenderer::ensure_raster_materials(Mesh& mesh,std::span<const Material> bsp_materials) {
+    auto& i=*impl_;
+    i.spheres->ensure_raster_materials(mesh);
+    i.projected->ensure_raster_materials(mesh,bsp_materials);
+}
+bool CampaignRenderer::raster_materials_preloaded()const noexcept {
+    return impl_->spheres->raster_materials_preloaded() && impl_->projected->raster_materials_preloaded();
+}
 CampaignLightingFrame CampaignRenderer::draw(PhysicsLiveWorldTu15& world,
     const SourceCampaignViewFrameTu15& main,const CampaignLightingInput& input) {
     if(!main.main_commands_completed)

@@ -374,6 +374,11 @@ struct ModelView {
     std::span<const Vertex> path_tracing_body_occluders;
     std::span<const path_tracing::MaterialRange> path_tracing_replaced_body_materials;
     std::span<const path_tracing::SecondaryBodyOwner> path_tracing_secondary_bodies;
+    // Changes invalidate posed-object history even when the current and
+    // previous cameras have nearly identical projections.
+    std::array<std::uint64_t,3> object_motion_camera_epochs{};
+    // Source-owned posed ranges submitted through a shared world vertex bank.
+    std::span<const ModelObjectDraw> object_motion_owners;
 };
 // Optional Path Tracing ownership only. Borrowed original assets and shared
 // scene/presentation resources are excluded from these lifecycle diagnostics.
@@ -405,10 +410,18 @@ public:
              std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials = {},
              const Cache *scene_cache = nullptr);
     ~Renderer();
+    // Hot-swap BSP geometry, lightmaps and the trailing BSP material slice on
+    // the existing Vulkan device, retaining persistent_root_count leading
+    // materials (and their GPU textures, pipelines and swapchain) in place.
+    void reload_bsp_scene(const Mesh& mesh,
+                          const SourceBspResidentPlan *bsp_resident_plan = nullptr,
+                          std::size_t persistent_root_count = 0,
+                          const Cache *scene_cache = nullptr);
     // Frontend worlds and model widgets retain native resolution while
     // players edit their saved world-upscaling choices.
     void upscale_world(bool enabled);
     bool can_skin_models() const noexcept;
+    static bool object_motion_blur_requested();
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
     // Real native1DE30 allocation/retirement. Optional20 is an explicitly

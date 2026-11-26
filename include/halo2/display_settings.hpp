@@ -22,6 +22,7 @@ enum class TwoPlayerSplit : std::uint8_t { Horizontal, Vertical };
 // Native presentation preferences shared across menu/game renderer lifetimes.
 struct DisplaySettings {
     bool crt_filter{};
+    bool object_motion_blur{};
     TwoPlayerSplit two_player_split=TwoPlayerSplit::Horizontal;
     unsigned internal_width{}, internal_height{}; // Zero follows the drawable.
     Upscaler upscaler=Upscaler::Off;

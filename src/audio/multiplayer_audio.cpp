@@ -243,18 +243,27 @@ SourceScriptSoundClockSelectionTu15 MultiplayerPreparedScriptImpulseTu15::select
 
 struct MultiplayerAudio::State {
  struct Core {
+  struct Pcm {
+    std::shared_ptr<const std::vector<float>> samples;
+    std::shared_ptr<const std::vector<std::size_t>> chunk_ends;
+    std::uint32_t sample_rate=48000;
+  };
+  struct PermutationPcm {
+    std::optional<Pcm> original;
+    std::optional<Pcm> converted;
+    const Pcm& stored()const{return original?*original:*converted;}
+  };
   struct Bank {
     SoundVariationDefinition definition;
     SoundRangeState range;
     LoopingSoundSelection loop;
-    std::vector<std::shared_ptr<const std::vector<float>>> pcm;
+    std::vector<PermutationPcm> pcm;
     std::vector<unsigned> chunk_counts;
-    std::vector<std::shared_ptr<const std::vector<std::size_t>>> chunk_ends;
     std::vector<std::uint16_t> chances;
     // Every permutation decodes to identical channels: a mono sound, which
     // DirectSound 3D (and so the HRTF stage) can place.
     bool mono=true;
-    unsigned rate_index{},sound_class{};
+    unsigned rate_index{},sound_class{},channels{};
   };
   struct ScriptVoiceRecord {
     std::uint64_t id{};bool current=false;std::function<bool()> retirement;
@@ -263,10 +272,34 @@ struct MultiplayerAudio::State {
     std::weak_ptr<const SourceScriptSoundClockVoice64Tu15::Impl> source_voice;
   };
   struct ChunkSequence {
-    std::shared_ptr<const std::vector<float>> pcm;
-    std::shared_ptr<const std::vector<std::size_t>> ends;
+    Pcm pcm;
     std::size_t next{};
     std::int8_t gain{};
+  };
+  struct EffectLoop {
+    std::uint32_t sound;
+    float gain_db;
+    std::uint32_t flags;
+    LoopingSound definition;
+  };
+  struct PreparedEffect {
+    std::optional<tu15_sound_mono_distortion::Parameters> dsp;
+    std::shared_ptr<const std::vector<EffectLoop>> loops;
+    std::optional<std::array<std::uint32_t,18>> filter;
+    bool inherit_distances{};
+  };
+  struct PlaybackEffect {
+    std::shared_ptr<const std::vector<EffectLoop>> loops;
+    std::array<std::byte,68> location;
+    std::optional<std::array<float,2>> bounds;
+    std::uint16_t source_flags;
+  };
+  enum class PlaybackRetirement { Natural=2, Explicit=1, Fade=4, Reset=10, DeviceLost };
+  struct RetiredPlaybackEffect {
+    std::uint64_t parent;
+    std::uint32_t emitter;
+    PlaybackRetirement reason;
+    PlaybackEffect effect;
   };
   struct Voice {std::uint64_t id{};std::uint32_t sound{},owner{},loop_tag=none;unsigned view{},track{};
     MultiplayerAudioKind kind{};float gain_db{},relative_rate=1,ambient_gain=1;unsigned sound_class{};
@@ -283,10 +316,12 @@ struct MultiplayerAudio::State {
     std::optional<CompanionCompletion> companion;bool loop_packet{};
     std::map<std::uint64_t,std::int8_t> packet_gains;
     std::optional<ChunkSequence> chunks;
+    bool single_sound{},chunked_packet{};
     std::uint16_t location_flags{};
     // A 3D voice's source velocity, and whether its pitch takes the Doppler
     // shift (every located impulse; a loop by its request source flag 2).
     Vec3 velocity{};bool doppler=true;
+    std::optional<float> minimum_distance,maximum_distance;
     // 220E00's eased obstruction and occlusion, and 129790's room gain loss
     // in dB, from the last obstruction frame.
     float obstruction{},occlusion{},room_gain_db{};bool obstructed{};
@@ -304,7 +339,10 @@ struct MultiplayerAudio::State {
     // to the driver without 142700's world transform, an obstruction
     // estimate or Doppler; its distance is the vector's length.
     std::optional<Vec3> head_relative;
-    std::optional<tu15_sound_mono_distortion::Parameters> effect;};
+    std::optional<tu15_sound_mono_distortion::Parameters> effect;
+    std::optional<PlaybackEffect> playback_effect;
+    std::optional<SdlSoundVoiceFilter> voice_filter;
+  };
   struct PacketCompletion {
     SdlSoundCompletion value;
     std::optional<SdlSoundPlatform::CompletionReceipt> receipt;
@@ -324,17 +362,34 @@ struct MultiplayerAudio::State {
     std::uint16_t source_flags{};
   };
   std::shared_ptr<const Cache> cache_owner;
-  // Retained MCC effect definitions (built on first effect use) and the
-  // record-1 parameters the next created voice installs.
+  // Retained MCC effect definitions (built on first effect use).
   std::shared_ptr<const MccSoundEffectDefinitions> effect_definitions;
-  std::optional<tu15_sound_mono_distortion::Parameters> pending_effect;
   // The next impulse's source velocity (its request's location+0x1C).
   std::optional<Vec3> pending_velocity;
-  // 18FE80/224740/2290C0: an effect row's first DSP instance; its template
-  // must be sfx_mono_distortion (record 1, mixbin 13) to send. Rows without
-  // a DSP instance play dry. Parameters convert the instance's selected
-  // override (TU1.5 228CD0 -> 385B4F conversion) under CW 027F.
-  std::optional<tu15_sound_mono_distortion::Parameters> effect_parameters(const MultiplayerAudioEffect& effect) {
+  // 18FE80 resolves an explicit playback reference in the current map's
+  // globals or scenario. The MCC sound globals keep one extra reference
+  // ahead of the Xbox fields, so the collection datum is at +0x14.
+  std::optional<MultiplayerAudioEffect> source_effect(std::uint32_t reference) const {
+    if(!cache.is_mcc())return std::nullopt;
+    TagHandle collection;
+    switch(reference>>30) {
+    case 1: {
+      const Bytes globals(cache.tag_payload(cache.globals_tag()));
+      const auto block=read_tag_block_descriptor(globals,0xc0);
+      if(!block.count || !block.address)return std::nullopt;
+      collection=TagHandle{Bytes(cache.read_tag_bytes(block.address,0x18)).u32(0x14)};
+      break;
+    }
+    case 2:
+      collection=TagHandle{Bytes(cache.tag_payload(cache.scenario_tag())).u32(0x324)};
+      break;
+    default:
+      return std::nullopt;
+    }
+    if(collection.is_null())return std::nullopt;
+    return MultiplayerAudioEffect{collection.value,reference&0x3fffffffu};
+  }
+  PreparedEffect prepare_effect(const MultiplayerAudioEffect& effect) {
     if(!cache_owner)throw FormatError("Native sound effects require the retaining Cache owner");
     if(!effect_definitions)effect_definitions=std::make_shared<const MccSoundEffectDefinitions>(cache_owner);
     const MccSoundEffectDefinitions::Collection* found=nullptr;
@@ -345,18 +400,45 @@ struct MultiplayerAudio::State {
     if(!found)throw FormatError("Sound effect collection is not a retained MCC definition");
     if(effect.row>=found->effects.size())throw FormatError("Sound effect row is outside its collection");
     const auto& row=found->effects[effect.row];
-    if(row.instances.empty())return std::nullopt;
-    const auto& instance=row.instances.front();
-    const auto& definition=effect_definitions->effect_template(instance.effect_template.handle);
+    const auto classic=effect_definitions->classic_radio_effect(found->handle,effect.row);
+    PreparedEffect result;
+    result.inherit_distances=((classic?classic->flags:row.flags)&1u)!=0;
+    const auto* instance=row.instances.empty()?nullptr:&row.instances.front();
+    std::vector<EffectLoop> loops;
+    const auto attach=[&](TagHandle loop,std::uint32_t gain,std::uint32_t flags){
+      auto definition=cache.load_looping_sound(loop.value);
+      if(cache.is_mcc() && (definition.flags&0x200u))return;
+      loops.push_back({loop.value,std::bit_cast<float>(gain),flags,std::move(definition)});
+    };
+    if(classic){
+      result.filter=classic->filter;
+      const auto& component=classic->companion;
+      attach(component.loop,component.gain_bits,component.flags);
+      instance=classic->mono_instance;
+    }else{
+      if(!row.filters.empty()){
+        const Bytes filter(row.filters.front().bytes);
+        auto& words=result.filter.emplace();
+        for(std::size_t i=0;i<words.size();++i)words[i]=filter.u32(i*4);
+      }
+      if(instance)for(const auto& component:instance->loop_components)
+        attach(component.loop,component.gain_bits,component.flags);
+    }
+    if(!loops.empty())result.loops=std::make_shared<const std::vector<EffectLoop>>(std::move(loops));
+    // 18FE80/224740/2290C0: select the first DSP instance and convert its
+    // override (228CD0 to 385B4F) under CW 027F. An empty template is dry.
+    if(!instance || instance->effect_template.handle.is_null())return result;
+    const auto& definition=effect_definitions->effect_template(instance->effect_template.handle);
     bool mono=false;
     for(const auto& platform:definition.platforms)
       if(platform.input.text && *platform.input.text=="sfx_mono_distortion")mono=true;
     if(!mono)throw FormatError("Sound effect "+(row.name.text?*row.name.text:std::string("?"))+
         " uses a DSP template without a native effect record");
     const auto compiled=tu15_mono_parameter_conversion::CompiledMonoDefinition::compile(effect_definitions,
-        instance.effect_template.handle);
-    const auto selected=instance.override_records.empty()?std::nullopt:std::optional<std::size_t>(0);
-    return compiled->instance(instance,selected,tu15_mono_parameter_conversion::FpMode::double_53).parameters;
+        instance->effect_template.handle);
+    const auto selected=instance->override_records.empty()?std::nullopt:std::optional<std::size_t>(0);
+    result.dsp=compiled->instance(*instance,selected,tu15_mono_parameter_conversion::FpMode::double_53).parameters;
+    return result;
   }
   const Cache &cache;SoundLocalRandom random;
   std::shared_ptr<SdlSoundPlatform> platform_storage;SdlSoundPlatform&platform;
@@ -409,6 +491,7 @@ struct MultiplayerAudio::State {
   std::map<std::uint32_t,Ambient> ambience;
   std::map<std::pair<std::uint32_t,std::uint32_t>,ObjectLoop> object_loops;
   SourceLoopPhasedStateTu15 phased_loops;
+  std::vector<RetiredPlaybackEffect> retired_effects;
   // 129100's portal estimate for each cluster that a centered loop with
   // location flag 0x1000 names: the door occlusion between it and the first
   // local view, from obstruction_frame. 129100 asks only for sounds in the
@@ -587,6 +670,29 @@ struct MultiplayerAudio::State {
     return plays_in_classic_audio(cache,sound);
   }
   std::uint32_t& common_secondary(){return shared_variation_random?*shared_variation_random:random.seed;}
+  static constexpr std::array<std::uint32_t,3> native_rates{22050,44100,32000};
+  static Pcm retain_pcm(PcmSound pcm,const EncodedSound& encoded) {
+    if(!pcm.frames())throw FormatError("Native authored sound has no complete PCM frames");
+    std::vector<std::size_t> ends;
+    if(!pcm.chunk_boundaries.empty()) {
+      if(pcm.chunk_boundaries.size()!=encoded.packet_chunks.size())
+        throw FormatError("Native PCM lost its authenticated chunk interval");
+      std::size_t previous{};
+      for(const auto& boundary:pcm.chunk_boundaries) {
+        if(boundary.end_frame<previous || boundary.end_frame>pcm.frames())
+          throw FormatError("Native PCM chunk escapes its emitted frames");
+        ends.push_back(boundary.end_frame);previous=boundary.end_frame;
+      }
+      if(ends.back()!=pcm.frames())throw FormatError("Native PCM chunk interval lost its final flush");
+    }else if(encoded.packet_chunks.size()<=1)ends.push_back(pcm.frames());
+    return {std::make_shared<const std::vector<float>>(std::move(pcm.stereo)),
+        std::make_shared<const std::vector<std::size_t>>(std::move(ends)),pcm.rate};
+  }
+  EncodedSound encoded_sound(std::uint32_t sound,unsigned pitch,unsigned permutation)const {
+    if(native_metadata)return native_metadata->encoded(cache,TagHandle{sound},pitch,permutation);
+    if(loop_metadata)return loop_metadata->encoded(cache,TagHandle{sound},pitch,permutation);
+    return cache.load_sound(sound,pitch,permutation);
+  }
   Bank &bank(std::uint32_t sound,unsigned pitch=0){
     script_producer();metadata_current();
     const auto key=std::pair{sound,pitch};
@@ -595,29 +701,25 @@ struct MultiplayerAudio::State {
     b.rate_index=b.definition.sample_rate_index;b.sound_class=std::to_integer<unsigned>(b.definition.sound[2]);
     b.range=imported_sound_range_state(b.definition);b.loop={b.range.used,b.range.last};
     for(unsigned p=0;p<b.definition.permutations.size();++p){
-      const auto encoded=native_metadata?native_metadata->encoded(cache,TagHandle{sound},pitch,p):
-          loop_metadata?loop_metadata->encoded(cache,TagHandle{sound},pitch,p):cache.load_sound(sound,pitch,p);
-      auto pcm=decode_sound(encoded);
-      if(pcm.rate!=48000 || !pcm.frames())throw FormatError("Native authored sound has no complete PCM frames");
-      std::vector<std::size_t> ends;
-      if(!pcm.chunk_boundaries.empty()){
-        if(pcm.chunk_boundaries.size()!=encoded.packet_chunks.size())
-          throw FormatError("Native PCM lost its authenticated chunk interval");
-        std::size_t previous{};
-        for(const auto& boundary:pcm.chunk_boundaries){
-          if(boundary.end_frame<previous || boundary.end_frame>pcm.frames())
-            throw FormatError("Native PCM chunk escapes its emitted frames");
-          ends.push_back(boundary.end_frame);previous=boundary.end_frame;
-        }
-        if(ends.back()!=pcm.frames())throw FormatError("Native PCM chunk interval lost its final flush");
-      }else if(encoded.packet_chunks.size()<=1)ends.push_back(pcm.frames());
-      b.chunk_ends.push_back(std::make_shared<const std::vector<std::size_t>>(std::move(ends)));
+      const auto encoded=encoded_sound(sound,pitch,p);
+      if(!p)b.channels=encoded.channels;
+      const bool original=encoded.codec==1 && encoded.channels<=2 && b.rate_index<native_rates.size() &&
+          encoded.sample_rate==native_rates[b.rate_index];
+      auto pcm=original?decode_xbox_adpcm_native(encoded):decode_sound(encoded);
       for(std::size_t n=0;b.mono && n+1<pcm.stereo.size();n+=2)b.mono=pcm.stereo[n]==pcm.stereo[n+1];
-      b.pcm.push_back(std::make_shared<const std::vector<float>>(std::move(pcm.stereo)));
+      auto& sample=b.pcm.emplace_back();
+      (original?sample.original:sample.converted)=retain_pcm(std::move(pcm),encoded);
       b.chunk_counts.push_back(unsigned(encoded.packet_chunks.size()));
       b.chances.push_back(Bytes(b.definition.permutations[p]).u16(2));
     }
     return banks.emplace(key,std::move(b)).first->second;
+  }
+  std::array<float,2> distance_bounds(const Voice& voice) const {
+    const auto& definition=banks.at({voice.sound,0}).definition;
+    const Bytes playback(definition.playback),cls(definition.sound_class);
+    const auto flags=std::to_integer<unsigned>(definition.sound[1]);
+    return {voice.minimum_distance.value_or(flags&4u?cls.f32(0x18):playback.f32(0)),
+        voice.maximum_distance.value_or(flags&8u?cls.f32(0x1c):playback.f32(4))};
   }
   float distance_gain(const Voice &v)const {
     if(!v.position && !v.head_relative)return 1.f;
@@ -632,13 +734,9 @@ struct MultiplayerAudio::State {
       const float squared=(delta.z*delta.z+delta.y*delta.y)+delta.x*delta.x;
       if(nearest>squared)nearest=squared;
     }
-    const auto &definition=banks.at({v.sound,0}).definition;
-    const Bytes playback(definition.playback),cls(definition.sound_class);
-    const auto flags=std::to_integer<unsigned>(definition.sound[1]);
     const auto epsilon=std::bit_cast<float>(distance_constants.fade_epsilon_bits);
-    const auto authored_minimum=flags&4u?cls.f32(0x18):playback.f32(0);
+    const auto [authored_minimum,maximum]=distance_bounds(v);
     const auto minimum=authored_minimum>epsilon?authored_minimum:epsilon;
-    const auto maximum=flags&8u?cls.f32(0x1c):playback.f32(4);
     return std::bit_cast<float>(source_sound_distance_gain(std::bit_cast<std::uint32_t>(minimum),
         std::bit_cast<std::uint32_t>(maximum),std::bit_cast<std::uint32_t>(std::sqrt(nearest)),constants,{0x027f,0x1f80}));
   }
@@ -705,7 +803,6 @@ struct MultiplayerAudio::State {
     // The voice processor steps through the sound's own samples by the
     // pitch register: the 48 kHz rate in 4096ths of an octave plus the
     // driver's base for its sample rate (221B90).
-    static constexpr std::array<std::uint32_t,3> native_rates{22050,44100,32000};
     if(voice_bank.rate_index<native_rates.size())
       out.native=SdlSoundNativeRate{native_rates[voice_bank.rate_index],std::clamp(
           std::int32_t(std::lround(4096.0*std::log2(double(rate))))+source_sound_pitch_base(voice_bank.rate_index),-32768,32767)};
@@ -718,6 +815,7 @@ struct MultiplayerAudio::State {
       out.routes={{0,0,bin(0)},{1,1,bin(1)},{0,2,bin(2)},{1,3,bin(3)}};
     }
     if(v.effect)out.effect=SdlSoundEffectSend{*v.effect};
+    out.voice_filter=v.voice_filter;
     // A mono world-located voice plays through the HRTF stage, placed in its
     // listener's head frame; direct and combined voices keep their routes.
     const bool located=v.position || v.head_relative;
@@ -773,19 +871,20 @@ struct MultiplayerAudio::State {
     unsigned accepted{};
     while(voice.chunks){
       auto& chunks=*voice.chunks;
+      const auto& ends=*chunks.pcm.chunk_ends;
       // A decoder can buffer a short resource without emitting PCM. Skip
       // its empty output span without inventing a device packet/completion.
-      while(chunks.next<chunks.ends->size() && (*chunks.ends)[chunks.next]==
-          (chunks.next?(*chunks.ends)[chunks.next-1]:0u))++chunks.next;
-      if(chunks.next==chunks.ends->size()){voice.chunks.reset();break;}
+      while(chunks.next<ends.size() && ends[chunks.next]==(chunks.next?ends[chunks.next-1]:0u))++chunks.next;
+      if(chunks.next==ends.size()){voice.chunks.reset();break;}
       const auto status=voice.playback?platform.status(*voice.playback):platform.status(voice.id);
       if(status.device_removed)throw FormatError("Native chunk output lost its actual device");
       if(!status.accepts_input)break;
       if(next_packet==UINT64_MAX)throw FormatError("Native chunk packet identity exhausted");
-      const auto first=chunks.next?(*chunks.ends)[chunks.next-1]:0u;
-      const auto end=(*chunks.ends)[chunks.next];const auto context=next_packet;
+      const auto first=chunks.next?ends[chunks.next-1]:0u;
+      const auto end=ends[chunks.next];const auto context=next_packet;
       const auto volume=parameters(voice,chunks.gain).volume_hundredths_db;
-      if(submit(voice,{chunks.pcm,first,end-first,context,volume})==SdlSoundPlatform::Submission::Backpressure)break;
+      if(submit(voice,{chunks.pcm.samples,first,end-first,context,volume,chunks.pcm.sample_rate})==
+          SdlSoundPlatform::Submission::Backpressure)break;
       voice.packet_gains.emplace(context,chunks.gain);
       ++next_packet;++chunks.next;++accepted;
     }
@@ -794,7 +893,7 @@ struct MultiplayerAudio::State {
   void packet(Voice &voice,bool loop_selection,
       const MccScriptSoundWorldAccess* first_selection=nullptr,
       std::optional<std::uint32_t> expected_auxiliary_seed={}){
-    if(voice.loop_packet && voice.chunks)throw FormatError("Native loop selection still owns unsubmitted chunks");
+    if(voice.chunks)throw FormatError("Native sound selection still owns unsubmitted chunks");
     auto &b=bank(voice.sound,voice.pitch_range);
     SoundLocalRandom per_voice(voice.permutation_seed.value_or(0));
     auto &selection=voice.permutation_seed?per_voice:random;
@@ -825,17 +924,30 @@ struct MultiplayerAudio::State {
     }
     voice.permutation_gain_db=std::bit_cast<std::int8_t>(b.definition.permutations.at(p)[4]);
     parameters(voice,parameters(voice));
-    const auto &pcm=b.pcm.at(p);
-    if(voice.loop_packet){
-      if(b.chunk_ends.at(p)->empty())throw FormatError("Native loop PCM requires its decoder-owned chunk map");
-      voice.chunks=ChunkSequence{pcm,b.chunk_ends.at(p),0,voice.permutation_gain_db};
-      if(!pump_chunks(voice))throw FormatError("Native loop packet queue unexpectedly full");
+    auto& sample=b.pcm.at(p);
+    const bool direct=voice.single_sound && sample.original &&
+        (!(voice.loop || voice.loop_packet) ||
+            std::ranges::all_of(b.pcm,[](const auto& entry){return entry.original.has_value();}));
+    // Multi-sound controllers keep one packet storage rate even when a
+    // prepared catalog owns only some phases of the authored track.
+    if(!direct && !sample.converted) {
+      const auto encoded=encoded_sound(voice.sound,voice.pitch_range,p);
+      sample.converted=retain_pcm(decode_sound(encoded),encoded);
+    }
+    const auto& pcm=direct?*sample.original:*sample.converted;
+    voice.chunked_packet=voice.loop_packet || direct;
+    const auto frames=pcm.samples->size()/2;
+    if(voice.chunked_packet){
+      if(pcm.chunk_ends->empty())throw FormatError("Native sound requires its decoder-owned chunk map");
+      voice.chunks=ChunkSequence{pcm,0,voice.permutation_gain_db};
+      if(!pump_chunks(voice))throw FormatError("Native chunk packet queue unexpectedly full");
     }else{
       const auto context=next_packet++;
-      if(submit(voice,{pcm,0,pcm->size()/2,context,{}})!=SdlSoundPlatform::Submission::Accepted)
+      if(submit(voice,{pcm.samples,0,frames,context,{}})!=SdlSoundPlatform::Submission::Accepted)
         throw FormatError("Native sound packet queue unexpectedly full");
     }
-    if(observer)observer({voice.kind,voice.sound,voice.owner,voice.view,voice.pitch_range,p,voice.id,pcm->size()/2,before,after,voice.source_pitch_bits,voice.position});
+    if(observer)observer({voice.kind,voice.sound,voice.owner,voice.view,voice.pitch_range,p,voice.id,
+        frames,before,after,voice.source_pitch_bits,voice.position,pcm.sample_rate});
     selection.stores.clear();
   }
   std::uint64_t play(std::uint32_t sound,float gain_db,MultiplayerAudioKind kind,
@@ -847,7 +959,8 @@ struct MultiplayerAudio::State {
       const MccScriptSoundWorldAccess* first_selection=nullptr,
       std::optional<CompanionCompletion> companion={},
       const MultiplayerLoopPacketTu15* loop_packet=nullptr,
-      std::optional<std::uint16_t> location_flags={}){
+      const std::array<std::byte,68>* source_location=nullptr,
+      const PreparedEffect* effect=nullptr){
     script_producer();
     if(closing)throw FormatError("Native audio is being destroyed");
     Phase phase(play_depth);
@@ -864,6 +977,7 @@ struct MultiplayerAudio::State {
     // entire stream would incorrectly fold219A90's private1462B0 seed into it.
     float pitch;
     std::optional<std::uint32_t> voice_seed;
+    std::uint32_t filter_seed{};
     if(loop_packet) {
       pitch=loop_packet->parameters.pitch_cents;
       extra=source_sound_control_gain(b.definition,loop_packet->parameters.gain_control);
@@ -879,6 +993,7 @@ struct MultiplayerAudio::State {
         if(gain_db+extra+class_gain.at(b.sound_class)<=-64.f)return 0;
       }
       pitch=float(source_sound_pitch(b.definition,variation));
+      filter_seed=variation.seed;
       // TU1.5 128C38 retains the global word immediately after pitch as
       // this impulse voice's independent subsequent permutation stream.
       if(shared_variation_random && !looping)voice_seed=variation.seed;
@@ -898,14 +1013,25 @@ struct MultiplayerAudio::State {
     const auto driver_pitch=source_sound_driver_pitch(b.rate_index,std::bit_cast<std::uint32_t>(packet_pitch),constants,{0x027f,0x1f80});
     const auto relative=std::bit_cast<float>(source_sound_relative_rate(driver_pitch,b.rate_index,constants,{0x027f,0x1f80}));
     Voice v{0,sound,owner,loop_tag,view,track,kind,gain_db+extra,relative,ambient_gain,b.sound_class,looping,std::move(completion)};
-    v.effect=std::exchange(pending_effect,std::nullopt);
+    if(effect)v.effect=effect->dsp;
     if(const auto velocity=std::exchange(pending_velocity,std::nullopt))v.velocity=*velocity;
-    if(loop_packet){v.velocity=loop_packet->parameters.velocity;v.doppler=loop_packet->parameters.doppler;v.loop_gain_db=gain_db;}
+    if(loop_packet){
+      v.velocity=loop_packet->parameters.velocity;v.doppler=loop_packet->parameters.doppler;v.loop_gain_db=gain_db;
+      v.minimum_distance=loop_packet->parameters.minimum_distance;v.maximum_distance=loop_packet->parameters.maximum_distance;
+    }
     v.record=std::make_shared<const unsigned char>(0);v.companion=std::move(companion);
     v.position=position;
-    v.location_flags=location_flags.value_or(source_sound_direct_location_flags_tu15(
-        Bytes(b.definition.sound).u16(0),Bytes(b.definition.sound_class).u16(10)));
+    v.location_flags=source_sound_direct_location_flags_tu15(Bytes(b.definition.sound).u16(0),Bytes(b.definition.sound_class).u16(10));
+    if(source_location) {
+      const Bytes where(*source_location);v.location_flags=where.u16(0);
+      if(v.location_flags&4u)v.minimum_distance=where.f32(0x34);
+      if(v.location_flags&8u)v.maximum_distance=where.f32(0x38);
+      if((v.minimum_distance && !std::isfinite(*v.minimum_distance)) ||
+          (v.maximum_distance && !std::isfinite(*v.maximum_distance)))
+        throw FormatError("Source impulse has invalid distance bounds");
+    }
     v.loop_packet=bool(loop_packet);
+    v.single_sound=!loop_packet || loop_packet->single_sound;
     v.script_record=std::move(script_record);
     if(forced)v.forced_script_permutation=script_selection->permutation;
     if(loop_packet)v.forced_script_permutation=loop_packet->permutation;
@@ -914,11 +1040,21 @@ struct MultiplayerAudio::State {
     v.pitch_range=unsigned(range);
     v.source_pitch_bits=std::bit_cast<std::uint32_t>(packet_pitch);
     v.permutation_seed=voice_seed;
+    if(effect && effect->filter){
+      const bool stereo=b.channels!=1;
+      if(const auto filter=source_sound_playback_filter_tu15(*effect->filter,control,filter_seed,stereo))
+        v.voice_filter=SdlSoundVoiceFilter{static_cast<SdlSoundFilterMode>(filter->mode),filter->q,filter->coefficients,stereo};
+    }
     if(loop_packet && loop_packet->fade_in_seconds) {
       v.fade=SoundPlaybackFade{1,-64.f,-1,std::int32_t(*loop_packet->fade_in_seconds*1000.f),true};
       const auto time=std::bit_cast<std::int32_t>(std::uint32_t(platform.elapsed_frames()/48));
       v.fade_db=source_sound_playback_fade(*v.fade,time);
     }
+    // Hold the parent and future phase-0 clips until the mixer can observe
+    // them in one publication. A shared deadline alone can already be due.
+    if(effect && effect->loops &&
+        (!source_location || (std::to_integer<unsigned>((*source_location)[3])&15u)<=1u))
+      presentation_frame=SdlSoundPlatform::staged_start_frame;
     if(continuation_enrolled.load()){
       v.playback=platform.create_voice_receipt(owner==none?sound:owner,parameters(v),presentation_frame);
       v.id=v.playback->id();
@@ -935,7 +1071,24 @@ struct MultiplayerAudio::State {
       while(auto c=this->completion(failed))acknowledge(failed,*c);
       destroy_voice(failed);if(record)record->current=false;throw;}
   }
-  void erase(std::uint64_t id,std::optional<SdlSoundCompletion> completed={}){
+  static std::array<std::byte,68> effect_location(const Voice& voice,const PlaybackEffect& effect) {
+    auto location=effect.location;
+    if(voice.position) {
+      source_sound_location_store_tu15(location,0xc,voice.position->x);
+      source_sound_location_store_tu15(location,0x10,voice.position->y);
+      source_sound_location_store_tu15(location,0x14,voice.position->z);
+    }
+    return location;
+  }
+  void defer_effect_retirement(Voice& voice,PlaybackRetirement reason) {
+    if(!voice.playback_effect)return;
+    auto effect=std::move(*voice.playback_effect);
+    voice.playback_effect.reset();
+    effect.location=effect_location(voice,effect);
+    retired_effects.push_back({voice.id,voice.owner,reason,std::move(effect)});
+  }
+  void erase(std::uint64_t id,std::optional<SdlSoundCompletion> completed={},
+      std::optional<PlaybackRetirement> reason={}){
     script_producer();
     auto &voice=voices.at(id);
     if(voice.script_record && voice.script_record->retirement)script_retirements.push_back(voice.script_record);
@@ -945,6 +1098,10 @@ struct MultiplayerAudio::State {
     }
     if((voice.completion || voice.companion) && !completed)
       throw FormatError("Native sound callback has no accounted packet");
+    const auto retirement=reason.value_or(completed && completed->status==SdlSoundCompletionStatus::Success?
+        PlaybackRetirement::Natural:completed && completed->status==SdlSoundCompletionStatus::Failure?
+        PlaybackRetirement::DeviceLost:PlaybackRetirement::Explicit);
+    if(retirement!=PlaybackRetirement::Reset)defer_effect_retirement(voice,retirement);
     // Optional bounded retirement observation. Read the already-accounted
     // native stream before destruction; never install a completion owner or
     // query the possibly retired World metadata. Ambient (loop track and
@@ -989,7 +1146,8 @@ struct MultiplayerAudio::State {
   }
   void shutdown()noexcept{
     shutdown_requested=true;closing=true;
-    try{while(!voices.empty())erase(voices.begin()->first);ambience.clear();object_loops.clear();phased_loops={};complete();drain_script_cancellations();}catch(...){}
+    try{while(!voices.empty())erase(voices.begin()->first,{},PlaybackRetirement::Reset);
+      ambience.clear();object_loops.clear();phased_loops={};retired_effects.clear();complete();drain_script_cancellations();}catch(...){}
     close_script_bindings();shutdown_requested=false;
   }
   void maybe_shutdown()noexcept{
@@ -998,7 +1156,9 @@ struct MultiplayerAudio::State {
   ~Core(){if(shutdown_requested)shutdown();}
   struct PhasedOutput final:SourceLoopPhasedOutputTu15 {
     Core& core;MultiplayerAudio& audio;
-    PhasedOutput(Core& c,MultiplayerAudio& a):core(c),audio(a){}
+    std::vector<std::uint64_t>* staged_starts;
+    PhasedOutput(Core& c,MultiplayerAudio& a,std::vector<std::uint64_t>* starts=nullptr)
+        :core(c),audio(a),staged_starts(starts){}
     const SoundVariationDefinition& metadata(std::uint32_t sound,unsigned range)override{
       if(!core.classic_sound(sound))throw FormatError("Native synchronized phase lacks its Classic sound route");
       return core.bank(sound,range).definition;
@@ -1011,11 +1171,15 @@ struct MultiplayerAudio::State {
     }
     bool supports_chunk_queue(std::uint32_t sound,unsigned range,unsigned permutation)override{
       const auto& bank=core.bank(sound,range);
-      return bank.chunk_counts.at(permutation)>0 && !bank.chunk_ends.at(permutation)->empty();
+      return bank.chunk_counts.at(permutation)>0 && !bank.pcm.at(permutation).stored().chunk_ends->empty();
     }
     bool active(std::uint64_t id)const override{return core.voices.contains(id);}
     std::uint64_t play(const MultiplayerLoopPacketTu15& input)override{
-      const auto voice=audio.play_loop_packet(input);return voice?voice->id():0;
+      const auto deadline=staged_starts?std::optional(SdlSoundPlatform::staged_start_frame):std::nullopt;
+      const auto voice=audio.play_loop_packet(input,deadline);
+      if(voice && staged_starts)try {staged_starts->push_back(voice->id());}
+      catch(...) {core.erase(voice->id(),{},PlaybackRetirement::Reset);throw;}
+      return voice?voice->id():0;
     }
     void parameters(std::uint64_t id,const MultiplayerLoopPacketParametersTu15& input,std::optional<Vec3> position)override{
       validate_loop_packet_parameters(input);
@@ -1059,6 +1223,114 @@ struct MultiplayerAudio::State {
       return audio.combined_loop_listener(location,maximum);
     }
   };
+  void discard_playback_effect(MultiplayerAudio& audio,std::uint64_t parent,const PlaybackEffect& effect) {
+    PhasedOutput output(*this,audio);
+    for(const auto& loop:*effect.loops)
+      source_loop_phased_remove_tu15(phased_loops,output,{loop.sound,parent,true});
+  }
+  void dispatch_playback_effect(MultiplayerAudio& audio,std::uint64_t parent,std::uint32_t emitter,
+      const PlaybackEffect& effect,unsigned phase,std::optional<PlaybackRetirement> reason={},
+      std::vector<std::uint64_t>* staged_starts=nullptr) {
+    Phase dispatch(object_loop_depth);
+    if(reason==PlaybackRetirement::DeviceLost) {
+      discard_playback_effect(audio,parent,effect);
+      return;
+    }
+    PhasedOutput output(*this,audio,staged_starts);
+    for(const auto& loop:*effect.loops) {
+      auto request=source_sound_loop_companion_request_tu15(loop.sound,effect.source_flags,none,none,
+          effect.location,loop.definition.flags,loop.gain_db,loop.flags,phase,
+          reason==PlaybackRetirement::Explicit,effect.bounds);
+      request.emitter_owner=emitter;
+      if(std::getenv("HALO2_NATIVE_PLAYBACK_EFFECT_TRACE")) {
+        const Bytes where(request.location);
+        std::cout<<"Native playback effect: parent="<<parent<<" loop="<<loop.sound<<" phase="<<phase
+            <<" reason="<<(reason?unsigned(*reason):0u)<<" source_flags="<<request.arguments[1]
+            <<" loop_flags="<<request.arguments[6]<<" gain_db="<<where.f32(8)
+            <<" location_flags="<<where.u16(0)<<" position="<<where.f32(0xc)<<','<<where.f32(0x10)<<','<<where.f32(0x14)<<'\n';
+      }
+      source_loop_phased_request_tu15(phased_loops,output,request,loop.definition,parent);
+    }
+  }
+  void publish_effect_starts(std::span<const std::uint64_t> starts,std::optional<std::uint64_t> deadline) {
+    bool published;
+    if(continuation_enrolled.load()) {
+      std::vector<SdlSoundPlatform::VoiceReceipt> receipts;
+      receipts.reserve(starts.size());
+      for(const auto id:starts)receipts.push_back(*voices.at(id).playback);
+      published=platform.publish_voice_starts(receipts,deadline);
+    }else published=platform.publish_voice_starts(starts,deadline);
+    if(!published)throw FormatError("Native playback effect lost its staged voice group");
+  }
+  void start_playback_effect(MultiplayerAudio& audio,std::uint64_t parent,const PreparedEffect& prepared,
+      std::array<std::byte,68> location,std::uint16_t source_flags,std::optional<std::uint64_t> deadline={}) {
+    if(!parent || !prepared.loops || (std::to_integer<unsigned>(location[3])&15u)>1u)return;
+    auto& voice=voices.at(parent);
+    const auto& definition=bank(voice.sound,0).definition;
+    // 128C6A keeps the full input location, then publishes these sound and
+    // class flags on the retained copy. 224590 reads that copy.
+    if(Bytes(definition.sound).u16(0)&8u)location[0]|=std::byte{1};
+    if(Bytes(definition.sound_class).u16(0xa)&4u)location[0]|=std::byte{0x80};
+    if(prepared.inherit_distances)location[1]|=std::byte{1};
+    std::optional<std::array<float,2>> bounds;
+    if(Bytes(location).u16(0)&0x100u)bounds=distance_bounds(voice);
+    const PlaybackEffect effect{prepared.loops,location,bounds,source_flags};
+    voice.playback_effect=effect;
+    std::vector<std::uint64_t> starts{parent};
+    try {dispatch_playback_effect(audio,parent,voice.owner,effect,0,{},&starts);}
+    catch(const FormatError& failure) {
+      voice.playback_effect.reset();
+      discard_playback_effect(audio,parent,effect);
+      if(closing)throw;
+      // The parent has already been admitted. An unavailable loop cannot
+      // replace its result or leave a partially attached controller behind.
+      starts.resize(1);
+      std::cerr<<"Native playback effect admission: parent="<<parent<<" "<<failure.what()<<'\n';
+    }catch(...) {
+      voice.playback_effect.reset();
+      discard_playback_effect(audio,parent,effect);
+      erase(parent,{},PlaybackRetirement::Reset);
+      throw;
+    }
+    try {publish_effect_starts(starts,deadline);}
+    catch(...) {
+      voice.playback_effect.reset();
+      discard_playback_effect(audio,parent,effect);
+      erase(parent,{},PlaybackRetirement::Reset);
+      throw;
+    }
+  }
+  void start_script_playback_effect(MultiplayerAudio& audio,std::uint64_t parent,const PreparedEffect& prepared,
+      float control,std::optional<Vec3> position,std::optional<std::uint64_t> deadline) {
+    if(!parent || !prepared.loops)return;
+    const auto& voice=voices.at(parent);
+    std::array<std::byte,68> location{};
+    location[3]=std::byte{static_cast<unsigned char>(position.has_value())};
+    if(!position)location[1]=std::byte{4}; // 18CAC0's centered 0x400 location.
+    // 18CDD0's common submit adds the actual parent channel flags before
+    // 128B10 copies the location later read by 224590.
+    location[0]|=std::byte(voice.location_flags&0xffu);
+    location[1]|=std::byte(voice.location_flags>>8);
+    source_sound_location_store_tu15(location,4,control);
+    PlaybackEffect where{prepared.loops,location,{},0};
+    location=effect_location(voice,where);
+    start_playback_effect(audio,parent,prepared,location,position?3u:1u,deadline);
+  }
+  void sustain_playback_effects(MultiplayerAudio& audio) {
+    std::vector<std::uint64_t> parents;
+    for(const auto& [id,voice]:voices)if(voice.playback_effect)parents.push_back(id);
+    for(const auto id:parents) {
+      const auto found=voices.find(id);
+      if(found==voices.end() || !found->second.playback_effect)continue;
+      auto effect=*found->second.playback_effect;
+      effect.location=effect_location(found->second,effect);
+      dispatch_playback_effect(audio,id,found->second.owner,effect,1);
+    }
+  }
+  void complete_playback_effects(MultiplayerAudio& audio) {
+    for(const auto& retired:std::exchange(retired_effects,{}))
+      dispatch_playback_effect(audio,retired.parent,retired.emitter,retired.effect,2,retired.reason);
+  }
  };
  std::shared_ptr<Core> core;
  State(const Cache&cache,std::uint32_t seed,const SdlSoundPlatformConfiguration&configuration,
@@ -1137,7 +1409,9 @@ void validate_loop_packet_parameters(const MultiplayerLoopPacketParametersTu15& 
   }
   if(!std::isfinite(value.pitch_cents) || !std::isfinite(value.gain_db) ||
       !std::isfinite(value.gain_control) || value.gain_control<0 || !std::isfinite(value.velocity.x) ||
-      !std::isfinite(value.velocity.y) || !std::isfinite(value.velocity.z))
+      !std::isfinite(value.velocity.y) || !std::isfinite(value.velocity.z) ||
+      (value.minimum_distance && !std::isfinite(*value.minimum_distance)) ||
+      (value.maximum_distance && !std::isfinite(*value.maximum_distance)))
     throw FormatError("Native loop packet requires finite authored pitch/gain and caller control");
 }
 }
@@ -1178,6 +1452,7 @@ void MultiplayerAudio::loop_packet_parameters(const VoiceReceipt& receipt,
   voice.gain_db=input.gain_db+source_sound_control_gain(bank.definition,input.gain_control);
   if(input.combined_amplitudes)voice.combined=State::Core::combined_bins(*input.combined_amplitudes);
   voice.velocity=input.velocity;voice.doppler=input.doppler;
+  voice.minimum_distance=input.minimum_distance;voice.maximum_distance=input.maximum_distance;
   state->parameters(voice,state->parameters(voice));
 }
 bool MultiplayerAudio::loop_packet_accepts_input(const VoiceReceipt& receipt)const {
@@ -1204,6 +1479,8 @@ bool MultiplayerAudio::queue_loop_packet_phase(const VoiceReceipt& receipt,std::
   if(!voice.loop_packet)throw FormatError("Native loop phase requires its actual loop packet voice");
   if(voice.chunks || !(voice.playback?state->platform.status(*voice.playback):state->platform.status(voice.id)).accepts_input)return false;
   if(sound==none || !state->classic_sound(sound))return false;
+  if(voice.single_sound && (voice.sound!=sound || voice.pitch_range!=pitch_range))
+    throw FormatError("Single-sound loop cannot switch its retained sound or range");
   const auto& previous=state->bank(voice.sound,voice.pitch_range);
   const auto& next=state->bank(sound,pitch_range);
   if(voice.position)(void)state->bank(sound,0);
@@ -1366,7 +1643,7 @@ void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& inp
       !std::isfinite(location.f32(8)) || !std::isfinite(duration) || duration<0)
     throw FormatError("Object loop request escapes its original caller domain");
   const auto key=std::pair{args[0],args[2]};auto found=state->object_loops.find(key);
-  auto phased=state->phased_loops.owners.find(key);
+  auto phased=state->phased_loops.owners.find({args[0],args[2]});
   if(phased==state->phased_loops.owners.end() && type!=0){
     const auto shared=state->phased_loops.owners.find({args[0],args[0]|0x6000u});
     if(shared!=state->phased_loops.owners.end() && shared->second.combined)phased=shared;
@@ -1436,6 +1713,9 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
   const auto state=state_->core;State::Core::Mutation mutation(*state);state->metadata_current();
   State::Core::Phase phase(state->object_loop_depth);
   if(!std::isfinite(elapsed) || elapsed<0)throw FormatError("Object loop frame requires a finite elapsed interval");
+  // 18EE50 retires consumed sounds before 223DA0 sustains their controllers.
+  if(!state->retired_effects.empty() || std::ranges::any_of(state->voices,[](const auto& row){return row.second.playback_effect.has_value();}))
+    update();
   {
     // 127400 gives each listener its camera's velocity: here, the change in
     // each object-audio view's position over this game frame. A jump of
@@ -1495,6 +1775,7 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
           clock,state->common_secondary(),false);
     }
   };
+  state->sustain_playback_effects(*this);
   State::Core::PhasedOutput phased(*state,*this);source_loop_phased_frame_tu15(state->phased_loops,phased,elapsed);
   for(auto& [key,owner]:state->phased_loops.owners)
     details(owner.definition,owner.location,owner.emitter,owner.detail_deadlines,owner.detail_voices,
@@ -1529,6 +1810,8 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
           state->centered_scale(loop.location,bank.definition)};
       parameters.velocity={location.f32(0x1c),location.f32(0x20),location.f32(0x24)};
       parameters.doppler=(loop.source_flags&2u)!=0;
+      if(location.u16(0)&4u)parameters.minimum_distance=location.f32(0x34);
+      if(location.u16(0)&8u)parameters.maximum_distance=location.f32(0x38);
       const auto choose=[&]{return unsigned(source_looping_sound_permutation(bank.chances,
           state->bank(authored.loop).loop,state->common_secondary()));};
       std::optional<VoiceReceipt> receipt;
@@ -1537,6 +1820,7 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
         //playback+18 pitch before selecting the first normal permutation.
         auto& seed=state->common_secondary();seed=seed*0x19660du+0x3c6ef35fu;
         MultiplayerLoopPacketTu15 input{authored.loop,loop.owner,0,0,choose(),parameters,position};
+        input.single_sound=true;
         if(authored.flags&1u)input.fade_in_seconds=authored.fade_in;
         receipt=play_loop_packet(input);
         if(!receipt)continue;
@@ -1606,6 +1890,13 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::source_impulse(std::uin
     if(location==1)position=at;else relative=Vec3{-at.y,at.z,at.x};
   }else if(location)throw FormatError("Source impulse has an unknown location type");
   const auto owner=flags&8u?raw.u32(0x50):none;
+  // 223B20 consumes +0x98 only with an explicit playback reference. The
+  // same retained definition owns the parent DSP and its companion loops.
+  std::optional<State::Core::PreparedEffect> effect;
+  if(flags&0x100u)
+    if(const auto reference=state->source_effect(raw.u32(0x98)))effect=state->prepare_effect(*reference);
+  std::array<std::byte,68> where{};
+  std::copy_n(request.begin()+0xc,where.size(),where.begin());
   // The request's location carries its source velocity (+0x28, location+0x1C).
   struct PendingVelocity {std::optional<Vec3>& slot;~PendingVelocity(){slot.reset();}} pending_velocity{state->pending_velocity};
   if(position) {
@@ -1615,7 +1906,7 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::source_impulse(std::uin
     state->pending_velocity=velocity;
   }
   const auto voice=state->play(sound,gain,kind,owner,view,false,none,0,1,{},control,position,
-      {},forced,{},nullptr,{},nullptr,raw.u16(0xc));
+      {},forced,{},nullptr,{},nullptr,&where,effect?&*effect:nullptr);
   if(voice && relative){
     auto& v=state->voices.at(voice);v.head_relative=relative;state->parameters(v,state->parameters(v));
   }
@@ -1624,12 +1915,12 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::source_impulse(std::uin
   // other-BSP silence every frame, starting with this one's.
   if(voice && !location && (raw.u16(0xc)&0x1000u)) {
     auto& v=state->voices.at(voice);const auto& definition=state->bank(sound,0).definition;
-    std::array<std::byte,68> where{};std::copy_n(request.begin()+0xc,where.size(),where.begin());
     v.impulse_gain_db=v.gain_db-source_sound_control_gain(definition,control);
     v.centered_location=where;
     const float lowered=v.impulse_gain_db+source_sound_control_gain(definition,state->centered_scale(where,definition));
     if(lowered!=v.gain_db){v.gain_db=lowered;state->parameters(v,state->parameters(v));}
   }
+  if(effect)state->start_playback_effect(*this,voice,*effect,where,raw.u16(4));
   return voice?std::optional<Voice>(voice):std::nullopt;
 }
 void MultiplayerAudio::impulse(std::uint32_t sound,float gain,MultiplayerAudioKind kind,std::uint32_t owner,unsigned view){
@@ -1647,9 +1938,10 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::schedule_impulse(std::u
     std::optional<MultiplayerAudioEffect> effect){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
   if(sound==none)return std::nullopt;
   if(!std::isfinite(control)||control<0)throw FormatError("Invalid native sound caller gain");
-  struct Pending {std::optional<tu15_sound_mono_distortion::Parameters>& slot;~Pending(){slot.reset();}} pending{state->pending_effect};
-  if(effect)state->pending_effect=state->effect_parameters(*effect);
-  const auto voice=state->play(sound,0,kind,owner,view,false,none,0,1,std::move(completion),control,{},frame);
+  const auto prepared=effect?std::optional(state->prepare_effect(*effect)):std::nullopt;
+  const auto voice=state->play(sound,0,kind,owner,view,false,none,0,1,std::move(completion),control,{},frame,
+      {},{},nullptr,{},nullptr,nullptr,prepared?&*prepared:nullptr);
+  if(prepared)state->start_script_playback_effect(*this,voice,*prepared,control,{},frame);
   return voice?std::optional<Voice>(voice):std::nullopt;
 }
 std::shared_ptr<SourceScriptSoundClockNative64Tu15> MultiplayerAudio::make_script_sound_clock(){
@@ -1762,13 +2054,10 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_im
        (position && (!std::isfinite(position->x)||!std::isfinite(position->y)||!std::isfinite(position->z))))
       throw FormatError("Invalid prepared native script sound input");
     auto record=std::make_shared<State::Core::ScriptVoiceRecord>();
-    struct PendingEffect {
-      std::optional<tu15_sound_mono_distortion::Parameters>& slot;
-      ~PendingEffect(){slot.reset();}
-    } pending{state->pending_effect};
-    if(effect)state->pending_effect=state->effect_parameters(*effect);
+    const auto prepared_effect=effect?std::optional(state->prepare_effect(*effect)):std::nullopt;
     const auto voice=state->play(preparation->sound,0,kind,owner,view,false,none,0,1,
-        std::move(completion),control,position,frame,preparation->selection,record,first_selection);
+        std::move(completion),control,position,frame,preparation->selection,record,first_selection,
+        {},nullptr,nullptr,prepared_effect?&*prepared_effect:nullptr);
     if(!voice){(void)preparation->clock->finish_failure(*preparation->admission);return {};}
     id=voice;
     const auto found=state->voices.find(voice);
@@ -1789,6 +2078,7 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_prepared_script_im
     if(!preparation->clock->finish_voice(*preparation->admission,*receipt))
       throw FormatError("Native script voice lost its actual clock admission");
     record->retirement=preparation->clock->retirement_callback(*preparation->admission,*receipt);
+    if(prepared_effect)state->start_script_playback_effect(*this,voice,*prepared_effect,control,position,frame);
     return voice;
   }catch(...){
     const auto failure=std::current_exception();
@@ -1822,6 +2112,10 @@ bool MultiplayerAudio::request_script_stop(const SourceScriptSoundClockVoice64Tu
   // Sample any active fade at this time, including a repeated stop request.
   auto fade=voice.fade.value_or(SoundPlaybackFade{0,0,0,0,false});
   source_sound_request_stop_tu15(fade,time);voice.fade=fade;
+  // 128ED2 calls 224540 before the fading parent leaves the device. The
+  // wrapper dispatches reason 1 and detaches, so later retirement is silent.
+  state->defer_effect_retirement(voice,State::Core::PlaybackRetirement::Explicit);
+  state->complete_playback_effects(*this);
   return true;
 }
 void MultiplayerAudio::listeners(std::span<const Vec3> positions,
@@ -1901,9 +2195,10 @@ std::optional<MultiplayerAudio::Voice> MultiplayerAudio::schedule_impulse_at(std
   if(sound==none)return {};
   if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(position.z)||!std::isfinite(control)||control<0)
     throw FormatError("Invalid world audio emitter or caller control");
-  struct Pending {std::optional<tu15_sound_mono_distortion::Parameters>& slot;~Pending(){slot.reset();}} pending{state->pending_effect};
-  if(effect)state->pending_effect=state->effect_parameters(*effect);
-  const auto id=state->play(sound,0,kind,owner,0,false,none,0,1,{},control,position,frame);
+  const auto prepared=effect?std::optional(state->prepare_effect(*effect)):std::nullopt;
+  const auto id=state->play(sound,0,kind,owner,0,false,none,0,1,{},control,position,frame,
+      {},{},nullptr,{},nullptr,nullptr,prepared?&*prepared:nullptr);
+  if(prepared)state->start_script_playback_effect(*this,id,*prepared,control,position,frame);
   return id?std::optional<Voice>(id):std::nullopt;
 }
 std::vector<MultiplayerAudio::Voice> MultiplayerAudio::interface_loop(std::uint32_t tag,std::uint32_t owner,unsigned view) {auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
@@ -1938,9 +2233,10 @@ void MultiplayerAudio::stop_voice_impl(Voice id) {auto state=state_->core;State:
         return;
       }
     }
-    state->erase(id);
+    state->erase(id,{},State::Core::PlaybackRetirement::Explicit);
   }
   state->complete();
+  state->complete_playback_effects(*this);
 }
 bool MultiplayerAudio::voice_active(Voice id) const {auto state=state_->core;state->script_producer();return state->voices.contains(id);}
 void MultiplayerAudio::ambient(std::span<const MultiplayerAmbientTarget> targets,float elapsed){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
@@ -2017,7 +2313,7 @@ void MultiplayerAudio::update(){auto state=state_->core;State::Core::Mutation mu
       const auto elapsed=std::bit_cast<std::int32_t>(std::uint32_t(time)-std::uint32_t(v.fade->start));
       const bool falling=v.fade->start>v.fade->end;
       if(falling && (v.fade_db+v.gain_db<=-64.f || elapsed>=0)) {
-        const auto id=v.id;++it;state->erase(id);continue;
+        const auto id=v.id;++it;state->erase(id,{},State::Core::PlaybackRetirement::Fade);continue;
       }
       if(!falling && std::bit_cast<std::int32_t>(std::uint32_t(time)-std::uint32_t(v.fade->end))>=0)
         v.fade.reset();
@@ -2026,17 +2322,21 @@ void MultiplayerAudio::update(){auto state=state_->core;State::Core::Mutation mu
     bool completed=false,failed=false;
     std::optional<SdlSoundCompletion> packet;
     while(auto c=state->completion(v)){completed=true;packet=c->value;failed|=c->value.status!=SdlSoundCompletionStatus::Success;state->acknowledge(v,*c);}
-    if(v.loop_packet && !failed)try{(void)state->pump_chunks(v);}
+    if(v.chunked_packet && !failed)try{(void)state->pump_chunks(v);}
       catch(...){const auto id=v.id;++it;state->erase(id);state->complete();throw;}
-    if(completed){if(v.loop_packet && !failed &&
+    if(completed){if(v.chunked_packet && !failed &&
           (v.chunks || (v.playback?state->platform.status(*v.playback):state->platform.status(v.id)).pending_packets)){++it;}
       else if(v.loop&&!failed){state->packet(v,true);if(state->closing)break;++it;}
       else{const auto id=v.id;++it;state->erase(id,packet);}}
     else ++it;
   }
   state->complete();
+  state->complete_playback_effects(*this);
 }
-void MultiplayerAudio::stop(){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();while(!state->voices.empty())state->erase(state->voices.begin()->first);state->ambience.clear();state->object_loops.clear();state->phased_loops={};state->complete();state->drain_script_cancellations();}
+void MultiplayerAudio::stop(){auto state=state_->core;State::Core::Mutation mutation(*state);state->script_producer();
+  while(!state->voices.empty())state->erase(state->voices.begin()->first,{},State::Core::PlaybackRetirement::Reset);
+  state->ambience.clear();state->object_loops.clear();state->phased_loops={};state->retired_effects.clear();
+  state->complete();state->drain_script_cancellations();}
 std::size_t MultiplayerAudio::voices()const{auto state=state_->core;state->script_producer();return state->voices.size();}
 std::vector<float> MultiplayerAudio::render(std::size_t frames){auto state=state_->core;state->script_producer();state->metadata_current();return state->platform.render(frames);}
 std::uint64_t MultiplayerAudio::mixed_frames()const{auto state=state_->core;state->script_producer();return state->platform.rendered_frames();}
@@ -2127,6 +2427,7 @@ struct MultiplayerAudio::ContinuationSnapshot {
     decltype(Core::object_loops) object_loops;
     SourceLoopPhasedStateTu15 phased_loops;
     decltype(Core::retired) retired;
+    decltype(Core::retired_effects) retired_effects;
     decltype(Core::listeners) listeners;
     decltype(Core::listener_frames) listener_frames;
     decltype(Core::listener_velocities) listener_velocities,listener_previous;
@@ -2369,7 +2670,7 @@ MultiplayerAudio::Checkpoint MultiplayerAudio::checkpoint()const{
     image->clocks.push_back({clock,std::move(cp)});
   }
   for(const auto&p:c->script_preparations)image->preparations.push_back({p,p->status.load(),p->clock,p->admission,p->sound,p->selection});
-  auto&v=image->values;v.banks=c->banks;v.voices=c->voices;v.ambience=c->ambience;v.object_loops=c->object_loops;v.phased_loops=c->phased_loops;v.retired=c->retired;
+  auto&v=image->values;v.banks=c->banks;v.voices=c->voices;v.ambience=c->ambience;v.object_loops=c->object_loops;v.phased_loops=c->phased_loops;v.retired=c->retired;v.retired_effects=c->retired_effects;
   v.listeners=c->listeners;v.listener_frames=c->listener_frames;v.listener_velocities=c->listener_velocities;v.listener_previous=c->listener_previous;v.random=c->random;v.class_gain=c->class_gain;v.master=c->master;v.next_packet=c->next_packet;
   v.loop_views=c->loop_views;v.loop_bsp=c->loop_bsp;v.loop_bsp_index=c->loop_bsp_index;v.loop_views_bound=c->loop_views_bound;
   v.paused=c->paused;v.script_bound=c->script_bound.load();v.native_metadata=c->native_metadata;v.loop_metadata=c->loop_metadata;v.script_epoch=c->script_epoch;
@@ -2654,7 +2955,7 @@ bool MultiplayerAudio::commit(PreparedReplacement&p,HeldPublication&h)noexcept{
   c->script_epoch->alive.store(false);
   for(auto&clock:data->clocks)if(!clock.owner->commit(clock.prepared))std::terminate();
   auto&v=data->values;
-  c->banks.swap(v.banks);c->voices.swap(v.voices);c->ambience.swap(v.ambience);c->object_loops.swap(v.object_loops);std::swap(c->phased_loops,v.phased_loops);c->retired.swap(v.retired);
+  c->banks.swap(v.banks);c->voices.swap(v.voices);c->ambience.swap(v.ambience);c->object_loops.swap(v.object_loops);std::swap(c->phased_loops,v.phased_loops);c->retired.swap(v.retired);c->retired_effects.swap(v.retired_effects);
   c->listeners.swap(v.listeners);c->listener_frames.swap(v.listener_frames);c->listener_velocities.swap(v.listener_velocities);c->listener_previous.swap(v.listener_previous);std::swap(c->random.seed,v.random.seed);c->random.stores.swap(v.random.stores);
   c->loop_views.swap(v.loop_views);c->loop_bsp.swap(v.loop_bsp);std::swap(c->loop_bsp_index,v.loop_bsp_index);std::swap(c->loop_views_bound,v.loop_views_bound);
   std::swap(c->class_gain,v.class_gain);std::swap(c->master,v.master);std::swap(c->next_packet,v.next_packet);

@@ -177,6 +177,7 @@ mod ffi {
         vehicle_field_of_view: u32,
         crt_filter: bool,
         vertical_split: bool,
+        object_motion_blur: bool,
         ray_samples: u32,
         bounce_depth: u32,
     }

@@ -7,8 +7,8 @@
 namespace halo2 {
 // A native render submission may contain several original game ticks. A
 // script's capture request must reach its GPU consumer before a later tick
-// replaces that scene. Retain the unused, already admitted budget; never
-// change a script sleep, manufacture a game tick, or count it twice.
+// replaces that scene. A live presentation deadline can also yield a large
+// catch-up batch. Retain the unused, already admitted budget in both cases.
 class CampaignCaptureCarry {
 public:
   CampaignFrameTime admit(CampaignFrameTime current,bool paused) {
@@ -23,7 +23,7 @@ public:
   }
   void defer(const CampaignFrameTime &frame,int completed,int remaining) {
     if(remaining<0 || completed<0 || remaining!=frame.ticks-completed)
-      throw std::invalid_argument("Deferred campaign capture lost its tick budget");
+      throw std::invalid_argument("Deferred campaign frame lost its tick budget");
     const auto seconds=double(frame.elapsed)-accepted_campaign_frame_elapsed(frame.elapsed,frame.ticks,completed);
     ticks_=remaining;seconds_=seconds;
   }
@@ -34,14 +34,14 @@ private:
   double seconds_{};
 };
 
-// Shared by the production caller and the scheduling regression. Admission
-// and step own the original lifecycle/restore decisions. Only the actual
-// pending capture consumer can request an intervening render submission.
-template<class Admitted,class Step,class CapturePending>
-void campaign_frame_ticks(int &remaining,Admitted admitted,Step step,CapturePending capture_pending) {
+// Admission and step own the original lifecycle/restore decisions. Return
+// whether the host asked to present with more admitted ticks still pending.
+template<class Admitted,class Step,class PresentDue>
+bool campaign_frame_ticks(int &remaining,Admitted admitted,Step step,PresentDue present_due) {
   while(remaining>0 && admitted()) {
     --remaining;step();
-    if(capture_pending())break;
+    if(remaining>0 && present_due())return true;
   }
+  return false;
 }
 }

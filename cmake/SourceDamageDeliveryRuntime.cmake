@@ -1,6 +1,7 @@
 add_library(halo2_source_damage_delivery STATIC src/gameplay/units/source_damage_delivery_runtime_generated.cpp)
 target_include_directories(halo2_source_damage_delivery PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_damage_delivery PUBLIC cxx_std_20)
+target_link_libraries(halo2_source_damage_delivery PRIVATE halo2_native_weapon_effect_dispatch_tu15)
 target_link_libraries(halo2_systems PUBLIC halo2_source_damage_delivery)
 if(MSVC)
     target_compile_options(halo2_source_damage_delivery PRIVATE /fp:strict)

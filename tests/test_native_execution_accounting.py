@@ -53,7 +53,7 @@ static void run_500(State &s) {
  if(s.native)throw std::runtime_error("before body");
  if(s.services.instruction){s.services.instruction(0x500u);}
 }
-static void run_600(State &s) {
+static void run_600(State &s, const std::function<void()> &observer={}) {
  if(s.services.instruction){s.services.instruction(0x600u);}++s.visits;
 }
 static void run_700(State &s) {
@@ -123,6 +123,23 @@ class Accounting(unittest.TestCase):
         self.assertEqual(report['omitted_records'],0);self.assertEqual(report['active_scopes'],0)
         self.assertFalse(report['native_closure_proved'])
         self.assertLess((self.directory/'counts.json').stat().st_size,1_048_576)
+
+    def test_specialized_reference_requires_exact_prepared_source_and_records_its_origin(self):
+        source='static void run_100(State &s) {s.instruction_literal(0x100u);}\n'
+        for symbol in ('native_frame_misc_reference_100', 'native_frame_misc_reference_100_cubic_base'):
+            reference=source.replace('static void run_100', f'void {symbol}')
+            prepared=source+reference
+            with self.subTest(symbol=symbol), mock.patch('specialize_native_operands.specialize',return_value=(prepared,{})):
+                generated,manifest=instrument(prepared,source,'src/fixture_generated.cpp')
+                body=next(row for row in manifest['functions']if row['symbol']==symbol)
+                self.assertEqual(body['canonical_reference_owner'],'100')
+                self.assertEqual(body['canonical_body_sha256'],hashlib.sha256(source.rstrip().encode()).hexdigest())
+                self.assertEqual(body['source_body_semantics'],'specialized_reference_sites')
+                self.assertEqual(generated.count('::halo2::execution_accounting::record_literal('),2)
+                with self.assertRaisesRegex(ValueError,'failed complete operand specialization check'):
+                    instrument(source+reference.replace('0x100u','0x101u'),source,'src/fixture_generated.cpp')
+                with self.assertRaisesRegex(ValueError,'absent from canonical source'):
+                    instrument(source+reference.replace('_reference_100','_reference_101'),source,'src/fixture_generated.cpp')
 
     def test_native_service_sites_require_exact_source_hash_without_rewriting_counts(self):
         name='src/native-service.hpp';source='inline void service(State &s){s.instruction_literal(0x33b590u);s.instruction_literal(0x33b595u);s.instruction_literal(0x33b597u);}\n'

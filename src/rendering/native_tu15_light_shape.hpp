@@ -10,6 +10,7 @@
 // HALO2_CENSUS_NATIVE_BRIDGES=1 also admits the uncursored census callbacks
 // (C3AB0..C3DB4 holds no service PC).
 #include "rendering/native_tu15_light_shape_systems.hpp"
+#include "pstencil/native_tu15_light_shape_written.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
 #include "physics/runtime/native_tu15_required_owner_policy.hpp"
 #include "physics/runtime/physics_world_runtime_internal.hpp"
@@ -41,7 +42,8 @@ template<class State>bool policy_admitted(const State&s){
            s.services.instruction.target_type()!=*c->callback_type||c->executor!=std::this_thread::get_id()||
            !c->literal_service_sites||c->service_sites.size()!=3||c->service_sites[0]!=0x38846eu||
            c->service_sites[1]!=0x21f590u||c->service_sites[2]!=0x33b595u||
-           (s.observe&&!c->observation_only_stores)||(c->first_trace&&*c->first_trace)||
+           (s.observe&&!c->observation_only_stores&&!pstencil::LightShapeWrittenObserver::qualified(s.observe))||
+           (c->first_trace&&*c->first_trace)||
            (c->second_trace&&*c->second_trace))return false;
     }else if(s.instruction_cursor||s.literal_service_sites||s.observe)return false;
     return true;

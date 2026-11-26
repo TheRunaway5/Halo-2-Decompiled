@@ -8,34 +8,12 @@
 // (the draw's own material descriptor), the vertex basis varyings, and the
 // GpuMaterial flags written by material_response (scene.cpp).
 const uint traceDetailStage1Flag=8192u,traceBumpStage2Flag=16384u,
-    traceBumpStage1Flag=32768u,traceForwardCombinerFlag=65536u;
-// The retail NV2A register combiner, reading the bound material's program.
-#define H2_COMBINER_WORD(index) traceSurfaceSource.program[(index)/4u][(index)%4u]
-#include "combiner.glsl"
+    traceBumpStage1Flag=32768u;
+const uint traceVisorSceneReflectionFlag=33554432u;
 // Unlit albedo of the surface, from the source base colour `base` that
 // tracePrimarySurface already sampled.
 vec3 traceSourceAlbedo(TraceMaterial material,vec2 rawUV,vec3 base) {
     uint flags=material.texture.w;
-    // Only the plain 2D stage layout is evaluated here (stage 0 PROJECT2D);
-    // texture-program passes keep their sampled base colour.
-    if((flags&traceForwardCombinerFlag)!=0u && traceSurfaceSource.sourceFlags.w==0u && (word(54u)&31u)==1u) {
-        // The forward texture pass (stencil_texture vertex body): c18
-        // transforms the base once, c19 the detail, c20.xy/zw stages 2/3.
-        vec2 coordinates[4];
-        vec2 b=rawUV*traceSurfaceSource.forwardTransforms[0].xy+traceSurfaceSource.forwardTransforms[0].zw;
-        coordinates[0]=b;
-        coordinates[1]=b*traceSurfaceSource.forwardTransforms[1].xy+traceSurfaceSource.forwardTransforms[1].zw;
-        coordinates[2]=b*traceSurfaceSource.forwardTransforms[2].xy;
-        coordinates[3]=b*traceSurfaceSource.forwardTransforms[2].zw;
-        vec4 samples[4];
-        samples[0]=texture(traceSurfaceTexture0,coordinates[0]);
-        samples[1]=texture(traceSurfaceTexture1,coordinates[1]);
-        samples[2]=texture(traceSurfaceTexture2,coordinates[2]);
-        samples[3]=texture(traceSurfaceTexture3,coordinates[3]);
-        // Only PROJECT2D stages are fetched; others read zero, as on NV2A.
-        for(uint i=0u;i<4u;++i)if(((word(54u)>>(5u*i))&31u)!=1u)samples[i]=vec4(0);
-        return runCombiners(samples,traceSurfaceSource.sourceDiffuseColor,vec4(0,0,0,1)).rgb;
-    }
     if((flags&traceDetailStage1Flag)!=0u) {
         // lightmap_tex_detail modulates the base by its detail map. Apply the
         // detail relative to its own average (the last mip), so the authored
@@ -85,19 +63,77 @@ vec3 traceEnvironmentFace(uint record,uint face,vec2 uv) {
     vec3 t01=unpackUnorm4x8(tracePixels[start+uint(b.y)*size+uint(a.x)]).rgb,t11=unpackUnorm4x8(tracePixels[start+uint(b.y)*size+uint(b.x)]).rgb;
     return mix(mix(t00,t10,weight.x),mix(t01,t11,weight.x),weight.y);
 }
-vec3 traceAtlasEnvironment(uint record,vec3 direction) {
+vec3 traceAtlasEnvironment(TraceMaterial material,vec3 direction) {
     vec3 a=abs(direction);uint face;vec2 st;float major;
     if(a.x>=a.y && a.x>=a.z) {major=a.x;face=direction.x>0.0?0u:1u;st=vec2(direction.x>0.0?-direction.z:direction.z,-direction.y);}
     else if(a.y>=a.z) {major=a.y;face=direction.y>0.0?2u:3u;st=vec2(direction.x,direction.y>0.0?direction.z:-direction.z);}
     else {major=a.z;face=direction.z>0.0?4u:5u;st=vec2(direction.z>0.0?direction.x:-direction.x,-direction.y);}
-    return traceEnvironmentFace(record,face,st/max(major,1.e-6)*.5+.5);
+    vec2 uv=st/max(major,1.e-6)*.5+.5;
+    uint record=material.detail.y;
+    vec3 sharp=traceEnvironmentFace(record,face,uv);
+    // Explicit material finishes can use the authored cube's next mip
+    // without changing the reflection color, strength or mask.
+    const uint environmentMipFlag=2097152u;
+    if(material.detail.w==0u || (material.texture.w&environmentMipFlag)==0u)return sharp;
+    float blend=clamp((material.response.x*material.response.x-.04)*5.0,0.0,1.0);
+    if((material.texture.w&traceVisorSceneReflectionFlag)!=0u)
+        blend=max(blend,0.5);
+    if(blend==0.0)return sharp;
+    uint size=tracePixels[record];
+    return mix(sharp,traceEnvironmentFace(record+1u+6u*size*size,face,uv),blend);
+}
+vec3 traceAuthoredEnvironment(TraceMaterial material,vec3 position,vec3 normal,vec3 smoothNormal,vec3 geometric,
+                             vec3 incoming,float sourceAlpha,vec3 sourceBaked,bool localReflections) {
+    if(material.detail.y==0u)return vec3(0);
+    // Independent environment passes use the texture pass's destination
+    // alpha. The chamber's combined cube also uses that alpha and weights
+    // it by its baked light. The original light-angle attenuation is
+    // approximated by the path tracer's available RGB irradiance guide.
+    float mask=traceSurfaceReflectionMask(material,sourceAlpha);
+    const uint chamberBakedReflectionFlag=8388608u;
+    if((material.texture.w&chamberBakedReflectionFlag)!=0u)
+        mask=clamp(2.0*mask*clamp(material.glancingTint.a*dot(sourceBaked,vec3(1)),0.0,1.0),0.0,1.0);
+    bool visor=(material.texture.w&traceVisorSceneReflectionFlag)!=0u;
+    // The curved visor keeps a little of the authored relief in the cube.
+    // Its scene ray follows the lens curvature instead of the texture grain.
+    vec3 reflectionNormal=visor?traceNormalize(mix(smoothNormal,normal,0.35),smoothNormal):normal;
+    float strength=traceReflection(material,reflectionNormal,incoming)*mask;
+    if(strength<=0.0)return vec3(0);
+    vec3 radiance=traceAtlasEnvironment(material,reflect(incoming,reflectionNormal));
+    const uint nearbySceneReflectionFlag=4194304u;
+    if(localReflections && (material.texture.w&nearbySceneReflectionFlag)!=0u) {
+        const float reach=12.0;
+        vec3 direction=traceMirrorDirection(visor?smoothNormal:normal,geometric,incoming);
+        TraceHit hit;
+        if(traceClosest(position+geometric*(traceEpsilon*2.0),direction,reach,hit)) {
+            // The cube supplies the room's distant response. Substitute some
+            // of it with the nearby hit, inside the same authored mask.
+            float gloss=1.0-material.response.x;
+            float weight=gloss*(1.0-smoothstep(.4*reach,reach,hit.distance));
+            vec3 nearby=traceFiniteMirror(traceReflectedHitRadiance(hit,direction));
+            // This one sharp ray is a local accent. Broad finishes keep most
+            // of the filtered cube and bright hit radiance keeps its hue.
+            float peak=max(nearby.r,max(nearby.g,nearby.b));
+            nearby/=max(peak,1.0);
+            if(visor) {
+                // Keep the source reflection dominant. Unlit hits have no
+                // secondary field to substitute, and close hits can be the
+                // adjacent helmet shell.
+                weight*=peak>0.0?0.25*smoothstep(.05,.4,hit.distance):0.0;
+            } else weight*=gloss*gloss;
+            radiance=mix(radiance,nearby,weight);
+        }
+    }
+    return radiance*traceReflectionTint(material,reflectionNormal,incoming)*strength;
 }
 // Samples the authored bump map (expanded to a tangent-space normal).
 // Sample before any divergent discard: mip selection uses derivatives.
-bool traceSampleBump(TraceMaterial material,vec2 rawUV,out vec3 local) {
+bool traceSampleBump(TraceMaterial material,vec2 rawUV,TraceObjectSurface objectSurface,out vec3 local) {
     uint flags=material.texture.w;
     vec3 texel;
-    if((flags&traceBumpStage2Flag)!=0u)
+    if(objectSurface.hasBump)
+        texel=objectSurface.bump;
+    else if((flags&traceBumpStage2Flag)!=0u)
         texel=texture(traceSurfaceTexture2,rawUV*traceSurfaceSource.bumpTransform.xy+traceSurfaceSource.bumpTransform.zw).rgb;
     else if((flags&traceBumpStage1Flag)!=0u)
         texel=texture(traceSurfaceTexture1,rawUV*traceSurfaceSource.ambientBumpDetail.xy+traceSurfaceSource.ambientBumpDetail.zw).rgb;

@@ -37,6 +37,7 @@
 #include "halo2/source_world_depth_scope.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/temporal_upscaler.hpp"
+#include "rendering/renderer/object_motion_blur_history.hpp"
 #include "rendering/renderer/temporal_geometry.hpp"
 #include "halo2/pstencil/light_response_material.hpp"
 #include "halo2/pstencil/texture_accumulation_2003.hpp"
@@ -124,6 +125,8 @@
 #include <set>
 #include <sstream>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace halo2 {
@@ -336,6 +339,16 @@ struct Renderer::Impl {
     Upscaler active_upscaler=Upscaler::Off;
     UpscalingQuality active_upscaling_quality=UpscalingQuality::Quality;
     std::unique_ptr<TemporalUpscaler> temporal_upscaler;
+    std::unique_ptr<ObjectMotionBlurPass> object_motion_blur;
+    struct ObjectMotionView {
+        ObjectMotionBlurHistory history;
+        std::array<std::uint64_t,3> camera_epochs{};
+        std::optional<VkRect2D> clip;
+    };
+    std::vector<ObjectMotionView> object_motion_views;
+    std::uint64_t object_motion_frame{};
+    std::chrono::steady_clock::time_point object_motion_time{};
+    pstencil::GraphicsMode object_motion_mode=pstencil::GraphicsMode::Original;
     pstencil::GraphicsMode temporal_graphics_mode=pstencil::GraphicsMode::Original;
     std::unique_ptr<NativeUpscaler> prepared_upscaler;
     Upscaler prepared_method=Upscaler::Off;
@@ -516,6 +529,47 @@ struct Renderer::Impl {
             entry.extended_vertex_bank==bool(material.vertex_bank) && bytes.size()==material.vertex_program.size() &&
             std::equal(bytes.begin(),bytes.end(),material.vertex_program.begin());
     }
+    static unsigned lookup_native_world_kernel(const Material &material) {
+        const auto declaration=pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform);
+        const bool extended=bool(material.vertex_bank);
+        const auto size=material.vertex_program.size();
+        const auto bucket_key=[](const PackedSourceVertexDeclaration &decl,bool ext,std::size_t bytes) {
+            std::uint64_t h=14695981039346656037ull;
+            for(auto w:decl){h^=w;h*=1099511628211ull;}
+            h^=std::uint64_t(ext);h*=1099511628211ull;
+            h^=std::uint64_t(bytes);h*=1099511628211ull;
+            return h;
+        };
+        static const auto index=[&] {
+            std::unordered_map<std::uint64_t,std::vector<unsigned>> map;
+            const auto &entries=generated_native_world_kernels::entries;
+            map.reserve(entries.size()*2);
+            for(unsigned k=0;k<entries.size();++k) {
+                const auto &e=entries[k];
+                const auto bytes=std::as_bytes(e.vertex_program);
+                map[bucket_key(e.declaration,e.extended_vertex_bank,bytes.size())].push_back(k);
+            }
+            return map;
+        }();
+        const auto found=index.find(bucket_key(declaration,extended,size));
+        if(found==index.end())return ~0u;
+        const auto &entries=generated_native_world_kernels::entries;
+        for(unsigned kernel:found->second) {
+            const auto &entry=entries[kernel];
+            const auto bytes=std::as_bytes(entry.vertex_program);
+            if(entry.declaration==declaration && entry.extended_vertex_bank==extended &&
+               bytes.size()==size && std::equal(bytes.begin(),bytes.end(),material.vertex_program.begin()))
+                return kernel;
+        }
+        return ~0u;
+    }
+    static VkFormat vulkan_texture_format(std::uint16_t format) {
+        if(format==native_rgba32f)return VK_FORMAT_R32G32B32A32_SFLOAT;
+        if(format==14)return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+        if(format==15)return VK_FORMAT_BC2_UNORM_BLOCK;
+        if(format==16)return VK_FORMAT_BC3_UNORM_BLOCK;
+        return VK_FORMAT_R8G8B8A8_UNORM;
+    }
     std::vector<unsigned> specialized_pipeline_indices,active_forward_pipeline_indices;
     std::vector<unsigned> native_world_kernel_indices;
     std::vector<ForwardPipeline> forward_pipelines;
@@ -606,6 +660,14 @@ struct Renderer::Impl {
         bool source_mutated{};
         bool source_image{};
     };
+    void destroy_gpu_texture(GpuTexture &texture) {
+        if(texture.shared_image){texture.shared_image.reset();texture={};return;}
+        if(texture.view)vkDestroyImageView(device,texture.view,nullptr);
+        if(texture.cube_view)vkDestroyImageView(device,texture.cube_view,nullptr);
+        if(texture.image)vkDestroyImage(device,texture.image,nullptr);
+        if(texture.memory)vkFreeMemory(device,texture.memory,nullptr);
+        texture={};
+    }
 
     bool capture_bsp_draw_bindings=[] {
         const auto* value=std::getenv("HALO2_CAPTURE_BSP_DRAW_BINDINGS");
@@ -768,11 +830,17 @@ struct Renderer::Impl {
     // Tracing traverses with the GPU's ray-tracing hardware.
     bool path_tracing_hardware_rays{};
     std::unique_ptr<PathTracingState> path_tracing_state;
+    void retire_path_tracing_storage() {
+        if(!path_tracing_state)return;
+        if(std::ranges::any_of(path_tracing_state->renderers,[](const auto& renderer){return bool(renderer);}))
+            pipeline_cache->publish();
+        path_tracing_state.reset();
+    }
     void release_path_tracing() {
         if(!path_tracing_state)return;
         if(std::any_of(path_tracing_state->renderers.begin(),path_tracing_state->renderers.end(),[](const auto& p){return bool(p);}))
             check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"retire Path Tracing resources");
-        path_tracing_state.reset();
+        retire_path_tracing_storage();
     }
     std::vector<std::uint8_t> pstencil_caster_materials;
     std::unique_ptr<SourceShadowDrawStorage> shadow_storage;
@@ -879,6 +947,7 @@ struct Renderer::Impl {
     VkBuffer material_buffer{};
     VkDeviceMemory material_memory{};
     void *material_mapping{};
+    std::size_t material_buffer_capacity{};
     bool base_camera_initialized{};
     std::optional<std::array<ShaderVector,7>> base_camera;
     VkBuffer vertex_bank_buffer{};
@@ -920,10 +989,13 @@ struct Renderer::Impl {
     std::vector<std::array<std::uint8_t,8>> material_fragment_offsets;
     std::vector<std::size_t> changed_materials;
     std::vector<std::uint8_t> material_pending,vertex_bank_pending;
+    std::vector<std::uint8_t> material_bank0_mutated,vertex_bank_mutated;
     void mark_material_changed(std::size_t index) {
+        material_bank0_mutated[index]=1;
         if(!material_pending[index]) {material_pending[index]=1;changed_materials.push_back(index);}
     }
     void mark_vertex_bank_changed(std::size_t index) {
+        vertex_bank_mutated[index]=1;
         if(!vertex_bank_pending[index]) {vertex_bank_pending[index]=1;changed_vertex_banks.push_back(index);}
     }
     VkDeviceSize material_stride{};
@@ -1512,6 +1584,19 @@ struct Renderer::Impl {
         layout_info.setLayoutCount = 0;
         layout_info.pSetLayouts = nullptr;
         check(vkCreatePipelineLayout(device, &layout_info, nullptr, &overlay_layout), "create overlay layout");
+        upload_static_vertices(mesh);
+        make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, debug_buffer, debug_memory);
+        make_textures(mesh);
+        make_fog_bindings();
+        make_water_bindings();
+        if(before_presentation)before_presentation();
+        create_swapchain();
+    }
+
+    void upload_static_vertices(const Mesh& mesh) {
+        if(vertex_buffer){vkDestroyBuffer(device,vertex_buffer,nullptr);vertex_buffer=VK_NULL_HANDLE;}
+        if(vertex_memory){vkFreeMemory(device,vertex_memory,nullptr);vertex_memory=VK_NULL_HANDLE;}
+        draws.clear();
         vertex_count = static_cast<std::uint32_t>(mesh.vertices.size());
         // Preserve authored parts as well as their material/lightmap bindings.
         // A shader shared by multiple parts does not make them one draw token.
@@ -1546,6 +1631,7 @@ struct Renderer::Impl {
             }
         }
         if(bsp_resident_plan)source_depth_constructor_atlas=grouped;
+        else source_depth_constructor_atlas.clear();
         compared_depth_atlas={};
         const VkDeviceSize bytes = std::max<std::size_t>(1,grouped.size()) * sizeof(Vertex);
         make_buffer(bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertex_buffer, vertex_memory);
@@ -1553,12 +1639,6 @@ struct Renderer::Impl {
         check(vkMapMemory(device, vertex_memory, 0, bytes, 0, &mapped), "map vertices");
         if(!grouped.empty())std::memcpy(mapped,grouped.data(),grouped.size()*sizeof(Vertex));
         vkUnmapMemory(device, vertex_memory);
-        make_buffer(debug_capacity * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, debug_buffer, debug_memory);
-        make_textures(mesh);
-        make_fog_bindings();
-        make_water_bindings();
-        if(before_presentation)before_presentation();
-        create_swapchain();
     }
 
     void make_fog_bindings() {
@@ -2107,23 +2187,103 @@ struct Renderer::Impl {
         pending_images.clear();
     }
 
-    void make_textures(const Mesh& mesh) {
+    void make_textures(const Mesh& mesh,std::size_t persistent_root_count=0) {
         // Resident source shader alternatives share the original geometry.
         // All descriptor/resource tables below are sized from the actual bank;
         // a fixed2048 root-slot cap rejects legitimate four-player maps.
         if (mesh.materials.empty() || mesh.materials.size() >= std::numeric_limits<unsigned>::max())
             throw std::runtime_error("invalid native material count: "+std::to_string(mesh.materials.size()));
+        const std::size_t prev_material_count=material_count;
+        const bool reusing=persistent_root_count>0 && persistent_root_count<=prev_material_count &&
+            persistent_root_count<=mesh.materials.size() && texture_pool!=VK_NULL_HANDLE;
+        struct PrevMaterials {
+            std::vector<GpuTexture> textures,detail_textures,bump_textures,auxiliary_textures,lightmap_textures;
+            std::vector<std::array<std::vector<GpuTexture>,4>> animated_textures;
+            std::vector<unsigned> environment_materials,pstencil_environment_companions,planar_materials;
+            std::vector<std::vector<unsigned>> world_before,world_after,world_bloom;
+            std::vector<std::array<unsigned,3>> world_planar_materials;
+            std::vector<unsigned> native_world_kernel_indices,forward_pipeline_indices;
+            std::vector<std::optional<unsigned>> source_material_layers;
+            std::map<unsigned,MaterialPass> fog_material_passes;
+            std::map<unsigned,ShaderAnimation> owner_material_animations;
+            std::map<unsigned,std::vector<BitmapFrameAnimation>> owner_bitmap_animations;
+            std::map<unsigned,std::array<std::int32_t,8>> fog_material_switches;
+            std::vector<std::vector<ShaderRemap>> view_direction_remaps,view_fog_remaps;
+            std::vector<bool> pstencil_environment_materials,pstencil_combined_visors;
+            std::vector<std::optional<unsigned>> pstencil_neutral_detail_stages;
+            std::vector<bool> pstencil_combined_environment_strengths,pstencil_polished_armor;
+            std::vector<const pstencil::EnvironmentParameters*> pstencil_environment_parameters;
+            std::vector<unsigned> pstencil_response_phases,effect_light_blends;
+            std::vector<std::uint8_t> shadow_stage_masks;
+            std::vector<bool> emissive_forward_materials,effect_light_materials,water_edge_materials,extended_vertex_banks;
+            std::vector<std::array<std::uint8_t,8>> material_fragment_offsets;
+            std::vector<std::uint8_t> material_bank0_mutated,vertex_bank_mutated;
+            std::vector<MaterialUniform> child_material_uniforms;
+            std::vector<VertexBankUniform> child_vertex_bank_uniforms;
+            bool had_visor_carrier{};
+        } prev;
+        if(texture_pool) {
+            prev.textures=std::move(textures);
+            prev.detail_textures=std::move(detail_textures);
+            prev.bump_textures=std::move(bump_textures);
+            prev.auxiliary_textures=std::move(auxiliary_textures);
+            prev.animated_textures=std::move(animated_textures);
+            prev.lightmap_textures=std::move(lightmap_textures);
+            if(reusing) {
+                prev.environment_materials=std::move(environment_materials);
+                prev.pstencil_environment_companions=std::move(pstencil_environment_companions);
+                prev.planar_materials=std::move(planar_materials);
+                prev.world_before=std::move(world_before);
+                prev.world_after=std::move(world_after);
+                prev.world_bloom=std::move(world_bloom);
+                prev.world_planar_materials=std::move(world_planar_materials);
+                prev.native_world_kernel_indices=std::move(native_world_kernel_indices);
+                prev.forward_pipeline_indices=std::move(forward_pipeline_indices);
+                prev.source_material_layers=std::move(source_material_layers);
+                prev.fog_material_passes=std::move(fog_material_passes);
+                prev.owner_material_animations=std::move(owner_material_animations);
+                prev.owner_bitmap_animations=std::move(owner_bitmap_animations);
+                prev.fog_material_switches=std::move(fog_material_switches);
+                prev.view_direction_remaps=std::move(view_direction_remaps);
+                prev.view_fog_remaps=std::move(view_fog_remaps);
+                prev.pstencil_environment_materials=std::move(pstencil_environment_materials);
+                prev.pstencil_combined_visors=std::move(pstencil_combined_visors);
+                prev.pstencil_neutral_detail_stages=std::move(pstencil_neutral_detail_stages);
+                prev.pstencil_combined_environment_strengths=std::move(pstencil_combined_environment_strengths);
+                prev.pstencil_polished_armor=std::move(pstencil_polished_armor);
+                prev.pstencil_environment_parameters=std::move(pstencil_environment_parameters);
+                prev.pstencil_response_phases=std::move(pstencil_response_phases);
+                prev.shadow_stage_masks=std::move(shadow_stage_masks);
+                prev.effect_light_blends=std::move(effect_light_blends);
+                prev.emissive_forward_materials=std::move(emissive_forward_materials);
+                prev.effect_light_materials=std::move(effect_light_materials);
+                prev.water_edge_materials=std::move(water_edge_materials);
+                prev.extended_vertex_banks=std::move(extended_vertex_banks);
+                prev.material_fragment_offsets=std::move(material_fragment_offsets);
+                prev.material_bank0_mutated=std::move(material_bank0_mutated);
+                prev.vertex_bank_mutated=std::move(vertex_bank_mutated);
+                if(material_uniforms.size()>prev_material_count)
+                    prev.child_material_uniforms.assign(material_uniforms.begin()+std::ptrdiff_t(prev_material_count),material_uniforms.end());
+                if(vertex_bank_uniforms.size()>prev_material_count)
+                    prev.child_vertex_bank_uniforms.assign(vertex_bank_uniforms.begin()+std::ptrdiff_t(prev_material_count),vertex_bank_uniforms.end());
+                prev.had_visor_carrier=pstencil_environment_carrier_layer.has_value();
+            }
+            vkDestroyDescriptorPool(device,texture_pool,nullptr);texture_pool=VK_NULL_HANDLE;
+            for(auto &lm:prev.lightmap_textures)destroy_gpu_texture(lm);
+            prev.lightmap_textures.clear();
+        }
         material_count=mesh.materials.size();
         std::vector<const Material*> materials;
+        materials.reserve(material_count+material_count/8+64);
         for(const auto &m:mesh.materials) materials.push_back(&m);
-        environment_materials.resize(material_count,~0u);
+        environment_materials.assign(material_count,~0u);
         pstencil_texture_mask_materials=pstencil::texture_mask_materials(mesh.materials);
         for(std::size_t i=0;i<material_count;++i) if(mesh.materials[i].environment_pass) {
             environment_materials[i]=unsigned(materials.size());
             materials.push_back(mesh.materials[i].environment_pass.get());
         }
-        world_before.resize(material_count);world_after.resize(material_count);
-        world_bloom.resize(material_count);
+        world_before.assign(material_count,{});world_after.assign(material_count,{});
+        world_bloom.assign(material_count,{});
         for(std::size_t i=0;i<material_count;++i) {
             for(const auto &pass:mesh.materials[i].world_overlays_before) {
                 world_before[i].push_back(unsigned(materials.size()));materials.push_back(pass.get());
@@ -2158,42 +2318,79 @@ struct Renderer::Impl {
             pstencil_environment_companions[root]=slot;pstencil_environment_companion_slots.insert(slot);
             materials.push_back(extra.get());pstencil_environment_owned.push_back(std::move(extra));
         }
-        planar_materials.resize(material_count,~0u);
+        planar_materials.assign(material_count,~0u);
+        planar_passes.clear();
         for(std::size_t i=0;i<material_count;++i) if(mesh.materials[i].planar_fog_pass) {
             const auto &pass=*mesh.materials[i].planar_fog_pass;
             const auto index=unsigned(materials.size());
             planar_materials[i]=index;planar_passes.emplace(index,pass.passes.at(0));
             materials.push_back(&pass);
         }
-        world_planar_materials.resize(material_count,{~0u,~0u,~0u});
+        world_planar_materials.assign(material_count,{~0u,~0u,~0u});
         for(std::size_t i=0;i<material_count;++i)for(unsigned p=0;p<3;++p)
             if(const auto &pass=mesh.materials[i].world_planar_passes[p]) {
                 world_planar_materials[i][p]=unsigned(materials.size());
                 materials.push_back(pass.get());
             }
+        std::vector<unsigned> reused_old_slot(materials.size(),~0u);
+        if(reusing) {
+            const auto bind_reuse=[&](unsigned next_slot,unsigned old_slot) {
+                if(next_slot<reused_old_slot.size() && old_slot<prev.textures.size())
+                    reused_old_slot[next_slot]=old_slot;
+            };
+            for(unsigned r=0;r<persistent_root_count;++r) {
+                bind_reuse(r,r);
+                if(environment_materials[r]!=~0u && prev.environment_materials[r]!=~0u)
+                    bind_reuse(environment_materials[r],prev.environment_materials[r]);
+                if(world_before[r].size()==prev.world_before[r].size())
+                    for(std::size_t k=0;k<world_before[r].size();++k)bind_reuse(world_before[r][k],prev.world_before[r][k]);
+                if(world_after[r].size()==prev.world_after[r].size())
+                    for(std::size_t k=0;k<world_after[r].size();++k)bind_reuse(world_after[r][k],prev.world_after[r][k]);
+                if(world_bloom[r].size()==prev.world_bloom[r].size())
+                    for(std::size_t k=0;k<world_bloom[r].size();++k)bind_reuse(world_bloom[r][k],prev.world_bloom[r][k]);
+                if(prev.had_visor_carrier==pstencil_environment_carrier_layer.has_value() &&
+                   pstencil_environment_companions[r]!=~0u && prev.pstencil_environment_companions[r]!=~0u)
+                    bind_reuse(pstencil_environment_companions[r],prev.pstencil_environment_companions[r]);
+                if(planar_materials[r]!=~0u && prev.planar_materials[r]!=~0u)
+                    bind_reuse(planar_materials[r],prev.planar_materials[r]);
+                for(unsigned p=0;p<3;++p)
+                    if(world_planar_materials[r][p]!=~0u && prev.world_planar_materials[r][p]!=~0u)
+                        bind_reuse(world_planar_materials[r][p],prev.world_planar_materials[r][p]);
+            }
+        }
+        light_volume_materials=false;
         light_volume_slots.clear();
         for(const auto *material:materials) {
             light_volume_materials|=material->light_volume_pass;
             light_volume_slots.push_back(material->light_volume_pass);
         }
+        source_material_layers.clear();
         source_material_layers.reserve(materials.size());
-        hologram_scene_required=std::ranges::any_of(materials,[](const auto *m) {
-            return source_material_layer(*m)==21;
-        });
-        for(const auto *material:materials) {
-            auto layer=source_material_layer(*material);
-            if(pstencil_environment_companion_slots.contains(unsigned(source_material_layers.size())))
-                layer=pstencil_environment_carrier_layer;
-            // Combined texture producers use the base pass's stipple
-            // coverage even when their color comes from authored layer 14.
-            if(material->forward_vertex==6 && pstencil::texture_accumulation_material_2003(*material))
-                layer=3;
+        hologram_scene_required=false;
+        for(std::size_t i=0;i<materials.size();++i) {
+            const auto old_slot=reusing?reused_old_slot[i]:~0u;
+            std::optional<unsigned> layer;
+            if(old_slot!=~0u) {
+                layer=prev.source_material_layers[old_slot];
+            } else {
+                const auto *material=materials[i];
+                layer=source_material_layer(*material);
+                if(pstencil_environment_companion_slots.contains(unsigned(i)))
+                    layer=pstencil_environment_carrier_layer;
+                // Combined texture producers use the base pass's stipple
+                // coverage even when their color comes from authored layer 14.
+                if(material->forward_vertex==6 && pstencil::texture_accumulation_material_2003(*material))
+                    layer=3;
+            }
+            if(layer==21)hologram_scene_required=true;
             source_material_layers.push_back(layer);
         }
+        source_material_identities.clear();
+        source_material_identities.reserve(materials.size());
         for(const auto *material:materials)
             source_material_identities.push_back({material->source_shader_datum,material->selected_shader_lod});
-        camouflage_variants.resize(material_count,{~0u,~0u,~0u,~0u,~0u});
-        camouflage_original_layers.resize(material_count);
+        camouflage_variants.assign(material_count,{~0u,~0u,~0u,~0u,~0u});
+        camouflage_original_layers.assign(material_count,0);
         for(unsigned root=0;root<material_count;++root) {
             const auto &m=mesh.materials[root];
             if(m.selected_shader_lod<m.lods.size())
@@ -2212,17 +2409,20 @@ struct Renderer::Impl {
                 }
             }
         }
+        camouflage_scene_materials.clear();camouflage_group_materials.clear();
+        camouflage_scene_materials.reserve(materials.size());camouflage_group_materials.reserve(materials.size());
         for(const auto *material:materials) {
             camouflage_scene_materials.push_back(material->camouflage_scene_texture);
             camouflage_group_materials.push_back(material->camouflage_group_pass);
         }
         pstencil_caster_materials.clear();
+        pstencil_caster_materials.reserve(materials.size());
         for(const auto* material:materials) {
             const auto lod=material->selected_shader_lod;
             pstencil_caster_materials.push_back(lod<material->lods.size() &&
                 (material->lods[lod].available_layers&(1u<<10))!=0);
         }
-        source_layer15_passes.resize(materials.size());
+        source_layer15_passes.assign(materials.size(),{});
         for(unsigned root=0;root<materials.size();++root) {
             auto &passes=source_layer15_passes[root];
             const auto add=[&](unsigned m) {
@@ -2241,41 +2441,68 @@ struct Renderer::Impl {
                 return materials[a]->forward_pass_index<materials[b]->forward_pass_index;
             });
         }
-        for(unsigned i=0;i<materials.size();++i)if(materials[i]->forward_pass &&
-            !materials[i]->hud_pass && !materials[i]->light_volume_pass &&
-            materials[i]->forward_vertex!=11) {
-            // Projected decals have their own procedural texture/fade pass;
-            // they do not own a shader-template pass or its fog extern bank.
-            fog_material_passes.emplace(i,materials[i]->passes.at(materials[i]->forward_pass_index));
-            if(!materials[i]->animation.overlays.empty())owner_material_animations.emplace(i,materials[i]->animation);
-            auto bitmap_animations=bitmap_frame_animations(*materials[i]);
-            if(!bitmap_animations.empty())owner_bitmap_animations.emplace(i,std::move(bitmap_animations));
-            fog_material_switches.emplace(i,materials[i]->shader_switches);
-        }
-        fog_material_pass_slots.assign(materials.size(),nullptr);
-        for(const auto &[index,pass]:fog_material_passes)
-            if(index<fog_material_pass_slots.size())fog_material_pass_slots[index]=&pass;
+        fog_material_passes.clear();owner_material_animations.clear();
+        owner_bitmap_animations.clear();fog_material_switches.clear();
         // These authored mappings never change when animation updates the
         // live program words. Retain their exact order once per material.
-        view_direction_remaps.resize(materials.size());view_fog_remaps.resize(materials.size());
+        view_direction_remaps.assign(materials.size(),{});view_fog_remaps.assign(materials.size(),{});
         view_direction_materials.clear();
-        for(const auto &[index,pass]:fog_material_passes) {
-            for(const auto &mapping:pass.pixel_externs) {
-                const auto component=mapping.component&7;
-                if(component==4 && mapping.source==0)
-                    view_direction_remaps[index].push_back(mapping);
-                // Same admission as apply_bsp_fog_pixel_externs; retain the
-                // authored mapping order and the original remap implementation.
-                const bool scalar=component<4 && (mapping.source==3 ||
-                    (mapping.source>=24 && mapping.source<=36));
-                const bool color=component==4 && mapping.source>=25 && mapping.source<=32;
-                if(scalar || color)view_fog_remaps[index].push_back(mapping);
+        for(unsigned i=0;i<materials.size();++i) {
+            const auto old_slot=reusing?reused_old_slot[i]:~0u;
+            if(old_slot!=~0u) {
+                if(auto node=prev.fog_material_passes.extract(old_slot);!node.empty()) {
+                    node.key()=i;
+                    fog_material_passes.insert(fog_material_passes.end(),std::move(node));
+                }
+                if(auto node=prev.owner_material_animations.extract(old_slot);!node.empty()) {
+                    node.key()=i;
+                    owner_material_animations.insert(owner_material_animations.end(),std::move(node));
+                }
+                if(auto node=prev.owner_bitmap_animations.extract(old_slot);!node.empty()) {
+                    node.key()=i;
+                    owner_bitmap_animations.insert(owner_bitmap_animations.end(),std::move(node));
+                }
+                if(auto node=prev.fog_material_switches.extract(old_slot);!node.empty()) {
+                    node.key()=i;
+                    fog_material_switches.insert(fog_material_switches.end(),std::move(node));
+                }
+                view_direction_remaps[i]=std::move(prev.view_direction_remaps[old_slot]);
+                view_fog_remaps[i]=std::move(prev.view_fog_remaps[old_slot]);
+                continue;
             }
+            if(materials[i]->forward_pass && !materials[i]->hud_pass && !materials[i]->light_volume_pass &&
+               materials[i]->forward_vertex!=11) {
+                // Projected decals have their own procedural texture/fade pass;
+                // they do not own a shader-template pass or its fog extern bank.
+                const auto &pass=fog_material_passes.emplace_hint(fog_material_passes.end(),i,
+                    materials[i]->passes.at(materials[i]->forward_pass_index))->second;
+                if(!materials[i]->animation.overlays.empty())
+                    owner_material_animations.emplace_hint(owner_material_animations.end(),i,materials[i]->animation);
+                auto bitmap_animations=bitmap_frame_animations(*materials[i]);
+                if(!bitmap_animations.empty())
+                    owner_bitmap_animations.emplace_hint(owner_bitmap_animations.end(),i,std::move(bitmap_animations));
+                fog_material_switches.emplace_hint(fog_material_switches.end(),i,materials[i]->shader_switches);
+                for(const auto &mapping:pass.pixel_externs) {
+                    const auto component=mapping.component&7;
+                    if(component==4 && mapping.source==0)
+                        view_direction_remaps[i].push_back(mapping);
+                    // Same admission as apply_bsp_fog_pixel_externs; retain the
+                    // authored mapping order and the original remap implementation.
+                    const bool scalar=component<4 && (mapping.source==3 ||
+                        (mapping.source>=24 && mapping.source<=36));
+                    const bool color=component==4 && mapping.source>=25 && mapping.source<=32;
+                    if(scalar || color)view_fog_remaps[i].push_back(mapping);
+                }
+            }
+        }
+        fog_material_pass_slots.assign(materials.size(),nullptr);
+        for(const auto &[index,pass]:fog_material_passes) {
+            if(index<fog_material_pass_slots.size())fog_material_pass_slots[index]=&pass;
             if(!view_direction_remaps[index].empty())
                 view_direction_materials.emplace_back(index,&pass);
         }
-        material_roots.resize(materials.size());
-        material_lighting_brightness.resize(materials.size());
+        material_roots.assign(materials.size(),0);
+        material_lighting_brightness.assign(materials.size(),{});
         for(unsigned i=0;i<material_count;++i) {
             material_roots[i]=i;
             if(environment_materials[i]!=~0u)material_roots[environment_materials[i]]=i;
@@ -2288,16 +2515,18 @@ struct Renderer::Impl {
         }
         for(unsigned i=0;i<materials.size();++i)
             material_lighting_brightness[i]={materials[i]->specular_brightness,materials[i]->ambient_brightness};
-        VkSamplerCreateInfo sampler_info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-        sampler_info.magFilter = sampler_info.minFilter = VK_FILTER_LINEAR;
-        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        sampler_info.maxLod = VK_LOD_CLAMP_NONE;
-        sampler_info.addressModeU = sampler_info.addressModeV = sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        check(vkCreateSampler(device, &sampler_info, nullptr, &sampler), "create material sampler");
-        sampler_info.addressModeU = sampler_info.addressModeV = sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        check(vkCreateSampler(device, &sampler_info, nullptr, &lightmap_sampler), "create lightmap sampler");
+        if(!sampler) {
+            VkSamplerCreateInfo sampler_info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+            sampler_info.magFilter = sampler_info.minFilter = VK_FILTER_LINEAR;
+            sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            sampler_info.maxLod = VK_LOD_CLAMP_NONE;
+            sampler_info.addressModeU = sampler_info.addressModeV = sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            check(vkCreateSampler(device, &sampler_info, nullptr, &sampler), "create material sampler");
+            sampler_info.addressModeU = sampler_info.addressModeV = sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            check(vkCreateSampler(device, &sampler_info, nullptr, &lightmap_sampler), "create lightmap sampler");
+        }
         source_depth_constructor_materials=materials;
-        source_world_depth_identities.resize(materials.size());
+        source_world_depth_identities.assign(materials.size(),{});
         for(unsigned root=0;root<material_count;++root) {
             source_world_depth_identities[root]={root,"root"};
             const auto identify=[&](unsigned slot,const std::string& path) {
@@ -2311,6 +2540,7 @@ struct Renderer::Impl {
             for(unsigned n=0;n<3;++n)identify(world_planar_materials[root][n],"world_planar"+std::to_string(n));
         }
         const auto count = static_cast<std::uint32_t>(materials.size());
+        geometry_descriptors.clear();
         std::set<std::pair<unsigned,unsigned>> geometry_pairs;
         const auto add_geometry_pair=[&](unsigned root,unsigned lightmap) {
             if(root>=material_count || lightmap>mesh.lightmaps.size())
@@ -2341,14 +2571,16 @@ struct Renderer::Impl {
         VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         pool.maxSets = sets; pool.poolSizeCount = 3; pool.pPoolSizes = pool_sizes;
         check(vkCreateDescriptorPool(device, &pool, nullptr, &texture_pool), "create material descriptor pool");
-        textures.resize(count); detail_textures.resize(count); bump_textures.resize(count);
-        auxiliary_textures.resize(count);after_fog.reserve(count);
-        animated_textures.resize(count);wanted_frames.resize(count);bound_frames.resize(count);
+        textures.assign(count,{}); detail_textures.assign(count,{}); bump_textures.assign(count,{});
+        auxiliary_textures.assign(count,{});
+        after_fog.clear();after_fog.reserve(count);
+        projected_decal_layers.clear();projected_decal_layers.reserve(count);
+        animated_textures.assign(count,{});wanted_frames.assign(count,{});bound_frames.assign(count,{});
         frame_dirty.assign(count,0);frame_dirty_materials.clear();
-        stage_samplers.resize(count);stage_sampler_states.resize(count);
-        scope_materials.resize(count);scope_descriptors.resize(count);
-        texture_camera_materials.resize(count);
-        lightmap_textures.resize(mesh.lightmaps.size()+1);
+        stage_samplers.assign(count,{});stage_sampler_states.assign(count,{});
+        scope_materials.assign(count,false);scope_descriptors.assign(count,VK_NULL_HANDLE);
+        texture_camera_materials.assign(count,false);
+        lightmap_textures.assign(mesh.lightmaps.size()+1,{});
         const Texture white{1,1,11,{std::byte{255},std::byte{255},std::byte{255},std::byte{255}}, {}};
         const Texture flat_normal{1,1,11,{std::byte{128},std::byte{128},std::byte{255},std::byte{255}}, {}};
         Texture white_cube{1,1,11,std::vector<std::byte>(24,std::byte{255}),{},6};
@@ -2358,9 +2590,15 @@ struct Renderer::Impl {
         const auto fingerprint_input=[&](const Texture& image) {
             fingerprint_inputs.emplace_back(image.pixels.data(),image.pixels.size());
         };
-        fingerprint_input(white_cube);fingerprint_input(white);fingerprint_input(white_volume);fingerprint_input(flat_normal);
+        if(!cube_fallback.image) {
+            fingerprint_input(white_cube);fingerprint_input(white);fingerprint_input(white_volume);fingerprint_input(flat_normal);
+        } else {
+            fingerprint_input(white);
+        }
         for(const auto& image:mesh.lightmaps)fingerprint_input(image);
-        for(const auto* material:materials) {
+        for(std::size_t i=0;i<count;++i) {
+            if(reusing && reused_old_slot[i]!=~0u && !prev.textures[reused_old_slot[i]].source_mutated)continue;
+            const auto* material=materials[i];
             fingerprint_input(material->diffuse);fingerprint_input(material->detail);
             fingerprint_input(material->bump);fingerprint_input(material->auxiliary);
             for(const auto& stage:material->animated_textures)for(const auto& image:stage)fingerprint_input(image);
@@ -2374,9 +2612,15 @@ struct Renderer::Impl {
         startup_fingerprints=fingerprints.get();
         struct FingerprintScope {Impl& owner;~FingerprintScope(){owner.startup_fingerprints=nullptr;}} fingerprint_scope{*this};
         batch_texture_uploads=true;
-        upload_texture(white_cube,cube_fallback);
-        upload_texture(white,image_fallback);
-        upload_texture(white_volume,volume_fallback);
+        if(!cube_fallback.image) {
+            upload_texture(white_cube,cube_fallback);
+            upload_texture(white,image_fallback);
+            upload_texture(white_volume,volume_fallback);
+        } else if(capture_bsp_draw_bindings) {
+            observe_texture_views(cube_fallback,vulkan_texture_format(cube_fallback.format));
+            observe_texture_views(image_fallback,vulkan_texture_format(image_fallback.format));
+            observe_texture_views(volume_fallback,vulkan_texture_format(volume_fallback.format));
+        }
         upload_texture(white,lightmap_textures[0]);
         for(std::size_t i=0;i<mesh.lightmaps.size();++i) upload_texture(mesh.lightmaps[i],lightmap_textures[i+1]);
         VkPhysicalDeviceProperties properties;
@@ -2385,101 +2629,156 @@ struct Renderer::Impl {
         const VkDeviceSize stride=(sizeof(MaterialUniform)+alignment-1)/alignment*alignment;
         material_stride=stride;
         vertex_bank_stride=(sizeof(VertexBankUniform)+alignment-1)/alignment*alignment;
-        material_uniforms.resize(count);
+        if(reusing) {
+            material_uniforms.resize(count);
+            vertex_bank_uniforms.resize(count);
+        } else {
+            material_uniforms.assign(count,{});
+            vertex_bank_uniforms.assign(count,{});
+        }
         native_world_kernel_indices.assign(count,~0u);
-        pstencil_response_phases.resize(count);
-        pstencil_environment_materials.resize(count);
-        pstencil_combined_visors.resize(count);
-        pstencil_neutral_detail_stages.resize(count);
-        pstencil_combined_environment_strengths.resize(count);pstencil_polished_armor.resize(count);
-        pstencil_environment_parameters.resize(count);
-        material_blend_colors.resize(count);
-        material_object_render_colors.resize(count);
-        vertex_bank_uniforms.resize(count);
-        material_pending.resize(count);vertex_bank_pending.resize(count);
-        extended_vertex_banks.resize(count);
-        required_owner_prt_banks.resize(count);
-        effect_light_materials.resize(count);
-        effect_light_blends.resize(count);
-        material_forward_states.resize(count);
-        material_forward_blends.resize(count);
-        accumulation_materials.resize(count);
+        pstencil_response_phases.assign(count,0);
+        pstencil_environment_materials.assign(count,false);
+        pstencil_combined_visors.assign(count,false);
+        pstencil_neutral_detail_stages.assign(count,std::nullopt);
+        pstencil_combined_environment_strengths.assign(count,false);pstencil_polished_armor.assign(count,false);
+        pstencil_environment_parameters.assign(count,nullptr);
+        material_blend_colors.assign(count,0);
+        material_object_render_colors.assign(count,std::nullopt);
+        material_pending.assign(count,0);vertex_bank_pending.assign(count,0);
+        material_bank0_mutated.assign(count,0);vertex_bank_mutated.assign(count,0);
+        extended_vertex_banks.assign(count,false);
+        required_owner_prt_banks.assign(count,false);
+        effect_light_materials.assign(count,false);
+        effect_light_blends.assign(count,0);
+        material_forward_states.assign(count,{});
+        material_forward_blends.assign(count,0);
+        accumulation_materials.assign(count,false);
         emissive_forward_materials.assign(count,false);
         shadow_stage_masks.assign(count,0);
-        material_fragment_offsets.resize(count);
-        baked_materials.resize(count);
-        water_material_definitions.resize(count);water_materials.resize(count);water_texture_bindings.resize(count);
-        water_edge_materials.resize(count);
+        material_fragment_offsets.assign(count,{});
+        baked_materials.assign(count,false);
+        water_material_definitions.assign(count,-1);water_materials.assign(count,false);water_texture_bindings.assign(count,{false,false});
+        water_edge_materials.assign(count,false);
+        hud_materials.clear();hud_materials.reserve(count);
+        ui_emblem_materials.clear();ui_emblem_materials.reserve(count);
+        ui_full_surfaces.clear();ui_full_surfaces.reserve(count);
+        vista_loading_materials.clear();vista_loading_materials.reserve(count);
+        source_loading_wait_materials.clear();source_loading_wait_materials.reserve(count);
+        network_transition_materials.clear();network_transition_materials.reserve(count);
+        ui_widescreen_backgrounds.clear();ui_widescreen_backgrounds.reserve(count);
+        ui_frame_extensions.clear();ui_frame_extensions.reserve(count);
+        ui_frame_widths.clear();ui_frame_widths.reserve(count);
+        forward_pipeline_indices.clear();forward_pipeline_indices.reserve(count);
+        specialized_pipeline_indices.clear();specialized_pipeline_indices.reserve(count);
+        active_forward_pipeline_indices.clear();
         // Bank zero belongs to the main scene/UI. Each local player's bank
         // retains its own original fog constants and planar pass program.
-        make_buffer(stride*count*5,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,material_buffer,material_memory);
-        make_buffer(vertex_bank_stride*count,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,vertex_bank_buffer,vertex_bank_memory);
-        void* mapped;
-        void* bank_mapped;
-        // This fixed-size HOST_COHERENT allocation remains mapped. Writes still
-        // occur only after the frame fence; mapping is not synchronization.
-        check(vkMapMemory(device,material_memory,0,VK_WHOLE_SIZE,0,&material_mapping),"map material constants");
-        mapped=material_mapping;
-        check(vkMapMemory(device,vertex_bank_memory,0,vertex_bank_stride*count,0,&bank_mapped),"map draw vertex globals");
+        const bool buffer_reallocated=!material_buffer || count>material_buffer_capacity;
+        if(buffer_reallocated) {
+            if(material_mapping){vkUnmapMemory(device,material_memory);material_mapping=nullptr;}
+            if(material_buffer){vkDestroyBuffer(device,material_buffer,nullptr);material_buffer=VK_NULL_HANDLE;}
+            if(material_memory){vkFreeMemory(device,material_memory,nullptr);material_memory=VK_NULL_HANDLE;}
+            if(vertex_bank_buffer){vkDestroyBuffer(device,vertex_bank_buffer,nullptr);vertex_bank_buffer=VK_NULL_HANDLE;}
+            if(vertex_bank_memory){vkFreeMemory(device,vertex_bank_memory,nullptr);vertex_bank_memory=VK_NULL_HANDLE;}
+            material_buffer_capacity=0;
+            const std::size_t next_capacity=count>=2048?std::size_t(count)+std::max<std::size_t>(8192,std::size_t(count)/8):std::size_t(count);
+            make_buffer(stride*next_capacity*5,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,material_buffer,material_memory);
+            make_buffer(vertex_bank_stride*next_capacity,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,vertex_bank_buffer,vertex_bank_memory);
+            material_buffer_capacity=next_capacity;
+            // This fixed-size HOST_COHERENT allocation remains mapped. Writes still
+            // occur only after the frame fence; mapping is not synchronization.
+            check(vkMapMemory(device,material_memory,0,VK_WHOLE_SIZE,0,&material_mapping),"map material constants");
+        }
+        void* mapped=material_mapping;
+        void* bank_mapped{};
+        check(vkMapMemory(device,vertex_bank_memory,0,VK_WHOLE_SIZE,0,&bank_mapped),"map draw vertex globals");
         for(std::size_t i=0;i<count;++i) {
             const auto& material=*materials[i];
-            pstencil_environment_materials[i]=pstencil::supports_environment_response(material) ||
-                pstencil_environment_companion_slots.contains(unsigned(i));
-            pstencil_combined_visors[i]=pstencil::supports_combined_visor_environment(material);
-            pstencil_neutral_detail_stages[i]=pstencil::reference_neutral_detail_stage(material);
-            pstencil_combined_environment_strengths[i]=pstencil::supports_combined_environment_strength(material);
-            pstencil_polished_armor[i]=pstencil::arbiter_metal(material.name);
-            if(pstencil_environment_materials[i] || pstencil_combined_environment_strengths[i])
-                pstencil_environment_parameters[i]=pstencil::reference_environment_parameters(material.name);
+            const auto old_slot=reusing?reused_old_slot[i]:~0u;
             material_blend_colors[i]=material.forward_blend_color;
             material_object_render_colors[i]=material.object_render_colors;
-            pstencil_response_phases[i]=pstencil::light_utility_material_2003(material)?1u:
-                pstencil::dependent_light_material_2003(material)?2u:
-                pstencil::normal_accumulation_material_2003(material)?3u:
-                pstencil::normal_light_utility_material_2003(material)?4u:0u;
             material_forward_states[i]=material.forward_raster;
             material_forward_blends[i]=material.forward_blend;
             accumulation_materials[i]=material.accumulation_texture;
-            if(material.forward_pass && !material.lods.empty() && material.selected_shader_lod<material.lods.size() &&
-               material.forward_pass_index<material.passes.size()) {
-                const auto &lod=material.lods[material.selected_shader_lod];
-                const auto selected=material.passes[material.forward_pass_index].template_pass;
-                if(lod.layers.count()>7 && (lod.available_layers&(1u<<7)) && lod.layers.first()+7<material.layers.size()) {
-                    const auto range=material.layers[lod.layers.first()+7];
-                    emissive_forward_materials[i]=selected>=range.first() && selected-range.first()<range.count();
-                }
-            }
-            const bool projected_light=material.forward_vertex==6 && material.forward_pass &&
-                material.forward_pass_index<material.passes.size() &&
-                material.passes[material.forward_pass_index].vertex_shader.find("\\lightaccum_frustum")!=std::string::npos;
-            // Source layer 11 implementation 2: a projected light's
-            // unblended alpha-only gel pass (validated by the light owner).
-            const bool projected_light_alpha=material.forward_vertex==6 && material.forward_pass &&
-                material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0x01000000u &&
-                (material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_1tap") ||
-                 material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_3tap"));
-            // Source layer 10: a shadowed light's caster into its depth target.
-            const bool projected_light_caster=material.forward_vertex==6 && material.forward_pass &&
-                material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0 &&
-                material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_generation");
-            const bool projected_light_texture=material.forward_vertex==6 && source_material_layers[i]==14;
-            if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
-                for(const auto &binding:material.passes[material.forward_pass_index].textures)
-                    if(binding.external==13 && binding.stage<4)shadow_stage_masks[i]|=std::uint8_t(1u<<binding.stage);
-            if(material.forward_blend==10 || projected_light || projected_light_alpha || projected_light_caster || projected_light_texture) {
-                source_effect_light_draw(unsigned(i),material,{});
-                effect_light_materials[i]=true;
-                effect_light_blends[i]=material.forward_blend;
-            }
             scope_materials[i]=material.scope_texture;
             texture_camera_materials[i]=material.texture_camera_texture;
             water_material_definitions[i]=material.water_definition;
             water_materials[i]=material.water_pass && material.forward_vertex>=7;
-            water_edge_materials[i]=material.forward_vertex==3 && source_world_depth_independent_water(material);
-            if(water_edge_materials[i] && source_material_layers[i]!=6)
-                throw FormatError("Native water edge lost its original layer6 owner");
             water_texture_bindings[i]={material.water_reflection_texture,material.water_refraction_texture};
             baked_materials[i]=!material.forward_pass || material.baked_lightmap_texture;
+            if(old_slot!=~0u) {
+                pstencil_environment_materials[i]=prev.pstencil_environment_materials[old_slot] ||
+                    pstencil_environment_companion_slots.contains(unsigned(i));
+                pstencil_combined_visors[i]=prev.pstencil_combined_visors[old_slot];
+                pstencil_neutral_detail_stages[i]=prev.pstencil_neutral_detail_stages[old_slot];
+                pstencil_combined_environment_strengths[i]=prev.pstencil_combined_environment_strengths[old_slot];
+                pstencil_polished_armor[i]=prev.pstencil_polished_armor[old_slot];
+                pstencil_environment_parameters[i]=prev.pstencil_environment_parameters[old_slot];
+                pstencil_response_phases[i]=prev.pstencil_response_phases[old_slot];
+                emissive_forward_materials[i]=prev.emissive_forward_materials[old_slot];
+                shadow_stage_masks[i]=prev.shadow_stage_masks[old_slot];
+                effect_light_materials[i]=prev.effect_light_materials[old_slot];
+                effect_light_blends[i]=prev.effect_light_blends[old_slot];
+                water_edge_materials[i]=prev.water_edge_materials[old_slot];
+                native_world_kernel_indices[i]=prev.native_world_kernel_indices[old_slot];
+                material_fragment_offsets[i]=prev.material_fragment_offsets[old_slot];
+            } else {
+                pstencil_environment_materials[i]=pstencil::supports_environment_response(material) ||
+                    pstencil_environment_companion_slots.contains(unsigned(i));
+                pstencil_combined_visors[i]=pstencil::supports_combined_visor_environment(material);
+                pstencil_neutral_detail_stages[i]=pstencil::reference_neutral_detail_stage(material);
+                pstencil_combined_environment_strengths[i]=pstencil::supports_combined_environment_strength(material);
+                pstencil_polished_armor[i]=pstencil::arbiter_metal(material.name);
+                if(pstencil_environment_materials[i] || pstencil_combined_environment_strengths[i])
+                    pstencil_environment_parameters[i]=pstencil::reference_environment_parameters(material.name);
+                pstencil_response_phases[i]=pstencil::light_utility_material_2003(material)?1u:
+                    pstencil::dependent_light_material_2003(material)?2u:
+                    pstencil::normal_accumulation_material_2003(material)?3u:
+                    pstencil::normal_light_utility_material_2003(material)?4u:0u;
+                if(material.forward_pass && !material.lods.empty() && material.selected_shader_lod<material.lods.size() &&
+                   material.forward_pass_index<material.passes.size()) {
+                    const auto &lod=material.lods[material.selected_shader_lod];
+                    const auto selected=material.passes[material.forward_pass_index].template_pass;
+                    if(lod.layers.count()>7 && (lod.available_layers&(1u<<7)) && lod.layers.first()+7<material.layers.size()) {
+                        const auto range=material.layers[lod.layers.first()+7];
+                        emissive_forward_materials[i]=selected>=range.first() && selected-range.first()<range.count();
+                    }
+                }
+                const bool projected_light=material.forward_vertex==6 && material.forward_pass &&
+                    material.forward_pass_index<material.passes.size() &&
+                    material.passes[material.forward_pass_index].vertex_shader.find("\\lightaccum_frustum")!=std::string::npos;
+                // Source layer 11 implementation 2: a projected light's
+                // unblended alpha-only gel pass (validated by the light owner).
+                const bool projected_light_alpha=material.forward_vertex==6 && material.forward_pass &&
+                    material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0x01000000u &&
+                    (material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_1tap") ||
+                     material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_application_3tap"));
+                // Source layer 10: a shadowed light's caster into its depth target.
+                const bool projected_light_caster=material.forward_vertex==6 && material.forward_pass &&
+                    material.forward_pass_index<material.passes.size() && material.forward_raster.color_write==0 &&
+                    material.passes[material.forward_pass_index].vertex_shader.ends_with("\\shadow_buffer_generation");
+                const bool projected_light_texture=material.forward_vertex==6 && source_material_layers[i]==14;
+                if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
+                    for(const auto &binding:material.passes[material.forward_pass_index].textures)
+                        if(binding.external==13 && binding.stage<4)shadow_stage_masks[i]|=std::uint8_t(1u<<binding.stage);
+                if(material.forward_blend==10 || projected_light || projected_light_alpha || projected_light_caster || projected_light_texture) {
+                    source_effect_light_draw(unsigned(i),material,{});
+                    effect_light_materials[i]=true;
+                    effect_light_blends[i]=material.forward_blend;
+                }
+                water_edge_materials[i]=material.forward_vertex==3 && source_world_depth_independent_water(material);
+                if(water_edge_materials[i] && source_material_layers[i]!=6)
+                    throw FormatError("Native water edge lost its original layer6 owner");
+                if((material.forward_pass || material.static_lightmap_pass) &&
+                   !material.hud_pass && !material.light_volume_pass && !material.vertex_program.empty()) {
+                    native_world_kernel_indices[i]=lookup_native_world_kernel(material);
+                    if(native_world_kernel_indices[i]==~0u)
+                        throw FormatError("World material has no exact native Vulkan vertex kernel: "+material.name);
+                }
+                const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
+                material_fragment_offsets[i]=pixel_program.fragment_offsets;
+            }
             if(material.hud_pass && (material.forward_blend<1 || material.forward_blend>4))
                 throw FormatError("unsupported authored HUD blend");
             hud_materials.push_back(material.hud_pass?material.forward_blend:0);
@@ -2502,52 +2801,42 @@ struct Renderer::Impl {
             ui_widescreen_backgrounds.push_back(material.ui_widescreen_background);
             ui_frame_extensions.push_back(material.ui_frame_extension);
             ui_frame_widths.push_back(material.ui_frame_center?material.diffuse.width:0);
-            MaterialUniform uniform{material.forward_pass?material.forward_program.words:material.lightmap_program.words,
-                                    material.texture_transforms,
-                                    {material.static_lightmap_pass?1u:0u,material.forward_pass?1u:0u,
-                                     material.per_vertex_lighting?4u:material.forward_vertex,0},
-                                    material.forward_transforms,material.forward_diffuse,material.forward_specular};
-            uniform.alpha_test={material.forward_pass?material.forward_raster.alpha_test:source_output_state[1],
-                material.forward_pass?material.forward_raster.alpha_function:source_output_state[2],
-                material.forward_pass?material.forward_raster.alpha_reference:source_output_state[3],0};
-            for(unsigned stage=0;stage<4;++stage) {
-                const auto &state=material.texture_states[stage];
-                const Texture *stage_textures[]{&material.diffuse,&material.detail,&material.bump,&material.auxiliary};
-                if(state.color_key_op || (state.color_sign && stage_textures[stage]->format!=native_rgba32f))
-                    throw FormatError("authored texture state requires native texel decoding");
-                // Bit zero selects pixel coordinates; bits 1..4 preserve
-                // which channels have been signed before texture filtering.
-                uniform.texture_effects[stage]={state.alpha_kill,
-                    ((stage==0 && material.accumulation_texture) || (stage==2 && material.camouflage_scene_texture)?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
-                if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
-                // A light's shadow buffer: texel coordinates and the depth
-                // comparison fetch (menu_world.frag sourceShadowCompare).
-                if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
-                    for(const auto &binding:material.passes[material.forward_pass_index].textures)
-                        if(binding.external==13 && binding.stage==stage) {
-                            uniform.texture_effects[stage][1]|=1u;uniform.texture_effects[stage][2]|=2u;
-                        }
-            }
-            const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
-            if((material.forward_pass || material.static_lightmap_pass) &&
-               !material.hud_pass && !material.light_volume_pass && !material.vertex_program.empty()) {
-                const auto declaration=pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform);
-                const auto &entries=generated_native_world_kernels::entries;
-                for(unsigned kernel=0;kernel<entries.size();++kernel) {
-                    const auto &entry=entries[kernel];
-                    const auto bytes=std::as_bytes(entry.vertex_program);
-                    if(entry.declaration==declaration &&
-                       entry.extended_vertex_bank==bool(material.vertex_bank) &&
-                       bytes.size()==material.vertex_program.size() &&
-                       std::equal(bytes.begin(),bytes.end(),material.vertex_program.begin())) {
-                        native_world_kernel_indices[i]=kernel;break;
-                    }
+            const bool reuse_material_uniform=old_slot!=~0u && !prev.material_bank0_mutated[old_slot] &&
+                (old_slot==i || (old_slot>=prev_material_count && old_slot-prev_material_count<prev.child_material_uniforms.size()));
+            if(reuse_material_uniform) {
+                if(old_slot!=i)material_uniforms[i]=prev.child_material_uniforms[old_slot-prev_material_count];
+                if(buffer_reallocated || old_slot!=i) {
+                    const auto gpu_uniform=native_material_gpu_uniform(material_uniforms[i]);
+                    std::memcpy(static_cast<std::byte*>(mapped)+stride*i,&gpu_uniform,sizeof(gpu_uniform));
                 }
-                if(native_world_kernel_indices[i]==~0u)
-                    throw FormatError("World material has no exact native Vulkan vertex kernel: "+material.name);
-            }
-            material_fragment_offsets[i]=pixel_program.fragment_offsets;
-            if(native_world_kernel_indices[i]!=~0u) {
+            } else {
+                MaterialUniform uniform{material.forward_pass?material.forward_program.words:material.lightmap_program.words,
+                                        material.texture_transforms,
+                                        {material.static_lightmap_pass?1u:0u,material.forward_pass?1u:0u,
+                                         material.per_vertex_lighting?4u:material.forward_vertex,0},
+                                        material.forward_transforms,material.forward_diffuse,material.forward_specular};
+                uniform.alpha_test={material.forward_pass?material.forward_raster.alpha_test:source_output_state[1],
+                    material.forward_pass?material.forward_raster.alpha_function:source_output_state[2],
+                    material.forward_pass?material.forward_raster.alpha_reference:source_output_state[3],0};
+                for(unsigned stage=0;stage<4;++stage) {
+                    const auto &state=material.texture_states[stage];
+                    const Texture *stage_textures[]{&material.diffuse,&material.detail,&material.bump,&material.auxiliary};
+                    if(state.color_key_op || (state.color_sign && stage_textures[stage]->format!=native_rgba32f))
+                        throw FormatError("authored texture state requires native texel decoding");
+                    // Bit zero selects pixel coordinates; bits 1..4 preserve
+                    // which channels have been signed before texture filtering.
+                    uniform.texture_effects[stage]={state.alpha_kill,
+                        ((stage==0 && material.accumulation_texture) || (stage==2 && material.camouflage_scene_texture)?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
+                    if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
+                    // A light's shadow buffer: texel coordinates and the depth
+                    // comparison fetch (menu_world.frag sourceShadowCompare).
+                    if(material.forward_vertex==6 && material.forward_pass && material.forward_pass_index<material.passes.size())
+                        for(const auto &binding:material.passes[material.forward_pass_index].textures)
+                            if(binding.external==13 && binding.stage==stage) {
+                                uniform.texture_effects[stage][1]|=1u;uniform.texture_effects[stage][2]|=2u;
+                            }
+                }
+                if(native_world_kernel_indices[i]!=~0u) {
                     const auto& vertex=generated_native_world_kernels::entries[native_world_kernel_indices[i]];
                     if(vertex.relative_constants &&
                        (!material.vertex_bank || material.vertex_bank->constants.empty()))
@@ -2561,14 +2850,32 @@ struct Renderer::Impl {
                            [](auto semantic){return semantic==19 || semantic==20;}) &&
                        (!material.vertex_bank || !material.vertex_bank->prt_inputs))
                         throw FormatError("source PRT declaration has no explicit vertex stream bank: "+material.name);
+                }
+                const auto gpu_uniform=native_material_gpu_uniform(uniform);
+                std::memcpy(static_cast<std::byte*>(mapped)+stride*i,&gpu_uniform,sizeof(gpu_uniform));
+                material_uniforms[i]=uniform;
             }
-            const auto gpu_uniform=native_material_gpu_uniform(uniform);
-            std::memcpy(static_cast<std::byte*>(mapped)+stride*i,&gpu_uniform,sizeof(gpu_uniform));
-            material_uniforms[i]=uniform;
-            const auto bank=source_vertex_bank(material);
-            std::memcpy(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,&bank,sizeof(bank));
-            vertex_bank_uniforms[i]=bank;
-            extended_vertex_banks[i]=bool(material.vertex_bank);
+            const bool reuse_vertex_bank=old_slot!=~0u && !prev.vertex_bank_mutated[old_slot] &&
+                (old_slot==i || (old_slot>=prev_material_count && old_slot-prev_material_count<prev.child_vertex_bank_uniforms.size()));
+            if(reuse_vertex_bank) {
+                extended_vertex_banks[i]=prev.extended_vertex_banks[old_slot];
+                if(old_slot!=i)vertex_bank_uniforms[i]=prev.child_vertex_bank_uniforms[old_slot-prev_material_count];
+                if(buffer_reallocated || old_slot!=i) {
+                    if(extended_vertex_banks[i])
+                        std::memcpy(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,&vertex_bank_uniforms[i],sizeof(VertexBankUniform));
+                    else
+                        std::memset(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,0,sizeof(VertexBankUniform));
+                }
+            } else if(material.vertex_bank) {
+                const auto bank=source_vertex_bank(material);
+                std::memcpy(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,&bank,sizeof(bank));
+                vertex_bank_uniforms[i]=bank;
+                extended_vertex_banks[i]=true;
+            } else {
+                if(reusing)vertex_bank_uniforms[i]={};
+                std::memset(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,0,sizeof(VertexBankUniform));
+                extended_vertex_banks[i]=false;
+            }
             required_owner_prt_banks[i]=material.requires_owner_prt_bank;
         }
         vkUnmapMemory(device,vertex_bank_memory);
@@ -2576,6 +2883,14 @@ struct Renderer::Impl {
         // immutable image snapshots share allocations across hands, players,
         // stages and animated frames. update_image detaches mutable owners.
         std::map<std::uint64_t,std::vector<std::pair<const Texture*,GpuTexture>>> shared_images;
+        std::unordered_set<const SharedImage*> registered_shared_owners;
+        const auto register_existing_shared=[&](const Texture &source,const GpuTexture &resident) {
+            if(!resident.shared_image)return;
+            if(!registered_shared_owners.insert(resident.shared_image.get()).second)return;
+            if(capture_bsp_draw_bindings)observe_texture_views(resident,vulkan_texture_format(resident.format));
+            const auto hash=detail::image_residency_bucket({source.pixels.data(),source.pixels.size()});
+            shared_images[hash].emplace_back(&source,resident);
+        };
         const auto upload_shared_image=[&](const Texture &source,GpuTexture &target) {
             const auto hash=detail::image_residency_bucket({source.pixels.data(),source.pixels.size()});
             auto &candidates=shared_images[hash];
@@ -2587,58 +2902,102 @@ struct Renderer::Impl {
             target.shared_image=std::make_shared<SharedImage>();
             auto &owner=*target.shared_image;owner.device=device;owner.image=target.image;owner.memory=target.memory;
             owner.view=target.view;owner.cube_view=target.cube_view;
+            registered_shared_owners.insert(target.shared_image.get());
             candidates.emplace_back(&source,target);
         };
         for(std::size_t i=0;i<count;++i) {
             const auto& material=*materials[i];
             const auto &diffuse=material.diffuse.pixels.empty()?white:material.diffuse;
-            if(!material.accumulation_texture && !material.scope_texture &&
-               !material.water_reflection_texture && !material.water_refraction_texture)
+            const auto &detail=material.detail.pixels.empty()?white:material.detail;
+            const auto &bump=material.bump.pixels.empty()?flat_normal:material.bump;
+            const auto &auxiliary=material.auxiliary.pixels.empty()?white:material.auxiliary;
+            const auto old_slot=reusing?reused_old_slot[i]:~0u;
+            const auto take_gpu_texture=[](GpuTexture &src) {
+                GpuTexture out=std::move(src);
+                src={};
+                out.descriptor=VK_NULL_HANDLE;
+                return out;
+            };
+            if(old_slot!=~0u) {
+                if(!prev.textures[old_slot].source_mutated) {
+                    textures[i]=take_gpu_texture(prev.textures[old_slot]);
+                    register_existing_shared(diffuse,textures[i]);
+                } else upload_shared_image(diffuse,textures[i]);
+                detail_textures[i]=take_gpu_texture(prev.detail_textures[old_slot]);
+                register_existing_shared(detail,detail_textures[i]);
+                bump_textures[i]=take_gpu_texture(prev.bump_textures[old_slot]);
+                register_existing_shared(bump,bump_textures[i]);
+                auxiliary_textures[i]=take_gpu_texture(prev.auxiliary_textures[old_slot]);
+                register_existing_shared(auxiliary,auxiliary_textures[i]);
+                animated_textures[i]=std::move(prev.animated_textures[old_slot]);
+                prev.animated_textures[old_slot]={};
+                for(unsigned stage=0;stage<4;++stage) {
+                    const auto &frames=material.animated_textures[stage];
+                    auto &images=animated_textures[i][stage];
+                    if(images.size()==frames.size()) {
+                        for(unsigned frame=0;frame<frames.size();++frame)
+                            register_existing_shared(frames[frame],images[frame]);
+                    } else {
+                        for(auto &stale:images)destroy_gpu_texture(stale);
+                        images.assign(frames.size(),{});
+                        for(unsigned frame=0;frame<frames.size();++frame)upload_shared_image(frames[frame],images[frame]);
+                    }
+                }
+            } else {
                 upload_shared_image(diffuse,textures[i]);
-            else upload_texture(diffuse,textures[i]);
-            upload_shared_image(material.detail.pixels.empty()?white:material.detail,detail_textures[i]);
-            upload_shared_image(material.bump.pixels.empty()?flat_normal:material.bump,bump_textures[i]);
-            upload_shared_image(material.auxiliary.pixels.empty()?white:material.auxiliary,auxiliary_textures[i]);
+                upload_shared_image(detail,detail_textures[i]);
+                upload_shared_image(bump,bump_textures[i]);
+                upload_shared_image(auxiliary,auxiliary_textures[i]);
+                for(unsigned stage=0;stage<4;++stage) {
+                    const auto &frames=material.animated_textures[stage];
+                    auto &images=animated_textures[i][stage];images.resize(frames.size());
+                    for(unsigned frame=0;frame<frames.size();++frame) upload_shared_image(frames[frame],images[frame]);
+                }
+            }
             textures[i].source_image=!material.diffuse.pixels.empty();
             detail_textures[i].source_image=!material.detail.pixels.empty();
             bump_textures[i].source_image=!material.bump.pixels.empty();
             auxiliary_textures[i].source_image=!material.auxiliary.pixels.empty();
             wanted_frames[i]=bound_frames[i]=material.texture_frames;
-            for(unsigned stage=0;stage<4;++stage) {
-                const auto &frames=material.animated_textures[stage];
-                auto &images=animated_textures[i][stage];images.resize(frames.size());
-                for(unsigned frame=0;frame<frames.size();++frame) upload_shared_image(frames[frame],images[frame]);
-            }
             // Retail 2BCD0 composites atmospheric fog before layer 15.
             // Blending alone cannot identify that layer: the carrier's
             // additive self-illumination belongs to layer 7, before fog.
             after_fog.push_back(detail::material_after_fog(material));
             projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
-            // Projected texture writes use the raw source draw and have no packed vertex program.
-            const bool projected_texture_write=effect_light_materials[i] && source_material_layers[i]==14;
-            if(!material.hud_pass && !material.light_volume_pass && !projected_texture_write &&
-                (material.forward_pass || material.static_lightmap_pass || material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass ||
-                 native_world_kernel_indices[i]!=~0u)) {
-                const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
-                const bool pstencil_mask=pstencil_response_phases[i]!=3 && (source_material_layers[i]==13 || pstencil_response_phases[i]!=0);
-                const bool alias=source_material_layers[i]==19;
-                const auto native=native_world_kernel_indices[i];
-                const bool base_world=!material.forward_pass;
-                const auto controls=combiner_controls(material_uniforms[i].program);
-                const auto found=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
-                    [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
-                        p.extended_vertex_bank==bool(material.vertex_bank) && p.native_kernel==native && p.base_world==base_world &&
-                        p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
-                const auto index=unsigned(found-forward_pipelines.begin());
-                if(found==forward_pipelines.end())
-                    forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask,alias,native,base_world});
-                forward_pipeline_indices.push_back(index);
-                unsigned specialized=~0u;
-                specialized_pipeline_indices.push_back(specialized);
+            if(old_slot!=~0u) {
+                forward_pipeline_indices.push_back(prev.forward_pipeline_indices[old_slot]);
+                specialized_pipeline_indices.push_back(~0u);
             } else {
-                forward_pipeline_indices.push_back(~0u);specialized_pipeline_indices.push_back(~0u);
+                // Projected texture writes use the raw source draw and have no packed vertex program.
+                const bool projected_texture_write=effect_light_materials[i] && source_material_layers[i]==14;
+                if(!material.hud_pass && !material.light_volume_pass && !projected_texture_write &&
+                    (material.forward_pass || material.static_lightmap_pass || material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass ||
+                     native_world_kernel_indices[i]!=~0u)) {
+                    const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
+                    const bool pstencil_mask=pstencil_response_phases[i]!=3 && (source_material_layers[i]==13 || pstencil_response_phases[i]!=0);
+                    const bool alias=source_material_layers[i]==19;
+                    const auto native=native_world_kernel_indices[i];
+                    const bool base_world=!material.forward_pass;
+                    const auto controls=combiner_controls(material_uniforms[i].program);
+                    const auto found=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
+                        [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
+                            p.extended_vertex_bank==bool(material.vertex_bank) && p.native_kernel==native && p.base_world==base_world &&
+                            p.controls==controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask && p.camouflage_alias==alias;});
+                    const auto index=unsigned(found-forward_pipelines.begin());
+                    if(found==forward_pipelines.end())
+                        forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),controls,emblem_w_depth,pstencil_mask,alias,native,base_world});
+                    forward_pipeline_indices.push_back(index);
+                    unsigned specialized=~0u;
+                    specialized_pipeline_indices.push_back(specialized);
+                } else {
+                    forward_pipeline_indices.push_back(~0u);specialized_pipeline_indices.push_back(~0u);
+                }
             }
         }
+        // Release any unshared GPU images left behind in prev before finishing.
+        for(auto *bank:{&prev.textures,&prev.detail_textures,&prev.bump_textures,&prev.auxiliary_textures})
+            for(auto &t:*bank)destroy_gpu_texture(t);
+        for(auto &mat:prev.animated_textures)for(auto &stage:mat)for(auto &t:stage)destroy_gpu_texture(t);
         auto authored_sampler=[&](const ShaderTextureState &state,unsigned mip_levels=0) {
             const auto key=std::pair{state,mip_levels};
             if(const auto found=authored_samplers.find(key);found!=authored_samplers.end())return found->second;
@@ -2738,11 +3097,11 @@ struct Renderer::Impl {
             if(scope_materials[i])descriptor(i,0,scope_descriptors[i]);
         }
         for(auto &view:camouflage_descriptors) {
-            view.resize(count);
+            view.assign(count,VK_NULL_HANDLE);
             for(unsigned m=0;m<count;++m)if(camouflage_scene_materials[m])descriptor(m,0,view[m]);
         }
         for(auto &target:texture_camera_descriptors) {
-            target.resize(count);
+            target.assign(count,VK_NULL_HANDLE);
             for(unsigned m=0;m<count;++m)if(texture_camera_materials[m])descriptor(m,0,target[m]);
         }
         for(const auto &[material,lightmap]:geometry_pairs)
@@ -2753,6 +3112,147 @@ struct Renderer::Impl {
         flush_texture_uploads();
         batch_texture_uploads=false;
         release_texture_upload_pool();
+    }
+
+    void rebind_render_target_descriptors() {
+        std::vector<VkDescriptorImageInfo> batch_images;
+        std::vector<VkWriteDescriptorSet> batch_writes;
+        batch_images.reserve(1024);
+        batch_writes.reserve(1024);
+        const auto flush_writes=[&] {
+            if(batch_writes.empty())return;
+            for(std::size_t i=0;i<batch_writes.size();++i)
+                batch_writes[i].pImageInfo=&batch_images[i];
+            vkUpdateDescriptorSets(device,std::uint32_t(batch_writes.size()),batch_writes.data(),0,nullptr);
+            observe_descriptor_writes(batch_writes.data(),std::uint32_t(batch_writes.size()));
+            batch_images.clear();
+            batch_writes.clear();
+        };
+        const auto queue_image=[&](VkDescriptorSet set,std::uint32_t binding,VkSampler image_sampler,VkImageView view) {
+            if(batch_writes.size()==1024)flush_writes();
+            batch_images.push_back({image_sampler,view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+            VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            write.dstSet=set;write.dstBinding=binding;write.descriptorCount=1;
+            write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            batch_writes.push_back(write);
+        };
+        if(scope_render) {
+            for(unsigned m=0;m<scope_materials.size();++m)if(scope_materials[m])
+                queue_image(scope_descriptors[m],0,stage_samplers[m][0],scope_render->target_view());
+        }
+        if(accumulation_view) {
+            if(capture_bsp_draw_bindings) {
+                RendererObservedImageBinding image;image.image=observed_handle(accumulation_image);image.view=observed_handle(accumulation_view);
+                image.width=extent.width;image.height=extent.height;image.layers=1;image.mip_count=1;image.format=format;image.image_owner_known=true;
+                observed_image_views[image.view]=image;
+            }
+            for(unsigned material=0;material<accumulation_materials.size();++material)if(accumulation_materials[material]) {
+                queue_image(textures[material].descriptor,0,stage_samplers[material][0],accumulation_view);
+                for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,material))
+                    queue_image(descriptor,0,stage_samplers[material][0],accumulation_view);
+            }
+            for(const auto material:pstencil_environment_companion_slots)
+                queue_image(textures[material].descriptor,1,stage_samplers[material][1],accumulation_view);
+        }
+        if(water_reflection.view && water_refraction.view) {
+            for(unsigned m=0;m<water_texture_bindings.size();++m)for(unsigned target=0;target<2;++target)
+                if(water_texture_bindings[m][target]) {
+                    const auto view=target?water_refraction.view:water_reflection.view;
+                    queue_image(textures[m].descriptor,target+1,stage_samplers[m][target+1],view);
+                    for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,m))
+                        queue_image(descriptor,target+1,stage_samplers[m][target+1],view);
+                }
+        }
+        if(pstencil_render) {
+            for(unsigned material=0;material<pstencil_response_phases.size();++material)
+                if(pstencil_response_phases[material]==2 || pstencil_response_phases[material]==4) {
+                    const bool normals=pstencil_response_phases[material]==4;
+                    const unsigned binding=normals?0u:1u;
+                    const auto view=normals?pstencil_render->normal_view():pstencil_render->utility_view();
+                    queue_image(textures[material].descriptor,binding,stage_samplers[material][binding],view);
+                    for(const auto& [key,descriptor]:material_descriptor_range(geometry_descriptors,material))
+                        queue_image(descriptor,binding,stage_samplers[material][binding],view);
+                }
+        }
+        flush_writes();
+    }
+
+    void reload_bsp_scene(const Mesh& mesh,const SourceBspResidentPlan *next_bsp_plan,
+        std::size_t persistent_root_count,const Cache *scene_cache) {
+        if(!device)throw FormatError("In-place BSP reload requires an initialized Vulkan device");
+        check(vkDeviceWaitIdle(device),"wait before in-place BSP scene reload");
+        touch_lens_queries();lens_queries.reset();lens_query_results.clear();
+        retire_weather_aliases();
+        release_texture_staging();
+        release_texture_upload_pool();
+        if(scene_cache && !pstencil_visor_cube && std::ranges::any_of(mesh.materials,[](const auto& material) {
+            return pstencil::combined_visor_environment(material)!=nullptr;
+        }))pstencil_visor_cube=pstencil::load_reference_visor_cube(*scene_cache);
+        const bool had_offscreen=scene_layout==VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        bsp_resident_plan=next_bsp_plan;
+        compared_depth_atlas={};
+        source_depth_constructor_atlas.clear();source_depth_constructor_materials.clear();
+        for(auto &plan:bsp_frame_plans)plan={};
+        dynamic_images.clear();pending_images.clear();
+        changed_materials.clear();changed_vertex_banks.clear();
+        for(auto &view:view_material_initialized)view.clear();
+        base_camera_initialized=false;base_camera.reset();
+        object_motion_views.clear();object_motion_time={};
+        object_motion_blur.reset();
+        menu_world_native.reset();menu_world_reported=false;
+        effect_light_native.reset();hologram_native.reset();raw_shadow_native={};
+        object_draw_storage.reset();effect_light_storage.reset();hologram_storage.reset();
+        hologram_copies.clear();
+        for(auto &copy:camouflage_copies)copy.reset();
+        camouflage_copy_pending={};
+        for(auto &copy:texture_camera_copies)copy.reset();
+        texture_camera_pending={};texture_camera_produced={};texture_camera_before_produced={};
+        texture_camera_bindings={};texture_camera_copy_contexts={};
+        ++texture_camera_epoch;
+        cinematic_crossfade.reset();campaign_crossfade={};campaign_capture_completed=false;
+        bsp_postprocess.reset();bsp_postprocess_state.reset();
+        for(auto &texture:bsp_postprocess_textures)destroy_gpu_texture(texture);
+        bsp_postprocess_textures.clear();
+        destroy_gpu_texture(fog_gradient);
+        bsp_atmosphere=false;bsp_bank=nullptr;scene_clear.reset();
+        if(capture_bsp_draw_bindings){observed_image_views.clear();observed_descriptors.clear();}
+        path_tracing_source_mesh=&mesh;
+        if(path_tracing_state) {
+            for(std::size_t slot=0;slot<path_tracing_state->scenes.size();++slot) {
+                path_tracing_state->scenes[slot].reset();
+                path_tracing_state->static_world[slot]={};
+                path_tracing_state->sky_storage[slot].reset();
+                if(path_tracing_state->renderers[slot])path_tracing_state->renderers[slot]->reset_scene_history();
+            }
+            for(auto &ambient:path_tracing_state->ambient_storage)ambient.reset();
+        }
+        const std::size_t prev_forward_pipelines=forward_pipelines.size();
+        upload_static_vertices(mesh);
+        make_textures(mesh,persistent_root_count);
+        const bool next_offscreen=active_upscaler!=Upscaler::Off || source_double_buffer || texture_camera_scene_required || hologram_scene_required ||
+            std::any_of(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),[](bool x){return x;}) ||
+            std::any_of(texture_camera_materials.begin(),texture_camera_materials.end(),[](bool x){return x;}) ||
+            extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
+        const bool needs_accumulation=!pstencil_environment_companion_slots.empty() ||
+            std::any_of(camouflage_group_materials.begin(),camouflage_group_materials.end(),[](bool present){return present;}) ||
+            std::any_of(accumulation_materials.begin(),accumulation_materials.end(),[](bool present){return present;});
+        const bool needs_scope=std::any_of(scope_materials.begin(),scope_materials.end(),[](bool value){return value;});
+        const bool needs_water=std::any_of(water_texture_bindings.begin(),water_texture_bindings.end(),[](const auto &b){return b[0]||b[1];});
+        const bool needs_pstencil=std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase!=0;});
+        const bool needs_swapchain=!swapchain || dirty || capture_bsp_draw_bindings ||
+            next_offscreen!=had_offscreen ||
+            (needs_accumulation && !accumulation_view) ||
+            (needs_scope && !scope_render) ||
+            (needs_water && (!water_reflection.view || !water_refraction.view)) ||
+            (needs_pstencil && !pstencil_render) ||
+            (light_volume_materials && !light_volume_pipeline);
+        if(needs_swapchain) {
+            create_swapchain();
+        } else {
+            for(std::size_t i=prev_forward_pipelines;i<forward_pipelines.size();++i)
+                make_native_forward_pipeline(forward_pipelines[i]);
+            rebind_render_target_descriptors();
+        }
     }
 
     VkDescriptorSet geometry_descriptor(unsigned material,unsigned lightmap) const {
@@ -2848,6 +3348,9 @@ struct Renderer::Impl {
         if(native_ui_pass)vkDestroyRenderPass(device,native_ui_pass,nullptr);native_ui_pass=VK_NULL_HANDLE;
     }
     void destroy_swapchain() {
+        object_motion_blur.reset();
+        object_motion_views.clear();
+        object_motion_time={};
         temporal_upscaler.reset();
         destroy_native_ui_targets();
         touch_lens_queries();
@@ -2861,7 +3364,8 @@ struct Renderer::Impl {
         source_framebuffer_depth_aliases.reset();
         if(camouflage_alias_framebuffer)vkDestroyFramebuffer(device,camouflage_alias_framebuffer,nullptr);
         camouflage_alias_framebuffer={};camouflage_alias.reset();camouflage_alias_pending=false;
-        for(auto &copy:camouflage_copies)copy.reset();camouflage_copy_pending={};
+        for(auto &copy:camouflage_copies)copy.reset();
+        camouflage_copy_pending={};
         ++texture_camera_epoch; // Private camera images survive same-device target recreation.
         if(camouflage_alias_pass)vkDestroyRenderPass(device,camouflage_alias_pass,nullptr);
         camouflage_alias_pass={};
@@ -2893,7 +3397,7 @@ struct Renderer::Impl {
         effect_light_storage.reset();
         shadow_render.reset();
         pstencil_render.reset();
-        path_tracing_state.reset();
+        retire_path_tracing_storage();
         object_draw_storage.reset();
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
         particle_renderer.reset();
@@ -3045,6 +3549,9 @@ struct Renderer::Impl {
                                   path_tracing_hardware_rays?"world.rt.frag.spv":"world.frag.spv","denoise.comp.spv","calibrate.comp.spv"})
                 if(!std::filesystem::is_regular_file(shader_directory/"path_tracing"/name))
                     return "Path Tracing ray tracing shaders are unavailable in this runtime.";
+            const auto* reflection=path_tracing_hardware_rays?"water_reflection.rt.frag.spv":"water_reflection.frag.spv";
+            if(!std::filesystem::is_regular_file(shader_directory/"path_tracing"/reflection))
+                return "Path Tracing water reflection shaders are unavailable in this runtime.";
             for(const auto* name:{"world.frag.spv","lighting.frag.spv"}) {
                 std::error_code error;
                 const auto size=std::filesystem::file_size(shader_directory/"path_tracing"/name,error);
@@ -3066,6 +3573,11 @@ struct Renderer::Impl {
         if(s.graphics_mode==pstencil::GraphicsMode::pStencil &&
            (!source_world_device.depth_clamp_enabled || depth_format!=VK_FORMAT_D24_UNORM_S8_UINT))
             return "pStencil is unavailable on this graphics device.";
+        if(s.object_motion_blur) {
+            for(const auto* stage:{"object_motion_blur.vert.spv","object_motion_blur.frag.spv"})
+                if(!std::filesystem::is_regular_file(shader_directory/stage))
+                    return "Object motion blur shaders are unavailable in this runtime.";
+        }
         if(s.path_tracing_samples<1 || s.path_tracing_samples>2 || s.path_tracing_bounces<1 || s.path_tracing_bounces>2 ||
            !valid_upscaling(s.upscaler,s.upscaling_quality) || s.brightness>9 || s.gamma>10 || s.detail>2 ||
            !valid_field_of_view(s.field_of_view) || !valid_field_of_view(s.vehicle_field_of_view) ||
@@ -3615,12 +4127,6 @@ struct Renderer::Impl {
             if(!can_capture)throw FormatError("original scope copy requires a readable scene target");
             scope_render=std::make_unique<ScopeRender>(ScopeRenderContext{
                 device,physical,extent,format,continuation_pass,shader_directory,scene_layout});
-            for(unsigned m=0;m<scope_materials.size();++m)if(scope_materials[m]) {
-                const VkDescriptorImageInfo image{stage_samplers[m][0],scope_render->target_view(),VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=scope_descriptors[m];
-                write.dstBinding=0;write.descriptorCount=1;write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
-                {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-            }
         }
         VkSubpassDescription fog_subpass{};fog_subpass.pipelineBindPoint=VK_PIPELINE_BIND_POINT_GRAPHICS;
         fog_subpass.colorAttachmentCount=1;fog_subpass.pColorAttachments=&color;
@@ -3723,29 +4229,6 @@ struct Renderer::Impl {
             framebuffer.renderPass=accumulation_pass;framebuffer.attachmentCount=2;framebuffer.pAttachments=target_views;
             framebuffer.width=extent.width;framebuffer.height=extent.height;framebuffer.layers=1;
             check(vkCreateFramebuffer(device,&framebuffer,nullptr,&accumulation_framebuffer),"create base accumulation framebuffer");
-            // Extern3 also belongs to ordinary sphere-light passes. Bind all
-            // authored consumers, including independently queued light draws.
-            for(unsigned material=0;material<accumulation_materials.size();++material) if(accumulation_materials[material]) {
-                const VkDescriptorImageInfo target{stage_samplers[material][0],accumulation_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-                write.dstSet=textures[material].descriptor;write.dstBinding=0;write.descriptorCount=1;
-                write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&target;
-                {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,material)) {
-                    write.dstSet=descriptor;
-                    {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                }
-            }
-            // Independent visor reflection retains bump at0 and cube at3.
-            // Its otherwise unfetched stage1 samples the same current material
-            // alpha used by the existing separate pStencil specular path.
-            for(const auto material:pstencil_environment_companion_slots) {
-                const VkDescriptorImageInfo target{stage_samplers[material][1],accumulation_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-                write.dstSet=textures[material].descriptor;write.dstBinding=1;write.descriptorCount=1;
-                write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&target;
-                {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-            }
         }
         if(std::any_of(water_texture_bindings.begin(),water_texture_bindings.end(),[](const auto &b){return b[0]||b[1];})) {
             if(!can_capture)throw FormatError("water refraction requires a readable color surface");
@@ -3773,36 +4256,14 @@ struct Renderer::Impl {
             for(const auto descriptor:water_copy_descriptors)for(unsigned binding=0;binding<2;++binding) {
                 write.dstSet=descriptor;write.dstBinding=binding;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
             }
-            for(unsigned m=0;m<water_texture_bindings.size();++m)for(unsigned target=0;target<2;++target)
-                if(water_texture_bindings[m][target]) {
-                    const VkDescriptorImageInfo image{stage_samplers[m][target+1],target?water_refraction.view:water_reflection.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-                    write.dstSet=textures[m].descriptor;write.dstBinding=target+1;write.pImageInfo=&image;
-                    {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    for(const auto &[key,descriptor]:material_descriptor_range(geometry_descriptors,m)) {
-                        write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    }
-                }
         }
         if(std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase!=0;})) {
             if(depth_format!=VK_FORMAT_D24_UNORM_S8_UINT)
                 throw FormatError("pStencil utility requires the native D24S8 depth/stencil");
             if(!pstencil_render)pstencil_render=std::make_unique<pstencil::Render>(pstencil::RenderContext{
                 device,physical,extent,continuation_pass,depth,this->views,shader_directory});
-            for(unsigned material=0;material<pstencil_response_phases.size();++material)
-                if(pstencil_response_phases[material]==2 || pstencil_response_phases[material]==4) {
-                    const bool normals=pstencil_response_phases[material]==4;
-                    const unsigned binding=normals?0u:1u;
-                    const VkDescriptorImageInfo image{stage_samplers[material][binding],
-                        normals?pstencil_render->normal_view():pstencil_render->utility_view(),VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-                    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-                    write.dstSet=textures[material].descriptor;write.dstBinding=binding;write.descriptorCount=1;
-                    write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
-                    {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    for(const auto& [key,descriptor]:material_descriptor_range(geometry_descriptors,material)) {
-                        write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
-                    }
-                }
         }
+        rebind_render_target_descriptors();
         const std::array<std::uint32_t,60> fixed_world_program{};
         const std::string fixed_world_fragment(native_fragment_kernel_path("world-fixed",fixed_world_program));
         const auto vertex = shader("world.vert.spv"), fragment = shader(fixed_world_fragment.c_str());
@@ -4273,7 +4734,7 @@ struct Renderer::Impl {
         pipeline.layout=display_layout;pipeline.renderPass=fog_pass;
         check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&pipeline,nullptr,&display_pipeline),"create display correction filter pipeline");
     }
-    void copy_scene_for_post(unsigned index) {
+    void copy_scene_for_post(unsigned index,std::optional<VkRect2D> clip={}) {
         vkCmdEndRenderPass(command);
         std::array<VkImageMemoryBarrier,2> copy_barriers{};
         for(auto &b:copy_barriers) {
@@ -4292,7 +4753,10 @@ struct Renderer::Impl {
         vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,2,copy_barriers.data());
         VkImageCopy region{};region.srcSubresource=region.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};
-        region.extent={extent.width,extent.height,1};
+        if(clip) {
+            region.srcOffset=region.dstOffset={clip->offset.x,clip->offset.y,0};
+            region.extent={clip->extent.width,clip->extent.height,1};
+        } else region.extent={extent.width,extent.height,1};
         vkCmdCopyImage(command,images[index],VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             bloom_scene.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&region);
         color.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;color.newLayout=scene_layout;
@@ -7040,7 +7504,8 @@ struct Renderer::Impl {
                     const auto lighting_index=owner?object_aliases.at(draw.object_alias).at({lighting,draw.lightmap}):0;
                     auto uniform=owner?object_uniforms.at(primary_index):view_material_uniform(views[i],m);
                     const auto illumination=owner?object_uniforms.at(lighting_index):view_material_uniform(views[i],lighting);
-                    uniform=path_tracing::source_ambient_uniform(uniform,illumination);
+                    uniform=path_tracing::source_ambient_uniform(uniform,illumination,
+                        path_tracing::source_ambient_color_word(*source));
                     aliases.indices.emplace(key,aliases.uniforms.size());
                     aliases.uniforms.push_back(native_material_gpu_uniform(uniform));
                     uploads.push_back({owner?object_descriptors[primary_index]:geometry_descriptor(m,draw.lightmap),{},
@@ -8124,34 +8589,21 @@ struct Renderer::Impl {
                         if(!path_tracing::qualified_surface(root))return;
                         CompletedMaterial value;value.primary=uniform(object,key.material,key.lightmap);
                         for(unsigned stage=0;stage<4;++stage)value.images[stage]=image(object,key.material,key.lightmap,root,stage);
-                        unsigned environment=~0u;
-                        if(root.environment_pass && root.environment_pass->forward_vertex==4) {
-                            environment=environment_materials[key.material];value.environment_source=root.environment_pass.get();
-                        }
-                        if(root.forward_vertex==4) {environment=key.material;value.environment_source=&root;}
-                        const auto find_environment=[&](const auto& passes,const auto& indices) {
-                            for(std::size_t n=0;n<passes.size();++n)if(environment==~0u && passes[n] && passes[n]->forward_vertex==4) {
-                                environment=indices[n];value.environment_source=passes[n].get();
-                            }
-                        };
-                        find_environment(root.world_overlays_before,world_before[key.material]);
-                        find_environment(root.world_overlays_after,world_after[key.material]);
-                        if(environment==~0u) {
-                            const auto* combined=pstencil::combined_visor_environment(root);
-                            if(!combined && pstencil::supports_combined_environment_strength(root))combined=&root;
-                            // Match the exact native pass selected by material_response.
-                            // Its completed program words carry per-owner combined
-                            // facing/glancing strengths, not the ordinary diffuse slots.
-                            if(combined==&root)environment=key.material;
-                            else if(combined && root.environment_pass.get()==combined)environment=environment_materials[key.material];
-                            const auto find_combined=[&](const auto& passes,const auto& indices) {
-                                for(std::size_t n=0;n<passes.size();++n)if(combined && passes[n].get()==combined)environment=indices[n];
+                        if(const auto* source=path_tracing::reflection_pass(root)) {
+                            unsigned environment=~0u;
+                            if(source==&root)environment=key.material;
+                            else if(source==root.environment_pass.get())environment=environment_materials[key.material];
+                            const auto find_environment=[&](const auto& passes,const auto& indices) {
+                                for(std::size_t n=0;n<passes.size();++n)
+                                    if(environment==~0u && passes[n].get()==source)environment=indices[n];
                             };
-                            find_combined(root.world_overlays_before,world_before[key.material]);
-                            find_combined(root.world_overlays_after,world_after[key.material]);
-                            if(environment!=~0u)value.environment_source=combined;
+                            find_environment(root.world_overlays_before,world_before[key.material]);
+                            find_environment(root.world_overlays_after,world_after[key.material]);
+                            if(environment!=~0u) {
+                                value.environment=uniform(object,environment,key.lightmap);
+                                value.environment_source=source;
+                            }
                         }
-                        if(environment!=~0u)value.environment=uniform(object,environment,key.lightmap);
                         if(const auto* ambient=path_tracing::source_ambient_owner(root)) {
                             const auto material=ambient==&root?key.material:environment_materials[key.material];
                             value.ambient=uniform(object,material,key.lightmap);
@@ -8221,6 +8673,127 @@ struct Renderer::Impl {
                         static_world.bound.clear();
                         for(const auto& key:static_world.keys)static_world.bound.push_back(bound_material(key));
                     }
+                    if(std::getenv("HALO2_PT_DIAG_DUMP")) {
+                        static unsigned diag_frame=0;
+                        if(++diag_frame==120) {
+                            std::fprintf(stderr,"PTDIAG lights=%zu env=(%.3f,%.3f,%.3f) tris=%zu static=%u emissive=%u\n",
+                                view->path_tracing_lights.size(),view->path_tracing_environment.x,view->path_tracing_environment.y,
+                                view->path_tracing_environment.z,scene->triangles.size(),scene->static_triangles,scene->emissive_count);
+                            for(std::size_t li=0;li<view->path_tracing_lights.size();++li) {
+                                const auto& l=view->path_tracing_lights[li];
+                                const Vec3 ld=l.direction?*l.direction:Vec3{};
+                                std::fprintf(stderr,"PTDIAG_LIGHT %zu pos=(%.2f,%.2f,%.2f) dir=(%.2f,%.2f,%.2f) d=%d rad=%.2f col=(%.3f,%.3f,%.3f) int=%.3f pl0=(%.2f,%.2f,%.2f,%.2f) pl4=(%.2f,%.2f,%.2f,%.2f)\n",
+                                    li,l.position.x,l.position.y,l.position.z,ld.x,ld.y,ld.z,int(l.direction.has_value()),l.radius,l.color.x,l.color.y,l.color.z,l.intensity,
+                                    l.planes[0][0],l.planes[0][1],l.planes[0][2],l.planes[0][3],
+                                    l.planes[4][0],l.planes[4][1],l.planes[4][2],l.planes[4][3]);
+                            }
+                            std::set<std::tuple<unsigned,unsigned,std::size_t>> seen;
+                            for(const auto& draw:view_draws[view_index]) {
+                                if(!draw.count || draw.material>=path_tracing_materials.size())continue;
+                                const auto m=draw.material;
+                                const auto owner=draw.observed_object<view->objects.size()?path_object_owner(*view,draw.observed_object):path_unowned_material;
+                                const auto bm=bound_material({owner,m,draw.lightmap});
+                                if(!seen.insert({m,bm,draw.object_alias}).second)continue;
+                                const auto& r=path_tracing_materials[m];
+                                const auto& g=scene->materials[bm];
+                                const auto qs=path_tracing::qualified_surface(r);
+                                const auto* sa=path_tracing::source_ambient_owner(r);
+                                const std::string p=r.forward_pass_index<r.passes.size()?r.passes[r.forward_pass_index].name:"";
+                                const std::string vs=r.forward_pass_index<r.passes.size()?r.passes[r.forward_pass_index].vertex_shader:"";
+                                const auto leaf=[](const std::string& s){auto k=s.find_last_of('\\');return k==std::string::npos?s:s.substr(k+1);};
+                                std::uint32_t w15=r.forward_program.words[15],w17=r.forward_program.words[17],w23=r.forward_program.words[23],w25=r.forward_program.words[25];
+                                if(draw.object_alias!=std::numeric_limits<std::size_t>::max()) {
+                                    const auto& oa=object_aliases.at(draw.object_alias);
+                                    if(auto it=oa.find({m,draw.lightmap});it!=oa.end()) {
+                                        const auto& u=object_uniforms.at(it->second);
+                                        w15=u.program[15];w17=u.program[17];w23=u.program[23];w25=u.program[25];
+                                    }
+                                }
+                                std::string env_s="-";
+                                if(r.environment_pass) {
+                                    const auto& ep=*r.environment_pass;
+                                    const std::string epn=ep.forward_pass_index<ep.passes.size()?ep.passes[ep.forward_pass_index].name:"";
+                                    env_s=leaf(epn)+"/fv"+std::to_string(ep.forward_vertex)+"/b"+std::to_string(ep.forward_blend);
+                                    if(ep.diffuse.layers==6)env_s+="/c0";if(ep.detail.layers==6)env_s+="/c1";
+                                    if(ep.bump.layers==6)env_s+="/c2";if(ep.auxiliary.layers==6)env_s+="/c3";
+                                }
+                                std::string aft_s="-";
+                                for(const auto& ap:r.world_overlays_after)if(ap) {
+                                    const std::string apn=ap->forward_pass_index<ap->passes.size()?ap->passes[ap->forward_pass_index].name:"";
+                                    if(aft_s=="-")aft_s.clear();else aft_s+=",";
+                                    aft_s+=leaf(apn)+"/fv"+std::to_string(ap->forward_vertex)+"/b"+std::to_string(ap->forward_blend);
+                                    if(ap->diffuse.layers==6)aft_s+="/c0";if(ap->detail.layers==6)aft_s+="/c1";
+                                    if(ap->bump.layers==6)aft_s+="/c2";if(ap->auxiliary.layers==6)aft_s+="/c3";
+                                }
+                                std::fprintf(stderr,"PTDIAG_DRAW m=%u bm=%u tr=%d cnt=%u lm=%u obj=%zu name=%s tmpl=%s fv=%u b=%u slm=%d pass=%s vs=%s qs=%u sa=%d flg=0x%x resp=(%.2f,%.2f,%.2f) base=(%.2f,%.2f,%.2f) gl=(%.2f,%.2f,%.2f) det=(%u,%u) cg=(%u,%u) em=(%.2f,%.2f,%.2f) specB=%.2f w15=%08x w17=%08x w23=%08x w25=%08x t=(%ux%u/%u,%ux%u/%u,%ux%u/%u,%ux%u/%u) env=%s aft=%s\n",
+                                    m,bm,int(path_tracing::traces_material(r)),draw.count,draw.lightmap,draw.observed_object,
+                                    leaf(r.name).c_str(),leaf(r.template_name).c_str(),r.forward_vertex,r.forward_blend,int(r.static_lightmap_pass),
+                                    leaf(p).c_str(),leaf(vs).c_str(),qs?unsigned(qs->family):0u,int(sa!=nullptr),g.texture[3],
+                                    g.response[0],g.response[1],g.response[2],g.base[0],g.base[1],g.base[2],
+                                    g.glancing_tint[0],g.glancing_tint[1],g.glancing_tint[2],g.detail[0],g.detail[1],
+                                    g.color_guide[0],g.color_guide[3],g.emission[0],g.emission[1],g.emission[2],r.specular_brightness,
+                                    w15,w17,w23,w25,r.diffuse.width,r.diffuse.height,r.diffuse.layers,r.detail.width,r.detail.height,r.detail.layers,
+                                    r.bump.width,r.bump.height,r.bump.layers,r.auxiliary.width,r.auxiliary.height,r.auxiliary.layers,
+                                    env_s.c_str(),aft_s.c_str());
+                                if(m==1384 || m==994 || m==995 || m==1028 || m==1045 || m==1061 || m==871 || m==916 || m==686 || m==34 || m==9 || m==14 || m==607) {
+                                    auto dump_prog=[&](const char* tag,const Material& pm){
+                                        auto tmean=[](const Texture& tx)->std::array<float,4>{
+                                            if(!tx.width || !tx.height || tx.pixels.empty() || tx.layers!=1 || tx.depth)return {-1,-1,-1,-1};
+                                            Texture dec=tx;
+                                            if(dec.mips.empty()){const auto bytes=dec.format==11?std::size_t(dec.width)*dec.height*4:std::size_t((dec.width+3)/4)*((dec.height+3)/4)*(dec.format==14?8:16);dec.mips.push_back({dec.width,dec.height,0,bytes});}
+                                            try{if(dec.format>=14 && dec.format<=16)dec=prepare_xemu_bc_texture(dec);}catch(...){return {-2,-2,-2,-2};}
+                                            if(dec.format!=11 || dec.mips.empty())return {-3,-3,-3,-3};
+                                            const auto& mip=dec.mips.back();
+                                            const std::size_t cnt=std::size_t(mip.width)*mip.height;
+                                            if(!cnt || mip.offset+cnt*4>dec.pixels.size())return {-4,-4,-4,-4};
+                                            double s[4]{};Bytes bytes(dec.pixels);
+                                            for(std::size_t p=0;p<cnt;++p){auto w=bytes.u32(mip.offset+p*4);for(int c=0;c<4;++c)s[c]+=double((w>>(c*8))&255u)/255.0;}
+                                            return {float(s[0]/cnt),float(s[1]/cnt),float(s[2]/cnt),float(s[3]/cnt)};
+                                        };
+                                        auto m0=tmean(pm.diffuse);auto m1=tmean(pm.detail);auto m2=tmean(pm.bump);
+                                        std::fprintf(stderr,"PTDIAG_MEAN %s m=%u name=%s t0=(%.2f,%.2f,%.2f,%.2f) t1=(%.2f,%.2f,%.2f,%.2f) t2=(%.2f,%.2f,%.2f,%.2f)\n",
+                                            tag,m,leaf(pm.name).c_str(),m0[0],m0[1],m0[2],m0[3],m1[0],m1[1],m1[2],m1[3],m2[0],m2[1],m2[2],m2[3]);
+                                    };
+                                    dump_prog("ROOT",r);
+                                    if(r.environment_pass)dump_prog("ENV",*r.environment_pass);
+                                    for(const auto& ap:r.world_overlays_after)if(ap && ap->forward_vertex==4)dump_prog("AFT4",*ap);
+                                }
+                            }
+                            // Dump local Armory emitters (near camera 29.5,-49.9,3.1)
+                            std::map<unsigned,std::tuple<unsigned,float,std::array<float,3>,std::array<float,3>,bool>> local_em;
+                            for(std::uint32_t ei=0;ei<scene->emissive_count;++ei) {
+                                const auto entry=scene->pixels[scene->texture_texel_count+ei];
+                                const bool baked=(entry&path_tracing::emitter_baked_bit)!=0u;
+                                const auto& tri=scene->triangles[entry&~path_tracing::emitter_baked_bit];
+                                const float cx=(tri.p0[0]+tri.p1[0]+tri.p2[0])/3.f,cy=(tri.p0[1]+tri.p1[1]+tri.p2[1])/3.f,cz=(tri.p0[2]+tri.p1[2]+tri.p2[2])/3.f;
+                                if(cx<20.f||cx>42.f||cy<-56.f||cy>-38.f||cz<-2.f||cz>10.f)continue;
+                                const float x=(tri.p1[1]-tri.p0[1])*(tri.p2[2]-tri.p0[2])-(tri.p1[2]-tri.p0[2])*(tri.p2[1]-tri.p0[1]);
+                                const float y=(tri.p1[2]-tri.p0[2])*(tri.p2[0]-tri.p0[0])-(tri.p1[0]-tri.p0[0])*(tri.p2[2]-tri.p0[2]);
+                                const float z=(tri.p1[0]-tri.p0[0])*(tri.p2[1]-tri.p0[1])-(tri.p1[1]-tri.p0[1])*(tri.p2[0]-tri.p0[0]);
+                                const float area=.5f*std::sqrt(x*x+y*y+z*z);
+                                const auto sm=path_tracing::source_material(*scene,tri.metadata[0]);
+                                auto& rec=local_em[sm];
+                                std::get<0>(rec)++;std::get<1>(rec)+=area;
+                                const auto& gm=scene->materials[tri.metadata[0]];
+                                std::get<2>(rec)={gm.emission[0],gm.emission[1],gm.emission[2]};
+                                std::get<3>(rec)={cx,cy,cz};std::get<4>(rec)=baked;
+                            }
+                            for(const auto& [sm,rec]:local_em) {
+                                const auto& r=path_tracing_materials[sm];
+                                const auto& e=std::get<2>(rec);const auto& c=std::get<3>(rec);
+                                std::fprintf(stderr,"PTDIAG_EMITTER m=%u name=%s tris=%u area=%.3f em=(%.3f,%.3f,%.3f) baked=%d sample_pos=(%.1f,%.1f,%.1f)\n",
+                                    sm,r.name.c_str(),std::get<0>(rec),std::get<1>(rec),e[0],e[1],e[2],int(std::get<4>(rec)),c[0],c[1],c[2]);
+                            }
+                            // Also dump Armory dynamic object vertex color averages for obj 10..21
+                            for(std::size_t oi=10;oi<view->objects.size() && oi<=21;++oi) {
+                                const auto& o=view->objects[oi];
+                                double sr=0,sg=0,sb=0;std::size_t cnt=0;
+                                for(const auto& v:o.vertices){sr+=v.color.x;sg+=v.color.y;sb+=v.color.z;++cnt;}
+                                if(cnt)std::fprintf(stderr,"PTDIAG_OBJVTX obj=%zu verts=%zu avg_color=(%.3f,%.3f,%.3f) pos0=(%.2f,%.2f,%.2f)\n",
+                                    oi,cnt,sr/cnt,sg/cnt,sb/cnt,o.vertices[0].position.x,o.vertices[0].position.y,o.vertices[0].position.z);
+                            }
+                        }
+                    }
                     if(path_tracing_capture) {
                         auto& captured=path_tracing_capture->at(slot);
                         for(const auto& triangle:scene->triangles)
@@ -8247,6 +8820,7 @@ struct Renderer::Impl {
                     context.hardware_rays=path_tracing_hardware_rays;
                     context.dynamic_cull=source_world_device.instance_api_version>=VK_API_VERSION_1_3 &&
                         source_world_device.physical_api_version>=VK_API_VERSION_1_3;
+                    context.pipeline_cache=pipeline_cache->get();
                     renderer=std::make_unique<path_tracing::Render>(context);
                 }
                 renderer->set_quality(display.path_tracing_samples,display.path_tracing_bounces);
@@ -8256,6 +8830,8 @@ struct Renderer::Impl {
                     (view?!view->background.empty():!background.empty()) ||
                     source_environment.x>0 || source_environment.y>0 || source_environment.z>0);
                 renderer->prepare_visibility(extent);
+                if(view && !view->water.empty() && water_reflection_pass)
+                    renderer->prepare_water_reflection(water_reflection_pass);
             };
             const bool global_view=!full_surface_scene || !debug.empty() || !first_person.empty();
             const auto prepare_start=std::chrono::steady_clock::now();
@@ -8339,6 +8915,32 @@ struct Renderer::Impl {
             }
         }
         if(lens_queries)lens_queries->reset(command);
+        const bool motion_blur_enabled=display.object_motion_blur || Renderer::object_motion_blur_requested();
+        bool reset_object_motion=false;
+        const bool record_object_motion=motion_blur_enabled && !camera_scene &&
+            (can_capture || !scene_targets.empty()) &&
+            std::any_of(views.begin(),views.end(),[](const auto& view){return view.full_surface;});
+        if(motion_blur_enabled)++object_motion_frame;
+        else if(!object_motion_views.empty()) {
+            object_motion_views.clear();
+            object_motion_time={};
+        }
+        if(record_object_motion) {
+            if(!object_motion_blur) {
+                for(const auto* stage:{"object_motion_blur.vert.spv","object_motion_blur.frag.spv"})
+                    if(!std::filesystem::is_regular_file(shader_directory/stage))
+                        throw FormatError("Object motion blur shaders are unavailable in this runtime.");
+                object_motion_blur=std::make_unique<ObjectMotionBlurPass>(physical,device,pipeline_cache->get(),
+                    fog_pass,shader_directory,depth,depth_view,bloom_scene.view);
+            }
+            const auto now=std::chrono::steady_clock::now();
+            reset_object_motion=now-object_motion_time>std::chrono::milliseconds(250) ||
+                object_motion_mode!=display.graphics_mode || object_motion_views.size()!=views.size();
+            object_motion_time=now;
+            object_motion_mode=display.graphics_mode;
+            object_motion_views.resize(views.size());
+            object_motion_blur->begin_frame();
+        }
         if(temporal_upscaler) {
             if(temporal_graphics_mode!=display.graphics_mode)temporal_upscaler->reset_history();
             temporal_graphics_mode=display.graphics_mode;temporal_upscaler->begin(command);
@@ -10177,6 +10779,21 @@ struct Renderer::Impl {
                     sky_raster=true;
                     draw_dynamic(view_reflection_background[i]);draw_environment(view_reflection_background[i]);
                     sky_raster=false;
+                    if(path_tracing_enabled && path_tracing_state->renderers[i+1] &&
+                       std::ranges::any_of(view_draws[i],[&](const Draw& draw) {
+                           return draw.count && water_materials[draw.material] &&
+                               water_texture_bindings[draw.material][0] && draw_visible(draw);
+                       })) {
+                        const auto row=[&](unsigned r) {
+                            return ShaderVector{reflected_matrix[0][r],reflected_matrix[1][r],reflected_matrix[2][r],0};
+                        };
+                        const auto eye=v.camera.position;
+                        const auto plane=v.water.front().reflection_height;
+                        const auto distance=v.projection_clip_planes.value_or(Vec2{.015625f,1024.f}).y;
+                        const path_tracing::WaterReflectionView rays{row(0),row(1),row(3),
+                            {eye.x,eye.y,eye.z,plane},{float(target_extent.width),float(target_extent.height),distance,0}};
+                        path_tracing_state->renderers[i+1]->draw_water_reflection(command,rays);
+                    }
                     vkCmdEndRenderPass(command);
                     std::array<VkImageMemoryBarrier,2> barriers{};
                     for(auto &barrier:barriers) {
@@ -10236,6 +10853,31 @@ struct Renderer::Impl {
                 draw_camouflage(view_draws[i],false);
                 if(v.atmosphere)draw_dynamic(view_draws[i],1);
                 draw_overlays(view_draws[i],false,debug_buffer,true);
+                if(record_object_motion && v.full_surface) {
+                    auto& history=object_motion_views[i];
+                    const bool changed_clip=!history.clip || history.clip->offset.x!=clip.offset.x ||
+                        history.clip->offset.y!=clip.offset.y || history.clip->extent.width!=clip.extent.width ||
+                        history.clip->extent.height!=clip.extent.height;
+                    const auto vertices=history.history.update(object_motion_frame,reset_object_motion || changed_clip ||
+                        history.camera_epochs!=v.object_motion_camera_epochs,v.objects,v.object_motion_owners);
+                    history.clip=clip;
+                    history.camera_epochs=v.object_motion_camera_epochs;
+                    if(!vertices.empty()) {
+                        const bool w_depth=v.atmosphere && source_depth_mode==2;
+                        const auto projection=(w_depth || path_tracing_enabled) && v.source_view_shader_constants?
+                            source_view_clip(v.source_view_shader_constants->world,model_matrix).value_or(model_matrix):model_matrix;
+                        const auto jitter=temporal_upscaler?temporal_upscaler->jitter():glm::vec2{};
+                        copy_scene_for_post(index,clip);
+                        object_motion_blur->record(command,fog_framebuffers[index],model_view,clip,projection,
+                            jitter,w_depth,.5f,vertices);
+                        auto resumed=render;resumed.renderPass=continuation_pass;
+                        resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                        vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);
+                        set_temporal_viewport(model_view);
+                        vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);
+                        push_ordinary(model_uniform);
+                    }
+                }
                 if(v.world_transparent || sorted_world_effects[i])draw_transparent(0);
                 validate_source_hologram_group_submissions(v.hologram_groups,hologram_ledgers[i]);
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
@@ -11069,11 +11711,22 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
         std::cerr<<"Presentation copy worker unavailable; using serial copy: "<<error.what()<<'\n';
     }
 }
+void Renderer::reload_bsp_scene(const Mesh& mesh,const SourceBspResidentPlan *bsp_resident_plan,
+    std::size_t persistent_root_count,const Cache *scene_cache) {
+    impl_->reload_bsp_scene(mesh,bsp_resident_plan,persistent_root_count,scene_cache);
+}
 bool Renderer::can_skin_models() const noexcept {
     return bool(impl_->model_skin_gpu) && !impl_->temporal_upscaler &&
         impl_->shared_display->upscaler==Upscaler::Off &&
         impl_->shared_display->graphics_mode==pstencil::GraphicsMode::Original &&
         !std::getenv("HALO2_GROUP_INPUT_DIAGNOSTICS") && !std::getenv("HALO2_VIEW_DIAGNOSTICS");
+}
+bool Renderer::object_motion_blur_requested() {
+    static const bool enabled=[] {
+        const auto* value=std::getenv("HALO2_OBJECT_MOTION_BLUR");
+        return value && std::string_view(value)=="1";
+    }();
+    return enabled;
 }
 Renderer::~Renderer() {
     device_lease_.retire();
@@ -11258,6 +11911,8 @@ RendererPathTracingResources Renderer::path_tracing_resources()const {
             scene->pixels.capacity()*sizeof(std::uint32_t)+
             scene->material_image_keys.capacity()*sizeof(scene->material_image_keys[0])+
             scene->material_texel_capacities.capacity()*sizeof(std::uint32_t)+
+            scene->live_material_roots.capacity()*sizeof(scene->live_material_roots[0])+
+            scene->material_environment_images.capacity()*sizeof(scene->material_environment_images[0])+
             scene->color_guide_pixels.capacity()*sizeof(std::uint32_t)+
             scene->color_guide_image_keys.capacity()*sizeof(scene->color_guide_image_keys[0]);
     }

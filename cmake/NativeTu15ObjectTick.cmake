@@ -27,4 +27,12 @@ if(BUILD_TESTING)
         "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_native_device_update_tu15.py"
         --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-device-update.json" --jobs 2)
     set_tests_properties(native_tu15_device_update PROPERTIES TIMEOUT 3600)
+
+    if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i.86)$")
+        add_executable(native_tu15_liquid_widget_tests tests/native_tu15_liquid_widget_tests.cpp)
+        target_include_directories(native_tu15_liquid_widget_tests PRIVATE include src)
+        target_compile_features(native_tu15_liquid_widget_tests PRIVATE cxx_std_20)
+        target_compile_options(native_tu15_liquid_widget_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+        add_test(NAME native_tu15_liquid_widget_retirement COMMAND native_tu15_liquid_widget_tests)
+    endif()
 endif()

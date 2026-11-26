@@ -22,6 +22,15 @@ def function(source,name):
     if len(found)!=1:raise ValueError('Expected one complete marker ownership function '+name)
     return found[0]
 def digest(text):return hashlib.sha256(text.encode()).hexdigest()
+
+def matches_effect_body(body, pin):
+    if digest(body) == pin:
+        return True
+    # The accounting build added this guard to the identical literal callback.
+    # Authenticate its position and the entire underlying body together.
+    guarded = 'if(s.instruction&&!halo2::native_census_detail::skip_report(s,pc))s.instruction(pc);'
+    return body.count(guarded) == 1 and digest(body.replace(
+        guarded, 'if(s.instruction)s.instruction(pc);', 1)) == pin
 INCLUDE='#include "gameplay/weapons/native_tu15_model_marker_lookup_admission.hpp"\n'
 BODY=re.compile(r'(?:\[\[gnu::noinline\]\] )?static void run_(1e11b0|1dc8f0)\((WorldState|MotionState|State) &s\) \{.*?\n\}',re.S)
 CONTEXTS={
@@ -100,7 +109,7 @@ def replace_model_marker_lookup(source,*,defer_sandbox=False):
 def effect_body(source):return function(source,'marker_lookup')
 def replace_effect(source,dispatcher):
     body=effect_body(source);original=canonical_body(body)
-    if digest(original)!=EFFECT_BODY_PIN:raise ValueError('Complete Effect marker lookup body drift')
+    if not matches_effect_body(original,EFFECT_BODY_PIN):raise ValueError('Complete Effect marker lookup body drift')
     aliases='using Memory=SourcePhysicsContactMemory;\nusing Abi=SourcePhysicsWorldRuntimeAbi;\nusing Observer=SourcePhysicsContactRecordObserver;\nusing Services=SourcePhysicsWorldRuntimeServices;'
     if dispatcher.count(aliases)!=1 or dispatcher.count('constexpr auto none=0xffffffffu;')!=1:
         raise ValueError('Complete Effect marker API alias/sentinel contract drift')

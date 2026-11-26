@@ -57,12 +57,13 @@ struct MultiplayerAudioSubmission {
   std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
   unsigned view{},pitch_range{},permutation{};
   std::uint64_t voice{};
-  std::size_t frames{};
+  std::size_t frames{}; // Selected PCM extent at pcm_sample_rate.
   std::uint32_t rng_before{},rng_after{};
   // Actual source pitch passed to the driver conversion for this packet.
   std::uint32_t source_pitch_bits{};
   // Actual caller world point, retained through selection and packet delivery.
   std::optional<Vec3> position;
+  std::uint32_t pcm_sample_rate=48000;
 };
 using MultiplayerAudioObserver=std::function<void(const MultiplayerAudioSubmission &)>;
 // A completed native loop-controller packet selection. Authored pitch and
@@ -78,6 +79,8 @@ struct MultiplayerLoopPacketParametersTu15 {
   // voice's pitch for Doppler (request source flag 2; combined loops never).
   Vec3 velocity{};
   bool doppler{};
+  // 224590 and the ordinary loop caller may carry explicit source bounds.
+  std::optional<float> minimum_distance,maximum_distance;
 };
 struct MultiplayerLoopPacketTu15 {
   std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
@@ -85,6 +88,9 @@ struct MultiplayerLoopPacketTu15 {
   MultiplayerLoopPacketParametersTu15 parameters;
   std::optional<Vec3> position;
   std::optional<float> fade_in_seconds;
+  // A controller that owns one authored sound can keep that sound's native
+  // PCM rate for the lifetime of its stream, including queued permutations.
+  bool single_sound{};
 };
 
 // One pending actual-Audio/clock admission. Destruction only requests
@@ -311,8 +317,8 @@ public:
       std::uint32_t owner=0xffffffffu,unsigned view=0);
   // Returns the actual native voice, without narrowing to a source datum.
   // NONE requests retain their existing no-op behavior and return no handle.
-  // A successful request owns its callback until its single PCM packet is
-  // accounted. update()/stop() invoke it once on their caller's thread, after
+  // A successful request owns its callback until its PCM is accounted.
+  // update()/stop() report the final accounted packet once on their caller's thread, after
   // acknowledgement and voice destruction, never under the SDL mixer lock.
   // Completion retains the platform's actual status, including Flushed or
   // Failure; stopping an already consumed packet still reports Success.

@@ -29,6 +29,7 @@ const float tracePi=3.14159265358979323846;
 const uint traceLightOnlyFlag=131072u,traceUniformEmissionFlag=262144u;
 // Emitter table entry (Scene::pixels): the triangle's light is in the bake.
 const uint traceEmitterBakedBit=0x80000000u;
+const uint traceEmitterGroupMagic=0x45525447u;
 const uint traceStaticOccluderMask=0x01u,traceLightMask=0x02u,traceDynamicOccluderMask=0x04u;
 const uint traceOccluderMask=traceStaticOccluderMask|traceDynamicOccluderMask;
 const float traceEpsilon=0.0002;
@@ -274,6 +275,12 @@ vec3 traceHemisphere(vec3 normal,inout uint state) {
     vec3 tangent=traceNormalize(cross(abs(normal.z)<.999?vec3(0,0,1):vec3(0,1,0),normal),vec3(1,0,0));
     return traceNormalize(tangent*(r*cos(angle))+cross(normal,tangent)*(r*sin(angle))+normal*sqrt(1.0-a),normal);
 }
+float traceSurfaceReflectionMask(TraceMaterial material,float sourceAlpha) {
+    // Both complete destination-alpha programs and the base-alpha fallback
+    // describe where the authored coat reflects.
+    const uint exactAlpha=2048u,baseAlpha=1048576u;
+    return (material.texture.w&(exactAlpha|baseAlpha))!=0u?clamp(sourceAlpha,0.0,1.0):1.0;
+}
 float traceReflection(TraceMaterial material,vec3 normal,vec3 incoming) {
     return clamp(mix(material.response.y,material.response.z,1.0-abs(dot(normal,incoming))),0.0,1.0);
 }
@@ -328,14 +335,22 @@ float tracePointImportance(TraceLight light,vec3 position,vec3 normal,vec3 incom
     float weight=traceSourceBrightness(energy*response);
     return isnan(weight) || isinf(weight)?0.0:max(weight,0.0);
 }
+uint traceUnbakedEmitterCount() {
+    uint count=traceScene.counts.w;
+    if(count==0u)return 0u;
+    uint header=floatBitsToUint(traceScene.environment.w)+2u*count;
+    uint length=uint(tracePixels.length());
+    if(header>=length || length-header<4u || tracePixels[header]!=traceEmitterGroupMagic)return 0u;
+    return min(count,tracePixels[header+3u]);
+}
 // One point on an emitter chosen in proportion to its power (the running sum
 // after the emitter index list; refresh_emitters): the light it sends this
 // point over the probability of choosing it, before visibility. `baked` marks
 // a source the lightmap bake already holds. False when it sends nothing.
-bool traceSampleEmitter(vec3 position,vec3 normal,float choice,inout uint state,
+bool traceSampleEmitter(vec3 position,vec3 normal,uint count,float choice,inout uint state,
                         out vec3 direction,out float maximum,out vec3 light,out bool baked) {
     direction=normal;maximum=0.0;light=vec3(0);baked=false;
-    uint table=floatBitsToUint(traceScene.environment.w),count=traceScene.counts.w,powers=table+count;
+    uint table=floatBitsToUint(traceScene.environment.w),powers=table+traceScene.counts.w;
     if(count==0u)return false;
     float total=uintBitsToFloat(tracePixels[powers+count-1u]),chosen=choice*total;
     uint low=0u,high=count-1u;
@@ -372,7 +387,7 @@ float traceBakedEmitterLuminance(vec3 position,vec3 normal,inout uint state) {
     float sum=0.0;
     [[dont_unroll]] for(uint n=0u;n<2u;++n) {
         vec3 direction,light;float maximum;bool baked;
-        if(!traceSampleEmitter(position,normal,traceRandom(state),state,direction,maximum,light,baked) || !baked)continue;
+        if(!traceSampleEmitter(position,normal,traceScene.counts.w,traceRandom(state),state,direction,maximum,light,baked) || !baked)continue;
         if(traceOccluded(position+normal*traceEpsilon,direction,maximum,position,normal,true,0xffffffffu))continue;
         sum+=dot(light,vec3(.2126,.7152,.0722))/max(traceScene.calibration.w,1.e-3);
     }
@@ -387,9 +402,11 @@ vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint s
     // receiver a high-variance direct shadow. Secondary surfaces retain NEE
     // for all three banks, including the final allowed transport vertex.
     // A primary surface that keeps its baked field stops at its first hit,
-    // so it samples emitters here; the bake already holds the ones that lit
-    // it (see the mesh bank below).
-    bool pointBank=traceScene.counts.z>0u,meshBank=(!primary || cachedStatic) && traceScene.counts.w>0u;
+    // so it samples emitters here. Only the unbaked prefix adds light beyond
+    // the retained diffuse field. An empty prefix leaves the sample for the
+    // other banks instead of randomly returning zero.
+    uint emitterCount=cachedStatic?traceUnbakedEmitterCount():traceScene.counts.w;
+    bool pointBank=traceScene.counts.z>0u,meshBank=(!primary || cachedStatic) && emitterCount>0u;
     bool skyBank=!primary && traceEnvironmentNee() && !cachedStatic;
     uint banks=uint(pointBank)+uint(meshBank)+uint(skyBank);
     if(banks==0u)return vec3(0);
@@ -440,9 +457,7 @@ vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint s
         }
     } else if(mesh) {
         bool baked;vec3 light;
-        if(traceSampleEmitter(position,normal,localChoice,state,direction,maximum,light,baked) &&
-           // A receiver that reads its baked field already has this light.
-           !(baked && cachedStatic)) {
+        if(traceSampleEmitter(position,normal,emitterCount,localChoice,state,direction,maximum,light,baked)) {
             contribution=light*bankWeight;valid=true;
         }
     } else {
@@ -590,9 +605,13 @@ void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceM
         // Primary diffuse is demodulated before spatial/temporal filtering;
         // its full-resolution reflection mask is applied at resolve.
         float probability=diffuseSurface?min(reflection,.5):reflection;
+        // A cached diffuse field has already integrated that lobe. Spend
+        // the remaining segment on GGX, weighting it by its actual strength
+        // instead of rarely tracing an amplified low-reflectance sample.
+        if(cachedStatic && reflection>0.0)probability=1.0;
         // A primary surface with an authored environment map shows that map
         // (world.frag); its traced reflection would go unused.
-        if(bounce==0u && material.detail.y!=0u && diffuseSurface)probability=0.0;
+        if(bounce==0u && material.detail.y!=0u)probability=0.0;
         bool reflected=probability>=1.0 || (probability>0.0 && traceRandom(state)<probability);
         if(bounce==0u)primarySpecular=reflected;
         vec3 direction;
@@ -641,9 +660,11 @@ void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceM
         material=traceMaterials[triangle.metadata.x];incoming=direction;
         colorGuide=traceTriangleColorGuide(triangle,hit.barycentric,material);
         vec2 uv=traceUV(triangle,hit.barycentric);vec3 tint=traceVertexColor(triangle,hit.barycentric);
-        vec4 surface;if(!traceAtlasSurface(material,uv,surface))break;
-        if((material.texture.w&2048u)!=0u)material.response.yz*=clamp(surface.a,0.0,1.0);
-        albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(surface.rgb*tint,0.0,1.0);
+        vec4 surface;float terrainBlend;
+        if(!traceAtlasSurface(material,uv,surface,terrainBlend))break;
+        material.response.yz*=traceSurfaceReflectionMask(material,surface.a);
+        albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(surface.rgb*tint,0.0,1.0)*
+            traceDiffuseRetention(material,terrainBlend,normal,incoming);
         sourceAmbient=traceSecondarySourceAmbient(material,uv);
         // Primary diffuse emission uses the existing BSDF continuation.
         // Later diffuse hits are covered by mesh NEE at their previous
@@ -662,34 +683,42 @@ void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceM
 // resolve traces per pixel instead: all of it for polished surfaces, none for
 // dull ones, which keep the grid's blurred reflection.
 float traceMirrorSharpness(TraceMaterial material) {
-    return clamp((.6-material.response.x)/.4,0.0,1.0);
+    // The same finish shapes GGX and decides whether a sharp resolve ray
+    // contributes. Artistic reflection gain alone cannot turn a broad lobe
+    // into a mirror.
+    return clamp((.48-material.response.x)/.30,0.0,1.0);
 }
 vec3 traceFiniteMirror(vec3 value) {return any(isnan(value)) || any(isinf(value))?vec3(0):min(max(value,vec3(0)),vec3(16.0));}
+vec3 traceMirrorDirection(vec3 normal,vec3 geometric,vec3 incoming) {
+    vec3 direction=reflect(incoming,normal);
+    // A bumped normal can send the mirror ray into the surface. Fold it back.
+    float facing=dot(direction,geometric);
+    return facing>0.0?direction:traceNormalize(direction-2.0*facing*geometric,geometric);
+}
+vec3 traceReflectedHitRadiance(TraceHit hit,vec3 direction) {
+    TraceTriangle triangle=traceTriangles[hit.triangle];
+    TraceMaterial surface=traceMaterials[triangle.metadata.x];
+    vec2 uv=traceUV(triangle,hit.barycentric);vec3 tint=traceVertexColor(triangle,hit.barycentric);
+    vec4 color;float terrainBlend;
+    if(!traceAtlasSurface(surface,uv,color,terrainBlend))return vec3(0);
+    vec3 normal=traceNormal(triangle,hit.barycentric,direction);
+    vec3 albedo=(surface.texture.w&32u)!=0u?vec3(0):clamp(color.rgb*tint,0.0,1.0)*
+        traceDiffuseRetention(surface,terrainBlend,normal,direction);
+    vec4 guide=traceTriangleColorGuide(triangle,hit.barycentric,surface);
+    vec3 field=traceBakedGuide(surface,guide)?traceSourceIndirect(guide):traceSecondarySourceAmbient(surface,uv);
+    return albedo*field+traceEmission(surface,uv,tint);
+}
 // One ray along the mirror direction of `normal`, times the surface's
 // reflection response. The hit is lit by what is already known there: its
 // emission, its baked lighting field or owner ambient; a miss sees the sky.
 vec3 traceMirrorReflection(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceMaterial material) {
     float strength=traceReflection(material,normal,incoming);
     if(!(strength>0.0))return vec3(0);
-    vec3 direction=reflect(incoming,normal);
-    // A bumped normal can send the mirror ray into the surface: fold it back.
-    if(dot(direction,geometric)<=0.0)direction=traceNormalize(direction-2.0*dot(direction,geometric)*geometric,geometric);
+    vec3 direction=traceMirrorDirection(normal,geometric,incoming);
     vec3 light;TraceHit hit;
     if(!traceClosest(position+geometric*(traceEpsilon*2.0),direction,1.e10,hit,position,geometric,false,0xffffffffu))
         light=traceSkySpecular(direction,material.response.x);
-    else {
-        TraceTriangle triangle=traceTriangles[hit.triangle];
-        TraceMaterial surface=traceMaterials[triangle.metadata.x];
-        vec2 uv=traceUV(triangle,hit.barycentric);vec3 tint=traceVertexColor(triangle,hit.barycentric);
-        vec4 color;
-        if(!traceAtlasSurface(surface,uv,color))light=vec3(0);
-        else {
-            vec3 albedo=(surface.texture.w&32u)!=0u?vec3(0):clamp(color.rgb*tint,0.0,1.0);
-            vec4 guide=traceTriangleColorGuide(triangle,hit.barycentric,surface);
-            vec3 field=traceBakedGuide(surface,guide)?traceSourceIndirect(guide):traceSecondarySourceAmbient(surface,uv);
-            light=albedo*field+traceEmission(surface,uv,tint);
-        }
-    }
+    else light=traceReflectedHitRadiance(hit,direction);
     return traceFiniteMirror(light)*traceReflectionTint(material,normal,incoming)*strength;
 }
 #endif

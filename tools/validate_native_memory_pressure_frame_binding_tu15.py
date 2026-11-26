@@ -15,6 +15,11 @@ def main():
    f=a.stage/'staged'/n
    if not f.is_file():f=a.source_root/n
    t=project/n;t.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(f,t);pins[n]=sha(f)
+  name='src/physics/runtime/native_tu15_pool_pressure_metric.hpp'
+  metric=a.stage/'staged'/name
+  if not metric.is_file():metric=a.source_root/name
+  if metric.is_file():
+   target=project/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(metric,target);pins[name]=sha(metric)
   for f in(a.stage/'staged/include').rglob('*'):
    if f.is_file():t=project/'include'/f.relative_to(a.stage/'staged/include');t.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(f,t);pins[str(t.relative_to(project))]=sha(f)
   cmake='cmake_minimum_required(VERSION 3.20)\nproject(NativePressureFrame LANGUAGES CXX)\ninclude(CTest)\nadd_executable(native_pressure_frame '+' '.join('"'+str(project/n)+'"'for n in files)+')\ntarget_include_directories(native_pressure_frame PRIVATE "'+str(project/'include')+'")\ntarget_compile_features(native_pressure_frame PRIVATE cxx_std_20)\ntarget_compile_options(native_pressure_frame PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)\nadd_test(NAME native_pressure_frame_model COMMAND "'+sys.executable+'" "'+str(ROOT/'tools/run_test.py')+'" -- $<TARGET_FILE:native_pressure_frame>)\n';(project/'CMakeLists.txt').write_text(cmake);results=[]

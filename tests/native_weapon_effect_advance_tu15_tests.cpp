@@ -4,6 +4,7 @@
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
 #endif
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -36,6 +37,27 @@ void check_abi(const SourcePhysicsWorldRuntimeAbi &a,const Json &expected,std::u
 void check_stack(const SourcePhysicsContactMemory &m,const Json &raw) {
     const auto expected=unhex(raw);std::vector<std::byte> actual(expected.size());m.read(stack-64,actual);need(actual==expected,"Different original live/dead stack");
 }
+#ifndef HALO2_NATIVE_ADVANCE_COMPILED_CALLERS
+struct RejectedRmwWrite {};
+
+class RejectWrite final : public SourcePhysicsContactMemory {
+    sound_test::Memory &backing;
+    unsigned writes_until_stop;
+
+public:
+    RejectWrite(sound_test::Memory &backing, unsigned writes_until_stop)
+        : backing(backing), writes_until_stop(writes_until_stop) {}
+
+    void read(std::uint32_t address, std::span<std::byte> bytes) const override {
+        backing.read(address, bytes);
+    }
+    void write(std::uint32_t address, std::span<const std::byte> bytes) override {
+        if (--writes_until_stop == 0)
+            throw RejectedRmwWrite{};
+        backing.write(address, bytes);
+    }
+};
+#endif
 }
 int main(int argc,char **argv)try {
 #ifdef HALO2_NATIVE_ADVANCE_COMPILED_CALLERS
@@ -48,6 +70,9 @@ int main(int argc,char **argv)try {
     need(reference.at("original_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong original image");
     need(reference.at("schema")=="H2_TU15_WEAPON_EFFECT_ADVANCE_REFERENCE_V1","Wrong advance reference schema");
     unsigned cases{},called_total{},stops{},aliases{};
+#ifndef HALO2_NATIVE_ADVANCE_COMPILED_CALLERS
+    bool late_trace_checked{}, rejected_write_checked{};
+#endif
     for(const auto &row:reference.at("rows"))try {
         const auto entry=row.at("entry").get<std::uint32_t>();
 #ifdef HALO2_NATIVE_ADVANCE_COMPILED_CALLERS
@@ -97,6 +122,73 @@ int main(int argc,char **argv)try {
         need(a.fs_base==before.fs_base && !a.active_mmx,"Unrelated source FS/MMX changed");
         for(const auto &[page,bytes]:m.pages)need(*bytes==*expected_memory.pages.at(page),"Different final original memory page");
 #ifndef HALO2_NATIVE_ADVANCE_COMPILED_CALLERS
+        auto native_memory=initial.clone();
+        auto native_abi=before;
+        unsigned native_calls{};
+        std::optional<std::uint32_t> trace_after;
+        std::vector<std::uint32_t> resumed;
+        SourcePhysicsWorldRuntimeServices native_services;
+        native_services.required_owner=[&](auto &,const auto &call,auto &abi,const auto &) {
+            const auto &expected=row.at("calls").at(native_calls++);
+            need(!call.tail && call.target==expected.at("target") && call.instruction==native_memory.get32(abi.gp[4])-5u,
+                "Different unobserved effect child ABI");
+            check_abi(abi,expected.at("before"),expected.at("flags_mask"));
+            check_stack(native_memory,expected.at("before").at("stack"));
+            const auto &returned=expected.at("returned");
+            abi.gp=returned.at("gp").template get<decltype(abi.gp)>();abi.eflags=returned.at("eflags");load_fp(abi,returned.at("fp"));
+            if(!late_trace_checked && !trace_after && row.at("calls").size()>1 && !stopped) {
+                trace_after=call.instruction;
+                native_services.instruction=[&](auto pc){resumed.push_back(pc);};
+            }
+        };
+        std::string native_error;
+        try {native_weapon_effect_dispatch_tu15_run(native_memory,entry,native_abi,native_services);}
+        catch(const std::out_of_range &e){native_error=e.what();}
+        need(native_error==error && native_calls==called,"Different unobserved effect fault or child count");
+        check_abi(native_abi,row.at("expected"),row.at("flags_mask"));
+        check_stack(native_memory,row.at("expected").at("stack"));
+        need(native_abi.fs_base==before.fs_base && !native_abi.active_mmx,"Unobserved effect changed FS/MMX");
+        need(native_memory.pages.size()==m.pages.size(),"Different effect memory extent");
+        for(const auto &[page,bytes]:m.pages)
+            need(*bytes==*native_memory.pages.at(page),"Different unobserved effect memory page");
+        if(trace_after) {
+            std::vector<std::uint32_t> suffix;
+            bool after{};
+            for(unsigned n=0;n<trace.size();n+=2) {
+                const auto offset=std::to_integer<unsigned>(trace[n])|(std::to_integer<unsigned>(trace[n+1])<<8u);
+                const auto pc=row.at("trace_base").get<std::uint32_t>()+offset;
+                if(after)suffix.push_back(pc);
+                after=after || pc==*trace_after;
+            }
+            need(after && !suffix.empty() && suffix.front()==*trace_after+5u && resumed==suffix,
+                "Different Effect trace after real child return");
+            late_trace_checked=true;
+        }
+        if(!rejected_write_checked) {
+            const auto &stores=row.at("stores");
+            const auto rmw=std::find_if(stores.begin(),stores.end(),[](const auto &event){return event[0]==0x17c284u;});
+            if(rmw!=stores.end()) {
+                const auto stop=unsigned(rmw-stores.begin()+1);
+                auto traced_memory=initial.clone(), silent_memory=initial.clone();
+                RejectWrite traced_write(traced_memory,stop), silent_write(silent_memory,stop);
+                auto traced_abi=before, silent_abi=before;
+                std::optional<std::uint32_t> prewrite_flags;
+                SourcePhysicsWorldRuntimeServices traced_services;
+                traced_services.instruction=[&](auto pc){if(pc==0x17c284u)prewrite_flags=traced_abi.eflags;};
+                const auto rejected=[&](auto &memory,auto &state,const auto &policy) {
+                    try {native_weapon_effect_dispatch_tu15_run(memory,entry,state,policy);}
+                    catch(const RejectedRmwWrite &){return true;}
+                    return false;
+                };
+                need(rejected(traced_write,traced_abi,traced_services) &&
+                    rejected(silent_write,silent_abi,SourcePhysicsWorldRuntimeServices{}),"Missing rejected event flag write");
+                need(prewrite_flags && traced_abi.eflags==*prewrite_flags && silent_abi.eflags==*prewrite_flags &&
+                    traced_abi.gp==silent_abi.gp,"Faulting OR changed its original input register state");
+                for(const auto &[page,bytes]:traced_memory.pages)
+                    need(*bytes==*silent_memory.pages.at(page),"Faulting OR changed the native write prefix");
+                rejected_write_checked=true;
+            }
+        }
         if(!row.at("calls").empty()) {
             const auto untouched=initial.clone();
             auto stopped=before;bool missing{};try{native_weapon_effect_dispatch_tu15_run(initial,entry,stopped,{});}catch(const std::runtime_error &){missing=true;}
@@ -122,6 +214,8 @@ int main(int argc,char **argv)try {
     need(cases==142 && called_total==845 && stops==7 && aliases==2,"Incomplete compiled effect-advance scope");
 #else
     need(cases==142 && called_total==845 && stops==7 && aliases==2,"Incomplete physical original effect-advance scope");
+    need(late_trace_checked,"Missing resumed diagnostic trace after an Effect child");
+    need(rejected_write_checked,"Missing rejected event flag write coverage");
 #endif
     std::cout<<"PASS "<<cases<<" physical original effect-advance cases, "<<called_total<<" actual lower ABI controls\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

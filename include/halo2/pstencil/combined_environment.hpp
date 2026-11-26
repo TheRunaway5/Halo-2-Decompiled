@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/cache.hpp"
 namespace halo2::pstencil {
+// Recognize complete combined lightmap programs with the same cube response.
+bool supports_combined_environment_program(const Material&);
 // Exact current Chief visor consumers, including the texture-combined LODs.
 // Unknown controls, implementations and vertex interfaces remain unmodified.
 bool supports_combined_visor_environment(const Material&);

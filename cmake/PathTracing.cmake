@@ -68,6 +68,21 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world
     DEPENDS shaders/path_tracing/world.frag ${path_tracing_transport_sources} VERBATIM)
 foreach(variant IN ITEMS software hardware)
     if(variant STREQUAL "hardware")
+        set(water_output water_reflection.rt.frag.spv)
+        set(water_flags --target-env vulkan1.2 -DH2_PATH_TRACING_HARDWARE_RAYS=1)
+    else()
+        set(water_output water_reflection.frag.spv)
+        set(water_flags "")
+    endif()
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/${water_output}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
+        COMMAND ${GLSLANG_VALIDATOR} -V ${water_flags} -I${PROJECT_SOURCE_DIR}/shaders
+            ${PROJECT_SOURCE_DIR}/shaders/path_tracing/water_reflection.frag
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/${water_output}
+        DEPENDS shaders/path_tracing/water_reflection.frag ${path_tracing_transport_sources} VERBATIM)
+endforeach()
+foreach(variant IN ITEMS software hardware)
+    if(variant STREQUAL "hardware")
         set(trace_output trace.rt.comp.spv)
         set(trace_flags --target-env vulkan1.2 -DH2_PATH_TRACING_HARDWARE_RAYS=1)
     else()
@@ -92,6 +107,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calib
         -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calibrate.comp.spv
     DEPENDS shaders/path_tracing/calibrate.comp VERBATIM)
 add_custom_target(path_tracing_shaders DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/fog.vert.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/calibrate.comp.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/denoise.comp.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth.frag.spv
@@ -100,15 +116,22 @@ add_custom_target(path_tracing_shaders DEPENDS
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.vert.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/world.rt.frag.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/water_reflection.frag.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/water_reflection.rt.frag.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/trace.comp.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/trace.rt.comp.spv)
 add_dependencies(halo2_path_tracing path_tracing_shaders)
 target_link_libraries(halo2_renderer PUBLIC halo2_path_tracing)
 if(BUILD_TESTING)
+    set(path_tracing_dynamic_detail_intro "${HALO2_MCC_CAMPAIGN_INTRO_CACHE}")
+    if(NOT path_tracing_dynamic_detail_intro)
+        set(path_tracing_dynamic_detail_intro
+            "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map")
+    endif()
     add_executable(path_tracing_material_alias_tests tests/path_tracing/material_alias_tests.cpp)
     target_link_libraries(path_tracing_material_alias_tests PRIVATE halo2_path_tracing nlohmann_json::nlohmann_json)
     add_test(NAME path_tracing_material_alias COMMAND path_tracing_material_alias_tests
-        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map"
+        "${path_tracing_dynamic_detail_intro}"
         "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-material-alias.json")
     set_tests_properties(path_tracing_material_alias PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(path_tracing_lighting_storage_tests tests/path_tracing/lighting_storage_tests.cpp)
@@ -129,16 +152,32 @@ if(BUILD_TESTING)
         halo2_path_tracing halo2_vertex_program_reference nlohmann_json::nlohmann_json)
     target_compile_options(path_tracing_dynamic_detail_source_tests PRIVATE
         $<$<CXX_COMPILER_ID:GNU,Clang>:-ffp-contract=off>)
+    get_filename_component(path_tracing_dynamic_detail_maps "${path_tracing_dynamic_detail_intro}" DIRECTORY)
     add_test(NAME path_tracing_source_dynamic_detail COMMAND path_tracing_dynamic_detail_source_tests
-        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map"
+        "${path_tracing_dynamic_detail_intro}"
         "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-dynamic-detail.json")
-    set_tests_properties(path_tracing_source_dynamic_detail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_test(NAME path_tracing_source_dynamic_detail_armory COMMAND path_tracing_dynamic_detail_source_tests
+        "${path_tracing_dynamic_detail_maps}/01a_tutorial.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-dynamic-detail-armory.json" --armory)
+    add_test(NAME path_tracing_source_dynamic_detail_weapons COMMAND path_tracing_dynamic_detail_source_tests
+        "${path_tracing_dynamic_detail_maps}/01a_tutorial.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-dynamic-detail-weapons.json" --weapons)
+    add_test(NAME path_tracing_source_dynamic_detail_vehicles COMMAND path_tracing_dynamic_detail_source_tests
+        "${path_tracing_dynamic_detail_maps}/coagulation.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-dynamic-detail-vehicles.json" --vehicles)
+    add_test(NAME path_tracing_source_dynamic_detail_npcs COMMAND path_tracing_dynamic_detail_source_tests
+        "${path_tracing_dynamic_detail_maps}/03a_oldmombasa.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-dynamic-detail-npcs.json" --npcs)
+    set_tests_properties(path_tracing_source_dynamic_detail path_tracing_source_dynamic_detail_armory
+        path_tracing_source_dynamic_detail_weapons path_tracing_source_dynamic_detail_vehicles
+        path_tracing_source_dynamic_detail_npcs
+        PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(path_tracing_source_ambient_tests tests/path_tracing/source_ambient_tests.cpp)
     target_link_libraries(path_tracing_source_ambient_tests PRIVATE
         halo2_path_tracing halo2_vertex_program_reference nlohmann_json::nlohmann_json)
     target_compile_options(path_tracing_source_ambient_tests PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-ffp-contract=off>)
     add_test(NAME path_tracing_source_ambient COMMAND path_tracing_source_ambient_tests
-        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map"
+        "${path_tracing_dynamic_detail_intro}"
         "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-ambient.json")
     set_tests_properties(path_tracing_source_ambient PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(path_tracing_color_guide_tests tests/path_tracing/color_guide_tests.cpp)
@@ -215,13 +254,17 @@ if(BUILD_TESTING)
     option(HALO2_PATH_TRACING_NATIVE_DENOISE_TESTS
         "Run the2560x1388 no-upscaler Path Tracing noise regression" OFF)
     set(path_tracing_gpu_test_names path_tracing_gpu)
+    add_test(NAME path_tracing_water_reflection COMMAND path_tracing_gpu_tests
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders --water-reflection)
+    set_tests_properties(path_tracing_water_reflection PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
+    list(APPEND path_tracing_gpu_test_names path_tracing_water_reflection)
     add_test(NAME path_tracing_material_alias_gpu COMMAND path_tracing_gpu_tests
         ${CMAKE_CURRENT_BINARY_DIR}/shaders --material-alias)
     set_tests_properties(path_tracing_material_alias_gpu PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
     list(APPEND path_tracing_gpu_test_names path_tracing_material_alias_gpu)
     add_test(NAME path_tracing_material_alias_history COMMAND path_tracing_gpu_tests
         ${CMAKE_CURRENT_BINARY_DIR}/shaders --material-alias-history
-        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map")
+        "${path_tracing_dynamic_detail_intro}")
     set_tests_properties(path_tracing_material_alias_history PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
     list(APPEND path_tracing_gpu_test_names path_tracing_material_alias_history)
     add_test(NAME path_tracing_foreground_reflection_turn COMMAND path_tracing_gpu_tests
@@ -256,10 +299,16 @@ if(BUILD_TESTING)
     list(APPEND path_tracing_gpu_test_names path_tracing_panel_detail)
     add_test(NAME path_tracing_capital_ship COMMAND path_tracing_gpu_tests
         ${CMAKE_CURRENT_BINARY_DIR}/shaders --capital-ship
-        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-82114d7d2e034d48ba762109935f9ca3/halo2/h2_maps_win64_dx11/00a_introduction.map"
+        "${path_tracing_dynamic_detail_intro}"
         "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-capital-ship.json")
     set_tests_properties(path_tracing_capital_ship PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
     list(APPEND path_tracing_gpu_test_names path_tracing_capital_ship)
+    add_test(NAME path_tracing_armory_dynamic_gpu COMMAND path_tracing_gpu_tests
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders --armory-dynamic
+        "${path_tracing_dynamic_detail_maps}/01a_tutorial.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-armory-dynamic-gpu.json")
+    set_tests_properties(path_tracing_armory_dynamic_gpu PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
+    list(APPEND path_tracing_gpu_test_names path_tracing_armory_dynamic_gpu)
     add_test(NAME path_tracing_source_primary COMMAND path_tracing_gpu_tests
         ${CMAKE_CURRENT_BINARY_DIR}/shaders --source-primary)
     set_tests_properties(path_tracing_source_primary PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)

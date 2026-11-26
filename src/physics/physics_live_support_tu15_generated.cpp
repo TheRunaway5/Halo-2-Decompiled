@@ -151536,7 +151536,7 @@ if(s.services.instruction){s.services.instruction(0x21f6eau);} s.set(1,s.flags.s
 if(s.services.instruction){s.services.instruction(0x21f6edu);} s.set(0,r(s.memory,(0x8u+s.gp[1]+s.gp[2]*1u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x21f6f1u);} s.push(0x21f6f1u,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x21f6f2u);} s.push(0x21f6f2u,s.reg(7,4,0));
-if(s.services.instruction){s.services.instruction(0x21f6f3u);} s.push(0x21f6f3u,0x21f6f8u);run_21f590(s);
+if(s.services.instruction){s.services.instruction(0x21f6f3u);} s.push(0x21f6f3u,0x21f6f8u);if(s.image==SourcePhysicsContactImage::TitleUpdate15 && s.services.required_owner){s.required(0x21f6f3u,0x21f590u,false);}else run_21f590(s);
 if(s.services.instruction){s.services.instruction(0x21f6f8u);} s.set(0,sign_extend(r(s.memory,(0x2u+s.gp[7]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x21f6fcu);} s.set(2,r(s.memory,(0x1cu+s.gp[3]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x21f6ffu);} s.set(1,(0x0u+s.gp[0]+s.gp[0]*4u),4,0);

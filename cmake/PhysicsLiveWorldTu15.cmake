@@ -1411,6 +1411,8 @@ if(BUILD_TESTING)
     target_link_libraries(contrail_geometry_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_contrail_geometry COMMAND contrail_geometry_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/contrail_geometry_tu15_original.json")
+    add_test(NAME native_tu15_contrail_geometry COMMAND contrail_geometry_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/contrail_geometry_tu15_original.json" --unobserved)
     add_test(NAME original_tu15_contrail_frame COMMAND contrail_geometry_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/contrail_frame_tu15_original.json")
     set(HALO2_TU15_PARTICLE_FRAME_CAPTURE_DIRECTORY "" CACHE PATH "Owned original charge-particle frame captures")

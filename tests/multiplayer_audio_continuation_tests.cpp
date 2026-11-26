@@ -1,4 +1,5 @@
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/mcc_sound_effect_definitions.hpp"
 #include "halo2/sound_variation.hpp"
 #include <algorithm>
 #include <bit>
@@ -83,6 +84,82 @@ std::uint32_t impulse(const Cache&cache){
 }
 double peak(std::span<const float>pcm){
   double value=0;for(const float sample:pcm){need(std::isfinite(sample),"Actual PCM produced a nonfinite sample");value=std::max(value,std::abs(double(sample)));}return value;
+}
+constexpr std::uint32_t lockout_effect_collection=0xf3e054d3u;
+constexpr auto global_effect(unsigned row){return 0x40000000u|row;}
+
+std::array<std::byte,160> effect_request(std::uint32_t flags,std::uint32_t reference,
+    std::optional<Vec3> position={},float gain_db=0){
+  std::array<std::byte,160> request{};
+  const auto put=[&](unsigned offset,std::uint32_t value){
+    for(unsigned i=0;i<4;++i)request[offset+i]=std::byte(value>>(i*8));
+  };
+  put(0,flags);
+  put(4,position?3u:1u);
+  put(0x10,std::bit_cast<std::uint32_t>(1.f));
+  put(0x14,std::bit_cast<std::uint32_t>(gain_db));
+  put(0x98,reference);
+  if(position){
+    put(0xc,0x0100000cu);
+    put(0x18,std::bit_cast<std::uint32_t>(position->x));
+    put(0x1c,std::bit_cast<std::uint32_t>(position->y));
+    put(0x20,std::bit_cast<std::uint32_t>(position->z));
+    put(0x40,std::bit_cast<std::uint32_t>(2.f));
+    put(0x44,std::bit_cast<std::uint32_t>(8.f));
+  }else put(0xc,0x400u);
+  return request;
+}
+
+void source_effect_request(const std::shared_ptr<const Cache>& cache,std::uint32_t sound){
+  constexpr std::uint32_t row=11;
+  constexpr auto scenario_reference=0x80000000u|row;
+  const MccSoundEffectDefinitions definitions(cache);
+  const auto& effect=definitions.collection(TagHandle{lockout_effect_collection}).effects.at(row);
+  need(effect.name.text=="radio_default_in" && effect.instances.size()==1,
+      "Owned global radio effect fixture differs");
+
+  constexpr std::uint32_t seed=0x5821b36du;
+  constexpr auto kind=MultiplayerAudioKind::FirstPerson;
+  struct RenderedEffect {
+    std::optional<tu15_sound_mono_distortion::Parameters> parent_send;
+    std::vector<float> pcm;
+  };
+  const auto observe_parent=[](MultiplayerAudio& audio,MultiplayerAudio::Voice parent){
+    const auto send=audio.voice_parameters(parent).effect;
+    return RenderedEffect{send?std::optional(send->parameters):std::nullopt,audio.render(4096)};
+  };
+  const auto render_effect=[&](std::optional<MultiplayerAudioEffect> effect){
+    MultiplayerAudio audio(cache,seed,manual);
+    const auto parent=audio.schedule_impulse(sound,0,1,kind,none,0,{},effect);
+    need(parent.has_value(),"Explicit audio effect control did not create a voice");
+    return observe_parent(audio,*parent);
+  };
+  const auto render_request=[&](std::uint32_t flags,std::uint32_t reference){
+    MultiplayerAudio audio(cache,seed,manual);
+    const auto request=effect_request(flags,reference);
+    const auto before=request;
+    const auto parent=audio.source_impulse(sound,request,kind,0);
+    need(parent.has_value() && request==before,
+        "Raw DSP request did not play or changed its caller backing");
+    return observe_parent(audio,*parent);
+  };
+  const auto dry=render_effect({});
+  const auto wet=render_effect(MultiplayerAudioEffect{lockout_effect_collection,row});
+  const auto raw_wet=render_request(0x105u,global_effect(row));
+  need(!dry.parent_send && wet.parent_send && wet.parent_send==raw_wet.parent_send,
+      "Raw playback reference did not install the same authored DSP send on the parent");
+  need(peak(dry.pcm)>0 && peak(wet.pcm)>0 && wet.pcm==raw_wet.pcm && wet.pcm!=dry.pcm,
+      "Raw and explicit radio references did not produce the same wet mix");
+  // The active Lockout scenario has no collection. None of these cases
+  // should reuse the globals effect that the positive control selected.
+  for(const auto& [flags,reference]:std::array{
+      std::pair{5u,global_effect(row)},std::pair{0x105u,scenario_reference},
+      std::pair{0x105u,0xc0000000u},std::pair{0x105u,global_effect(1)}}){
+    const auto output=render_request(flags,reference);
+    need(!output.parent_send && output.pcm==dry.pcm,
+        "Ungated or absent collection reference changed dry playback");
+  }
+  std::cout<<"PASS raw playback reference uses actual global radio DSP PCM and honors the effect flag and selectors\n";
 }
 double consume(MultiplayerAudio&audio){
   double mixed_peak=0;
@@ -255,6 +332,168 @@ void same_pcm(const std::vector<float>&a,const std::vector<float>&b){
   for(std::size_t i=0;i<a.size();++i)need(std::bit_cast<std::uint32_t>(a[i])==std::bit_cast<std::uint32_t>(b[i]),
       "Core restore changed actual MCC mixed sample bits");
 }
+LoopingSound::Track radio_track(const std::shared_ptr<const Cache>& cache,std::uint32_t collection,unsigned row,
+    std::string_view name){
+  const MccSoundEffectDefinitions definitions(cache);
+  const auto& effect=definitions.collection(TagHandle{collection}).effects.at(row);
+  need(effect.name.text==name && effect.instances.size()==1 && effect.instances[0].components.size()==1,
+      "Expected one actual authored radio effect component");
+  const Bytes component(effect.instances[0].components[0].bytes);
+  need(component.u32(0)==0x6c736e64u && component.f32(8)==-3.f && component.u32(12)==0,
+      "Authored radio loop reference or component controls changed");
+  const auto child=cache->load_looping_sound(component.u32(4));
+  need(child.flags==0 && child.details.empty() && child.tracks.size()==1 && child.tracks[0].flags==3,
+      "Expected one ordinary radio loop track with authored fades");
+  return child.tracks[0];
+}
+
+void radio_parent_admission(const std::shared_ptr<const Cache>& cache,std::uint32_t sound){
+  const auto track=radio_track(cache,lockout_effect_collection,11,"radio_default_in");
+  need(track.start!=none && track.loop!=none && track.end==none,"Radio-in track phases changed");
+  std::vector<MultiplayerAudioSubmission> submitted;
+  MultiplayerAudio audio(cache,0x5821b36du,manual,[&](const auto& packet){submitted.push_back(packet);});
+  const auto rejected=effect_request(0x105u,global_effect(11),{},-80.f);
+  need(!audio.source_impulse(sound,rejected,MultiplayerAudioKind::Impulse,0),
+      "Inaudible parent did not exercise actual Core rejection");
+  audio.object_loop_frame(1.f/30);
+  need(submitted.empty() && audio.voices()==0,"Rejected parent admitted a radio companion");
+
+  audio.listeners(std::array<Vec3,1>{{{0,0,0}}});
+  const auto request=effect_request(0x105u,global_effect(11),Vec3{1,0,0});
+  const auto first=audio.source_impulse(sound,request,MultiplayerAudioKind::Impulse,0);
+  need(first && submitted.size()==3 && submitted[0].voice==*first &&
+      submitted[0].sound==sound && submitted[1].sound==track.start && submitted[2].sound==track.loop,
+      "Admitted parent did not submit its authored radio-in start and loop in order");
+  const auto first_loop=submitted[2].voice;
+  need(submitted[2].position && submitted[2].position->x==1.f && !audio.voice_parameters(first_loop).effect,
+      "Radio loop lost the admitted parent's position or inherited its DSP send");
+
+  const auto second=audio.source_impulse(sound,request,MultiplayerAudioKind::Impulse,0);
+  need(second && *second!=*first && submitted.size()==6 && submitted[3].voice==*second &&
+      submitted[4].sound==track.start && submitted[5].sound==track.loop && submitted[5].voice!=first_loop,
+      "Two admitted parents with the same emitter and sound shared a radio loop");
+  const auto second_loop=submitted[5].voice;
+  const auto has_route=[](const SdlSoundVoiceParameters& parameters){
+    return std::ranges::any_of(parameters.routes,[](const auto& route){return route.linear_gain>0.f;});
+  };
+  need(has_route(audio.voice_parameters(first_loop)) && has_route(audio.voice_parameters(second_loop)),
+      "Radio distance fixture initially has silent routes");
+  audio.emitter(*first,{9,0,0});
+  audio.object_loop_frame(1.f/30);
+  need(!has_route(audio.voice_parameters(first_loop)) && has_route(audio.voice_parameters(second_loop)),
+      "Radio loop refresh lost its parent position, explicit maximum distance or parent identity");
+  audio.stop();
+  need(audio.voices()==0,"Stopping Audio leaked a parent or a radio companion");
+}
+
+void radio_parent_retirement(const std::shared_ptr<const Cache>& cache,std::uint32_t sound){
+  const auto track=radio_track(cache,lockout_effect_collection,12,"radio_default_out");
+  need(track.start==none && track.loop!=none && track.end!=none,"Radio-out track phases changed");
+  std::vector<MultiplayerAudioSubmission> submitted;
+  MultiplayerAudio audio(cache,0x5821b36du,manual,[&](const auto& packet){submitted.push_back(packet);});
+  audio.enroll_continuation();
+  const auto request=effect_request(0x105u,global_effect(12));
+  const auto begin=[&]{
+    const auto first_packet=submitted.size();
+    const auto parent=audio.source_impulse(sound,request,MultiplayerAudioKind::Impulse,0);
+    need(parent && submitted.size()==first_packet+2 && submitted[first_packet].voice==*parent &&
+        submitted[first_packet+1].sound==track.loop,
+        "Admitted radio-out parent did not start its actual authored loop");
+    return *parent;
+  };
+  const auto end_count=[&]{return std::ranges::count(submitted,track.end,&MultiplayerAudioSubmission::sound);};
+  const auto drain=[&]{
+    std::vector<float> pcm;
+    for(unsigned i=0;i<512 && audio.voices();++i){
+      audio.object_loop_frame(1024.f/48000);
+      auto next=audio.render(1024);
+      pcm.insert(pcm.end(),next.begin(),next.end());
+      audio.update();
+    }
+    need(audio.voices()==0,"Radio-out parent or its companion did not retire in the bounded render");
+    return pcm;
+  };
+
+  const auto stopped=begin();
+  audio.stop_voice(stopped);
+  audio.stop_voice(stopped);
+  (void)drain();
+  need(end_count()==1,"Explicit parent stop lost or duplicated the authored radio-out exit");
+
+  (void)begin();
+  audio.stop();
+  audio.object_loop_frame(1024.f/48000);
+  need(audio.voices()==0 && end_count()==1,"Bulk teardown published a radio-out exit or retained playback");
+
+  const auto parent=begin();
+  audio.object_loop_frame(1024.f/48000);
+  (void)audio.render(1024);
+  audio.update();
+  need(audio.voice_active(parent),"Checkpoint fixture retired the natural parent too early");
+  const auto saved=audio.checkpoint();
+  need(saved.voices()==2,"Checkpoint did not retain both admitted radio-out streams");
+  auto expected=drain();
+  need(end_count()==2 && peak(expected)>0,"Natural retirement lost or duplicated the audible radio-out exit");
+
+  auto restored=audio.prepare_restore(saved);
+  {auto held=audio.hold_publication(restored);need(publish(audio,restored,held),"Radio checkpoint publication failed");}
+  need(audio.voice_active(parent),"Checkpoint did not restore the radio parent");
+  same_pcm(expected,drain());
+  need(end_count()==3,"Restored parent lost or duplicated its authored radio-out exit");
+  std::cout<<"PASS authored Lockout radio companion admission, movement, stop and bit-exact checkpoint replay\n";
+}
+
+void delta_radio_schedule(const std::shared_ptr<const Cache>& cache){
+  constexpr auto sound=0xfc6b1a37u;
+  constexpr auto collection=0x84602213u;
+  const auto parent=cache->query_tag({.handle=TagHandle{sound},.group=TagGroup{"snd!"},.require_address=true});
+  need(parent && parent->name.ends_with("x05_0060_mir"),"Delta Miranda radio parent fixture changed");
+  const auto track=radio_track(cache,collection,11,"radio_default_in");
+  need(track.start==0x84642217u && track.loop==0x84652218u && track.end==none,
+      "Delta radio-in authored clips changed");
+  constexpr std::uint64_t due=2048;
+  for(const bool render_during_submission:{false,true}){
+    std::vector<MultiplayerAudioSubmission> submitted;
+    MultiplayerAudio* output=nullptr;
+    MultiplayerAudio audio(cache,0x5821b36du,manual,[&](const auto& packet){
+      submitted.push_back(packet);
+      if(!render_during_submission)return;
+      // The parent PCM has reached the mixer when this observer first runs.
+      // Render across each submission while the producer still owns the group.
+      need(peak(output->render(256))==0,"Delta radio group sounded before all members were published");
+      for(const auto& accepted:submitted){
+        const auto position=output->playback_position(accepted.voice);
+        need(!position.first_device_frame && !position.first_presentation_frame && position.output_frames==0,
+            "Delta radio group consumed frames during partial submission");
+      }
+    });
+    output=&audio;
+    if(render_during_submission){
+      (void)audio.render(due+256);
+      need(audio.presentation_frames()>due,"Delta interleaving control requires an already-due request");
+    }
+    const auto voice=audio.schedule_impulse(sound,due,1,MultiplayerAudioKind::Impulse,none,0,{},
+        MultiplayerAudioEffect{collection,11});
+    need(voice && submitted.size()==3 && submitted[0].voice==*voice && submitted[0].sound==sound &&
+        submitted[1].sound==track.start && submitted[2].sound==track.loop,
+        "Delta radio parent did not submit its authored companion phases");
+    if(!render_during_submission)
+      need(peak(audio.render(due))==0,"Scheduled Delta radio companion sounded before its parent");
+    const auto first_presentation=audio.presentation_frames();
+    const auto first_device=audio.mixed_frames();
+    if(!render_during_submission)
+      need(first_presentation==due,"Delta future-deadline control moved the scheduled presentation frame");
+    need(peak(audio.render(4096))>0,"Scheduled Delta radio parent and companion were silent");
+    for(const auto& packet:submitted){
+      const auto position=audio.playback_position(packet.voice);
+      need(position.first_presentation_frame==first_presentation && position.first_device_frame==first_device,
+          "Delta parent and companion did not begin on the first common frame after publication");
+    }
+    audio.stop();
+  }
+  std::cout<<"PASS authored Delta radio voices share one onset even when the mixer renders during submission\n";
+}
+
 void same_parameters(const SdlSoundVoiceParameters&a,const SdlSoundVoiceParameters&b){
   need(a.relative_rate_bits==b.relative_rate_bits && a.volume_hundredths_db==b.volume_hundredths_db &&
       a.paused==b.paused && a.routes.size()==b.routes.size(),"Core restore lost voice parameters");
@@ -317,9 +556,17 @@ void loop_packet_continuation(const std::shared_ptr<const Cache>&cache,std::uint
   need(audio.queue_loop_packet(*queued,0),"Completion control did not queue its second actual packet");
   const auto rate=std::bit_cast<float>(audio.voice_parameters(*queued).relative_rate_bits);
   const auto plain_volume=audio.voice_parameters(*queued).volume_hundredths_db;
-  (void)audio.render(48000+std::size_t(std::ceil(double(packet_frames)/rate))+1);audio.update();
+  // The nominal 48 kHz rate differs slightly from the quantized native
+  // pitch step. Render toward the middle of the second packet and verify
+  // the actual source cursor crossed only the first boundary.
+  const double first_packet=double(packet_frames);
+  const auto partial=std::size_t(std::ceil(1.5*first_packet/rate));
+  (void)audio.render(48000+partial);audio.update();
   need(audio.voice_active(*queued) && completions==0 && audio.loop_packet_accepts_input(*queued),
       "First packet completion retired its still-playing native loop stream");
+  const auto source_frames=audio.playback_position(queued->id()).source_frames;
+  need(source_frames>=first_packet && source_frames<2*first_packet,
+      "Loop packet completion control did not cross exactly one authored packet");
   audio.stop_voice(*queued);audio.stop();
   need(completions==1 && status==SdlSoundCompletionStatus::Flushed,
       "Loop packet did not report its single actual flushed completion");
@@ -524,10 +771,20 @@ void callback_owner_retirement(const std::shared_ptr<const Cache>&cache,std::uin
 }
 int main(int argc,char**argv){try{
   if(argc==2 && std::string_view(argv[1])=="--owner-preflight"){preflight();std::cout<<"PASS Core rejects null retaining owner before SDL\n";return 0;}
-  need(argc==3 && std::string_view(argv[1])=="--mcc","Use --owner-preflight or --mcc ABSOLUTE_MCC_LOCKOUT_MAP");
+  need(argc==3,"Use --owner-preflight, --mcc LOCKOUT_MAP, --radio-lockout LOCKOUT_MAP or --radio-delta DELTA_MAP");
+  const std::string_view mode=argv[1];
+  need(mode=="--mcc" || mode=="--radio-lockout" || mode=="--radio-delta","Unknown Core test mode");
   const std::filesystem::path map=argv[2];need(map.is_absolute() && std::filesystem::is_regular_file(map),"Explicit MCC map must be an existing absolute file");
   auto cache=std::make_shared<const Cache>(map);need(cache->is_mcc(),"Core fixture requires MCC-only runtime resources");
-  preflight();const auto sound=impulse(*cache);owners(map,cache);legacy_and_enrollment(cache,sound);
+  if(mode=="--radio-delta"){delta_radio_schedule(cache);return 0;}
+  preflight();const auto sound=impulse(*cache);
+  stage("raw effect request",[&]{source_effect_request(cache,sound);});
+  if(mode=="--radio-lockout"){
+    stage("radio parent admission",[&]{radio_parent_admission(cache,sound);});
+    stage("radio parent retirement",[&]{radio_parent_retirement(cache,sound);});
+    return 0;
+  }
+  owners(map,cache);legacy_and_enrollment(cache,sound);
   equal(ordinary(cache,sound,false),ordinary(cache,sound,true));failed_observer(cache,sound);
   need(script_fade(cache,sound,false)==script_fade(cache,sound,true),"Enrollment changed logical fade behavior before restoration");
   const auto loop=loop_sound(*cache);need(looping(cache,loop,false)==looping(cache,loop,true),"Enrollment changed actual loop permutation/packet behavior");

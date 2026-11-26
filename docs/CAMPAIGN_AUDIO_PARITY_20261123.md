@@ -120,7 +120,7 @@ the path multiplayer uses for local weapon sounds:
 | Classic sounds | Play. The original requests both the Classic and the MCC Remastered sound for each weapon shot; `classic_sound` keeps only the Classic one in Classic mode. |
 | Forced selection (flag `0x400`, AI dialogue) | Now supported. As `223B20` does, it plays the request's own pitch range (`+9C`) and permutation (`+9E`) instead of a random choice. |
 | Forced-selection requests with a speaker | Feed the speaker's facial animation (`18F510`), as scripted dialogue does. Foley and footsteps don't. |
-| Listener-relative location (type > 1), looping-controller requests (`0x10`) | Not supported yet; reported once and skipped. |
+| Listener-relative location (type 2) | Supported since the ninth pass. |
 
 `HALO2_REFERENCE_CAMPAIGN_NO_SOURCE_SOUNDS=1` drops these requests, as
 before. The tests trace them as `Source audio packet:`.
@@ -869,13 +869,40 @@ World requests instead of rejecting them:
 - its length is the distance;
 - it gets the same HRTF and I3DL2 paths as any 3D voice.
 
-### What was checked and not changed
+### Surround and playback references
 
 - 37E112, the centre/LFE owner of Halo's DirectSound mode, always returns 0
   and -10000, so 3D voices never reach the centre channel.
-- 223B20 attaches a request with flag 0x100 to its playback controller
-  (+0x98). No World request in the probes or the 15-level sweep carried
-  0x100, 0x10 or a type-2 location.
+- Flag `0x100` makes `223B20` read the explicit playback interface at
+  request `+0x98`. The scheduler also checks the sound's default playback
+  data when that bit is clear. No World request in the probes or the
+  15-level sweep carried `0x100` or a type-2 location.
+
+### World request flags
+
+The World observer reads the caller's `0xA0` bytes at `18CEFC -> 223B20`
+before the scheduler changes them. The original caller initializes the
+request flags at `18CE16..18CE1D` to `0x5` or `0x25`, according to its
+callback pointer. It then sets or clears `0x8` for an object owner and
+`0x100` for an explicit playback interface. `18CED7` adds `0x400` for a
+valid forced selection. These are all the writes to that flag word on
+the way to `18CEFC`, so this observer cannot deliver a request with
+`0x10` set.
+
+Inside `223B20`, the effect-binding call at `223BBA` reaches `224670`.
+That owner can create a controller with `2204A0` and then write the
+controller owner to request `+0x54` and set `0x10` at `2246F0..2246F6`.
+This happens after the observation point and belongs to playback-effect
+controller handling.
+
+A Unicorn probe under `python3 tools/run_test.py -- .tools/python/bin/python -B -`
+ran the original `18CDD0` caller and `228220` class lookup with and without
+an object owner, callback, explicit interface and direct-route class flag.
+It covered location types 0–2, a valid forced selection, either invalid
+selector byte and a missing selector. At entry to `223B20`, the 192 cases
+produced all 16 flag combinations described above and zero instances of
+`0x10`. The owned XBE SHA-256 was
+`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
 
 ### Ninth-pass results
 
@@ -885,13 +912,41 @@ World requests instead of rejecting them:
 | Unit tests | The same 23 audio CTests pass; 3 skip without MCC fixtures. |
 | Mixer cost (48 voices, half pitched HRTF voices) | 11.0% of one core at 44.1 kHz native and 9.9% at 22.05 kHz, against 7.2% for the 48 kHz voice-processor path and 5.6% with it off (a quieter machine than the eighth pass's figures). |
 
-## Still not at parity
+## SDL mixer and live cue follow-up
 
-- **Playback controllers.** Requests attached to a playback controller
-  (223B20, flag 0x100) play without the controller keeping them. None
-  appeared in any run.
-- **Flag 0x10 World requests.** The native lane still rejects them. None
-  appeared in any run.
+The ninth-pass Armory replay consumed all seven tram lines. Their first
+samples arrived 128–212 simulation ticks after the requests because the
+SDL presentation clock had fallen behind the campaign clock. A live
+script cue now keeps its mapped sample deadline within one simulation tick
+of the current device clock. Explicitly scheduled cues keep exact sample
+deadlines, and overdue cues play from their first sample.
+
+Native-rate reconstruction uses the same double-precision taps and
+accumulation order for contiguous PCM and across packet boundaries. The
+platform regression compares mono and stereo at 22.05, 32 and 44.1 kHz with
+different packet and callback sizes. A separate comparison against the
+previous mixer matched rendered samples, playback clocks and completion
+records byte for byte, including rate changes, filters and room sends.
+In a seven-run 48-voice benchmark, the median mixer thread CPU cost fell
+from 16.83% to 10.23% of one core at 44.1 kHz and from 14.99% to 9.13% at
+22.05 kHz.
+
+The six SDL tests passed in Release and with ASan/UBSan, with leak
+detection disabled for the sandbox. The original Prophet fixture confirmed
+337,600 presentation frames between cues. The prepared Lockout continuation
+suite passed, including an explicit `0x100` World request that produced the
+same radio distortion PCM as the existing explicit-effect API. The offscreen
+Armory replay reached native player startup, where hardware-interface
+enumeration was denied by the sandbox.
+
+## Remaining parity work
+
+- **Playback controllers.** Explicit World requests can select the MCC
+  globals or scenario collection and use the existing mono-distortion
+  send. Default custom playback and the controller's companion sounds
+  remain open. The installed MCC sound-owned rows contain no DSP instances.
+  The original companion phases use the admitted parent's updated
+  location, per-voice distance bounds and retirement reason.
 - **Rebuilt samples.** The Xbox read the definitions' own ADPCM samples. The
   native samples here are rebuilt from MCC's 48 kHz Opus, which is lossy and
   not the same data. Between 256ths of a sample the resampler's weights are

@@ -73,6 +73,7 @@ enum Readout {
     VehicleFov,
     Crt,
     Split,
+    ObjectMotionBlur,
     PathTracing,
     RaySamples,
     BounceDepth,
@@ -142,6 +143,11 @@ const VIDEO: &[LayoutRow] = &[
     ),
     row(Text("CRT Filter"), Apply(0), Readout::Crt),
     row(Text("2-Player Split Screen"), Apply(1), Readout::Split),
+    row(
+        Text("Per-Object Motion Blur"),
+        Apply(2),
+        Readout::ObjectMotionBlur,
+    ),
     row(
         Authored(0x89f),
         Open(Screen::RestoreDefaults, 0),
@@ -224,6 +230,11 @@ fn readout(value: Readout, facts: &VideoPanelFacts) -> SettingsText {
             "Vertical"
         } else {
             "Horizontal"
+        }),
+        Readout::ObjectMotionBlur => literal(if facts.object_motion_blur {
+            "On"
+        } else {
+            "Off"
         }),
         Readout::RaySamples => literal(facts.ray_samples.to_string()),
         Readout::BounceDepth => literal(facts.bounce_depth.to_string()),
@@ -475,6 +486,7 @@ mod tests {
             vehicle_field_of_view: 70,
             crt_filter: false,
             vertical_split: false,
+            object_motion_blur: false,
             ray_samples: 1,
             bounce_depth: 2,
         }
@@ -488,7 +500,7 @@ mod tests {
     fn overview_keeps_labels_readouts_and_actions_in_the_same_order() {
         let mut facts = facts();
         let panel = view(Screen::Video, 0, &facts);
-        assert_eq!(panel.rows.len(), 14);
+        assert_eq!(panel.rows.len(), 15);
         let actions: Vec<_> = panel
             .rows
             .iter()
@@ -510,6 +522,7 @@ mod tests {
                 (272, 3),
                 (-2, 0),
                 (-2, 1),
+                (-2, 2),
                 (276, 0)
             ]
         );
@@ -517,14 +530,17 @@ mod tests {
         assert_eq!(frontend_video_value(256, 0, 4, &facts).key, 0x8af);
         let safe_area = frontend_video_value(256, 0, 8, &facts);
         assert_eq!((safe_area.screen, safe_area.key), (285, 0x183));
+        assert_eq!(frontend_video_value(256, 0, 13, &facts).text, "Off");
+        facts.object_motion_blur = true;
+        assert_eq!(frontend_video_value(256, 0, 13, &facts).text, "On");
         facts.upscaling_enabled = true;
         facts.path_tracing = true;
         assert_eq!(frontend_video_value(256, 0, 3, &facts).text, "Automatic");
         let panel = view(Screen::Video, 0, &facts);
-        assert_eq!(panel.rows.len(), 15);
-        assert_eq!((panel.rows[14].destination, panel.rows[14].value), (274, 3));
+        assert_eq!(panel.rows.len(), 16);
+        assert_eq!((panel.rows[15].destination, panel.rows[15].value), (274, 3));
         assert_eq!(
-            frontend_video_value(256, 0, 14, &facts).text,
+            frontend_video_value(256, 0, 15, &facts).text,
             "1 sample, 2 bounces"
         );
     }

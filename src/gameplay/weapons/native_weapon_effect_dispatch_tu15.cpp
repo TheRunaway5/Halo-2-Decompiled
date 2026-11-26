@@ -6,6 +6,8 @@
 #include "native_tu15_effect_slot_scan.hpp"
 #include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "physics/runtime/native_tu15_census_admission.hpp"
+#include "physics/vehicles/vehicle_marker_emission_instruction.hpp"
+#include "physics/vehicles/vehicle_marker_matrix_instruction.hpp"
 #include <bit>
 #include <cfloat>
 #include <cstring>
@@ -75,98 +77,189 @@ struct SseEnvironment {
 };
 // BBE00: unattached objects copy their position. Attached objects transform
 // that position through their signed parent-node matrix, in retail SSE order.
-void effect_origin(Memory &m,Abi &a,const Observer &o,const Services &s) {
-    bool sse_active{};
-    const auto instruction=[&](auto pc){if(sse_active)a.floating_point->mxcsr=_mm_getcsr();if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+void effect_origin(Memory &m,Abi &a,const Observer &o,const Services &s,
+                   std::uint32_t next=0xbbe00u,std::uint32_t observation_delta=0) {
+    std::optional<SseEnvironment> environment;
+    if(next>=0xbbe70u)environment.emplace(a);
+    const auto instruction=[&](auto pc){
+        if(environment)a.floating_point->mxcsr=_mm_getcsr();
+        if(s.instruction)s.instruction(pc-observation_delta);
+    };
+    IteratorRegisters r{a.gp,a.eflags};
+    switch(next) {
+    case 0xbbe00u: break;
+    case 0xbbe06u: goto resume_bbe06;
+    case 0xbbe09u: goto resume_bbe09;
+    case 0xbbe15u: goto resume_bbe15;
+    case 0xbbe18u: goto resume_bbe18;
+    case 0xbbe22u: goto resume_bbe22;
+    case 0xbbe26u: goto resume_bbe26;
+    case 0xbbe29u: goto resume_bbe29;
+    case 0xbbe2cu: goto resume_bbe2c;
+    case 0xbbe2fu: goto resume_bbe2f;
+    case 0xbbe32u: goto resume_bbe32;
+    case 0xbbe3au: goto resume_bbe3a;
+    case 0xbbe3fu: goto resume_bbe3f;
+    case 0xbbe44u: goto resume_bbe44;
+    case 0xbbe45u: goto resume_bbe45;
+    case 0xbbe49u: goto resume_bbe49;
+    case 0xbbe59u: goto resume_bbe59;
+    case 0xbbe60u: goto resume_bbe60;
+    case 0xbbe67u: goto resume_bbe67;
+    case 0xbbe70u: goto resume_bbe70;
+    case 0xbbe75u: goto resume_bbe75;
+    case 0xbbe82u: goto resume_bbe82;
+    case 0xbbe8du: goto resume_bbe8d;
+    case 0xbbe99u: goto resume_bbe99;
+    case 0xbbe9eu: goto resume_bbe9e;
+    case 0xbbeafu: goto resume_bbeaf;
+    case 0xbbebcu: goto resume_bbebc;
+    case 0xbbec0u: goto resume_bbec0;
+    case 0xbbec5u: goto resume_bbec5;
+    case 0xbbecau: goto resume_bbeca;
+    case 0xbbedbu: goto resume_bbedb;
+    case 0xbbee8u: goto resume_bbee8;
+    case 0xbbeedu: goto resume_bbeed;
+    case 0xbbef2u: goto resume_bbef2;
+    case 0xbbefbu: goto resume_bbefb;
+    case 0xbbf04u: goto resume_bbf04;
+    case 0xbbf15u: goto resume_bbf15;
+    case 0xbbf1au: goto resume_bbf1a;
+    default: throw std::logic_error("Invalid effect-origin resume address");
+    }
     instruction(0xbbe00);a.gp[1]=read(m,0x4ecbd0);
+resume_bbe06:
     instruction(0xbbe06);a.gp[2]=read(m,a.gp[1]+0x44);
+resume_bbe09:
     instruction(0xbbe09);a.gp[0]&=65535u;iterator_logic_flags(r,a.gp[0],4);
     instruction(0xbbe0e);a.gp[0]*=3u;
     instruction(0xbbe11);a.gp[0]=read(m,a.gp[2]+a.gp[0]*4u+8);
+resume_bbe15:
     instruction(0xbbe15);a.gp[1]=read(m,a.gp[0]+0x14);
+resume_bbe18:
     instruction(0xbbe18);iterator_flags(r,a.gp[1],none,4,true);
     instruction(0xbbe1b);
     if(a.eflags&64u) {
         instruction(0xbbe1d);a.gp[0]=iterator_flags(r,a.gp[0],0x64,4,false);
         instruction(0xbbe20);a.gp[2]=read(m,a.gp[0]);
+resume_bbe22:
         instruction(0xbbe22);a.gp[1]=a.gp[6];
-        instruction(0xbbe24);store(m,o,0xbbe24,a.gp[1],a.gp[2]);
+        instruction(0xbbe24);store(m,o,0xbbe24u-observation_delta,a.gp[1],a.gp[2]);
+resume_bbe26:
         instruction(0xbbe26);a.gp[2]=read(m,a.gp[0]+4);
-        instruction(0xbbe29);store(m,o,0xbbe29,a.gp[1]+4,a.gp[2]);
+resume_bbe29:
+        instruction(0xbbe29);store(m,o,0xbbe29u-observation_delta,a.gp[1]+4,a.gp[2]);
+resume_bbe2c:
         instruction(0xbbe2c);a.gp[0]=read(m,a.gp[0]+8);
-        instruction(0xbbe2f);store(m,o,0xbbe2f,a.gp[1]+8,a.gp[0]);
+resume_bbe2f:
+        instruction(0xbbe2f);store(m,o,0xbbe2fu-observation_delta,a.gp[1]+8,a.gp[0]);
+resume_bbe32:
         instruction(0xbbe32);a.gp[0]=a.gp[6];
         instruction(0xbbe34);(void)pop(m,a);return;
     }
     instruction(0xbbe35);scalar(m,a,0,a.gp[0]+0x64);
+resume_bbe3a:
     instruction(0xbbe3a);scalar(m,a,1,a.gp[0]+0x68);
+resume_bbe3f:
     instruction(0xbbe3f);scalar(m,a,2,a.gp[0]+0x6c);
-    instruction(0xbbe44);push(m,a,o,0xbbe44,a.gp[7]);
+resume_bbe44:
+    instruction(0xbbe44);push(m,a,o,0xbbe44u-observation_delta,a.gp[7]);
+resume_bbe45:
     instruction(0xbbe45);a.gp[7]=std::uint32_t(std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(read(m,a.gp[0]+0x18,1)))));
+resume_bbe49:
     instruction(0xbbe49);a.gp[7]*=0x34u;a.eflags&=~0x801u;
     instruction(0xbbe4c);a.gp[1]&=65535u;iterator_logic_flags(r,a.gp[1],4);
     instruction(0xbbe52);a.gp[1]*=3u;
     instruction(0xbbe55);a.gp[2]=read(m,a.gp[2]+a.gp[1]*4u+8);
+resume_bbe59:
     instruction(0xbbe59);a.gp[1]=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(read(m,a.gp[2]+0x116,2)))));
+resume_bbe60:
     instruction(0xbbe60);a.gp[7]=iterator_flags(r,a.gp[7],a.gp[2],4,false);
     instruction(0xbbe62);scalar(m,a,3,a.gp[1]+a.gp[7]);
+resume_bbe67:
     instruction(0xbbe67);a.gp[1]=iterator_flags(r,a.gp[1],a.gp[7],4,false);
-    SseEnvironment environment(a);sse_active=true;
+    environment.emplace(a);
     instruction(0xbbe69);
-    const auto one=_mm_castsi128_ps(_mm_cvtsi32_si128(read(m,0x46a0d0)));const auto scale=vector(a,3);auto ax=std::uint16_t(a.gp[0]);
+    {
+        const auto one=_mm_castsi128_ps(_mm_cvtsi32_si128(read(m,0x46a0d0)));
+        const auto scale=vector(a,3);
+        std::uint16_t ax{};
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    asm volatile("ucomiss %2,%1; lahf":"+a"(ax):"x"(scale),"x"(one):"cc");
+        asm volatile("ucomiss %2,%1; lahf":"+a"(ax):"x"(scale),"x"(one):"cc");
 #else
-    throw std::runtime_error("Native effect origin scalar comparison backend unavailable");
+        throw std::runtime_error("Native effect origin scalar comparison backend unavailable");
 #endif
-    a.eflags=(a.eflags&~0x8d5u)|((ax>>8u)&0xd5u);
-    instruction(0xbbe70);a.gp[0]=(a.gp[0]&0xffff00ffu)|(ax&0xff00u);
+        a.eflags=(a.eflags&~0x8d5u)|((ax>>8u)&0xd5u);
+    }
+resume_bbe70:
+    instruction(0xbbe70);a.gp[0]=(a.gp[0]&0xffff00ffu)|(((a.eflags&0xd5u)|2u)<<8u);
     instruction(0xbbe71);iterator_logic_flags(r,(a.gp[0]>>8u)&0x44u,1);
     instruction(0xbbe74);a.gp[7]=pop(m,a);
+resume_bbe75:
     instruction(0xbbe75);if(a.eflags&4u) {
         instruction(0xbbe77);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,0)));
         instruction(0xbbe7b);a.xmm[0]=a.xmm[3];
         instruction(0xbbe7e);scalar(m,a,3,a.gp[1]);
+resume_bbe82:
         instruction(0xbbe82);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,1)));
         instruction(0xbbe86);a.xmm[1]=a.xmm[3];
         instruction(0xbbe89);scalar(m,a,3,a.gp[1]);
+resume_bbe8d:
         instruction(0xbbe8d);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,2)));
         instruction(0xbbe91);a.xmm[2]=a.xmm[3];
     }
     // Loads remain after each preceding store when output aliases the matrix.
     instruction(0xbbe94);scalar(m,a,3,a.gp[1]+0x1c);
+resume_bbe99:
     instruction(0xbbe99);scalar(m,a,4,a.gp[1]+0x10);
+resume_bbe9e:
     instruction(0xbbe9e);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,2)));
     instruction(0xbbea2);vector(a,4,_mm_mul_ss(vector(a,4),vector(a,1)));
     instruction(0xbbea6);vector(a,3,_mm_add_ss(vector(a,3),vector(a,4)));
     instruction(0xbbeaa);scalar(m,a,4,a.gp[1]+4);
+resume_bbeaf:
     instruction(0xbbeaf);vector(a,4,_mm_mul_ss(vector(a,4),vector(a,0)));
     instruction(0xbbeb3);vector(a,3,_mm_add_ss(vector(a,3),vector(a,4)));
     instruction(0xbbeb7);vector(a,3,_mm_add_ss(vector(a,3),_mm_castsi128_ps(_mm_cvtsi32_si128(read(m,a.gp[1]+0x28)))));
-    instruction(0xbbebc);store(m,o,0xbbebc,a.gp[6],a.xmm[3][0]);
+resume_bbebc:
+    instruction(0xbbebc);store(m,o,0xbbebcu-observation_delta,a.gp[6],a.xmm[3][0]);
+resume_bbec0:
     instruction(0xbbec0);scalar(m,a,3,a.gp[1]+0x20);
+resume_bbec5:
     instruction(0xbbec5);scalar(m,a,4,a.gp[1]+0x14);
+resume_bbeca:
     instruction(0xbbeca);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,2)));
     instruction(0xbbece);vector(a,4,_mm_mul_ss(vector(a,4),vector(a,1)));
     instruction(0xbbed2);vector(a,3,_mm_add_ss(vector(a,3),vector(a,4)));
     instruction(0xbbed6);scalar(m,a,4,a.gp[1]+8);
+resume_bbedb:
     instruction(0xbbedb);vector(a,4,_mm_mul_ss(vector(a,4),vector(a,0)));
     instruction(0xbbedf);vector(a,3,_mm_add_ss(vector(a,3),vector(a,4)));
     instruction(0xbbee3);vector(a,3,_mm_add_ss(vector(a,3),_mm_castsi128_ps(_mm_cvtsi32_si128(read(m,a.gp[1]+0x2c)))));
-    instruction(0xbbee8);store(m,o,0xbbee8,a.gp[6]+4,a.xmm[3][0]);
+resume_bbee8:
+    instruction(0xbbee8);store(m,o,0xbbee8u-observation_delta,a.gp[6]+4,a.xmm[3][0]);
+resume_bbeed:
     instruction(0xbbeed);scalar(m,a,3,a.gp[1]+0x24);
+resume_bbef2:
     instruction(0xbbef2);vector(a,3,_mm_mul_ss(vector(a,3),vector(a,2)));
     instruction(0xbbef6);scalar(m,a,2,a.gp[1]+0x18);
+resume_bbefb:
     instruction(0xbbefb);vector(a,2,_mm_mul_ss(vector(a,2),vector(a,1)));
     instruction(0xbbeff);scalar(m,a,1,a.gp[1]+12);
+resume_bbf04:
     instruction(0xbbf04);vector(a,3,_mm_add_ss(vector(a,3),vector(a,2)));
     instruction(0xbbf08);vector(a,1,_mm_mul_ss(vector(a,1),vector(a,0)));
     instruction(0xbbf0c);vector(a,3,_mm_add_ss(vector(a,3),vector(a,1)));
     instruction(0xbbf10);vector(a,3,_mm_add_ss(vector(a,3),_mm_castsi128_ps(_mm_cvtsi32_si128(read(m,a.gp[1]+0x30)))));
-    instruction(0xbbf15);store(m,o,0xbbf15,a.gp[6]+8,a.xmm[3][0]);
+resume_bbf15:
+    instruction(0xbbf15);store(m,o,0xbbf15u-observation_delta,a.gp[6]+8,a.xmm[3][0]);
+resume_bbf1a:
     instruction(0xbbf1a);a.gp[0]=a.gp[6];
     instruction(0xbbf1c);(void)pop(m,a);
 }
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+#include "native_weapon_effect_origin_tu15_internal.hpp"
+#endif
 // 1791C0: two exact direction records. Reads stay interleaved with writes,
 // including when the input, output and global vectors overlap.
 void direction_packets(Memory &m,Abi &a,const Observer &o,const Services &s) {
@@ -461,33 +554,81 @@ done:
     instruction(0x16e75f);a.gp[3]=pop(m,a);
     instruction(0x16e760);(void)pop(m,a);
 }
+#include "native_weapon_effect_location_iterator_kernel_tu15_internal.hpp"
+
 // 17DCE0 advances the actual cursor before reading the node word. Mode1
 // accepts encoded first-person nodes, mode3 accepts every node, and all other
 // signed low-word modes use WORLD admission (including the unbound FFFF node).
 void next_effect_location(Memory &m,IteratorRegisters &a,const Observer &o,const Services &s) {
+    using effect_location_iterator::Resume;
+    static const bool reference = [] {
+        const auto *value = std::getenv("HALO2_REFERENCE_WEAPON_EFFECT_LOCATION_ITERATOR");
+        return value && *value;
+    }();
     const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};
+    std::uint32_t node{}, carry{};
+    bool unfiltered{};
+    if (!reference && (!s.instruction || s.immutable_instruction_cursor.identifies(s)) &&
+        native_model_marker_lookup_detail::protocol(s, o)) {
+        try {
+            effect_location_iterator::Frame(m, a, o, s).run([&] { next_effect_location(m, a, o, s); });
+            return;
+        } catch (Resume next) {
+            switch (next) {
+            case Resume::cursor_argument: goto cursor_argument;
+            case Resume::cursor_head: goto cursor_head;
+            case Resume::clear_result: goto clear_result;
+            case Resume::slot_index: goto slot_index;
+            case Resume::save_edi: goto save_edi;
+            case Resume::record_table: goto record_table;
+            case Resume::record_address: goto record_address;
+            case Resume::publish_cursor: goto publish_cursor;
+            case Resume::node: goto read_node;
+            case Resume::node_flags: goto node_flags;
+            case Resume::filter: goto filter;
+            case Resume::push_mode: goto push_mode;
+            case Resume::push_cursor: goto push_cursor;
+            case Resume::push_forwarded: goto push_forwarded;
+            case Resume::recurse: goto recurse;
+            case Resume::restore_edi: goto restore_edi;
+            case Resume::restore_ebx: goto restore_ebx;
+            case Resume::restore_esi: goto restore_esi;
+            case Resume::return_address: goto return_address;
+            }
+        }
+    }
     instruction(0x17dce0);push(m,a,o,0x17dce0,a.gp[6]);
+cursor_argument:
     instruction(0x17dce1);a.gp[6]=read(m,a.gp[4]+12);
+cursor_head:
     instruction(0x17dce5);a.gp[1]=read(m,a.gp[6]);
+clear_result:
     instruction(0x17dce7);a.gp[0]=0;iterator_logic_flags(a,0,4);
     instruction(0x17dce9);iterator_flags(a,a.gp[1],none,4,true);
     instruction(0x17dcec);
     if(a.gp[1]!=none) {
         instruction(0x17dcee);a.gp[0]=read(m,0x4f7208);
+slot_index:
         instruction(0x17dcf3);a.gp[1]&=65535u;iterator_logic_flags(a,a.gp[1],4);
         instruction(0x17dcf9);a.gp[1]*=0x3cu;
         // Low16*60 cannot overflow signed32. IMUL defines CF/OF only; the
         // following ADD defines every arithmetic flag before any use of them.
         a.eflags&=~0x801u;
         instruction(0x17dcfc);push(m,a,o,0x17dcfc,a.gp[3]);
+save_edi:
         instruction(0x17dcfd);push(m,a,o,0x17dcfd,a.gp[7]);
+record_table:
         instruction(0x17dcfe);a.gp[1]=iterator_flags(a,a.gp[1],read(m,a.gp[0]+0x44),4,false);
+record_address:
         instruction(0x17dd01);a.gp[0]=a.gp[1];
         instruction(0x17dd03);a.gp[1]=read(m,a.gp[0]+4);
+publish_cursor:
         instruction(0x17dd06);store(m,o,0x17dd06,a.gp[6],a.gp[1]);
+read_node:
         instruction(0x17dd08);a.gp[1]=(a.gp[1]&0xffff0000u)|read(m,a.gp[0]+2,2);
+node_flags:
         instruction(0x17dd0c);iterator_flags(a,a.gp[1],65535u,2,true);
-        const auto node=a.gp[1]&65535u;
+        node=a.gp[1]&65535u;
         instruction(0x17dd10);
         if(node!=65535u) {
             instruction(0x17dd12);iterator_logic_flags(a,(node>>8u)&255u,1);
@@ -499,11 +640,12 @@ void next_effect_location(Memory &m,IteratorRegisters &a,const Observer &o,const
             instruction(0x17dd1a);a.gp[3]&=0xffffff00u;iterator_logic_flags(a,0,1);
         }
         instruction(0x17dd1c);a.gp[7]=read(m,a.gp[4]+24);
+filter:
         instruction(0x17dd20);a.gp[1]=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(a.gp[7]))));
         instruction(0x17dd23);a.gp[2]&=0xffffff00u;iterator_logic_flags(a,0,1);
         instruction(0x17dd25);
-        const auto carry=a.eflags&1u;a.gp[1]=iterator_flags(a,a.gp[1],1,4,true);a.eflags=(a.eflags&~1u)|carry;
-        bool unfiltered=false;
+        carry=a.eflags&1u;a.gp[1]=iterator_flags(a,a.gp[1],1,4,true);a.eflags=(a.eflags&~1u)|carry;
+        unfiltered=false;
         instruction(0x17dd26);
         if(a.gp[1]==0) {instruction(0x17dd2f);a.gp[2]|=1u;}
         else {
@@ -516,17 +658,25 @@ void next_effect_location(Memory &m,IteratorRegisters &a,const Observer &o,const
             instruction(0x17dd33);
             if((a.gp[3]&255u)!=(a.gp[2]&255u)) {
                 instruction(0x17dd35);a.gp[2]=read(m,a.gp[4]+16);
+push_mode:
                 instruction(0x17dd39);push(m,a,o,0x17dd39,a.gp[7]);
+push_cursor:
                 instruction(0x17dd3a);push(m,a,o,0x17dd3a,a.gp[6]);
+push_forwarded:
                 instruction(0x17dd3b);push(m,a,o,0x17dd3b,a.gp[2]);
+recurse:
                 instruction(0x17dd3c);
                 push(m,a,o,0x17dd3c,0x17dd41);next_effect_location(m,a,o,s);
             }
         }
+restore_edi:
         instruction(0x17dd41);a.gp[7]=pop(m,a);
+restore_ebx:
         instruction(0x17dd42);a.gp[3]=pop(m,a);
     }
+restore_esi:
     instruction(0x17dd43);a.gp[6]=pop(m,a);
+return_address:
     instruction(0x17dd44);(void)pop(m,a);a.gp[4]+=12;
 }
 std::uint32_t state_product(IteratorRegisters &a,std::uint32_t left,std::uint32_t right) {
@@ -683,13 +833,18 @@ done:
     instruction(0x17b1ec);a.gp[6]=pop(m,a);instruction(0x17b1ed);(void)pop(m,a);
 }
 // Commit RMW flags with the write, including when a memory write fails.
-void and_effect_byte(Memory &m,Abi &a,const Observer &o,std::uint32_t pc,
-    std::uint32_t at,std::uint32_t mask) {
-    const auto value=read(m,at,1)&mask;
+template<class Transform>
+void modify_effect_byte(Memory &m,Abi &a,const Observer &o,std::uint32_t pc,
+    std::uint32_t at,Transform transform) {
+    const auto value=transform(read(m,at,1));
     SourcePhysicsContactRecordStore event{pc,at,{},std::vector<std::byte>{std::byte(value)}};
     if(o){event.before.resize(1);m.read(at,event.before);}
     m.write(at,event.written);IteratorRegisters r{a.gp,a.eflags};iterator_logic_flags(r,value,1);
     if(o)o(event);
+}
+void and_effect_byte(Memory &m,Abi &a,const Observer &o,std::uint32_t pc,
+    std::uint32_t at,std::uint32_t mask) {
+    modify_effect_byte(m,a,o,pc,at,[mask](auto value){return value&mask;});
 }
 // 17A1A0 restarts the existing instance and conditionally starts its authored
 // looping sound. Reset, location and sound allocation retain their real owners.
@@ -1539,30 +1694,71 @@ done:
     instruction(0xcad34);a.gp[3]=pop(m,a);
     instruction(0xcad35);(void)pop(m,a);a.gp[4]+=4;
 }
+#include "native_weapon_effect_location_matrix_kernel_tu15_internal.hpp"
+
 // 17DD50/17DDC0 retain the original matrix source selection and thirteen
 // individual MOVSD transfers. Each transfer reads before writing, and commits
 // its cursors only after a successful store, including backward/aliased copies.
 void copy_effect_location(Memory &m,Abi &a,const Observer &o,const Services &s) {
     const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+    if (effect_location_matrix::admitted(s, o)) {
+        try {
+            effect_location_matrix::Frame(m, a, o, s).direct();
+            return;
+        } catch (effect_location_matrix::Resume next) {
+            switch (next.pc) {
+            case 0x17dd55u: goto resume_17dd55;
+            case 0x17dd56u: goto resume_17dd56;
+            case 0x17dd63u: goto resume_17dd63;
+            case 0x17dd6eu: goto resume_17dd6e;
+            case 0x17dd6fu: goto resume_17dd6f;
+            case 0x17dd72u: goto resume_17dd72;
+            case 0x17dd73u: goto resume_17dd73;
+            case 0x17dd78u: goto resume_17dd78;
+            case 0x17dd79u: goto resume_17dd79;
+            case 0x17dd7au: goto resume_17dd7a;
+            case 0x17dd8au: goto resume_17dd8a;
+            case 0x17dd97u: goto resume_17dd97;
+            case 0x17dd9au: goto resume_17dd9a;
+            case 0x17dd9eu: goto resume_17dd9e;
+            case 0x17dda5u: goto resume_17dda5;
+            case 0x17ddb4u: goto resume_17ddb4;
+            case 0x17ddb6u: goto resume_17ddb6;
+            case 0x17ddb7u: goto resume_17ddb7;
+            case 0x17ddb8u: goto resume_17ddb8;
+            }
+            throw;
+        }
+    }
     instruction(0x17dd50);iterator_flags(r,a.gp[0],65535,2,true);
     instruction(0x17dd54);push(m,a,o,0x17dd54,a.gp[6]);
+resume_17dd55:
     instruction(0x17dd55);push(m,a,o,0x17dd55,a.gp[7]);
+resume_17dd56:
     instruction(0x17dd56);a.gp[7]=a.gp[1];
     instruction(0x17dd58);a.gp[6]=a.gp[2];
     instruction(0x17dd5a);if(a.eflags&64u)goto no_node;
     instruction(0x17dd5c);iterator_logic_flags(r,(a.gp[0]>>8u)&255u,1);
     instruction(0x17dd5e);if(!(a.eflags&128u))goto object_node;
     instruction(0x17dd60);a.gp[1]=read(m,a.gp[6]+0x58);
+resume_17dd63:
     instruction(0x17dd63);iterator_flags(r,a.gp[1],none,4,true);
     instruction(0x17dd66);if(a.eflags&64u)goto object_node;
     instruction(0x17dd68);a.gp[0]&=0x7fffu;iterator_logic_flags(r,a.gp[0],4);
     instruction(0x17dd6d);push(m,a,o,0x17dd6d,a.gp[7]);
+resume_17dd6e:
     instruction(0x17dd6e);push(m,a,o,0x17dd6e,a.gp[0]);
+resume_17dd6f:
     instruction(0x17dd6f);a.gp[0]=read(m,a.gp[6]+0x48);
+resume_17dd72:
     instruction(0x17dd72);push(m,a,o,0x17dd72,a.gp[0]);
+resume_17dd73:
     call(m,a,o,s,0x17dd73,0x1693ab);
+resume_17dd78:
     instruction(0x17dd78);a.gp[7]=pop(m,a);
+resume_17dd79:
     instruction(0x17dd79);a.gp[6]=pop(m,a);
+resume_17dd7a:
     instruction(0x17dd7a);(void)pop(m,a);return;
 no_node:
     instruction(0x17dd7b);a.gp[2]=none;iterator_logic_flags(r,a.gp[2],4);
@@ -1572,31 +1768,68 @@ object_node:
     instruction(0x17dd85);a.gp[2]=a.gp[0];
 matrix_ready:
     instruction(0x17dd87);a.gp[0]=read(m,a.gp[6]+0x48);
+resume_17dd8a:
     instruction(0x17dd8a);a.gp[0]&=65535u;iterator_logic_flags(r,a.gp[0],4);
     instruction(0x17dd8f);a.gp[1]=a.gp[0]*3u;
     instruction(0x17dd92);a.gp[0]=read(m,0x4ecbd0);
+resume_17dd97:
     instruction(0x17dd97);a.gp[0]=read(m,a.gp[0]+0x44);
+resume_17dd9a:
     instruction(0x17dd9a);a.gp[1]=read(m,a.gp[0]+a.gp[1]*4u+8);
+resume_17dd9e:
     instruction(0x17dd9e);a.gp[0]=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(read(m,a.gp[1]+0x116,2)))));
+resume_17dda5:
     instruction(0x17dda5);a.gp[6]=std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(a.gp[2]))));
     instruction(0x17dda8);a.gp[6]*=0x34u;a.eflags&=~0x801u; // Signed16 times52 cannot overflow signed32.
     instruction(0x17ddab);a.gp[0]=iterator_flags(r,a.gp[0],a.gp[1],4,false);
     instruction(0x17ddad);a.gp[6]=iterator_flags(r,a.gp[6],a.gp[0],4,false);
     instruction(0x17ddaf);a.gp[1]=13;
+resume_17ddb4:
     do {
         instruction(0x17ddb4);const auto value=read(m,a.gp[6]);store(m,o,0x17ddb4,a.gp[7],value);
         const auto delta=(a.eflags&1024u)?std::uint32_t(-4):4u;a.gp[6]+=delta;a.gp[7]+=delta;--a.gp[1];
     }while(a.gp[1]);
+resume_17ddb6:
     instruction(0x17ddb6);a.gp[7]=pop(m,a);
+resume_17ddb7:
     instruction(0x17ddb7);a.gp[6]=pop(m,a);
+resume_17ddb8:
     instruction(0x17ddb8);(void)pop(m,a);
 }
 void copy_effect_location_selected(Memory &m,Abi &a,const Observer &o,const Services &s) {
     const auto instruction=[&](auto pc){if(s.instruction)s.instruction(pc);};IteratorRegisters r{a.gp,a.eflags};
+    if (effect_location_matrix::admitted(s, o)) {
+        try {
+            effect_location_matrix::Frame(m, a, o, s).selected();
+            return;
+        } catch (effect_location_matrix::Resume next) {
+            switch (next.pc) {
+            case 0x17ddc3u: goto resume_17ddc3;
+            case 0x17ddc7u: goto resume_17ddc7;
+            case 0x17ddc8u: goto resume_17ddc8;
+            case 0x17ddddu: goto resume_17dddd;
+            case 0x17ddebu: goto resume_17ddeb;
+            case 0x17ddeeu: goto resume_17ddee;
+            case 0x17ddefu: goto resume_17ddef;
+            case 0x17ddf4u: goto resume_17ddf4;
+            case 0x17ddfbu: goto resume_17ddfb;
+            case 0x17ddfdu: goto resume_17ddfd;
+            case 0x17ddfeu: goto resume_17ddfe;
+            case 0x17ddffu: goto resume_17ddff;
+            case 0x17de0bu: goto resume_17de0b;
+            case 0x17de0cu: goto resume_17de0c;
+            case 0x17de0du: goto resume_17de0d;
+            }
+            throw;
+        }
+    }
     instruction(0x17ddc0);iterator_logic_flags(r,a.gp[0]&255u,1);
     instruction(0x17ddc2);push(m,a,o,0x17ddc2,a.gp[6]);
+resume_17ddc3:
     instruction(0x17ddc3);a.gp[6]=read(m,a.gp[4]+8);
+resume_17ddc7:
     instruction(0x17ddc7);push(m,a,o,0x17ddc7,a.gp[7]);
+resume_17ddc8:
     instruction(0x17ddc8);a.gp[7]=a.gp[1];
     instruction(0x17ddca);if(a.eflags&64u)goto fallback;
     instruction(0x17ddcc);iterator_flags(r,a.gp[6],65535,2,true);
@@ -1604,33 +1837,46 @@ void copy_effect_location_selected(Memory &m,Abi &a,const Observer &o,const Serv
     instruction(0x17ddd2);iterator_logic_flags(r,a.gp[6]&0x8000u,4);
     instruction(0x17ddd8);if(a.eflags&64u)goto fallback;
     instruction(0x17ddda);a.gp[0]=read(m,a.gp[2]+0x58);
+resume_17dddd:
     instruction(0x17dddd);iterator_flags(r,a.gp[0],none,4,true);
     instruction(0x17dde0);if(a.eflags&64u)goto fallback;
     instruction(0x17dde2);a.gp[1]=a.gp[6];
     instruction(0x17dde4);a.gp[1]&=0x7fffu;iterator_logic_flags(r,a.gp[1],4);
     instruction(0x17ddea);push(m,a,o,0x17ddea,a.gp[1]);
+resume_17ddeb:
     instruction(0x17ddeb);a.gp[1]=read(m,a.gp[2]+0x48);
+resume_17ddee:
     instruction(0x17ddee);push(m,a,o,0x17ddee,a.gp[1]);
+resume_17ddef:
     call(m,a,o,s,0x17ddef,0x169376);
+resume_17ddf4:
     instruction(0x17ddf4);a.gp[1]=13;
     instruction(0x17ddf9);a.gp[6]=a.gp[0];
+resume_17ddfb:
     do {
         instruction(0x17ddfb);const auto value=read(m,a.gp[6]);store(m,o,0x17ddfb,a.gp[7],value);
         const auto delta=(a.eflags&1024u)?std::uint32_t(-4):4u;a.gp[6]+=delta;a.gp[7]+=delta;--a.gp[1];
     }while(a.gp[1]);
+resume_17ddfd:
     instruction(0x17ddfd);a.gp[7]=pop(m,a);
+resume_17ddfe:
     instruction(0x17ddfe);a.gp[6]=pop(m,a);
+resume_17ddff:
     instruction(0x17ddff);(void)pop(m,a);a.gp[4]+=4;return;
 fallback:
     instruction(0x17de02);a.gp[1]=a.gp[7];
     instruction(0x17de04);a.gp[0]=a.gp[6];
     call(m,a,o,s,0x17de06,0x17dd50);
+resume_17de0b:
     instruction(0x17de0b);a.gp[7]=pop(m,a);
+resume_17de0c:
     instruction(0x17de0c);a.gp[6]=pop(m,a);
+resume_17de0d:
     instruction(0x17de0d);(void)pop(m,a);a.gp[4]+=4;
 }
 #include "native_weapon_marker_matrix_tu15_internal.hpp"
 #include "native_weapon_marker_lookup_tu15_internal.hpp"
+#include "native_weapon_marker_quaternion_tu15_internal.hpp"
 #include "native_weapon_marker_math_tu15_internal.hpp"
 #include "native_weapon_marker_emission_tu15_internal.hpp"
 #include "native_weapon_effect_advance_tu15_internal.hpp"
@@ -1657,6 +1903,33 @@ void native_weapon_effect_integer_tu15_run(Memory &m,std::uint32_t entry,std::ar
     else if(entry==0x17dce0u)next_effect_location(m,a,o,s);
     else throw std::invalid_argument("Unknown integer-only native weapon effect entry");
 }
+bool native_weapon_effect_origin_tu15_bridge(Memory &memory, Abi &abi,
+    const Services &services, const Observer &observe, bool canonical_observation) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    static const bool reference = [] {
+        const auto *value = std::getenv("HALO2_REFERENCE_WEAPON_EFFECT_ORIGIN");
+        return value && *value;
+    }();
+    if (reference || !abi.floating_point ||
+        (abi.floating_point->mxcsr & 0xffff1f80u) != 0x1f80u)
+        return false;
+    const auto *cursor = services.instruction ? &services.instruction_cursor : nullptr;
+    if (cursor ? !services.immutable_instruction_cursor.identifies(services) ||
+                     !native_model_marker_lookup_detail::protocol(services, observe)
+               : services.instruction_cursor.position || services.instruction_cursor.literal_service_sites)
+        return false;
+    const auto delta = canonical_observation ? 0x1340u : 0u;
+    try {
+        effect_origin_native::Frame(memory, abi, observe, services, cursor, delta).run();
+    } catch (effect_origin_native::Resume next) {
+        effect_origin(memory, abi, observe, services, next.pc, delta);
+    }
+    return true;
+#else
+    (void)memory;(void)abi;(void)services;(void)observe;(void)canonical_observation;
+    return false;
+#endif
+}
 bool native_weapon_effect_dispatch_tu15_owns_entry(std::uint32_t entry) {
     if(entry==0x179ed0u || entry==0x177830u || entry==0x16ea60u || entry==0x179df0u || entry==0x259b0u || entry==0x17c020u || entry==0x17c140u)return true;
     return entry==0x1e1200u || entry==0x144910u || entry==0x145560u || entry==0x1e11b0u || entry==0xfc510u || entry==0xbacd0u || entry==0xbad60u || entry==0x17dd50u || entry==0x17ddc0u || entry==0x18be00u || entry==0x16e6a0u || entry==0xbbe00u || entry==0x178e30u || entry==0x1791c0u || entry==0x17a1a0u || entry==0x17afb0u || entry==0x17b960u || entry==0x17b0d0u || entry==0x17e5e0u || entry==0x17b130u || entry==0x17dc60u || entry==0x17dce0u || entry==0x106f90u || entry==0x108a70u || entry==0x17dff0u ||
@@ -1682,7 +1955,9 @@ void native_weapon_effect_dispatch_tu15_run(Memory &m,std::uint32_t entry,Abi &a
     else if(entry==0x17ddc0u)copy_effect_location_selected(m,a,o,s);
     else if(entry==0x18be00u)native_weapon_effect_integer_tu15_run(m,entry,a.gp,a.eflags,s,o);
     else if(entry==0x16e6a0u)native_weapon_effect_datum_allocate_tu15_run(m,a.gp,a.eflags,s,o);
-    else if(entry==0xbbe00u)effect_origin(m,a,o,s);
+    else if(entry==0xbbe00u) {
+        if(!native_weapon_effect_origin_tu15_bridge(m,a,s,o,false))effect_origin(m,a,o,s);
+    }
     else if(entry==0x178e30u)create_effect(m,a,o,s);
     else if(entry==0x1791c0u)direction_packets(m,a,o,s);
     else if(entry==0x17a1a0u)restart_effect(m,a,o,s);

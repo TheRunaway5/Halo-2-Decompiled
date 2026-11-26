@@ -1574,10 +1574,12 @@ EncodedSound Cache::load_sound(std::uint32_t datum, unsigned pitch,
     const auto c = chunks.offset + (first + n) * 12;
     // Original21ABD0 retains all lower30 size bits; only the top2 flag bits
     // are removed. Resource location belongs to the separate pointer word.
-    auto bytes = raw_data(data.u32(c), data.u32(c + 4) & 0x3fffffffu);
+    const auto size = data.u32(c + 4) & 0x3fffffffu;
+    auto bytes = raw_data(data.u32(c), size);
     if (out.data.size() + bytes.size() > 128 * 1024 * 1024)
       throw FormatError("sound concatenation limit exceeded");
     out.data.insert(out.data.end(), bytes.begin(), bytes.end());
+    if (out.codec == 1 && size) out.packet_chunks.push_back({size});
   }
   return out;
 }

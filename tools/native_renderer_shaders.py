@@ -47,24 +47,36 @@ world.vert.spv world_prt.vert.spv world_emblem.geom.spv
 """.split())
 PATH_TRACING_FILES = frozenset({"path_tracing/world.vert.spv", "path_tracing/world.frag.spv"})
 PATH_TRACING_VISIBILITY_FILES = frozenset({"path_tracing/depth.frag.spv"})
-PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv", "path_tracing/trace.comp.spv",
-                                         "path_tracing/trace.rt.comp.spv", "path_tracing/world.rt.frag.spv",
-                                         "path_tracing/denoise.comp.spv", "path_tracing/calibrate.comp.spv"})
+PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv"})
+PATH_TRACING_RAY_TRACING_FILES = frozenset({"path_tracing/trace.comp.spv", "path_tracing/trace.rt.comp.spv",
+                                            "path_tracing/world.rt.frag.spv", "path_tracing/denoise.comp.spv",
+                                            "path_tracing/calibrate.comp.spv"})
+PATH_TRACING_WATER_FILES = frozenset({"path_tracing/water_reflection.frag.spv",
+                                      "path_tracing/water_reflection.rt.frag.spv"})
+PATH_TRACING_GLOW_FILES = frozenset({"path_tracing/glow_layer.frag.spv"})
 PLAYER_FLASH_FILES = frozenset({"player_flash_invert.frag.spv"})
 PLAYER_FLASH_EXECUTABLE_MARKER = b"player_flash_invert.frag.spv\0"
+OBJECT_MOTION_BLUR_FILES = frozenset({"object_motion_blur.vert.spv", "object_motion_blur.frag.spv"})
+OBJECT_MOTION_BLUR_MARKER = b"Object motion blur shaders are unavailable in this runtime.\0"
 PSTENCIL_VOLUME_GEOMETRY_FILES = frozenset({"pstencil/volume.geom.spv"})
 PSTENCIL_VOLUME_GEOMETRY_MARKER = b"volume.geom.spv\0"
-AOT_FIXED_FILES = AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES | PLAYER_FLASH_FILES | PSTENCIL_VOLUME_GEOMETRY_FILES
+AOT_FIXED_FILES = (AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES |
+                   PATH_TRACING_LIGHTING_FILES | PATH_TRACING_RAY_TRACING_FILES |
+                   PATH_TRACING_WATER_FILES | PATH_TRACING_GLOW_FILES |
+                   PLAYER_FLASH_FILES | PSTENCIL_VOLUME_GEOMETRY_FILES | OBJECT_MOTION_BLUR_FILES)
 # This mode-availability diagnostic is retained by every engine exposing the
 # RT choice. Bind that executable feature to its complete fixed shader pair;
 # older qualified v2 executables remain admitted with their original fixed ABI.
 PATH_TRACING_EXECUTABLE_MARKER = b"Path Tracing shaders are unavailable in this runtime.\0"
 PATH_TRACING_VISIBILITY_MARKER = b"Path Tracing visibility shader is unavailable in this runtime.\0"
 PATH_TRACING_LIGHTING_MARKER = b"Path Tracing HDR lighting shader is unavailable in this runtime.\0"
+PATH_TRACING_RAY_TRACING_MARKER = b"Path Tracing ray tracing shaders are unavailable in this runtime.\0"
 PATH_TRACING_TEMPORAL_MARKER = b"Path Tracing temporal lighting shaders are unavailable in this runtime.\0"
 PATH_TRACING_TEMPORAL_FRAGMENTS = frozenset({"path_tracing/world.frag.spv", "path_tracing/lighting.frag.spv"})
 PATH_TRACING_SURFACE_MARKER = b"Path Tracing authored surface shaders are unavailable in this runtime.\0"
 PATH_TRACING_AMBIENT_SURFACE_MARKER = b"Path Tracing authored ambient surface shaders are unavailable in this runtime.\0"
+PATH_TRACING_WATER_MARKER = b"Path Tracing water reflection shaders are unavailable in this runtime.\0"
+PATH_TRACING_GLOW_MARKER = b"glow_layer.frag.spv\0"
 PATH_TRACING_SURFACE_FRAGMENTS = PATH_TRACING_TEMPORAL_FRAGMENTS | PATH_TRACING_VISIBILITY_FILES
 _GENERATED_PATH = re.compile(
     r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility|-source-depth|-path-tracing-source-depth)?\.vert|f-[0-9a-f]{64}\.frag)"
@@ -178,6 +190,10 @@ def _path_tracing_surface_abi(ops):
         opcode, vector = types.get(identity, (None, ()))
         return opcode == 23 and len(vector) == 2 and vector[1] == 4 and types.get(vector[0]) == (22, (32,))
 
+    def uint_vector(identity):
+        opcode, vector = types.get(identity, (None, ()))
+        return opcode == 23 and len(vector) == 2 and vector[1] == 4 and types.get(vector[0]) == (21, (32, 0))
+
     candidates = binding(4)
     if len(candidates) != 1:
         return None
@@ -195,6 +211,12 @@ def _path_tracing_surface_abi(ops):
     elif (len(members) == 5 and member_offsets == [(0, 0), (1, 240), (2, 256), (3, 304), (4, 448)] and
             all(float_vector(members[n]) for n in (1, 2, 4)) and
             array_of_vector(members[3], (22, (32,)), 8)):
+        version = 2
+    elif (len(members) == 8 and
+            member_offsets == [(0, 0), (1, 240), (2, 256), (3, 272), (4, 288), (5, 304), (6, 432), (7, 448)] and
+            all(float_vector(members[n]) for n in (1, 2, 3, 6, 7)) and
+            uint_vector(members[4]) and
+            array_of_vector(members[5], (22, (32,)), 8)):
         version = 2
     values = {scalar_constant(identity) for identity in constants}
     return version if {0x53525448, 52} <= values else None
@@ -246,16 +268,21 @@ def _bound_shader_requirements(executable):
             path_tracing = data.find(PATH_TRACING_EXECUTABLE_MARKER) != -1
             visibility = data.find(PATH_TRACING_VISIBILITY_MARKER) != -1
             lighting = data.find(PATH_TRACING_LIGHTING_MARKER) != -1
+            ray_tracing = data.find(PATH_TRACING_RAY_TRACING_MARKER) != -1
             temporal = data.find(PATH_TRACING_TEMPORAL_MARKER) != -1
             surface = data.find(PATH_TRACING_SURFACE_MARKER) != -1
             ambient_surface = data.find(PATH_TRACING_AMBIENT_SURFACE_MARKER) != -1
+            water = data.find(PATH_TRACING_WATER_MARKER) != -1
+            glow = data.find(PATH_TRACING_GLOW_MARKER) != -1
             player_flash = data.find(PLAYER_FLASH_EXECUTABLE_MARKER) != -1
+            object_motion_blur = data.find(OBJECT_MOTION_BLUR_MARKER) != -1
             volume_geometry = data.find(PSTENCIL_VOLUME_GEOMETRY_MARKER) != -1
         if before != descriptor_identity(stream.fileno()) or before != path_identity(executable):
             raise ValueError("Native shader catalog executable changed during validation")
     if not paths:
         raise ValueError("Native executable has no bound per-program Vulkan catalog")
-    return paths, path_tracing, visibility, lighting, temporal, surface, player_flash, volume_geometry, ambient_surface
+    return (paths, path_tracing, visibility, lighting, temporal, surface, player_flash,
+            volume_geometry, ambient_surface, water, glow, object_motion_blur, ray_tracing)
 
 
 def _module_contract_job(raw, name):
@@ -342,20 +369,29 @@ def validate_native_package(directory, *, expected_sha256=None, executable, work
             validate_module(row)
         while pending:
             completed()
-    bound_generated, path_tracing, visibility, lighting, temporal, surface, player_flash, volume_geometry, ambient_surface = _bound_shader_requirements(executable)
+    (bound_generated, path_tracing, visibility, lighting, temporal, surface, player_flash,
+     volume_geometry, ambient_surface, water, glow, object_motion_blur, ray_tracing) = _bound_shader_requirements(executable)
     fixed = AOT_BASE_FIXED_FILES
     if player_flash:
         fixed |= PLAYER_FLASH_FILES
+    if object_motion_blur or OBJECT_MOTION_BLUR_FILES & files.keys():
+        fixed |= OBJECT_MOTION_BLUR_FILES
     # Retained two-stage pStencil runtimes keep their authenticated ABI. The
     # new depth/clipping owner requires the geometry stage it actually loads.
     if volume_geometry:
         fixed |= PSTENCIL_VOLUME_GEOMETRY_FILES
-    if path_tracing or visibility or lighting or temporal or surface or ambient_surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
+    if path_tracing or visibility or lighting or ray_tracing or temporal or surface or ambient_surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
         fixed |= PATH_TRACING_FILES
-    if visibility or lighting or temporal or surface or ambient_surface or (PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
+    if visibility or lighting or ray_tracing or temporal or surface or ambient_surface or (PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
         fixed |= PATH_TRACING_VISIBILITY_FILES
-    if lighting or temporal or surface or ambient_surface or PATH_TRACING_LIGHTING_FILES & files.keys():
+    if lighting or ray_tracing or temporal or surface or ambient_surface or PATH_TRACING_LIGHTING_FILES & files.keys():
         fixed |= PATH_TRACING_LIGHTING_FILES
+    if ray_tracing or PATH_TRACING_RAY_TRACING_FILES & files.keys():
+        fixed |= PATH_TRACING_RAY_TRACING_FILES
+    if water or PATH_TRACING_WATER_FILES & files.keys():
+        fixed |= PATH_TRACING_WATER_FILES
+    if glow:
+        fixed |= PATH_TRACING_GLOW_FILES
     if not fixed <= files.keys():
         raise ValueError("Native shader package omits its fixed Vulkan ABI")
     if temporal and any(contracts[name].get('path_tracing_screen_abi') != 2

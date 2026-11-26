@@ -20,7 +20,8 @@ PIN = '21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd'
 BASES, SIZES = (0x46a000, 0x61000000, 0x62000000, 0x449000), (4096, 20480, 4096, 4096)
 
 
-def physical_original(image, rows, scratch, *, entries=None, regions=None, trace_calls=None, return_x87=False, trace_extended=False, preserve_x87_prefix=False):
+def physical_original(image, rows, scratch, *, entries=None, regions=None, trace_calls=None, return_x87=False,
+                      trace_extended=False, preserve_x87_prefix=False, capture_boundary_x87=False):
     """Run unchanged TU1.5 instructions on physical i386, including SSE flags.
 
     Explicit metadata for PUSH's implicit memory operand lets the existing
@@ -44,6 +45,8 @@ def physical_original(image, rows, scratch, *, entries=None, regions=None, trace
         if mnemonic in ('push', 'call'):
             site['operands'].append(dict(base=4, index=-1, scale=1,
                 displacement=0xfffffffc, bytes=4, read=False, write=True))
+        if mnemonic in ('pop','ret') and capture_boundary_x87:
+            site['operands'].append(dict(base=4,index=-1,scale=1,displacement=0,bytes=4,read=True,write=False))
         # Capstone omits/mislabels x87 floating and integer memory stores.
         # The authenticated mnemonic and its real memory operand own the store.
         if mnemonic in ('fstp', 'fst', 'fistp', 'fist', 'fisttp'):
@@ -122,6 +125,15 @@ def physical_original(image, rows, scratch, *, entries=None, regions=None, trace
         observer_text = observer_text.replace(result_marker,
             'result.back()["returned_extended"]=hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space),10));'
             + result_marker)
+    if capture_boundary_x87:
+        marker='if(c.contains("stop_before_entries"))result.back()["stopped_at"]=std::uint32_t(regs.rip);'
+        if observer_text.count(marker)!=1:raise ValueError('Physical boundary x87 observer anchor drifted')
+        capture=('J boundary_x87=J::array();const auto result_top=(fp.swd>>11u)&7u;'
+                 'for(unsigned lane=0;lane<8;++lane){if(!(fp.ftw&(1u<<((result_top+lane)&7u))))break;'
+                 'boundary_x87.push_back(hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space)+lane*16,10)));}'
+                 'check(boundary_x87.size()==unsigned(std::popcount(unsigned(fp.ftw)&255u)),"Noncontiguous original x87 stack");'
+                 'result.back()["boundary_x87"]=boundary_x87;')
+        observer_text='#include <bit>\n'+observer_text.replace(marker,capture+marker,1)
     private_observer = directory / 'observer.cpp'
     private_observer.write_text(observer_text)
     commands = [

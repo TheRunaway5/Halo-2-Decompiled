@@ -254,7 +254,26 @@ void destroy_body_shape(M& m,std::uint32_t shape,HavokFp& fp) {
     havok_array_release(m,shape,0x50u,0x22u,fp);
     return;
   }
-  if(owner==0x2e6000u) {
+  if(owner==0x1f3690u) {
+    // 306470 releases each listed child shape directly, then frees its owned
+    // 8-byte entry array (class 0x12).
+    w32(m,shape,0x461de0u);
+    for(std::uint32_t index{};s32(index)<s32(r32(m,shape+0x10u));++index) {
+      const auto child=r32(m,r32(m,shape+0xcu)+index*8u);
+      w16(m,child+6u,std::uint16_t(r16(m,child+6u)-1u));
+      if(!r16(m,child+6u))destroy_body_shape(m,child,fp);
+    }
+    if(const auto capacity=r32(m,shape+0x14u);s32(capacity)>=0)
+      havok_array_release(m,r32(m,shape+0xcu),(capacity&0x7fffffffu)*8u,0x12u,fp);
+  } else if(owner==0x1f3770u) {
+    // 1F37A0 releases both retained child shapes (+0x10 then +0x0C) with the
+    // 283450 reserved-reference check.
+    w32(m,shape,0x461e98u);
+    for(const auto field:{0x10u,0xcu}) {
+      const auto child=r32(m,shape+field);
+      if(release_reference(m,child))destroy_body_shape(m,child,fp);
+    }
+  } else if(owner==0x2e6000u) {
     // 2E5CB0's transformed shape keeps the reserved child alive.
     w32(m,shape,0x41c3d0u);
     const auto child=r32(m,shape+0x30u);
@@ -803,8 +822,12 @@ NativeTu15PairConsumerServices pair_services(HavokMemory& m) {
           (*cleanup)(m,receiver,target,scratch.at+0x1a0u,state);
         };
         services.destroy_agent=[invoke](auto agent,auto target,auto& state) {
-          if(target.identity!=0x2f3100u)refuse("320260","contact agent destruction "+hex(target.identity));
-          invoke(agent.identity,target.identity,state);
+          const auto id=target.identity;
+          if(id!=0x31d400u && id!=0x2f3100u && id!=0x2f7a20u && id!=0x323220u &&
+             id!=0x2f82d0u && id!=0x2f6c80u && id!=0x2f0da0u && id!=0x2fbb10u &&
+             id!=0x2f9960u && id!=0x2f7790u)
+            refuse("320260","contact agent destruction "+hex(id));
+          invoke(agent.identity,id,state);
         };
         services.agents.release_manager=[invoke](auto manager,auto target,auto& state) {
           if(target.identity!=0x323220u)refuse("320260","contact manager release "+hex(target.identity));

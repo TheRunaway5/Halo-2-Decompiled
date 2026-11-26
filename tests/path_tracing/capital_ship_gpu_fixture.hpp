@@ -47,8 +47,8 @@ int capital_ship_gpu(const std::filesystem::path& shaders,const std::filesystem:
                 require(error<1.2f,"Capital ship raw/depth/filtered color lost native detail");
             }
         }
-        // Keep actual .4/.8 authored reflection strengths and roughness. A
-        // black albedo, black sky and one light isolate the masked GGX lobe.
+        // A black albedo, black sky and one light isolate the masked GGX
+        // highlight under the capital ship's authored coated hull finish.
         material.diffuse=solid_texture({0,0,0,255});gpu.primary_color({0,0,0,1});
         material.forward_program.words[24]=(authored_mask_word&0xffffffu)|(128u<<24);
         native_uniform(gpu,material);
@@ -73,19 +73,20 @@ int capital_ship_gpu(const std::filesystem::path& shaders,const std::filesystem:
         std::cout<<"Capital ship direct envelope "<<tag.name<<" raw/depth/filtered="
             <<bounded_highlights[0]<<','<<bounded_highlights[1]<<','<<bounded_highlights[2]
             <<" indirect_checksum="<<indirect_checksum<<" indirect_red="<<indirect_red<<'\n';
-        // At this near-normal receiver the actual authored F is .4. The
-        // conservative legacy direct lobe may not amplify a unit source into
-        // an area-normalized white cap (the previous GGX peak was about97).
-        for(const auto value:bounded_highlights)require(value>80.f && value<104.f,
-            "Capital ship direct GGX exceeds its authored highlight envelope");
-        for(const auto value:bounded_peaks)require(value<104u,
-            "Capital ship direct GGX peak exceeds its authored highlight envelope");
+        // The authored .4/.8 angular balance survives the coated metal
+        // ceiling of .52 at grazing. A unit light near face-on then gives
+        // .26 * 255 worth of specular response at the center.
+        for(const auto value:bounded_highlights)require(value>63.f && value<70.f,
+            "Capital ship direct GGX lost its coated hull highlight");
+        for(const auto value:bounded_peaks)require(value<70u,
+            "Capital ship direct GGX peak exceeds its coated hull finish");
         auto colored_sun=unit_sun;colored_sun.color={1,.25f,.0625f};
         auto colored_scene=pt::build_scene(primary,std::span(&material,1),std::span(&colored_sun,1));
         const auto colored_frame=gpu.draw(colored_scene,primary);
         const std::array<float,3> colored_highlight{mean(colored_frame,0,28,36,28,36),
             mean(colored_frame,1,28,36,28,36),mean(colored_frame,2,28,36,28,36)};
-        require(colored_highlight[0]>80.f && std::abs(colored_highlight[1]-colored_highlight[0]*.25f)<1.f &&
+        require(colored_highlight[0]>63.f && colored_highlight[0]<70.f &&
+            std::abs(colored_highlight[1]-colored_highlight[0]*.25f)<1.f &&
             std::abs(colored_highlight[2]-colored_highlight[0]*.0625f)<1.f,
             "Capital ship bounded highlight lost authored light color");
         auto blocked_geometry=primary;quad(blocked_geometry,-1,-1,1,1,-.5f,{0,0,1},0);

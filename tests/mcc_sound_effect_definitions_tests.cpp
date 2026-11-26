@@ -46,6 +46,65 @@ const Definitions::Override& radio_override(const Definitions& bank) {
     const auto& instance=effect.instances[0];check(instance.override_records.size()==1,"radio_3d override root count differs");
     return instance.override_records[0];
 }
+void classic_radio_rows(const std::filesystem::path& maps) {
+    constexpr std::array<unsigned,12> restored_rows{0,2,8,10,11,12,13,14,15,16,17,18};
+    constexpr std::string_view original_spatial_curve=
+        "07000404000000000000803e0000000000000000000000000000803f9a99d93e0000803f8fc2653ffaa4cf3e0000803f00000000"
+        "2373fabf45e6743f000000000000803f000000000000803fabaaaa3e00000000abaa2a3f000000000000803f0000803f00009034"
+        "feff3f40000040c00000803f";
+    for(const auto* filename:{"01b_spacestation.map","04a_gasgiant.map","05a_deltaapproach.map","lockout.map"}) {
+        auto cache=std::make_shared<Cache>(maps/filename,maps);
+        const Definitions bank(cache);
+        const auto* globals=cache->query_tag({.group=TagGroup{"sfx+"},.name="sound\\global_fx",.require_address=true});
+        check(globals,"Expected the resident global radio definition");
+        const auto& source=bank.collection(globals->handle());
+        check(!bank.classic_radio_effect(TagHandle{globals->datum^0x00010000u},0) &&
+            !bank.classic_radio_effect(globals->handle(),1),"Classic recovery admitted a foreign handle or unrelated row");
+        for(const auto row:restored_rows) {
+            const auto classic=bank.classic_radio_effect(globals->handle(),row);
+            if(!classic)throw std::runtime_error(std::string(filename)+" failed to authenticate Classic row "+std::to_string(row));
+            const bool spatial=row==2 || row==10;
+            check(classic->flags==unsigned(spatial) && classic->companion.flags==0 &&
+                classic->companion.gain_bits==(spatial?0u:0xc0400000u),"Classic radio flags or companion gain differ");
+            const auto* loop=cache->find_tag(classic->companion.loop,tag_groups::sound_looping);
+            check(loop && loop->address,"Classic radio companion lost its exact salted resident definition");
+            if(row==0 || row==2)check(loop->name.ends_with("radio_static\\radio_static"),"Human radio bound the wrong original companion");
+            if(row==8 || row==10)check(loop->name.ends_with("covy_radio\\covy_radio"),"Covenant radio bound the wrong original companion");
+            const auto& filter=classic->filter;
+            check(filter[0]==2 && filter[1]==unsigned(!spatial) && filter[2]==(spatial?0x45fa0000u:0x44960000u) &&
+                filter[3]==(spatial?0x44af0000u:0x44960000u) && filter[10]==0x43160000u && filter[11]==0x43160000u &&
+                filter[14]==(spatial?0u:0xc2800000u) && filter[15]==0xc2800000u,
+                "Classic playback filter lost its original parameters");
+            check(classic->mono_template==source.effects[11].instances[0].effect_template.handle,
+                "Classic mono output lost its exact compatible resident template");
+            if(spatial) {
+                const auto* mono=classic->mono_override;
+                check(!classic->mono_instance && mono && mono->component_mask==1 && mono->parameter_mask==0x71 &&
+                    mono->constants==std::array{0x42a00000u,0xc1f00000u,0x3f000000u} &&
+                    mono->sources==std::array<std::uint8_t,4>{1,0,2,4} && mono->function.input==3 &&
+                    mono->function.range_input==0 && mono->function.time_period_bits==0x3f800000 &&
+                    hex(std::as_bytes(std::span(mono->function.curve_words)))==original_spatial_curve,
+                    "Classic spatial curve or its original override context differs");
+            }else {
+                const auto& prototype=source.effects[row>=17?row:11].instances[0];
+                check(!classic->mono_override && classic->mono_instance==&prototype,
+                    "Classic static mono profile lost its original-compatible resident instance");
+            }
+        }
+        check(source.effects[0].instances.empty() && source.effects[8].instances.empty() && source.effects[10].instances.empty() &&
+            source.effects[2].instances[0].loop_components[0].gain_bits==0x41400000u &&
+            Bytes(source.effects[11].filters[0].bytes).u32(0xc)==0x44480000u,
+            "Classic recovery changed the raw MCC definition");
+        const auto extent=source.effects[0].filters[0].bytes;
+        auto* bytes=const_cast<std::byte*>(extent.data());
+        const auto before=bytes[0];
+        bytes[0]^=std::byte{1};
+        const auto recovered=bank.classic_radio_effect(globals->handle(),0);
+        bytes[0]=before;
+        check(!recovered && bank.classic_radio_effect(globals->handle(),0),"Classic recovery accepted a modified raw filter");
+        std::cout<<"PASS "<<filename<<" retained all twelve authenticated Classic radio profiles\n";
+    }
+}
 void owned(const Definitions::Extent& raw,const Cache* owner) {
     check(raw.cache_owner.get()==owner&&!raw.bytes.empty(),"Nested extent lost its exact retained resolving cache");
     check(std::ranges::equal(raw.bytes,owner->read_tag_bytes(raw.source_address,raw.bytes.size())),"Nested extent differs from its actual cache backing");
@@ -90,6 +149,10 @@ Json nested_fields(const Definitions& bank,const Cache* owner,const char* map) {
 }
 }
 int main(int argc,char** argv)try {
+    if(argc==3 && std::string_view(argv[1])=="--classic-radio") {
+        classic_radio_rows(argv[2]);
+        return 0;
+    }
     if(argc!=4)throw std::runtime_error("Expected cache root, independent inventory and output report");
     if(!std::filesystem::is_regular_file(argv[2])||!std::filesystem::is_directory(std::filesystem::path(argv[1])/"halo2/h2_maps_win64_dx11")) {
         std::cerr<<"MCC audio definitions need an imported cache and independent inventory\n";return 77;

@@ -6,6 +6,24 @@ if(BUILD_TESTING)
     add_executable(native_weapon_effect_frame_tu15_tests tests/native_weapon_effect_frame_tu15_tests.cpp)
     target_include_directories(native_weapon_effect_frame_tu15_tests PRIVATE tests)
     target_link_libraries(native_weapon_effect_frame_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_executable(native_weapon_effect_systems_kernel_tu15_tests tests/native_weapon_effect_frame_tu15_tests.cpp)
+    target_include_directories(native_weapon_effect_systems_kernel_tu15_tests PRIVATE include tests)
+    target_compile_definitions(native_weapon_effect_systems_kernel_tu15_tests PRIVATE HALO2_NATIVE_EFFECT_SYSTEMS_DIRECT_ONLY)
+    target_link_libraries(native_weapon_effect_systems_kernel_tu15_tests PRIVATE
+        halo2_native_weapon_effect_dispatch_tu15 nlohmann_json::nlohmann_json halo2_glm)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(native_weapon_effect_systems_kernel_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+    endif()
+    add_test(NAME native_weapon_effect_systems_kernel_tu15 COMMAND "${Python3_EXECUTABLE}"
+        "${PROJECT_SOURCE_DIR}/tools/test_native_weapon_compressed_reference.py"
+        --probe "$<TARGET_FILE:native_weapon_effect_systems_kernel_tu15_tests>"
+        --fixture "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_effect_systems_tu15_original.json.gz" direct)
+    add_test(NAME native_weapon_particle_frame_kernel_tu15 COMMAND "${Python3_EXECUTABLE}"
+        "${PROJECT_SOURCE_DIR}/tools/test_native_weapon_compressed_reference.py"
+        --probe "$<TARGET_FILE:native_weapon_effect_systems_kernel_tu15_tests>"
+        --fixture "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_particle_frame_tu15_original.json.gz" direct)
+    set_tests_properties(native_weapon_effect_systems_kernel_tu15 native_weapon_particle_frame_kernel_tu15 PROPERTIES TIMEOUT 180)
     foreach(route direct frame light ai combat)
         set(frame_test_name native_weapon_effect_frame_${route}_tu15)
         if(route STREQUAL "light" OR route STREQUAL "ai" OR route STREQUAL "combat")
@@ -377,6 +395,8 @@ if(BUILD_TESTING)
     target_link_libraries(native_weapon_effect_location_strict_tu15_tests PRIVATE nlohmann_json::nlohmann_json halo2_glm halo2_native_weapon_effect_dispatch_tu15)
     add_test(NAME native_weapon_effect_location_strict_tu15 COMMAND native_weapon_effect_location_strict_tu15_tests
         "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_effect_location_strict_tu15_original.json")
+    add_test(NAME native_weapon_effect_origin_tu15 COMMAND native_weapon_effect_location_strict_tu15_tests
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_effect_location_strict_tu15_original.json" --quiet-origin)
     add_test(NAME native_weapon_effect_direction_strict_tu15 COMMAND native_weapon_effect_location_strict_tu15_tests
         "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_effect_direction_strict_tu15_original.json")
     add_executable(native_weapon_effect_datum_allocate_tu15_tests tests/native_weapon_effect_datum_allocate_tu15_tests.cpp
@@ -580,6 +600,7 @@ if(BUILD_TESTING)
         native_weapon_effect_advance_tu15_tests
         native_weapon_effect_advance_callers_tu15_tests
         native_weapon_effect_next_event_tu15_tests
+        native_weapon_effect_systems_kernel_tu15_tests
         native_weapon_effect_next_event_callers_tu15_tests
         native_weapon_effect_frame_tu15_tests
         native_private_particle_phase_tu15_tests

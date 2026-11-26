@@ -75,7 +75,7 @@ void main() {
     float inverse=1.0/float(samples);
     traceLightingStore(cell,record,diffuseLight*inverse,specularLight*inverse,currentDirect*inverse,
                        currentDirectSpecular*inverse,incident*inverse,position,normal,geometric,incoming,materialIndex,
-                       material.response.x,pixelFootprint,viewDependent);
+                       material.response.x,pixelFootprint,viewDependent,primaryCachedStatic && traceUnbakedEmitterCount()>0u);
     // Calibration samples (calibrate.comp): on a rotating quarter of the
     // world's static lightmapped cells, record the traced sun irradiance and
     // the baked lightmap irradiance (both luminance, packed in lane 14) and

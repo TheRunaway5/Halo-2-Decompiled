@@ -10,11 +10,8 @@ template<class State,class Before,class Dispatch>class LeafFrame:public IntegerF
     using Read=native_mopp_ray_leaf_detail::Read;using Write=native_mopp_ray_leaf_detail::Write;
     native_raw_x87_detail::Scope<State>&scope_;Dispatch&dispatch_;
     void call(std::uint32_t pc,std::uint32_t target_address,std::uint32_t returned){
-        at(pc);const auto target=word(target_address);push_positioned(pc,returned);
+        at(pc);const auto target=word(target_address);push(pc,returned,true);
         scope_.child([&]{dispatch_(s_,target,pc);});
-    }
-    void push_positioned(std::uint32_t pc,std::uint32_t value){
-        const auto address=s_.gp[4]-4u;Base::store(pc,address,value,[&]{s_.gp[4]=address;},true);
     }
     bool response(std::uint32_t pc){at(pc);const auto value=word(s_.gp[0],1);s_.flags.minus(value,0u,1);return value!=0u;}
 public:

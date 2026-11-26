@@ -5,7 +5,8 @@
 namespace halo2::path_tracing {
 enum class SurfaceFamily : std::uint32_t {None=0,TerrainBlend=1,LeafDetail=2,LeafDetailPerVertex=3,
     BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5,OpaqueDetail=6,TerrainBlendThreeStage=7,
-    TextureDetail=8,TextureTwoChangeColor=9,TextureFourChangeColor=10,DynamicDetail=11};
+    TextureDetail=8,TextureTwoChangeColor=9,TextureFourChangeColor=10,DynamicDetail=11,
+    DynamicOneChangeColor=12,TextureHonorGuard=13};
 inline constexpr std::uint32_t surface_flag=64u,surface_magic=0x53525448u,surface_record_words=52u;
 // Primary-surface detail flags (GpuMaterial::texture[3]); see world.frag.
 inline constexpr std::uint32_t surface_detail_stage1_flag=8192u,surface_bump_stage2_flag=16384u,
@@ -20,10 +21,18 @@ inline constexpr std::uint32_t uniform_emission_flag=262144u;
 inline constexpr std::uint32_t baked_emission_flag=524288u;
 // The authored environment reflection is masked by the base map's alpha.
 inline constexpr std::uint32_t environment_mask_flag=1048576u;
+// The authored cube record also carries its next coarser source mip.
+inline constexpr std::uint32_t environment_mip_flag=2097152u;
+// Qualified character and prop reflections can resolve nearby scene geometry.
+inline constexpr std::uint32_t nearby_scene_reflection_flag=4194304u;
+inline constexpr std::uint32_t chamber_baked_reflection_flag=8388608u;
+// The combined Master Chief visor keeps its source cube dominant over nearby hits.
+inline constexpr std::uint32_t visor_scene_reflection_flag=33554432u;
 struct SurfaceSource {
     SurfaceFamily family=SurfaceFamily::None;
     UnlitUv uv;
     std::uint32_t stages{};
+    bool default_object_ambient{};
 };
 namespace surface_detail {
 inline constexpr std::array<std::uint32_t,60> terrain{
@@ -88,6 +97,47 @@ inline constexpr std::array<std::uint32_t,60> dynamic_detail{
     0x0a010b02,0x1c013c02,0x05010809,0x1a010000,0x0c080a08,0x051d0000,0,0,0,
     0x000030cd,0x000030ab,0x00000c00,0x00000500,0x00010058,0x000000a0,0x00010c00,
     0x00010050,0x00011108,0x00018421,0,0,0,0,0};
+// This opaque body forwards vertex alpha at stage 5 instead of squaring the
+// previous alpha. Its diffuse RGB, ambient transfer and final alpha match
+// dynamic_detail, including in the shiny material pass.
+inline constexpr auto dynamic_detail_vertex_alpha=[] {
+    auto words=dynamic_detail;words[5]=0x14200000;return words;
+}();
+// Implementation 3 uses the same UV vertex body with fixed default lighting.
+// It adds twice C0.rgb (word 14) to the lighting multiplier after the
+// clamped 2*T0*T1 albedo stage. Its alpha still depends on the removed light.
+inline constexpr std::array<std::uint32_t,60> default_object_detail{
+    0,0,0,0x18190000,0x0d180000,0,0,0,0x0000000c,0x00001480,
+    0,0x00807d78,0,0,0x00101010,0,0,0,0,0x005f5a55,0xc0000000,0,0,0,0,0,
+    0,0,0,0x00000080,0x00010040,0,0,0,
+    0x4a4b4a45,0x0c010d02,0x0c120000,0x08090000,0x0c080108,0,0,0,0,0,0,
+    0x000030cd,0x00000c00,0x000020d0,0x00010080,0x00010c00,0,0,0,
+    0x00011105,0x00018421,0,0,0,0,0};
+// Exact live and default bodies for the Grunt and Jackal one-change-color
+// materials. T1 RGB selects the authored tint per channel. Unlike ordinary
+// DynamicDetail, T1 is a mask here and never doubles the diffuse RGB.
+inline constexpr std::string_view one_change_color_pass="shaders\\shader_passes\\lightmap\\lightmap_tex_one_change_color";
+inline constexpr std::array<std::uint32_t,60> dynamic_one_change_color{
+    0x4a201120,0x0c206a20,0xcacc80cd,0x1d1d0000,0x14145920,0x1d1d5920,0x1d181218,0,0x390f000c,0x01051480,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x000000ab,0x000000c9,0x00010d00,0x00000040,
+    0x000000d9,0x000100d9,0x000100d4,0,0x4a444b44,0x4a4b4a45,0x0a010b02,0x1c013c02,0x29200901,0x1a020809,
+    0x0c080a08,0x051d0000,0,0,0,0x000030cd,0x000030ab,0x00000c00,0x00000500,0x00000900,
+    0x000000a8,0x00010c00,0x00010050,0x00011108,0x00018421,0,0,0,0,0};
+inline constexpr std::array<std::uint32_t,60> default_one_change_color{
+    0,0,0,0,0,0x0d180000,0,0,0x0000000c,0x00001480,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0x00010040,0,0,0x4a4b4a45,0x0c010d02,0x0c120000,0x29200901,0x08090000,0x0c080108,
+    0,0,0,0,0,0x000030cd,0x00000c00,0x000020d0,0x00000900,0x00000080,
+    0x00010c00,0,0,0x00011106,0x00018421,0,0,0,0,0};
+// The honor guard stencil pass writes base times detail, then subtracts the
+// darkening from the illumination and armor-detail maps. Only C0.a of
+// combiner stage 1 controls the darkening. Output alpha stays T0.a*T1.a.
+inline constexpr std::array<std::uint32_t,60> texture_honor_guard{
+    0x18190000,0,0,0,0,0,0,0,0x0000000c,0x00001c80,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x000000c0,0,0,0,
+    0,0,0,0,0x08090000,0x0b110000,0x0a0b0000,0x0c2d0000,0,0,
+    0,0,0,0,0,0x000100c0,0x000000b0,0x000000d0,0x000000c0,0,
+    0,0,0,0x00011104,0x00008421,0,0,0,0,0};
 // The three-stage detail_blend_texture source blends T1/T2 with T0.a, then
 // multiplies T0.rgb. This body has no fourth detail/color stage.
 inline constexpr std::array<std::uint32_t,60> terrain_three_stage{
@@ -101,6 +151,23 @@ inline bool controls(const PixelProgram& program,const std::array<std::uint32_t,
         if(program.words[n]!=expected[n])return false;
     }
     return true;
+}
+inline bool uses_destination_alpha(const Material& material) {
+    const auto dependent=[](const std::shared_ptr<Material>& pass) {
+        return pass && pass->forward_blend>=6 && pass->forward_blend<=8;
+    };
+    return dependent(material.environment_pass) || dependent(material.planar_fog_pass) ||
+        std::ranges::any_of(material.world_overlays_before,dependent) ||
+        std::ranges::any_of(material.world_overlays_after,dependent) ||
+        std::ranges::any_of(material.world_bloom_passes,dependent) ||
+        std::ranges::any_of(material.world_planar_passes,dependent);
+}
+inline bool has_default_object_tint(const MaterialPass& pass) {
+    if(pass.pixel_externs.size()!=1)return false;
+    const auto& tint=pass.pixel_externs.front();
+    // Native default one-change-color maps object primary RGB to C0 of
+    // stage 3. It retains this color extern without any live lighting externs.
+    return tint.destination==192 && tint.component==4 && tint.source==3;
 }
 inline std::array<std::uint32_t,60> texture_controls(unsigned stages) {
     std::array<std::uint32_t,60> w{};
@@ -137,9 +204,11 @@ inline std::array<std::uint32_t,4> surface_constants(const std::array<std::uint3
     // Keep its resident record and image key invariant under color animation.
     if(family==SurfaceFamily::OpaqueDetail)return {};
     if(family==SurfaceFamily::DynamicDetail)return {w[24],0,0,0};
+    if(family==SurfaceFamily::DynamicOneChangeColor)return {w[(w[53]&255u)==6u?13u:14u],0,0,0};
     if(family==SurfaceFamily::TextureDetail)return {w[43],0,0,0};
     if(family==SurfaceFamily::TextureTwoChangeColor)return {w[11],w[12],0,0};
     if(family==SurfaceFamily::TextureFourChangeColor)return {w[11],w[12],w[13],w[14]};
+    if(family==SurfaceFamily::TextureHonorGuard)return {w[11]&0xff000000u,0,0,0};
     if(family==SurfaceFamily::BumpLeafCoverage)return {w[13],w[22],w[43],w[44]};
     if(family==SurfaceFamily::BumpLeafCoveragePerVertex)return {w[15],w[17],w[43],w[44]};
     return {w[13],w[21],w[43],w[44]};
@@ -151,6 +220,13 @@ inline std::optional<SurfaceSource> qualified_surface(const Material& material) 
     if(!material.forward_pass || material.forward_blend || material.forward_pass_index>=material.passes.size())return {};
     const auto uv=qualified_unlit_uv(material);if(!uv)return {};
     const auto& pass=material.passes[material.forward_pass_index];SurfaceSource out;out.uv=*uv;
+    constexpr std::string_view dynamic_detail_pass="shaders\\shader_passes\\lightmap\\lightmap_tex_detail";
+    constexpr std::string_view dynamic_shiny_pass="shaders\\shader_passes\\lightmap\\lightmap_tex_detail_shiny";
+    const auto fixed_lighting=[&] {
+        return pass.implementation==3 && !material.forward_raster.alpha_test && !material.accumulation_texture &&
+            pass.vertex_externs.empty() && pass.state_externs.empty() &&
+            !surface_detail::uses_destination_alpha(material);
+    };
     const auto texture_family=[&](std::string_view name,unsigned stages) {
         constexpr std::string_view prefix="shaders\\shader_passes\\texture_mapping\\";
         std::string_view path=pass.name;
@@ -169,11 +245,35 @@ inline std::optional<SurfaceSource> qualified_surface(const Material& material) 
         out.family=SurfaceFamily::TextureTwoChangeColor;out.stages=11;
     } else if(texture_family("default_texture_four_change_color",7)) {
         out.family=SurfaceFamily::TextureFourChangeColor;out.stages=11;
+    } else if(uv->family==UnlitUvFamily::Texture && !material.forward_raster.alpha_test &&
+              pass.name=="shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_honor_guard" &&
+              surface_detail::controls(material.forward_program,surface_detail::texture_honor_guard)) {
+        if(pass.textures.size()!=4)return {};
+        for(unsigned stage=0;stage<4;++stage) {
+            const auto& binding=pass.textures[stage];
+            if(binding.stage!=stage || binding.parameter!=stage || binding.external)return {};
+        }
+        out.family=SurfaceFamily::TextureHonorGuard;out.stages=15;
     } else if(qualified_opaque_detail(material)) {
         out.family=SurfaceFamily::OpaqueDetail;out.stages=3;
     } else if(uv->family==UnlitUvFamily::DynamicDetail &&
-        pass.name=="shaders\\shader_passes\\lightmap\\lightmap_tex_detail" &&
-        surface_detail::controls(material.forward_program,surface_detail::dynamic_detail)) {
+        (pass.name==dynamic_detail_pass || pass.name==dynamic_shiny_pass) && fixed_lighting() && pass.pixel_externs.empty() &&
+        surface_detail::controls(material.forward_program,surface_detail::default_object_detail)) {
+        out.family=SurfaceFamily::OpaqueDetail;out.stages=3;out.default_object_ambient=true;
+    } else if(uv->family==UnlitUvFamily::DynamicDetail && pass.name==surface_detail::one_change_color_pass &&
+        !material.forward_raster.alpha_test && !material.accumulation_texture &&
+        ((pass.implementation==2 && !surface_detail::uses_destination_alpha(material) &&
+          surface_detail::controls(material.forward_program,surface_detail::dynamic_one_change_color)) ||
+         (fixed_lighting() && surface_detail::has_default_object_tint(pass) &&
+          surface_detail::controls(material.forward_program,surface_detail::default_one_change_color)))) {
+        out.family=SurfaceFamily::DynamicOneChangeColor;out.stages=3;
+        out.default_object_ambient=pass.implementation==3;
+    } else if(uv->family==UnlitUvFamily::DynamicDetail &&
+        (((pass.name==dynamic_detail_pass || (pass.name==dynamic_shiny_pass && !material.forward_raster.alpha_test)) &&
+          surface_detail::controls(material.forward_program,surface_detail::dynamic_detail)) ||
+         (!material.forward_raster.alpha_test &&
+          (pass.name==dynamic_detail_pass || pass.name==dynamic_shiny_pass) &&
+          surface_detail::controls(material.forward_program,surface_detail::dynamic_detail_vertex_alpha)))) {
         out.family=SurfaceFamily::DynamicDetail;out.stages=3;
     } else if(uv->family==UnlitUvFamily::Texture &&
        (pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite" ||
@@ -256,6 +356,14 @@ inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uin
             result[c]=sat(base*tint);
         }
         result[3]=sat(std::max(samples[0][3],0.f)*std::max(samples[1][3],0.f));
+    } else if(family==SurfaceFamily::TextureHonorGuard) {
+        const auto weight=surface_detail::argb(colors[0])[3];
+        for(unsigned c=0;c<3;++c) {
+            const float base=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
+            const float darkening=sat(std::max(samples[2][c],0.f)*sat(std::max(samples[3][c],0.f)*weight));
+            result[c]=base*(1.f-darkening);
+        }
+        result[3]=sat(std::max(samples[0][3],0.f)*std::max(samples[1][3],0.f));
     } else if(family==SurfaceFamily::TerrainBlend || family==SurfaceFamily::TerrainBlendThreeStage) {
         const auto gain=surface_detail::argb(colors[2]),bias=surface_detail::argb(colors[3]);
         const float mask=sat(samples[0][3]);
@@ -276,6 +384,10 @@ inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uin
     } else if(family==SurfaceFamily::DynamicDetail) {
         for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
         result[3]=sat(2.f*surface_detail::argb(colors[0])[3]*std::max(samples[0][3],0.f)*std::max(samples[1][3],0.f));
+    } else if(family==SurfaceFamily::DynamicOneChangeColor) {
+        const auto tint=surface_detail::argb(colors[0]);
+        for(unsigned c=0;c<3;++c)result[c]=sat(samples[0][c]*std::lerp(1.f,tint[c],sat(samples[1][c])));
+        result[3]=sat(samples[0][3]);
     } else if(family==SurfaceFamily::OpaqueDetail) {
         for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
         // This family has no raster alpha test or blending. Retain the

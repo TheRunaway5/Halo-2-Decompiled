@@ -72,6 +72,11 @@ struct SourceBspEffectLights::Impl {
     using MaterialKey=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
     struct Slot {unsigned material;Material authored;MenuWorldSourcePass pass;};
     std::map<MaterialKey,Slot> slots;
+    std::set<std::pair<std::uint32_t,std::uint32_t>> preloaded_bsp_shader_lights;
+    std::vector<std::uint32_t> resident_model_ids;
+    std::vector<std::uint32_t> light_id_list;
+    bool raster_models_loaded{};
+    bool raster_materials_loaded{};
     std::map<std::uint32_t,EffectLightDefinition> lights;
     std::optional<SourceLiveShadowStorageTu15> shadow_storage;
     std::weak_ptr<const void> shadow_world;
@@ -91,14 +96,32 @@ struct SourceBspEffectLights::Impl {
     static constexpr std::uint32_t main_arena_token=0x71000000,
         light_arena_token=0x71001000,instance_token=0x71002000;
 
-    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids,
-        std::shared_ptr<pstencil::SharedLightMaterials> shared)
-      :cache(c),mesh_owner(mesh),pstencil_materials(c,mesh),model_materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
-       bsp_index(index),bsp(c.load_source_bsp_admission(index)),
-       store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
-       clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
-       transforms(bsp.instances.size()),palettes(bsp.instances.size()),
-       cluster_commands(clusters.size()),definition_commands(definitions.size()),main_frustum(c,"multiplayer") {
+    bool register_lights(std::span<const std::uint32_t> ids) {
+        bool added=false;
+        for(auto id:ids)if(!lights.contains(id)) {
+            lights.emplace(id,load_completed_effect_light(cache,id));
+            light_id_list.push_back(id);
+            added=true;
+        }
+        return added;
+    }
+    void load_bsp_data(std::size_t index) {
+        bsp_index=index;
+        bsp=cache.load_source_bsp_admission(index);
+        clusters.assign(bsp.clusters.size(),{});
+        definitions.assign(bsp.definitions.size(),{});
+        instances.assign(bsp.instances.size(),{});
+        transforms.assign(bsp.instances.size(),{});
+        palettes.assign(bsp.instances.size(),{});
+        cluster_commands.assign(clusters.size(),{});
+        definition_commands.assign(definitions.size(),{});
+        instance_definitions.clear();
+        instance_definitions.reserve(instances.size());
+        sections.clear();
+        materials.clear();
+        lightmap_matches=false;
+        shadow_storage.reset();
+        pstencil_casters.reset();
         const auto owned=cache.load_source_bsp_metadata(index);
         const Bytes root(owned.bytes_at(owned.source_address(),owned.size()));
         const auto read=[&](auto p,auto n){return Bytes(owned.bytes_at(p,n));};
@@ -141,35 +164,58 @@ struct SourceBspEffectLights::Impl {
         for(unsigned i=0;i<count;++i) {
             const auto m=read(start+i*32,32);materials.push_back({m.u32(12),std::to_integer<std::uint8_t>(m.slice(28,1)[0])});
         }
+        for(const auto& material:materials)if(material.shader!=0xffffffffu)shader_for(material.shader);
+    }
+    void preload_bsp_raster_materials(Mesh& mesh) {
+        std::set<std::uint32_t> bsp_shaders;
+        for(const auto& material:materials)if(material.shader!=0xffffffffu)bsp_shaders.insert(material.shader);
+        for(const auto shader_id:bsp_shaders) {
+            std::vector<std::pair<std::uint32_t,const EffectLightDefinition*>> missing;
+            for(const auto& [id,definition]:lights)
+                if(!preloaded_bsp_shader_lights.contains({id,shader_id}))missing.emplace_back(id,&definition);
+            if(missing.empty())continue;
+            const auto& shader=shader_for(shader_id);
+            auto authored=cache.load_material(shader_id);
+            for(unsigned lod=0;lod<shader.layers.size();++lod) {
+                authored.selected_shader_lod=lod;
+                for(const auto& [id,definition]:missing)try {
+                    EffectLightState state;state.size=1;state.brightness=1;
+                    const auto uniforms=source_effect_light_view_uniforms(*definition,state,{},{1,0,0},{0,0,1},{1,1,1,1,1},1,{});
+                    auto prepared=prepare_effect_light_diffuse_material(cache,authored,*definition,uniforms);
+                    for(unsigned pass=0;pass<prepared.size();++pass) {
+                        const auto slot=unsigned(mesh.materials.size());mesh.materials.push_back(std::move(prepared[pass]));
+                        slots.emplace(MaterialKey{id,shader_id,lod,pass},Slot{slot,authored,load_menu_world_source_pass(cache,shader_id,{lod,12,pass,1})});
+                    }
+                }catch(const FormatError& e){unavailable.push_back(std::to_string(id)+"/"+std::to_string(shader_id)+": "+e.what());}
+                for(const auto& [id,definition]:missing)try {pstencil_materials.preload(authored,id,*definition);}
+                catch(const FormatError& e){unavailable.push_back("pStencil "+std::to_string(id)+"/"+authored.name+": "+e.what());}
+            }
+            for(const auto& [id,definition]:missing)preloaded_bsp_shader_lights.emplace(id,shader_id);
+        }
+    }
+    void preload_model_raster_materials(Mesh& mesh,bool force_rebuild=false) {
+        if(raster_models_loaded && !force_rebuild)return;
+        for(auto& [key,section]:models) {
+            if(section.draw && !force_rebuild)continue;
+            section.draw=std::make_unique<SourceModelEffectLights>(cache,mesh,key.first,key.second,light_id_list,model_materials);
+            for(const auto& gap:section.draw->unavailable())unavailable.push_back(gap);
+        }
+        raster_models_loaded=true;
+    }
+
+    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids,
+        std::shared_ptr<pstencil::SharedLightMaterials> shared,bool preload_raster)
+      :cache(c),mesh_owner(mesh),pstencil_materials(c,mesh),model_materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
+       bsp_index(index),bsp(c.load_source_bsp_admission(index)),
+       store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
+       main_frustum(c,"multiplayer") {
         // Literal3B8A0 capacities; each retained24-byte record is owned here.
         for(unsigned i=0;i<3;++i) {const unsigned capacity=std::array{0xa00u,0x400u,0x200u}[i];
             commands.banks[i].header[0]=capacity;commands.banks[i].storage.resize(capacity);}
-        for(auto id:ids)lights.emplace(id,load_completed_effect_light(cache,id));
-        for(const auto& material:materials)if(material.shader!=0xffffffffu && !shaders.contains(material.shader)) {
-            const auto& shad=metadata.definition(material.shader);
-            const auto sr=Bytes(metadata.read(shad.source_address(),0x40));
-            const auto stem=Bytes(metadata.read(sr.u32(0x24),4)).u32(0);
-            const auto& st=metadata.definition(stem);
-            const auto post=Bytes(metadata.read(Bytes(metadata.read(st.source_address(),0x60)).u32(0x5c),8));
-            auto& shader=shaders[material.shader];shader.lod=cache.load_source_shader_lod_definition(material.shader);
-            auto authored=cache.load_material(material.shader);
-            for(unsigned lod=0;lod<post.u32(0);++lod) {
-                const auto lr=Bytes(metadata.read(post.u32(4)+lod*10,10));shader.layers.push_back(lr.u32(2));
-                authored.selected_shader_lod=lod;
-                for(const auto& [id,definition]:lights)try {
-                    EffectLightState state;state.size=1;state.brightness=1;
-                    const auto uniforms=source_effect_light_view_uniforms(definition,state,{}, {1,0,0},{0,0,1},{1,1,1,1,1},1,{});
-                    auto prepared=prepare_effect_light_diffuse_material(cache,authored,definition,uniforms);
-                    for(unsigned pass=0;pass<prepared.size();++pass) {
-                        const auto slot=unsigned(mesh.materials.size());mesh.materials.push_back(std::move(prepared[pass]));
-                        slots.emplace(MaterialKey{id,material.shader,lod,pass},Slot{slot,authored,load_menu_world_source_pass(cache,material.shader,{lod,12,pass,1})});
-                    }
-                }catch(const FormatError& e){unavailable.push_back(std::to_string(id)+"/"+std::to_string(material.shader)+": "+e.what());}
-                for(const auto& [id,definition]:lights)try {pstencil_materials.preload(authored,id,definition);}
-                catch(const FormatError& e){unavailable.push_back("pStencil "+std::to_string(id)+"/"+authored.name+": "+e.what());}
-            }
-        }
-        for(auto model:model_ids) {
+        register_lights(ids);
+        load_bsp_data(index);
+        resident_model_ids.assign(model_ids.begin(),model_ids.end());
+        for(auto model:resident_model_ids) {
             const auto tag=cache.load_source_tag_metadata(model);
             const Bytes root(tag.bytes_at(tag.source_address(),0x68));
             for(unsigned n=0;n<root.u32(0x60);++n) {
@@ -181,10 +227,13 @@ struct SourceBspEffectLights::Impl {
                 if(!row.u16(4) || models.contains({model,section}))continue;
                 ModelSection value;value.ranges=load_source_model_range_geometry(cache,model,section);
                 value.metadata=load_source_opaque_model_geometry_metadata(cache,model,section);
-                value.draw=std::make_unique<SourceModelEffectLights>(cache,mesh,model,section,ids,model_materials);
-                for(const auto& gap:value.draw->unavailable())unavailable.push_back(gap);
                 models.emplace(ModelKey{model,section},std::move(value));
             }
+        }
+        if(preload_raster) {
+            preload_bsp_raster_materials(mesh);
+            preload_model_raster_materials(mesh);
+            raster_materials_loaded=true;
         }
     }
     const ModelSection& model(const SourceCullDrawUnit& unit)const {
@@ -576,12 +625,32 @@ struct SourceBspEffectLights::Impl {
 };
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models)
-    :SourceBspEffectLights(c,mesh,bsp,ids,models,{}){}
+    :SourceBspEffectLights(c,mesh,bsp,ids,models,{},true){}
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models,
-    std::shared_ptr<pstencil::SharedLightMaterials> shared)
-    :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models,std::move(shared))){}
+    std::shared_ptr<pstencil::SharedLightMaterials> shared,bool preload_raster_materials)
+    :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models,std::move(shared),preload_raster_materials)){}
 SourceBspEffectLights::~SourceBspEffectLights()=default;
+void SourceBspEffectLights::switch_bsp(Mesh& mesh,std::size_t bsp,std::span<const std::uint32_t> light_definitions,
+    bool preload_raster_materials) {
+    auto& i=*impl_;
+    const bool added_lights=i.register_lights(light_definitions);
+    i.load_bsp_data(bsp);
+    if(preload_raster_materials) {
+        i.preload_bsp_raster_materials(mesh);
+        i.preload_model_raster_materials(mesh,added_lights);
+        i.raster_materials_loaded=true;
+    } else {
+        i.raster_materials_loaded=false;
+    }
+}
+void SourceBspEffectLights::ensure_raster_materials(Mesh& mesh) {
+    auto& i=*impl_;
+    i.preload_bsp_raster_materials(mesh);
+    i.preload_model_raster_materials(mesh);
+    i.raster_materials_loaded=true;
+}
+bool SourceBspEffectLights::raster_materials_preloaded()const noexcept {return impl_->raster_materials_loaded;}
 const std::vector<std::string>& SourceBspEffectLights::unavailable() const{return impl_->unavailable;}
 std::size_t SourceBspEffectLights::resident_model_sections()const noexcept {return impl_->models.size();}
 bool SourceBspEffectLights::resident_model_section(std::uint32_t model,unsigned section)const noexcept {
@@ -898,6 +967,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         }
         i.light_arena=i.units.arena;
         if(!materialize_draws)continue;
+        if(!i.raster_materials_loaded)throw FormatError("SourceBspEffectLights requires preloaded raster materials");
         const auto& commands=i.commands.banks[1];
         const auto selected=std::span(i.opaque).first(result.opaque_count);
         // Bind the actual raw source inputs before accepting1CAA0's range

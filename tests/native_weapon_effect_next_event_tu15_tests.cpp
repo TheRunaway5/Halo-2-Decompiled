@@ -3,6 +3,7 @@
 #ifdef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
 #include "halo2/death_cycle_runtime_tu15.hpp"
 #endif
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -35,6 +36,113 @@ void check_abi(const SourcePhysicsWorldRuntimeAbi &a,const Json &expected,std::u
 void check_stack(const SourcePhysicsContactMemory &m,const Json &raw) {
     const auto expected=unhex(raw);std::vector<std::byte> actual(expected.size());m.read(stack-64,actual);need(actual==expected,"Different original live/dead stack");
 }
+#ifndef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
+struct InjectedAccessStop {};
+
+class FrontierMemory final : public SourcePhysicsContactMemory {
+    sound_test::Memory &backing;
+    unsigned stop;
+    std::function<void()> completed;
+    mutable unsigned accesses{};
+
+    void begin_access() const {
+        if (++accesses == stop) throw InjectedAccessStop{};
+    }
+
+public:
+    FrontierMemory(sound_test::Memory &backing, unsigned stop, std::function<void()> complete)
+        : backing(backing), stop(stop), completed(std::move(complete)) {}
+
+    void read(std::uint32_t address,std::span<std::byte> bytes) const override {
+        begin_access();
+        backing.read(address,bytes);
+        if (completed) completed();
+    }
+
+    void write(std::uint32_t address,std::span<const std::byte> bytes) override {
+        begin_access();
+        backing.write(address,bytes);
+        if (completed) completed();
+    }
+};
+
+void check_memory(const sound_test::Memory &actual,const sound_test::Memory &expected) {
+    need(actual.pages.size()==expected.pages.size(),"Different next-event memory extent");
+    for (const auto &[page,bytes]:actual.pages)
+        need(*bytes==*expected.pages.at(page),"Different next-event memory page");
+}
+
+std::string replay(SourcePhysicsContactMemory &memory,SourcePhysicsWorldRuntimeAbi &abi,
+                   const SourcePhysicsWorldRuntimeServices &services) {
+    try {
+        native_weapon_effect_dispatch_tu15_run(memory,0x17c020u,abi,services);
+    } catch(const std::out_of_range &error) {
+        return error.what();
+    }
+    return {};
+}
+
+void check_same_fault_state(const SourcePhysicsWorldRuntimeAbi &a,const SourcePhysicsWorldRuntimeAbi &b) {
+    need(a.gp==b.gp && a.eflags==b.eflags && a.xmm==b.xmm && a.fs_base==b.fs_base &&
+         a.x87_depth==b.x87_depth && a.x87_status==b.x87_status && !a.active_mmx && !b.active_mmx &&
+         a.floating_point && b.floating_point && a.floating_point->mxcsr==b.floating_point->mxcsr &&
+         a.floating_point->x87_control_word==b.floating_point->x87_control_word,
+         "Different next-event register or FP state at a rejected access");
+    for (unsigned i=0;i<a.x87_depth;++i)
+        need(!std::memcmp(&a.x87[i],&b.x87[i],10),"Different next-event live x87 input at a rejected access");
+}
+
+void verify_native_scope(const Json &row,const sound_test::Memory &initial,const sound_test::Memory &expected_memory,
+                         const SourcePhysicsWorldRuntimeAbi &before,const std::string &error,
+                         unsigned &resumes,unsigned &rejected) {
+    auto quiet=initial.clone();auto quiet_abi=before;
+    SourcePhysicsWorldRuntimeServices silent;
+    need(replay(quiet,quiet_abi,silent)==error,"Different unobserved next-event fault");
+    check_abi(quiet_abi,row.at("expected"),row.at("flags_mask"));
+    check_stack(quiet,row.at("expected").at("stack"));
+    need(quiet_abi.fs_base==before.fs_base && !quiet_abi.active_mmx,"Unobserved next event changed FS/MMX");
+    check_memory(quiet,expected_memory);
+
+    const auto kind=row.at("kind").get<std::string>();
+    if (kind=="base" && row.at("n").get<unsigned>()>=18u) return;
+    auto traced_memory=initial.clone();auto traced_abi=before;
+    SourcePhysicsWorldRuntimeServices traced;
+    std::vector<std::uint32_t> trace;
+    std::vector<std::size_t> frontiers;
+    traced.instruction=[&](auto pc){trace.push_back(pc);};
+    FrontierMemory traced_access(traced_memory,0,[&]{frontiers.push_back(trace.size());});
+    need(replay(traced_access,traced_abi,traced)==error,"Different traced next-event fault");
+    SourcePhysicsWorldRuntimeServices forced_reference;
+    forced_reference.instruction=[](auto){};
+
+    for (unsigned ordinal=0;ordinal<frontiers.size();++ordinal) {
+        auto reopened_memory=initial.clone();auto reopened_abi=before;
+        SourcePhysicsWorldRuntimeServices reopened;
+        std::vector<std::uint32_t> suffix;
+        unsigned accesses{};
+        FrontierMemory reopened_access(reopened_memory,0,[&]{
+            if (accesses++==ordinal) reopened.instruction=[&](auto pc){suffix.push_back(pc);};
+        });
+        need(replay(reopened_access,reopened_abi,reopened)==error,"Different next-event fault after reopen");
+        if (!std::ranges::equal(suffix,std::span(trace).subspan(frontiers[ordinal])))
+            throw std::runtime_error("Different next-event trace successor at completed access "+std::to_string(ordinal+1));
+        check_abi(reopened_abi,row.at("expected"),row.at("flags_mask"));
+        check_memory(reopened_memory,expected_memory);
+        ++resumes;
+
+        auto stopped_traced=initial.clone(),stopped_silent=initial.clone();
+        auto traced_state=before,silent_state=before;
+        FrontierMemory traced_stop(stopped_traced,ordinal+1,{}),silent_stop(stopped_silent,ordinal+1,{});
+        try {replay(traced_stop,traced_state,forced_reference);need(false,"Traced next-event accepted a rejected access");}
+        catch(const InjectedAccessStop &) {}
+        try {replay(silent_stop,silent_state,silent);need(false,"Native next-event accepted a rejected access");}
+        catch(const InjectedAccessStop &) {}
+        check_same_fault_state(traced_state,silent_state);
+        check_memory(stopped_traced,stopped_silent);
+        ++rejected;
+    }
+}
+#endif
 }
 int main(int argc,char **argv)try {
 #ifdef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
@@ -47,6 +155,9 @@ int main(int argc,char **argv)try {
     need(reference.at("original_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong original image");
     need(reference.at("schema")=="H2_TU15_WEAPON_EFFECT_NEXT_EVENT_REFERENCE_V1","Wrong next-event reference schema");
     unsigned cases{},called_total{},stops{},aliases{};
+#ifndef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
+    unsigned resumed{},rejected{};
+#endif
     for(const auto &row:reference.at("rows"))try {
         const auto entry=row.at("entry").get<std::uint32_t>();
 #ifdef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
@@ -94,6 +205,9 @@ int main(int argc,char **argv)try {
         check_abi(a,row.at("expected"),row.at("flags_mask"));check_stack(m,row.at("expected").at("stack"));
         need(a.fs_base==before.fs_base && !a.active_mmx,"Unrelated source FS/MMX changed");
         for(const auto &[page,bytes]:m.pages)need(*bytes==*expected_memory.pages.at(page),"Different final original memory page");
+#ifndef HALO2_NATIVE_NEXT_EVENT_COMPILED_CALLERS
+        verify_native_scope(row,initial,expected_memory,before,error,resumed,rejected);
+#endif
 
         aliases+=row.at("kind").get<std::string>().starts_with("alias-");
         ++cases;
@@ -102,6 +216,8 @@ int main(int argc,char **argv)try {
     need(cases==185 && called_total==0 && stops==7 && aliases==5,"Incomplete compiled effect next-event scope");
 #else
     need(cases==185 && called_total==0 && stops==7 && aliases==5,"Incomplete physical original effect next-event scope");
+    need(resumed>1000 && resumed==rejected,"Incomplete next-event frontier scope");
+    std::cout<<resumed<<" next-event trace reopenings and "<<rejected<<" rejected accesses\n";
 #endif
     std::cout<<"PASS "<<cases<<" physical original effect next-event cases, "<<called_total<<" actual lower ABI controls\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

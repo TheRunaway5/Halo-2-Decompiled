@@ -89,8 +89,13 @@ public:
         std::span<const std::uint32_t> render_models={});
     SourceBspEffectLights(const Cache&,Mesh&,std::size_t bsp,
         std::span<const std::uint32_t> light_definitions,
-        std::span<const std::uint32_t> render_models,std::shared_ptr<pstencil::SharedLightMaterials>);
+        std::span<const std::uint32_t> render_models,std::shared_ptr<pstencil::SharedLightMaterials>,
+        bool preload_raster_materials=true);
     ~SourceBspEffectLights();
+    void switch_bsp(Mesh&,std::size_t bsp,std::span<const std::uint32_t> light_definitions,
+        bool preload_raster_materials=true);
+    void ensure_raster_materials(Mesh&);
+    bool raster_materials_preloaded()const noexcept;
     SourceBspEffectLights(const SourceBspEffectLights&)=delete;
     SourceBspEffectLights& operator=(const SourceBspEffectLights&)=delete;
     std::vector<EffectLightRawDraw> draw(const SourceEffectLightView&,

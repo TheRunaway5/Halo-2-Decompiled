@@ -15,8 +15,73 @@ const SdlSoundPlatformConfiguration manual{SdlSoundPlatformConfiguration::Delive
 void need(bool x,const char* message){if(!x)throw FormatError(message);}
 unsigned word(PhysicsLiveWorldTu15& w,unsigned p){return Bytes(w.memory().view(p,4)).u32(0);}
 unsigned aux(PhysicsLiveWorldTu15& w){return word(w,word(w,0x4f3cd8u)+4);}
+
+void radio_stop(const std::shared_ptr<const Cache>& cache,const std::filesystem::path& scratch){
+  constexpr auto parent_sound=0xe268435bu;
+  constexpr auto loop_sound=0xf3e554d8u;
+  constexpr auto exit_sound=0xf3e654d9u;
+  constexpr MultiplayerAudioEffect radio_out{0xf3e054d3u,12};
+  const auto parent_tag=cache->query_tag({.handle=TagHandle{parent_sound},.group=TagGroup{"snd!"},.require_address=true});
+  const auto loop_tag=cache->query_tag({.handle=TagHandle{loop_sound},.group=TagGroup{"snd!"},.require_address=true});
+  const auto exit_tag=cache->query_tag({.handle=TagHandle{exit_sound},.group=TagGroup{"snd!"},.require_address=true});
+  need(parent_tag && parent_tag->name.ends_with("mc_warthog_p_exit") &&
+      loop_tag && loop_tag->name.ends_with("radio_loop\\loop") && exit_tag && exit_tag->name.ends_with("radio_loop\\out"),
+      "Prepared radio stop requires the authored MCC Lockout sound identities");
+
+  PhysicsLiveWorldTu15 world(*cache,scratch);
+  world.initialize_map();
+  world.configure_session(source_game_variant_default(0),1,30,0x6a19d3e1);
+  const auto provider=world.sound_variation_provider(*cache);
+  const auto access=world.script_sound_access(*cache);
+  auto shared=aux(world);
+  std::vector<MultiplayerAudioSubmission> packets;
+  MultiplayerAudio audio(cache,7,manual,[&](const auto& packet){packets.push_back(packet);},&shared);
+  audio.bind_native_sound_metadata(provider);
+  const auto clock=audio.make_script_sound_clock(access.clock_rows(*cache));
+  const auto before=access.clock_rows(*cache);
+  auto prepared=audio.prepare_script_impulse(clock,parent_sound,access.policy(*cache),{},access.floating_point_context(*cache));
+  need(prepared.has_value(),"Retained World did not admit the actual radio parent selector");
+  access.publish_clock_rows(*cache,before,clock->rows());
+  shared=aux(world);
+  const auto parent=audio.play_prepared_script_impulse(*prepared,access,1,MultiplayerAudioKind::Impulse,none,
+      0,{},audio.presentation_frames(),{},radio_out);
+  need(parent && packets.size()==2 && packets[0].voice==*parent && packets[0].sound==parent_sound &&
+      packets[1].sound==loop_sound,"Real prepared parent did not admit its authored radio loop");
+  const auto count_exit=[&]{return std::ranges::count(packets,exit_sound,&MultiplayerAudioSubmission::sound);};
+  (void)audio.render(1024);
+  audio.update();
+  need(audio.playback_position(*parent).source_frames>0 && count_exit()==0,
+      "Prepared parent was not playing with its radio controller active before the declared stop");
+
+  const auto old_rows=access.clock_rows(*cache);
+  need(clock->stop_first(parent_sound,[&](const auto& receipt){
+    need(receipt && receipt->id()==*parent && audio.request_script_stop(*receipt),
+        "Declared stop did not reach its actual published native64 script voice");
+    need(count_exit()==1 && audio.voice_active(*parent),
+        "Script stop did not synchronously dispatch the radio exit while the parent still played");
+  }),"Retained World clock did not find its admitted radio parent");
+  access.publish_clock_rows(*cache,old_rows,clock->rows());
+  need(access.clock_rows(*cache)==clock->rows(),"Native radio stop did not publish the exact World clock rows");
+
+  audio.object_loop_frame(1.f/30);
+  (void)audio.render(4800);
+  audio.update();
+  need(audio.voice_active(*parent) && count_exit()==1,"Script parent did not retain its timed fade after the exit");
+  for(unsigned elapsed=0;elapsed<512 && audio.voices();++elapsed){
+    audio.object_loop_frame(1024.f/48000);
+    (void)audio.render(1024);
+    audio.update();
+  }
+  need(audio.voices()==0 && count_exit()==1,"Fading parent or its radio exit leaked or triggered an extra exit");
+  std::cout<<"PASS retained World/native64 prepared radio stop dispatched one authored exit before parent retirement\n";
+}
 }
 int main(int argc,char**argv)try{
+ if(argc==4 && std::string_view(argv[3])=="--radio-stop" && std::filesystem::is_regular_file(argv[1])){
+  std::filesystem::create_directories(argv[2]);
+  radio_stop(std::make_shared<const Cache>(argv[1]),argv[2]);
+  return 0;
+ }
  if(argc!=3||!*argv[1]||!std::filesystem::is_regular_file(argv[1]))return 77;
  std::filesystem::create_directories(argv[2]);Cache cache(argv[1]);PhysicsLiveWorldTu15 world(cache,argv[2]);
  world.initialize_map();world.configure_session(source_game_variant_default(0),1,30,0x6a19d3e1);

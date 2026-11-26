@@ -15,11 +15,18 @@ import re
 DETAIL = 'halo2::native_object_tick_detail'
 FIRST_BODY = re.compile(r'^static void run_[0-9a-f]+\(WorldState &s\) \{$', re.M)
 DIRECT = re.compile(r'\brun_([0-9a-f]+)\(s\)')
-DISPATCH = re.compile(r'\bdispatch\(s,(target|0x[0-9a-f]+u),0x[0-9a-f]+u,(?:false|true)\)')
+DISPATCH = re.compile(r'\bdispatch\(s,(target|0x[0-9a-f]+u|selected\(0x[0-9a-f]+u,s\.image\)),0x[0-9a-f]+u,(?:false|true)\)')
 REQUIRED = re.compile(r'\bs\.required\(0x[0-9a-f]+u,(0x[0-9a-f]+u),false\)')
 # name -> owner record. 'unit' is a line only the owning unit carries;
 # 'direct' children must have bodies in the unit, 'dispatched' must not.
 OWNERS = {
+    '2aa6d0': dict(
+        pin='0af2f3072ecef8f34ee94573098ad383fc55613f9d1106573696d57532c91fb5',
+        unit='#include "halo2/source_campaign_runtime_tu15.hpp"',
+        include='#include "campaign/scripting/native_tu15_script_offset_rebase.hpp"\n',
+        bridge='halo2::native_script_offset_rebase_detail::bridge(s,[](auto &v){{{reference}(v);}},'
+               '[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})',
+        direct=(), dispatched=('16ea60',)),
     '1306b0': dict(
         pin='09a0ee065558df4dbc6c7faea11296532b0b495142bc2544fff9e0cd884323ce',
         unit='#include "halo2/source_geometry_cache_frame_tu15.hpp"',
@@ -227,6 +234,22 @@ OWNERS = {
         include='#include "physics/runtime/native_tu15_node_matrices.hpp"\n',
         bridge='halo2::native_node_matrices_detail::bridge(s,[](auto &v){{{reference}(v);}})',
         direct=(), dispatched=()),
+    'b9460': dict(
+        pin='31307b523eef7419b0369ec53a02128fca703a0aef3b44169a11bdb0dab1bae5',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "physics/runtime/native_tu15_object_motion_update.hpp"\n',
+        bridge=('halo2::native_object_motion_update_detail::bridge(s,[](auto &v){{{reference}(v);}},\n'
+                '        [](auto &v){{run_ba7e0(v);}},[](auto &v){{run_b7e50(v);}},\n'
+                '        [](auto &v){{run_1cd620(v);}},[](auto &v){{run_ba630(v);}})'),
+        direct=('ba7e0', 'b7e50', '1cd620', 'ba630'), dispatched=()),
+    '10dfa0': dict(
+        pin=('b25e8ca933f98d493b44d25d0c2545aa77b662380387208ec7ba8ef0976ed86b',
+             '4c6a257f0a47e476aac532d4e351a58a82d134ff405e161f46a20fb7377db659'),
+        unit=('void source_run_physics_live_support_tu15(', '#include "halo2/source_combat_action_tu15.hpp"'),
+        include='#include "physics/runtime/native_tu15_object_type_notification.hpp"\n',
+        bridge=('halo2::native_object_type_notification_detail::bridge(s,[](auto &v){{{reference}(v);}},'
+                '[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})'),
+        direct=(), dispatched=()),
     '10e340': dict(
         pin=('5fd76825a04213d40a5747f42b7a48d1989b5d4c6ae2fbca426ab992f69fa687',
              '409ebc9670b189043b6aa22794850fa6cfd61f4eb85459c7b03e1f8ad00b9f5e'),
@@ -257,14 +280,26 @@ OWNERS = {
         bridge=('halo2::native_animation_clamp_detail::bridge(s,[](auto &v){{{reference}(v);}},\n'
                 '        [](auto &v){{run_1e3150(v);}},[](auto &v){{run_1cec60(v);}})'),
         direct=('1e3150', '1cec60'), dispatched=()),
+    '145b70': dict(
+        pin='943da3f610d98eb99483ff7bbc75b82cccb549447393d016556cc89871ece6aa',
+        unit='#include "halo2/death_cycle_runtime_tu15.hpp"',
+        include='#include "gameplay/units/native_tu15_rotate_vector.hpp"\n',
+        bridge='halo2::native_rotate_vector_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
     '130d20': dict(
         pin=('82c832bee4f52280d3dd0614e6b39f9aa0d6960a4fa7584be0faf9baebc3705d',
-             'cbef59797604698119fbe6eccad4427c47f1e179d9ca48c2eff829f717f3048f'),
+             'cbef59797604698119fbe6eccad4427c47f1e179d9ca48c2eff829f717f3048f',
+             'bd6a32e505a5008cf72a19f3c1d28f926e4e384942ca9adf361568124d092d88'),
         unit=('void source_run_physics_live_support_tu15(', '#include "halo2/source_geometry_cache_frame_tu15.hpp"',
-              '#include "halo2/source_model_render_tu15.hpp"', '#include "halo2/source_map_world_support_tu15.hpp"'),
+              '#include "halo2/source_model_render_tu15.hpp"', '#include "halo2/source_map_world_support_tu15.hpp"',
+              '#include "halo2/source_shadow_frame_tu15.hpp"'),
         include='#include "rendering/native_tu15_cache_entry.hpp"\n',
-        bridge='halo2::native_cache_entry_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_22a790(v);}})',
-        direct=('22a790',), dispatched=()),
+        bridge=(
+            'halo2::native_cache_entry_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_22a790(v);}})',
+            'halo2::native_cache_entry_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_22a790(v);}})',
+            ('halo2::native_cache_entry_detail::bridge(s,[](auto &v){{{reference}(v);}},'
+             '[](auto &v){{dispatch(v,0x22a790u,0x130d92u,false);}})')),
+        direct=(('22a790',), ('22a790',), ()), dispatched=((), (), ('22a790',))),
     'e0500': dict(
         pin='12b9de69ead77b762b4edf39085c5b658effc69bd3b6f2345fec315f31ffd098',
         unit='void source_run_physics_live_support_tu15(',
@@ -1212,6 +1247,13 @@ OWNERS = {
         bridge=('halo2::native_model_record_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_16b240(v);}},\n'
                 '        [](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})'),
         direct=('16b240',), dispatched=('145560',)),
+    '168ded': dict(
+        pin='9ae52d7bd14cff355eb965bd92beb5befdf581b682d215a5487cce103102dc23',
+        unit='#include "halo2/source_sandbox_special_tu15.hpp"',
+        include='#include "gameplay/objects/native_tu15_first_person_model_preparation.hpp"\n',
+        bridge=('halo2::native_first_person_model_preparation::bridge(s,[](auto &v){{{reference}(v);}},\n'
+                '        [](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})'),
+        direct=('bac30', '168d76', '16b4e8'), dispatched=('144bf0', '144090', '145560', '11e060')),
     '244f80': dict(
         pin='99d7a3e3d5bcb5a5c49fd5eef1da0c49c44d1fca6ad5f0a88b69121229cae108',
         unit='#include "halo2/source_combat_action_tu15.hpp"',
@@ -1338,6 +1380,12 @@ OWNERS = {
         bridge=('halo2::native_unit_animation_update_detail::bridge(s,[](auto &v){{{reference}(v);}},\n'
                 '        [](auto &v,std::uint32_t target){{switch(target){{case 0x113b70u:run_113b70(v);break;case 0x1139d0u:run_1139d0(v);break;case 0xcfb40u:run_cfb40(v);break;case 0x1e14f0u:run_1e14f0(v);break;case 0x116340u:run_116340(v);break;case 0xce230u:run_ce230(v);break;case 0x116280u:run_116280(v);break;}}}})'),
         direct=('113b70', '1139d0', 'cfb40', '1e14f0', '116340', 'ce230', '116280'), dispatched=()),
+    '116280': dict(
+        pin='fdf193e945d9f3c12d1bbc85b78d0f31db6200377494f2d89b9d41fe2a70555b',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "gameplay/units/native_tu15_keyed_marker_pose.hpp"\n',
+        bridge='halo2::native_keyed_marker_pose_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_1e1620(v);}},[](auto &v){{run_116060(v);}})',
+        direct=('1e1620', '116060'), dispatched=()),
     '153360': dict(
         pin='bed5098ecd3e506f75bfdd23d657d4dd84335d1bd0162b949781b977a618d84f',
         unit='#include "halo2/source_multiplayer_engines_tu15.hpp"',
@@ -1524,6 +1572,24 @@ OWNERS = {
         include='#include "gameplay/animation/native_tu15_event_window.hpp"\n',
         bridge='halo2::native_event_window_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_1e3150(v);}})',
         direct=('1e3150',), dispatched=()),
+    '2e4350': dict(
+        pin='c64f02c7d022d170042aee0098b3ee2a948a098737764e7a1d8e6072eab8177d',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "physics/runtime/native_tu15_rotation_quaternion.hpp"\n',
+        bridge='halo2::native_rotation_quaternion_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
+    '1ee3d0': dict(
+        pin='f50361699048fd2a8450558ed8e39d9f1485db81638afed457226a95691f9c9b',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "physics/runtime/native_tu15_unit_motion_parameters.hpp"\n',
+        bridge='halo2::native_unit_motion_parameters_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
+    'e05d0': dict(
+        pin='52e5abc53009c5b0bb7fa499bfcd40f81efa0523b005203c0c838fbcb81b1343',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "gameplay/units/native_tu15_camera_basis.hpp"\n',
+        bridge='halo2::native_camera_basis_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
     'e06e0': dict(
         pin='65bbabdc7aaa2535385cd3356e31fef98b8227391e8f4faa68b3b415d0eb4154',
         unit='void source_run_physics_live_support_tu15(',
@@ -1964,6 +2030,94 @@ OWNERS = {
         bridge='halo2::native_action_allowed_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v,std::uint32_t target){{switch(target){{case 0x1f1160u:run_1f1160(v);break;case 0x1efd10u:run_1efd10(v);break;case 0x1efcc0u:run_1efcc0(v);break;case 0x1ac79bu:run_1ac79b(v);break;case 0x1ac595u:run_1ac595(v);break;case 0xcad40u:run_cad40(v);break;case 0x165a50u:run_165a50(v);break;case 0x536e0u:run_536e0(v);break;case 0x1060a0u:run_1060a0(v);break;default:run_1060e0(v);break;}}}},[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})',
         direct=('1f1160', '1efd10', '1efcc0', '1ac79b', '1ac595', 'cad40', '165a50', '536e0', '1060a0', '1060e0'),
         dispatched=('13f620', 'ce230', 'd2ad0', 'd2b00', '161530', 'bcdf0', '1055f0', '105fd0')),
+    '1ddbf0': dict(
+        pin='1b0c6e7fc6752649e9e523e3f6a63e5d8d5c9546774fd2d2b5b9aa0b06883ecc',
+        unit='void source_run_physics_live_support_tu15(',
+        include='#include "physics/runtime/native_tu15_physics_groups.hpp"\n',
+        bridge='halo2::native_physics_groups_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v,std::uint32_t target){{switch(target){{case 0x212c70u:run_212c70(v);break;case 0x184920u:run_184920(v);break;case 0x1ddea0u:run_1ddea0(v);break;case 0x1d8330u:run_1d8330(v);break;default:run_1ded80(v);break;}}}},[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})',
+        direct=('212c70', '184920', '1ddea0', '1d8330', '1ded80'),
+        dispatched=('32a660', '2e31e0')),
+    '106160': dict(
+        pin=('a3ef2da841f89cb635e0e36d1f1384cd03d5745b0f9a8b166174eba9f13d3375',
+             'aeb6c8c7d52807e381af27b2738151dfffbe349630d288ee016f0b4aaf227f9d'),
+        unit=('#include "halo2/source_vehicle_director_tu15.hpp"',
+              '#include "halo2/source_combat_action_tu15.hpp"'),
+        include='#include "gameplay/vehicles/native_tu15_weapon_magnification.hpp"\n',
+        bridge=(
+            'halo2::native_weapon_magnification_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_37cde8(v);}})',
+            'halo2::native_weapon_magnification_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{dispatch(v,0x37cde8u,0x10620du,false);}})'),
+        direct=(('37cde8',), ()), dispatched=((), ('37cde8',))),
+    'cad60': dict(
+        pin='0f563fc25d6f2ba8ac54be5c2a78653a2197a3b3f97e85752671fac06a9aeb0a',
+        unit='#include "halo2/source_vehicle_director_tu15.hpp"',
+        include='#include "gameplay/vehicles/native_tu15_zoom_factor.hpp"\n',
+        bridge='halo2::native_zoom_factor_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_106160(v);}},[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})',
+        direct=('106160',), dispatched=('106040',)),
+    '145560': dict(
+        pin=('6ab5af55d5cce6547098d13f85c4169b2dc1364b50c382161698df28bac38169',
+             '3ce39c1046f43fec27fe7f65c35755ca56024dcdae65bdebd4ec4e2377171b62'),
+        unit=('#include "halo2/source_scene_device_constructor_tu15.hpp"',
+              'void source_run_physics_live_support_tu15(',
+              '#include "halo2/source_ai_frame_tu15.hpp"',
+              '#include "halo2/source_effect_particle_frame_tu15.hpp"'),
+        include='#include "rendering/renderer/native_tu15_transform_product.hpp"\n',
+        bridge='halo2::native_transform_product_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
+    '1e1010': dict(
+        pin='e4a5880ae1825864f3b618ca77c4ed6376784b699391d5f6d3db899320ba12e8',
+        unit=('#include "halo2/source_scene_device_constructor_tu15.hpp"',
+              '#include "halo2/source_map_world_support_tu15.hpp"'),
+        include='#include "rendering/renderer/native_tu15_vector_normalize.hpp"\n',
+        bridge='halo2::native_vector_normalize_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
+    '13de70': dict(
+        pin=('2a4e7ff7446cc6e03d11146f2a8284591ca8fedfed3e2e05eddaa30aa2e7fb53',
+             '30b54323490595e92005ba74229fe44029732c6c3b6c3be7e4bf9397a0f69343'),
+        unit=('void source_run_physics_live_support_tu15(',
+              '#include "halo2/source_lens_draw_tu15.hpp"'),
+        include='#include "core/native_tu15_authored_function_bridge.hpp"\n',
+        bridge=('halo2::native_authored_function_detail::bridge(s,'
+                '[](auto &v){{return {reference}(v);}},'
+                '[](std::uint32_t target,auto image){{return canonical_branch(target,image);}})'),
+        direct=('17f8a0', '17f790'), dispatched=('13e9a0', '37cde8'),
+        continuations=('13dee5', '13df3f', '13e035', '13e0ed', '13e146', '13e2a2')),
+    '24ffe0': dict(
+        pin='d7a7db231757a5b1b53cd64e94ab7f961a0b96e8925a7c84eabe7de084fbaf32',
+        unit=('#include "halo2/source_effect_particle_frame_tu15.hpp"',
+              '#include "halo2/death_cycle_runtime_tu15.hpp"',
+              '#include "halo2/source_combat_action_tu15.hpp"'),
+        include='#include "rendering/effects/native_tu15_particle_property.hpp"\n',
+        bridge=('halo2::native_particle_property_detail::bridge(s,[](auto &v){{{reference}(v);}},'
+                '[](auto &v,std::uint32_t target,std::uint32_t site){{dispatch(v,target,site,false);}})'),
+        direct=(), dispatched=('13de70',)),
+    '2e56a0': dict(
+        pin='1ea0b38005d365cc7c2651dbe8034b374cf85186eef1e2c2414e2692f96a325b',
+        unit='#include "halo2/source_scene_device_constructor_tu15.hpp"',
+        include='#include "rendering/renderer/native_tu15_quaternion_relative_product.hpp"\n',
+        bridge=('halo2::native_quaternion_relative_product_detail::bridge(s,[](auto &v){{{reference}(v);}},'
+                '[](long double value,std::uint16_t &status){{return native_single_spill(value,status);}})'),
+        direct=(), dispatched=()),
+    '1e14f0': dict(
+        pin=('2a1d7ae16c8c3729457e31eb07c23462fc021febcc32289123b3685d8def415f',
+             'effba6d94cdc77560a54d9ef63cccbf9adb6daa54f2c7a3780b5f74a0f52a34b'),
+        unit=('#include "halo2/source_ai_actor_tu15.hpp"',
+              '#include "halo2/source_ai_frame_tu15.hpp"',
+              'void source_run_physics_live_support_tu15('),
+        include='#include "gameplay/units/native_tu15_animation_fade_start.hpp"\n',
+        bridge='halo2::native_animation_fade_start_detail::bridge(s,[](auto &v){{{reference}(v);}})',
+        direct=(), dispatched=()),
+    '19ae70': dict(
+        pin='24e6d20d3b1bae777542f1978ae5fa2a2d9da86c3098fc006e8f4896285cc373',
+        unit='#include "halo2/source_player_departure_tu15.hpp"',
+        include='#include "gameplay/units/native_tu15_departure_remap.hpp"\n',
+        bridge='halo2::native_departure_remap_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v){{run_32a660(v);}},[](auto &v){{run_19dd10(v);}})',
+        direct=('32a660', '19dd10'), dispatched=()),
+    '1ce8d0': dict(
+        pin='3a44e9316afdca256ca9565edf550e41e155a8e6f6f2416d05484c5ce20c5000',
+        unit='#include "halo2/source_scene_device_constructor_tu15.hpp"',
+        include='#include "gameplay/units/native_tu15_animation_fraction.hpp"\n',
+        bridge='halo2::native_animation_fraction_detail::bridge(s,[](auto &v){{{reference}(v);}},[](auto &v,std::uint32_t target,std::uint32_t site,bool tail){{dispatch(v,target,site,tail);}})',
+        direct=(), dispatched=('1e3150', '1ce810')),
     '1d30f0': dict(
         pin='f974465cf9476e0cfdbd0851a2440ae4857ba4c5ee7155012361945d8cae52cf',
         unit='void source_run_physics_live_support_tu15(',
@@ -2118,9 +2272,28 @@ def bridge(name, found=None):
     return owner['bridge'][alternatives(owner['pin']).index(digest(found))]
 
 
+def children(name, found, route):
+    """Resolve a single child list or per-pin lists for units with mixed routes."""
+    owner = OWNERS[name]
+    routes = owner[route]
+    if routes and isinstance(routes[0], tuple):
+        return routes[alternatives(owner['pin']).index(digest(found))]
+    return routes
+
+
 def prefix(name, found=None):
     begin, end = markers(name)[2:]
-    return begin + f'    if({bridge(name, found).format(reference=reference_name(name))})return;' + end
+    invoke = bridge(name, found).format(reference=reference_name(name))
+    continuations = OWNERS[name].get('continuations', ())
+    if not continuations:
+        return begin + f'    if({invoke})return;' + end
+    # The original entry remains available. A partially native call resumes
+    # with the already-published register state at its real source case.
+    labels = ''.join(f'        case 0x{pc}u:goto L{pc};\n' for pc in continuations)
+    return (begin + f'    switch({invoke}){{\n        case 0u:return;\n'
+            + labels + '        case 0xffffffffu:break;\n'
+            + '        default:throw std::logic_error("Invalid native authored function continuation");\n    }'
+            + end)
 
 
 # Packed SSE whose operands both hold NaNs takes the destination's payload.
@@ -2130,17 +2303,309 @@ def prefix(name, found=None):
 # leaves); the owner's adapter includes physics/runtime/native_tu15_packed_sse.hpp.
 PACKED = {'_mm_add_ps(': 'halo2::native_packed_sse::add(', '_mm_mul_ps(': 'halo2::native_packed_sse::multiply('}
 
+# REPE CMPSD in 19AE70 reads the player identity (ESI) before the roster
+# identity (EDI). Spell out that order for both translated routes because C++
+# does not specify the order of evaluation of the subtraction's arguments.
+DEPARTURE_COMPARE = re.compile(
+    r'(0x19af88u\);\}? while\(s\.gp\[1\]\)\{)'
+    r's\.flags\.minus\(r\(s\.memory,s\.gp\[6\],4\),r\(s\.memory,s\.gp\[7\],4\),4\);')
+DEPARTURE_COMPARE_ORDERED = (
+    r'\g<1>const auto player=r(s.memory,s.gp[6],4);'
+    'const auto roster=r(s.memory,s.gp[7],4);s.flags.minus(player,roster,4);')
 
-def pinned(text):
-    """A translated body with its packed SSE destinations pinned (PACKED); the
-    validator compares an owner against it too."""
+# Scalar SSE preserves the destination's upper lanes and selects its NaN
+# payload when both inputs are NaNs. Pin distinct-operand commutative
+# instructions in the retained body and in its verification reference.
+SCALAR_ARITHMETIC_SITES = {
+    '_mm_mul_ss': ('halo2::native_tu15_leaves::ordered_mul_ss', {
+        '145b70': (('145b96', 0), ('145ba0', 1), ('145bad', 1), ('145bbe', 0), ('145bc8', 1), ('145bd5', 1),
+                   ('145be8', 0), ('145bf2', 1), ('145bff', 1)),
+        '1ce8d0': (('1ce90d', 1),),
+        'e05d0': (('e061c', 4), ('e0630', 4), ('e069e', 3), ('e06b2', 3)),
+        '1ee3d0': (('1ee517', 0), ('1ee51b', 6), ('1ee535', 0), ('1ee539', 6),
+                   ('1ee556', 0), ('1ee55f', 1), ('1ee5a7', 0), ('1ee5bb', 0)),
+        '24ffe0': (('250038', 1), ('250065', 1)),
+    }),
+    '_mm_add_ss': ('halo2::native_world_leaves_detail::ordered_add_ss', {
+        '145b70': (('145ba5', 0), ('145bb1', 0), ('145bcc', 0), ('145bda', 0), ('145bf6', 0), ('145c04', 0)),
+        '1ee3d0': (('1ee4ac', 0), ('1ee4b7', 0), ('1ee51f', 0), ('1ee53d', 0), ('1ee563', 0)),
+        '24ffe0': (('25003c', 1), ('250078', 1)),
+    }),
+}
+
+X87_MEMORY_OPERANDS = {
+    '2e4350': ('halo2::native_rotation_quaternion_detail::load_operand', 29),
+    '24ffe0': ('halo2::native_particle_property_detail::load_operand', 2),
+}
+
+FIRST_PERSON_STACK_UPDATES = {
+    '168dfb': ('fffffffc', 'logic(({read})&(selected(0x0u,s.image)),4)'),
+    '168e54': ('fffffff8', 'increment({read},4,true)'),
+    '168e9c': ('ffffffe4', 'logic(({read})&(selected(0x0u,s.image)),4)'),
+    '168eac': ('ffffffec', 'logic(({read})&(selected(0x0u,s.image)),4)'),
+    '16904d': ('fffffffc', 'increment({read},4,false)'),
+    '169050': ('fffffff0', 'plus({read},selected(0xd0cu,s.image),4)'),
+    '16905d': ('fffffff4', 'increment({read},4,true)'),
+    '1690f2': ('fffffffc', 'increment({read},4,false)'),
+}
+FIRST_PERSON_IDENTITY_OPERAND = re.compile(r'selected\((0x[0-9a-f]+u),s\.image\)')
+
+def retained(text, name):
+    if name == '168ded':
+        for pc, (offset, operation) in FIRST_PERSON_STACK_UPDATES.items():
+            address = f'(selected(0x{offset}u,s.image)+s.gp[5])'
+            old = operation.format(read=f'r(s.memory,{address},4)')
+            literal = f'w(s.memory,s.observe,0x{pc}u,{address},4,s.flags.{old});'
+            new = operation.format(read='value')
+            replacement = ('halo2::native_first_person_model_preparation::modify'
+                           f'(s,0x{pc}u,{address},[&](auto &flags,auto value){{return flags.{new};}});')
+            if literal not in text:  # The production alias has resolved these identity operands.
+                literal = FIRST_PERSON_IDENTITY_OPERAND.sub(r'\1', literal)
+                replacement = FIRST_PERSON_IDENTITY_OPERAND.sub(r'\1', replacement)
+            if text.count(literal) != 1:
+                raise ValueError(f'168DED stack update at {pc} changed')
+            text = text.replace(literal, replacement, 1)
+    if name in X87_MEMORY_OPERANDS:
+        # These x87 memory operands raise denormal exceptions even when
+        # a compiler could lower a C++ extension through SSE.
+        loader, expected = X87_MEMORY_OPERANDS[name]
+        text, count = re.subn(r'ext\(f\((r\(s\.memory,[^\n]*?,4\))\)\)', rf'{loader}(\1)', text)
+        if count != expected:
+            raise ValueError(f'{name} retained x87 operands changed')
+    if name == '19ae70':
+        text, count = DEPARTURE_COMPARE.subn(DEPARTURE_COMPARE_ORDERED, text)
+        if count != 1:
+            raise ValueError('19ae70 retained REPE CMPSD changed')
+    for intrinsic, (ordered, sites) in SCALAR_ARITHMETIC_SITES.items():
+        for pc, register in sites.get(name, ()):
+            instruction = rf'(0x{pc}u\);\}}? s\.xmm\[{register}\]=){intrinsic}\('
+            text, count = re.subn(instruction, rf'\g<1>{ordered}(', text)
+            if count != 1:
+                raise ValueError(f'{name} retained {intrinsic} at {pc} changed')
+    return text
+
+
+def pinned(text, name):
+    """Keep the original operand order in the translated verification body."""
     for packed, ordered in PACKED.items():
         text = text.replace(packed, ordered)
+    return retained(text, name)
+
+
+def authored_function_reference(found, continuations):
+    # Both authenticated copies share this prefix and three leaf exits.
+    # Stop at a retained target before its first effect, so its caller runs
+    # the residual body only once, after replay has checked the native prefix.
+    text = found[0]
+    text = (text[:text.index('\nL13dee5:')]
+            + text[text.index('\nL13e0d2:'):text.index('\nL13e0ed:')]
+            + text[text.index('\nL13e5d5:'):])
+    text = text.replace(f'static void run_13de70({found[1]} &s) {{',
+                        f'std::uint32_t {reference_name("13de70")}(WorldState &s) {{', 1)
+    if text.count('return;') != 3:
+        raise ValueError('13de70 bounded reference return sites changed')
+    text = text.replace('return;', 'return 0u;')
+    for pc in continuations:
+        edge = f'case 0x{pc}u:goto L{pc};'
+        if text.count(edge) != 1:
+            raise ValueError(f'13de70 continuation {pc} changed')
+        text = text.replace(edge, f'case 0x{pc}u:return 0x{pc}u;', 1)
+    if re.search(r'\brun_[0-9a-f]+\(|\bdispatch\(|required\(', text):
+        raise ValueError('13de70 bounded reference kept an unrouted child')
+    return text + '\n'
+
+
+# TU1.5 jump table 13E5F4 maps 4 to linear, 5 to ramp, 7/10 to
+# cubic. 9 enters the separate power case at 13DF3F.
+AUTHORED_LINEAR_RAMP_CASES = (('linear', '13e0ed', '13e146'), ('ramp', '13e146', '13e2a2'))
+AUTHORED_CUBIC_CASES = (('input', '13e2a2', '13e2b0'), ('base', '13e3e8', '13e43e'),
+                        ('refresh', '13e574', '13e5d5'), ('blend', '13e582', '13e5d5'))
+AUTHORED_RESIDUAL_HEADERS = ('#include "core/native_tu15_authored_linear_ramp.hpp"\n'
+                             '#include "core/native_tu15_authored_cubic.hpp"\n')
+AUTHORED_SSE_SITES = {
+    '_mm_mul_ss': (('13e0fc', 0), ('13e118', 2), ('13e130', 1), ('13e136', 2),
+                   ('13e15c', 0), ('13e17e', 0), ('13e1a0', 0), ('13e1c0', 0),
+                   ('13e1c9', 2), ('13e1d6', 2), ('13e202', 0), ('13e224', 0),
+                   ('13e240', 1), ('13e25c', 4), ('13e265', 1), ('13e272', 0),
+                   ('13e289', 2), ('13e28f', 4), ('13e3fc', 1), ('13e400', 3),
+                   ('13e404', 4), ('13e414', 2), ('13e418', 4), ('13e577', 1),
+                   ('13e57e', 2), ('13e587', 3), ('13e590', 1), ('13e5a5', 0),
+                   ('13e5bc', 1), ('13e5c2', 3)),
+    '_mm_add_ss': (('13e100', 0), ('13e11c', 2), ('13e13a', 2), ('13e1cd', 0),
+                   ('13e1da', 0), ('13e1de', 0), ('13e26e', 4), ('13e276', 4),
+                   ('13e280', 4), ('13e293', 4), ('13e408', 3), ('13e41c', 3),
+                   ('13e420', 3), ('13e599', 3), ('13e5a9', 3), ('13e5b3', 3),
+                   ('13e5c6', 3)),
+}
+
+
+def authored_residual_operands(text):
+    # Pin two-address scalar operations only at the authenticated case PCs.
+    for intrinsic, sites in AUTHORED_SSE_SITES.items():
+        ordered = SCALAR_ARITHMETIC_SITES[intrinsic][0]
+        for pc, register in sites:
+            instruction = rf'(0x{pc}u\);\}}? s\.xmm\[{register}\]=){intrinsic}\('
+            text, count = re.subn(instruction, rf'\g<1>{ordered}(', text)
+            if count != 1:
+                raise ValueError(f'13de70 retained {intrinsic} at {pc} changed')
+    return text
+
+
+def authored_site(text, pc, label=True):
+    if label:
+        markers = (f'\nL{pc}: ',)
+    else:
+        markers = (f'\nif(s.services.instruction){{s.services.instruction(0x{pc}u);',
+                   f'\ns.instruction_literal(0x{pc}u);')
+    present = [marker for marker in markers if marker in text]
+    if len(present) != 1 or text.count(present[0]) != 1:
+        raise ValueError(f'13de70 authored case site {pc} changed')
+    return present[0]
+
+
+def authored_case(text, start, end):
+    end_label = end not in ('13e2b0', '13e43e')
+    return text[text.index(authored_site(text, start)) + 1:text.index(authored_site(text, end, end_label)) + 1]
+
+
+def authored_linear_ramp_reference(found):
+    text = authored_residual_operands(found[0])
+    references = []
+    for case, start, end in AUTHORED_LINEAR_RAMP_CASES:
+        section = authored_case(text, start, end)
+        if section.count('goto L13e0d2;') != 2 or re.search(r'\bdispatch\(|\brun_[0-9a-f]+\(|required\(', section):
+            raise ValueError(f'13de70 {case} reference no longer rejoins the shared clamp')
+        references.append(f'void {reference_name("13de70")}_{case}(WorldState &s) {{\n'
+                          f'    goto L{start};\n{section}L13e0d2: return;\n}}\n')
+    return ''.join(references)
+
+
+def authored_cubic_reference(found):
+    text = authored_residual_operands(found[0])
+    references = []
+    continuation = 'halo2::native_authored_cubic::Continuation'
+    for case, start, end in AUTHORED_CUBIC_CASES:
+        section = authored_case(text, start, end).removeprefix(f'L{start}: ')
+        if re.search(r'\bdispatch\(|\brun_[0-9a-f]+\(|required\(', section):
+            raise ValueError(f'13de70 cubic {case} reference unexpectedly calls a child')
+        name = f'{reference_name("13de70")}_cubic_{case}'
+        returns = {
+            'input': (('13e3e8', 'polynomial'),),
+            'base': (('13e0d2', 'clamp'), ('13e582', 'blend')),
+            'refresh': (('13e0d2', ''),),
+            'blend': (('13e0d2', ''),),
+        }
+        for pc, route in returns[case]:
+            source = f'goto L{pc};'
+            if section.count(source) != 1:
+                raise ValueError(f'13de70 cubic {case} continuation {pc} changed')
+            section = section.replace(source, f'return {continuation}::{route};' if route else 'return;')
+        entry = case in ('input', 'base')
+        if entry:
+            tail = 'powered_input' if case == 'input' else 'powered_layer'
+            section += f'return {continuation}::{tail};\n'
+        section = section.replace('L13e582: ', '')
+        references.append(f'{continuation if entry else "void"} {name}(WorldState &s) {{\n{section}}}\n')
+    return ''.join(references)
+
+
+def authored_clamp_reference(found):
+    text = found[0]
+    low = authored_case(text, '13e0d2', '13e0ed').removeprefix('L13e0d2: ')
+    high = text[text.index(authored_site(text, '13e5d5')) + 1:text.rindex('\n}')]
+    if text.count('goto L13e5d5;') != 1 or low.count('goto L13e5d5;') != 1:
+        raise ValueError('13de70 upper clamp gained a nonterminal entry')
+    return f'void {reference_name("13de70")}_clamp(WorldState &s) {{\n{low}{high}\n}}\n'
+
+
+def install_authored_residuals(text):
+    text = authored_residual_operands(text)
+    clamp = authored_site(text, '13e0d2')
+    clamp_call = f'halo2::native_authored_function_detail::bridge_clamp(s,{reference_name("13de70")}_clamp)'
+    text = text.replace(clamp, f'{clamp}if({clamp_call})return;\n', 1)
+    for case, start, _ in AUTHORED_LINEAR_RAMP_CASES:
+        label = authored_site(text, start)
+        owner = 'halo2::native_authored_linear_ramp'
+        reference = f'{reference_name("13de70")}_{case}'
+        bridge = f'{owner}::bridge(s,{owner}::Kind::{case},{reference})'
+        text = text.replace(label, f'{label}if({bridge})goto L13e0d2;\n', 1)
+    for pc in ('13e2b0', '13e43e'):
+        site = authored_site(text, pc, label=False)
+        text = text.replace(site, f'\nL{pc}: {site[1:]}', 1)
+    starts = {
+        'input': (('powered_input', '13e2b0'), ('polynomial', '13e3e8')),
+        'base': (('clamp', '13e0d2'), ('powered_layer', '13e43e'), ('blend', '13e582')),
+    }
+    owner = 'halo2::native_authored_cubic'
+    for case, start, _ in AUTHORED_CUBIC_CASES:
+        label = authored_site(text, start)
+        reference = f'{reference_name("13de70")}_cubic_{case}'
+        arguments = f's,{owner}::Entry::{case},{reference}'
+        if case in starts:
+            branches = ''.join(f'case {owner}::Continuation::{route}:goto L{pc};' for route, pc in starts[case])
+            hook = f'switch({owner}::begin({arguments})){{{branches}default:break;}}'
+        else:
+            hook = f'if({owner}::blend({arguments}))goto L13e0d2;'
+        text = text.replace(label, f'{label}{hook}\n', 1)
+    return text
+
+
+# The authored kind-10 parameter correction reaches the genuine control-point
+# and CRT power dispatchers. The two original copies have different C1 spills.
+AUTHORED_POWERED_CASES = (('base', '13e2b0', '13e3e8'), ('blend', '13e43e', '13e574'))
+AUTHORED_POWERED_HEADER = '#include "core/native_tu15_authored_powered_parameter.hpp"\n'
+AUTHORED_POWERED_ADDS = (('13e301', 1), ('13e33a', 3), ('13e48f', 1), ('13e4c7', 3))
+
+
+def authored_powered_operands(text):
+    ordered = SCALAR_ARITHMETIC_SITES['_mm_add_ss'][0]
+    for pc, register in AUTHORED_POWERED_ADDS:
+        pattern = rf'(0x{pc}u\);\}}? s\.xmm\[{register}\]=)_mm_add_ss\('
+        text, count = re.subn(pattern, rf'\g<1>{ordered}(', text)
+        if count != 1:
+            raise ValueError(f'13de70 powered parameter ADDSS at {pc} changed')
+    return text
+
+
+def authored_powered_reference(found):
+    text = authored_powered_operands(found[0])
+    references = []
+    for layer, start, end in AUTHORED_POWERED_CASES:
+        section = text[text.index(authored_site(text, start, label=False)) + 1:text.index(authored_site(text, end)) + 1]
+        section, children = re.subn(r'dispatch\(s,target,(0x[0-9a-f]+u),false\)', r'child(s,target,\1)', section)
+        if children != 5 or section.count('source_estimate(s,') != 1 or section.count(f'goto L{end};') != 3:
+            raise ValueError(f'13de70 powered {layer} child or continuation changed')
+        section = section.replace('source_estimate(s,', 'estimate(s,', 1)
+        name = f'{reference_name("13de70")}_powered_{layer}'
+        references.append(f'template<class Child, class Estimate>\n'
+                          f'void {name}(WorldState &s, Child child, Estimate estimate) {{\n'
+                          f'{section}L{end}: return;\n}}\n')
+    return ''.join(references)
+
+
+def install_authored_powered(text, found, has_residual_labels):
+    text = authored_powered_operands(text)
+    pins = alternatives(OWNERS['13de70']['pin'])
+    spill = ('world', 'lens')[pins.index(digest(found))]
+    owner = 'halo2::native_authored_powered_parameter'
+    for layer, start, end in AUTHORED_POWERED_CASES:
+        site = authored_site(text, start, label=has_residual_labels)
+        reference = f'{reference_name("13de70")}_powered_{layer}'
+        callback = f'[](auto &v,auto child,auto estimate){{{reference}(v,child,estimate);}}'
+        dispatch = '[](auto &v,std::uint32_t target,std::uint32_t pc){dispatch(v,target,pc,false);}'
+        hook = f'if({owner}::bridge(s,{owner}::Layer::{layer},{owner}::Spill::{spill},{callback},{dispatch}))goto L{end};'
+        if has_residual_labels:
+            replacement = site + hook + '\n'
+        else:
+            replacement = '\n' + hook + site
+        text = text.replace(site, replacement, 1)
     return text
 
 
 def reference(name, found):
-    text = pinned(found[0].replace(f'static void run_{name}({found[1]} &s) {{', f'void {reference_name(name)}(WorldState &s) {{', 1))
+    if name == '13de70':
+        return authored_function_reference(found, OWNERS[name]['continuations'])
+    text = pinned(found[0].replace(f'static void run_{name}({found[1]} &s) {{', f'void {reference_name(name)}(WorldState &s) {{', 1), name)
     text = DIRECT.sub(lambda m: f'{DETAIL}::replay(s,0x{m[1]}u)', text)
     text = DISPATCH.sub(lambda m: f'{DETAIL}::replay(s,{m[1]})', text)
     # A child that leaves the unit through the World's required owner at its
@@ -2164,9 +2629,23 @@ def admitted(canonical, name):
         return False
     if digest(found) not in alternatives(owner['pin']):
         return False
-    if any(not body(canonical, child) for child in owner['direct']):
+    if name in ('2aa6d0', '145b70', '168ded') or (name == '130d20' and children(name, found, 'dispatched')):
+        resolver = re.search(r'^std::uint32_t selected\(std::uint32_t p,SourcePhysicsContactImage image\)\{[^\n]*$',
+                             canonical, re.M)
+        operands = set(re.findall(r'\bselected\(0x([0-9a-f]+)u,s\.image\)', found[0])) | {name}
+        if not resolver or any(resolver[0].count(f'case 0x{operand}u:return 0x{operand}u;') != 1
+                               for operand in operands):
+            return False
+        if name == '168ded':
+            dispatcher = re.search(r'^static void dispatch\(WorldState &s,[^\n]*$', canonical, re.M)
+            routes = children(name, found, 'direct')
+            if (not dispatcher or not dispatcher[0].endswith('s.required(site,target,tail);}') or
+                any(dispatcher[0].count(f'if(target==selected(0x{child}u,s.image)){{run_{child}(s);return;}}') != 1
+                    for child in routes)):
+                return False
+    if any(not body(canonical, child) for child in children(name, found, 'direct')):
         return False
-    return not any(body(canonical, child) for child in owner['dispatched'])
+    return not any(body(canonical, child) for child in children(name, found, 'dispatched'))
 
 
 # Owners installed by default. Each closure is now written to the code standard
@@ -2177,7 +2656,7 @@ def admitted(canonical, name):
 # parity in every role, and the MP and campaign verify sweep with 0
 # differences; see docs/native_replacement/REMAINING_TRANSLATED_20261115.md.
 BOUND = ('1306b0', 'd7230', '1eee80', '41970', '133a70', '153ba0', '131610', '14d200', 'bd460', '1ae2b0', '1ae090', '3d7e0', '16b240', '170730', '1d30f0', '1e5250', '333f0', '15c4e0', '3f3e0', 'bcfe0', '17faf0', '180520', '144bf0', '179a40', '1a8e50', '1902e0', 'b1720', '17fb60', '1d2f10', '17beb0', '165860', '157fe0', 'e9530', '10e1f0', '125790', '1e1390', '116060', 'aa200', 'aa270', 'b9390', '1751b0', 'e65a0',
-         '106230', '1d9f50', '144cb0', 'bac30', '10e340', 'be7e0', 'bda50', '1ce810', '130d20', 'e0500', 'c0700', '1eedb0', '18bbc0', 'c93d0',
+         '106230', '1d9f50', '144cb0', 'bac30', '10e340', 'be7e0', 'bda50', '1ce810', '130d20', '145b70', 'e0500', 'c0700', '1eedb0', '18bbc0', 'c93d0',
          'c92c0', '1e1620', '110fc0', '1e1920', '11fa50', 'dfd20', '1a8f10', '175300',
          '175280', '175240', '1752c0', 'b16c0', '17c5c0', '1ae500', '212c70', '30c40', '11e060', 'd2330', '105950',
          '10dde0', '10b0f0', '1d3f90', '16e290', 'b8d90', 'bbff0', 'caaa0',
@@ -2197,7 +2676,7 @@ BOUND = ('1306b0', 'd7230', '1eee80', '41970', '133a70', '153ba0', '131610', '14
          '189f20', '158450', '25bcc0', 'd2b60', '1d9f10', '43980', '12f0c0', '118760', '1d6430', '304c50', '1582f0',
          '18a240', '171ff0', '20700', '1f33c0', 'c5170', '31500', '10db40', '2e9750',
          '243510', '16e7f0', '2e3250', '158340', '1d9080', '1d9100', '3d2b0', '1e5360', '244f80',
-         '168d76', '158790', '161610', '13da89', '1540d0', '15b620',
+         '168d76', '168ded', '158790', '161610', '13da89', '1540d0', '15b620',
          '1ae5e0', '15b2d0', '154d00', '13e670', '11ef70', '1262f0', '1ae6f0', 'b95d0',
          'c9010', '1dc680', '1157d0', '153360', '2e2e30', '1edda0', '1ceb70', 'c3960', '140cf0', 'c3a20', 'be2b0', '15cab0',
          '118120', '4b150', 'c3820', '1617a0', '1a6830',
@@ -2207,11 +2686,14 @@ BOUND = ('1306b0', 'd7230', '1eee80', '41970', '133a70', '153ba0', '131610', '14
          '1601b0', '160360', '160570', '164890', '1d5970', 'cdcf0', '69ad0', '1afa90', 'e71a0',
          '1d45a0', '191130', 'be3b0', '175380', '144910', '1af970', '1d39c0', '111b10', '16bbc0',
          '16bda0', '1cebd0', '185820', '13b610', '16e510', '13dc44', '1d8b90', '1d9190', '2e9140',
-         '315190', '2f20f0', '1ddea0', '168ca1', '164ef0', '164750', '17bd40', '13b6f0', '154270', '15e870', 'e79c0', '1ae7f0', '1adc90', '1770c0', '245060', 'c7dd0', '113190', '1f8710', '17c370', '1618b0', '17ead0', '14d790', 'cd4a0', '1de8e0', '1538b0', '1700e0', '14d410', '1115d0', '1adf60', '1139d0', '15d890', 'd2bd0', '4a7b0')
+         '315190', '2f20f0', '1ddea0', '168ca1', '164ef0', '164750', '17bd40', '13b6f0', '154270', '15e870', 'e79c0', '1ae7f0', '1adc90', '1770c0', '245060', 'c7dd0', '113190', '1f8710', '17c370', '1618b0', '17ead0', '14d790', 'cd4a0', '1de8e0', '1538b0', '1700e0', '14d410', '1115d0', '1adf60', '1139d0', '15d890', 'd2bd0', '4a7b0',
+         '4ac20', '1efd60', '1ddbf0', 'cad60', '1e1010', '19ae70', '1ce8d0', 'e05d0',
+         '106160', '1ee3d0', '2e56a0', '1e14f0',
+         '116280', '2e4350', '24ffe0', '10dfa0', '13de70', 'b9460', '2aa6d0')
 
 
-def install(canonical, output, names=None):
-    """Return (output, installed entries)."""
+def install(canonical, output, names=None, *, authored_residuals=False, authored_powered=False):
+    """Return the installed entries; authored residuals are opt-in for validation."""
     installed = []
     for name in (BOUND if names is None else names):
         if not admitted(canonical, name):
@@ -2220,14 +2702,32 @@ def install(canonical, output, names=None):
         begin, end, prefix_begin, _ = markers(name)
         if not current or prefix_begin in current[0]:
             continue
-        start = current[0].index('{') + 1
-        output = output[:current.start()] + current[0][:start] + prefix(name, body(canonical, name)) + current[0][start:] + output[current.end():]
+        current_text = retained(current[0], name)
+        authored = name == '13de70' and authored_residuals
+        if authored:
+            current_text = install_authored_residuals(current_text)
+        powered = name == '13de70' and authored_powered
+        if powered:
+            current_text = install_authored_powered(current_text, body(canonical, name), authored)
+        start = current_text.index('{') + 1
+        output = output[:current.start()] + current_text[:start] + prefix(name, body(canonical, name)) + current_text[start:] + output[current.end():]
         first = FIRST_BODY.search(output)
         if not first or begin in output:
             raise ValueError(f'Frame misc reference {name} needs one unbound unit')
-        block = begin + reference(name, body(canonical, name)) + end
+        original = body(canonical, name)
+        reference_body = reference(name, original)
+        if authored:
+            reference_body += (authored_linear_ramp_reference(original) + authored_cubic_reference(original)
+                               + authored_clamp_reference(original))
+        if powered:
+            reference_body += authored_powered_reference(original)
+        block = begin + reference_body + end
         output = output[:first.start()] + block + output[first.start():]
         include = OWNERS[name]['include']
+        if authored:
+            include += AUTHORED_RESIDUAL_HEADERS
+        if powered:
+            include += AUTHORED_POWERED_HEADER
         if include not in output:
             output = include + output
         installed.append(name)

@@ -4,6 +4,8 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <optional>
+#include <span>
 
 namespace halo2 {
 // DirectSound's I3DL2 code in the TU1.5 executable (its DSOUND section; the
@@ -92,6 +94,15 @@ std::uint16_t sound_dls2_cutoff_tu15(float hz);
 // 32768 x 10^(-dB/20), saturated at 0xFFFF.
 std::uint16_t sound_dls2_resonance_tu15(float db);
 
+// SetFilter's mode, Q field and four coefficient words, as built by 226C00.
+struct SoundPlaybackFilterTu15 {
+  std::uint8_t mode{}, q{};
+  std::array<std::uint16_t, 4> coefficients{};
+  friend bool operator==(const SoundPlaybackFilterTu15 &, const SoundPlaybackFilterTu15 &) = default;
+};
+std::optional<SoundPlaybackFilterTu15> source_sound_playback_filter_tu15(
+    std::span<const std::uint32_t, 18> authored, float control, std::uint32_t seed, bool stereo);
+
 // The voice processor's f for a cutoff word: 2^(int16(word) / 4096) taken
 // to a 1024th of an octave, then to the nearest 1/65536, at most FFFFh.
 // Retail-console measurements (xemu pull request 3105): word D97Eh gave
@@ -119,4 +130,5 @@ std::uint32_t sound_route_gain_tu15(std::uint16_t attenuation);
 // them. fraction is the cursor's 16-bit fraction; weights are for samples
 // -3..+4.
 std::array<double, 8> sound_resampler_weights_tu15(std::uint16_t fraction);
+const std::array<std::array<double, 8>, 257> &sound_resampler_table_tu15() noexcept;
 } // namespace halo2

@@ -214,10 +214,18 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
         marker = shaders.PATH_TRACING_LIGHTING_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
+        marker = shaders.PATH_TRACING_RAY_TRACING_MARKER.rstrip(b'\0').decode()
+        self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
         marker = shaders.PATH_TRACING_TEMPORAL_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
         marker = shaders.PATH_TRACING_AMBIENT_SURFACE_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
+        marker = shaders.PATH_TRACING_WATER_MARKER.rstrip(b'\0').decode()
+        self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
+        marker = shaders.OBJECT_MOTION_BLUR_MARKER.rstrip(b'\0').decode()
+        self.assertIn('"'+marker+'"', (ROOT/'src/rendering/renderer/renderer.cpp').read_text())
+        marker = shaders.PATH_TRACING_GLOW_MARKER.rstrip(b'\0').decode()
+        self.assertIn('"'+marker+'"', (ROOT/'src/rendering/path_tracing/render.cpp').read_text())
         marker = shaders.PSTENCIL_VOLUME_GEOMETRY_MARKER.rstrip(b'\0').decode()
         self.assertIn('"'+marker+'"', (ROOT/'src/pstencil/render.cpp').read_text())
 
@@ -233,6 +241,36 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
     def test_path_tracing_executable_requires_its_complete_shader_pair(self):
         self.omit_path_tracing_modules(shaders.PATH_TRACING_FILES)
         self.assertFalse(self.f.available())
+
+    def test_water_reflection_executable_requires_both_water_shaders(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.PATH_TRACING_WATER_MARKER)
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.omit_path_tracing_modules({"path_tracing/water_reflection.rt.frag.spv"})
+        self.assertFalse(self.f.available())
+
+    def test_older_path_tracing_executable_can_omit_water_shaders(self):
+        self.omit_path_tracing_modules(shaders.PATH_TRACING_WATER_FILES)
+        self.assertTrue(self.f.available())
+
+    def test_ray_tracing_executable_requires_its_ray_tracing_shaders(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.PATH_TRACING_RAY_TRACING_MARKER)
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.omit_path_tracing_modules({"path_tracing/trace.comp.spv"})
+        self.assertFalse(self.f.available())
+
+    def test_older_path_tracing_executable_can_omit_ray_tracing_shaders(self):
+        self.omit_path_tracing_modules(shaders.PATH_TRACING_RAY_TRACING_FILES)
+        self.assertTrue(self.f.available())
+
+    def test_object_motion_blur_executable_requires_its_shaders(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.OBJECT_MOTION_BLUR_MARKER)
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.omit_path_tracing_modules(shaders.OBJECT_MOTION_BLUR_FILES)
+        self.assertFalse(self.f.available())
+
+    def test_older_executable_can_omit_object_motion_blur_shaders(self):
+        self.omit_path_tracing_modules(shaders.OBJECT_MOTION_BLUR_FILES)
+        self.assertTrue(self.f.available())
 
     def test_pstencil_volume_geometry_executable_requires_its_geometry_stage(self):
         self.omit_path_tracing_modules(shaders.PSTENCIL_VOLUME_GEOMETRY_FILES)
